@@ -12,8 +12,16 @@ diagnose() {
   echo "::group::Screen (text and ids)"
   maestro hierarchy 2>/dev/null | grep -oE '"(text|resource-id|accessibilityText)" *: *"[^"]+"' | tail -80 || true
   echo "::endgroup::"
-  echo "::group::logcat (app, JS, player)"
-  adb logcat -d -v brief ReactNativeJS:V ExoPlayerImpl:V ExoPlayerImplInternal:V MediaCodecRenderer:V EventLogger:V '*:W' | tail -200 || true
+  echo "::group::Crashes (logcat crash buffer)"
+  adb logcat -d -b crash | tail -80 || true
+  echo "::endgroup::"
+  echo "::group::logcat (app process: JS, player)"
+  local pid
+  pid="$(adb shell pidof -s "$APP_ID" 2>/dev/null | tr -d '\r' || true)"
+  if [ -n "$pid" ]; then adb logcat -d -v brief --pid="$pid" | tail -200 || true; else
+    echo "App is not running; JS and player tags only:"
+    adb logcat -d -v brief ReactNativeJS:V ExoPlayerImpl:V MediaCodecRenderer:V AndroidRuntime:E '*:S' | tail -200 || true
+  fi
   echo "::endgroup::"
 }
 

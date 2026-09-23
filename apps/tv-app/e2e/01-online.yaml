@@ -10,15 +10,16 @@ appId: ${APP_ID}
 - tapOn:
     id: "login-server"
 - inputText: "http://localhost:8091"
-- hideKeyboard
+# Enter closes the TV keyboard; hideKeyboard sends Back, which exits the app if the keyboard already closed.
+- pressKey: Enter
 - tapOn:
     id: "login-username"
 - inputText: "demo"
-- hideKeyboard
+- pressKey: Enter
 - tapOn:
     id: "login-password"
 - inputText: "demo"
-- hideKeyboard
+- pressKey: Enter
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
