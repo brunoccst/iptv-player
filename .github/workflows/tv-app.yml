@@ -21,6 +21,8 @@ env:
   # The emulator reaches the runner's localhost at 10.0.2.2.
   APP_API_BASE_URL: http://10.0.2.2:5091
   APP_ID: com.iptvplayer.tv
+  # Logs every remote event to logcat so failed flows show which keys reached the app.
+  APP_TV_DEBUG_REMOTE: '1'
   E2E_RUN_DIR: /tmp/iptv-e2e
 
 jobs:

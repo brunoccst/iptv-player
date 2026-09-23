@@ -36,5 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     APP_NAME: requireEnv('APP_NAME'),
     APP_SLUG: requireEnv('APP_SLUG'),
     APP_API_BASE_URL: requireEnv('APP_API_BASE_URL'),
+    // Optional: '1' logs every remote event (used by the emulator CI build).
+    APP_TV_DEBUG_REMOTE: process.env.APP_TV_DEBUG_REMOTE ?? '',
   },
 });

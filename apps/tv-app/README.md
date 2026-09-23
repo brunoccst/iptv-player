@@ -34,7 +34,7 @@ flowchart TD
 | `name` | `APP_NAME` |
 | `slug` | `APP_SLUG` |
 | `android.package` | `APP_ANDROID_PACKAGE` |
-| `extra.*` | `APP_NAME`, `APP_SLUG`, `APP_API_BASE_URL` |
+| `extra.*` | `APP_NAME`, `APP_SLUG`, `APP_API_BASE_URL`; optional `APP_TV_DEBUG_REMOTE=1` logs every remote event to logcat (`ReactNativeJS`), used by the emulator CI build |
 
 Real device: `APP_API_BASE_URL=http://<PC LAN IP>:5080`. Emulator: `http://10.0.2.2:5080`. Plain HTTP is allowed (`usesCleartextTraffic`).
 

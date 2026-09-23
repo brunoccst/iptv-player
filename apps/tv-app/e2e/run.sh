@@ -15,6 +15,9 @@ diagnose() {
   echo "::group::Crashes (logcat crash buffer)"
   adb logcat -d -b crash | tail -80 || true
   echo "::endgroup::"
+  echo "::group::JS log (ReactNativeJS)"
+  adb logcat -d -v brief -s ReactNativeJS:V | tail -80 || true
+  echo "::endgroup::"
   echo "::group::logcat (app process: JS, player)"
   local pid
   pid="$(adb shell pidof -s "$APP_ID" 2>/dev/null | tr -d '\r' || true)"
