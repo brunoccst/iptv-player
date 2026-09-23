@@ -12,8 +12,8 @@ obj/
 .turbo/
 .expo/
 web-build/
-android/
-ios/
+/apps/tv-app/android/
+/apps/tv-app/ios/
 *.apk
 *.aab
 
