@@ -18,7 +18,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             ["APP_NAME"] = "Test App",
             ["APP_SLUG"] = "test-app",
-            ["BACKEND_DATA_DIR"] = _dataDirectory,
+            ["DATA_DIR"] = _dataDirectory,
             ["BACKEND_STREAM_DELIVERY"] = "relay",
             ["BACKEND_CATALOG_CACHE_MINUTES"] = "5",
         }));

@@ -5,14 +5,15 @@ namespace Backend.Core.Configuration;
 
 public static class BackendOptionsServiceCollectionExtensions
 {
-    /// <summary>Binds <see cref="BackendOptions"/> from flat <c>BACKEND_*</c> keys. Relative data dir resolves against <paramref name="contentRoot"/>.</summary>
+    /// <summary>Binds <see cref="BackendOptions"/> from flat keys. Relative <c>DATA_DIR</c> resolves against the <c>.env</c> directory, else <paramref name="contentRoot"/>.</summary>
     public static IServiceCollection AddBackendOptions(this IServiceCollection services, string contentRoot)
     {
         services.AddOptions<BackendOptions>()
             .Configure<IConfiguration>((options, configuration) =>
             {
                 var dataDirectory = configuration[BackendOptions.EnvKeys.DataDirectory]?.Trim();
-                options.DataDirectory = Path.GetFullPath(string.IsNullOrEmpty(dataDirectory) ? ".data" : dataDirectory, contentRoot);
+                var baseDirectory = configuration[DotEnvConfigurationExtensions.DotEnvDirectoryKey] ?? contentRoot;
+                options.DataDirectory = Path.GetFullPath(string.IsNullOrEmpty(dataDirectory) ? ".data" : dataDirectory, baseDirectory);
 
                 if (Enum.TryParse<StreamDeliveryMode>(configuration[BackendOptions.EnvKeys.StreamDelivery], ignoreCase: true, out var mode))
                 {

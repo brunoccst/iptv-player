@@ -2,6 +2,7 @@ using Backend.Api.Auth;
 using Backend.Api.Errors;
 using Backend.Core.Providers;
 using Backend.Infrastructure.Accounts;
+using Backend.Infrastructure.Library;
 using Backend.Infrastructure.Xtream;
 
 namespace Backend.Api.Endpoints;
@@ -20,7 +21,8 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> LoginAsync(
-        LoginRequest request, AccountService accounts, SessionService sessions, ProfileService profiles, CancellationToken ct)
+        LoginRequest request, AccountService accounts, SessionService sessions, ProfileService profiles, LibrarySyncQueue librarySync,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrEmpty(request.Password))
         {
@@ -34,6 +36,7 @@ public static class AuthEndpoints
                 request.ProviderType ?? XtreamCodesProvider.Type, request.ServerUrl, request.Username, request.Password, ct);
             var session = await sessions.CreateAsync(account.Id, ct);
             var accountProfiles = await profiles.ListAsync(account.Id, ct);
+            librarySync.Request(account.Id);
 
             return Results.Ok(new LoginResponse(
                 session.Token, session.ExpiresAt, AccountDto.From(account), accountProfiles.Select(ProfileDto.From).ToList()));

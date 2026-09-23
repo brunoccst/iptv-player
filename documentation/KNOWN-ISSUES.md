@@ -16,6 +16,10 @@ Bugs, external limitations, technical debt and risks.
 | [KI-010](#ki-010) | Limitation | web-player | Open |
 | [KI-011](#ki-011) | Risk | backend | Open |
 | [KI-012](#ki-012) | Tech debt | backend | Open |
+| [KI-013](#ki-013) | Limitation | title-normalizer | Open |
+| [KI-014](#ki-014) | Limitation | title-normalizer | Open |
+| [KI-015](#ki-015) | Risk | backend + worker | Open |
+| [KI-016](#ki-016) | Limitation | backend | Open |
 
 ---
 
@@ -92,4 +96,32 @@ Xtream stream URLs contain the username and password in the path. `appsettings.j
 
 **Catalog cache is memory-only** — logged 2026-09-23
 
-`CatalogService` cache (D-015) is lost on restart and holds full lists in RAM (large VOD catalogs can reach tens of MB per account). Acceptable for one local user. Step 3 master media objects will move durable metadata to the database.
+`CatalogService` cache (D-015) is lost on restart and holds full lists in RAM (large VOD catalogs can reach tens of MB per account). Acceptable for one local user. The deduplicated library (`/api/library`) is persisted in `pipeline.db`; the raw `/api/catalog` endpoints still use this cache.
+
+## KI-013
+
+**Master ids can change between syncs** — logged 2026-09-23
+
+A master id derives from the group's most frequent spelling + year (D-017). If a provider renames entries so another spelling becomes most frequent, or a year appears/disappears, the id changes. Anything stored against the old id (future "continue watching", "My list") would orphan. Mitigation when those features land: store the variant `stream_id` too, or re-link by `normalized_key`.
+
+## KI-014
+
+**Matching blind spots** — logged 2026-09-23
+
+- Typos in the first 4 characters are never fuzzy-matched (blocking, D-017).
+- A year-less title with a typo does not join a dated group (fuzzy needs equal years).
+- Translated titles ("La Casa de Papel" vs "Money Heist") never merge; needs external IDs (TMDB).
+- Only English leading articles are ignored in keys.
+- Unusual tags not in `tags.py` stay in the title and can split groups. Fix: add the token and a test case.
+
+## KI-015
+
+**Two processes write SQLite** — logged 2026-09-23
+
+The worker's library replace holds a write lock for the transaction (≈ 1 s for 50k items). Backend writes to `pipeline.db` (new jobs) wait up to 30 s (busy timeout). `app.db` is unaffected. Moving to cloud requires replacing SQLite with a server database and queue (D-018).
+
+## KI-016
+
+**Library refreshes only on login or manual sync** — logged 2026-09-23
+
+`/api/library` data is refreshed after each login and on `POST /api/library/sync`. Sessions last 30 days, so new provider titles can be missing for weeks. The worker must also be running; otherwise jobs stay `pending` (visible in `/api/library/status`).

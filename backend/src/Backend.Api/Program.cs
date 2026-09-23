@@ -5,6 +5,7 @@ using Backend.Api.Errors;
 using Backend.Core.Configuration;
 using Backend.Infrastructure;
 using Backend.Infrastructure.Persistence;
+using Backend.Infrastructure.Pipeline;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,12 @@ var app = builder.Build();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
-    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    // WAL lets the Python worker read/write pipeline.db while the API is running. See DECISIONS.md#d-016.
+    foreach (DbContext db in new DbContext[] { scope.ServiceProvider.GetRequiredService<AppDbContext>(), scope.ServiceProvider.GetRequiredService<PipelineDbContext>() })
+    {
+        await db.Database.MigrateAsync();
+        await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+    }
 }
 
 app.UseExceptionHandler();
@@ -59,6 +65,7 @@ app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapCatalogEndpoints();
 app.MapPlaybackEndpoints();
+app.MapLibraryEndpoints();
 app.MapRelayEndpoints();
 
 app.Run();

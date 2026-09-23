@@ -20,6 +20,10 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-013](#d-013) | 2026-09-23 | Stream delivery: backend relay by default |
 | [D-014](#d-014) | 2026-09-23 | Persistence: SQLite + EF Core migrations |
 | [D-015](#d-015) | 2026-09-23 | Catalog cache: in-memory, per account |
+| [D-016](#d-016) | 2026-09-23 | SQLite job queue + shared `pipeline.db` |
+| [D-017](#d-017) | 2026-09-23 | Title normalizer: regex parsing + guarded fuzzy grouping |
+| [D-018](#d-018) | 2026-09-23 | Python worker runs as a CLI poller locally |
+| [D-019](#d-019) | 2026-09-23 | `DATA_DIR` shared key, paths relative to repo root |
 
 ---
 
@@ -210,7 +214,7 @@ Other rules:
 Decision:
 1. Client sends Xtream server URL, username, password once to `POST /api/auth/login`.
 2. Backend validates them server-to-server (`player_api.php`). Rejects inactive/expired accounts.
-3. Backend stores the account; password encrypted with ASP.NET Core Data Protection (key ring in `BACKEND_DATA_DIR/keys`).
+3. Backend stores the account; password encrypted with ASP.NET Core Data Protection (key ring in `DATA_DIR/keys`).
 4. Backend returns a random 256-bit opaque bearer token. Only its SHA-256 hash is stored.
 5. First login creates one default profile named after the username.
 
@@ -286,7 +290,7 @@ Rules:
 
 **Persistence: SQLite + EF Core migrations** — 2026-09-23
 
-Decision: EF Core 10 with SQLite at `BACKEND_DATA_DIR/app.db`. Migrations live in `Backend.Infrastructure/Persistence/Migrations` and run automatically on startup. `dotnet-ef` is a local tool (`backend/dotnet-tools.json`).
+Decision: EF Core 10 with SQLite at `DATA_DIR/app.db`. Migrations live in `Backend.Infrastructure/Persistence/Migrations` and run automatically on startup. `dotnet-ef` is a local tool (`backend/dotnet-tools.json`).
 
 Why:
 - Local-only (D-010): no database server to install.
@@ -300,3 +304,98 @@ Why:
 Decision: `CatalogService` caches provider responses in `IMemoryCache` for `BACKEND_CATALOG_CACHE_MINUTES` (default 15), keyed by account + request.
 
 Why: Xtream `get_vod_streams` without a category can return tens of thousands of items and take seconds. In-memory is enough for a single local process. Durable metadata storage belongs to Step 3 (master media objects).
+
+## D-016
+
+**SQLite job queue + shared `pipeline.db`** — 2026-09-23
+
+Decision (owner-approved): the queue between backend and Python is a table in a second SQLite file, `DATA_DIR/pipeline.db`. The same file holds the output (`master_media`, `media_variants`). `app.db` (accounts, encrypted passwords) stays backend-only.
+
+```mermaid
+sequenceDiagram
+  participant A as Backend
+  participant Q as pipeline.db
+  participant W as Python worker
+  A->>A: login / POST /api/library/sync
+  A->>A: fetch get_vod_streams + get_series (background)
+  A->>Q: INSERT job (pending, payload JSON) or replace pending payload
+  loop every 5 s
+    W->>Q: UPDATE ... SET processing WHERE id = oldest pending RETURNING
+  end
+  W->>W: parse + group
+  W->>Q: BEGIN IMMEDIATE; replace masters/variants; job = done; COMMIT
+  A->>Q: SELECT masters for /api/library
+```
+
+Why:
+- Local-only (D-010): no Azurite, Redis or broker to install. SQLite is already used.
+- Separate file: the Python process never opens the database holding credentials. Large payloads and bulk rewrites do not bloat or lock `app.db`.
+- One schema owner: EF Core (`PipelineDbContext`) creates and migrates `pipeline.db`. Python only reads/writes rows. Two writers of DDL would drift.
+- Contract enforcement: `pipeline-schema.sql` is generated from the EF model and committed. A backend test fails if it is stale; Python tests build their database from it. A column rename breaks Python tests immediately, not at runtime.
+- snake_case names and Unix-second integer timestamps: natural in Python/SQL, no `DateTimeOffset` text parsing.
+
+Queue rules:
+- Claim is a single `UPDATE ... RETURNING` statement: atomic, safe with several workers.
+- One pending job per account + kind: a newer sync replaces the pending payload instead of stacking jobs.
+- Retries: failure → `pending` until 3 attempts → `failed`. Jobs stuck in `processing` for 10 min (crashed worker) are requeued.
+- Output is a full snapshot per account + kind, replaced in one transaction. Readers never see a half-written library.
+- Processed payloads are cleared (`[]`) to keep the file small.
+- Both processes use WAL mode + 30 s busy timeout, so API reads continue while the worker writes.
+
+## D-017
+
+**Title normalizer: regex parsing + guarded fuzzy grouping** — 2026-09-23
+
+Decision: rule-based parsing (regex + vocabularies in `tags.py`) and `rapidfuzz` string similarity. No ML/NLP model.
+
+Why: IPTV titles follow a small set of conventions (language prefixes, bracket tags, scene names). Rules are fast, deterministic, debuggable by juniors, and each failure becomes a test case. A model would add a large dependency and non-deterministic output for little gain.
+
+Parsing steps (`parser.parse_title`):
+
+```mermaid
+flowchart TD
+  R[raw title] --> F[fold phrases: WEB-DL→webdl, Dual Audio→dual]
+  F --> P[strip prefixes: EN - , NF: , 4K-EN - ]
+  P --> B[brackets: years + tag-only groups removed; other parens kept]
+  B --> D[scene names: dots/underscores → spaces]
+  D --> Z[cut at first year or strong tag after word 1 → tag zone]
+  Z --> T[strip trailing tag words: ENG, ENG-ESP]
+  T --> C[tidy: Matrix, The → The Matrix]
+  C --> K[key: accents, case, punctuation, roman numerals, leading 'the/a/an' removed]
+```
+
+False-positive guards:
+- Two-letter language codes (`IT`, `US`, `DE`) count only inside prefixes/brackets or when uppercase. "It (2017)" and "Us (2019)" keep their titles.
+- Prefixes must be uppercase or contain a digit, and every token must be a known tag.
+- The first word is never cut ("2001: A Space Odyssey", "1917"). Years outside 1900..next year are title words ("Blade Runner 2049").
+- `US`/`UK` are not languages: "The Office (US)" and "The Office (UK)" stay distinct.
+
+Grouping (`matching.group_titles`), in order:
+1. Exact: same compact key (spaces removed) + same year. "Spider-Man" = "Spiderman".
+2. Year-less join: a title without year joins the dated group with the same key only if exactly one exists. "Dune" with both 1984 and 2021 present stays separate.
+3. Fuzzy: `fuzz.ratio ≥ 90` on compact keys within blocks sharing the first 4 characters. Requires equal years, equal number tokens (sequels: "Toy Story 2" ≠ "Toy Story 3"), and exact match for keys shorter than 6 characters ("Up" ≠ "Us").
+
+Rule 3 requires equal years because a year-less title matching two dated titles would chain remakes into one group (found by test, 2026-09-23).
+
+Master output:
+- `id` = SHA-1 of account + kind + compact key + year (first 20 hex chars). Stable across re-syncs while the group's canonical key/year are unchanged.
+- Display title: most frequent spelling in the group.
+- Variants ordered by `quality_score` (resolution rank + source adjustment: CAM −300 … REMUX +30, HDR +5). Label example: `4K · HDR · ENG · DUAL`. Duplicate labels get `(2)`, `(3)`.
+
+Performance (2026-09-23, sandbox CPU): ~50,000 items → ~22,000 masters in 4.6 s.
+
+## D-018
+
+**Python worker runs as a CLI poller locally** — 2026-09-23
+
+Decision: `python -m title_normalizer` polls `pipeline.db` every 5 s. `function_app.py` keeps only the health route; no Functions trigger reads the SQLite queue.
+
+Why: Azure Functions needs Core Tools + a storage emulator locally, and SQLite is not a supported trigger source. A plain loop is simpler to run and debug. Cloud move: swap the SQLite queue for an Azure Storage Queue trigger that calls the same `build_masters()`; the engine modules do not change (D-008).
+
+## D-019
+
+**`DATA_DIR` shared key, paths relative to repo root** — 2026-09-23
+
+Decision: `BACKEND_DATA_DIR` is renamed `DATA_DIR`. Relative values resolve against the directory containing `.env` (repo root) in both backend and Python. Default: `<repo>/.data`.
+
+Why: backend and worker must open the same `pipeline.db`. One key and one resolution rule removes a class of "worker looks in the wrong folder" bugs. The backend exposes the `.env` directory internally as `DOTENV_DIRECTORY`.

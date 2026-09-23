@@ -4,6 +4,9 @@ namespace Backend.Core.Configuration;
 
 public static class DotEnvConfigurationExtensions
 {
+    /// <summary>Config key holding the directory of the loaded <c>.env</c>. Relative paths in <c>.env</c> resolve against it.</summary>
+    public const string DotEnvDirectoryKey = "DOTENV_DIRECTORY";
+
     /// <summary>Loads the nearest <c>.env</c> above <paramref name="startDirectory"/>, then <c>.env.local</c>.</summary>
     /// <remarks>Env vars are re-added last so they win. See DECISIONS.md#d-003.</remarks>
     public static IConfigurationBuilder AddRootDotEnv(this IConfigurationBuilder builder, string startDirectory)
@@ -13,6 +16,8 @@ public static class DotEnvConfigurationExtensions
         {
             return builder;
         }
+
+        builder.AddInMemoryCollection([new KeyValuePair<string, string?>(DotEnvDirectoryKey, envDirectory)]);
 
         foreach (var fileName in new[] { ".env", ".env.local" })
         {

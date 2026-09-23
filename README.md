@@ -15,15 +15,17 @@ flowchart LR
   API[backend<br/>ASP.NET Core .NET 10]
   PY[services/title-normalizer<br/>Python]
   IPTV[(IPTV provider<br/>Xtream Codes)]
-  DB[(SQLite)]
-  Q[[Queue]]
+  DB[(SQLite app.db)]
+  Q[(SQLite pipeline.db<br/>queue + master media)]
 
   WEB --> SHARED
   TV --> SHARED
   SHARED -->|HTTP| API
   API -->|server-to-server + stream relay| IPTV
   API --> DB
-  API --> Q --> PY --> DB
+  API -->|enqueue raw VOD/series| Q
+  PY -->|claim job, write masters| Q
+  API -->|read masters| Q
 ```
 
 ## Structure
@@ -62,16 +64,17 @@ npm run backend:run         # API on http://localhost:5080 (also reachable on LA
 
 cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
   && pip install -r requirements-dev.txt && python -m pytest
+python -m title_normalizer  # dedup worker (venv active); needs the backend to have started once
 ```
 
 ## Configuration
 
 | File | Committed | Purpose |
 |------|-----------|---------|
-| `.env` | Yes | Defaults: `APP_*` (public, shared by all apps), `BACKEND_*` (API only, see [`backend/README.md`](./backend/README.md#config)). |
+| `.env` | Yes | Defaults: `APP_*` (public, shared by all apps), `DATA_DIR` (local databases, shared by backend + services), `BACKEND_*` (API only, see [`backend/README.md`](./backend/README.md#config)). |
 | `.env.local` | No | Local overrides and secrets. |
 
-Precedence (low → high): `.env` → `.env.local` → real environment variables.
+Precedence (low → high): `.env` → `.env.local` → real environment variables. Relative paths resolve against the repo root.
 
 TV app on a real device: set `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env.local`.
 

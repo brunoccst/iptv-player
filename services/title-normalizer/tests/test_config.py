@@ -7,7 +7,7 @@ from title_normalizer.config import SettingsError, find_env_directory, load_sett
 
 @pytest.fixture(autouse=True)
 def clear_app_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    for key in ("APP_NAME", "APP_SLUG"):
+    for key in ("APP_NAME", "APP_SLUG", "DATA_DIR"):
         monkeypatch.delenv(key, raising=False)
 
 
@@ -41,3 +41,15 @@ def test_missing_keys_raise(tmp_path: Path) -> None:
 
     with pytest.raises(SettingsError, match="APP_NAME, APP_SLUG"):
         load_settings(tmp_path)
+
+
+def test_data_dir_resolves_relative_to_env_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DATA_DIR", raising=False)
+    (tmp_path / ".env").write_text("APP_NAME=x\nAPP_SLUG=x\nDATA_DIR=var/data\n")
+    nested = tmp_path / "services"
+    nested.mkdir()
+
+    settings = load_settings(nested)
+
+    assert settings.data_dir == (tmp_path / "var" / "data").resolve()
+    assert settings.pipeline_db_path == settings.data_dir / "pipeline.db"

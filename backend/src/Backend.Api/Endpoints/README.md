@@ -7,4 +7,5 @@
 | `CatalogEndpoints.cs` | `/api/catalog/*` |
 | `PlaybackEndpoints.cs` | `/api/playback/{kind}/{id}` |
 | `RelayEndpoints.cs` | `/api/relay/{token}/{fileName}` |
+| `LibraryEndpoints.cs` | `/api/library/*` |
 | `Dtos.cs` | Request/response records. |

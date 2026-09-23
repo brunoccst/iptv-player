@@ -3,6 +3,8 @@ using Backend.Core.Configuration;
 using Backend.Core.Providers;
 using Backend.Infrastructure.Accounts;
 using Backend.Infrastructure.Catalog;
+using Backend.Infrastructure.Library;
+using Backend.Infrastructure.Pipeline;
 using Backend.Infrastructure.Persistence;
 using Backend.Infrastructure.Security;
 using Backend.Infrastructure.Streaming;
@@ -29,6 +31,8 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>((provider, options) =>
             options.UseSqlite($"Data Source={Path.Combine(DataDirectory(provider), "app.db")}"));
+        services.AddDbContext<PipelineDbContext>((provider, options) =>
+            options.UseSqlite($"Data Source={Path.Combine(DataDirectory(provider), "pipeline.db")}"));
 
         // Fixed application name: keys must survive an APP_NAME/APP_SLUG rename.
         services.AddDataProtection().SetApplicationName("backend");
@@ -53,6 +57,10 @@ public static class DependencyInjection
         services.AddScoped<ProfileService>();
         services.AddScoped<CatalogService>();
         services.AddScoped<PlaybackService>();
+        services.AddScoped<LibrarySyncService>();
+        services.AddScoped<LibraryService>();
+        services.AddSingleton<LibrarySyncQueue>();
+        services.AddHostedService<LibrarySyncWorker>();
 
         return services;
     }

@@ -14,7 +14,7 @@ public sealed class BackendOptions
 {
     public static class EnvKeys
     {
-        public const string DataDirectory = "BACKEND_DATA_DIR";
+        public const string DataDirectory = "DATA_DIR";
         public const string StreamDelivery = "BACKEND_STREAM_DELIVERY";
         public const string CorsOrigins = "BACKEND_CORS_ORIGINS";
         public const string SessionDays = "BACKEND_SESSION_DAYS";
@@ -23,8 +23,13 @@ public sealed class BackendOptions
         public const string CatalogCacheMinutes = "BACKEND_CATALOG_CACHE_MINUTES";
     }
 
-    /// <summary>Absolute path for the SQLite database and Data Protection keys.</summary>
+    /// <summary>Absolute path for SQLite databases and Data Protection keys. Shared with <c>services/</c>.</summary>
     public string DataDirectory { get; set; } = string.Empty;
+
+    public string AppDatabasePath => Path.Combine(DataDirectory, "app.db");
+
+    /// <summary>Queue + master media database shared with the Python title normalizer.</summary>
+    public string PipelineDatabasePath => Path.Combine(DataDirectory, "pipeline.db");
 
     public StreamDeliveryMode StreamDelivery { get; set; } = StreamDeliveryMode.Relay;
 

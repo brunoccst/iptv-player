@@ -21,12 +21,12 @@ public class CatalogPlaybackRelayTests : IDisposable
     {
         await _client.LoginAndAuthorizeAsync();
 
-        var first = await _client.GetFromJsonAsync<List<MovieSummary>>("/api/catalog/movies", ApiClientExtensions.Json);
-        var second = await _client.GetFromJsonAsync<List<MovieSummary>>("/api/catalog/movies", ApiClientExtensions.Json);
+        var first = await _client.GetFromJsonAsync<List<MovieSummary>>("/api/catalog/movies?categoryId=10", ApiClientExtensions.Json);
+        var second = await _client.GetFromJsonAsync<List<MovieSummary>>("/api/catalog/movies?categoryId=10", ApiClientExtensions.Json);
 
         Assert.Equal(2, first!.Count);
         Assert.Equal(first, second);
-        Assert.Single(_factory.Upstream.Requests, r => r.RequestUri!.Query.Contains("action=get_vod_streams"));
+        Assert.Single(_factory.Upstream.Requests, r => r.RequestUri!.Query.Contains("action=get_vod_streams&category_id=10"));
     }
 
     [Fact]

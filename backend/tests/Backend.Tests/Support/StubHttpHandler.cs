@@ -6,11 +6,11 @@ namespace Backend.Tests.Support;
 /// <summary>In-memory HTTP handler. Routes each request through a delegate.</summary>
 public sealed class StubHttpHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
 {
-    public List<HttpRequestMessage> Requests { get; } = [];
+    public System.Collections.Concurrent.ConcurrentQueue<HttpRequestMessage> Requests { get; } = new();
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        Requests.Add(request);
+        Requests.Enqueue(request);
         var response = respond(request);
         response.RequestMessage ??= request;
         return Task.FromResult(response);

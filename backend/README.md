@@ -11,6 +11,8 @@ flowchart LR
   SVC --> XP[XtreamCodesProvider]
   XP -->|player_api.php| IPTV[(Xtream panel)]
   C -->|/api/relay/token/file| API -->|stream bytes| IPTV
+  SVC --> PDB[(SQLite .data/pipeline.db)]
+  PY[services/title-normalizer] --> PDB
 ```
 
 ## Requirements
@@ -33,7 +35,14 @@ dotnet tool restore
 dotnet ef migrations add <Name> --project src/Backend.Infrastructure --startup-project src/Backend.Api --output-dir Persistence/Migrations
 ```
 
-Migrations apply automatically on startup.
+Pipeline database (shared with Python) uses a second context:
+
+```bash
+dotnet ef migrations add <Name> --context PipelineDbContext --project src/Backend.Infrastructure --startup-project src/Backend.Api --output-dir Pipeline/Migrations
+UPDATE_PIPELINE_SCHEMA=1 dotnet test backend/Backend.sln   # refresh Pipeline/pipeline-schema.sql, then commit it
+```
+
+Migrations apply automatically on startup. Both databases run in WAL mode.
 
 ## Config
 
@@ -42,7 +51,7 @@ Loads the repo root `.env`, then `.env.local`, then real environment variables (
 | Key | Default | Purpose |
 |-----|---------|---------|
 | `APP_NAME`, `APP_SLUG` | required | App identity. Startup fails if missing. |
-| `BACKEND_DATA_DIR` | `.data` | SQLite DB + encryption keys. Relative to `src/Backend.Api`. |
+| `DATA_DIR` | `.data` | `app.db`, `pipeline.db`, encryption keys. Relative to the repo root. Shared with `services/`. |
 | `BACKEND_STREAM_DELIVERY` | `relay` | `relay`: streams pass through the API. `direct`: clients get upstream URLs (contain credentials). |
 | `BACKEND_CORS_ORIGINS` | none | Comma-separated browser origins allowed to call the API. |
 | `BACKEND_SESSION_DAYS` | `30` | Login token lifetime. |
@@ -50,7 +59,7 @@ Loads the repo root `.env`, then `.env.local`, then real environment variables (
 | `BACKEND_CATALOG_CACHE_MINUTES` | `15` | In-memory catalog cache. `0` disables. |
 | `BACKEND_PROVIDER_USER_AGENT` | none | `User-Agent` sent to providers. |
 
-Deleting `BACKEND_DATA_DIR` resets all accounts, profiles and sessions.
+Deleting `DATA_DIR` resets all accounts, profiles, sessions and the deduplicated library.
 
 ## Endpoints
 
@@ -69,6 +78,10 @@ OpenAPI document (Development only): `GET /openapi/v1.json`.
 | GET | `/api/catalog/series/categories`, `/api/catalog/series?categoryId=`, `/api/catalog/series/{id}` | Bearer | Series + seasons + episodes. |
 | GET | `/api/playback/{live\|movie\|episode}/{id}?container=` | Bearer | `{url, container, isLive, deliveryMode}`. |
 | GET | `/api/relay/{token}/{fileName}` | token in path | Stream relay. Rewrites HLS playlists; forwards `Range`. |
+| POST | `/api/library/sync` | Bearer | Queue a library sync (also runs after every login). `202`. |
+| GET | `/api/library/status` | Bearer | Latest normalization job per kind + master count. |
+| GET | `/api/library/{movies\|series}?categoryId=&search=&offset=&limit=` | Bearer | Deduplicated master cards `{total, items}`. `limit` ≤ 500. |
+| GET | `/api/library/{movies\|series}/{masterId}` | Bearer | Master + variants (best first). Play a variant via `/api/playback/{movie\|...}/{streamId}`. |
 
 Error bodies are RFC 9457 problem details with a `code` field:
 
@@ -91,5 +104,5 @@ Error bodies are RFC 9457 problem details with a `code` field:
 | `Directory.Packages.props` | Central NuGet version list. |
 | `src/Backend.Api` | HTTP host: endpoints, auth, error mapping, relay. |
 | `src/Backend.Core` | Domain models, `IMediaProvider`, config. No database or HTTP client code. |
-| `src/Backend.Infrastructure` | Xtream provider, EF Core SQLite, encryption, services. |
+| `src/Backend.Infrastructure` | Xtream provider, EF Core SQLite (`app.db`, `pipeline.db`), encryption, services. |
 | `tests/Backend.Tests` | xUnit tests. |

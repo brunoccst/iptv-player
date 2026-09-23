@@ -19,7 +19,8 @@
     "backend:build": "dotnet build backend/Backend.sln",
     "backend:test": "dotnet test backend/Backend.sln",
     "backend:run": "dotnet run --project backend/src/Backend.Api",
-    "services:test": "cd services/title-normalizer && python -m pytest"
+    "services:test": "cd services/title-normalizer && python -m pytest",
+    "services:worker": "cd services/title-normalizer && python -m title_normalizer"
   },
   "devDependencies": {
     "turbo": "^2.11.3",

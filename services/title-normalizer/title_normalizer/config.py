@@ -1,4 +1,4 @@
-"""Loads public app settings from the repo root .env. Real environment variables win."""
+"""Loads settings from the repo root .env (then .env.local). Real environment variables win."""
 
 import os
 from dataclasses import dataclass
@@ -15,6 +15,12 @@ class SettingsError(RuntimeError):
 class Settings:
     app_name: str
     app_slug: str
+    data_dir: Path
+
+    @property
+    def pipeline_db_path(self) -> Path:
+        """Queue + master media database shared with the backend."""
+        return self.data_dir / "pipeline.db"
 
 
 def find_env_directory(start: Path) -> Path | None:
@@ -25,7 +31,8 @@ def find_env_directory(start: Path) -> Path | None:
 
 
 def load_settings(start: Path | None = None) -> Settings:
-    env_directory = find_env_directory((start or Path(__file__)).resolve())
+    start_path = (start or Path(__file__)).resolve()
+    env_directory = find_env_directory(start_path)
     if env_directory is not None:
         # .env.local first: load_dotenv never overrides already-set values.
         load_dotenv(env_directory / ".env.local", override=False)
@@ -35,4 +42,8 @@ def load_settings(start: Path | None = None) -> Settings:
     if missing:
         raise SettingsError(f"Missing required app config keys: {', '.join(missing)}. Check the root .env file.")
 
-    return Settings(app_name=os.environ["APP_NAME"].strip(), app_slug=os.environ["APP_SLUG"].strip())
+    # Relative DATA_DIR resolves against the .env directory, same rule as the backend.
+    base = env_directory or (start_path if start_path.is_dir() else start_path.parent)
+    data_dir = (base / (os.environ.get("DATA_DIR", "").strip() or ".data")).resolve()
+
+    return Settings(app_name=os.environ["APP_NAME"].strip(), app_slug=os.environ["APP_SLUG"].strip(), data_dir=data_dir)
