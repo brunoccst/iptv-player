@@ -127,6 +127,13 @@
   accent-color: var(--color-accent);
 }
 
+/* Phones have hardware volume buttons; the mute button stays. */
+@media (max-width: 720px) {
+  .player__volume {
+    display: none;
+  }
+}
+
 /* Timeline */
 .timeline {
   position: relative;

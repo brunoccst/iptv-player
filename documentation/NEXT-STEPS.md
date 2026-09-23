@@ -21,6 +21,7 @@ flowchart LR
 - [x] **Step 7 — Live TV EPG grid**: XMLTV cache + short-EPG fallback, `/api/epg` paged grid, shared store + layout helpers, web and TV guides, fake panel EPG, tests (D-031, D-032).
 - [x] **Linters/formatters + web e2e in CI** (requested 2026-09-23): ESLint + Prettier, `dotnet format`, Ruff, `lint` and `web-e2e` CI jobs (D-033).
 - [x] **One-command dev start** (requested 2026-09-23): `npm run dev:all` (D-034).
+- [x] **Phone testing via Codespaces** (requested 2026-09-23): `.devcontainer` with the fake panel, mobile nav/player fixes (D-035).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
