@@ -5,6 +5,7 @@ load balancers), supports HTTP Range, a sliding-window live HLS playlist, and SV
 """
 
 import argparse
+import base64
 import json
 import math
 import re
@@ -26,6 +27,14 @@ CONTENT_TYPES = {
     ".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4",
     ".mkv": "video/x-matroska", ".ts": "video/mp2t", ".svg": "image/svg+xml",
 }
+EPG_SLOT_SECONDS = 30 * 60
+EPG_SHOWS = {
+    "301": ["Morning Briefing", "World Report", "Business Hour", "Headlines"],
+    "302": ["Match Day Live", "Highlights", "Studio Talk"],
+    "303": ["Forecast", "Storm Watch"],
+    "304": ["Arena Live", "Warm-up"],
+    "305": ["Cartoon Club", "Story Time", "Science Kids"],
+}
 COLORS = ["#b20710", "#1f6feb", "#8250df", "#1a7f37", "#bf8700", "#cf222e"]
 
 
@@ -40,6 +49,25 @@ def episode_by_id(episode_id: str) -> dict | None:
                 if episode["id"] == episode_id:
                     return {**episode, "season": season["number"], "series": series}
     return None
+
+
+def epg_programmes(channel: dict, start: int, end: int) -> list[dict]:
+    """Deterministic schedule anchored at UTC midnight: 30/60/90-minute shows, so every caller sees the same guide."""
+    shows = EPG_SHOWS.get(channel["id"], ["Programme"])
+    cursor = start - start % 86400 - 86400
+    result, count = [], 0
+    while cursor < end:
+        length = (1 + (count + int(channel["id"])) % 3) * EPG_SLOT_SECONDS
+        title = shows[count % len(shows)]
+        if cursor + length > start:
+            result.append({"start": cursor, "stop": cursor + length, "title": title, "desc": f"{title} on {channel['name']}."})
+        cursor += length
+        count += 1
+    return result
+
+
+def xmltv_time(seconds: int) -> str:
+    return time.strftime("%Y%m%d%H%M%S +0000", time.gmtime(seconds))
 
 
 def image(kind: str, item_id: str) -> str:
@@ -58,6 +86,8 @@ class Handler(BaseHTTPRequestHandler):
         path = url.path
         if path == "/player_api.php":
             return self.player_api(parse_qs(url.query))
+        if path == "/xmltv.php":
+            return self.xmltv(parse_qs(url.query))
         if match := re.fullmatch(r"/(movie|series|live)/([^/]+)/([^/]+)/([^/.]+)\.(\w+)", path):
             return self.stream(*match.groups())
         if match := re.fullmatch(r"/live-media/(\w+)/index\.m3u8", path):
@@ -132,7 +162,33 @@ class Handler(BaseHTTPRequestHandler):
                 "num": i + 1, "name": c["name"], "stream_type": "live", "stream_id": int(c["id"]),
                 "stream_icon": base + image("logo", c["id"]), "epg_channel_id": c["epg"], "category_id": c["category"], "tv_archive": 0,
             } for i, c in enumerate(by_category(CATALOG["live"]))])
+        if action == "get_short_epg":
+            channel = next((c for c in CATALOG["live"] if c["id"] == query.get("stream_id", [""])[0]), None)
+            limit = int(query.get("limit", ["4"])[0])
+            now = int(time.time())
+            listings = epg_programmes(channel, now, now + 24 * 3600)[:limit] if channel else []
+            encode = lambda text: base64.b64encode(text.encode()).decode()  # noqa: E731 - real panels base64 these
+            return self.json({"epg_listings": [{
+                "title": encode(p["title"]), "description": encode(p["desc"]),
+                "start_timestamp": str(p["start"]), "stop_timestamp": str(p["stop"]),
+            } for p in listings]})
         return self.json([])
+
+    def xmltv(self, query: dict[str, list[str]]) -> None:
+        """Full guide for channels with an XMLTV id (ids lower-cased here to exercise case-insensitive matching)."""
+        if query.get("username", [""])[0] != USER or query.get("password", [""])[0] != PASSWORD:
+            return self.send_error(HTTPStatus.FORBIDDEN)
+        now = int(time.time())
+        channels = [c for c in CATALOG["live"] if c["epg"]]
+        parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<tv generator-info-name="fake-xtream">']
+        parts += [f'<channel id="{escape(c["epg"].lower())}"><display-name>{escape(c["name"])}</display-name></channel>' for c in channels]
+        for c in channels:
+            for p in epg_programmes(c, now - 3 * 3600, now + 24 * 3600):
+                parts.append(
+                    f'<programme start="{xmltv_time(p["start"])}" stop="{xmltv_time(p["stop"])}" channel="{escape(c["epg"].lower())}">'
+                    f'<title lang="en">{escape(p["title"])}</title><desc lang="en">{escape(p["desc"])}</desc></programme>')
+        parts.append("</tv>")
+        self.body("\n".join(parts).encode(), "application/xml", cache=False)
 
     def stream(self, kind: str, user: str, password: str, item_id: str, extension: str) -> None:
         if user != USER or password != PASSWORD:

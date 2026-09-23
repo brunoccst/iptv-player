@@ -3,6 +3,10 @@ import type { components, operations } from './generated/schema';
 type Schemas = components['schemas'];
 
 export type AccountDto = Schemas['AccountDto'];
+export type EpgChannelRow = Schemas['EpgChannelRow'];
+export type EpgGrid = Schemas['EpgGrid'];
+export type EpgListing = Schemas['EpgListing'];
+export type EpgStatus = Schemas['EpgStatus'];
 export type Episode = Schemas['Episode'];
 export type HealthResponse = Schemas['HealthResponse'];
 export type LibraryPage = Schemas['LibraryPage'];

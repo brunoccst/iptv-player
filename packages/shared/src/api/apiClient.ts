@@ -17,6 +17,15 @@ export interface LibraryListQuery {
   limit?: number;
 }
 
+/** `from` is an ISO timestamp; the backend defaults it to the current half hour. */
+export interface EpgGridQuery {
+  categoryId?: string | null;
+  from?: string | null;
+  hours?: number;
+  offset?: number;
+  limit?: number;
+}
+
 const segment = encodeURIComponent;
 
 /** Typed wrapper for every backend endpoint. Return types come from the generated OpenAPI operations. */
@@ -77,6 +86,12 @@ export function createApiClient(http: HttpClient) {
         get<OperationResult<'listLibrary'>>(`/api/library/${section}`, { ...query }, signal),
       get: (section: LibrarySection, masterId: string, signal?: AbortSignal) =>
         get<OperationResult<'getLibraryItem'>>(`/api/library/${section}/${segment(masterId)}`, undefined, signal),
+    },
+
+    epg: {
+      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) =>
+        get<OperationResult<'getEpgGrid'>>('/api/epg', { ...query }, signal),
+      refresh: () => http.request<OperationResult<'refreshEpg', 202>>('POST', '/api/epg/refresh'),
     },
 
     playback: {

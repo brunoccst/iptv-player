@@ -2,6 +2,7 @@ import { createApiClient, type ApiClient } from './api/apiClient';
 import { createHttpClient } from './api/httpClient';
 import type { AppConfig } from './config/appConfig';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
+import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
@@ -14,6 +15,7 @@ export interface AppContext {
   stores: {
     session: SessionStore;
     catalog: CatalogStore;
+    epg: EpgStore;
     library: LibraryStore;
     player: PlayerStore;
     progress: ProgressStore;
@@ -40,6 +42,7 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
 
   session = createSessionStore({ api, storage });
   const catalog = createCatalogStore({ api });
+  const epg = createEpgStore({ api });
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
@@ -48,6 +51,7 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
   session.subscribe((state, previous) => {
     if (previous.account?.id && state.account?.id !== previous.account.id) {
       catalog.getState().reset();
+      epg.getState().reset();
       library.getState().reset();
       player.getState().close();
     }
@@ -58,5 +62,5 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
     }
   });
 
-  return { config, api, stores: { session, catalog, library, player, progress } };
+  return { config, api, stores: { session, catalog, epg, library, player, progress } };
 }

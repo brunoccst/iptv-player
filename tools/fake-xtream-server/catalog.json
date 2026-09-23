@@ -8,7 +8,8 @@
   "seriesCategories": [{ "id": "30", "name": "Series" }],
   "liveCategories": [
     { "id": "1", "name": "News" },
-    { "id": "2", "name": "Sports" }
+    { "id": "2", "name": "Sports" },
+    { "id": "3", "name": "Kids" }
   ],
   "movies": [
     { "id": "101", "name": "EN - Big Test Movie (2020) [4K]", "category": "11", "media": "movie-hls", "container": "mkv", "rating": 8.1, "plot": "A synthetic test pattern goes on an adventure.", "genre": "Action", "duration": 30 },
@@ -43,6 +44,9 @@
   ],
   "live": [
     { "id": "301", "name": "Test News HD", "category": "1", "epg": "news.test" },
-    { "id": "302", "name": "Test Sports FHD", "category": "2", "epg": "sports.test" }
+    { "id": "302", "name": "Test Sports FHD", "category": "2", "epg": "sports.test" },
+    { "id": "303", "name": "Test Weather", "category": "1", "epg": "weather.test" },
+    { "id": "304", "name": "Test Arena (no XMLTV id)", "category": "2", "epg": "" },
+    { "id": "305", "name": "Test Kids", "category": "3", "epg": "KIDS.test" }
   ]
 }
