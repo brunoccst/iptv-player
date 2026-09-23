@@ -36,7 +36,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-030](#ki-030) | Limitation | backend | Open |
 | [KI-031](#ki-031) | Limitation | web-player, tv-app | Open |
 | [KI-032](#ki-032) | Limitation | backend, clients | Open |
-| [KI-033](#ki-033) | Risk | tv-app CI | Open |
+| [KI-033](#ki-033) | Risk | tv-app CI | Resolved |
 
 ---
 
@@ -245,3 +245,4 @@ Channels report `hasCatchup`, but past programmes cannot be played; selecting on
 
 Run 6 of `tv-app.yml` showed the player ready but the position at 0:00. The emulator now runs with a sound device (D-030); until a green run confirms it, TV playback is verified by Jest tests only.
 
+Resolved 2026-09-23: `tv-app.yml` run 15 is green (login, playback, pause, +10 s skip, quick drawer, download, TV guide, offline playback). The runs on the way found and fixed three device bugs Jest could not see: no focused view on the player (D-028), `select` reported on release only, and release-only arrow events (remote normalizer).
