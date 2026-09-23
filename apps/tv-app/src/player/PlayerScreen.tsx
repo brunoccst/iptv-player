@@ -182,9 +182,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       }
       return;
     }
+    // react-native-tvos reports select/playPause on release only (like a click); other keys on press.
+    if (key === 'select' || key === 'playPause') {
+      if (action !== 'down' && (key === 'playPause' || !focusablesVisible)) setPaused((p) => !p);
+      return;
+    }
     if (action === 'up') return;
     if (key === 'up' || key === 'down') setDrawer(true);
-    else if ((key === 'select' && !focusablesVisible) || key === 'playPause') setPaused((p) => !p);
     else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
   });

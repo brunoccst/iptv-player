@@ -71,6 +71,26 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('player-focus')).toBeNull();
   });
 
+  it('select pauses and resumes on key release (how Android TV reports it), not on press', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(8, 30);
+
+    await act(async () => pressRemote('select', 'down'));
+    expect(playerState.props?.paused).toBe(false);
+    await act(async () => pressRemote('select', 'up'));
+    expect(playerState.props?.paused).toBe(true);
+    expect(screen.getByTestId('player-time')).toHaveTextContent(/0:08 \/ 0:30.*Paused/);
+    await act(async () => jest.advanceTimersByTime(10_000));
+    expect(screen.getByTestId('player-time')).toBeTruthy();
+
+    await act(async () => pressRemote('playPause', 'up'));
+    expect(playerState.props?.paused).toBe(false);
+  });
+
   it('tap ←/→ skips 10 s with a flash; holding scrubs with acceleration and seeks once on release', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
