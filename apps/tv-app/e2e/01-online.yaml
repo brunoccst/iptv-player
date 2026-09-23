@@ -81,3 +81,23 @@ appId: ${APP_ID}
     id: "rail-downloads"
 - assertVisible: "Big Test Movie"
 - takeScreenshot: 05-downloads
+# Live TV guide: each channel shows what is on now; "Test Arena" (304) has no XMLTV id and comes from short EPG.
+- tapOn:
+    id: "rail-live"
+- extendedWaitUntil:
+    visible:
+      id: "guide-now-301"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "guide-now-304"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 05b-guide
+- tapOn:
+    id: "guide-now-301"
+- extendedWaitUntil:
+    visible:
+      id: "player-screen"
+    timeout: 30000
+- pressKey: back

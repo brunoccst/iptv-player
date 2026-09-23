@@ -4,9 +4,9 @@
 
 | File | Purpose |
 |------|---------|
-| `01-online.yaml` | Login, deduplicated library, details + version picker, playback, D-pad skip, quick drawer, download. |
+| `01-online.yaml` | Login, deduplicated library, details + version picker, playback, D-pad skip, quick drawer, download, Live TV guide (XMLTV + short-EPG channel) → play. |
 | `02-offline.yaml` | With provider and backend stopped: cached session → My Downloads → offline playback. |
-| `run.sh <out-dir>` | Runs both flows (stops the stack in between). |
+| `run.sh <out-dir>` | Runs both flows (stops the stack in between). On failure prints on-screen text/ids and filtered logcat. |
 
 ## Run locally
 

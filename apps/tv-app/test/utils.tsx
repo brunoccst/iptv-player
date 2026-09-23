@@ -25,6 +25,7 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   playerState.reset();
   stores.library.getState().reset();
   stores.catalog.getState().reset();
+  stores.epg.getState().reset();
   stores.progress.getState().reset();
   downloadsStore.setState({ records: {}, errors: {} });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
