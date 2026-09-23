@@ -18,7 +18,9 @@ describe('session store', () => {
   const create = () => createAppContext({ config, storage, fetch: backend.fetch }).stores.session;
 
   it('login stores token, auto-selects a single profile and persists', async () => {
-    backend.on('POST', '/api/auth/login', { body: { token: 'tok', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1')] } });
+    backend.on('POST', '/api/auth/login', {
+      body: { token: 'tok', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1')] },
+    });
     const session = create();
 
     await expect(session.getState().login({ serverUrl: 's', username: 'u', password: 'p' })).resolves.toBe(true);
@@ -98,11 +100,16 @@ describe('session store', () => {
   });
 
   it('profile mutations update the list and active profile', async () => {
-    backend.on('POST', '/api/auth/login', { body: { token: 'tok', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1'), profile('p2')] } });
+    backend.on('POST', '/api/auth/login', {
+      body: { token: 'tok', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1'), profile('p2')] },
+    });
     backend.on('POST', '/api/profiles', { status: 201, body: profile('p3', 'Kids') });
     backend.on('PUT', '/api/profiles/p1', { body: profile('p1', 'Renamed') });
     backend.on('DELETE', '/api/profiles/p2', { status: 204 });
-    backend.on('DELETE', '/api/profiles/p1', { status: 400, body: { detail: 'The last profile cannot be deleted.', code: 'validation_failed' } });
+    backend.on('DELETE', '/api/profiles/p1', {
+      status: 400,
+      body: { detail: 'The last profile cannot be deleted.', code: 'validation_failed' },
+    });
     const session = create();
     await session.getState().login({ serverUrl: 's', username: 'u', password: 'p' });
     expect(session.getState().activeProfileId).toBeNull();

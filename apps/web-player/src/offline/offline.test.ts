@@ -42,9 +42,13 @@ function fakeUpstream(file: Uint8Array<ArrayBuffer>, options: { hls?: boolean; h
     };
     switch (url.pathname) {
       case '/relay/master.m3u8':
-        return hls ? ok('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100\nlow/index.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=900\nhigh/index.m3u8\n') : ok('', {}, 404);
+        return hls
+          ? ok('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=100\nlow/index.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=900\nhigh/index.m3u8\n')
+          : ok('', {}, 404);
       case '/relay/high/index.m3u8':
-        return ok('#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXT-X-KEY:METHOD=AES-128,URI="/keys/k.bin"\n#EXTINF:2,\ns0.m4s\n#EXTINF:2,\ns1.m4s\n#EXTINF:2,\ns2.m4s\n#EXT-X-ENDLIST\n');
+        return ok(
+          '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\n#EXT-X-KEY:METHOD=AES-128,URI="/keys/k.bin"\n#EXTINF:2,\ns0.m4s\n#EXTINF:2,\ns1.m4s\n#EXTINF:2,\ns2.m4s\n#EXT-X-ENDLIST\n',
+        );
       case '/relay/high/init.mp4':
         return ok(bytes(64, 9));
       case '/keys/k.bin':
@@ -73,7 +77,9 @@ const api = {
   playback: {
     get: async (_kind: string, _id: string, container?: string | null) => ({
       url: container === 'm3u8' ? 'http://relay.test/relay/master.m3u8' : 'http://relay.test/relay/movie.mp4',
-      container: container ?? 'mp4', isLive: false, deliveryMode: 'relay',
+      container: container ?? 'mp4',
+      isLive: false,
+      deliveryMode: 'relay',
     }),
   },
 } as unknown as ApiClient;
@@ -84,14 +90,29 @@ function setup(file = bytes(10), options: { hls?: boolean; honorRange?: boolean 
   const upstream = fakeUpstream(file, options);
   const changes: string[] = [];
   const manager = new DownloadManager({
-    api, db, chunks, fetch: upstream.fetch,
+    api,
+    db,
+    chunks,
+    fetch: upstream.fetch,
     onChange: (change) => changes.push('deleted' in change ? `deleted:${change.id}` : `${change.status}:${change.completedParts}`),
   });
-  return { db, chunks, upstream, manager, changes, respond: (path: string, range: string | null = null) => respondOffline(new URL(path, origin), range, { db, chunks }) };
+  return {
+    db,
+    chunks,
+    upstream,
+    manager,
+    changes,
+    respond: (path: string, range: string | null = null) => respondOffline(new URL(path, origin), range, { db, chunks }),
+  };
 }
 
-const target = (streamId: string, container = 'mkv') =>
-  ({ kind: 'movie' as const, streamId, container, title: 'Movie', posterUrl: 'http://relay.test/poster.jpg' });
+const target = (streamId: string, container = 'mkv') => ({
+  kind: 'movie' as const,
+  streamId,
+  container,
+  title: 'Movie',
+  posterUrl: 'http://relay.test/poster.jpg',
+});
 
 describe('chunk crypto', () => {
   it('round-trips and rejects tampering', async () => {
@@ -107,16 +128,22 @@ describe('chunk crypto', () => {
 
 describe('hls playlist helpers', () => {
   it('picks the highest bandwidth variant', () => {
-    expect(pickBestVariant('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=5\na.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=9\nb.m3u8', 'http://x/p/m.m3u8'))
-      .toEqual({ url: 'http://x/p/b.m3u8', bandwidth: 9 });
+    expect(
+      pickBestVariant('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=5\na.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=9\nb.m3u8', 'http://x/p/m.m3u8'),
+    ).toEqual({ url: 'http://x/p/b.m3u8', bandwidth: 9 });
   });
 
   it('localizes every URI once and refuses live playlists', () => {
     const result = prepareOfflinePlaylist(
-      '#EXTM3U\n#EXT-X-KEY:URI="k"\n#EXTINF:2,\na.ts\n#EXT-X-KEY:URI="k"\n#EXTINF:2,\nb.ts\n#EXT-X-ENDLIST', 'http://x/p/i.m3u8', (i) => `/L/${i}`);
+      '#EXTM3U\n#EXT-X-KEY:URI="k"\n#EXTINF:2,\na.ts\n#EXT-X-KEY:URI="k"\n#EXTINF:2,\nb.ts\n#EXT-X-ENDLIST',
+      'http://x/p/i.m3u8',
+      (i) => `/L/${i}`,
+    );
 
     expect(result.resources).toEqual(['http://x/p/k', 'http://x/p/a.ts', 'http://x/p/b.ts']);
-    expect(result.playlist).toBe('#EXTM3U\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/1\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/2\n#EXT-X-ENDLIST');
+    expect(result.playlist).toBe(
+      '#EXTM3U\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/1\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/2\n#EXT-X-ENDLIST',
+    );
     expect(() => prepareOfflinePlaylist('#EXTM3U\n#EXTINF:2,\na.ts', 'http://x/', String)).toThrow(LivePlaylistError);
   });
 });

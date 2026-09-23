@@ -50,9 +50,14 @@ function ContinueWatchingRow() {
   return (
     <Row title="Continue Watching">
       {items.map((item) => (
-        <PosterCard key={`${item.kind}-${item.itemId}`} title={item.title} posterUrl={item.posterUrl} progress={item.positionSeconds / item.durationSeconds}
+        <PosterCard
+          key={`${item.kind}-${item.itemId}`}
+          title={item.title}
+          posterUrl={item.posterUrl}
+          progress={item.positionSeconds / item.durationSeconds}
           subtitle={item.kind === 'episode' && item.seasonNumber != null ? `S${item.seasonNumber}:E${item.episodeNumber ?? '?'}` : null}
-          onSelect={() => uiStore.getState().play(progressTarget(item))} />
+          onSelect={() => uiStore.getState().play(progressTarget(item))}
+        />
       ))}
     </Row>
   );
@@ -64,16 +69,29 @@ function LiveRow() {
   const channels = useCatalog((s) => (firstCategory ? (s.liveChannels[firstCategory]?.data ?? []) : []));
 
   const load = () => {
-    void stores.catalog.getState().loadCategories('live').then((loaded) => {
-      if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
-    });
+    void stores.catalog
+      .getState()
+      .loadCategories('live')
+      .then((loaded) => {
+        if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
+      });
   };
 
   return (
     <Row title={categories?.[0] ? `Live TV: ${categories[0].name}` : 'Live TV'} onVisible={load} empty="No channels.">
       {channels.slice(0, ROW_SIZE).map((channel) => (
-        <PosterCard key={channel.id} landscape title={channel.name} posterUrl={channel.logoUrl} badge="LIVE"
-          onSelect={() => uiStore.getState().play({ kind: 'live', streamId: channel.id, container: 'm3u8', title: channel.name, posterUrl: channel.logoUrl })} />
+        <PosterCard
+          key={channel.id}
+          landscape
+          title={channel.name}
+          posterUrl={channel.logoUrl}
+          badge="LIVE"
+          onSelect={() =>
+            uiStore
+              .getState()
+              .play({ kind: 'live', streamId: channel.id, container: 'm3u8', title: channel.name, posterUrl: channel.logoUrl })
+          }
+        />
       ))}
     </Row>
   );
@@ -86,9 +104,14 @@ function LibraryRow({ section, category, title }: { section: LibrarySection; cat
   if (page?.status === 'success' && items.length === 0) return null;
 
   return (
-    <Row title={title} onVisible={() => void stores.library.getState().loadPage(section, query)}
-      empty={page?.status === 'error' ? 'Could not load this row.' : ' '}>
-      {items.map((item) => <MasterCard key={item.id} section={section} item={item} />)}
+    <Row
+      title={title}
+      onVisible={() => void stores.library.getState().loadPage(section, query)}
+      empty={page?.status === 'error' ? 'Could not load this row.' : ' '}
+    >
+      {items.map((item) => (
+        <MasterCard key={item.id} section={section} item={item} />
+      ))}
     </Row>
   );
 }

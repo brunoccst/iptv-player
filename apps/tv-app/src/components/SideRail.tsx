@@ -25,8 +25,13 @@ export function SideRail() {
       <RailItem label={profile?.name ?? 'Profile'} onPress={() => stores.session.getState().selectProfile(null)} testID="rail-profile" />
       <View style={styles.spacer} />
       {ITEMS.map((item) => (
-        <RailItem key={item.section} label={item.label} active={active === item.section} testID={`rail-${item.section}`}
-          onPress={() => navStore.getState().goSection(item.section)} />
+        <RailItem
+          key={item.section}
+          label={item.label}
+          active={active === item.section}
+          testID={`rail-${item.section}`}
+          onPress={() => navStore.getState().goSection(item.section)}
+        />
       ))}
     </TVFocusGuideView>
   );
@@ -35,9 +40,16 @@ export function SideRail() {
 function RailItem({ label, active, onPress, testID }: { label: string; active?: boolean; onPress(): void; testID: string }) {
   const [focused, setFocused] = useState(false);
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!active }}
-      onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-      style={[styles.item, focused && styles.itemFocused]}>
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected: !!active }}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.item, focused && styles.itemFocused]}
+    >
       <Text style={[styles.label, active && styles.labelActive, focused && styles.labelFocused]}>{label}</Text>
     </Pressable>
   );

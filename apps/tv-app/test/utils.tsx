@@ -6,7 +6,13 @@ import { nativeState, playerState } from './tvMediaMock';
 
 export const profile = { id: 'p1', name: 'Alex', avatarKey: null, isKids: false };
 export const account = {
-  id: 'acc-1', providerType: 'xtream', serverUrl: 'http://panel/', username: 'demo', status: 'Active', expiresAt: null, maxConnections: 1,
+  id: 'acc-1',
+  providerType: 'xtream',
+  serverUrl: 'http://panel/',
+  username: 'demo',
+  status: 'Active',
+  expiresAt: null,
+  maxConnections: 1,
 };
 
 /** Fresh fake backend on global fetch, signed-in session, empty caches. */
@@ -29,15 +35,25 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   stores.progress.getState().reset();
   downloadsStore.setState({ records: {}, errors: {} });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
-  stores.session.setState(options.signedIn === false
-    ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }
-    : { status: 'authenticated', token: 'tok', account, profiles: [profile], activeProfileId: 'p1', error: null, busy: false });
+  stores.session.setState(
+    options.signedIn === false
+      ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }
+      : { status: 'authenticated', token: 'tok', account, profiles: [profile], activeProfileId: 'p1', error: null, busy: false },
+  );
   return backend;
 }
 
 export const variant = (streamId: string, label: string, container = 'mkv') => ({
-  streamId, label, quality: null, source: null, audioLanguages: [], audioTag: null, isHdr: false, containerExtension: container,
-  categoryId: null, rawTitle: label,
+  streamId,
+  label,
+  quality: null,
+  source: null,
+  audioLanguages: [],
+  audioTag: null,
+  isHdr: false,
+  containerExtension: container,
+  categoryId: null,
+  rawTitle: label,
 });
 
 export const playback = (url: string, container = 'mkv') => ({ url, container, isLive: false, deliveryMode: 'relay' });

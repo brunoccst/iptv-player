@@ -19,9 +19,13 @@ export function SearchPage() {
       <h1 className="page__title">Results for “{query}”</h1>
       {query ? (
         <>
-          <h2 className="row__title" style={{ margin: '0 0 12px' }}>Movies</h2>
+          <h2 className="row__title" style={{ margin: '0 0 12px' }}>
+            Movies
+          </h2>
           <PagedGrid key={`m-${query}`} section="movies" search={query} />
-          <h2 className="row__title" style={{ margin: '32px 0 12px' }}>Series</h2>
+          <h2 className="row__title" style={{ margin: '32px 0 12px' }}>
+            Series
+          </h2>
           <PagedGrid key={`s-${query}`} section="series" search={query} />
         </>
       ) : null}

@@ -22,8 +22,14 @@ export function ProfilesScreen() {
       <Text style={styles.heading}>Who's watching?</Text>
       <View style={styles.grid}>
         {profiles.map((profile, index) => (
-          <ProfileTile key={profile.id} name={profile.name} color={avatarColor(profile)} isKids={profile.isKids}
-            hasTVPreferredFocus={index === 0} onPress={() => stores.session.getState().selectProfile(profile.id)} />
+          <ProfileTile
+            key={profile.id}
+            name={profile.name}
+            color={avatarColor(profile)}
+            isKids={profile.isKids}
+            hasTVPreferredFocus={index === 0}
+            onPress={() => stores.session.getState().selectProfile(profile.id)}
+          />
         ))}
       </View>
       <FocusButton label="Sign out" variant="ghost" onPress={() => void stores.session.getState().logout()} />
@@ -31,13 +37,30 @@ export function ProfilesScreen() {
   );
 }
 
-function ProfileTile({ name, color, isKids, hasTVPreferredFocus, onPress }: {
-  name: string; color: string; isKids: boolean; hasTVPreferredFocus: boolean; onPress(): void;
+function ProfileTile({
+  name,
+  color,
+  isKids,
+  hasTVPreferredFocus,
+  onPress,
+}: {
+  name: string;
+  color: string;
+  isKids: boolean;
+  hasTVPreferredFocus: boolean;
+  onPress(): void;
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={name} hasTVPreferredFocus={hasTVPreferredFocus} onPress={onPress}
-      onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} style={[styles.tile, focused && styles.tileFocused]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      hasTVPreferredFocus={hasTVPreferredFocus}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.tile, focused && styles.tileFocused]}
+    >
       <View style={[styles.avatar, { backgroundColor: color }, focused && styles.avatarFocused]}>
         <Text style={styles.initial}>{name.charAt(0).toUpperCase()}</Text>
       </View>
@@ -53,7 +76,15 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', gap: spacing.lg },
   tile: { alignItems: 'center', gap: spacing.sm },
   tileFocused: { transform: [{ scale: 1.1 }] },
-  avatar: { width: 110, height: 110, borderRadius: 4, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'transparent' },
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'transparent',
+  },
   avatarFocused: { borderColor: colors.strong },
   initial: { color: colors.strong, fontSize: 48, fontWeight: '700' },
   name: { color: colors.muted, fontSize: fonts.body },

@@ -1,13 +1,22 @@
 import Hls from 'hls.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  NEXT_UP_COUNTDOWN_SECONDS, SKIP_SECONDS, clampTime, findProgress, formatClock, introWindow, isInIntro, nextEpisode, nextUpCountdown,
-  resumePosition, type VariantInfo,
+  NEXT_UP_COUNTDOWN_SECONDS,
+  SKIP_SECONDS,
+  clampTime,
+  findProgress,
+  formatClock,
+  introWindow,
+  isInIntro,
+  nextEpisode,
+  nextUpCountdown,
+  resumePosition,
+  type VariantInfo,
 } from '@iptv/shared';
 import { api, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
-import { useDownloads, useLibrary, useUi } from '../../hooks/stores';
+import { useLibrary, useUi } from '../../hooks/stores';
 import { useAsync } from '../../hooks/useAsync';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
@@ -46,7 +55,6 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [flash, setFlash] = useState<{ side: 'back' | 'forward'; key: number } | null>(null);
   const [, setTracksVersion] = useState(0);
 
-  const offline = useDownloads((s) => (target.kind === 'live' ? null : selectDownload(s, target.kind, target.streamId)));
   const isLive = target.kind === 'live';
 
   // Series context for the episodes drawer and next-up.
@@ -65,9 +73,15 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     const video = videoRef.current;
     if (!video || isLive || !(video.duration > 0) || target.kind === 'live') return;
     void stores.progress.getState().save(target.kind, target.streamId, {
-      title: target.title, positionSeconds: video.currentTime, durationSeconds: video.duration, masterId: target.masterId ?? null,
-      seriesId: target.seriesId ?? null, seasonNumber: target.seasonNumber ?? null, episodeNumber: target.episodeNumber ?? null,
-      posterUrl: target.posterUrl ?? null, containerExtension: target.container,
+      title: target.title,
+      positionSeconds: video.currentTime,
+      durationSeconds: video.duration,
+      masterId: target.masterId ?? null,
+      seriesId: target.seriesId ?? null,
+      seasonNumber: target.seasonNumber ?? null,
+      episodeNumber: target.episodeNumber ?? null,
+      posterUrl: target.posterUrl ?? null,
+      containerExtension: target.container,
     });
   }, [target, isLive]);
 
@@ -130,12 +144,15 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     if (video) video.currentTime = clampTime(seconds, video.duration);
   }, []);
 
-  const skip = useCallback((delta: number) => {
-    const video = videoRef.current;
-    if (!video) return;
-    seekTo(video.currentTime + delta);
-    setFlash({ side: delta < 0 ? 'back' : 'forward', key: Date.now() });
-  }, [seekTo]);
+  const skip = useCallback(
+    (delta: number) => {
+      const video = videoRef.current;
+      if (!video) return;
+      seekTo(video.currentTime + delta);
+      setFlash({ side: delta < 0 ? 'back' : 'forward', key: Date.now() });
+    },
+    [seekTo],
+  );
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -152,8 +169,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const playNext = useCallback(() => {
     if (!next || !series.data || !target.seriesId) return;
     saveProgress();
-    uiStore.getState().replacePlayback(
-      episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl }, next));
+    uiStore
+      .getState()
+      .replacePlayback(
+        episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl }, next),
+      );
   }, [next, series.data, target, saveProgress]);
 
   const switchVariant = (variant: VariantInfo) => {
@@ -161,7 +181,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     saveProgress();
     stores.library.getState().selectVariant(target.masterId!, variant.streamId);
     uiStore.getState().replacePlayback({
-      ...target, streamId: variant.streamId, container: variant.containerExtension, subtitle: variant.label, startAt: video?.currentTime ?? 0,
+      ...target,
+      streamId: variant.streamId,
+      container: variant.containerExtension,
+      subtitle: variant.label,
+      startAt: video?.currentTime ?? 0,
     });
   };
 
@@ -215,8 +239,6 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // wake is stable (defined below via ref-free closure over setIdle).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [togglePlay, skip, toggleFullscreen, close, isLive, panel]);
 
   useEffect(() => {
@@ -273,7 +295,12 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         }}
       />
 
-      {flash ? <div key={flash.key} className={`skip-flash skip-flash--${flash.side}`}>{flash.side === 'back' ? '−' : '+'}{SKIP_SECONDS}s</div> : null}
+      {flash ? (
+        <div key={flash.key} className={`skip-flash skip-flash--${flash.side}`}>
+          {flash.side === 'back' ? '−' : '+'}
+          {SKIP_SECONDS}s
+        </div>
+      ) : null}
 
       <div className="player__overlay">
         <div className="player__top">
@@ -282,13 +309,20 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           </button>
           <div className="player__heading">
             <h2 className="player__title">{target.title}</h2>
-            {target.subtitle ? <p className="player__subtitle">{target.subtitle}{source?.offline ? ' · Downloaded' : ''}</p> : null}
+            {target.subtitle ? (
+              <p className="player__subtitle">
+                {target.subtitle}
+                {source?.offline ? ' · Downloaded' : ''}
+              </p>
+            ) : null}
           </div>
           {isLive ? <span className="player__live">LIVE</span> : null}
         </div>
 
         <div className="player__bottom">
-          {!isLive ? <Timeline currentTime={time} duration={duration} bufferedEnd={buffered} onSeek={seekTo} getPreview={getPreview} /> : null}
+          {!isLive ? (
+            <Timeline currentTime={time} duration={duration} bufferedEnd={buffered} onSeek={seekTo} getPreview={getPreview} />
+          ) : null}
           <div className="player__controls">
             <button type="button" className="player__control" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
               <Icon name={playing ? 'pause' : 'play'} size={36} />
@@ -303,65 +337,123 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                 </button>
               </>
             ) : null}
-            <button type="button" className="player__control" onClick={() => videoRef.current && (videoRef.current.muted = !muted)}
-              aria-label={muted ? 'Unmute' : 'Mute'}>
+            <button
+              type="button"
+              className="player__control"
+              onClick={() => videoRef.current && (videoRef.current.muted = !muted)}
+              aria-label={muted ? 'Unmute' : 'Mute'}
+            >
               <Icon name={muted || volume === 0 ? 'mute' : 'volume'} size={28} />
             </button>
-            <input className="player__volume" type="range" min={0} max={1} step={0.05} value={muted ? 0 : volume} aria-label="Volume"
+            <input
+              className="player__volume"
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={muted ? 0 : volume}
+              aria-label="Volume"
               onChange={(e) => {
                 const video = videoRef.current;
                 if (video) {
                   video.volume = Number(e.target.value);
                   video.muted = false;
                 }
-              }} />
-            {!isLive ? <span className="player__time">{formatClock(time)} / {formatClock(duration)}</span> : null}
+              }}
+            />
+            {!isLive ? (
+              <span className="player__time">
+                {formatClock(time)} / {formatClock(duration)}
+              </span>
+            ) : null}
             <span className="spacer" />
             {series.data ? (
-              <button type="button" className="player__control" onClick={() => setPanel(panel === 'episodes' ? null : 'episodes')} aria-label="Episodes">
+              <button
+                type="button"
+                className="player__control"
+                onClick={() => setPanel(panel === 'episodes' ? null : 'episodes')}
+                aria-label="Episodes"
+              >
                 <Icon name="episodes" size={28} />
               </button>
             ) : null}
-            <button type="button" className="player__control" onClick={() => setPanel(panel === 'tracks' ? null : 'tracks')}
-              aria-label="Audio, subtitles and version">
+            <button
+              type="button"
+              className="player__control"
+              onClick={() => setPanel(panel === 'tracks' ? null : 'tracks')}
+              aria-label="Audio, subtitles and version"
+            >
               <Icon name="subtitles" size={28} />
             </button>
-            <button type="button" className="player__control" onClick={toggleFullscreen} aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}>
+            <button
+              type="button"
+              className="player__control"
+              onClick={toggleFullscreen}
+              aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+            >
               <Icon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} size={30} />
             </button>
           </div>
         </div>
       </div>
 
-      {status === 'loading' ? <div className="player__center"><Spinner label="Loading stream" /></div> : null}
+      {status === 'loading' ? (
+        <div className="player__center">
+          <Spinner label="Loading stream" />
+        </div>
+      ) : null}
       {status === 'error' ? (
         <div className="player__center">
           <div className="player__message" role="alert">
             <p>{error}</p>
-            <button type="button" className="button button--primary" onClick={close}>Go back</button>
+            <button type="button" className="button button--primary" onClick={close}>
+              Go back
+            </button>
           </div>
         </div>
       ) : null}
 
       {status === 'ready' && isInIntro(intro, time) && intro ? (
-        <button type="button" className="player__skip-intro" onClick={() => seekTo(intro.end)}>Skip Intro</button>
+        <button type="button" className="player__skip-intro" onClick={() => seekTo(intro.end)}>
+          Skip Intro
+        </button>
       ) : null}
 
       {status === 'ready' && countdown !== null && next ? (
-        <NextUp episode={next} secondsLeft={Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)} onPlayNow={playNext}
-          onDismiss={() => setNextDismissed(true)} />
+        <NextUp
+          episode={next}
+          secondsLeft={Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)}
+          onPlayNow={playNext}
+          onDismiss={() => setNextDismissed(true)}
+        />
       ) : null}
 
       {panel === 'tracks' ? (
-        <TracksMenu hls={engineRef.current?.hls ?? null} video={videoRef.current} variants={variants} currentStreamId={target.streamId}
-          onVariant={switchVariant} onChange={() => setTracksVersion((v) => v + 1)} />
+        <TracksMenu
+          hls={engineRef.current?.hls ?? null}
+          video={videoRef.current}
+          variants={variants}
+          currentStreamId={target.streamId}
+          onVariant={switchVariant}
+          onChange={() => setTracksVersion((v) => v + 1)}
+        />
       ) : null}
       {panel === 'episodes' && series.data && target.seriesId ? (
-        <EpisodesDrawer series={series.data} currentEpisodeId={target.streamId} onPlay={(episode) => {
-          saveProgress();
-          uiStore.getState().replacePlayback(
-            episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl }, episode));
-        }} />
+        <EpisodesDrawer
+          series={series.data}
+          currentEpisodeId={target.streamId}
+          onPlay={(episode) => {
+            saveProgress();
+            uiStore
+              .getState()
+              .replacePlayback(
+                episodeTarget(
+                  { title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl },
+                  episode,
+                ),
+              );
+          }}
+        />
       ) : null}
     </div>
   );

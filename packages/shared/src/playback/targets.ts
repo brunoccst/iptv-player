@@ -19,8 +19,13 @@ export interface PlayTarget {
 
 export function movieTarget(master: MasterDetails, variant: VariantInfo): PlayTarget {
   return {
-    kind: 'movie', streamId: variant.streamId, container: variant.containerExtension, title: master.title,
-    subtitle: variant.label, posterUrl: master.posterUrl, masterId: master.id,
+    kind: 'movie',
+    streamId: variant.streamId,
+    container: variant.containerExtension,
+    title: master.title,
+    subtitle: variant.label,
+    posterUrl: master.posterUrl,
+    masterId: master.id,
   };
 }
 
@@ -29,21 +34,36 @@ export function episodeTarget(
   episode: Episode,
 ): PlayTarget {
   return {
-    kind: 'episode', streamId: episode.id, container: episode.containerExtension, title: series.title,
-    subtitle: `${episodeLabel(episode)} · ${episode.title}`, posterUrl: episode.stillUrl ?? series.posterUrl, masterId: series.masterId,
-    seriesId: series.seriesId, seasonNumber: episode.seasonNumber, episodeNumber: episode.episodeNumber,
+    kind: 'episode',
+    streamId: episode.id,
+    container: episode.containerExtension,
+    title: series.title,
+    subtitle: `${episodeLabel(episode)} · ${episode.title}`,
+    posterUrl: episode.stillUrl ?? series.posterUrl,
+    masterId: series.masterId,
+    seriesId: series.seriesId,
+    seasonNumber: episode.seasonNumber,
+    episodeNumber: episode.episodeNumber,
   };
 }
 
 export function progressTarget(progress: ProgressDto): PlayTarget {
   const isEpisode = progress.kind === 'episode';
   return {
-    kind: isEpisode ? 'episode' : 'movie', streamId: progress.itemId, container: progress.containerExtension, title: progress.title,
-    subtitle: isEpisode && progress.seasonNumber != null
-      ? episodeLabel({ seasonNumber: progress.seasonNumber, episodeNumber: progress.episodeNumber })
-      : null,
-    posterUrl: progress.posterUrl, masterId: progress.masterId, seriesId: progress.seriesId,
-    seasonNumber: progress.seasonNumber, episodeNumber: progress.episodeNumber, startAt: progress.positionSeconds,
+    kind: isEpisode ? 'episode' : 'movie',
+    streamId: progress.itemId,
+    container: progress.containerExtension,
+    title: progress.title,
+    subtitle:
+      isEpisode && progress.seasonNumber != null
+        ? episodeLabel({ seasonNumber: progress.seasonNumber, episodeNumber: progress.episodeNumber })
+        : null,
+    posterUrl: progress.posterUrl,
+    masterId: progress.masterId,
+    seriesId: progress.seriesId,
+    seasonNumber: progress.seasonNumber,
+    episodeNumber: progress.episodeNumber,
+    startAt: progress.positionSeconds,
   };
 }
 

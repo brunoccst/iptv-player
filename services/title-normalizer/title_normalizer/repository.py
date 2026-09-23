@@ -77,8 +77,10 @@ def complete(connection: sqlite3.Connection, job: Job, masters: list[Master], no
                                       best_quality, variant_count, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            [(m.id, *scope, m.title, m.normalized_key, m.year, m.poster_url, m.rating, m.best_quality, len(m.variants), now)
-             for m in masters],
+            [
+                (m.id, *scope, m.title, m.normalized_key, m.year, m.poster_url, m.rating, m.best_quality, len(m.variants), now)
+                for m in masters
+            ],
         )
         connection.executemany(
             """
@@ -87,14 +89,31 @@ def complete(connection: sqlite3.Connection, job: Job, masters: list[Master], no
                                         rating, container_extension)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            [(*scope, v.stream_id, m.id, v.raw_title, v.label, v.quality, v.source, json.dumps(list(v.audio_languages)),
-              v.audio_tag, int(v.is_hdr), v.quality_score, v.category_id, v.poster_url, v.rating, v.container_extension)
-             for m in masters for v in m.variants],
+            [
+                (
+                    *scope,
+                    v.stream_id,
+                    m.id,
+                    v.raw_title,
+                    v.label,
+                    v.quality,
+                    v.source,
+                    json.dumps(list(v.audio_languages)),
+                    v.audio_tag,
+                    int(v.is_hdr),
+                    v.quality_score,
+                    v.category_id,
+                    v.poster_url,
+                    v.rating,
+                    v.container_extension,
+                )
+                for m in masters
+                for v in m.variants
+            ],
         )
         # Payload is only needed until processed; clearing it keeps pipeline.db small.
         connection.execute(
-            "UPDATE normalization_jobs SET status = 'done', finished_at = ?, error = NULL, payload = '[]', locked_by = NULL "
-            "WHERE id = ?",
+            "UPDATE normalization_jobs SET status = 'done', finished_at = ?, error = NULL, payload = '[]', locked_by = NULL WHERE id = ?",
             (now, job.id),
         )
         connection.execute("COMMIT")

@@ -13,9 +13,13 @@ describe('LoginPage', () => {
   });
 
   it('sends credentials and shows the provider error in plain language', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ detail: 'Invalid', code: 'invalid_provider_credentials' }), {
-      status: 401, headers: { 'content-type': 'application/problem+json' },
-    }));
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ detail: 'Invalid', code: 'invalid_provider_credentials' }), {
+          status: 401,
+          headers: { 'content-type': 'application/problem+json' },
+        }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { LoginPage } = await import('./LoginPage');
 

@@ -33,32 +33,66 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
     <TVFocusGuideView style={styles.drawer} trapFocusUp trapFocusDown trapFocusLeft trapFocusRight testID="quick-drawer">
       <View style={styles.tabs}>
         {tabs.map((t, index) => (
-          <FocusButton key={t.id} label={t.label} hasTVPreferredFocus={index === 0} variant={tab === t.id ? 'primary' : 'ghost'}
-            onPress={() => setTab(t.id)} onFocus={() => setTab(t.id)} />
+          <FocusButton
+            key={t.id}
+            label={t.label}
+            hasTVPreferredFocus={index === 0}
+            variant={tab === t.id ? 'primary' : 'ghost'}
+            onPress={() => setTab(t.id)}
+            onFocus={() => setTab(t.id)}
+          />
         ))}
       </View>
       <ScrollView contentContainerStyle={styles.options}>
         {tab === 'audio' ? (
-          audio.length === 0 ? <Text style={styles.muted}>Default audio</Text> : audio.map((t) => (
-            <FocusButton key={`${t.groupIndex}-${t.trackIndex}`} label={`${t.selected ? '✓ ' : ''}${t.label}`} variant="ghost"
-              onPress={() => onTrack('audio', t.groupIndex, t.trackIndex)} />
-          ))
+          audio.length === 0 ? (
+            <Text style={styles.muted}>Default audio</Text>
+          ) : (
+            audio.map((t) => (
+              <FocusButton
+                key={`${t.groupIndex}-${t.trackIndex}`}
+                label={`${t.selected ? '✓ ' : ''}${t.label}`}
+                variant="ghost"
+                onPress={() => onTrack('audio', t.groupIndex, t.trackIndex)}
+              />
+            ))
+          )
         ) : null}
         {tab === 'subtitles' ? (
           <>
             <FocusButton label={`${text.some((t) => t.selected) ? '' : '✓ '}Off`} variant="ghost" onPress={() => onTrack('text', -1, 0)} />
             {text.map((t) => (
-              <FocusButton key={`${t.groupIndex}-${t.trackIndex}`} label={`${t.selected ? '✓ ' : ''}${t.label}`} variant="ghost"
-                onPress={() => onTrack('text', t.groupIndex, t.trackIndex)} />
+              <FocusButton
+                key={`${t.groupIndex}-${t.trackIndex}`}
+                label={`${t.selected ? '✓ ' : ''}${t.label}`}
+                variant="ghost"
+                onPress={() => onTrack('text', t.groupIndex, t.trackIndex)}
+              />
             ))}
           </>
         ) : null}
-        {tab === 'versions' ? variants.map((v) => (
-          <FocusButton key={v.streamId} label={`${v.streamId === currentStreamId ? '✓ ' : ''}${v.label}`} variant="ghost" onPress={() => onVariant(v)} />
-        )) : null}
-        {tab === 'episodes' && series ? series.seasons.flatMap((season) => season.episodes).map((e) => (
-          <FocusButton key={e.id} label={`${e.id === currentStreamId ? '▶ ' : ''}${episodeLabel(e)} · ${e.title}`} variant="ghost" onPress={() => onEpisode(e)} />
-        )) : null}
+        {tab === 'versions'
+          ? variants.map((v) => (
+              <FocusButton
+                key={v.streamId}
+                label={`${v.streamId === currentStreamId ? '✓ ' : ''}${v.label}`}
+                variant="ghost"
+                onPress={() => onVariant(v)}
+              />
+            ))
+          : null}
+        {tab === 'episodes' && series
+          ? series.seasons
+              .flatMap((season) => season.episodes)
+              .map((e) => (
+                <FocusButton
+                  key={e.id}
+                  label={`${e.id === currentStreamId ? '▶ ' : ''}${episodeLabel(e)} · ${e.title}`}
+                  variant="ghost"
+                  onPress={() => onEpisode(e)}
+                />
+              ))
+          : null}
       </ScrollView>
     </TVFocusGuideView>
   );

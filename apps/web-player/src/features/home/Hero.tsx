@@ -44,7 +44,11 @@ export function Hero({ candidates }: { candidates: MasterCard[] }) {
           <iframe
             className={showTrailer ? 'hero__trailer--visible' : undefined}
             title={`${featured.title} trailer`}
-            src={showTrailer ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(trailer)}&modestbranding=1&playsinline=1` : undefined}
+            src={
+              showTrailer
+                ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(trailer)}&modestbranding=1&playsinline=1`
+                : undefined
+            }
             allow="autoplay; encrypted-media"
             tabIndex={-1}
           />
@@ -55,12 +59,19 @@ export function Hero({ candidates }: { candidates: MasterCard[] }) {
         <h1 className="hero__title">{featured.title}</h1>
         {meta.data?.plot ? <p className="hero__plot">{meta.data.plot}</p> : null}
         <div className="hero__actions">
-          <button type="button" className="button button--primary" disabled={!details || !variant}
-            onClick={() => details && variant && uiStore.getState().play(movieTarget(details, variant))}>
+          <button
+            type="button"
+            className="button button--primary"
+            disabled={!details || !variant}
+            onClick={() => details && variant && uiStore.getState().play(movieTarget(details, variant))}
+          >
             <Icon name="play" /> Play
           </button>
-          <button type="button" className="button button--secondary"
-            onClick={() => uiStore.getState().openDetails({ section: 'movies', masterId: featured.id })}>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => uiStore.getState().openDetails({ section: 'movies', masterId: featured.id })}
+          >
             <Icon name="info" /> More Info
           </button>
         </div>

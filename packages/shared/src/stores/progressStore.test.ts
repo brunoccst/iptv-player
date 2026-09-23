@@ -6,14 +6,26 @@ import { createMemoryStorage } from './storage';
 
 const config = { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' };
 const entry = (itemId: string, updatedAt: string) => ({
-  kind: 'movie', itemId, masterId: null, seriesId: null, seasonNumber: null, episodeNumber: null, title: itemId,
-  posterUrl: null, containerExtension: null, positionSeconds: 100, durationSeconds: 5000, updatedAt,
+  kind: 'movie',
+  itemId,
+  masterId: null,
+  seriesId: null,
+  seasonNumber: null,
+  episodeNumber: null,
+  title: itemId,
+  posterUrl: null,
+  containerExtension: null,
+  positionSeconds: 100,
+  durationSeconds: 5000,
+  updatedAt,
 });
 
 describe('progress store', () => {
   it('loads when a profile is selected and saves optimistically', async () => {
     const backend = createFakeBackend();
-    backend.on('POST', '/api/auth/login', { body: { token: 't', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1'), profile('p2')] } });
+    backend.on('POST', '/api/auth/login', {
+      body: { token: 't', expiresAt: '2030-01-01T00:00:00Z', account, profiles: [profile('p1'), profile('p2')] },
+    });
     backend.on('GET', '/api/profiles/p1/progress', { body: [entry('55', '2026-01-01T00:00:00Z')] });
     backend.on('PUT', '/api/profiles/p1/progress/movie/77', ({ body }) => ({ body: { ...entry('77', 'x'), ...(body as object) } }));
     const { stores } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });

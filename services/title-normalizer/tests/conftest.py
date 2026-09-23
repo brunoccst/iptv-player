@@ -21,8 +21,15 @@ def pipeline_db(tmp_path: Path) -> sqlite3.Connection:
     connection.close()
 
 
-def insert_job(connection: sqlite3.Connection, payload: str, account_id: str = "acc-1", media_kind: str = "movie",
-               status: str = "pending", attempts: int = 0, started_at: int | None = None) -> int:
+def insert_job(
+    connection: sqlite3.Connection,
+    payload: str,
+    account_id: str = "acc-1",
+    media_kind: str = "movie",
+    status: str = "pending",
+    attempts: int = 0,
+    started_at: int | None = None,
+) -> int:
     cursor = connection.execute(
         "INSERT INTO normalization_jobs (account_id, media_kind, status, payload, item_count, attempts, created_at, started_at) "
         "VALUES (?, ?, ?, ?, 0, ?, 0, ?)",

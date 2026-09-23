@@ -9,7 +9,10 @@ const children: ChildProcess[] = [];
 function start(name: string, command: string, args: string[], options: { cwd: string; env?: NodeJS.ProcessEnv }) {
   // Own process group so teardown also stops grandchildren (npx → vite, dotnet run → app).
   const child = spawn(command, args, {
-    cwd: options.cwd, env: { ...process.env, ...options.env }, stdio: ['ignore', 'pipe', 'pipe'], detached: true,
+    cwd: options.cwd,
+    env: { ...process.env, ...options.env },
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
   });
   let output = '';
   child.stdout?.on('data', (chunk) => (output = (output + chunk).slice(-4000)));
@@ -24,7 +27,13 @@ function start(name: string, command: string, args: string[], options: { cwd: st
 async function waitFor(url: string, timeoutMs = 120_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await fetch(url).then((r) => r.status < 500, () => false)) return;
+    if (
+      await fetch(url).then(
+        (r) => r.status < 500,
+        () => false,
+      )
+    )
+      return;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(`Timed out waiting for ${url}`);
@@ -45,7 +54,13 @@ export default async function globalSetup() {
   if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8'))) run('python3', ['generate_media.py'], panelDir);
 
   for (const url of [E2E.panelUrl, E2E.apiUrl, E2E.webUrl]) {
-    if (await fetch(url).then(() => true, () => false)) throw new Error(`${url} is already in use. Stop the process using it first.`);
+    if (
+      await fetch(url).then(
+        () => true,
+        () => false,
+      )
+    )
+      throw new Error(`${url} is already in use. Stop the process using it first.`);
   }
 
   const dataDir = mkdtempSync(path.join(os.tmpdir(), 'iptv-e2e-'));

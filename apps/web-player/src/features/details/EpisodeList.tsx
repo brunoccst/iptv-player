@@ -28,9 +28,15 @@ export function EpisodeList({ series, title, masterId, seriesId, initialSeason }
         <h3>Episodes</h3>
         {series.seasons.length > 1 ? (
           <select className="select" aria-label="Season" value={season.number} onChange={(e) => setSeasonNumber(Number(e.target.value))}>
-            {series.seasons.map((s) => <option key={s.number} value={s.number}>{s.name}</option>)}
+            {series.seasons.map((s) => (
+              <option key={s.number} value={s.number}>
+                {s.name}
+              </option>
+            ))}
           </select>
-        ) : <span className="muted">{season.name}</span>}
+        ) : (
+          <span className="muted">{season.name}</span>
+        )}
       </div>
       {season.episodes.map((episode) => {
         const target = episodeTarget(context, episode);
@@ -38,10 +44,17 @@ export function EpisodeList({ series, title, masterId, seriesId, initialSeason }
         return (
           <div key={episode.id} className="episode">
             <span className="episode__number">{episode.episodeNumber ?? '•'}</span>
-            <button type="button" className="episode__still" onClick={() => uiStore.getState().play(target)} aria-label={`Play ${episode.title}`}>
+            <button
+              type="button"
+              className="episode__still"
+              onClick={() => uiStore.getState().play(target)}
+              aria-label={`Play ${episode.title}`}
+            >
               {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : null}
               {saved && saved.durationSeconds > 0 ? (
-                <span className="card__progress"><span style={{ width: `${(saved.positionSeconds / saved.durationSeconds) * 100}%` }} /></span>
+                <span className="card__progress">
+                  <span style={{ width: `${(saved.positionSeconds / saved.durationSeconds) * 100}%` }} />
+                </span>
               ) : null}
             </button>
             <div>
@@ -49,7 +62,12 @@ export function EpisodeList({ series, title, masterId, seriesId, initialSeason }
               <p className="episode__plot">{[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}</p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="icon-button" onClick={() => uiStore.getState().play(target)} aria-label={`Play ${episode.title}`}>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => uiStore.getState().play(target)}
+                aria-label={`Play ${episode.title}`}
+              >
                 <Icon name="play" size={20} />
               </button>
               <DownloadButton target={downloadTarget(target, episode.durationSeconds)} />

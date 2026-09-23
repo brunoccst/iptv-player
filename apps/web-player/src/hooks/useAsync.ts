@@ -12,7 +12,8 @@ export interface AsyncResult<T> {
 /** Loads `key` once per page session (module cache). `key` null = idle. For ad-hoc reads outside the shared stores. */
 export function useAsync<T>(key: string | null, load: () => Promise<T>): AsyncResult<T> {
   const [state, setState] = useState<AsyncResult<T>>(() =>
-    key && cache.has(key) ? { data: cache.get(key) as T, loading: false, error: null } : { data: null, loading: !!key, error: null });
+    key && cache.has(key) ? { data: cache.get(key) as T, loading: false, error: null } : { data: null, loading: !!key, error: null },
+  );
 
   useEffect(() => {
     if (!key) return setState({ data: null, loading: false, error: null });
@@ -25,7 +26,8 @@ export function useAsync<T>(key: string | null, load: () => Promise<T>): AsyncRe
         if (active) setState({ data, loading: false, error: null });
       },
       (error: unknown) => {
-        if (active) setState({ data: null, loading: false, error: error instanceof ApiError ? error : new ApiError(0, 'http_error', String(error)) });
+        if (active)
+          setState({ data: null, loading: false, error: error instanceof ApiError ? error : new ApiError(0, 'http_error', String(error)) });
       },
     );
     return () => {

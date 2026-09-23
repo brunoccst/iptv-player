@@ -13,8 +13,11 @@ def test_groups_quality_and_language_variants():
         "The.Matrix.1999.1080p.BluRay",
         "Matrix, The (1999) CAM",
         "ES: The Matrix (1999) Dual Audio",
-    ) == [sorted(["EN - The Matrix (1999) [4K]", "The.Matrix.1999.1080p.BluRay", "Matrix, The (1999) CAM",
-                  "ES: The Matrix (1999) Dual Audio"])]
+    ) == [
+        sorted(
+            ["EN - The Matrix (1999) [4K]", "The.Matrix.1999.1080p.BluRay", "Matrix, The (1999) CAM", "ES: The Matrix (1999) Dual Audio"]
+        )
+    ]
 
 
 def test_spacing_and_punctuation_differences_merge():

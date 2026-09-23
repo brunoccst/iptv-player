@@ -7,13 +7,12 @@ load balancers), supports HTTP Range, a sliding-window live HLS playlist, and SV
 import argparse
 import base64
 import json
-import math
 import re
 import time
+from html import escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from html import escape
 from urllib.parse import parse_qs, urlparse
 
 HERE = Path(__file__).resolve().parent
@@ -24,8 +23,12 @@ PASSWORD = CATALOG["credentials"]["password"]
 LIVE_SEGMENT_SECONDS = 2
 LIVE_WINDOW = 5
 CONTENT_TYPES = {
-    ".m3u8": "application/vnd.apple.mpegurl", ".m4s": "video/iso.segment", ".mp4": "video/mp4",
-    ".mkv": "video/x-matroska", ".ts": "video/mp2t", ".svg": "image/svg+xml",
+    ".m3u8": "application/vnd.apple.mpegurl",
+    ".m4s": "video/iso.segment",
+    ".mp4": "video/mp4",
+    ".mkv": "video/x-matroska",
+    ".ts": "video/mp2t",
+    ".svg": "image/svg+xml",
 }
 EPG_SLOT_SECONDS = 30 * 60
 EPG_SHOWS = {
@@ -111,67 +114,156 @@ class Handler(BaseHTTPRequestHandler):
             return [item for item in items if category is None or item["category"] == category]
 
         if action is None:
-            return self.json({
-                "user_info": {"username": USER, "auth": 1, "status": "Active", "exp_date": str(int(time.time()) + 86400 * 365),
-                              "max_connections": "2", "active_cons": "0", "allowed_output_formats": ["m3u8", "ts"]},
-                "server_info": {"url": self.headers.get("Host"), "timezone": "UTC"},
-            })
+            return self.json(
+                {
+                    "user_info": {
+                        "username": USER,
+                        "auth": 1,
+                        "status": "Active",
+                        "exp_date": str(int(time.time()) + 86400 * 365),
+                        "max_connections": "2",
+                        "active_cons": "0",
+                        "allowed_output_formats": ["m3u8", "ts"],
+                    },
+                    "server_info": {"url": self.headers.get("Host"), "timezone": "UTC"},
+                }
+            )
         if action in ("get_vod_categories", "get_series_categories", "get_live_categories"):
             key = {"get_vod_categories": "vodCategories", "get_series_categories": "seriesCategories"}.get(action, "liveCategories")
             return self.json([{"category_id": c["id"], "category_name": c["name"], "parent_id": 0} for c in CATALOG[key]])
         if action == "get_vod_streams":
-            return self.json([{
-                "num": i + 1, "name": m["name"], "stream_type": "movie", "stream_id": int(m["id"]),
-                "stream_icon": base + image("poster", m["id"]), "rating": str(m["rating"]), "added": "1700000000",
-                "category_id": m["category"], "container_extension": m["container"],
-            } for i, m in enumerate(by_category(CATALOG["movies"]))])
+            return self.json(
+                [
+                    {
+                        "num": i + 1,
+                        "name": m["name"],
+                        "stream_type": "movie",
+                        "stream_id": int(m["id"]),
+                        "stream_icon": base + image("poster", m["id"]),
+                        "rating": str(m["rating"]),
+                        "added": "1700000000",
+                        "category_id": m["category"],
+                        "container_extension": m["container"],
+                    }
+                    for i, m in enumerate(by_category(CATALOG["movies"]))
+                ]
+            )
         if action == "get_vod_info":
             movie = movie_by_id(query.get("vod_id", [""])[0])
             if movie is None:
                 return self.json({"info": [], "movie_data": []})
-            return self.json({
-                "info": {"movie_image": base + image("poster", movie["id"]), "backdrop_path": [base + image("backdrop", movie["id"])],
-                         "plot": movie["plot"], "genre": movie["genre"], "rating": str(movie["rating"]), "releasedate": "2020-01-01",
-                         "duration_secs": movie["duration"], "youtube_trailer": "", "cast": "Test Pattern, Sine Wave", "director": "ffmpeg"},
-                "movie_data": {"stream_id": int(movie["id"]), "name": movie["name"], "category_id": movie["category"],
-                               "container_extension": movie["container"]},
-            })
+            return self.json(
+                {
+                    "info": {
+                        "movie_image": base + image("poster", movie["id"]),
+                        "backdrop_path": [base + image("backdrop", movie["id"])],
+                        "plot": movie["plot"],
+                        "genre": movie["genre"],
+                        "rating": str(movie["rating"]),
+                        "releasedate": "2020-01-01",
+                        "duration_secs": movie["duration"],
+                        "youtube_trailer": "",
+                        "cast": "Test Pattern, Sine Wave",
+                        "director": "ffmpeg",
+                    },
+                    "movie_data": {
+                        "stream_id": int(movie["id"]),
+                        "name": movie["name"],
+                        "category_id": movie["category"],
+                        "container_extension": movie["container"],
+                    },
+                }
+            )
         if action == "get_series":
-            return self.json([{
-                "num": i + 1, "name": s["name"], "series_id": int(s["id"]), "cover": base + image("poster", s["id"]),
-                "plot": s["plot"], "genre": s["genre"], "rating": str(s["rating"]), "category_id": s["category"],
-                "releaseDate": "2022-01-01", "last_modified": "1700000000", "backdrop_path": [base + image("backdrop", s["id"])],
-            } for i, s in enumerate(by_category(CATALOG["series"]))])
+            return self.json(
+                [
+                    {
+                        "num": i + 1,
+                        "name": s["name"],
+                        "series_id": int(s["id"]),
+                        "cover": base + image("poster", s["id"]),
+                        "plot": s["plot"],
+                        "genre": s["genre"],
+                        "rating": str(s["rating"]),
+                        "category_id": s["category"],
+                        "releaseDate": "2022-01-01",
+                        "last_modified": "1700000000",
+                        "backdrop_path": [base + image("backdrop", s["id"])],
+                    }
+                    for i, s in enumerate(by_category(CATALOG["series"]))
+                ]
+            )
         if action == "get_series_info":
             series = next((s for s in CATALOG["series"] if s["id"] == query.get("series_id", [""])[0]), None)
             if series is None:
                 return self.json({"seasons": [], "info": [], "episodes": []})
-            return self.json({
-                "seasons": [{"season_number": s["number"], "name": f"Season {s['number']}"} for s in series["seasons"]],
-                "info": {"name": series["name"], "cover": base + image("poster", series["id"]), "plot": series["plot"],
-                         "genre": series["genre"], "rating": str(series["rating"]), "category_id": series["category"],
-                         "backdrop_path": [base + image("backdrop", series["id"])]},
-                "episodes": {str(s["number"]): [{
-                    "id": e["id"], "episode_num": e["num"], "title": f"{series['name']} - S{s['number']:02d}E{e['num']:02d} - {e['title']}",
-                    "container_extension": e["container"], "season": s["number"],
-                    "info": {"duration_secs": e["duration"], "plot": f"Episode {e['num']} plot.", "movie_image": base + image("still", e["id"])},
-                } for e in s["episodes"]] for s in series["seasons"]},
-            })
+            return self.json(
+                {
+                    "seasons": [{"season_number": s["number"], "name": f"Season {s['number']}"} for s in series["seasons"]],
+                    "info": {
+                        "name": series["name"],
+                        "cover": base + image("poster", series["id"]),
+                        "plot": series["plot"],
+                        "genre": series["genre"],
+                        "rating": str(series["rating"]),
+                        "category_id": series["category"],
+                        "backdrop_path": [base + image("backdrop", series["id"])],
+                    },
+                    "episodes": {
+                        str(s["number"]): [
+                            {
+                                "id": e["id"],
+                                "episode_num": e["num"],
+                                "title": f"{series['name']} - S{s['number']:02d}E{e['num']:02d} - {e['title']}",
+                                "container_extension": e["container"],
+                                "season": s["number"],
+                                "info": {
+                                    "duration_secs": e["duration"],
+                                    "plot": f"Episode {e['num']} plot.",
+                                    "movie_image": base + image("still", e["id"]),
+                                },
+                            }
+                            for e in s["episodes"]
+                        ]
+                        for s in series["seasons"]
+                    },
+                }
+            )
         if action == "get_live_streams":
-            return self.json([{
-                "num": i + 1, "name": c["name"], "stream_type": "live", "stream_id": int(c["id"]),
-                "stream_icon": base + image("logo", c["id"]), "epg_channel_id": c["epg"], "category_id": c["category"], "tv_archive": 0,
-            } for i, c in enumerate(by_category(CATALOG["live"]))])
+            return self.json(
+                [
+                    {
+                        "num": i + 1,
+                        "name": c["name"],
+                        "stream_type": "live",
+                        "stream_id": int(c["id"]),
+                        "stream_icon": base + image("logo", c["id"]),
+                        "epg_channel_id": c["epg"],
+                        "category_id": c["category"],
+                        "tv_archive": 0,
+                    }
+                    for i, c in enumerate(by_category(CATALOG["live"]))
+                ]
+            )
         if action == "get_short_epg":
             channel = next((c for c in CATALOG["live"] if c["id"] == query.get("stream_id", [""])[0]), None)
             limit = int(query.get("limit", ["4"])[0])
             now = int(time.time())
             listings = epg_programmes(channel, now, now + 24 * 3600)[:limit] if channel else []
             encode = lambda text: base64.b64encode(text.encode()).decode()  # noqa: E731 - real panels base64 these
-            return self.json({"epg_listings": [{
-                "title": encode(p["title"]), "description": encode(p["desc"]),
-                "start_timestamp": str(p["start"]), "stop_timestamp": str(p["stop"]),
-            } for p in listings]})
+            return self.json(
+                {
+                    "epg_listings": [
+                        {
+                            "title": encode(p["title"]),
+                            "description": encode(p["desc"]),
+                            "start_timestamp": str(p["start"]),
+                            "stop_timestamp": str(p["stop"]),
+                        }
+                        for p in listings
+                    ]
+                }
+            )
         return self.json([])
 
     def xmltv(self, query: dict[str, list[str]]) -> None:
@@ -186,7 +278,8 @@ class Handler(BaseHTTPRequestHandler):
             for p in epg_programmes(c, now - 3 * 3600, now + 24 * 3600):
                 parts.append(
                     f'<programme start="{xmltv_time(p["start"])}" stop="{xmltv_time(p["stop"])}" channel="{escape(c["epg"].lower())}">'
-                    f'<title lang="en">{escape(p["title"])}</title><desc lang="en">{escape(p["desc"])}</desc></programme>')
+                    f'<title lang="en">{escape(p["title"])}</title><desc lang="en">{escape(p["desc"])}</desc></programme>'
+                )
         parts.append("</tv>")
         self.body("\n".join(parts).encode(), "application/xml", cache=False)
 
@@ -213,8 +306,13 @@ class Handler(BaseHTTPRequestHandler):
         if not segments:
             return self.send_error(HTTPStatus.NOT_FOUND)
         sequence = int(time.time() // LIVE_SEGMENT_SECONDS)
-        lines = ["#EXTM3U", "#EXT-X-VERSION:7", f"#EXT-X-TARGETDURATION:{LIVE_SEGMENT_SECONDS}",
-                 f"#EXT-X-MEDIA-SEQUENCE:{sequence}", '#EXT-X-MAP:URI="/media/live/init.mp4"']
+        lines = [
+            "#EXTM3U",
+            "#EXT-X-VERSION:7",
+            f"#EXT-X-TARGETDURATION:{LIVE_SEGMENT_SECONDS}",
+            f"#EXT-X-MEDIA-SEQUENCE:{sequence}",
+            '#EXT-X-MAP:URI="/media/live/init.mp4"',
+        ]
         for number in range(sequence, sequence + LIVE_WINDOW):
             lines += [f"#EXTINF:{LIVE_SEGMENT_SECONDS}.0,", f"seg_{number}.m4s"]
         self.body(("\n".join(lines) + "\n").encode(), CONTENT_TYPES[".m3u8"], cache=False)
@@ -227,11 +325,13 @@ class Handler(BaseHTTPRequestHandler):
         width, height = {"poster": (300, 450), "backdrop": (1280, 720), "still": (320, 180), "logo": (200, 200)}.get(kind, (300, 450))
         color = COLORS[sum(map(ord, item_id)) % len(COLORS)]
         title = next((x["name"] for x in CATALOG["movies"] + CATALOG["series"] + CATALOG["live"] if x["id"] == item_id), item_id)
-        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">'
-               f'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{color}"/>'
-               f'<stop offset="1" stop-color="#141414"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>'
-               f'<text x="50%" y="50%" fill="#fff" fill-opacity="0.35" font-family="sans-serif" font-size="{max(12, min(width // 14, 36))}" text-anchor="middle">'
-               f'{escape(title)}</text></svg>')
+        svg = (
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">'
+            f'<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{color}"/>'
+            f'<stop offset="1" stop-color="#141414"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/>'
+            f'<text x="50%" y="50%" fill="#fff" fill-opacity="0.35" font-family="sans-serif" font-size="{max(12, min(width // 14, 36))}" text-anchor="middle">'
+            f"{escape(title)}</text></svg>"
+        )
         self.body(svg.encode(), CONTENT_TYPES[".svg"])
 
     def static(self, file: Path) -> None:
@@ -254,7 +354,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self.send_response(HTTPStatus.PARTIAL_CONTENT)
             self.send_header("Content-Range", f"bytes {start}-{end}/{len(data)}")
-            data = data[start:end + 1]
+            data = data[start : end + 1]
         else:
             self.send_response(HTTPStatus.OK)
         self.send_header("Content-Type", content_type)

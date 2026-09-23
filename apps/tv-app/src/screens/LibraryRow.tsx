@@ -22,11 +22,20 @@ export function LibraryRow({ section, category, title }: { section: LibrarySecti
   if (page?.status === 'success' && items.length === 0) return null;
 
   return (
-    <Row title={title} items={items} keyOf={(item) => item.id} testID={`row-${section}-${category?.id ?? 'all'}`}
+    <Row
+      title={title}
+      items={items}
+      keyOf={(item) => item.id}
+      testID={`row-${section}-${category?.id ?? 'all'}`}
       render={(item) => (
-        <PosterCard title={item.title} posterUrl={item.posterUrl} badge={item.bestQuality === '4K' ? '4K' : null}
+        <PosterCard
+          title={item.title}
+          posterUrl={item.posterUrl}
+          badge={item.bestQuality === '4K' ? '4K' : null}
           subtitle={[item.year, item.variantCount > 1 ? `${item.variantCount} versions` : null].filter(Boolean).join(' · ') || null}
-          onPress={() => navStore.getState().push({ name: 'details', section, masterId: item.id })} />
-      )} />
+          onPress={() => navStore.getState().push({ name: 'details', section, masterId: item.id })}
+        />
+      )}
+    />
   );
 }

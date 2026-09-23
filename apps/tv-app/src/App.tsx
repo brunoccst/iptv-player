@@ -36,10 +36,15 @@ export function App() {
   return (
     <View style={styles.root}>
       <StatusBar hidden />
-      {status === 'idle' || status === 'restoring' ? <Loading label="Starting" />
-        : status === 'anonymous' ? <LoginScreen />
-        : !activeProfileId ? <ProfilesScreen />
-        : <Shell />}
+      {status === 'idle' || status === 'restoring' ? (
+        <Loading label="Starting" />
+      ) : status === 'anonymous' ? (
+        <LoginScreen />
+      ) : !activeProfileId ? (
+        <ProfilesScreen />
+      ) : (
+        <Shell />
+      )}
     </View>
   );
 }
@@ -61,11 +66,17 @@ function Shell() {
     <View style={styles.shell}>
       <SideRail />
       <View style={styles.content}>
-        {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} />
-          : route.section === 'home' ? <HomeScreen key={`home-${revision}`} processing={processing} />
-          : route.section === 'movies' || route.section === 'series' ? <BrowseScreen key={`${route.section}-${revision}`} section={route.section} />
-          : route.section === 'live' ? <LiveScreen />
-          : <DownloadsScreen />}
+        {route.name === 'details' ? (
+          <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} />
+        ) : route.section === 'home' ? (
+          <HomeScreen key={`home-${revision}`} processing={processing} />
+        ) : route.section === 'movies' || route.section === 'series' ? (
+          <BrowseScreen key={`${route.section}-${revision}`} section={route.section} />
+        ) : route.section === 'live' ? (
+          <LiveScreen />
+        ) : (
+          <DownloadsScreen />
+        )}
       </View>
     </View>
   );

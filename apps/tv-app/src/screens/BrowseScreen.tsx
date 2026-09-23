@@ -18,7 +18,9 @@ export function BrowseScreen({ section }: { section: LibrarySection }) {
     <ScrollView style={styles.screen} testID={`browse-${section}`}>
       <Text style={styles.title}>{section === 'movies' ? 'Movies' : 'Series'}</Text>
       <LibraryRow section={section} title="All" />
-      {categories.map((category) => <LibraryRow key={category.id} section={section} category={category} title={category.name} />)}
+      {categories.map((category) => (
+        <LibraryRow key={category.id} section={section} category={category} title={category.name} />
+      ))}
     </ScrollView>
   );
 }

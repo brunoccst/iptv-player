@@ -16,7 +16,18 @@ interface FocusButtonProps {
 }
 
 /** D-pad focusable button. Focus = white fill (primary) or white border + scale. */
-export function FocusButton({ label, onPress, variant = 'secondary', icon, hasTVPreferredFocus, disabled, testID, accessibilityLabel, style, onFocus }: FocusButtonProps) {
+export function FocusButton({
+  label,
+  onPress,
+  variant = 'secondary',
+  icon,
+  hasTVPreferredFocus,
+  disabled,
+  testID,
+  accessibilityLabel,
+  style,
+  onFocus,
+}: FocusButtonProps) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -32,7 +43,14 @@ export function FocusButton({ label, onPress, variant = 'secondary', icon, hasTV
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[styles.base, styles[variant], focused && styles.focused, focused && variant !== 'primary' && styles.focusedSecondary, disabled && styles.disabled, style]}
+      style={[
+        styles.base,
+        styles[variant],
+        focused && styles.focused,
+        focused && variant !== 'primary' && styles.focusedSecondary,
+        disabled && styles.disabled,
+        style,
+      ]}
     >
       <View style={styles.content}>
         {icon}

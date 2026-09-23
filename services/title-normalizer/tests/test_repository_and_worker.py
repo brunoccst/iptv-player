@@ -2,16 +2,40 @@ import json
 import sqlite3
 
 from conftest import insert_job
+
 from title_normalizer import repository, worker
 
-PAYLOAD = json.dumps([
-    {"id": "55", "name": "The Movie (2020) 4K", "categoryId": "10", "posterUrl": "http://img/55.jpg", "rating": 7.1,
-     "containerExtension": "mkv", "releaseDate": None},
-    {"id": "56", "name": "The Movie (2020) CAM", "categoryId": "11", "posterUrl": None, "rating": None,
-     "containerExtension": "mp4", "releaseDate": None},
-    {"id": "57", "name": "Other Film", "categoryId": "10", "posterUrl": None, "rating": None,
-     "containerExtension": "mp4", "releaseDate": None},
-])
+PAYLOAD = json.dumps(
+    [
+        {
+            "id": "55",
+            "name": "The Movie (2020) 4K",
+            "categoryId": "10",
+            "posterUrl": "http://img/55.jpg",
+            "rating": 7.1,
+            "containerExtension": "mkv",
+            "releaseDate": None,
+        },
+        {
+            "id": "56",
+            "name": "The Movie (2020) CAM",
+            "categoryId": "11",
+            "posterUrl": None,
+            "rating": None,
+            "containerExtension": "mp4",
+            "releaseDate": None,
+        },
+        {
+            "id": "57",
+            "name": "Other Film",
+            "categoryId": "10",
+            "posterUrl": None,
+            "rating": None,
+            "containerExtension": "mp4",
+            "releaseDate": None,
+        },
+    ]
+)
 
 
 def job_row(connection: sqlite3.Connection, job_id: int) -> tuple:
@@ -60,8 +84,11 @@ def test_claim_takes_oldest_pending_only(pipeline_db):
     job = repository.claim_next(pipeline_db, "w1", now=5)
 
     assert job.id == second
-    assert pipeline_db.execute("SELECT status, locked_by, started_at FROM normalization_jobs WHERE id = ?", (second,)).fetchone() \
-        == ("processing", "w1", 5)
+    assert pipeline_db.execute("SELECT status, locked_by, started_at FROM normalization_jobs WHERE id = ?", (second,)).fetchone() == (
+        "processing",
+        "w1",
+        5,
+    )
 
 
 def test_bad_payload_retries_then_fails(pipeline_db):

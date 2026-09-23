@@ -24,19 +24,46 @@ export function LoginPage() {
         <h2>Sign In</h2>
         <div className="field">
           <label htmlFor="server-url">Server URL</label>
-          <input id="server-url" className="input" type="text" inputMode="url" placeholder="http://provider.example:8080"
-            autoComplete="url" required value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} />
+          <input
+            id="server-url"
+            className="input"
+            type="text"
+            inputMode="url"
+            placeholder="http://provider.example:8080"
+            autoComplete="url"
+            required
+            value={serverUrl}
+            onChange={(e) => setServerUrl(e.target.value)}
+          />
         </div>
         <div className="field">
           <label htmlFor="username">Username</label>
-          <input id="username" className="input" autoComplete="username" required value={username} onChange={(e) => setUsername(e.target.value)} />
+          <input
+            id="username"
+            className="input"
+            autoComplete="username"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input id="password" className="input" type="password" autoComplete="current-password" required value={password}
-            onChange={(e) => setPassword(e.target.value)} />
+          <input
+            id="password"
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
-        {error ? <p className="error-text" role="alert">{errorText(error)}</p> : null}
+        {error ? (
+          <p className="error-text" role="alert">
+            {errorText(error)}
+          </p>
+        ) : null}
         <button type="submit" className="button button--accent" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign In'}
         </button>

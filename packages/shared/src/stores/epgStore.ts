@@ -41,13 +41,19 @@ export function createEpgStore({ api, pollMs = EPG_POLL_MS }: { api: ApiClient; 
     return {
       grids: {},
       revision: 0,
-      loadGrid: (request, options) => loader.load(epgGridKey(request), () => api.epg.grid({
-        categoryId: request.categoryId,
-        from: new Date(request.from).toISOString(),
-        hours: request.hours,
-        offset: request.offset ?? 0,
-        limit: request.limit ?? EPG_DEFAULT_LIMIT,
-      }), options),
+      loadGrid: (request, options) =>
+        loader.load(
+          epgGridKey(request),
+          () =>
+            api.epg.grid({
+              categoryId: request.categoryId,
+              from: new Date(request.from).toISOString(),
+              hours: request.hours,
+              offset: request.offset ?? 0,
+              limit: request.limit ?? EPG_DEFAULT_LIMIT,
+            }),
+          options,
+        ),
 
       watchGrid(request) {
         let stopped = false;

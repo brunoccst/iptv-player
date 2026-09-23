@@ -9,17 +9,33 @@ import { isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
 const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
 
 const variant = (streamId: string) => ({
-  streamId, label: streamId, quality: null, source: null, audioLanguages: [], audioTag: null, isHdr: false,
-  containerExtension: 'mp4', categoryId: null, rawTitle: streamId,
+  streamId,
+  label: streamId,
+  quality: null,
+  source: null,
+  audioLanguages: [],
+  audioTag: null,
+  isHdr: false,
+  containerExtension: 'mp4',
+  categoryId: null,
+  rawTitle: streamId,
 });
 
 const details: MasterDetails = {
-  id: 'm1', title: 'Heat', year: 1995, posterUrl: null, rating: null, bestQuality: '4K', variants: [variant('best'), variant('other')],
+  id: 'm1',
+  title: 'Heat',
+  year: 1995,
+  posterUrl: null,
+  rating: null,
+  bestQuality: '4K',
+  variants: [variant('best'), variant('other')],
 };
 
 function setup() {
   const backend = createFakeBackend();
-  const storage = createMemoryStorage({ [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }) });
+  const storage = createMemoryStorage({
+    [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }),
+  });
   const context = createAppContext({ config, storage, fetch: backend.fetch });
   return { backend, context, library: context.stores.library };
 }

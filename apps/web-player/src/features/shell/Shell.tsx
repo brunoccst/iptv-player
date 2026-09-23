@@ -31,7 +31,15 @@ export function Shell() {
       </main>
       {details ? <DetailsModal target={details} /> : null}
       {playing ? (
-        <Suspense fallback={<div className="player"><div className="player__center"><Spinner label="Loading player" /></div></div>}>
+        <Suspense
+          fallback={
+            <div className="player">
+              <div className="player__center">
+                <Spinner label="Loading player" />
+              </div>
+            </div>
+          }
+        >
           <PlayerOverlay key={`${playing.kind}-${playing.streamId}`} target={playing} />
         </Suspense>
       ) : null}

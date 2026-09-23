@@ -16,8 +16,12 @@ export function NextUp({ episode, secondsLeft, onPlayNow, onDismiss }: NextUpPro
         {episodeLabel(episode)} · {episode.title}
       </p>
       <div className="next-up__actions">
-        <button type="button" className="button button--primary" onClick={onPlayNow}>Play Now</button>
-        <button type="button" className="button button--secondary" onClick={onDismiss}>Cancel</button>
+        <button type="button" className="button button--primary" onClick={onPlayNow}>
+          Play Now
+        </button>
+        <button type="button" className="button button--secondary" onClick={onDismiss}>
+          Cancel
+        </button>
       </div>
     </div>
   );

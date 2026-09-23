@@ -52,7 +52,9 @@ export function LibraryBanner() {
     return (
       <div className="banner" role="status">
         Your library is empty. Is the title normalizer worker running?
-        <button type="button" className="button button--secondary" onClick={() => void stores.library.getState().sync()}>Refresh library</button>
+        <button type="button" className="button button--secondary" onClick={() => void stores.library.getState().sync()}>
+          Refresh library
+        </button>
       </div>
     );
   }

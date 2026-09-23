@@ -1,8 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import {
-  NEXT_UP_COUNTDOWN_SECONDS, RemoteSeekController, SKIP_SECONDS, clampTime, episodeLabel, episodeTarget, findProgress, formatClock, introWindow,
-  isInIntro, nextEpisode, nextUpCountdown, resumePosition, tvPlaybackAttempts, type PlayTarget, type SeekDirection, type VariantInfo,
+  NEXT_UP_COUNTDOWN_SECONDS,
+  RemoteSeekController,
+  SKIP_SECONDS,
+  clampTime,
+  episodeLabel,
+  episodeTarget,
+  findProgress,
+  formatClock,
+  introWindow,
+  isInIntro,
+  nextEpisode,
+  nextUpCountdown,
+  resumePosition,
+  tvPlaybackAttempts,
+  type PlayTarget,
+  type SeekDirection,
+  type VariantInfo,
 } from '@iptv/shared';
 import { TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, downloadsStore, navStore, stores } from '../appContext';
@@ -44,7 +59,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
   const series = useAsync(target.seriesId ? `series:${target.seriesId}` : null, () => api.catalog.seriesDetails(target.seriesId!));
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
-  const variants = useLibrary((s) => (target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? []) : []));
+  const variants = useLibrary((s) =>
+    target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? []) : [],
+  );
 
   useEffect(() => {
     if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
@@ -78,9 +95,15 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const saveProgress = useCallback(() => {
     if (target.kind === 'live' || !(durationRef.current > 0)) return;
     void stores.progress.getState().save(target.kind, target.streamId, {
-      title: target.title, positionSeconds: timeRef.current, durationSeconds: durationRef.current, masterId: target.masterId ?? null,
-      seriesId: target.seriesId ?? null, seasonNumber: target.seasonNumber ?? null, episodeNumber: target.episodeNumber ?? null,
-      posterUrl: target.posterUrl ?? null, containerExtension: target.container,
+      title: target.title,
+      positionSeconds: timeRef.current,
+      durationSeconds: durationRef.current,
+      masterId: target.masterId ?? null,
+      seriesId: target.seriesId ?? null,
+      seasonNumber: target.seasonNumber ?? null,
+      episodeNumber: target.episodeNumber ?? null,
+      posterUrl: target.posterUrl ?? null,
+      containerExtension: target.container,
     });
   }, [target]);
 
@@ -134,7 +157,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     saveProgress();
     navStore.getState().replaceTop({
       name: 'player',
-      target: episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl }, next),
+      target: episodeTarget(
+        { title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl },
+        next,
+      ),
     });
   }, [next, target, saveProgress]);
 
@@ -178,7 +204,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     stores.library.getState().selectVariant(target.masterId!, variant.streamId);
     navStore.getState().replaceTop({
       name: 'player',
-      target: { ...target, streamId: variant.streamId, container: variant.containerExtension, subtitle: variant.label, startAt: timeRef.current },
+      target: {
+        ...target,
+        streamId: variant.streamId,
+        container: variant.containerExtension,
+        subtitle: variant.label,
+        startAt: timeRef.current,
+      },
     });
   };
 
@@ -225,19 +257,33 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {controls && !scrub && !error ? (
         <View style={styles.overlay} pointerEvents="none" testID="player-controls">
           <View>
-            <Text style={styles.title} numberOfLines={1}>{target.title}</Text>
-            {target.subtitle ? <Text style={styles.subtitle}>{target.subtitle}{source?.offlineId ? ' · Downloaded' : ''}</Text> : null}
+            <Text style={styles.title} numberOfLines={1}>
+              {target.title}
+            </Text>
+            {target.subtitle ? (
+              <Text style={styles.subtitle}>
+                {target.subtitle}
+                {source?.offlineId ? ' · Downloaded' : ''}
+              </Text>
+            ) : null}
           </View>
           <View>
-            {isLive ? <Text style={styles.live}>LIVE</Text> : (
+            {isLive ? (
+              <Text style={styles.live}>LIVE</Text>
+            ) : (
               <>
                 <View style={styles.track}>
                   <View style={[styles.fill, { width: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
                 </View>
-                <Text style={styles.time} testID="player-time">{formatClock(time)} / {formatClock(duration)}{paused ? '  ❚❚ Paused' : ''}</Text>
+                <Text style={styles.time} testID="player-time">
+                  {formatClock(time)} / {formatClock(duration)}
+                  {paused ? '  ❚❚ Paused' : ''}
+                </Text>
               </>
             )}
-            <Text style={styles.hint}>◀ ▶ skip {SKIP_SECONDS}s · hold to scrub · ▲ ▼ audio, subtitles{series.data ? ', episodes' : ''}</Text>
+            <Text style={styles.hint}>
+              ◀ ▶ skip {SKIP_SECONDS}s · hold to scrub · ▲ ▼ audio, subtitles{series.data ? ', episodes' : ''}
+            </Text>
           </View>
         </View>
       ) : null}
@@ -251,7 +297,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {countdown !== null && next ? (
         <View style={styles.nextUp} testID="next-up">
           <Text style={styles.nextLabel}>Next episode in {Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)}</Text>
-          <Text style={styles.nextTitle}>{episodeLabel(next)} · {next.title}</Text>
+          <Text style={styles.nextTitle}>
+            {episodeLabel(next)} · {next.title}
+          </Text>
           <View style={styles.row}>
             <FocusButton label="Play Now" variant="primary" hasTVPreferredFocus onPress={playNext} testID="play-next" />
             <FocusButton label="Cancel" onPress={() => setNextDismissed(true)} />
@@ -260,7 +308,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {drawer ? (
-        <QuickDrawer tracks={tracks} variants={variants} currentStreamId={target.streamId} series={series.data}
+        <QuickDrawer
+          tracks={tracks}
+          variants={variants}
+          currentStreamId={target.streamId}
+          series={series.data}
           onTrack={(type, group, track) => void playerRef.current?.selectTrack(type, group, track)}
           onVariant={(v) => {
             setDrawer(false);
@@ -271,9 +323,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             saveProgress();
             navStore.getState().replaceTop({
               name: 'player',
-              target: episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl }, episode),
+              target: episodeTarget(
+                { title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl },
+                episode,
+              ),
             });
-          }} />
+          }}
+        />
       ) : null}
     </View>
   );
@@ -282,7 +338,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
   center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: safe.horizontal },
-  overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between', paddingHorizontal: safe.horizontal, paddingVertical: safe.vertical, backgroundColor: 'rgba(0,0,0,0.35)' },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'space-between',
+    paddingHorizontal: safe.horizontal,
+    paddingVertical: safe.vertical,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
   title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700' },
   subtitle: { color: colors.muted, fontSize: fonts.body },
   live: { color: colors.strong, backgroundColor: colors.accent, alignSelf: 'flex-start', paddingHorizontal: spacing.sm, fontWeight: '700' },
@@ -291,7 +353,16 @@ const styles = StyleSheet.create({
   time: { color: colors.strong, fontSize: fonts.body },
   hint: { color: colors.muted, fontSize: fonts.small, marginTop: spacing.xs },
   corner: { position: 'absolute', right: safe.horizontal, bottom: safe.vertical + 70 },
-  nextUp: { position: 'absolute', right: safe.horizontal, bottom: safe.vertical + 70, backgroundColor: 'rgba(20,20,20,0.95)', padding: spacing.md, borderRadius: 8, gap: spacing.sm, width: 340 },
+  nextUp: {
+    position: 'absolute',
+    right: safe.horizontal,
+    bottom: safe.vertical + 70,
+    backgroundColor: 'rgba(20,20,20,0.95)',
+    padding: spacing.md,
+    borderRadius: 8,
+    gap: spacing.sm,
+    width: 340,
+  },
   nextLabel: { color: colors.muted, fontSize: fonts.small },
   nextTitle: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },
   row: { flexDirection: 'row', gap: spacing.sm },

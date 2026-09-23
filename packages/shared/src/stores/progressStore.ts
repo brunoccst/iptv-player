@@ -37,16 +37,19 @@ export function createProgressStore({ api, now = () => new Date().toISOString() 
         }
 
         set({ profileId, items: { ...emptyResource(), status: 'loading' } });
-        const promise = api.progress.list(profileId, 100).then(
-          (data) => {
-            if (get().profileId === profileId) set({ items: { data, status: 'success', error: null, updatedAt: Date.now() } });
-          },
-          (error: unknown) => {
-            if (get().profileId === profileId) set({ items: { ...get().items, status: 'error', error: toApiError(error) } });
-          },
-        ).finally(() => {
-          if (inFlight?.promise === promise) inFlight = null;
-        });
+        const promise = api.progress
+          .list(profileId, 100)
+          .then(
+            (data) => {
+              if (get().profileId === profileId) set({ items: { data, status: 'success', error: null, updatedAt: Date.now() } });
+            },
+            (error: unknown) => {
+              if (get().profileId === profileId) set({ items: { ...get().items, status: 'error', error: toApiError(error) } });
+            },
+          )
+          .finally(() => {
+            if (inFlight?.promise === promise) inFlight = null;
+          });
         inFlight = { profileId, promise };
         return promise;
       },

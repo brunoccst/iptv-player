@@ -27,31 +27,64 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     void library.getState().loadPage('movies', { limit: ROW_SIZE });
     void catalog.getState().loadCategories('movies');
     void catalog.getState().loadCategories('series');
-    void catalog.getState().loadCategories('live').then((loaded) => {
-      if (loaded?.[0]) void catalog.getState().loadLiveChannels(loaded[0].id);
-    });
+    void catalog
+      .getState()
+      .loadCategories('live')
+      .then((loaded) => {
+        if (loaded?.[0]) void catalog.getState().loadLiveChannels(loaded[0].id);
+      });
   }, []);
 
   return (
     <ScrollView style={styles.screen} testID="home-screen">
       <Hero candidates={featured} />
-      {processing ? <Text style={styles.notice} testID="library-processing">Organizing your library: grouping duplicate titles and versions…</Text> : null}
-      {resume.length > 0 ? (
-        <Row title="Continue Watching" items={resume} keyOf={(p) => `${p.kind}-${p.itemId}`} testID="row-continue"
-          render={(p) => (
-            <PosterCard title={p.title} posterUrl={p.posterUrl} progress={p.positionSeconds / p.durationSeconds}
-              subtitle={p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null}
-              onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })} />
-          )} />
+      {processing ? (
+        <Text style={styles.notice} testID="library-processing">
+          Organizing your library: grouping duplicate titles and versions…
+        </Text>
       ) : null}
-      <Row title={liveCategories[0] ? `Live TV: ${liveCategories[0].name}` : 'Live TV'} items={channels.slice(0, ROW_SIZE)} keyOf={(c) => c.id}
+      {resume.length > 0 ? (
+        <Row
+          title="Continue Watching"
+          items={resume}
+          keyOf={(p) => `${p.kind}-${p.itemId}`}
+          testID="row-continue"
+          render={(p) => (
+            <PosterCard
+              title={p.title}
+              posterUrl={p.posterUrl}
+              progress={p.positionSeconds / p.durationSeconds}
+              subtitle={p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null}
+              onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
+            />
+          )}
+        />
+      ) : null}
+      <Row
+        title={liveCategories[0] ? `Live TV: ${liveCategories[0].name}` : 'Live TV'}
+        items={channels.slice(0, ROW_SIZE)}
+        keyOf={(c) => c.id}
         render={(c) => (
-          <PosterCard landscape title={c.name} posterUrl={c.logoUrl} badge="LIVE"
-            onPress={() => navStore.getState().push({ name: 'player', target: { kind: 'live', streamId: c.id, container: 'm3u8', title: c.name, posterUrl: c.logoUrl } })} />
-        )} />
+          <PosterCard
+            landscape
+            title={c.name}
+            posterUrl={c.logoUrl}
+            badge="LIVE"
+            onPress={() =>
+              navStore
+                .getState()
+                .push({ name: 'player', target: { kind: 'live', streamId: c.id, container: 'm3u8', title: c.name, posterUrl: c.logoUrl } })
+            }
+          />
+        )}
+      />
       <LibraryRow section="series" title="Series" />
-      {movieCategories.slice(0, 6).map((category) => <LibraryRow key={`m-${category.id}`} section="movies" category={category} title={category.name} />)}
-      {seriesCategories.slice(0, 3).map((category) => <LibraryRow key={`s-${category.id}`} section="series" category={category} title={`Series: ${category.name}`} />)}
+      {movieCategories.slice(0, 6).map((category) => (
+        <LibraryRow key={`m-${category.id}`} section="movies" category={category} title={category.name} />
+      ))}
+      {seriesCategories.slice(0, 3).map((category) => (
+        <LibraryRow key={`s-${category.id}`} section="series" category={category} title={`Series: ${category.name}`} />
+      ))}
     </ScrollView>
   );
 }
@@ -75,12 +108,29 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
       <View style={styles.heroShade} />
       <View style={styles.heroContent}>
-        <Text style={styles.heroTitle} numberOfLines={2}>{featured.title}</Text>
-        {meta.data?.plot ? <Text style={styles.heroPlot} numberOfLines={2}>{meta.data.plot}</Text> : null}
+        <Text style={styles.heroTitle} numberOfLines={2}>
+          {featured.title}
+        </Text>
+        {meta.data?.plot ? (
+          <Text style={styles.heroPlot} numberOfLines={2}>
+            {meta.data.plot}
+          </Text>
+        ) : null}
         <View style={styles.heroActions}>
-          <FocusButton label="Play" variant="primary" hasTVPreferredFocus={!focusedOnce} onFocus={() => setFocusedOnce(true)} testID="hero-play"
-            disabled={!details || !variant} onPress={() => details && variant && navStore.getState().push({ name: 'player', target: movieTarget(details, variant) })} />
-          <FocusButton label="More Info" testID="hero-info" onPress={() => navStore.getState().push({ name: 'details', section: 'movies', masterId: featured.id })} />
+          <FocusButton
+            label="Play"
+            variant="primary"
+            hasTVPreferredFocus={!focusedOnce}
+            onFocus={() => setFocusedOnce(true)}
+            testID="hero-play"
+            disabled={!details || !variant}
+            onPress={() => details && variant && navStore.getState().push({ name: 'player', target: movieTarget(details, variant) })}
+          />
+          <FocusButton
+            label="More Info"
+            testID="hero-info"
+            onPress={() => navStore.getState().push({ name: 'details', section: 'movies', masterId: featured.id })}
+          />
         </View>
       </View>
     </View>

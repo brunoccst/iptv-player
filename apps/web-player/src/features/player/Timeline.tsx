@@ -62,10 +62,20 @@ export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPrevie
   const percent = (value: number) => `${(Math.min(value, duration) / duration) * 100}%`;
 
   return (
-    <div className="timeline" role="slider" tabIndex={0} aria-label="Seek" aria-valuemin={0} aria-valuemax={Math.round(duration)}
-      aria-valuenow={Math.round(shown)} aria-valuetext={`${formatClock(shown)} of ${formatClock(duration)}`}
-      onPointerMove={onPointerMove} onPointerLeave={() => dragTime === null && setHover(null)} onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}>
+    <div
+      className="timeline"
+      role="slider"
+      tabIndex={0}
+      aria-label="Seek"
+      aria-valuemin={0}
+      aria-valuemax={Math.round(duration)}
+      aria-valuenow={Math.round(shown)}
+      aria-valuetext={`${formatClock(shown)} of ${formatClock(duration)}`}
+      onPointerMove={onPointerMove}
+      onPointerLeave={() => dragTime === null && setHover(null)}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+    >
       <div className="timeline__rail" ref={rail}>
         <div className="timeline__buffered" style={{ width: percent(bufferedEnd) }} />
         {hover !== null ? <div className="timeline__hover-fill" style={{ width: percent(hover) }} /> : null}

@@ -33,21 +33,40 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
     <div className="tracks" role="dialog" aria-label="Audio, subtitles and version">
       <div>
         <h3>Audio</h3>
-        {audio.length === 0 ? <p className="muted">Default</p> : audio.map((track, index) => (
-          <button key={track.id} type="button" className={`tracks__option${hls?.audioTrack === index ? ' tracks__option--active' : ''}`}
-            onClick={() => { if (hls) hls.audioTrack = index; onChange(); }}>
-            {track.name || track.lang || `Track ${index + 1}`}
-          </button>
-        ))}
+        {audio.length === 0 ? (
+          <p className="muted">Default</p>
+        ) : (
+          audio.map((track, index) => (
+            <button
+              key={track.id}
+              type="button"
+              className={`tracks__option${hls?.audioTrack === index ? ' tracks__option--active' : ''}`}
+              onClick={() => {
+                if (hls) hls.audioTrack = index;
+                onChange();
+              }}
+            >
+              {track.name || track.lang || `Track ${index + 1}`}
+            </button>
+          ))
+        )}
       </div>
       <div>
         <h3>Subtitles</h3>
-        <button type="button" className={`tracks__option${activeSubtitle < 0 ? ' tracks__option--active' : ''}`} onClick={() => setSubtitle(-1)}>
+        <button
+          type="button"
+          className={`tracks__option${activeSubtitle < 0 ? ' tracks__option--active' : ''}`}
+          onClick={() => setSubtitle(-1)}
+        >
           Off
         </button>
         {subtitleOptions.map((name, index) => (
-          <button key={`${name}-${index}`} type="button" className={`tracks__option${activeSubtitle === index ? ' tracks__option--active' : ''}`}
-            onClick={() => setSubtitle(index)}>
+          <button
+            key={`${name}-${index}`}
+            type="button"
+            className={`tracks__option${activeSubtitle === index ? ' tracks__option--active' : ''}`}
+            onClick={() => setSubtitle(index)}
+          >
             {name}
           </button>
         ))}
@@ -56,8 +75,12 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
         <div>
           <h3>Version / Stream Quality</h3>
           {variants.map((variant) => (
-            <button key={variant.streamId} type="button"
-              className={`tracks__option${variant.streamId === currentStreamId ? ' tracks__option--active' : ''}`} onClick={() => onVariant(variant)}>
+            <button
+              key={variant.streamId}
+              type="button"
+              className={`tracks__option${variant.streamId === currentStreamId ? ' tracks__option--active' : ''}`}
+              onClick={() => onVariant(variant)}
+            >
               {variant.label}
             </button>
           ))}

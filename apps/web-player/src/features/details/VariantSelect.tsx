@@ -9,7 +9,8 @@ export function VariantSelect({ variants, value, onChange }: { variants: Variant
       <select id="variant-select" className="select" value={value} onChange={(e) => onChange(e.target.value)}>
         {variants.map((variant, index) => (
           <option key={variant.streamId} value={variant.streamId}>
-            {variant.label}{index === 0 ? ' (best)' : ''}
+            {variant.label}
+            {index === 0 ? ' (best)' : ''}
           </option>
         ))}
       </select>

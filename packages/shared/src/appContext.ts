@@ -30,17 +30,16 @@ export interface AppContextOptions {
 
 /** Wires API client and stores together. Each app creates exactly one context at startup. */
 export function createAppContext({ config, storage, fetch }: AppContextOptions): AppContext {
-  let session: SessionStore | undefined;
-
   const http = createHttpClient({
     baseUrl: config.apiBaseUrl,
     fetch,
-    getToken: () => session?.getState().token ?? null,
-    onUnauthorized: () => session?.getState().handleUnauthorized(),
+    // Called per request, after `session` below is initialized.
+    getToken: () => session.getState().token ?? null,
+    onUnauthorized: () => session.getState().handleUnauthorized(),
   });
   const api = createApiClient(http);
 
-  session = createSessionStore({ api, storage });
+  const session = createSessionStore({ api, storage });
   const catalog = createCatalogStore({ api });
   const epg = createEpgStore({ api });
   const library = createLibraryStore({ api });

@@ -43,8 +43,9 @@ def build_masters(account_id: str, media_kind: str, items: list[dict[str, Any]])
     """`items` use the backend payload shape: id, name, categoryId, posterUrl, rating, containerExtension, releaseDate."""
     usable = [item for item in items if str(item.get("id") or "").strip() and str(item.get("name") or "").strip()]
     parsed = [_parse_item(item) for item in usable]
-    masters = [_build_master(account_id, media_kind, [usable[i] for i in group], [parsed[i] for i in group])
-               for group in group_titles(parsed)]
+    masters = [
+        _build_master(account_id, media_kind, [usable[i] for i in group], [parsed[i] for i in group]) for group in group_titles(parsed)
+    ]
     return sorted(masters, key=lambda master: (master.title.lower(), master.year or 0))
 
 
@@ -56,8 +57,13 @@ def quality_score(title: ParsedTitle) -> int:
 
 
 def variant_label(title: ParsedTitle, container_extension: str | None) -> str:
-    parts = [title.quality, title.source if title.source in ("CAM", "TS", "TC", "SCR", "REMUX") else None,
-             "HDR" if title.is_hdr else None, "/".join(title.audio_languages) or None, title.audio_tag]
+    parts = [
+        title.quality,
+        title.source if title.source in ("CAM", "TS", "TC", "SCR", "REMUX") else None,
+        "HDR" if title.is_hdr else None,
+        "/".join(title.audio_languages) or None,
+        title.audio_tag,
+    ]
     label = " · ".join(part for part in parts if part)
     return label or (container_extension or "Standard").upper()
 
@@ -76,7 +82,7 @@ def _parse_item(item: dict[str, Any]) -> ParsedTitle:
 
 
 def _build_master(account_id: str, media_kind: str, items: list[dict[str, Any]], parsed: list[ParsedTitle]) -> Master:
-    variants = [_build_variant(item, title) for item, title in zip(items, parsed)]
+    variants = [_build_variant(item, title) for item, title in zip(items, parsed, strict=True)]
     order = sorted(range(len(variants)), key=lambda i: (-variants[i].quality_score, variants[i].stream_id))
     variants = _dedupe_labels([variants[i] for i in order])
     parsed = [parsed[i] for i in order]

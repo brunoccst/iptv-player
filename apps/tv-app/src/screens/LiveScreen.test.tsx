@@ -5,7 +5,15 @@ import { LiveScreen } from './LiveScreen';
 
 const NOW = Date.parse('2026-09-23T12:10:00Z');
 const at = (minutes: number) => new Date(Date.parse('2026-09-23T12:00:00Z') + minutes * 60_000).toISOString();
-const channel = (id: string, name: string) => ({ id, name, categoryId: '1', number: Number(id), logoUrl: null, epgChannelId: null, hasCatchup: false });
+const channel = (id: string, name: string) => ({
+  id,
+  name,
+  categoryId: '1',
+  number: Number(id),
+  logoUrl: null,
+  epgChannelId: null,
+  hasCatchup: false,
+});
 
 async function flush() {
   await act(async () => {
@@ -23,16 +31,25 @@ describe('LiveScreen (guide)', () => {
     backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });
     backend.on('GET', '/api/epg', ({ url }) => {
       requests.push(url);
-      return { body: {
-        status: 'ready', updatedAt: at(0), from: url.searchParams.get('from'), to: at(120), totalChannels: 2,
-        channels: [
-          { channel: channel('1', 'News HD'), programmes: [
-            { start: at(-30), end: at(30), title: 'Morning Briefing', description: 'Top stories.' },
-            { start: at(30), end: at(90), title: 'World Report', description: null },
-          ] },
-          { channel: channel('2', 'Quiet'), programmes: [] },
-        ],
-      } };
+      return {
+        body: {
+          status: 'ready',
+          updatedAt: at(0),
+          from: url.searchParams.get('from'),
+          to: at(120),
+          totalChannels: 2,
+          channels: [
+            {
+              channel: channel('1', 'News HD'),
+              programmes: [
+                { start: at(-30), end: at(30), title: 'Morning Briefing', description: 'Top stories.' },
+                { start: at(30), end: at(90), title: 'World Report', description: null },
+              ],
+            },
+            { channel: channel('2', 'Quiet'), programmes: [] },
+          ],
+        },
+      };
     });
 
     await render(<LiveScreen />);
@@ -56,7 +73,8 @@ describe('LiveScreen (guide)', () => {
 
     await fireEvent.press(current);
     expect(navStore.getState().stack.at(-1)).toMatchObject({
-      name: 'player', target: { kind: 'live', streamId: '1', title: 'News HD', subtitle: 'Morning Briefing' },
+      name: 'player',
+      target: { kind: 'live', streamId: '1', title: 'News HD', subtitle: 'Morning Briefing' },
     });
 
     await fireEvent.press(screen.getByTestId('guide-later'));
@@ -67,7 +85,9 @@ describe('LiveScreen (guide)', () => {
   it('says so while the guide downloads for the first time', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/catalog/live/categories', { body: [] });
-    backend.on('GET', '/api/epg', { body: { status: 'refreshing', updatedAt: null, from: at(0), to: at(120), totalChannels: 0, channels: [] } });
+    backend.on('GET', '/api/epg', {
+      body: { status: 'refreshing', updatedAt: null, from: at(0), to: at(120), totalChannels: 0, channels: [] },
+    });
 
     await render(<LiveScreen />);
     await flush();

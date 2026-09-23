@@ -34,8 +34,16 @@ describe('useEpgGuide', () => {
     backend.on('GET', '/api/epg', ({ url }) => {
       calls++;
       const offset = Number(url.searchParams.get('offset'));
-      return { body: { status: 'ready', updatedAt: null, from: '', to: '', totalChannels: 3,
-        channels: [{ channel: { id: `c${offset}`, name: `C${offset}` }, programmes: [] }] } };
+      return {
+        body: {
+          status: 'ready',
+          updatedAt: null,
+          from: '',
+          to: '',
+          totalChannels: 3,
+          channels: [{ channel: { id: `c${offset}`, name: `C${offset}` }, programmes: [] }],
+        },
+      };
     });
     backend.on('POST', '/api/epg/refresh', { status: 202 });
     const store = createEpgStore({ api: createApiClient(createHttpClient({ baseUrl: 'http://api.test', fetch: backend.fetch })) });

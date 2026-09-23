@@ -33,8 +33,9 @@ def run_once(connection: sqlite3.Connection, worker_id: str, clock: Callable[[],
             raise ValueError("Job payload must be a JSON array.")
         masters = build_masters(job.account_id, job.media_kind, items)
         repository.complete(connection, job, masters, int(clock()))
-        logger.info("Job %s (%s): %s items -> %s masters in %.2fs",
-                    job.id, job.media_kind, len(items), len(masters), time.perf_counter() - started)
+        logger.info(
+            "Job %s (%s): %s items -> %s masters in %.2fs", job.id, job.media_kind, len(items), len(masters), time.perf_counter() - started
+        )
     except Exception as exception:  # noqa: BLE001 - any failure must be recorded on the job, never crash the loop.
         logger.exception("Job %s failed", job.id)
         repository.fail(connection, job, f"{type(exception).__name__}: {exception}", int(clock()), MAX_ATTEMPTS)

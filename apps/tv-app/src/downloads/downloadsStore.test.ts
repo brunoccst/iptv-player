@@ -13,7 +13,9 @@ describe('downloads store', () => {
 
   it('resolves a relay URL for the original container and queues a native download with metadata', async () => {
     const backend = setupApp();
-    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://api.test/api/relay/t/55.${url.searchParams.get('container')}`) }));
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({
+      body: playback(`http://api.test/api/relay/t/55.${url.searchParams.get('container')}`),
+    }));
     backend.on('GET', '/api/relay/t/55.mkv', { status: 206, body: 'x' });
     downloadsStore.getState().init();
 
@@ -25,7 +27,9 @@ describe('downloads store', () => {
 
   it('polls progress while downloading and stops when done', async () => {
     setupApp();
-    nativeState.downloads = [{ id: 'movie-1', state: 'downloading', percent: 10, bytesDownloaded: 1, metadata: JSON.stringify(target), failureReason: 0 }];
+    nativeState.downloads = [
+      { id: 'movie-1', state: 'downloading', percent: 10, bytesDownloaded: 1, metadata: JSON.stringify(target), failureReason: 0 },
+    ];
     downloadsStore.getState().init();
     expect(downloadsStore.getState().records['movie-1']?.progress).toBeCloseTo(0.1);
 
@@ -40,7 +44,9 @@ describe('downloads store', () => {
 
   it('falls back to the panel HLS when the original file is missing', async () => {
     const backend = setupApp();
-    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://api.test/api/relay/t/55.${url.searchParams.get('container')}`) }));
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({
+      body: playback(`http://api.test/api/relay/t/55.${url.searchParams.get('container')}`),
+    }));
     backend.on('GET', '/api/relay/t/55.m3u8', { body: '#EXTM3U' });
 
     await downloadsStore.getState().start(target);

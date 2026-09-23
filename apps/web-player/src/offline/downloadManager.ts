@@ -55,8 +55,19 @@ export class DownloadManager {
     const record: DownloadRecord = existing
       ? { ...existing, status: 'queued', error: null }
       : {
-          ...target, id, status: 'queued', format: null, playlist: null, totalParts: 0, completedParts: 0, totalBytes: null,
-          bytesDownloaded: 0, mimeType: null, createdAt: this.now(), updatedAt: this.now(), error: null,
+          ...target,
+          id,
+          status: 'queued',
+          format: null,
+          playlist: null,
+          totalParts: 0,
+          completedParts: 0,
+          totalBytes: null,
+          bytesDownloaded: 0,
+          mimeType: null,
+          createdAt: this.now(),
+          updatedAt: this.now(),
+          error: null,
         };
     await this.save(record);
     if (!this.queue.includes(id) && this.active?.id !== id) this.queue.push(id);

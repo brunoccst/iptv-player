@@ -7,10 +7,24 @@ export function ProgressRing({ value, size = 32, stroke = 3 }: { value: number; 
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(1, Math.max(0, value));
   return (
-    <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }} accessibilityLabel={`${Math.round(clamped * 100)} percent`}>
+    <Svg
+      width={size}
+      height={size}
+      style={{ transform: [{ rotate: '-90deg' }] }}
+      accessibilityLabel={`${Math.round(clamped * 100)} percent`}
+    >
       <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.25)" strokeWidth={stroke} fill="none" />
-      <Circle cx={size / 2} cy={size / 2} r={radius} stroke={colors.accent} strokeWidth={stroke} fill="none"
-        strokeDasharray={`${circumference}`} strokeDashoffset={circumference * (1 - clamped)} strokeLinecap="round" />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke={colors.accent}
+        strokeWidth={stroke}
+        fill="none"
+        strokeDasharray={`${circumference}`}
+        strokeDashoffset={circumference * (1 - clamped)}
+        strokeLinecap="round"
+      />
     </Svg>
   );
 }

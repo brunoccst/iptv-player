@@ -14,7 +14,11 @@ async function flush() {
 }
 
 async function progress(positionS: number, durationS: number) {
-  await act(async () => playerState.props?.onProgress?.({ nativeEvent: { positionMs: positionS * 1000, durationMs: durationS * 1000, bufferedMs: 0, isLive: false } } as never));
+  await act(async () =>
+    playerState.props?.onProgress?.({
+      nativeEvent: { positionMs: positionS * 1000, durationMs: durationS * 1000, bufferedMs: 0, isLive: false },
+    } as never),
+  );
 }
 
 async function ready() {
@@ -85,10 +89,16 @@ describe('PlayerScreen', () => {
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
     await render(<PlayerScreen target={movie} />);
     await flush();
-    await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [
-      { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'English', language: 'en', selected: true },
-      { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'Español', language: 'es', selected: false },
-    ] } } as never));
+    await act(async () =>
+      playerState.props?.onTracks?.({
+        nativeEvent: {
+          tracks: [
+            { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'English', language: 'en', selected: true },
+            { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'Español', language: 'es', selected: false },
+          ],
+        },
+      } as never),
+    );
 
     await act(async () => pressRemote('down', 'down'));
     expect(screen.getByTestId('quick-drawer')).toBeTruthy();
@@ -102,14 +112,54 @@ describe('PlayerScreen', () => {
   it('episodes: Skip Intro jumps past the intro; next-up counts down and offers the next episode', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
-    backend.on('GET', '/api/catalog/series/s1', { body: {
-      summary: { id: 's1', name: 'Show', categoryId: null, posterUrl: null, rating: null, plot: null, genre: null, releaseDate: null, lastModifiedAt: null },
-      cast: null, director: null, backdropUrls: [], trailerYoutubeId: null,
-      seasons: [{ number: 1, name: 'Season 1', coverUrl: null, episodes: [
-        { id: 'e1', seasonNumber: 1, episodeNumber: 1, title: 'Pilot', plot: null, durationSeconds: 2400, stillUrl: null, containerExtension: 'mp4' },
-        { id: 'e2', seasonNumber: 1, episodeNumber: 2, title: 'Second', plot: null, durationSeconds: 2400, stillUrl: null, containerExtension: 'mp4' },
-      ] }],
-    } });
+    backend.on('GET', '/api/catalog/series/s1', {
+      body: {
+        summary: {
+          id: 's1',
+          name: 'Show',
+          categoryId: null,
+          posterUrl: null,
+          rating: null,
+          plot: null,
+          genre: null,
+          releaseDate: null,
+          lastModifiedAt: null,
+        },
+        cast: null,
+        director: null,
+        backdropUrls: [],
+        trailerYoutubeId: null,
+        seasons: [
+          {
+            number: 1,
+            name: 'Season 1',
+            coverUrl: null,
+            episodes: [
+              {
+                id: 'e1',
+                seasonNumber: 1,
+                episodeNumber: 1,
+                title: 'Pilot',
+                plot: null,
+                durationSeconds: 2400,
+                stillUrl: null,
+                containerExtension: 'mp4',
+              },
+              {
+                id: 'e2',
+                seasonNumber: 1,
+                episodeNumber: 2,
+                title: 'Second',
+                plot: null,
+                durationSeconds: 2400,
+                stillUrl: null,
+                containerExtension: 'mp4',
+              },
+            ],
+          },
+        ],
+      },
+    });
     await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
     await flush();
     await flush();

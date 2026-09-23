@@ -15,8 +15,7 @@ function createWebStorage(prefix: string): KeyValueStorage {
   };
 }
 
-const offlineSupported =
-  'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
+const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
 export const appContext = createAppContext({ config: appConfig, storage: createWebStorage(appConfig.appSlug) });
 export const { stores, api } = appContext;

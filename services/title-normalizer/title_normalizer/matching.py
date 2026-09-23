@@ -54,7 +54,7 @@ def group_titles(titles: Sequence[ParsedTitle]) -> list[list[int]]:
         blocks[title.compact_key[:BLOCK_PREFIX_LENGTH]].append(bucket_index)
     for block in blocks.values():
         for position, left in enumerate(block):
-            for right in block[position + 1:]:
+            for right in block[position + 1 :]:
                 if is_fuzzy_match(representative[left], representative[right]):
                     union.union(left, right)
 

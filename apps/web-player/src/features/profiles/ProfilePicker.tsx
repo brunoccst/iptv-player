@@ -68,28 +68,68 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   };
 
   return (
-    <Modal label={profile ? 'Edit profile' : 'Add profile'} onClose={() => { session.clearError(); onClose(); }}>
-      <form className="profile-editor" onSubmit={(event) => { event.preventDefault(); void save(); }}>
+    <Modal
+      label={profile ? 'Edit profile' : 'Add profile'}
+      onClose={() => {
+        session.clearError();
+        onClose();
+      }}
+    >
+      <form
+        className="profile-editor"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
         <h2 style={{ margin: 0 }}>{profile ? 'Edit Profile' : 'Add Profile'}</h2>
         <div className="field">
           <label htmlFor="profile-name">Name</label>
-          <input id="profile-name" className="input" required maxLength={50} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input
+            id="profile-name"
+            className="input"
+            required
+            maxLength={50}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+          />
         </div>
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend className="muted" style={{ fontSize: '0.875rem', marginBottom: 6 }}>Colour</legend>
+          <legend className="muted" style={{ fontSize: '0.875rem', marginBottom: 6 }}>
+            Colour
+          </legend>
           <div style={{ display: 'flex', gap: 8 }}>
             {AVATAR_COLORS.map((option) => (
-              <button key={option} type="button" aria-label={`Colour ${option}`} aria-pressed={option === color} onClick={() => setColor(option)}
-                style={{ width: 36, height: 36, borderRadius: 4, background: option, border: option === color ? '3px solid #fff' : '3px solid transparent' }} />
+              <button
+                key={option}
+                type="button"
+                aria-label={`Colour ${option}`}
+                aria-pressed={option === color}
+                onClick={() => setColor(option)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 4,
+                  background: option,
+                  border: option === color ? '3px solid #fff' : '3px solid transparent',
+                }}
+              />
             ))}
           </div>
         </fieldset>
         <label className="checkbox">
           <input type="checkbox" checked={isKids} onChange={(e) => setIsKids(e.target.checked)} /> Kids profile
         </label>
-        {error ? <p className="error-text" role="alert">{errorText(error)}</p> : null}
+        {error ? (
+          <p className="error-text" role="alert">
+            {errorText(error)}
+          </p>
+        ) : null}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>Save</button>
+          <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>
+            Save
+          </button>
           {profile ? (
             <button type="button" className="button button--ghost" onClick={() => void remove()} disabled={busy}>
               <Icon name="trash" size={18} /> Delete Profile

@@ -29,7 +29,11 @@ export function errorText(error: ApiError | null | undefined): string {
 }
 
 export function ErrorText({ children }: { children: string }) {
-  return <Text style={styles.error} accessibilityRole="alert">{children}</Text>;
+  return (
+    <Text style={styles.error} accessibilityRole="alert">
+      {children}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({

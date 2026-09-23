@@ -37,31 +37,31 @@ export function createApiClient(http: HttpClient) {
     health: (signal?: AbortSignal) => get<OperationResult<'getHealth'>>('/api/health', undefined, signal),
 
     auth: {
-      login: (request: LoginRequest) =>
-        http.request<OperationResult<'login'>>('POST', '/api/auth/login', { body: request }),
+      login: (request: LoginRequest) => http.request<OperationResult<'login'>>('POST', '/api/auth/login', { body: request }),
       logout: () => http.request<OperationResult<'logout', 204>>('POST', '/api/auth/logout'),
       me: (signal?: AbortSignal) => get<OperationResult<'getMe'>>('/api/auth/me', undefined, signal),
     },
 
     profiles: {
       list: (signal?: AbortSignal) => get<OperationResult<'listProfiles'>>('/api/profiles', undefined, signal),
-      create: (request: ProfileRequest) =>
-        http.request<OperationResult<'createProfile', 201>>('POST', '/api/profiles', { body: request }),
+      create: (request: ProfileRequest) => http.request<OperationResult<'createProfile', 201>>('POST', '/api/profiles', { body: request }),
       update: (profileId: string, request: ProfileRequest) =>
         http.request<OperationResult<'updateProfile'>>('PUT', `/api/profiles/${segment(profileId)}`, { body: request }),
-      remove: (profileId: string) =>
-        http.request<OperationResult<'deleteProfile', 204>>('DELETE', `/api/profiles/${segment(profileId)}`),
+      remove: (profileId: string) => http.request<OperationResult<'deleteProfile', 204>>('DELETE', `/api/profiles/${segment(profileId)}`),
     },
 
     progress: {
       list: (profileId: string, limit?: number, signal?: AbortSignal) =>
         get<OperationResult<'listProgress'>>(`/api/profiles/${segment(profileId)}/progress`, { limit }, signal),
       save: (profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest) =>
-        http.request<OperationResult<'saveProgress'>>(
-          'PUT', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`, { body: request }),
+        http.request<OperationResult<'saveProgress'>>('PUT', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`, {
+          body: request,
+        }),
       remove: (profileId: string, kind: ProgressKind, itemId: string) =>
         http.request<OperationResult<'deleteProgress', 204>>(
-          'DELETE', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`),
+          'DELETE',
+          `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`,
+        ),
     },
 
     catalog: {
@@ -89,8 +89,7 @@ export function createApiClient(http: HttpClient) {
     },
 
     epg: {
-      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) =>
-        get<OperationResult<'getEpgGrid'>>('/api/epg', { ...query }, signal),
+      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) => get<OperationResult<'getEpgGrid'>>('/api/epg', { ...query }, signal),
       refresh: () => http.request<OperationResult<'refreshEpg', 202>>('POST', '/api/epg/refresh'),
     },
 

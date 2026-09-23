@@ -29,21 +29,28 @@ from title_normalizer.parser import normalize_key, parse_title
 def test_parse_title_extracts_tags(raw, title, year, quality, source, languages, audio_tag, hdr):
     parsed = parse_title(raw)
 
-    assert (parsed.clean_title, parsed.year, parsed.quality, parsed.source, parsed.audio_languages, parsed.audio_tag,
-            parsed.is_hdr) == (title, year, quality, source, languages, audio_tag, hdr)
+    assert (parsed.clean_title, parsed.year, parsed.quality, parsed.source, parsed.audio_languages, parsed.audio_tag, parsed.is_hdr) == (
+        title,
+        year,
+        quality,
+        source,
+        languages,
+        audio_tag,
+        hdr,
+    )
 
 
 @pytest.mark.parametrize(
     ("raw", "title", "year"),
     [
-        ("It (2017)", "It", 2017),                                   # "IT" is also Italian; lowercase title must survive
+        ("It (2017)", "It", 2017),  # "IT" is also Italian; lowercase title must survive
         ("It: Chapter Two (2019)", "It: Chapter Two", 2019),
         ("Us (2019)", "Us", 2019),
         ("Toy Story 2 (1999)", "Toy Story 2", 1999),
         ("2001: A Space Odyssey (1968)", "2001: A Space Odyssey", 1968),  # leading number is title, not year
-        ("Blade Runner 2049 (2017)", "Blade Runner 2049", 2017),     # 2049 is out of year range
+        ("Blade Runner 2049 (2017)", "Blade Runner 2049", 2017),  # 2049 is out of year range
         ("Mission: Impossible - Fallout (2018) 720p", "Mission: Impossible - Fallout", 2018),
-        ("The Office (US)", "The Office (US)", None),                # country qualifier is not a language tag
+        ("The Office (US)", "The Office (US)", None),  # country qualifier is not a language tag
         ("Ted ENG", "Ted", None),
         ("Pan (2015)", "Pan", 2015),
         ("1917 (2019)", "1917", 2019),

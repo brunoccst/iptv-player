@@ -21,12 +21,15 @@ export function Row({ title, children, onVisible, empty }: RowProps) {
       setSeen(true);
       return;
     }
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        setSeen(true);
-        observer.disconnect();
-      }
-    }, { rootMargin: '400px 0px' });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setSeen(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px 0px' },
+    );
     observer.observe(root.current);
     return () => observer.disconnect();
   }, [seen]);

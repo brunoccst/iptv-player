@@ -126,21 +126,37 @@ public class LibraryEndpointTests : IDisposable
 
         MediaVariant Variant(string streamId, string masterId, int score, string category, string audio) => new()
         {
-            AccountId = accountId, MediaKind = LibraryKind.Movie, StreamId = idPrefix + streamId, MasterId = masterId,
-            RawTitle = $"raw {streamId}", Label = $"label {streamId}", QualityScore = score, CategoryId = category, AudioLanguages = audio,
+            AccountId = accountId,
+            MediaKind = LibraryKind.Movie,
+            StreamId = idPrefix + streamId,
+            MasterId = masterId,
+            RawTitle = $"raw {streamId}",
+            Label = $"label {streamId}",
+            QualityScore = score,
+            CategoryId = category,
+            AudioLanguages = audio,
         };
 
         db.MasterMedia.AddRange(
             new MasterMedia
             {
-                Id = idPrefix + "zulu", AccountId = accountId, MediaKind = LibraryKind.Movie, Title = "Zulu", NormalizedKey = "zulu",
+                Id = idPrefix + "zulu",
+                AccountId = accountId,
+                MediaKind = LibraryKind.Movie,
+                Title = "Zulu",
+                NormalizedKey = "zulu",
                 VariantCount = 2,
                 Variants = [Variant("3", idPrefix + "zulu", 10, "hd", "[]"), Variant("2", idPrefix + "zulu", 90, "4k", "[\"ENG\",\"ESP\"]")],
             },
             new MasterMedia
             {
-                Id = idPrefix + "alpha", AccountId = accountId, MediaKind = LibraryKind.Movie, Title = "Alpha", NormalizedKey = "alpha",
-                VariantCount = 1, Variants = [Variant("1", idPrefix + "alpha", 50, "hd", "[]")],
+                Id = idPrefix + "alpha",
+                AccountId = accountId,
+                MediaKind = LibraryKind.Movie,
+                Title = "Alpha",
+                NormalizedKey = "alpha",
+                VariantCount = 1,
+                Variants = [Variant("1", idPrefix + "alpha", 50, "hd", "[]")],
             });
         await db.SaveChangesAsync();
     }

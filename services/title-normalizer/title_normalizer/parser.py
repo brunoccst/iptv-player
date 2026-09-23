@@ -28,9 +28,7 @@ _PHRASES = [
     (re.compile(r"\bdd[p+]?[257]\.[01]\b", re.I), "ac3"),
 ]
 
-_PREFIX = re.compile(
-    r"^\s*[\[(|]?\s*(?P<body>[A-Za-z0-9+]{2,6}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*"
-)
+_PREFIX = re.compile(r"^\s*[\[(|]?\s*(?P<body>[A-Za-z0-9+]{2,6}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*")
 _BRACKET = re.compile(r"\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}")
 _TOKEN_SPLIT = re.compile(r"[\s,/_+|\-–.]+")
 _EDGE_PUNCTUATION = " -–:|.,_/"
@@ -163,7 +161,7 @@ def _strip_prefixes(text: str, found: _Tags) -> str:
             break
         if not found.absorb_compound(body, allow_short=True):
             break
-        text = text[match.end():]
+        text = text[match.end() :]
     return text
 
 
@@ -177,8 +175,8 @@ def _strip_brackets(text: str, found: _Tags) -> tuple[str, int | None]:
         tokens = [token for token in _TOKEN_SPLIT.split(content) if token]
         years = [parse_year(token) for token in tokens]
         probe = _Tags()
-        if tokens and all(y is not None or probe.absorb(token, allow_short=True) for token, y in zip(tokens, years)):
-            for token, token_year in zip(tokens, years):
+        if tokens and all(y is not None or probe.absorb(token, allow_short=True) for token, y in zip(tokens, years, strict=True)):
+            for token, token_year in zip(tokens, years, strict=True):
                 if token_year is not None:
                     year = year or token_year
                 else:

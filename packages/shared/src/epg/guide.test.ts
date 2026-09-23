@@ -5,7 +5,10 @@ import { floorToSlot, guideSlots, layoutGuideRow, nowFraction, programmeAt, prog
 const T0 = Date.parse('2026-09-23T12:00:00Z');
 const min = (m: number) => T0 + m * 60_000;
 const show = (title: string, startMin: number, endMin: number): EpgListing => ({
-  title, description: null, start: new Date(min(startMin)).toISOString(), end: new Date(min(endMin)).toISOString(),
+  title,
+  description: null,
+  start: new Date(min(startMin)).toISOString(),
+  end: new Date(min(endMin)).toISOString(),
 });
 
 describe('guide layout', () => {
@@ -18,7 +21,8 @@ describe('guide layout', () => {
   it('clips to the window, fills gaps and trims overlaps', () => {
     const cells = layoutGuideRow(
       [show('Late', 90, 150), show('Early', -30, 30), show('Overlap', 20, 60), show('Outside', 200, 230)],
-      min(0), min(120),
+      min(0),
+      min(120),
     );
 
     expect(cells.map((c) => [c.programme?.title ?? null, (c.startMs - T0) / 60_000, (c.endMs - T0) / 60_000])).toEqual([

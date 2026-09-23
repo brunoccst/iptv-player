@@ -21,7 +21,11 @@ export function DownloadsScreen() {
     <View style={styles.screen} testID="downloads-screen">
       <Text style={styles.title}>My Downloads</Text>
       {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
-      <FlatList data={records} keyExtractor={(r) => r.id} renderItem={({ item, index }) => <DownloadRow record={item} first={index === 0} />} />
+      <FlatList
+        data={records}
+        keyExtractor={(r) => r.id}
+        renderItem={({ item, index }) => <DownloadRow record={item} first={index === 0} />}
+      />
     </View>
   );
 }
@@ -52,14 +56,24 @@ function DownloadRow({ record, first }: { record: TvDownload; first: boolean }) 
       </View>
       <View style={styles.actions}>
         {record.state === 'completed' ? (
-          <FocusButton label="Play" variant="primary" hasTVPreferredFocus={first} accessibilityLabel={`Play ${record.target.title}`}
-            onPress={() => navStore.getState().push({ name: 'player', target: record.target })} />
+          <FocusButton
+            label="Play"
+            variant="primary"
+            hasTVPreferredFocus={first}
+            accessibilityLabel={`Play ${record.target.title}`}
+            onPress={() => navStore.getState().push({ name: 'player', target: record.target })}
+          />
         ) : record.state === 'downloading' || record.state === 'queued' ? (
           <FocusButton label="Pause" hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
         ) : (
           <FocusButton label="Resume" hasTVPreferredFocus={first} onPress={() => resume(record.id)} />
         )}
-        <FocusButton label="Delete" variant="ghost" accessibilityLabel={`Delete ${record.target.title}`} onPress={() => remove(record.id)} />
+        <FocusButton
+          label="Delete"
+          variant="ghost"
+          accessibilityLabel={`Delete ${record.target.title}`}
+          onPress={() => remove(record.id)}
+        />
       </View>
     </View>
   );
@@ -68,7 +82,15 @@ function DownloadRow({ record, first }: { record: TvDownload; first: boolean }) 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg, paddingTop: safe.vertical, paddingHorizontal: safe.horizontal },
   title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700', marginBottom: spacing.md },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, padding: spacing.sm, borderRadius: 4, marginBottom: spacing.sm },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: 4,
+    marginBottom: spacing.sm,
+  },
   art: { width: 60, height: 90, borderRadius: 4, backgroundColor: colors.raised },
   info: { flex: 1, gap: 2 },
   name: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },

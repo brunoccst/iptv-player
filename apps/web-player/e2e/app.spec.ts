@@ -29,11 +29,17 @@ test('plays HLS through the relay with keyboard skip, hover frame preview and ve
   const rail = await page.locator('.timeline__rail').boundingBox();
   await page.mouse.move(rail!.x + rail!.width * 0.5, rail!.y + 2);
   await expect(page.getByTestId('timeline-preview')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => {
-    const canvas = document.querySelector<HTMLCanvasElement>('.timeline__preview canvas')!;
-    const pixels = canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, canvas.width, canvas.height).data;
-    return pixels.reduce((sum, value, index) => (index % 4 === 3 ? sum : sum + value), 0);
-  }), { timeout: 20_000 }).toBeGreaterThan(10_000);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const canvas = document.querySelector<HTMLCanvasElement>('.timeline__preview canvas')!;
+          const pixels = canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, canvas.width, canvas.height).data;
+          return pixels.reduce((sum, value, index) => (index % 4 === 3 ? sum : sum + value), 0);
+        }),
+      { timeout: 20_000 },
+    )
+    .toBeGreaterThan(10_000);
 
   await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
   await page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: '1080p' }).click();
@@ -52,7 +58,10 @@ test('episodes: skip intro, continue watching + resume, next-episode countdown',
   await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Version / Stream Quality').selectOption({ label: 'ENG' });
-  await dialog.getByRole('button', { name: /^Play .*Pilot/ }).first().click();
+  await dialog
+    .getByRole('button', { name: /^Play .*Pilot/ })
+    .first()
+    .click();
 
   await expect(page.getByRole('button', { name: 'Skip Intro' })).toBeVisible({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Skip Intro' }).click();
@@ -95,12 +104,18 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
 
 test('downloads are encrypted in-app and play offline, even after reload', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Another Film' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: /Download .* for offline/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Download .* for offline/ })
+    .click();
   await expect(page.getByRole('dialog').getByRole('button', { name: /^Downloaded/ })).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press('Escape');
 
   await page.getByRole('button', { name: 'Big Test Movie' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: /Download .* for offline/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Download .* for offline/ })
+    .click();
   await expect(page.getByRole('dialog').getByRole('button', { name: /^Downloaded/ })).toBeVisible({ timeout: 60_000 });
   await page.keyboard.press('Escape');
 

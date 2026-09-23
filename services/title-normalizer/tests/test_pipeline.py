@@ -1,5 +1,5 @@
-from title_normalizer.pipeline import build_masters, master_id, quality_score, variant_label
 from title_normalizer.parser import parse_title
+from title_normalizer.pipeline import build_masters, master_id, quality_score, variant_label
 
 
 def item(stream_id: str, name: str, **extra) -> dict:
@@ -7,12 +7,16 @@ def item(stream_id: str, name: str, **extra) -> dict:
 
 
 def test_build_masters_groups_and_orders_variants_best_first():
-    masters = build_masters("acc", "movie", [
-        item("1", "The Matrix (1999) CAM", posterUrl=None, rating=6.0),
-        item("2", "EN - The Matrix (1999) [4K] HDR", posterUrl="http://img/4k.jpg", rating=8.7, containerExtension="mkv"),
-        item("3", "The Matrix (1999) 1080p", posterUrl="http://img/hd.jpg", categoryId="10"),
-        item("4", "Inception (2010)"),
-    ])
+    masters = build_masters(
+        "acc",
+        "movie",
+        [
+            item("1", "The Matrix (1999) CAM", posterUrl=None, rating=6.0),
+            item("2", "EN - The Matrix (1999) [4K] HDR", posterUrl="http://img/4k.jpg", rating=8.7, containerExtension="mkv"),
+            item("3", "The Matrix (1999) 1080p", posterUrl="http://img/hd.jpg", categoryId="10"),
+            item("4", "Inception (2010)"),
+        ],
+    )
 
     assert [master.title for master in masters] == ["Inception", "The Matrix"]
     matrix = masters[1]
@@ -52,10 +56,15 @@ def test_invalid_items_are_skipped():
 
 
 def test_display_title_is_most_common_spelling():
-    master = build_masters("acc", "movie", [
-        item("1", "Spider-Man: No Way Home (2021)"), item("2", "Spider-Man: No Way Home (2021) 4K"),
-        item("3", "Spiderman No Way Home (2021)"),
-    ])[0]
+    master = build_masters(
+        "acc",
+        "movie",
+        [
+            item("1", "Spider-Man: No Way Home (2021)"),
+            item("2", "Spider-Man: No Way Home (2021) 4K"),
+            item("3", "Spiderman No Way Home (2021)"),
+        ],
+    )[0]
 
     assert master.title == "Spider-Man: No Way Home"
 

@@ -38,7 +38,8 @@ function fakeHls() {
       queueMicrotask(() =>
         url.includes('good')
           ? this.handlers.get(Events.MANIFEST_PARSED)?.(Events.MANIFEST_PARSED, {})
-          : this.handlers.get(Events.ERROR)?.(Events.ERROR, { fatal: true, type: 'net', details: 'manifestLoadError' }));
+          : this.handlers.get(Events.ERROR)?.(Events.ERROR, { fatal: true, type: 'net', details: 'manifestLoadError' }),
+      );
     }
     attachMedia() {}
     destroy() {}
@@ -60,26 +61,41 @@ const api = (urls: Record<string, string>) => {
 describe('PlaybackEngine', () => {
   it('prefers the panel HLS output for MKV sources', async () => {
     const { client, get } = api({ m3u8: 'http://r/good.m3u8', mkv: 'http://r/movie.mkv' });
-    const engine = new PlaybackEngine(fakeVideo(() => false), client, fakeHls() as never);
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      client,
+      fakeHls() as never,
+    );
 
     await expect(engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null)).resolves.toEqual({
-      url: 'http://r/good.m3u8', engine: 'hls', offline: false,
+      url: 'http://r/good.m3u8',
+      engine: 'hls',
+      offline: false,
     });
     expect(get).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the original file when HLS fails', async () => {
     const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://r/movie.mp4' });
-    const engine = new PlaybackEngine(fakeVideo((url) => url.endsWith('.mp4')), client, fakeHls() as never);
+    const engine = new PlaybackEngine(
+      fakeVideo((url) => url.endsWith('.mp4')),
+      client,
+      fakeHls() as never,
+    );
 
     await expect(engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null)).resolves.toMatchObject({
-      url: 'http://r/movie.mp4', engine: 'file',
+      url: 'http://r/movie.mp4',
+      engine: 'file',
     });
   });
 
   it('explains MKV-only titles', async () => {
     const { client } = api({ mkv: 'http://r/movie.mkv' });
-    const engine = new PlaybackEngine(fakeVideo(() => false), client, fakeHls() as never);
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      client,
+      fakeHls() as never,
+    );
 
     const error = await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null).catch((e: unknown) => e);
 
@@ -90,11 +106,17 @@ describe('PlaybackEngine', () => {
   it('plays completed downloads without calling the API', async () => {
     const { client, get } = api({});
     const Hls = fakeHls();
-    const engine = new PlaybackEngine(fakeVideo(() => true), client, Hls as never);
+    const engine = new PlaybackEngine(
+      fakeVideo(() => true),
+      client,
+      Hls as never,
+    );
     const record = { id: 'movie-1', status: 'completed', format: 'file' } as DownloadRecord;
 
     await expect(engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, record)).resolves.toEqual({
-      url: '/__offline__/movie-1/file', engine: 'file', offline: true,
+      url: '/__offline__/movie-1/file',
+      engine: 'file',
+      offline: true,
     });
     expect(get).not.toHaveBeenCalled();
   });

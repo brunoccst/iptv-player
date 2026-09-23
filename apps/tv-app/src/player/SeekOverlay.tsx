@@ -25,7 +25,10 @@ export function TapFlash({ direction, flashKey }: { direction: SeekDirection; fl
       ]}
     >
       <Text style={styles.flashArrow}>{direction === 'back' ? '◀◀' : '▶▶'}</Text>
-      <Text style={styles.flashText}>{direction === 'back' ? '−' : '+'}{SKIP_SECONDS}</Text>
+      <Text style={styles.flashText}>
+        {direction === 'back' ? '−' : '+'}
+        {SKIP_SECONDS}
+      </Text>
     </Animated.View>
   );
 }
@@ -49,8 +52,14 @@ export function ScrubBar({ preview, speed, duration }: { preview: number; speed:
 
 const styles = StyleSheet.create({
   flash: {
-    position: 'absolute', top: '40%', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center', justifyContent: 'center',
+    position: 'absolute',
+    top: '40%',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   flashLeft: { left: '15%' },
   flashRight: { right: '15%' },

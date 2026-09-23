@@ -60,7 +60,11 @@ async function resolveDownloadSource(api: ApiClient, target: DownloadTarget, fet
   throw new Error('This title is not available from the provider right now.');
 }
 
-export function createDownloadsStore({ api, native, fetchImpl = (...args) => globalThis.fetch(...args) }: {
+export function createDownloadsStore({
+  api,
+  native,
+  fetchImpl = (...args) => globalThis.fetch(...args),
+}: {
   api: ApiClient;
   native: TvMediaApi;
   fetchImpl?: typeof fetch;
@@ -70,7 +74,12 @@ export function createDownloadsStore({ api, native, fetchImpl = (...args) => glo
 
   return createStore<DownloadsState>()((set, get) => {
     const apply = (downloads: NativeDownload[]) => {
-      const records = Object.fromEntries(downloads.map(toRecord).filter((r): r is TvDownload => r !== null).map((r) => [r.id, r]));
+      const records = Object.fromEntries(
+        downloads
+          .map(toRecord)
+          .filter((r): r is TvDownload => r !== null)
+          .map((r) => [r.id, r]),
+      );
       set({ records });
       const active = Object.values(records).some((r) => r.state === 'downloading' || r.state === 'queued');
       if (active && !poll) poll = setInterval(() => get().refresh(), POLL_MS);

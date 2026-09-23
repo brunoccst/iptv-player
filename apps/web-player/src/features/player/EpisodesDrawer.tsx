@@ -17,16 +17,27 @@ export function EpisodesDrawer({ series, currentEpisodeId, onPlay }: EpisodesDra
     <aside className="drawer" aria-label="Episodes">
       <h2>{series.summary.name}</h2>
       {series.seasons.length > 1 ? (
-        <select className="select" aria-label="Season" value={seasonNumber} onChange={(e) => setSeasonNumber(Number(e.target.value))}
-          style={{ marginBottom: 16 }}>
+        <select
+          className="select"
+          aria-label="Season"
+          value={seasonNumber}
+          onChange={(e) => setSeasonNumber(Number(e.target.value))}
+          style={{ marginBottom: 16 }}
+        >
           {series.seasons.map((s) => (
-            <option key={s.number} value={s.number}>{s.name}</option>
+            <option key={s.number} value={s.number}>
+              {s.name}
+            </option>
           ))}
         </select>
       ) : null}
       {season?.episodes.map((episode) => (
-        <button key={episode.id} type="button" onClick={() => onPlay(episode)}
-          className={`drawer__episode${episode.id === currentEpisodeId ? ' drawer__episode--current' : ''}`}>
+        <button
+          key={episode.id}
+          type="button"
+          onClick={() => onPlay(episode)}
+          className={`drawer__episode${episode.id === currentEpisodeId ? ' drawer__episode--current' : ''}`}
+        >
           {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : <span className="drawer__still" />}
           <span>
             <strong>{episodeLabel(episode)}</strong>

@@ -4,8 +4,15 @@ import { nativeState } from '../test/tvMediaMock';
 import { account, playback, pressBack, profile, setupApp, variant } from '../test/utils';
 import { App } from './App';
 
-const master = { id: 'm1', title: 'Big Test Movie', year: 2020, posterUrl: null, rating: 8, bestQuality: '4K',
-  variants: [variant('101', '4K · ENG'), variant('102', '1080p', 'mp4'), variant('103', 'CAM', 'mp4')] };
+const master = {
+  id: 'm1',
+  title: 'Big Test Movie',
+  year: 2020,
+  posterUrl: null,
+  rating: 8,
+  bestQuality: '4K',
+  variants: [variant('101', '4K · ENG'), variant('102', '1080p', 'mp4'), variant('103', 'CAM', 'mp4')],
+};
 
 async function flush() {
   await act(async () => {
@@ -14,7 +21,12 @@ async function flush() {
 }
 
 function stubLibrary(backend: ReturnType<typeof setupApp>) {
-  backend.on('GET', '/api/library/movies', { body: { total: 1, items: [{ id: 'm1', title: 'Big Test Movie', year: 2020, posterUrl: null, rating: 8, bestQuality: '4K', variantCount: 3 }] } });
+  backend.on('GET', '/api/library/movies', {
+    body: {
+      total: 1,
+      items: [{ id: 'm1', title: 'Big Test Movie', year: 2020, posterUrl: null, rating: 8, bestQuality: '4K', variantCount: 3 }],
+    },
+  });
   backend.on('GET', '/api/library/series', { body: { total: 0, items: [] } });
   backend.on('GET', '/api/library/movies/m1', { body: master });
   backend.on('GET', '/api/catalog/movies/categories', { body: [] });
@@ -37,7 +49,11 @@ describe('App (TV)', () => {
     await fireEvent.press(screen.getByTestId('login-submit'));
     await flush();
 
-    expect(backend.calls.find((c) => c.url.pathname === '/api/auth/login')?.body).toEqual({ serverUrl: 'http://panel:8080', username: 'demo', password: 'demo' });
+    expect(backend.calls.find((c) => c.url.pathname === '/api/auth/login')?.body).toEqual({
+      serverUrl: 'http://panel:8080',
+      username: 'demo',
+      password: 'demo',
+    });
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
     expect(screen.getByLabelText('Movies')).toBeTruthy();
   });
@@ -70,7 +86,12 @@ describe('App (TV)', () => {
     await fireEvent.press(screen.getByTestId('download-button'));
     await flush();
     expect(nativeState.calls).toEqual(['start:movie-102:http://relay.test/102.mp4:false']);
-    expect(JSON.parse(nativeState.downloads[0]!.metadata)).toMatchObject({ kind: 'movie', streamId: '102', title: 'Big Test Movie', masterId: 'm1' });
+    expect(JSON.parse(nativeState.downloads[0]!.metadata)).toMatchObject({
+      kind: 'movie',
+      streamId: '102',
+      title: 'Big Test Movie',
+      masterId: 'm1',
+    });
 
     await act(async () => pressBack());
     expect(await screen.findByTestId('home-screen')).toBeTruthy();

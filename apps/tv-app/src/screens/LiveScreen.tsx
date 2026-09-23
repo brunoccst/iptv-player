@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import {
-  EPG_SLOT_MS, floorToSlot, formatGuideTime, formatProgrammeTime, guideSlots, layoutGuideRow, nowFraction, programmeAt,
-  programmeProgress, useEpgGuide, useNow, type EpgChannelRow, type EpgListing, type LiveChannel,
+  EPG_SLOT_MS,
+  floorToSlot,
+  formatGuideTime,
+  formatProgrammeTime,
+  guideSlots,
+  layoutGuideRow,
+  nowFraction,
+  programmeAt,
+  programmeProgress,
+  useEpgGuide,
+  useNow,
+  type EpgChannelRow,
+  type EpgListing,
+  type LiveChannel,
 } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
@@ -26,7 +38,14 @@ interface Selection {
 function play(channel: LiveChannel, programme: EpgListing | null) {
   navStore.getState().push({
     name: 'player',
-    target: { kind: 'live', streamId: channel.id, container: 'm3u8', title: channel.name, subtitle: programme?.title ?? null, posterUrl: channel.logoUrl },
+    target: {
+      kind: 'live',
+      streamId: channel.id,
+      container: 'm3u8',
+      title: channel.name,
+      subtitle: programme?.title ?? null,
+      posterUrl: channel.logoUrl,
+    },
   });
 }
 
@@ -66,7 +85,12 @@ export function LiveScreen() {
         <View style={styles.chips}>
           <FocusButton label="All" variant={categoryId === null ? 'primary' : 'ghost'} onPress={() => chooseCategory(null)} />
           {categories.map((c) => (
-            <FocusButton key={c.id} label={c.name} variant={categoryId === c.id ? 'primary' : 'ghost'} onPress={() => chooseCategory(c.id)} />
+            <FocusButton
+              key={c.id}
+              label={c.name}
+              variant={categoryId === c.id ? 'primary' : 'ghost'}
+              onPress={() => chooseCategory(c.id)}
+            />
           ))}
         </View>
       </View>
@@ -74,14 +98,27 @@ export function LiveScreen() {
       <ProgrammeInfo selection={described} now={now} />
 
       <View style={styles.toolbar}>
-        <FocusButton label="◀ Earlier" variant="ghost" disabled={from - STEP_MS < nowSlot - MIN_BACK_MS} onPress={() => setFrom(from - STEP_MS)} />
+        <FocusButton
+          label="◀ Earlier"
+          variant="ghost"
+          disabled={from - STEP_MS < nowSlot - MIN_BACK_MS}
+          onPress={() => setFrom(from - STEP_MS)}
+        />
         <FocusButton label="Now" variant="ghost" disabled={from === nowSlot} onPress={() => setFrom(nowSlot)} />
-        <FocusButton label="Later ▶" variant="ghost" disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS} onPress={() => setFrom(from + STEP_MS)} testID="guide-later" />
+        <FocusButton
+          label="Later ▶"
+          variant="ghost"
+          disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS}
+          onPress={() => setFrom(from + STEP_MS)}
+          testID="guide-later"
+        />
         <Text style={styles.day}>{new Date(from).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
       </View>
 
       {guide.status === 'refreshing' ? <Text style={styles.notice}>Downloading the TV guide…</Text> : null}
-      {guide.status === 'unavailable' ? <Text style={styles.notice}>Your provider has no full TV guide. Showing what is available per channel.</Text> : null}
+      {guide.status === 'unavailable' ? (
+        <Text style={styles.notice}>Your provider has no full TV guide. Showing what is available per channel.</Text>
+      ) : null}
       {guide.error ? <ErrorText>{errorText(guide.error)}</ErrorText> : null}
 
       <View style={styles.grid} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)} testID="guide">
@@ -115,7 +152,9 @@ function TimeHeader({ from, to, width }: { from: number; to: number; width: numb
       <View style={{ width: CHANNEL_WIDTH }} />
       <View style={{ width }}>
         {slots.map((slot) => (
-          <Text key={slot} style={[styles.slot, { left: ((slot - from) / (to - from)) * width }]}>{formatGuideTime(slot)}</Text>
+          <Text key={slot} style={[styles.slot, { left: ((slot - from) / (to - from)) * width }]}>
+            {formatGuideTime(slot)}
+          </Text>
         ))}
       </View>
     </View>
@@ -137,11 +176,21 @@ function GuideRow({ row, from, to, now, width, preferred, onFocus }: GuideRowPro
   const cells = layoutGuideRow(programmes, from, to);
   return (
     <View style={styles.row}>
-      <GuideCellButton style={styles.channel} testID={`guide-channel-${channel.id}`} label={`Watch ${channel.name}`}
-        onPress={() => play(channel, programmeAt(programmes, now))} onFocus={() => onFocus({ channel, programme: programmeAt(programmes, now) })}>
-        {channel.logoUrl ? <Image source={{ uri: channel.logoUrl }} style={styles.logo} resizeMode="contain" /> : <View style={styles.logo} />}
+      <GuideCellButton
+        style={styles.channel}
+        testID={`guide-channel-${channel.id}`}
+        label={`Watch ${channel.name}`}
+        onPress={() => play(channel, programmeAt(programmes, now))}
+        onFocus={() => onFocus({ channel, programme: programmeAt(programmes, now) })}
+      >
+        {channel.logoUrl ? (
+          <Image source={{ uri: channel.logoUrl }} style={styles.logo} resizeMode="contain" />
+        ) : (
+          <View style={styles.logo} />
+        )}
         <Text style={styles.channelName} numberOfLines={2}>
-          {channel.number != null ? `${channel.number}  ` : ''}{channel.name}
+          {channel.number != null ? `${channel.number}  ` : ''}
+          {channel.name}
         </Text>
       </GuideCellButton>
       <View style={[styles.timeline, { width }]}>
@@ -150,7 +199,11 @@ function GuideRow({ row, from, to, now, width, preferred, onFocus }: GuideRowPro
           if (!cell.programme) {
             return (
               <View key={`gap-${cell.startMs}`} style={[styles.gap, { width: cellWidth }]}>
-                {programmes.length === 0 ? <Text style={styles.gapText} numberOfLines={1}>No guide information</Text> : null}
+                {programmes.length === 0 ? (
+                  <Text style={styles.gapText} numberOfLines={1}>
+                    No guide information
+                  </Text>
+                ) : null}
               </View>
             );
           }
@@ -158,13 +211,22 @@ function GuideRow({ row, from, to, now, width, preferred, onFocus }: GuideRowPro
           const onNow = cell.startMs <= now && now < Date.parse(programme.end);
           const past = Date.parse(programme.end) <= now;
           return (
-            <GuideCellButton key={programme.start} testID={onNow ? `guide-now-${channel.id}` : undefined}
+            <GuideCellButton
+              key={programme.start}
+              testID={onNow ? `guide-now-${channel.id}` : undefined}
               label={`${programme.title}, ${formatProgrammeTime(programme)}, ${channel.name}`}
               hasTVPreferredFocus={preferred && onNow}
               style={[styles.programme, { width: cellWidth }, onNow && styles.programmeNow, past && styles.programmePast]}
-              onPress={() => play(channel, onNow ? programme : null)} onFocus={() => onFocus({ channel, programme })}>
-              <Text style={styles.programmeTitle} numberOfLines={1}>{cell.clippedStart ? '‹ ' : ''}{programme.title}</Text>
-              <Text style={styles.programmeTime} numberOfLines={1}>{formatProgrammeTime(programme)}</Text>
+              onPress={() => play(channel, onNow ? programme : null)}
+              onFocus={() => onFocus({ channel, programme })}
+            >
+              <Text style={styles.programmeTitle} numberOfLines={1}>
+                {cell.clippedStart ? '‹ ' : ''}
+                {programme.title}
+              </Text>
+              <Text style={styles.programmeTime} numberOfLines={1}>
+                {formatProgrammeTime(programme)}
+              </Text>
             </GuideCellButton>
           );
         })}
@@ -187,14 +249,19 @@ interface GuideCellButtonProps {
 function GuideCellButton({ label, onPress, onFocus, style, testID, hasTVPreferredFocus, children }: GuideCellButtonProps) {
   const [focused, setFocused] = useState(false);
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} hasTVPreferredFocus={hasTVPreferredFocus}
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hasTVPreferredFocus={hasTVPreferredFocus}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
         onFocus();
       }}
       onBlur={() => setFocused(false)}
-      style={[style, focused && styles.focused]}>
+      style={[style, focused && styles.focused]}
+    >
       {children}
     </Pressable>
   );
@@ -207,14 +274,24 @@ function ProgrammeInfo({ selection, now }: { selection: Selection | null; now: n
     <View style={styles.info} testID="guide-info">
       {selection ? (
         <>
-          <Text style={styles.infoTitle} numberOfLines={1}>{programme?.title ?? selection.channel.name}</Text>
+          <Text style={styles.infoTitle} numberOfLines={1}>
+            {programme?.title ?? selection.channel.name}
+          </Text>
           <Text style={styles.infoMeta} numberOfLines={1}>
-            {selection.channel.name}{programme ? ` · ${formatProgrammeTime(programme)}` : ''}{onNow ? ' · On now' : ''}
+            {selection.channel.name}
+            {programme ? ` · ${formatProgrammeTime(programme)}` : ''}
+            {onNow ? ' · On now' : ''}
           </Text>
           {programme && onNow ? (
-            <View style={styles.infoBar}><View style={[styles.infoFill, { width: `${Math.round(programmeProgress(programme, now) * 100)}%` }]} /></View>
+            <View style={styles.infoBar}>
+              <View style={[styles.infoFill, { width: `${Math.round(programmeProgress(programme, now) * 100)}%` }]} />
+            </View>
           ) : null}
-          {programme?.description ? <Text style={styles.infoText} numberOfLines={2}>{programme.description}</Text> : null}
+          {programme?.description ? (
+            <Text style={styles.infoText} numberOfLines={2}>
+              {programme.description}
+            </Text>
+          ) : null}
         </>
       ) : null}
     </View>
@@ -239,11 +316,28 @@ const styles = StyleSheet.create({
   timeHeader: { flexDirection: 'row', height: 22 },
   slot: { position: 'absolute', color: colors.muted, fontSize: fonts.small, paddingLeft: spacing.xs },
   row: { flexDirection: 'row', height: ROW_HEIGHT, marginBottom: 2 },
-  channel: { width: CHANNEL_WIDTH, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingRight: spacing.sm, borderWidth: 2, borderColor: 'transparent', borderRadius: 4 },
+  channel: {
+    width: CHANNEL_WIDTH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingRight: spacing.sm,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: 4,
+  },
   logo: { width: 40, height: 40 },
   channelName: { flex: 1, color: colors.text, fontSize: fonts.small },
   timeline: { flexDirection: 'row' },
-  programme: { height: ROW_HEIGHT, justifyContent: 'center', paddingHorizontal: spacing.sm, backgroundColor: colors.raised, borderWidth: 2, borderColor: colors.bg, borderRadius: 4 },
+  programme: {
+    height: ROW_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.raised,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    borderRadius: 4,
+  },
   programmeNow: { backgroundColor: '#3a3a3a' },
   programmePast: { opacity: 0.55 },
   programmeTitle: { color: colors.strong, fontSize: fonts.small, fontWeight: '700' },

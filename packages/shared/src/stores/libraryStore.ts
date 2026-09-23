@@ -29,8 +29,13 @@ export interface LibraryState {
 export const DEFAULT_PAGE_SIZE = 100;
 
 export function pageKey(section: LibrarySection, query: LibraryListQuery = {}): string {
-  return [section, query.categoryId ?? '', query.search?.trim().toLowerCase() ?? '', query.offset ?? 0, query.limit ?? DEFAULT_PAGE_SIZE]
-    .join('|');
+  return [
+    section,
+    query.categoryId ?? '',
+    query.search?.trim().toLowerCase() ?? '',
+    query.offset ?? 0,
+    query.limit ?? DEFAULT_PAGE_SIZE,
+  ].join('|');
 }
 
 export const detailsKey = (section: LibrarySection, masterId: string) => `${section}|${masterId}`;

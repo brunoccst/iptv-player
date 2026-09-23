@@ -54,7 +54,10 @@ export class RemoteSeekController {
   private scrubStartedAt = 0;
   private preview = 0;
 
-  constructor(private readonly callbacks: RemoteSeekCallbacks, private readonly clock: Clock = systemClock) {}
+  constructor(
+    private readonly callbacks: RemoteSeekCallbacks,
+    private readonly clock: Clock = systemClock,
+  ) {}
 
   get isScrubbing(): boolean {
     return this.scrubTimer !== null;

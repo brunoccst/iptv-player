@@ -34,7 +34,12 @@ export function layoutGuideRow(programmes: readonly EpgListing[], fromMs: number
   const span = toMs - fromMs;
   if (span <= 0) return [];
   const cell = (programme: EpgListing | null, startMs: number, endMs: number, clippedStart = false): GuideCell => ({
-    programme, startMs, endMs, left: (startMs - fromMs) / span, width: (endMs - startMs) / span, clippedStart,
+    programme,
+    startMs,
+    endMs,
+    left: (startMs - fromMs) / span,
+    width: (endMs - startMs) / span,
+    clippedStart,
   });
 
   const sorted = programmes

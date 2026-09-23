@@ -27,7 +27,11 @@ describe('epg store', () => {
     await epg.getState().loadGrid({ ...request, offset: 50 });
 
     expect(Object.fromEntries(query!)).toEqual({
-      categoryId: '1', from: '2026-09-23T12:00:00.000Z', hours: '3', offset: '50', limit: '50',
+      categoryId: '1',
+      from: '2026-09-23T12:00:00.000Z',
+      hours: '3',
+      offset: '50',
+      limit: '50',
     });
     expect(epg.getState().grids[epgGridKey({ ...request, offset: 50 })]?.data?.status).toBe('ready');
   });

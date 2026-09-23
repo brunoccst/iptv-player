@@ -22,7 +22,11 @@ export function App() {
   }, [offline]);
 
   if (status === 'idle' || status === 'restoring') {
-    return <div className="center-screen"><Spinner label="Starting" /></div>;
+    return (
+      <div className="center-screen">
+        <Spinner label="Starting" />
+      </div>
+    );
   }
   if (status === 'anonymous') return <LoginPage />;
   if (!activeProfileId) return <ProfilePicker />;
