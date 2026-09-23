@@ -39,3 +39,63 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install -q -r requirements-dev.txt
           .venv/bin/python -m pytest -q
+
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: ESLint + Prettier
+        run: npm run lint:js
+      - name: dotnet format
+        run: npm run lint:backend
+      - name: Ruff
+        run: |
+          pip install -q "ruff>=0.6,<1"
+          npm run lint:py
+
+  web-e2e:
+    name: Web end-to-end (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: Worker venv + test media
+        run: |
+          python -m venv services/title-normalizer/.venv
+          services/title-normalizer/.venv/bin/pip install -q -r services/title-normalizer/requirements.txt imageio-ffmpeg
+          FFMPEG=$(services/title-normalizer/.venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+            python tools/fake-xtream-server/generate_media.py
+      - name: Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web-player
+      - name: Playwright
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: web-e2e-results
+          path: apps/web-player/test-results

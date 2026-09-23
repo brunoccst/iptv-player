@@ -1,0 +1,21 @@
+# Generated, vendored or non-TS/CSS content. Markdown/YAML/JSON keep their hand formatting.
+node_modules/
+dist/
+dist-e2e/
+.turbo/
+.expo/
+test-results/
+coverage/
+apps/tv-app/android/
+apps/tv-app/ios/
+packages/shared/src/api/generated/
+packages/shared/openapi/
+backend/
+services/
+tools/
+documentation/
+*.md
+*.yml
+*.yaml
+*.json
+package-lock.json

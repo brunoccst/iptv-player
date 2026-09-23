@@ -1,0 +1,5 @@
+# Backend overrides on top of the root .editorconfig. Checked by `dotnet format` in CI (DECISIONS.md#d-033).
+
+# EF Core writes migrations with a BOM and its own layout; never reformat them.
+[**/Migrations/*.cs]
+generated_code = true
