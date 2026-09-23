@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
  * Process-wide Media3 download state. Cache lives in the app's private `filesDir` (no other app or user access
  * without root). Player and DownloadService share it. See DECISIONS.md#d-029.
  */
-@UnstableApi
+@androidx.annotation.OptIn(UnstableApi::class)
 object DownloadCenter {
   const val CHANNEL_ID = "downloads"
   const val USER_AGENT = "TvMedia/1.0 (Media3)"

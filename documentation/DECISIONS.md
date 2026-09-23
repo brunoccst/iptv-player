@@ -68,6 +68,7 @@ flowchart TD
 Decision: layout follows the task spec (`apps/`, `packages/`, `backend/`, `services/`, `documentation/`). Every folder has a `README.md` with facts only, except:
 - `documentation/`: spec requires exactly three files there. That rule wins.
 - Generated/tool folders (`node_modules`, `bin`, `obj`, `dist`, `.venv`, `android`).
+- Android `res/` folders: the resource merger rejects any non-resource file, so the parent folder's README documents them (2026-09-23).
 
 Why: explicit spec rule for `documentation/` is more specific than the general README rule.
 

@@ -12,7 +12,7 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 /** JS entry point: player view + download functions. JS wrapper: modules/tv-media/src/index.ts. */
-@UnstableApi
+@androidx.annotation.OptIn(UnstableApi::class)
 class TvMediaModule : Module() {
   private val context
     get() = appContext.reactContext?.applicationContext ?: throw Exceptions.ReactContextLost()

@@ -9,7 +9,7 @@ import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.scheduler.Scheduler
 
 /** Foreground service that runs Media3 downloads with a progress notification. */
-@UnstableApi
+@androidx.annotation.OptIn(UnstableApi::class)
 class TvDownloadService : DownloadService(
   NOTIFICATION_ID,
   DEFAULT_FOREGROUND_NOTIFICATION_UPDATE_INTERVAL,

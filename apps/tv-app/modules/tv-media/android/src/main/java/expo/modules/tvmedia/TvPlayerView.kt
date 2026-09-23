@@ -35,7 +35,7 @@ class PlayerSource : Record {
  * ExoPlayer surface without built-in controls; React Native draws the UI and drives it via props and view
  * functions. Emits status, progress (every 500 ms), tracks, end and error events.
  */
-@UnstableApi
+@androidx.annotation.OptIn(UnstableApi::class)
 class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
   override val shouldUseAndroidLayout = true
 
