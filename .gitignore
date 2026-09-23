@@ -24,6 +24,7 @@ local.settings.json
 .data/
 
 # Tooling
+.claude/
 .pytest_cache/
 .vs/
 .idea/

@@ -39,7 +39,7 @@ flowchart LR
 | [`services`](./services) | Python background services (title normalizer). |
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
 | [`scripts`](./scripts) | One-command dev stack; start/stop the local end-to-end stack. |
-| [`.github`](./.github) | CI workflows. |
+| [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
