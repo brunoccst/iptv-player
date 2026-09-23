@@ -22,6 +22,7 @@ public sealed class BackendOptions
         public const string ProviderUserAgent = "BACKEND_PROVIDER_USER_AGENT";
         public const string CatalogCacheMinutes = "BACKEND_CATALOG_CACHE_MINUTES";
         public const string EpgRefreshHours = "BACKEND_EPG_REFRESH_HOURS";
+        public const string PublicBaseUrl = "BACKEND_PUBLIC_BASE_URL";
     }
 
     /// <summary>Absolute path for SQLite databases and Data Protection keys. Shared with <c>services/</c>.</summary>
@@ -46,4 +47,10 @@ public sealed class BackendOptions
 
     /// <summary>Guide older than this is downloaded again (in the background) on the next grid request.</summary>
     public int EpgRefreshHours { get; set; } = 6;
+
+    /// <summary>
+    /// Address clients use to reach the API when it sits behind a proxy (e.g. GitHub Codespaces).
+    /// Relay URLs are built from it; when null they use the request's scheme and host.
+    /// </summary>
+    public Uri? PublicBaseUrl { get; set; }
 }

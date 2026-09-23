@@ -4,6 +4,8 @@ using System.Net.Http.Json;
 using Backend.Core.Media;
 using Backend.Infrastructure.Streaming;
 using Backend.Tests.Support;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace Backend.Tests;
 
@@ -62,6 +64,19 @@ public class CatalogPlaybackRelayTests : IDisposable
         Assert.StartsWith("http://localhost/api/relay/", info.Url);
         Assert.EndsWith("/42.m3u8", info.Url);
         Assert.DoesNotContain(FakeXtreamServer.Username + "/", info.Url);
+    }
+
+    [Fact]
+    public async Task Playback_UsesPublicBaseUrl_WhenConfigured()
+    {
+        using var proxied = _factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration((_, configuration) =>
+            configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["BACKEND_PUBLIC_BASE_URL"] = "https://demo-5173.app.github.dev" })));
+        var client = proxied.CreateClient();
+        await client.LoginAndAuthorizeAsync();
+
+        var info = await client.GetFromJsonAsync<PlaybackInfo>("/api/playback/live/42", ApiClientExtensions.Json);
+
+        Assert.StartsWith("https://demo-5173.app.github.dev/api/relay/", info!.Url);
     }
 
     [Fact]

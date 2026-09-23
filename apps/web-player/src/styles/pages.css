@@ -735,6 +735,27 @@
 }
 
 @media (max-width: 720px) {
+  /* Phones: brand, search and account on the first row; page links scroll sideways on the second. */
+  :root {
+    --nav-height: 104px;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 8px;
+  }
+
+  .nav > nav {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .nav__search {
+    width: 130px;
+  }
+
   .details__body {
     grid-template-columns: 1fr;
   }

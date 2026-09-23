@@ -28,11 +28,17 @@ public static class BackendOptionsServiceCollectionExtensions
                 options.CatalogCacheMinutes = ReadInt(configuration, BackendOptions.EnvKeys.CatalogCacheMinutes, options.CatalogCacheMinutes);
                 options.EpgRefreshHours = ReadInt(configuration, BackendOptions.EnvKeys.EpgRefreshHours, options.EpgRefreshHours);
 
+                var publicBaseUrl = configuration[BackendOptions.EnvKeys.PublicBaseUrl]?.Trim();
+                options.PublicBaseUrl = string.IsNullOrEmpty(publicBaseUrl) ? null : new Uri(publicBaseUrl.TrimEnd('/') + "/", UriKind.RelativeOrAbsolute);
+
                 var userAgent = configuration[BackendOptions.EnvKeys.ProviderUserAgent]?.Trim();
                 options.ProviderUserAgent = string.IsNullOrEmpty(userAgent) ? null : userAgent;
             })
             .Validate(options => options.SessionDays > 0 && options.RelayTokenHours > 0 && options.CatalogCacheMinutes >= 0 && options.EpgRefreshHours > 0,
                 "BACKEND_SESSION_DAYS, BACKEND_RELAY_TOKEN_HOURS and BACKEND_EPG_REFRESH_HOURS must be > 0; BACKEND_CATALOG_CACHE_MINUTES must be >= 0.")
+            .Validate(options => options.PublicBaseUrl is null
+                    || (options.PublicBaseUrl.IsAbsoluteUri && options.PublicBaseUrl.Scheme is "http" or "https"),
+                "BACKEND_PUBLIC_BASE_URL must be an absolute http(s) URL.")
             .ValidateOnStart();
 
         return services;

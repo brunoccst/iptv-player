@@ -48,7 +48,13 @@ export default defineConfig({
   plugins: [react(), serviceWorker()],
   envDir: repoRoot,
   envPrefix: ['VITE_', 'APP_'],
-  server: { port: 5173 },
+  server: {
+    port: 5173,
+    // GitHub Codespaces: only the web port is opened; /api goes through Vite to the backend. See DECISIONS.md#d-035.
+    ...(process.env.CODESPACES === 'true'
+      ? { allowedHosts: ['.app.github.dev'], hmr: { clientPort: 443 }, proxy: { '/api': 'http://localhost:5080' } }
+      : {}),
+  },
   preview: { port: 4173 },
   // hls.js alone is ~500 kB; it lives in the lazily loaded player chunk.
   build: { chunkSizeWarningLimit: 700 },

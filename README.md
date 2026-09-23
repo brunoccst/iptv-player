@@ -38,8 +38,9 @@ flowchart LR
 | [`backend`](./backend) | C# .NET 10 Web API. |
 | [`services`](./services) | Python background services (title normalizer). |
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
+| [`.devcontainer`](./.devcontainer) | GitHub Codespaces setup (web app + fake panel, works from a phone). |
 | [`scripts`](./scripts) | One-command dev stack; start/stop the local end-to-end stack. |
-| [`.github`](./.github) | CI workflows. |
+| [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
@@ -74,6 +75,13 @@ python -m title_normalizer  # dedup worker (venv active); needs the backend to h
 No IPTV subscription? Start the fake panel (`tools/fake-xtream-server`, see its README) and sign in with `http://localhost:8090` / `demo` / `demo`.
 
 TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the APK build and Android TV emulator tests run in GitHub Actions (`.github/workflows/tv-app.yml`, artifacts `tv-app-apk` and `maestro-output`).
+
+Try it from a phone (no computer needed), free within the GitHub Codespaces monthly allowance:
+
+1. Open https://github.com/codespaces/new?repo=brunoccst/iptv-player and choose **Create codespace** (first start takes ~5–10 min).
+2. When it is ready, open the **Ports** tab and tap the globe next to **Web app (5173)**, or open `https://<codespace-name>-5173.app.github.dev`.
+3. Sign in with server `http://localhost:8090`, username `demo`, password `demo`.
+4. Stop the codespace when done (github.com/codespaces → ⋯ → Stop); it also stops itself after 30 idle minutes.
 
 End-to-end tests (starts its own stack on separate ports):
 

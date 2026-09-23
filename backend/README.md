@@ -58,6 +58,7 @@ Loads the repo root `.env`, then `.env.local`, then real environment variables (
 | `BACKEND_RELAY_TOKEN_HOURS` | `12` | Relay URL lifetime. |
 | `BACKEND_CATALOG_CACHE_MINUTES` | `15` | In-memory catalog cache. `0` disables. |
 | `BACKEND_EPG_REFRESH_HOURS` | `6` | TV guide older than this is re-downloaded in the background. |
+| `BACKEND_PUBLIC_BASE_URL` | (empty) | Public address when the API sits behind a proxy (e.g. Codespaces); relay URLs are built from it. Empty: request scheme + host. |
 | `BACKEND_PROVIDER_USER_AGENT` | none | `User-Agent` sent to providers. |
 
 Deleting `DATA_DIR` resets all accounts, profiles, sessions and the deduplicated library.
