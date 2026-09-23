@@ -23,7 +23,7 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(0[2-9]|1[0-9]) / 0:30.*Paused.*"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
     timeout: 30000
 - assertVisible: ".*Downloaded.*"
 - takeScreenshot: 07-offline-player

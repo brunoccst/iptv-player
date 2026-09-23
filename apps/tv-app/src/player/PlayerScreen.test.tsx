@@ -60,6 +60,17 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('player-time')).toBeNull();
   });
 
+  it('keeps a focus anchor on screen so the remote reaches the player, except while the drawer has focusables', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+
+    expect(screen.getByTestId('player-focus').props.hasTVPreferredFocus).toBe(true);
+    await act(async () => pressRemote('down', 'down'));
+    expect(screen.queryByTestId('player-focus')).toBeNull();
+  });
+
   it('tap ←/→ skips 10 s with a flash; holding scrubs with acceleration and seeks once on release', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

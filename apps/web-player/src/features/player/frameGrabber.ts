@@ -18,6 +18,7 @@ export class FrameGrabber {
     this.video.crossOrigin = 'anonymous';
     this.video.playsInline = true;
     this.video.addEventListener('seeked', this.onSeeked);
+    this.video.addEventListener('loadedmetadata', this.onMetadata);
 
     if (source.engine === 'hls' && Hls.isSupported()) {
       this.hls = new Hls({ startLevel: 0, capLevelToPlayerSize: false, maxBufferLength: 4, maxMaxBufferLength: 8, enableWorker: true });
@@ -44,6 +45,7 @@ export class FrameGrabber {
 
   destroy() {
     this.video.removeEventListener('seeked', this.onSeeked);
+    this.video.removeEventListener('loadedmetadata', this.onMetadata);
     this.hls?.destroy();
     this.hls = null;
     this.video.removeAttribute('src');
@@ -52,10 +54,16 @@ export class FrameGrabber {
 
   private seekNext() {
     if (this.pendingTime === null) return;
+    // A seek before metadata never fires `seeked` and would block every later request; wait for loadedmetadata.
+    if (this.video.readyState < HTMLMediaElement.HAVE_METADATA) return;
     this.seeking = true;
     this.video.currentTime = this.pendingTime;
     this.pendingTime = null;
   }
+
+  private onMetadata = () => {
+    if (!this.seeking) this.seekNext();
+  };
 
   private onSeeked = () => {
     this.seeking = false;

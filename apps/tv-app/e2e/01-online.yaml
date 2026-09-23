@@ -58,7 +58,7 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(0[2-9]|1[0-9]) / 0:30.*Paused.*"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
     timeout: 30000
 - takeScreenshot: 03-player
 - copyTextFrom:
@@ -74,7 +74,8 @@ appId: ${APP_ID}
 - copyTextFrom:
     id: "player-time"
 - evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
-- assertTrue: ${output.after >= output.before + 9}
+# Slow screen reads can land the pause late in the 30 s clip: a skip near the end stops at 0:30.
+- assertTrue: ${output.after >= Math.min(output.before + 9, 30)}
 # Down: quick drawer (audio / subtitles / versions). Back closes it, second Back leaves the player.
 - pressKey: Remote Dpad Down
 - assertVisible:

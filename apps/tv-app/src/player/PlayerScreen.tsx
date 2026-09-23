@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   NEXT_UP_COUNTDOWN_SECONDS,
   RemoteSeekController,
@@ -242,6 +242,17 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           } else setError(e.nativeEvent.message);
         }}
       />
+
+      {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028. */}
+      {!drawer && !focusablesVisible && !error ? (
+        <Pressable
+          testID="player-focus"
+          accessibilityLabel="Player"
+          hasTVPreferredFocus
+          style={StyleSheet.absoluteFill}
+          onPress={() => {}}
+        />
+      ) : null}
 
       {!ready && !error ? <Loading label="Loading stream" /> : null}
       {error ? (
