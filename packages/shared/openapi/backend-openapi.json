@@ -973,6 +973,140 @@
         }
       }
     },
+    "/api/epg": {
+      "get": {
+        "tags": [
+          "Epg"
+        ],
+        "operationId": "getEpgGrid",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpgGrid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/epg/refresh": {
+      "post": {
+        "tags": [
+          "Epg"
+        ],
+        "operationId": "refreshEpg",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
     "/api/library/sync": {
       "post": {
         "tags": [
@@ -1162,6 +1296,100 @@
             "format": "int32"
           }
         }
+      },
+      "EpgChannelRow": {
+        "required": [
+          "channel",
+          "programmes"
+        ],
+        "type": "object",
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/LiveChannel"
+          },
+          "programmes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpgListing"
+            }
+          }
+        }
+      },
+      "EpgGrid": {
+        "required": [
+          "status",
+          "updatedAt",
+          "from",
+          "to",
+          "totalChannels",
+          "channels"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/EpgStatus"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalChannels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpgChannelRow"
+            }
+          }
+        }
+      },
+      "EpgListing": {
+        "required": [
+          "start",
+          "end",
+          "title",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EpgStatus": {
+        "enum": [
+          "ready",
+          "refreshing",
+          "unavailable"
+        ]
       },
       "Episode": {
         "required": [
@@ -2141,6 +2369,9 @@
     },
     {
       "name": "Catalog"
+    },
+    {
+      "name": "Epg"
     },
     {
       "name": "Library"

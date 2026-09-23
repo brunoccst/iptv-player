@@ -21,6 +21,7 @@ public sealed class BackendOptions
         public const string RelayTokenHours = "BACKEND_RELAY_TOKEN_HOURS";
         public const string ProviderUserAgent = "BACKEND_PROVIDER_USER_AGENT";
         public const string CatalogCacheMinutes = "BACKEND_CATALOG_CACHE_MINUTES";
+        public const string EpgRefreshHours = "BACKEND_EPG_REFRESH_HOURS";
     }
 
     /// <summary>Absolute path for SQLite databases and Data Protection keys. Shared with <c>services/</c>.</summary>
@@ -42,4 +43,7 @@ public sealed class BackendOptions
     public string? ProviderUserAgent { get; set; }
 
     public int CatalogCacheMinutes { get; set; } = 15;
+
+    /// <summary>Guide older than this is downloaded again (in the background) on the next grid request.</summary>
+    public int EpgRefreshHours { get; set; } = 6;
 }

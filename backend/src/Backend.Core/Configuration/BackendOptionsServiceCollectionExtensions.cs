@@ -26,12 +26,13 @@ public static class BackendOptionsServiceCollectionExtensions
                 options.SessionDays = ReadInt(configuration, BackendOptions.EnvKeys.SessionDays, options.SessionDays);
                 options.RelayTokenHours = ReadInt(configuration, BackendOptions.EnvKeys.RelayTokenHours, options.RelayTokenHours);
                 options.CatalogCacheMinutes = ReadInt(configuration, BackendOptions.EnvKeys.CatalogCacheMinutes, options.CatalogCacheMinutes);
+                options.EpgRefreshHours = ReadInt(configuration, BackendOptions.EnvKeys.EpgRefreshHours, options.EpgRefreshHours);
 
                 var userAgent = configuration[BackendOptions.EnvKeys.ProviderUserAgent]?.Trim();
                 options.ProviderUserAgent = string.IsNullOrEmpty(userAgent) ? null : userAgent;
             })
-            .Validate(options => options.SessionDays > 0 && options.RelayTokenHours > 0 && options.CatalogCacheMinutes >= 0,
-                "BACKEND_SESSION_DAYS and BACKEND_RELAY_TOKEN_HOURS must be > 0; BACKEND_CATALOG_CACHE_MINUTES must be >= 0.")
+            .Validate(options => options.SessionDays > 0 && options.RelayTokenHours > 0 && options.CatalogCacheMinutes >= 0 && options.EpgRefreshHours > 0,
+                "BACKEND_SESSION_DAYS, BACKEND_RELAY_TOKEN_HOURS and BACKEND_EPG_REFRESH_HOURS must be > 0; BACKEND_CATALOG_CACHE_MINUTES must be >= 0.")
             .ValidateOnStart();
 
         return services;

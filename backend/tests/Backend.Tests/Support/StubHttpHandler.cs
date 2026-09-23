@@ -8,10 +8,13 @@ public sealed class StubHttpHandler(Func<HttpRequestMessage, HttpResponseMessage
 {
     public System.Collections.Concurrent.ConcurrentQueue<HttpRequestMessage> Requests { get; } = new();
 
+    /// <summary>Per-test override; returning null falls through to the default responder.</summary>
+    public Func<HttpRequestMessage, HttpResponseMessage?>? Override { get; set; }
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Requests.Enqueue(request);
-        var response = respond(request);
+        var response = Override?.Invoke(request) ?? respond(request);
         response.RequestMessage ??= request;
         return Task.FromResult(response);
     }

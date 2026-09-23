@@ -57,4 +57,33 @@ public static class XtreamFixtures
         {"seasons":[],"info":{"name":"Show"},
          "episodes":[[{"id":"2001","episode_num":1,"title":"E1","season":3,"container_extension":"mp4"}]]}
         """;
+
+    /// <summary>XMLTV guide for <c>news.us</c> (upper-case id, like real feeds): hourly shows from one hour before <paramref name="now"/>.</summary>
+    public static string Xmltv(DateTimeOffset now)
+    {
+        var hour = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, 0, 0, TimeSpan.Zero);
+        var programmes = string.Concat(Enumerable.Range(-1, 6).Select(i =>
+            $"""
+            <programme start="{hour.AddHours(i):yyyyMMddHHmmss} +0000" stop="{hour.AddHours(i + 1):yyyyMMddHHmmss} +0000" channel="NEWS.us">
+              <title lang="en">News at {i}</title><title lang="es">Noticias</title><desc>Headlines &amp; weather.</desc>
+            </programme>
+            """));
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE tv SYSTEM "xmltv.dtd">
+            <tv><channel id="NEWS.us"><display-name>News</display-name></channel>{programmes}</tv>
+            """;
+    }
+
+    /// <summary><c>get_short_epg</c> with base64 titles (as real panels send) for a channel without an XMLTV id.</summary>
+    public static string ShortEpg(DateTimeOffset now)
+    {
+        static string B64(string text) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text));
+        var start = now.AddMinutes(-20).ToUnixTimeSeconds();
+        return $$"""
+            {"epg_listings":[
+              {"title":"{{B64("Live Match")}}","description":"{{B64("Final.")}}","start_timestamp":"{{start}}","stop_timestamp":"{{start + 7200}}"},
+              {"title":"{{B64("Post-game")}}","description":"","start_timestamp":"{{start + 7200}}","stop_timestamp":"{{start + 9000}}"}]}
+            """;
+    }
 }

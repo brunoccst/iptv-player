@@ -1,3 +1,4 @@
+using Backend.Core.Epg;
 using Backend.Core.Media;
 
 namespace Backend.Core.Providers;
@@ -26,6 +27,12 @@ public interface IMediaProvider
     Task<IReadOnlyList<SeriesSummary>> GetSeriesAsync(ProviderCredentials credentials, string? categoryId, CancellationToken cancellationToken);
 
     Task<SeriesDetails?> GetSeriesDetailsAsync(ProviderCredentials credentials, string seriesId, CancellationToken cancellationToken);
+
+    /// <summary>Opens the full XMLTV guide, decompressed. Caller disposes. Can be very large; read it as a stream.</summary>
+    Task<Stream> OpenXmltvAsync(ProviderCredentials credentials, CancellationToken cancellationToken);
+
+    /// <summary>Next few programmes for one channel, keyed by <see cref="EpgChannelKeys.ForStream"/>.</summary>
+    Task<IReadOnlyList<EpgProgramme>> GetShortEpgAsync(ProviderCredentials credentials, string channelId, int limit, CancellationToken cancellationToken);
 
     /// <summary>Builds the upstream stream URL. Pure; no network call.</summary>
     PlaybackSource BuildPlaybackSource(ProviderCredentials credentials, PlaybackRequest request, ProviderAccountInfo? accountInfo);

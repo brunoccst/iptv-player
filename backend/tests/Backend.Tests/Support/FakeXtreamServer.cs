@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Backend.Tests.Support;
 
-/// <summary>Minimal Xtream Codes panel: login, catalog actions, HLS playlist and a byte-range segment.</summary>
+/// <summary>Minimal Xtream Codes panel: login, catalog actions, EPG (XMLTV + short EPG), HLS playlist and a byte-range segment.</summary>
 public static class FakeXtreamServer
 {
     public const string BaseUrl = "http://provider.test:8080/";
@@ -31,9 +31,19 @@ public static class FakeXtreamServer
                 "get_vod_streams" => StubHttpHandler.Json(XtreamFixtures.VodStreams),
                 "get_vod_info" => StubHttpHandler.Json(XtreamFixtures.VodInfo),
                 "get_live_streams" => StubHttpHandler.Json(XtreamFixtures.LiveStreams),
+                "get_short_epg" when StubHttpHandler.Query(request, "stream_id") == "43" => StubHttpHandler.Json(XtreamFixtures.ShortEpg(DateTimeOffset.UtcNow)),
+                "get_short_epg" => StubHttpHandler.Json("""{"epg_listings":[]}"""),
                 "get_series_info" when StubHttpHandler.Query(request, "series_id") == "7" => StubHttpHandler.Json(XtreamFixtures.SeriesInfoObjectEpisodes),
                 "get_series_info" => StubHttpHandler.Json("""{"seasons":[],"info":[],"episodes":[]}"""),
                 _ => StubHttpHandler.Json("[]"),
+            };
+        }
+
+        if (uri.AbsolutePath == "/xmltv.php")
+        {
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(XtreamFixtures.Xmltv(DateTimeOffset.UtcNow), Encoding.UTF8, "application/xml"),
             };
         }
 

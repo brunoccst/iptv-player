@@ -177,6 +177,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/epg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getEpgGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/epg/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["refreshEpg"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -353,6 +385,32 @@ export interface components {
             status: null | string;
             username: string;
         };
+        EpgChannelRow: {
+            channel: components["schemas"]["LiveChannel"];
+            programmes: components["schemas"]["EpgListing"][];
+        };
+        EpgGrid: {
+            channels: components["schemas"]["EpgChannelRow"][];
+            /** Format: date-time */
+            from: string;
+            status: components["schemas"]["EpgStatus"];
+            /** Format: date-time */
+            to: string;
+            /** Format: int32 */
+            totalChannels: number;
+            /** Format: date-time */
+            updatedAt: null | string;
+        };
+        EpgListing: {
+            description: null | string;
+            /** Format: date-time */
+            end: string;
+            /** Format: date-time */
+            start: string;
+            title: string;
+        };
+        /** @enum {unknown} */
+        EpgStatus: "ready" | "refreshing" | "unavailable";
         Episode: {
             containerExtension: null | string;
             /** Format: int32 */
@@ -1033,6 +1091,104 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MediaCategory"][];
                 };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    getEpgGrid: {
+        parameters: {
+            query?: {
+                categoryId?: string;
+                from?: string;
+                hours?: number;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpgGrid"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    refreshEpg: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

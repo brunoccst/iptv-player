@@ -77,6 +77,7 @@ app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapProgressEndpoints();
 app.MapCatalogEndpoints();
+app.MapEpgEndpoints();
 app.MapPlaybackEndpoints();
 app.MapLibraryEndpoints();
 app.MapRelayEndpoints();

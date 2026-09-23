@@ -1,4 +1,5 @@
 using Backend.Core.Accounts;
+using Backend.Core.Epg;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -10,6 +11,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<WatchProgress> WatchProgress => Set<WatchProgress>();
+    public DbSet<EpgProgrammeRow> EpgProgrammes => Set<EpgProgrammeRow>();
+    public DbSet<EpgState> EpgStates => Set<EpgState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +45,23 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             progress.Property(p => p.ItemId).HasMaxLength(64);
             progress.Property(p => p.Title).HasMaxLength(300);
             progress.HasOne(p => p.Profile).WithMany().HasForeignKey(p => p.ProfileId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EpgProgrammeRow>(programme =>
+        {
+            programme.ToTable("EpgProgrammes");
+            programme.HasIndex(p => new { p.AccountId, p.ChannelKey, p.Start });
+            programme.Property(p => p.AccountId).HasMaxLength(36);
+            programme.Property(p => p.ChannelKey).HasMaxLength(200);
+            programme.Property(p => p.Title).HasMaxLength(300);
+            programme.Property(p => p.Description).HasMaxLength(2000);
+        });
+
+        modelBuilder.Entity<EpgState>(state =>
+        {
+            state.HasKey(s => s.AccountId);
+            state.Property(s => s.AccountId).HasMaxLength(36);
+            state.Property(s => s.LastError).HasMaxLength(500);
         });
 
         // SQLite cannot ORDER BY or compare DateTimeOffset; store as UTC ticks.

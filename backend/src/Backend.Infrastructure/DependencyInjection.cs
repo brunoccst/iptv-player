@@ -3,6 +3,7 @@ using Backend.Core.Configuration;
 using Backend.Core.Providers;
 using Backend.Infrastructure.Accounts;
 using Backend.Infrastructure.Catalog;
+using Backend.Infrastructure.Epg;
 using Backend.Infrastructure.Library;
 using Backend.Infrastructure.Pipeline;
 using Backend.Infrastructure.Persistence;
@@ -62,6 +63,10 @@ public static class DependencyInjection
         services.AddScoped<LibraryService>();
         services.AddSingleton<LibrarySyncQueue>();
         services.AddHostedService<LibrarySyncWorker>();
+        services.AddScoped<EpgRefreshService>();
+        services.AddScoped<EpgService>();
+        services.AddSingleton<EpgRefreshQueue>();
+        services.AddHostedService<EpgRefreshWorker>();
 
         return services;
     }

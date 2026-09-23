@@ -57,6 +57,7 @@ Loads the repo root `.env`, then `.env.local`, then real environment variables (
 | `BACKEND_SESSION_DAYS` | `30` | Login token lifetime. |
 | `BACKEND_RELAY_TOKEN_HOURS` | `12` | Relay URL lifetime. |
 | `BACKEND_CATALOG_CACHE_MINUTES` | `15` | In-memory catalog cache. `0` disables. |
+| `BACKEND_EPG_REFRESH_HOURS` | `6` | TV guide older than this is re-downloaded in the background. |
 | `BACKEND_PROVIDER_USER_AGENT` | none | `User-Agent` sent to providers. |
 
 Deleting `DATA_DIR` resets all accounts, profiles, sessions and the deduplicated library.
@@ -78,6 +79,8 @@ OpenAPI document: served at `GET /openapi/v1.json` (Development only) and writte
 | GET | `/api/catalog/live/categories`, `/api/catalog/live/channels?categoryId=` | Bearer | Live TV. |
 | GET | `/api/catalog/movies/categories`, `/api/catalog/movies?categoryId=`, `/api/catalog/movies/{id}` | Bearer | VOD. |
 | GET | `/api/catalog/series/categories`, `/api/catalog/series?categoryId=`, `/api/catalog/series/{id}` | Bearer | Series + seasons + episodes. |
+| GET | `/api/epg?categoryId=&from=&hours=&offset=&limit=` | Bearer | Guide grid: channels (paged, `limit` ≤ 200, default 50) with programmes overlapping `[from, from+hours)`. `from` defaults to the current half hour; `hours` 1–12 (default 3). `status`: `ready`, `refreshing` (first download running) or `unavailable` (no XMLTV; short EPG only). |
+| POST | `/api/epg/refresh` | Bearer | Queue a guide download. `202`. |
 | GET | `/api/playback/{live\|movie\|episode}/{id}?container=` | Bearer | `{url, container, isLive, deliveryMode}`. |
 | GET | `/api/relay/{token}/{fileName}` | token in path | Stream relay. Rewrites HLS playlists; forwards `Range`. |
 | POST | `/api/library/sync` | Bearer | Queue a library sync (also runs after every login). `202`. |

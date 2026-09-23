@@ -6,6 +6,7 @@
 | `ProfileEndpoints.cs` | `/api/profiles/*` |
 | `ProgressEndpoints.cs` | `/api/profiles/{id}/progress/*` |
 | `CatalogEndpoints.cs` | `/api/catalog/*` |
+| `EpgEndpoints.cs` | `/api/epg`, `/api/epg/refresh` |
 | `PlaybackEndpoints.cs` | `/api/playback/{kind}/{id}` |
 | `RelayEndpoints.cs` | `/api/relay/{token}/{fileName}` |
 | `LibraryEndpoints.cs` | `/api/library/*` |

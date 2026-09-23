@@ -1,7 +1,11 @@
+using System.Globalization;
 using System.Net;
+using System.Text;
 using System.Text.Json;
+using Backend.Core.Epg;
 using Backend.Core.Media;
 using Backend.Core.Providers;
+using Backend.Infrastructure.Epg;
 
 namespace Backend.Infrastructure.Xtream;
 
@@ -191,6 +195,63 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
             seasons);
     }
 
+    public async Task<Stream> OpenXmltvAsync(ProviderCredentials credentials, CancellationToken cancellationToken)
+    {
+        var response = await SendAsync(credentials, "xmltv.php", [], "xmltv", cancellationToken);
+        try
+        {
+            var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+            return await GzipSniffer.OpenAsync(new OwnedStream(body, response), cancellationToken);
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
+    }
+
+    public async Task<IReadOnlyList<EpgProgramme>> GetShortEpgAsync(
+        ProviderCredentials credentials, string channelId, int limit, CancellationToken cancellationToken)
+    {
+        using var document = await GetJsonAsync(credentials, "get_short_epg",
+            new() { ["stream_id"] = channelId, ["limit"] = limit.ToString(CultureInfo.InvariantCulture) }, cancellationToken);
+        var key = EpgChannelKeys.ForStream(channelId);
+        return (document.RootElement.Property("epg_listings") ?? default).ArrayItems()
+            .Select(item => (Start: item.UnixTime("start_timestamp"), End: item.UnixTime("stop_timestamp"), Title: DecodeBase64(item.String("title")),
+                Description: DecodeBase64(item.String("description"))))
+            .Where(item => item.Start is not null && item.End > item.Start && !string.IsNullOrWhiteSpace(item.Title))
+            .Select(item => new EpgProgramme(key, item.Start!.Value, item.End!.Value, item.Title!, item.Description))
+            .ToList();
+    }
+
+    /// <summary>Short EPG titles are base64 on most panels and plain text on some.</summary>
+    private static string? DecodeBase64(string? value)
+    {
+        if (value is null)
+        {
+            return null;
+        }
+
+        var buffer = new byte[value.Length];
+        if (!Convert.TryFromBase64String(value, buffer, out var written) || written == 0)
+        {
+            return value;
+        }
+
+        try
+        {
+            var text = StrictUtf8.GetString(buffer, 0, written).Trim();
+            // Plain words like "News" are also valid base64; garbage output means the value was plain text.
+            return text.Length == 0 || text.Any(char.IsControl) ? value : text;
+        }
+        catch (DecoderFallbackException)
+        {
+            return value;
+        }
+    }
+
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     public PlaybackSource BuildPlaybackSource(ProviderCredentials credentials, PlaybackRequest request, ProviderAccountInfo? accountInfo)
     {
         var (segment, container, isLive) = request.Kind switch
@@ -287,11 +348,7 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
         Dictionary<string, string>? parameters,
         CancellationToken cancellationToken)
     {
-        var query = new Dictionary<string, string>
-        {
-            ["username"] = credentials.Username,
-            ["password"] = credentials.Password,
-        };
+        var query = new Dictionary<string, string>();
         if (action is not null)
         {
             query["action"] = action;
@@ -301,8 +358,39 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
             query[key] = value;
         }
 
+        var operation = action ?? "login";
+        using var response = await SendAsync(credentials, "player_api.php", query, operation, cancellationToken);
+        try
+        {
+            await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+            return await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+        }
+        catch (JsonException exception)
+        {
+            throw new ProviderUnavailableException($"Provider returned invalid JSON for '{operation}'.", exception);
+        }
+    }
+
+    /// <summary>GET with credentials in the query. Maps network and HTTP failures to provider exceptions.</summary>
+    private async Task<HttpResponseMessage> SendAsync(
+        ProviderCredentials credentials,
+        string file,
+        Dictionary<string, string> parameters,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var query = new Dictionary<string, string>
+        {
+            ["username"] = credentials.Username,
+            ["password"] = credentials.Password,
+        };
+        foreach (var (key, value) in parameters)
+        {
+            query[key] = value;
+        }
+
         var queryString = string.Join('&', query.Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
-        var requestUri = new Uri(credentials.ServerUrl, "player_api.php?" + queryString);
+        var requestUri = new Uri(credentials.ServerUrl, file + "?" + queryString);
 
         HttpResponseMessage response;
         try
@@ -314,27 +402,18 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
             throw new ProviderUnavailableException($"Could not reach provider at {credentials.ServerUrl.Host}.", exception);
         }
 
-        using (response)
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-            {
-                throw new ProviderAuthenticationException("Provider rejected the credentials.");
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new ProviderUnavailableException($"Provider returned HTTP {(int)response.StatusCode} for '{action ?? "login"}'.");
-            }
-
-            try
-            {
-                await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
-                return await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
-            }
-            catch (JsonException exception)
-            {
-                throw new ProviderUnavailableException($"Provider returned invalid JSON for '{action ?? "login"}'.", exception);
-            }
+            response.Dispose();
+            throw new ProviderAuthenticationException("Provider rejected the credentials.");
         }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            response.Dispose();
+            throw new ProviderUnavailableException($"Provider returned HTTP {(int)response.StatusCode} for '{operation}'.");
+        }
+
+        return response;
     }
 }
