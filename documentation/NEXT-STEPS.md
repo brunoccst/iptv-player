@@ -7,7 +7,7 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 ```mermaid
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
-  S4 --> S5[5. Web player] --> S6[6. TV app] --> S7[7. Live TV EPG]
+  S4 --> S5[5. Web player ✅] --> S6[6. TV app] --> S7[7. Live TV EPG]
 ```
 
 - [x] **Step 1 — Scaffold**: monorepo, workspaces, 3 documentation files, READMEs, central `APP_NAME` config.
@@ -15,7 +15,7 @@ flowchart LR
 - [x] **Step 2 — Backend**: `IMediaProvider`, `XtreamCodesProvider`, authentication proxy, user profiles, catalog endpoints, playback + stream relay (D-011 – D-015).
 - [x] **Step 3 — Python dedup service** (SQLite queue, owner-approved 2026-09-23): regex tag parsing, clean titles, guarded fuzzy grouping, master media + variants, `/api/library` endpoints, tests (D-016 – D-019).
 - [x] **Step 4 — Shared package**: OpenAPI-generated types, typed API client, Zustand stores (session/profiles, catalog, library, player), app context wired into web + TV (D-020 – D-022).
-- [ ] **Step 5 — Web player**: Netflix-style UI (`#141414`, rows, backdrop trailers), hls.js/Video.js playback, timeline hover previews, ←/→ 10 s skip, variant selector, Skip Intro, next-episode countdown, episodes drawer, profile switcher, Service Worker offline cache, "My Downloads".
+- [x] **Step 5 — Web player**: Netflix-style UI, hls.js engine (HLS first, MKV hint), timeline frame previews, keyboard controls, version selector, Skip Intro, next-episode countdown, episodes drawer, profiles, Continue Watching (backend progress), encrypted Service Worker downloads, My Downloads, fake Xtream panel + e2e tests (D-023 – D-027).
 - [ ] **Step 6 — TV app**: D-pad spatial navigation (`TVEventHandler`), tap ←/→ 10 s skip with circular overlay, hold-to-scrub with acceleration, ↑/↓ drawer (audio/subtitles/variants), ExoPlayer `DownloadManager` private-storage cache, "My Downloads".
 - [ ] **Step 7 — Live TV EPG grid**: backend EPG cache, shared state, web and TV grids.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
@@ -24,7 +24,13 @@ flowchart LR
 ## Agent Suggestions
 
 - **CI pipeline**: GitHub Actions running `npm run typecheck test build`, `dotnet test`, `pytest` on every push, plus API contract check (`dotnet build` + `generate:api` + `git diff --exit-code`, KI-018).
-- **Linters/formatters**: ESLint + Prettier (TS), `dotnet format` (C#), Ruff (Python).
+- **Linters/formatters**: ESLint (incl. `react-hooks` rules; a hooks-after-return bug was caught only by review) + Prettier (TS), `dotnet format` (C#), Ruff (Python).
+- **E2E in CI**: run `npm run test:e2e` (needs .NET, Python venv, ffmpeg, Chromium) on every push.
+- **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
+- **Intro markers**: learn per-series intro end from user skips (KI-019).
+- **URL routing** for deep links (KI-023).
+- **mpegts.js** fallback for TS-only live panels (KI-022).
+- **Series ranking by episode count** (KI-025).
 - **VOD playback in browsers**: decide the MKV strategy before Step 5 (KI-010).
 - **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
 - **Local HTTPS** for LAN traffic (KI-009).

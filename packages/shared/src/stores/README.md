@@ -6,8 +6,9 @@ Vanilla Zustand stores (`zustand/vanilla`). Created by `createAppContext()`; rea
 |------|-------|--------------|
 | `sessionStore.ts` | `status`, `token`, `account`, `profiles`, `activeProfileId`, `offline`, `busy`, `error` | `restore`, `login`, `logout`, `selectProfile`, `create/update/deleteProfile` |
 | `catalogStore.ts` | `categories[section]`, `liveChannels[categoryId or *]` | `loadCategories`, `loadLiveChannels`, `reset` |
-| `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `reset` |
+| `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `invalidate`, `reset` |
 | `playerStore.ts` | `request`, `playback`, `status`, `error` | `open`, `close` |
+| `progressStore.ts` | `profileId`, `items`, `saveError` | `load`, `save` (optimistic), `remove` |
 | `resource.ts` | `Resource<T>` = `{ data, status, error, updatedAt }` | `createResourceLoader` (cache, in-flight sharing, reset-safe) |
 | `storage.ts` | `KeyValueStorage` interface | `createMemoryStorage` (tests) |
 
@@ -24,4 +25,6 @@ stateDiagram-v2
   authenticated --> anonymous: logout() / any 401
 ```
 
-Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`.
+Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`, `findProgress`.
+
+The progress store reloads whenever the active profile changes (wired in `appContext.ts`).

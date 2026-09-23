@@ -20,6 +20,9 @@ export interface LibraryState {
   /** Asks the backend to re-fetch the provider catalog and queue normalization. */
   sync(): Promise<boolean>;
   selectVariant(masterId: string, streamId: string): void;
+  /** Drops cached pages/details (library re-processed). Keeps status and variant choices. */
+  invalidate(): void;
+  /** Clears everything (sign-out / account change). */
   reset(): void;
 }
 
@@ -76,6 +79,12 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       },
 
       selectVariant: (masterId, streamId) => set({ selectedVariants: { ...get().selectedVariants, [masterId]: streamId } }),
+
+      invalidate: () => {
+        pageLoader.invalidate();
+        detailsLoader.invalidate();
+        set({ pages: {}, details: {} });
+      },
 
       reset: () => {
         for (const loader of [pageLoader, detailsLoader, statusLoader]) loader.invalidate();

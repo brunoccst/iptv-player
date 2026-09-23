@@ -305,6 +305,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profiles/{profileId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listProgress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles/{profileId}/progress/{kind}/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["saveProgress"];
+        post?: never;
+        delete: operations["deleteProgress"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -458,6 +490,40 @@ export interface components {
             avatarKey?: null | string;
             isKids: boolean;
             name: string;
+        };
+        ProgressDto: {
+            containerExtension: null | string;
+            /** Format: double */
+            durationSeconds: number;
+            /** Format: int32 */
+            episodeNumber: null | number;
+            itemId: string;
+            kind: string;
+            masterId: null | string;
+            /** Format: double */
+            positionSeconds: number;
+            posterUrl: null | string;
+            /** Format: int32 */
+            seasonNumber: null | number;
+            seriesId: null | string;
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ProgressRequest: {
+            containerExtension?: null | string;
+            /** Format: double */
+            durationSeconds: number;
+            /** Format: int32 */
+            episodeNumber?: null | number;
+            masterId?: null | string;
+            /** Format: double */
+            positionSeconds: number;
+            posterUrl?: null | string;
+            /** Format: int32 */
+            seasonNumber?: null | number;
+            seriesId?: null | string;
+            title: string;
         };
         Season: {
             coverUrl: null | string;
@@ -1299,6 +1365,110 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listProgress: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressDto"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    saveProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+                kind: string;
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgressRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProgressDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+                kind: string;
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not Found */
             404: {

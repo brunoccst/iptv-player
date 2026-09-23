@@ -5,7 +5,7 @@ Bugs, external limitations, technical debt and risks.
 | ID | Type | Area | Status |
 |----|------|------|--------|
 | [KI-001](#ki-001) | Risk | backend | Resolved |
-| [KI-002](#ki-002) | Limitation | web-player | Open (deferred by owner) |
+| [KI-002](#ki-002) | Limitation | web-player | Open (partly mitigated; deferred by owner) |
 | [KI-003](#ki-003) | Limitation | tv-app | Open (deferred by owner) |
 | [KI-004](#ki-004) | Limitation | backend | Open |
 | [KI-005](#ki-005) | Limitation | tv-app | Open |
@@ -13,7 +13,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-007](#ki-007) | Limitation | build env | Open |
 | [KI-008](#ki-008) | Risk | backend | Open |
 | [KI-009](#ki-009) | Risk | backend | Open (accepted for phase 1) |
-| [KI-010](#ki-010) | Limitation | web-player | Open |
+| [KI-010](#ki-010) | Limitation | web-player | Mitigated |
 | [KI-011](#ki-011) | Risk | backend | Open |
 | [KI-012](#ki-012) | Tech debt | backend | Open |
 | [KI-013](#ki-013) | Limitation | title-normalizer | Open |
@@ -22,6 +22,13 @@ Bugs, external limitations, technical debt and risks.
 | [KI-016](#ki-016) | Limitation | backend | Open |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
 | [KI-018](#ki-018) | Tech debt | shared + backend | Open |
+| [KI-019](#ki-019) | Limitation | players | Open |
+| [KI-020](#ki-020) | Risk | web-player | Open |
+| [KI-021](#ki-021) | Limitation | web-player | Open |
+| [KI-022](#ki-022) | Limitation | web-player | Open |
+| [KI-023](#ki-023) | Limitation | web-player | Open |
+| [KI-024](#ki-024) | Limitation | web-player | Open |
+| [KI-025](#ki-025) | Limitation | series | Open |
 
 ---
 
@@ -35,7 +42,7 @@ Resolved by moving to .NET 10 LTS (D-009).
 
 **Offline cache on web is not tamper-proof** — logged 2026-09-23
 
-Cache API / IndexedDB content is inside the browser sandbox (no `.mp4` file in the user's Downloads), but DevTools can read cached responses. Obfuscation raises the bar; it does not stop a technical user. Real protection needs DRM (Widevine/PlayReady via EME), which Xtream Codes sources do not provide. Owner decision (2026-09-23): acceptable while the app is private.
+Cache API / IndexedDB content is inside the browser sandbox (no `.mp4` file in the user's Downloads). Since 2026-09-23 chunks are AES-GCM encrypted with a non-extractable key (D-024): copied cache files are ciphertext. But any script on the origin, including DevTools, can ask the Service Worker for decrypted bytes. It raises the bar; it does not stop a technical user. Real protection needs DRM (Widevine/PlayReady via EME), which Xtream Codes sources do not provide. Owner decision (2026-09-23): acceptable while the app is private.
 
 ## KI-003
 
@@ -86,7 +93,7 @@ The API listens on `0.0.0.0:5080` without TLS (D-010). Anyone on the same networ
 
 **MKV/AVI VOD files will not play in browsers** — logged 2026-09-23
 
-Many Xtream VOD items use `container_extension: mkv`. Browsers play MP4/WebM/HLS only; MKV often fails in `<video>`. The relay forwards bytes unchanged. Options for Step 5: prefer `m3u8` if the panel offers it for VOD, remux on the backend (ffmpeg), or mark items as TV-only. The TV app (ExoPlayer) plays MKV natively.
+Many Xtream VOD items use `container_extension: mkv`. Browsers play MP4/WebM/HLS only. Mitigated 2026-09-23 (D-023): the web player first requests the panel's HLS output, which plays MKV sources; if the panel has none, MKV/AVI titles show "only available as MKV… use the TV app". Remaining gap: panels without HLS output. Backend remuxing (ffmpeg) would close it at CPU cost.
 
 ## KI-011
 
@@ -139,3 +146,45 @@ Any script running on the web player's origin can read the bearer token (XSS). N
 **API contract update is two manual steps** — logged 2026-09-23
 
 After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm run generate:api` must be run separately. The Vitest drift test catches a stale `schema.ts`; nothing catches an uncommitted JSON change except `git status`. A CI job running both and checking `git diff --exit-code` would close the gap.
+
+## KI-019
+
+**Skip Intro uses a fixed window** — logged 2026-09-23
+
+Providers supply no intro markers. The button shows on episodes ≥ 10 min between 5 s and 90 s and jumps to 90 s. Wrong for shows with cold opens or long intros. Fix options: per-series markers learned from user skips, or audio fingerprinting across episodes.
+
+## KI-020
+
+**Timeline previews use a second stream connection** — logged 2026-09-23
+
+Hovering the timeline creates a hidden low-quality copy of the stream (D-023). On accounts with `max_connections = 1`, strict panels may reject it (preview stays blank) or, worse, drop the main stream. Previews are only created on hover and destroyed on close. Server-side trickplay sprites would remove the extra connection.
+
+## KI-021
+
+**Web downloads run in the page** — logged 2026-09-23
+
+Closing the tab stops a download; it resumes (from the last chunk) only when the user presses Resume. One download at a time. Background Fetch API (Chromium only) could continue downloads after the tab closes. Storage is subject to browser quota; `navigator.storage.persist()` is requested but browsers may still evict under pressure.
+
+## KI-022
+
+**Live channels need HLS output in the browser** — logged 2026-09-23
+
+The web player requests live streams as `.m3u8`. Panels that only allow `ts` output (MPEG-TS over HTTP) will not play in the browser. `mpegts.js` could play them.
+
+## KI-023
+
+**No deep links in the web player** — logged 2026-09-23
+
+Navigation state lives in `history.state` (D-025), not in URLs. Reloading returns to Home; titles cannot be shared by URL.
+
+## KI-024
+
+**Hero trailers depend on YouTube** — logged 2026-09-23
+
+Trailers use the provider's YouTube id via `youtube-nocookie.com`. Needs internet access, loads a third-party frame, and fails silently for removed videos (backdrop stays).
+
+## KI-025
+
+**"Best" series version can have fewer episodes** — logged 2026-09-23
+
+Series variants are ranked by title tags (e.g. `1080p` beats an untagged listing), not by episode count. A higher-ranked duplicate can contain only part of the series. Users can switch versions in the details modal. Fix: include episode counts when ranking series variants (needs `get_series_info` per variant during normalization).

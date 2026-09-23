@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ProviderAccount> ProviderAccounts => Set<ProviderAccount>();
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<WatchProgress> WatchProgress => Set<WatchProgress>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         {
             session.HasIndex(s => s.TokenHash).IsUnique();
             session.HasOne(s => s.Account).WithMany().HasForeignKey(s => s.AccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WatchProgress>(progress =>
+        {
+            progress.HasIndex(p => new { p.ProfileId, p.Kind, p.ItemId }).IsUnique();
+            progress.HasIndex(p => new { p.ProfileId, p.UpdatedAt });
+            progress.Property(p => p.Kind).HasMaxLength(16);
+            progress.Property(p => p.ItemId).HasMaxLength(64);
+            progress.Property(p => p.Title).HasMaxLength(300);
+            progress.HasOne(p => p.Profile).WithMany().HasForeignKey(p => p.ProfileId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // SQLite cannot ORDER BY or compare DateTimeOffset; store as UTC ticks.

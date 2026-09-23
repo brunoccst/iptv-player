@@ -19,6 +19,8 @@ export type MovieSummary = Schemas['MovieSummary'];
 export type PlaybackInfo = Schemas['PlaybackInfo'];
 export type ProfileDto = Schemas['ProfileDto'];
 export type ProfileRequest = Schemas['ProfileRequest'];
+export type ProgressDto = Schemas['ProgressDto'];
+export type ProgressRequest = Schemas['ProgressRequest'];
 export type Season = Schemas['Season'];
 export type SeriesDetails = Schemas['SeriesDetails'];
 export type SeriesSummary = Schemas['SeriesSummary'];
@@ -28,6 +30,7 @@ export type VariantInfo = Schemas['VariantInfo'];
 export type CatalogSection = 'live' | 'movies' | 'series';
 export type LibrarySection = 'movies' | 'series';
 export type PlaybackKind = 'live' | 'movie' | 'episode';
+export type ProgressKind = 'movie' | 'episode';
 
 /** `code` values the backend puts in problem responses (see backend/README.md#endpoints), plus client-side codes. */
 export type ApiErrorCode =

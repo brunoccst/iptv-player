@@ -75,6 +75,7 @@ if (app.Environment.IsDevelopment())
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
+app.MapProgressEndpoints();
 app.MapCatalogEndpoints();
 app.MapPlaybackEndpoints();
 app.MapLibraryEndpoints();

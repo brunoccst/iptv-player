@@ -4,6 +4,7 @@ import type { AppConfig } from './config/appConfig';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
+import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createSessionStore, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 
@@ -15,6 +16,7 @@ export interface AppContext {
     catalog: CatalogStore;
     library: LibraryStore;
     player: PlayerStore;
+    progress: ProgressStore;
   };
 }
 
@@ -40,6 +42,7 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
   const catalog = createCatalogStore({ api });
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
+  const progress = createProgressStore({ api });
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
@@ -48,7 +51,12 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
       library.getState().reset();
       player.getState().close();
     }
+    // Progress belongs to a profile: reload whenever the active profile changes.
+    if (state.activeProfileId !== previous.activeProfileId) {
+      progress.getState().reset();
+      if (state.activeProfileId) void progress.getState().load(state.activeProfileId);
+    }
   });
 
-  return { config, api, stores: { session, catalog, library, player } };
+  return { config, api, stores: { session, catalog, library, player, progress } };
 }

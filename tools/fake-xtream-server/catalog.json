@@ -1,0 +1,48 @@
+{
+  "credentials": { "username": "demo", "password": "demo" },
+  "vodCategories": [
+    { "id": "10", "name": "Action" },
+    { "id": "11", "name": "4K Movies" },
+    { "id": "12", "name": "Drama" }
+  ],
+  "seriesCategories": [{ "id": "30", "name": "Series" }],
+  "liveCategories": [
+    { "id": "1", "name": "News" },
+    { "id": "2", "name": "Sports" }
+  ],
+  "movies": [
+    { "id": "101", "name": "EN - Big Test Movie (2020) [4K]", "category": "11", "media": "movie-hls", "container": "mkv", "rating": 8.1, "plot": "A synthetic test pattern goes on an adventure.", "genre": "Action", "duration": 30 },
+    { "id": "102", "name": "Big.Test.Movie.2020.1080p.WEB-DL", "category": "10", "media": "movie-hls", "container": "mp4", "rating": 7.9, "plot": "A synthetic test pattern goes on an adventure.", "genre": "Action", "duration": 30 },
+    { "id": "103", "name": "Big Test Movie (2020) CAM", "category": "10", "media": "movie-file", "container": "mp4", "rating": 5.0, "plot": "Filmed from the back row.", "genre": "Action", "duration": 30 },
+    { "id": "104", "name": "ES: Another Film (2019) Dual Audio", "category": "12", "media": "movie-file", "container": "mp4", "rating": 6.4, "plot": "Another film. Progressive MP4 only.", "genre": "Drama", "duration": 30 },
+    { "id": "105", "name": "Matroska Only (2018)", "category": "12", "media": "movie-mkv", "container": "mkv", "rating": 6.0, "plot": "MKV without HLS: browser shows the TV-app hint.", "genre": "Drama", "duration": 30, "noHls": true },
+    { "id": "106", "name": "Sequel Test 2 (2021)", "category": "10", "media": "movie-hls", "container": "mp4", "rating": 7.0, "plot": "Must not merge with Sequel Test 3.", "genre": "Action", "duration": 30 },
+    { "id": "107", "name": "Sequel Test 3 (2023) 4K", "category": "11", "media": "movie-hls", "container": "mp4", "rating": 7.2, "plot": "Must not merge with Sequel Test 2.", "genre": "Action", "duration": 30 }
+  ],
+  "series": [
+    {
+      "id": "201", "name": "EN - Test Series (2022)", "category": "30", "rating": 8.4, "plot": "Two seasons of test patterns.", "genre": "Drama",
+      "seasons": [
+        { "number": 1, "episodes": [
+          { "id": "2011", "num": 1, "title": "Pilot", "media": "episode-long", "container": "mp4", "duration": 660 },
+          { "id": "2012", "num": 2, "title": "The Sequel", "media": "episode-short", "container": "mp4", "duration": 30 }
+        ] },
+        { "number": 2, "episodes": [
+          { "id": "2021", "num": 1, "title": "New Season", "media": "episode-short", "container": "mp4", "duration": 30 }
+        ] }
+      ]
+    },
+    {
+      "id": "202", "name": "Test.Series.2022.1080p", "category": "30", "rating": 8.0, "plot": "Duplicate listing of Test Series.", "genre": "Drama",
+      "seasons": [
+        { "number": 1, "episodes": [
+          { "id": "2111", "num": 1, "title": "Pilot", "media": "episode-short", "container": "mp4", "duration": 30 }
+        ] }
+      ]
+    }
+  ],
+  "live": [
+    { "id": "301", "name": "Test News HD", "category": "1", "epg": "news.test" },
+    { "id": "302", "name": "Test Sports FHD", "category": "2", "epg": "sports.test" }
+  ]
+}

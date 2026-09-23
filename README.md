@@ -36,7 +36,8 @@ flowchart LR
 | [`apps/tv-app`](./apps/tv-app) | Android TV client. |
 | [`packages/shared`](./packages/shared) | TypeScript code shared by both clients. |
 | [`backend`](./backend) | C# .NET 10 Web API. |
-| [`services`](./services) | Python Azure Functions. |
+| [`services`](./services) | Python background services (title normalizer). |
+| [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
@@ -65,6 +66,14 @@ npm run backend:run         # API on http://localhost:5080 (also reachable on LA
 cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
   && pip install -r requirements-dev.txt && python -m pytest
 python -m title_normalizer  # dedup worker (venv active); needs the backend to have started once
+```
+
+No IPTV subscription? Start the fake panel (`tools/fake-xtream-server`, see its README) and sign in with `http://localhost:8090` / `demo` / `demo`.
+
+End-to-end tests (starts its own stack on separate ports):
+
+```bash
+npm run test:e2e --workspace=@iptv/web-player
 ```
 
 ## API contract

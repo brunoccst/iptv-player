@@ -8,5 +8,6 @@
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |
+| `playback/` | Pure playback rules shared by web and TV (resume, intro, next episode, source attempts). |
 | `utils/` | Formatting helpers. |
 | `testing/` | Test-only fake backend. Not exported. |

@@ -346,6 +346,162 @@
         }
       }
     },
+    "/api/profiles/{profileId}/progress": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "operationId": "listProgress",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProgressDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/profiles/{profileId}/progress/{kind}/{itemId}": {
+      "put": {
+        "tags": [
+          "Progress"
+        ],
+        "operationId": "saveProgress",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Progress"
+        ],
+        "operationId": "deleteProgress",
+        "parameters": [
+          {
+            "name": "profileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/catalog/live/categories": {
       "get": {
         "tags": [
@@ -1621,6 +1777,143 @@
           }
         }
       },
+      "ProgressDto": {
+        "required": [
+          "kind",
+          "itemId",
+          "masterId",
+          "seriesId",
+          "seasonNumber",
+          "episodeNumber",
+          "title",
+          "posterUrl",
+          "containerExtension",
+          "positionSeconds",
+          "durationSeconds",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "masterId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seriesId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seasonNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "episodeNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "posterUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "containerExtension": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "positionSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ProgressRequest": {
+        "required": [
+          "title",
+          "positionSeconds",
+          "durationSeconds"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "positionSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "masterId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seriesId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "seasonNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "episodeNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "posterUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "containerExtension": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "Season": {
         "required": [
           "number",
@@ -1842,6 +2135,9 @@
     },
     {
       "name": "Profiles"
+    },
+    {
+      "name": "Progress"
     },
     {
       "name": "Catalog"

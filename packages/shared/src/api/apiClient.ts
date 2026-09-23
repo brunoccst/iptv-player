@@ -6,6 +6,8 @@ import type {
   OperationResult,
   PlaybackKind,
   ProfileRequest,
+  ProgressKind,
+  ProgressRequest,
 } from './types';
 
 export interface LibraryListQuery {
@@ -40,6 +42,17 @@ export function createApiClient(http: HttpClient) {
         http.request<OperationResult<'updateProfile'>>('PUT', `/api/profiles/${segment(profileId)}`, { body: request }),
       remove: (profileId: string) =>
         http.request<OperationResult<'deleteProfile', 204>>('DELETE', `/api/profiles/${segment(profileId)}`),
+    },
+
+    progress: {
+      list: (profileId: string, limit?: number, signal?: AbortSignal) =>
+        get<OperationResult<'listProgress'>>(`/api/profiles/${segment(profileId)}/progress`, { limit }, signal),
+      save: (profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest) =>
+        http.request<OperationResult<'saveProgress'>>(
+          'PUT', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`, { body: request }),
+      remove: (profileId: string, kind: ProgressKind, itemId: string) =>
+        http.request<OperationResult<'deleteProgress', 204>>(
+          'DELETE', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`),
     },
 
     catalog: {

@@ -1,0 +1,92 @@
+import { createStore } from 'zustand/vanilla';
+import type { LibrarySection, PlaybackKind } from '@iptv/shared';
+
+export type View = 'home' | 'movies' | 'series' | 'live' | 'downloads' | 'search';
+
+export interface DetailsTarget {
+  section: LibrarySection;
+  masterId: string;
+}
+
+/** Everything the player needs to start, switch versions, save progress and find the next episode. */
+export interface PlayTarget {
+  kind: PlaybackKind;
+  streamId: string;
+  container: string | null;
+  title: string;
+  subtitle?: string | null;
+  posterUrl?: string | null;
+  masterId?: string | null;
+  seriesId?: string | null;
+  seasonNumber?: number | null;
+  episodeNumber?: number | null;
+  /** Seconds to seek to after load. Undefined = use saved progress. */
+  startAt?: number;
+}
+
+interface UiSnapshot {
+  view: View;
+  search: string;
+  details: DetailsTarget | null;
+  playing: PlayTarget | null;
+}
+
+export interface UiState extends UiSnapshot {
+  /** Bumped when the library finished re-processing; rows reload when it changes. */
+  libraryRevision: number;
+  bumpLibrary(): void;
+  navigate(view: View): void;
+  setSearch(query: string): void;
+  openDetails(target: DetailsTarget): void;
+  closeDetails(): void;
+  play(target: PlayTarget): void;
+  /** Replaces the current item without a new history entry (next episode, version switch). */
+  replacePlayback(target: PlayTarget): void;
+  stopPlayback(): void;
+}
+
+const initial: UiSnapshot = { view: 'home', search: '', details: null, playing: null };
+
+/** Navigation state mirrored into browser history so Back closes the player/modal. See DECISIONS.md#d-025. */
+export function createUiStore(history: History | null = typeof window !== 'undefined' ? window.history : null) {
+  const store = createStore<UiState>()((set, get) => {
+    const snapshot = (): UiSnapshot => {
+      const { view, search, details, playing } = get();
+      return { view, search, details, playing };
+    };
+    const push = (next: Partial<UiSnapshot>) => {
+      set(next);
+      history?.pushState({ ui: snapshot() }, '');
+    };
+
+    return {
+      ...initial,
+      libraryRevision: 0,
+      bumpLibrary: () => set({ libraryRevision: get().libraryRevision + 1 }),
+      navigate: (view) => push({ view, details: null, playing: null }),
+      setSearch: (search) => {
+        set({ search, view: search.trim() ? 'search' : get().view === 'search' ? 'home' : get().view });
+        history?.replaceState({ ui: snapshot() }, '');
+      },
+      openDetails: (details) => push({ details }),
+      closeDetails: () => (history && get().details ? history.back() : set({ details: null })),
+      play: (playing) => push({ playing }),
+      replacePlayback: (playing) => {
+        set({ playing });
+        history?.replaceState({ ui: snapshot() }, '');
+      },
+      stopPlayback: () => (history && get().playing ? history.back() : set({ playing: null })),
+    };
+  });
+
+  if (typeof window !== 'undefined' && history) {
+    history.replaceState({ ui: initial }, '');
+    window.addEventListener('popstate', (event) => {
+      const ui = (event.state as { ui?: UiSnapshot } | null)?.ui ?? initial;
+      store.setState({ ...ui });
+    });
+  }
+  return store;
+}
+
+export type UiStore = ReturnType<typeof createUiStore>;

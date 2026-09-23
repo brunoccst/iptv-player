@@ -8,6 +8,7 @@ xUnit tests. Run: `dotnet test backend/Backend.sln`.
 | `HlsPlaylistRewriterTests.cs` | Playlist URI rewriting. |
 | `AuthAndProfileEndpointTests.cs` | Login, sessions, profile CRUD rules (in-memory API host). |
 | `CatalogPlaybackRelayTests.cs` | Catalog caching, playback URLs, relay playlist + byte ranges. |
+| `ProgressEndpointTests.cs` | Progress save/list/delete and ownership. |
 | `LibraryEndpointTests.cs` | Sync queueing, job coalescing, library listing/details. |
 | `PipelineSchemaContractTests.cs` | `pipeline-schema.sql` matches the EF model. |
 | `DotEnvParserTests.cs`, `HealthEndpointTests.cs` | Config loading, health endpoint. |

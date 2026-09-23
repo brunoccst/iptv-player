@@ -27,6 +27,11 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-020](#d-020) | 2026-09-23 | API contract: OpenAPI export at build → generated TypeScript types |
 | [D-021](#d-021) | 2026-09-23 | Shared client + vanilla Zustand stores behind one app context |
 | [D-022](#d-022) | 2026-09-23 | Session persistence per platform |
+| [D-023](#d-023) | 2026-09-23 | Web playback engine: HLS first, file fallback, on-demand frame previews |
+| [D-024](#d-024) | 2026-09-23 | Web offline downloads: Service Worker + AES-GCM chunks |
+| [D-025](#d-025) | 2026-09-23 | Web UI architecture |
+| [D-026](#d-026) | 2026-09-23 | Watch progress stored per profile on the backend |
+| [D-027](#d-027) | 2026-09-23 | Fake Xtream panel + end-to-end tests |
 
 ---
 
@@ -475,3 +480,102 @@ Why:
 - `restore()` re-validates the token (`/api/auth/me` + `/api/profiles`) whenever the backend answers; 401 clears everything.
 - Persistence is manual (not Zustand `persist` middleware): explicit writes after each change are easier to follow and test with async storage.
 - Web alternative (HttpOnly cookie) needs CSRF protection and same-site hosting; deferred while local-only (KI-017).
+
+## D-023
+
+**Web playback engine: HLS first, file fallback, on-demand frame previews** — 2026-09-23
+
+Decision (owner-approved recommendation for KI-010): `PlaybackEngine` tries sources in order and stops at the first that loads.
+
+```mermaid
+flowchart TD
+  START[play request] --> DL{completed download?}
+  DL -->|yes| LOCAL[/__offline__ URL via Service Worker/]
+  DL -->|no| LIVE{live?}
+  LIVE -->|yes| LHLS[/api/playback/live?container=m3u8 → hls.js/]
+  LIVE -->|no| VHLS[/api/playback/movie|episode?container=m3u8 → hls.js/]
+  VHLS -->|manifest error| FILE[original container → video src]
+  FILE -->|media error| ERR{container browser-native?}
+  ERR -->|no: mkv/avi| HINT[“only available as MKV… use the TV app”]
+  ERR -->|yes| GENERIC[“stream couldn't be played”]
+```
+
+Why:
+- Many Xtream panels transmux VOD to HLS on request (`/movie/u/p/{id}.m3u8`). HLS in hls.js plays MKV sources in any browser with no backend transcoding.
+- If the panel has no HLS, MP4-family files still play natively; MKV/AVI get an honest explanation instead of a frozen player.
+- hls.js fatal errors after start: network → `startLoad()`, media → `recoverMediaError()` (twice), then an error message.
+
+Timeline frame previews: providers ship no trickplay sprites. `FrameGrabber` creates a hidden, muted second `<video>` (HLS at the lowest rendition, 4 s buffer) only on first timeline hover, seeks it to the hovered time (coalescing requests) and draws the frame into a canvas. Costs one extra stream connection while previewing (KI-020).
+
+Other rules:
+- Skip Intro: providers give no markers. Heuristic window 5–90 s on episodes ≥ 10 min (`INTRO_WINDOW` in `@iptv/shared`) (KI-019).
+- Next-up: countdown card during the last 10 s; auto-plays the next episode on `ended` unless cancelled. Order: season, then episode number.
+- Progress saved every 10 s while playing, on pause, on close, on version/episode switch.
+- The player (and hls.js, ~500 kB) is a lazily loaded chunk; the initial bundle is ~255 kB.
+
+## D-024
+
+**Web offline downloads: Service Worker + AES-GCM chunks** — 2026-09-23
+
+Decision: downloads are fetched by a page-side `DownloadManager`, encrypted per chunk, stored in the Cache API, and served back only through the Service Worker under `/__offline__/`.
+
+```mermaid
+sequenceDiagram
+  participant UI
+  participant DM as DownloadManager (page)
+  participant R as Backend relay
+  participant C as Cache API (ciphertext)
+  participant I as IndexedDB (records, CryptoKey)
+  participant SW as Service Worker
+  UI->>DM: start(target)
+  DM->>I: generate non-extractable AES-GCM key
+  DM->>R: playlist (m3u8) or ranged file requests
+  R-->>DM: bytes
+  DM->>C: put(iv + ciphertext) per segment / 4 MiB chunk
+  DM->>I: record (local playlist, parts, progress)
+  UI->>SW: GET /__offline__/{id}/index.m3u8 or /file (Range)
+  SW->>I: record + key
+  SW->>C: chunk
+  SW-->>UI: decrypted bytes (206 for ranges)
+```
+
+Why:
+- Meets the brief: no `.mp4`/`.mkv` is ever written to the user's filesystem; data lives inside the browser's origin storage.
+- AES-GCM with a non-extractable key: copying the cache contents off the machine yields ciphertext, and GCM detects tampering. It is not DRM: scripts on the origin (and DevTools) can still use the key through the SW (KI-002).
+- HLS downloads store every playlist resource (segments, init maps, AES keys) and a rewritten local playlist, so hls.js plays offline exactly as online. Files are stored as 4 MiB chunks; the SW answers `Range` requests one chunk at a time (low memory).
+- One download at a time: each download holds a provider connection (`max_connections`).
+- Resumable: existing chunks are skipped; a changed upstream playlist restarts cleanly. Interrupted downloads come back paused.
+- The SW also caches the built app shell (precache list injected at build), so the app opens offline and routes to My Downloads.
+- The SW is bundled separately by a small Vite plugin using esbuild (classic script, works in all browsers; `/sw.js` in dev and build). Chosen over `vite-plugin-pwa` to avoid Workbox for ~5 kB of code.
+
+## D-025
+
+**Web UI architecture** — 2026-09-23
+
+Decisions:
+- **Navigation:** a small Zustand `uiStore` (view, search, details, playing) mirrored into `history.pushState`, not a router library. Browser Back closes the player, then the modal, then returns to the previous view. No shareable URLs yet (KI-023).
+- **Data:** shared stores for everything account-scoped; `useAsync` (module cache) for one-off reads (movie metadata, series episodes).
+- **Rows** load when scrolled within 400 px of the viewport (IntersectionObserver).
+- **Hero trailer:** muted `youtube-nocookie.com` embed faded in after 3 s when the provider supplies a trailer id; backdrop image otherwise (owner-approved).
+- **Library re-processing:** `LibraryBanner` polls status while the library is empty or processing. When that ends it calls `library.invalidate()` (keeps version choices) and bumps `libraryRevision`; mounted views reload. Polling while *empty* matters: right after the first login the sync job may not exist yet (found by e2e, 2026-09-23).
+- **Selectors:** `useAppStore` wraps selectors in `useShallow`. Zustand 5 otherwise loops forever when a selector returns a new array (`?? []`), which crashed the first build (React error #185).
+- Plain CSS with tokens in four files; no CSS framework.
+
+## D-026
+
+**Watch progress stored per profile on the backend** — 2026-09-23
+
+Decision: `WatchProgress` table in `app.db` (profile, kind, provider stream id, position, duration, display fields). Endpoints under `/api/profiles/{id}/progress`. Clients save optimistically.
+
+Why: "Continue Watching" must follow the profile across web and TV. Display fields (title, poster, series/season/episode) are copied into the row so the row renders without extra catalog calls. Items are keyed by provider stream id (what playback needs), with `masterId`/`seriesId` for grouping; Continue Watching shows one entry per series (latest episode). Completion: ≥ 95 % or < 2 min left on titles over 10 min.
+
+## D-027
+
+**Fake Xtream panel + end-to-end tests** — 2026-09-23
+
+Decision: `tools/fake-xtream-server` (Python stdlib) emulates a panel: catalog with duplicates/sequels/MKV-only/series/live, 302 redirects to media (like real load balancers), HTTP Range, a sliding live window, SVG artwork. `generate_media.py` builds VP9/Opus test media with ffmpeg. Playwright tests (`apps/web-player/e2e`) start panel + backend (temp `DATA_DIR`) + worker + production web build on separate ports and drive a real browser.
+
+Why:
+- The whole chain (provider → relay → dedup worker → UI → hls.js → Service Worker) only fails in integration; unit tests missed three bugs the e2e run caught (render loop, stale details after re-processing, empty library after first login).
+- VP9 plays in every Chromium build, including Playwright's (no proprietary codecs).
+- Also a demo target: anyone can try the app without an IPTV subscription.

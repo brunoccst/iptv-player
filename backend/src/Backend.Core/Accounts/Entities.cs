@@ -39,3 +39,28 @@ public sealed class UserSession
     public DateTimeOffset ExpiresAt { get; set; }
     public ProviderAccount? Account { get; set; }
 }
+
+/// <summary>Playback position of one movie or episode for one profile. Feeds "Continue Watching".</summary>
+public sealed class WatchProgress
+{
+    public Guid Id { get; set; }
+    public Guid ProfileId { get; set; }
+
+    /// <summary><c>movie</c> or <c>episode</c>.</summary>
+    public required string Kind { get; set; }
+
+    /// <summary>Provider stream id (what <c>/api/playback</c> takes).</summary>
+    public required string ItemId { get; set; }
+
+    public string? MasterId { get; set; }
+    public string? SeriesId { get; set; }
+    public int? SeasonNumber { get; set; }
+    public int? EpisodeNumber { get; set; }
+    public required string Title { get; set; }
+    public string? PosterUrl { get; set; }
+    public string? ContainerExtension { get; set; }
+    public double PositionSeconds { get; set; }
+    public double DurationSeconds { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public Profile? Profile { get; set; }
+}

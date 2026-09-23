@@ -68,6 +68,21 @@ describe('library store', () => {
     expect(selectVariant(library.getState(), details)?.streamId).toBe('best');
   });
 
+  it('invalidate drops cached data but keeps variant choices', async () => {
+    const { backend, library } = setup();
+    backend.on('GET', '/api/library/series/m1', { body: details });
+    await library.getState().loadDetails('series', 'm1');
+    library.getState().selectVariant('m1', 'other');
+
+    backend.on('GET', '/api/library/status', { body: [] });
+    await library.getState().refreshStatus();
+    library.getState().invalidate();
+
+    expect(library.getState().details).toEqual({});
+    expect(library.getState().status.status).toBe('success');
+    expect(library.getState().selectedVariants).toEqual({ m1: 'other' });
+  });
+
   it('sync and status', async () => {
     const { backend, library } = setup();
     backend.on('POST', '/api/library/sync', { status: 202 });

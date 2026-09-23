@@ -49,6 +49,7 @@ npm run generate:api --workspace=@iptv/shared
 ## Rules
 
 - No DOM or React Native imports. React is allowed (peer dependency) for hooks only.
+- `useAppStore` compares selector results shallowly, so selectors may return derived arrays.
 - Consumed as TypeScript source. No build step.
 - Never edit `src/api/generated/`.
 
