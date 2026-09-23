@@ -47,17 +47,34 @@ appId: ${APP_ID}
 - pressKey: Remote Dpad Center
 - extendedWaitUntil:
     visible:
+      id: "player-screen"
+    timeout: 30000
+# Let it play, then pause: paused controls stay on screen, so slow screen reads on the emulator cannot miss the clock.
+- extendedWaitUntil:
+    visible: "__wait_6s__"
+    timeout: 6000
+    optional: true
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
       id: "player-time"
-      text: "0:0[2-9] / 0:30.*"
-    timeout: 90000
+      text: "0:(0[2-9]|1[0-9]) / 0:30.*Paused.*"
+    timeout: 30000
 - takeScreenshot: 03-player
-# Tap right: +10 s.
+- copyTextFrom:
+    id: "player-time"
+- evalScript: ${output.before = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
+# Tap right: +10 s (still paused).
 - pressKey: Remote Dpad Right
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(1[2-9]|2[0-9]) / 0:30.*"
-    timeout: 10000
+      text: "0:[1-3][0-9] / 0:30.*"
+    timeout: 15000
+- copyTextFrom:
+    id: "player-time"
+- evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
+- assertTrue: ${output.after >= output.before + 9}
 # Down: quick drawer (audio / subtitles / versions). Back closes it, second Back leaves the player.
 - pressKey: Remote Dpad Down
 - assertVisible:
