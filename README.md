@@ -1,27 +1,27 @@
 # iptv-player
 
 Monorepo for an IPTV streaming platform: desktop web player, Android TV app, .NET API, Python processing service.
-The product name is configurable (`APP_NAME` in `.env`).
+The product name is configurable (`APP_NAME` in `.env`). Phase 1 runs locally only; Azure targets are planned.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
   subgraph Clients
-    WEB[apps/web-player<br/>React + Vite<br/>Azure Static Web Apps]
+    WEB[apps/web-player<br/>React + Vite]
     TV[apps/tv-app<br/>React Native TV<br/>Android .apk]
   end
   SHARED[packages/shared<br/>config, API clients, state]
-  API[backend<br/>ASP.NET Core<br/>Azure App Service]
-  PY[services/title-normalizer<br/>Python<br/>Azure Functions]
+  API[backend<br/>ASP.NET Core .NET 10]
+  PY[services/title-normalizer<br/>Python]
   IPTV[(IPTV provider<br/>Xtream Codes)]
-  DB[(Azure SQL / Cosmos DB)]
+  DB[(SQLite)]
   Q[[Queue]]
 
   WEB --> SHARED
   TV --> SHARED
-  SHARED -->|HTTPS| API
-  API -->|server-to-server| IPTV
+  SHARED -->|HTTP| API
+  API -->|server-to-server + stream relay| IPTV
   API --> DB
   API --> Q --> PY --> DB
 ```
@@ -33,7 +33,7 @@ flowchart LR
 | [`apps/web-player`](./apps/web-player) | Desktop browser client. |
 | [`apps/tv-app`](./apps/tv-app) | Android TV client. |
 | [`packages/shared`](./packages/shared) | TypeScript code shared by both clients. |
-| [`backend`](./backend) | C# .NET 8 Web API. |
+| [`backend`](./backend) | C# .NET 10 Web API. |
 | [`services`](./services) | Python Azure Functions. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
@@ -43,7 +43,7 @@ flowchart LR
 |------|---------|
 | Node.js | 22+ (`.nvmrc`) |
 | npm | 10+ |
-| .NET SDK | 8.0 |
+| .NET SDK | 10.0 |
 | Python | 3.11+ |
 | Android SDK + JDK 17 | TV app native builds only |
 
@@ -58,7 +58,7 @@ npm run dev:web             # web player on http://localhost:5173
 npm run dev:tv              # Expo dev server for the TV app
 
 npm run backend:test        # dotnet test
-npm run backend:run         # API on http://localhost:5080
+npm run backend:run         # API on http://localhost:5080 (also reachable on LAN IP)
 
 cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
   && pip install -r requirements-dev.txt && python -m pytest
@@ -68,10 +68,12 @@ cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
 
 | File | Committed | Purpose |
 |------|-----------|---------|
-| `.env` | Yes | Public defaults: `APP_NAME`, `APP_SLUG`, `APP_ANDROID_PACKAGE`, `APP_API_BASE_URL`. |
+| `.env` | Yes | Defaults: `APP_*` (public, shared by all apps), `BACKEND_*` (API only, see [`backend/README.md`](./backend/README.md#config)). |
 | `.env.local` | No | Local overrides and secrets. |
 
 Precedence (low → high): `.env` → `.env.local` → real environment variables.
+
+TV app on a real device: set `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env.local`.
 
 ## Root files
 

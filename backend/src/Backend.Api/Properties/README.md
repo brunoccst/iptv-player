@@ -1,3 +1,3 @@
 # Properties
 
-`launchSettings.json`: local run profile (`http://localhost:5080`, `Development` environment). Not used in Azure.
+`launchSettings.json`: local run profile (`http://0.0.0.0:5080`, `Development` environment).

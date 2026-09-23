@@ -1,32 +1,18 @@
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
+using Backend.Tests.Support;
 
 namespace Backend.Tests;
 
-public class HealthEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthEndpointTests : IClassFixture<ApiFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly ApiFactory _factory;
 
-    public HealthEndpointTests(WebApplicationFactory<Program> factory)
-    {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureAppConfiguration((_, configuration) =>
-                configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["APP_NAME"] = "Test App",
-                    ["APP_SLUG"] = "test-app",
-                }));
-        });
-    }
+    public HealthEndpointTests(ApiFactory factory) => _factory = factory;
 
     [Fact]
     public async Task Health_ReturnsOkAndConfiguredAppName()
     {
-        var client = _factory.CreateClient();
-
-        var body = await client.GetFromJsonAsync<HealthResponse>("/api/health");
+        var body = await _factory.CreateClient().GetFromJsonAsync<HealthResponse>("/api/health");
 
         Assert.NotNull(body);
         Assert.Equal("ok", body.Status);

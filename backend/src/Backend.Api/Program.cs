@@ -1,15 +1,65 @@
+using System.Text.Json.Serialization;
+using Backend.Api.Auth;
+using Backend.Api.Endpoints;
+using Backend.Api.Errors;
 using Backend.Core.Configuration;
+using Backend.Infrastructure;
+using Backend.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddRootDotEnv(builder.Environment.ContentRootPath);
 builder.Services.AddAppOptions();
+builder.Services.AddBackendOptions(builder.Environment.ContentRootPath);
+
+builder.Services.AddInfrastructure();
+
+builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(SessionAuthenticationHandler.SchemeName, null);
+builder.Services.AddAuthorization();
+
+builder.Services.AddCors();
+builder.Services.AddOptions<CorsOptions>().Configure<IOptions<BackendOptions>>((cors, backend) =>
+    cors.AddDefaultPolicy(policy => policy
+        .WithOrigins(backend.Value.CorsOrigins)
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .WithExposedHeaders("Content-Range", "Content-Length", "Accept-Ranges")));
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ProviderExceptionHandler>();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
+
+app.UseExceptionHandler();
+app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
 app.MapGet("/api/health", (IOptions<AppOptions> options) =>
-    Results.Ok(new { status = "ok", app = options.Value.Name }));
+    Results.Ok(new { status = "ok", app = options.Value.Name })).WithTags("Health");
+app.MapAuthEndpoints();
+app.MapProfileEndpoints();
+app.MapCatalogEndpoints();
+app.MapPlaybackEndpoints();
+app.MapRelayEndpoints();
 
 app.Run();
 

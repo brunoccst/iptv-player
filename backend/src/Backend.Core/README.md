@@ -1,7 +1,11 @@
 # Backend.Core
 
-Class library shared by the API and future workers.
+Class library with no database or outbound HTTP code.
 
 | Folder | Purpose |
 |--------|---------|
-| `Configuration/` | `.env` loading, `AppOptions` binding and validation. |
+| `Accounts/` | Entities (`ProviderAccount`, `Profile`, `UserSession`), `ICredentialProtector`. |
+| `Configuration/` | `.env` loading, `AppOptions`, `BackendOptions`. |
+| `Media/` | Provider-agnostic catalog models. |
+| `Providers/` | `IMediaProvider`, resolver, provider exceptions. |
+| `Streaming/` | `HlsPlaylistRewriter`. |

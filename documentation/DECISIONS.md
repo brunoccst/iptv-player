@@ -13,6 +13,13 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-006](#d-006) | 2026-09-23 | Backend: .NET 8, layered projects |
 | [D-007](#d-007) | 2026-09-23 | Shared package ships TypeScript source |
 | [D-008](#d-008) | 2026-09-23 | Python service: Azure Functions v2 model, pure core package |
+| [D-009](#d-009) | 2026-09-23 | Backend on .NET 10 LTS (supersedes D-006 runtime choice) |
+| [D-010](#d-010) | 2026-09-23 | Local-only deployment for phase 1 |
+| [D-011](#d-011) | 2026-09-23 | `IMediaProvider` + `XtreamCodesProvider` design |
+| [D-012](#d-012) | 2026-09-23 | Authentication proxy: upstream-validated login, opaque sessions |
+| [D-013](#d-013) | 2026-09-23 | Stream delivery: backend relay by default |
+| [D-014](#d-014) | 2026-09-23 | Persistence: SQLite + EF Core migrations |
+| [D-015](#d-015) | 2026-09-23 | Catalog cache: in-memory, per account |
 
 ---
 
@@ -115,6 +122,8 @@ Supporting settings:
 
 **Backend: .NET 8, layered projects** — 2026-09-23
 
+> Runtime choice superseded by [D-009](#d-009). Layering still applies, extended by `Backend.Infrastructure` (D-011).
+
 Decision: ASP.NET Core minimal API on `net8.0`. Projects: `Backend.Api` (host), `Backend.Core` (config, domain, interfaces), `Backend.Tests` (xUnit + `WebApplicationFactory`). Central package versions in `Directory.Packages.props`. Warnings are errors.
 
 Why:
@@ -138,3 +147,156 @@ Why: Vite and Metro both compile workspace TypeScript. Skipping a build removes 
 Decision: `services/title-normalizer` uses the Python v2 decorator model (`function_app.py`). Logic lives in `title_normalizer/`, which never imports `azure.functions`.
 
 Why: pure modules unit-test with plain `pytest`, no Functions host or Azurite. `function_app.py` stays a thin binding layer (HTTP now, queue trigger in Step 3).
+
+## D-009
+
+**Backend on .NET 10 LTS (supersedes D-006 runtime choice)** — 2026-09-23
+
+Decision: all backend projects target `net10.0`. `global.json` pins SDK `10.0.100` with `latestFeature` roll-forward. Microsoft packages use `10.0.x`.
+
+Why:
+- .NET 8 and 9 leave support on 2026-11-10. .NET 10 is LTS (support until Nov 2028).
+- The .NET 10 SDK is installable from Ubuntu packages in the build sandbox, so builds and tests are verified.
+- Upgrade cost was zero: only target framework and package versions changed.
+
+## D-010
+
+**Local-only deployment for phase 1** — 2026-09-23
+
+Decision: every component runs on the developer's machine. No Azure resources yet. Azure targets from the brief (Static Web Apps, App Service, Functions, Azure SQL/Cosmos) stay as the future direction.
+
+Consequences:
+- Database is a local SQLite file (D-014), not Azure SQL/Cosmos.
+- Relay bandwidth costs nothing (D-013).
+- The API listens on all interfaces (`0.0.0.0:5080`) so an Android TV device on the same LAN can reach it. Set `APP_API_BASE_URL` in `.env.local` to the PC's LAN IP for the TV build.
+- Traffic is plain HTTP on the LAN. Accepted for phase 1 (KI-009).
+
+```mermaid
+flowchart LR
+  subgraph PC[Developer PC]
+    WEB[web-player :5173]
+    API[backend :5080]
+    DB[(SQLite)]
+    API --- DB
+  end
+  TV[Android TV on LAN] -->|HTTP LAN IP:5080| API
+  WEB -->|HTTP localhost:5080| API
+  API -->|Internet| IPTV[(Xtream panel)]
+```
+
+## D-011
+
+**`IMediaProvider` + `XtreamCodesProvider` design** — 2026-09-23
+
+Decision:
+- `IMediaProvider` (in `Backend.Core`) is stateless. Every call receives `ProviderCredentials`. One singleton-style typed `HttpClient` instance serves all accounts.
+- `IMediaProviderResolver` picks the implementation by the `ProviderType` string stored on each account (`xtream` today). New sources (M3U, Stalker) add a class, not new endpoints.
+- Return types are provider-agnostic records (`Backend.Core.Media`). Clients never see Xtream field names.
+- `BuildPlaybackSource` is pure (no network). It returns the upstream URL; `PlaybackService` decides relay vs. direct.
+- Xtream JSON is parsed with `JsonDocument` + lenient readers (`LooseJson`), not strict DTOs.
+
+Why lenient parsing: panels return the same field as `"55"`, `55`, `null` or `""`; `info` can be `{}` or `[]`; `episodes` can be an object keyed by season or an array of arrays; `backdrop_path` can be a string or an array. Strict deserialization fails on the first mismatch and takes a whole catalog down.
+
+Other rules:
+- Server URL normalization accepts `host:port`, strips `player_api.php`/`get.php`, and keeps any sub-path. Canonical form is stored, so the same login from different spellings maps to one account.
+- Container extensions from clients are sanitized (letters/digits, max 8 chars) before entering URLs.
+- Live streams prefer `m3u8`; fall back to `ts` when the account's `allowed_output_formats` excludes HLS.
+- Errors: HTTP 401/403 or `auth: 0` → `ProviderAuthenticationException`; network, non-2xx, invalid JSON → `ProviderUnavailableException`.
+
+## D-012
+
+**Authentication proxy: upstream-validated login, opaque sessions** — 2026-09-23
+
+Decision:
+1. Client sends Xtream server URL, username, password once to `POST /api/auth/login`.
+2. Backend validates them server-to-server (`player_api.php`). Rejects inactive/expired accounts.
+3. Backend stores the account; password encrypted with ASP.NET Core Data Protection (key ring in `BACKEND_DATA_DIR/keys`).
+4. Backend returns a random 256-bit opaque bearer token. Only its SHA-256 hash is stored.
+5. First login creates one default profile named after the username.
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant A as Backend
+  participant X as Xtream panel
+  C->>A: POST /api/auth/login {serverUrl, username, password}
+  A->>X: GET player_api.php?username&password
+  X-->>A: user_info {auth: 1, status: Active}
+  A->>A: encrypt password, upsert account, create session
+  A-->>C: {token, account, profiles}
+  C->>A: GET /api/catalog/movies (Bearer token)
+  A->>A: hash token → session → account → decrypt password
+  A->>X: get_vod_streams
+  A-->>C: MovieSummary[]
+```
+
+Why:
+- Provider credentials never live on clients after login. A stolen TV device leaks a revocable token, not the IPTV subscription.
+- Opaque tokens over JWT: revocation is one row delete; no signing-key management; the API is the only token consumer.
+- Data Protection handles key generation, rotation and authenticated encryption. Application name is fixed to `backend` so renaming `APP_NAME`/`APP_SLUG` never makes stored passwords unreadable.
+- Profiles belong to the account, not the session, so every device sees the same "Who's watching?" list.
+
+## D-013
+
+**Stream delivery: backend relay by default** — 2026-09-23
+
+Decision: `BACKEND_STREAM_DELIVERY=relay` (default). `/api/playback/...` returns a relay URL. `direct` mode returns the upstream URL and stays available as a switch.
+
+Options compared:
+
+| | Relay (via backend) | Direct (client → provider) |
+|---|---|---|
+| Credentials exposure | Hidden. Relay URLs carry an encrypted, expiring token. | Username + password are in the stream URL path on every client. |
+| Browser CORS | Solved. Backend sends CORS headers. | Most Xtream panels send none → hls.js cannot fetch playlists/segments. |
+| Mixed content | Solved once backend has HTTPS. | HTTP-only panels blocked on HTTPS pages. |
+| Web offline caching (Service Worker) | Works: same-origin/CORS responses are readable and cacheable. | Opaque cross-origin responses cannot be inspected or reliably cached. |
+| Latency | +1 hop (LAN: negligible). | Lowest. |
+| Bandwidth / cost | All video passes through the backend host. Local: free. Cloud: paid egress. | None on our side. |
+| Availability | PC must be on and reachable. | Only provider needed. |
+| Provider connection limits | Unchanged: one client stream = one upstream stream. | Same. |
+| Provider IP blocking | Provider sees the PC's home IP (fine). In cloud, datacenter IPs may be blocked. | Provider sees each client IP. |
+
+Why relay: in local-only phase 1 (D-010) its main cost (bandwidth) is zero, and it is required for web playback (CORS) and web offline caching. The TV app needs the backend for login and catalog anyway, so "PC must be on" adds no new dependency. Revisit when moving to cloud: likely hybrid (web relayed, TV direct via short-lived URLs).
+
+How the relay works:
+
+```mermaid
+sequenceDiagram
+  participant P as Player
+  participant A as Backend /api/relay
+  participant X as Provider
+  P->>A: GET /api/relay/{token}/42.m3u8
+  A->>A: decrypt + check expiry → upstream URL
+  A->>X: GET live/user/pass/42.m3u8 (follows redirects)
+  X-->>A: playlist (relative segment URIs)
+  A->>A: rewrite each URI → /api/relay/{new token}/seg.ts
+  A-->>P: rewritten playlist
+  P->>A: GET /api/relay/{token}/seg.ts (Range)
+  A->>X: GET segment (Range forwarded)
+  X-->>P: bytes streamed through, 200/206 preserved
+```
+
+Rules:
+- Tokens are Data Protection time-limited payloads (`BACKEND_RELAY_TOKEN_HOURS`). Clients cannot forge a URL, so the relay cannot be used as an open proxy (SSRF-safe).
+- Playlist detection: `mpegurl` content type or `.m3u8` path; max 5 MB.
+- Relative URIs resolve against the final URL after redirects (Xtream panels often redirect to a load-balancer host).
+- The relay `HttpClient` has no timeout (live streams are endless) and its request logs are silenced because upstream paths contain credentials.
+
+## D-014
+
+**Persistence: SQLite + EF Core migrations** — 2026-09-23
+
+Decision: EF Core 10 with SQLite at `BACKEND_DATA_DIR/app.db`. Migrations live in `Backend.Infrastructure/Persistence/Migrations` and run automatically on startup. `dotnet-ef` is a local tool (`backend/dotnet-tools.json`).
+
+Why:
+- Local-only (D-010): no database server to install.
+- EF Core keeps the path to Azure SQL open: swap `UseSqlite` for `UseSqlServer` and regenerate migrations.
+- `DateTimeOffset` is stored as UTC ticks (`long`) because SQLite cannot compare or sort `DateTimeOffset` natively.
+
+## D-015
+
+**Catalog cache: in-memory, per account** — 2026-09-23
+
+Decision: `CatalogService` caches provider responses in `IMemoryCache` for `BACKEND_CATALOG_CACHE_MINUTES` (default 15), keyed by account + request.
+
+Why: Xtream `get_vod_streams` without a category can return tens of thousands of items and take seconds. In-memory is enough for a single local process. Durable metadata storage belongs to Step 3 (master media objects).

@@ -21,6 +21,7 @@ ios/
 .env.local
 .env.*.local
 local.settings.json
+.data/
 
 # Tooling
 .pytest_cache/
