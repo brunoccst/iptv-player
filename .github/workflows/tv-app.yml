@@ -31,6 +31,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The runner disk is too small for the Gradle build plus the TV system image. See DECISIONS.md#d-030.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/swift /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /usr/local/share/powershell /opt/hostedtoolcache/CodeQL /usr/local/julia* /opt/microsoft/msedge
+          sudo docker image prune --all --force > /dev/null
+          df -h /
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -66,10 +74,17 @@ jobs:
         working-directory: apps/tv-app/android
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86,armeabi-v7a,arm64-v8a
 
+      - name: Keep APK, drop build output
+        run: |
+          cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/app-release.apk"
+          rm -rf apps/tv-app/android/app/build apps/tv-app/android/.gradle ~/.gradle/caches
+          find node_modules apps/tv-app/modules -path '*/android/build' -type d -prune -exec rm -rf {} +
+          df -h /
+
       - uses: actions/upload-artifact@v4
         with:
           name: tv-app-apk
-          path: apps/tv-app/android/app/build/outputs/apk/release/app-release.apk
+          path: ${{ runner.temp }}/app-release.apk
 
       - name: Start local stack (fake panel, backend, worker)
         run: |
@@ -94,7 +109,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            adb install -r apps/tv-app/android/app/build/outputs/apk/release/app-release.apk
+            adb install -r ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output
 
       - name: Stack logs
