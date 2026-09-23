@@ -25,10 +25,14 @@ appId: ${APP_ID}
     visible:
       id: "home-screen"
     timeout: 60000
-- extendedWaitUntil:
-    visible:
+- takeScreenshot: 00-home-initial
+# Movie rows sit below the fold at 960x540 dp; rows reload once the worker finishes grouping titles.
+- scrollUntilVisible:
+    element:
       id: "card-Big Test Movie"
+    direction: DOWN
     timeout: 180000
+    centerElement: true
 - takeScreenshot: 01-home
 # Details: three listings grouped into one title with a version picker.
 - tapOn:
