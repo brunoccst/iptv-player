@@ -21,6 +21,8 @@ export const epgGridKey = (r: EpgGridRequest) =>
 
 export interface EpgState {
   grids: Record<string, Resource<EpgGrid>>;
+  /** Bumped by `refresh`/`reset` so watchers restart. */
+  revision: number;
   loadGrid(request: EpgGridRequest, options?: LoadOptions): Promise<EpgGrid | null>;
   /** Loads the page and re-polls while its status is `refreshing`. Returns a stop function (call on unmount). */
   watchGrid(request: EpgGridRequest): () => void;
@@ -38,6 +40,7 @@ export function createEpgStore({ api, pollMs = EPG_POLL_MS }: { api: ApiClient; 
 
     return {
       grids: {},
+      revision: 0,
       loadGrid: (request, options) => loader.load(epgGridKey(request), () => api.epg.grid({
         categoryId: request.categoryId,
         from: new Date(request.from).toISOString(),
@@ -64,7 +67,7 @@ export function createEpgStore({ api, pollMs = EPG_POLL_MS }: { api: ApiClient; 
         try {
           await api.epg.refresh();
           loader.invalidate();
-          set({ grids: {} });
+          set({ grids: {}, revision: get().revision + 1 });
           return true;
         } catch {
           return false;
@@ -73,7 +76,7 @@ export function createEpgStore({ api, pollMs = EPG_POLL_MS }: { api: ApiClient; 
 
       reset: () => {
         loader.invalidate();
-        set({ grids: {} });
+        set({ grids: {}, revision: get().revision + 1 });
       },
     };
   });

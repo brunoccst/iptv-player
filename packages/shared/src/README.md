@@ -4,7 +4,7 @@
 |------|---------|
 | `index.ts` | Public exports. Import only from `@iptv/shared`. |
 | `appContext.ts` | `createAppContext()`: builds HTTP client, API client and all stores, wires 401 → sign-out and cache resets. |
-| `react.ts` | `useAppStore(store, selector)` React hook. |
+| `react.ts` | React hooks: `useAppStore(store, selector)`, `useNow`, `useEpgGuide` (paged guide + polling). |
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |

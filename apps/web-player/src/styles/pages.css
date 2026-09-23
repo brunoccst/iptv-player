@@ -481,33 +481,211 @@
   color: var(--color-text-strong);
 }
 
-.channel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+.guide-page {
+  min-width: 0;
 }
 
-.channel {
-  display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 12px;
+.guide-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
-  padding: 12px;
-  border: 1px solid transparent;
+  margin-bottom: 12px;
+}
+
+.guide-toolbar__day {
+  margin-left: auto;
+}
+
+/* Channel column + timeline; the timeline keeps a readable width and scrolls sideways on phones. */
+.guide {
+  --guide-channel: 200px;
+  --guide-row: 64px;
+  overflow-x: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.guide__row {
+  display: grid;
+  grid-template-columns: var(--guide-channel) minmax(640px, 1fr);
+  min-height: var(--guide-row);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.guide__row--header {
+  min-height: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-bg);
+}
+
+.guide__corner,
+.guide__channel {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--color-bg);
+}
+
+.guide__channel {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px 8px 0;
+  border: 0;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.guide__channel:hover,
+.guide__channel:focus-visible {
+  color: var(--color-text-strong);
+  background: var(--color-surface-raised);
+}
+
+.guide__channel img,
+.guide__logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.guide__channel-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide__timeline {
+  position: relative;
+}
+
+.guide__slot {
+  position: absolute;
+  top: 6px;
+  padding-left: 6px;
+  border-left: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.guide__programme,
+.guide__gap {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 0 10px;
+  overflow: hidden;
   border-radius: var(--radius);
-  background: var(--color-surface);
   text-align: left;
 }
 
-.channel:hover,
-.channel:focus-visible {
-  border-color: var(--color-text-strong);
+.guide__programme {
+  border: 1px solid transparent;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-bg);
 }
 
-.channel img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+.guide__programme:hover,
+.guide__programme:focus-visible,
+.guide__programme[aria-pressed='true'] {
+  border-color: var(--color-text-strong);
+  color: var(--color-text-strong);
+}
+
+.guide__programme--now {
+  background: #3a3a3a;
+}
+
+.guide__programme--past {
+  opacity: 0.55;
+}
+
+.guide__gap {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.guide__title,
+.guide__time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide__title {
+  font-weight: 600;
+}
+
+.guide__time {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.guide__body {
+  position: relative;
+  min-width: calc(var(--guide-channel) + 640px);
+}
+
+.guide__now {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--guide-channel) + (100% - var(--guide-channel)) * var(--guide-now));
+  z-index: 1;
+  width: 2px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+.guide__more {
+  margin-top: 16px;
+}
+
+.guide-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.guide-details > div:first-child {
+  flex: 1 1 320px;
+}
+
+.guide-details__title {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  color: var(--color-text-strong);
+}
+
+.guide-details__bar {
+  height: 4px;
+  max-width: 320px;
+  margin: 8px 0;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.guide-details__bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.guide-details__actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* Downloads */
@@ -578,5 +756,17 @@
   .live__categories {
     display: flex;
     overflow-x: auto;
+  }
+
+  .guide {
+    --guide-channel: 64px;
+  }
+
+  .guide__channel {
+    grid-template-columns: 44px;
+  }
+
+  .guide__channel-name {
+    display: none;
   }
 }

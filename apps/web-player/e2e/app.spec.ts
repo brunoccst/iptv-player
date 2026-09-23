@@ -75,10 +75,21 @@ test('episodes: skip intro, continue watching + resume, next-episode countdown',
   await expectPlaying(page);
 });
 
-test('live channel plays', async ({ page }) => {
+test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await page.getByRole('button', { name: 'Live TV' }).click();
-  await page.getByRole('button', { name: /Test News HD/ }).click();
+  const guide = page.getByRole('region', { name: 'TV guide' });
+  // Five channels, each with a programme on now; "Test Arena" has no XMLTV id and comes from short EPG.
+  await expect(guide.locator('.guide__programme--now')).toHaveCount(5);
+  await expect(guide.getByRole('button', { name: /^Warm-up,|^Arena Live,/ }).first()).toBeVisible();
+  await page.screenshot({ path: 'test-results/guide.png' });
+
+  const onNow = guide.locator('.guide__programme--now').first();
+  const title = (await onNow.locator('.guide__title').textContent())!.replace('‹ ', '');
+  await onNow.click();
+  await expect(page.getByRole('region', { name: 'Programme details' })).toContainText('On now');
+  await page.getByRole('button', { name: 'Watch live' }).click();
   await expect(page.locator('.player__live')).toBeVisible();
+  await expect(page.locator('.player__subtitle')).toContainText(title);
   await expectPlaying(page, 1);
 });
 
