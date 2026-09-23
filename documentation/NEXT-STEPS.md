@@ -7,7 +7,7 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 ```mermaid
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
-  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG]
+  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅]
 ```
 
 - [x] **Step 1 — Scaffold**: monorepo, workspaces, 3 documentation files, READMEs, central `APP_NAME` config.
@@ -18,11 +18,16 @@ flowchart LR
 - [x] **Step 5 — Web player**: Netflix-style UI, hls.js engine (HLS first, MKV hint), timeline frame previews, keyboard controls, version selector, Skip Intro, next-episode countdown, episodes drawer, profiles, Continue Watching (backend progress), encrypted Service Worker downloads, My Downloads, fake Xtream panel + e2e tests (D-023 – D-027).
 - [x] **Step 6 — TV app**: native focus navigation, remote handling (tap ±10 s with circle, hold-to-scrub with acceleration), ↑/↓ quick drawer, `tv-media` Expo module (ExoPlayer + Media3 DownloadManager in private storage), My Downloads, Jest tests, Android TV emulator + Maestro CI (D-028 – D-030).
 - [x] **Test environment for the TV app** (requested 2026-09-23): `.github/workflows/tv-app.yml` (D-030).
-- [ ] **Step 7 — Live TV EPG grid**: backend EPG cache, shared state, web and TV grids.
+- [x] **Step 7 — Live TV EPG grid**: XMLTV cache + short-EPG fallback, `/api/epg` paged grid, shared store + layout helpers, web and TV guides, fake panel EPG, tests (D-031, D-032).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
 ## Agent Suggestions
+
+- **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
+- **Guide reminders**: notify (web) / banner (TV) when a chosen programme starts.
+- **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
+- **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
 - **Web e2e in CI**: add the Playwright suite to `ci.yml`.
 - **TV profile editing** (KI-027) and on-screen search.

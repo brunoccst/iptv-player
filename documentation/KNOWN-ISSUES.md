@@ -33,6 +33,10 @@ Bugs, external limitations, technical debt and risks.
 | [KI-027](#ki-027) | Limitation | tv-app | Open |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
 | [KI-029](#ki-029) | Limitation | build env | Open |
+| [KI-030](#ki-030) | Limitation | backend | Open |
+| [KI-031](#ki-031) | Limitation | web-player, tv-app | Open |
+| [KI-032](#ki-032) | Limitation | backend, clients | Open |
+| [KI-033](#ki-033) | Risk | tv-app CI | Open |
 
 ---
 
@@ -216,3 +220,28 @@ Maestro sends single key presses; long-press behaviour is verified by unit/compo
 **No Android build or emulator in the Claude Code sandbox** — logged 2026-09-23
 
 No `/dev/kvm`, and `dl.google.com` (Android SDK, Google Maven) is blocked by the environment's network policy. Native changes are verified by the `tv-app.yml` GitHub Actions workflow. Allowing `dl.google.com` in the environment's network settings would enable APK builds (not emulation) in the sandbox.
+
+## KI-030
+
+**XMLTV programmes without `stop` are dropped** — logged 2026-09-23
+
+The parser keeps only programmes with a valid start and stop (D-031). Some feeds omit `stop` and expect it to be inferred from the next programme's start. Those channels show gaps unless short EPG covers them.
+
+## KI-031
+
+**Guide windows align to UTC half hours** — logged 2026-09-23
+
+The backend default `from` and the client slot math round to 30 minutes in UTC. In time zones with a 15/45-minute offset (for example UTC+5:45) the grid starts on a local :15/:45.
+
+## KI-032
+
+**No catch-up (archive) playback** — logged 2026-09-23
+
+Channels report `hasCatchup`, but past programmes cannot be played; selecting one plays the live channel (D-032). Needs `timeshift` URLs in `IMediaProvider` and the relay.
+
+## KI-033
+
+**TV playback in the emulator not yet verified green** — logged 2026-09-23
+
+Run 6 of `tv-app.yml` showed the player ready but the position at 0:00. The emulator now runs with a sound device (D-030); until a green run confirms it, TV playback is verified by Jest tests only.
+

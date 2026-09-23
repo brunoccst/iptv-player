@@ -7,7 +7,7 @@ flowchart TD
   APP[App.tsx gate] -->|anonymous| LOGIN[LoginPage]
   APP -->|no profile| PICK[ProfilePicker]
   APP -->|signed in| SHELL[Shell]
-  SHELL --> NAV[TopNav] & VIEWS[Home / Movies / Series / Search / Live TV / My Downloads]
+  SHELL --> NAV[TopNav] & VIEWS[Home / Movies / Series / Search / Live TV guide / My Downloads]
   SHELL --> DETAILS[DetailsModal]
   SHELL --> PLAYER[PlayerOverlay - lazy chunk with hls.js]
   PLAYER --> ENGINE[PlaybackEngine]

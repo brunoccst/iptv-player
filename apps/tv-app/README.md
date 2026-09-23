@@ -7,7 +7,7 @@ flowchart TD
   APP[App.tsx gate] -->|anonymous| LOGIN[LoginScreen]
   APP -->|no profile| PROFILES[ProfilesScreen]
   APP -->|signed in| SHELL[Shell: SideRail + route]
-  SHELL --> HOME[Home] & BROWSE[Movies / Series] & LIVE[Live TV] & DL[Downloads] & DETAILS[Details]
+  SHELL --> HOME[Home] & BROWSE[Movies / Series] & LIVE[Live TV guide] & DL[Downloads] & DETAILS[Details]
   SHELL --> PLAYER[PlayerScreen]
   PLAYER --> VIEW[TvPlayerView - ExoPlayer]
   DETAILS --> STORE[downloadsStore] --> NATIVE[TvMedia - Media3 DownloadManager]
