@@ -12,6 +12,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:all": "node scripts/dev.mjs",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "dev:web": "turbo run dev --filter=@iptv/web-player",

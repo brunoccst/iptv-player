@@ -38,7 +38,7 @@ flowchart LR
 | [`backend`](./backend) | C# .NET 10 Web API. |
 | [`services`](./services) | Python background services (title normalizer). |
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
-| [`scripts`](./scripts) | Start/stop the local end-to-end stack. |
+| [`scripts`](./scripts) | One-command dev stack; start/stop the local end-to-end stack. |
 | [`.github`](./.github) | CI workflows. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
@@ -59,6 +59,7 @@ npm install                 # all JS workspaces
 npm run typecheck           # all JS workspaces
 npm run test                # all JS workspaces
 npm run build               # all JS workspaces
+npm run dev:all             # backend + worker + web together (add `-- --fake` for the fake panel)
 npm run dev:web             # web player on http://localhost:5173
 npm run dev:tv              # Expo dev server for the TV app
 
@@ -77,7 +78,15 @@ TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the A
 End-to-end tests (starts its own stack on separate ports):
 
 ```bash
-npm run test:e2e --workspace=@iptv/web-player
+npm run test:e2e
+```
+
+Lint and format (CI runs the same checks; the Python part needs the worker venv active):
+
+```bash
+npm run lint                # ESLint + Prettier, dotnet format, Ruff (check only)
+npm run format              # apply Prettier, dotnet format, Ruff fixes
+git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format commits in blame
 ```
 
 ## API contract
@@ -102,5 +111,8 @@ TV app on a real device: set `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env
 | `package.json` | npm workspaces, root scripts, `react-native` → `react-native-tvos` override. |
 | `turbo.json` | Turborepo task pipeline. |
 | `tsconfig.base.json` | Shared TypeScript compiler options. |
-| `.editorconfig` | Editor formatting rules. |
+| `.editorconfig` | Editor formatting rules (`backend/.editorconfig` marks EF migrations as generated). |
+| `eslint.config.mjs` | ESLint for all TS/JS workspaces (typescript-eslint, react-hooks). |
+| `.prettierrc.json`, `.prettierignore` | Prettier style (140 columns, single quotes) and scope (TS/TSX/JS/CSS). |
+| `.git-blame-ignore-revs` | Bulk formatting commits to skip in `git blame`. |
 | `.npmrc` | `legacy-peer-deps=true` (react-native-tvos pre-release versions, D-028). |

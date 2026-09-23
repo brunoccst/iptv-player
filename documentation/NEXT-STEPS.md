@@ -19,6 +19,8 @@ flowchart LR
 - [x] **Step 6 — TV app**: native focus navigation, remote handling (tap ±10 s with circle, hold-to-scrub with acceleration), ↑/↓ quick drawer, `tv-media` Expo module (ExoPlayer + Media3 DownloadManager in private storage), My Downloads, Jest tests, Android TV emulator + Maestro CI (D-028 – D-030).
 - [x] **Test environment for the TV app** (requested 2026-09-23): `.github/workflows/tv-app.yml` (D-030).
 - [x] **Step 7 — Live TV EPG grid**: XMLTV cache + short-EPG fallback, `/api/epg` paged grid, shared store + layout helpers, web and TV guides, fake panel EPG, tests (D-031, D-032).
+- [x] **Linters/formatters + web e2e in CI** (requested 2026-09-23): ESLint + Prettier, `dotnet format`, Ruff, `lint` and `web-e2e` CI jobs (D-033).
+- [x] **One-command dev start** (requested 2026-09-23): `npm run dev:all` (D-034).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
@@ -29,23 +31,18 @@ flowchart LR
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
 - **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
-- **Web e2e in CI**: add the Playwright suite to `ci.yml`.
 - **TV profile editing** (KI-027) and on-screen search.
 - **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
 - **Sign the release APK** with a real keystore (CI secret) for sideloading updates over the debug-signed build.
-- **Linters/formatters**: ESLint (incl. `react-hooks` rules; a hooks-after-return bug was caught only by review) + Prettier (TS), `dotnet format` (C#), Ruff (Python).
-- **E2E in CI**: run `npm run test:e2e` (needs .NET, Python venv, ffmpeg, Chromium) on every push.
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
 - **Intro markers**: learn per-series intro end from user skips (KI-019).
 - **URL routing** for deep links (KI-023).
 - **mpegts.js** fallback for TS-only live panels (KI-022).
 - **Series ranking by episode count** (KI-025).
-- **VOD playback in browsers**: decide the MKV strategy before Step 5 (KI-010).
 - **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
 - **Local HTTPS** for LAN traffic (KI-009).
 - **Before any cloud move**: SSRF guard + login rate limit (KI-008), hybrid relay/direct delivery (D-013), Bicep templates, Key Vault–backed Data Protection keys.
 - **Periodic library sync**: background timer (e.g. every 12 h) per active account (KI-016).
-- **One-command dev start**: root script that runs backend + worker + web together.
 - **TMDB enrichment**: `get_vod_info` exposes `tmdb_id`; matching by TMDB id would merge translated titles and fix KI-014.
 - **Series episode merge**: series variants each have their own episode lists; merge seasons/episodes across variants for a single episode picker.
 - **Manual override**: admin endpoint to split/merge masters, stored as rules the worker applies.

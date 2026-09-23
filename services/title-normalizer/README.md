@@ -25,6 +25,7 @@ pip install -r requirements-dev.txt
 
 ```bash
 python -m pytest                          # unit + SQLite integration tests
+python -m ruff check . && python -m ruff format --check .   # lint + format (config in pyproject.toml)
 python -m title_normalizer                # worker: polls every 5 s (Ctrl+C to stop)
 python -m title_normalizer --once         # process all pending jobs, then exit
 python -m title_normalizer --db PATH      # use another pipeline.db
