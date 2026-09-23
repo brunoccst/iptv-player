@@ -41,6 +41,21 @@ describe('PlayerScreen', () => {
     expect(await screen.findByText('Source error')).toBeTruthy();
   });
 
+  it('keeps the controls and clock up while loading; hides them 4 s after playback starts', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await act(async () => jest.advanceTimersByTime(10_000));
+    expect(screen.getByTestId('player-time')).toBeTruthy();
+
+    await ready();
+    await progress(2, 30);
+    expect(screen.getByTestId('player-time').props.children.join('')).toContain('0:02 / 0:30');
+    await act(async () => jest.advanceTimersByTime(4_000));
+    expect(screen.queryByTestId('player-time')).toBeNull();
+  });
+
   it('tap ←/→ skips 10 s with a flash; holding scrubs with acceleration and seeks once on release', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

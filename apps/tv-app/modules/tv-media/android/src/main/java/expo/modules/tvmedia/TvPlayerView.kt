@@ -11,6 +11,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadHelper
@@ -93,7 +94,9 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     if (source == null || (source.uri == null && source.offlineId == null)) return
 
     DownloadCenter.init(context)
-    val exoPlayer = ExoPlayer.Builder(context)
+    // Decoder fallback: if the preferred (often hardware) decoder fails to init, try the next one.
+    val renderers = DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+    val exoPlayer = ExoPlayer.Builder(context, renderers)
       .setMediaSourceFactory(DefaultMediaSourceFactory(DownloadCenter.httpDataSourceFactory))
       .build()
     exoPlayer.addListener(listener)

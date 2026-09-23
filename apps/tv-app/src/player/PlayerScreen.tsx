@@ -114,12 +114,14 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   });
   useEffect(() => () => controller.current?.cancel(), []);
 
+  // Controls stay up while loading or paused; they hide CONTROLS_HIDE_MS after the last key once playing.
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playing = ready && !paused;
   const wake = useCallback(() => {
     setControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => setControls(false), CONTROLS_HIDE_MS);
-  }, []);
+    hideTimer.current = playing ? setTimeout(() => setControls(false), CONTROLS_HIDE_MS) : null;
+  }, [playing]);
   useEffect(() => {
     wake();
     return () => {
