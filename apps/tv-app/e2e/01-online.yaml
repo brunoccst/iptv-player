@@ -1,0 +1,122 @@
+# Online flow on an Android TV emulator: login, dedup library, details, playback + D-pad, drawer, download.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- tapOn:
+    id: "login-server"
+- inputText: "http://localhost:8091"
+# Enter closes the TV keyboard; hideKeyboard sends Back, which exits the app if the keyboard already closed.
+- pressKey: Enter
+- tapOn:
+    id: "login-username"
+- inputText: "demo"
+- pressKey: Enter
+- tapOn:
+    id: "login-password"
+- inputText: "demo"
+- pressKey: Enter
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+- takeScreenshot: 00-home-initial
+# Movie rows sit below the fold at 960x540 dp; rows reload once the worker finishes grouping titles.
+- scrollUntilVisible:
+    element:
+      id: "card-Big Test Movie"
+    direction: DOWN
+    timeout: 180000
+    centerElement: true
+- takeScreenshot: 01-home
+# Details: three listings grouped into one title with a version picker.
+- tapOn:
+    id: "card-Big Test Movie"
+    index: 0
+- extendedWaitUntil:
+    visible: "Version: 4K · ENG"
+    timeout: 30000
+- takeScreenshot: 02-details
+# Play has TV preferred focus: the D-pad centre key starts playback.
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
+      id: "player-screen"
+    timeout: 30000
+# Let it play, then pause: paused controls stay on screen, so slow screen reads on the emulator cannot miss the clock.
+- extendedWaitUntil:
+    visible: "__wait_6s__"
+    timeout: 6000
+    optional: true
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
+    timeout: 30000
+- takeScreenshot: 03-player
+- copyTextFrom:
+    id: "player-time"
+- evalScript: ${output.before = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
+# Tap right: +10 s (still paused).
+- pressKey: Remote Dpad Right
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:[1-3][0-9] / 0:30.*"
+    timeout: 15000
+- copyTextFrom:
+    id: "player-time"
+- evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
+# Slow screen reads can land the pause late in the 30 s clip: a skip near the end stops at 0:30.
+- assertTrue: ${output.after >= Math.min(output.before + 9, 30)}
+# Down: quick drawer (audio / subtitles / versions). Back closes it, second Back leaves the player.
+- pressKey: Remote Dpad Down
+- assertVisible:
+    id: "quick-drawer"
+- takeScreenshot: 04-drawer
+- pressKey: back
+- assertNotVisible:
+    id: "quick-drawer"
+- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "details-screen"
+    timeout: 15000
+# Download for offline (Media3 DownloadManager, app-private storage).
+- tapOn:
+    id: "download-button"
+- extendedWaitUntil:
+    visible: "Downloaded"
+    timeout: 240000
+- pressKey: back
+- tapOn:
+    id: "rail-downloads"
+- assertVisible: "Big Test Movie"
+- takeScreenshot: 05-downloads
+# Live TV guide: each channel shows what is on now; "Test Arena" (304) has no XMLTV id and comes from short EPG.
+- tapOn:
+    id: "rail-live"
+- extendedWaitUntil:
+    visible:
+      id: "guide-now-301"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "guide-now-304"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 05b-guide
+- tapOn:
+    id: "guide-now-301"
+- extendedWaitUntil:
+    visible:
+      id: "player-screen"
+    timeout: 30000
+- pressKey: back

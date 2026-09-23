@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Build output
+dist/
+build/
+bin/
+obj/
+.turbo/
+.expo/
+web-build/
+/apps/tv-app/android/
+/apps/tv-app/ios/
+*.apk
+*.aab
+
+# Local config overrides and secrets
+.env.local
+.env.*.local
+local.settings.json
+.data/
+
+# Tooling
+.pytest_cache/
+.vs/
+.idea/
+*.user
+.DS_Store
+coverage/

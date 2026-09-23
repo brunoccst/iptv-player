@@ -1,0 +1,19 @@
+[project]
+name = "title-normalizer"
+version = "0.0.0"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+# Lint + format (DECISIONS.md#d-033). Also covers tools/fake-xtream-server via the root script.
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# Line length is the formatter's job; long string literals (SQL, SVG) stay on one line.
+ignore = ["E501"]

@@ -1,0 +1,4 @@
+# Runtime dependencies.
+azure-functions>=1.21,<2
+python-dotenv>=1.0,<2
+rapidfuzz>=3.9,<4

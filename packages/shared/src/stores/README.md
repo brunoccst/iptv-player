@@ -1,0 +1,31 @@
+# stores
+
+Vanilla Zustand stores (`zustand/vanilla`). Created by `createAppContext()`; read in React with `useAppStore`.
+
+| File | State | Main actions |
+|------|-------|--------------|
+| `sessionStore.ts` | `status`, `token`, `account`, `profiles`, `activeProfileId`, `offline`, `busy`, `error` | `restore`, `login`, `logout`, `selectProfile`, `create/update/deleteProfile` |
+| `catalogStore.ts` | `categories[section]`, `liveChannels[categoryId or *]` | `loadCategories`, `loadLiveChannels`, `reset` |
+| `epgStore.ts` | `grids[key]` (one guide page: category + window + offset) | `loadGrid`, `watchGrid` (polls while `refreshing`), `refresh`, `reset` |
+| `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `invalidate`, `reset` |
+| `playerStore.ts` | `request`, `playback`, `status`, `error` | `open`, `close` |
+| `progressStore.ts` | `profileId`, `items`, `saveError` | `load`, `save` (optimistic), `remove` |
+| `resource.ts` | `Resource<T>` = `{ data, status, error, updatedAt }` | `createResourceLoader` (cache, in-flight sharing, reset-safe) |
+| `storage.ts` | `KeyValueStorage` interface | `createMemoryStorage` (tests) |
+
+Session status flow:
+
+```mermaid
+stateDiagram-v2
+  [*] --> idle
+  idle --> restoring: restore()
+  restoring --> anonymous: no stored session / 401
+  restoring --> authenticated: me + profiles OK
+  restoring --> authenticated: backend unreachable (offline = true)
+  anonymous --> authenticated: login() OK
+  authenticated --> anonymous: logout() / any 401
+```
+
+Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`, `findProgress`.
+
+The progress store reloads whenever the active profile changes (wired in `appContext.ts`).
