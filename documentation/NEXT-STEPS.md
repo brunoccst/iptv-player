@@ -6,7 +6,7 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 
 ```mermaid
 flowchart LR
-  S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state]
+  S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
   S4 --> S5[5. Web player] --> S6[6. TV app] --> S7[7. Live TV EPG]
 ```
 
@@ -14,7 +14,7 @@ flowchart LR
 - [x] **Upgrade backend to .NET 10** (requested 2026-09-23, D-009).
 - [x] **Step 2 — Backend**: `IMediaProvider`, `XtreamCodesProvider`, authentication proxy, user profiles, catalog endpoints, playback + stream relay (D-011 – D-015).
 - [x] **Step 3 — Python dedup service** (SQLite queue, owner-approved 2026-09-23): regex tag parsing, clean titles, guarded fuzzy grouping, master media + variants, `/api/library` endpoints, tests (D-016 – D-019).
-- [ ] **Step 4 — Shared package**: API clients, Zustand stores, domain types.
+- [x] **Step 4 — Shared package**: OpenAPI-generated types, typed API client, Zustand stores (session/profiles, catalog, library, player), app context wired into web + TV (D-020 – D-022).
 - [ ] **Step 5 — Web player**: Netflix-style UI (`#141414`, rows, backdrop trailers), hls.js/Video.js playback, timeline hover previews, ←/→ 10 s skip, variant selector, Skip Intro, next-episode countdown, episodes drawer, profile switcher, Service Worker offline cache, "My Downloads".
 - [ ] **Step 6 — TV app**: D-pad spatial navigation (`TVEventHandler`), tap ←/→ 10 s skip with circular overlay, hold-to-scrub with acceleration, ↑/↓ drawer (audio/subtitles/variants), ExoPlayer `DownloadManager` private-storage cache, "My Downloads".
 - [ ] **Step 7 — Live TV EPG grid**: backend EPG cache, shared state, web and TV grids.
@@ -23,9 +23,8 @@ flowchart LR
 
 ## Agent Suggestions
 
-- **CI pipeline**: GitHub Actions running `npm run typecheck test build`, `dotnet test`, `pytest` on every push.
+- **CI pipeline**: GitHub Actions running `npm run typecheck test build`, `dotnet test`, `pytest` on every push, plus API contract check (`dotnet build` + `generate:api` + `git diff --exit-code`, KI-018).
 - **Linters/formatters**: ESLint + Prettier (TS), `dotnet format` (C#), Ruff (Python).
-- **Generate the shared TS client from OpenAPI** (`/openapi/v1.json`) in Step 4 so types never drift.
 - **VOD playback in browsers**: decide the MKV strategy before Step 5 (KI-010).
 - **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
 - **Local HTTPS** for LAN traffic (KI-009).

@@ -1,10 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAppStore } from '@iptv/shared';
+import { stores } from './appContext';
 import { appConfig } from './config';
 
 export function App() {
   const [focused, setFocused] = useState(false);
+  const status = useAppStore(stores.session, (state) => state.status);
+
+  useEffect(() => {
+    void stores.session.getState().restore();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -16,7 +23,7 @@ export function App() {
         onBlur={() => setFocused(false)}
         style={[styles.button, focused && styles.buttonFocused]}
       >
-        <Text style={styles.buttonText}>TV app scaffold</Text>
+        <Text style={styles.buttonText}>TV app scaffold · Session: {status}</Text>
       </Pressable>
     </View>
   );

@@ -63,7 +63,7 @@ Deleting `DATA_DIR` resets all accounts, profiles, sessions and the deduplicated
 
 ## Endpoints
 
-OpenAPI document (Development only): `GET /openapi/v1.json`.
+OpenAPI document: served at `GET /openapi/v1.json` (Development only) and written on every build to `packages/shared/openapi/backend-openapi.json`. After API changes run `npm run generate:api --workspace=@iptv/shared` and commit both files.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|

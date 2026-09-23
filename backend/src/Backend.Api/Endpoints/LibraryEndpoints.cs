@@ -1,6 +1,7 @@
 using Backend.Api.Auth;
 using Backend.Core.Library;
 using Backend.Infrastructure.Library;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Backend.Api.Endpoints;
 
@@ -14,24 +15,25 @@ public static class LibraryEndpoints
         group.MapPost("/sync", (HttpContext context, LibrarySyncQueue queue) =>
         {
             queue.Request(context.User.GetAccountId());
-            return Results.Accepted("/api/library/status");
-        });
+            return TypedResults.Accepted("/api/library/status");
+        }).WithName("syncLibrary");
 
         group.MapGet("/status", (HttpContext context, LibraryService library, CancellationToken ct) =>
-            library.GetStatusAsync(context.User.GetAccountId(), ct));
+            library.GetStatusAsync(context.User.GetAccountId(), ct)).WithName("getLibraryStatus");
 
-        group.MapGet("/{kind}", async (
+        group.MapGet("/{kind}", async Task<Results<Ok<LibraryPage>, NotFound>> (
             string kind, string? categoryId, string? search, int? offset, int? limit,
             HttpContext context, LibraryService library, CancellationToken ct) =>
             ToMediaKind(kind) is { } mediaKind
-                ? Results.Ok(await library.ListAsync(context.User.GetAccountId(), mediaKind,
+                ? TypedResults.Ok(await library.ListAsync(context.User.GetAccountId(), mediaKind,
                     new LibraryQuery(categoryId, search, offset ?? 0, limit ?? 100), ct))
-                : Results.NotFound());
+                : TypedResults.NotFound()).WithName("listLibrary");
 
-        group.MapGet("/{kind}/{masterId}", async (string kind, string masterId, HttpContext context, LibraryService library, CancellationToken ct) =>
+        group.MapGet("/{kind}/{masterId}", async Task<Results<Ok<MasterDetails>, NotFound>> (
+            string kind, string masterId, HttpContext context, LibraryService library, CancellationToken ct) =>
             ToMediaKind(kind) is { } mediaKind && await library.GetAsync(context.User.GetAccountId(), mediaKind, masterId, ct) is { } master
-                ? Results.Ok(master)
-                : Results.NotFound());
+                ? TypedResults.Ok(master)
+                : TypedResults.NotFound()).WithName("getLibraryItem");
 
         return app;
     }

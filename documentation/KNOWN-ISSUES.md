@@ -20,6 +20,8 @@ Bugs, external limitations, technical debt and risks.
 | [KI-014](#ki-014) | Limitation | title-normalizer | Open |
 | [KI-015](#ki-015) | Risk | backend + worker | Open |
 | [KI-016](#ki-016) | Limitation | backend | Open |
+| [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
+| [KI-018](#ki-018) | Tech debt | shared + backend | Open |
 
 ---
 
@@ -125,3 +127,15 @@ The worker's library replace holds a write lock for the transaction (≈ 1 s for
 **Library refreshes only on login or manual sync** — logged 2026-09-23
 
 `/api/library` data is refreshed after each login and on `POST /api/library/sync`. Sessions last 30 days, so new provider titles can be missing for weeks. The worker must also be running; otherwise jobs stay `pending` (visible in `/api/library/status`).
+
+## KI-017
+
+**Web session token in `localStorage`** — logged 2026-09-23
+
+Any script running on the web player's origin can read the bearer token (XSS). No third-party scripts are loaded today and the app is local-only. Before public hosting: move to an HttpOnly, SameSite cookie with CSRF protection, or shorten token lifetime (D-022).
+
+## KI-018
+
+**API contract update is two manual steps** — logged 2026-09-23
+
+After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm run generate:api` must be run separately. The Vitest drift test catches a stale `schema.ts`; nothing catches an uncommitted JSON change except `git status`. A CI job running both and checking `git diff --exit-code` would close the gap.

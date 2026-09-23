@@ -7,7 +7,8 @@ ASP.NET Core minimal API host. Endpoint list: see [`backend/README.md`](../../RE
 | `Program.cs` | Config loading, DI, middleware, route mapping, startup migration. |
 | `Auth/` | Bearer session authentication handler. |
 | `Endpoints/` | Route groups and request/response DTOs. |
-| `Errors/` | Exception → problem details mapping. |
+| `Errors/` | Exception → problem details mapping, `ProducesProviderErrors()`. |
+| `OpenApi/` | OpenAPI schema transformer. |
 | `Properties/` | Local launch profile. |
 | `appsettings.json` | Logging levels. |
 

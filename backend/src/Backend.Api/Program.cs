@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using Backend.Api.Auth;
 using Backend.Api.Endpoints;
 using Backend.Api.Errors;
+using Backend.Api.OpenApi;
 using Backend.Core.Configuration;
 using Backend.Infrastructure;
 using Backend.Infrastructure.Persistence;
@@ -13,7 +15,14 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// `dotnet build` starts the app to export OpenAPI; keep it away from real data. See DECISIONS.md#d-020.
+var isOpenApiExport = Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
 builder.Configuration.AddRootDotEnv(builder.Environment.ContentRootPath);
+if (isOpenApiExport)
+{
+    builder.Configuration["DATA_DIR"] = Path.Combine(Path.GetTempPath(), "backend-openapi-export");
+}
 builder.Services.AddAppOptions();
 builder.Services.AddBackendOptions(builder.Environment.ContentRootPath);
 
@@ -32,15 +41,19 @@ builder.Services.AddOptions<CorsOptions>().Configure<IOptions<BackendOptions>>((
         .WithExposedHeaders("Content-Range", "Content-Length", "Accept-Ranges")));
 
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase)));
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase));
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+});
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ProviderExceptionHandler>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddSchemaTransformer<RequiredPropertiesSchemaTransformer>());
 
 var app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
+if (!isOpenApiExport)
 {
+    await using var scope = app.Services.CreateAsyncScope();
     // WAL lets the Python worker read/write pipeline.db while the API is running. See DECISIONS.md#d-016.
     foreach (DbContext db in new DbContext[] { scope.ServiceProvider.GetRequiredService<AppDbContext>(), scope.ServiceProvider.GetRequiredService<PipelineDbContext>() })
     {
@@ -59,8 +72,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/api/health", (IOptions<AppOptions> options) =>
-    Results.Ok(new { status = "ok", app = options.Value.Name })).WithTags("Health");
+app.MapHealthEndpoints();
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapCatalogEndpoints();

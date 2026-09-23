@@ -4,6 +4,7 @@ using Backend.Core.Providers;
 using Backend.Infrastructure.Accounts;
 using Backend.Infrastructure.Library;
 using Backend.Infrastructure.Xtream;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Backend.Api.Endpoints;
 
@@ -13,21 +14,20 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth").WithTags("Auth");
 
-        group.MapPost("/login", LoginAsync).AllowAnonymous();
-        group.MapPost("/logout", LogoutAsync).RequireAuthorization();
-        group.MapGet("/me", MeAsync).RequireAuthorization();
+        group.MapPost("/login", LoginAsync).AllowAnonymous().WithName("login").ProducesProviderErrors();
+        group.MapPost("/logout", LogoutAsync).RequireAuthorization().WithName("logout");
+        group.MapGet("/me", MeAsync).RequireAuthorization().WithName("getMe");
 
         return app;
     }
 
-    private static async Task<IResult> LoginAsync(
+    private static async Task<Results<Ok<LoginResponse>, ProblemHttpResult>> LoginAsync(
         LoginRequest request, AccountService accounts, SessionService sessions, ProfileService profiles, LibrarySyncQueue librarySync,
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrEmpty(request.Password))
         {
-            return Results.Problem("Username and password are required.", statusCode: StatusCodes.Status400BadRequest,
-                extensions: new Dictionary<string, object?> { ["code"] = ErrorCodes.ValidationFailed });
+            return Problems.Validation("Username and password are required.");
         }
 
         try
@@ -38,30 +38,30 @@ public static class AuthEndpoints
             var accountProfiles = await profiles.ListAsync(account.Id, ct);
             librarySync.Request(account.Id);
 
-            return Results.Ok(new LoginResponse(
+            return TypedResults.Ok(new LoginResponse(
                 session.Token, session.ExpiresAt, AccountDto.From(account), accountProfiles.Select(ProfileDto.From).ToList()));
         }
         catch (ArgumentException exception)
         {
-            return Results.Problem(exception.Message, statusCode: StatusCodes.Status400BadRequest,
-                extensions: new Dictionary<string, object?> { ["code"] = ErrorCodes.ValidationFailed });
+            return Problems.Validation(exception.Message);
         }
         catch (ProviderAuthenticationException exception)
         {
-            return Results.Problem(exception.Message, statusCode: StatusCodes.Status401Unauthorized,
+            return TypedResults.Problem(exception.Message, statusCode: StatusCodes.Status401Unauthorized,
                 extensions: new Dictionary<string, object?> { ["code"] = ErrorCodes.InvalidProviderCredentials });
         }
     }
 
-    private static async Task<IResult> LogoutAsync(HttpContext context, SessionService sessions, CancellationToken ct)
+    private static async Task<NoContent> LogoutAsync(HttpContext context, SessionService sessions, CancellationToken ct)
     {
         await sessions.RevokeAsync(context.User.GetSessionId(), ct);
-        return Results.NoContent();
+        return TypedResults.NoContent();
     }
 
-    private static async Task<IResult> MeAsync(HttpContext context, AccountService accounts, CancellationToken ct)
+    private static async Task<Results<Ok<AccountDto>, UnauthorizedHttpResult>> MeAsync(
+        HttpContext context, AccountService accounts, CancellationToken ct)
     {
         var account = await accounts.FindAsync(context.User.GetAccountId(), ct);
-        return account is null ? Results.Unauthorized() : Results.Ok(AccountDto.From(account));
+        return account is null ? TypedResults.Unauthorized() : TypedResults.Ok(AccountDto.From(account));
     }
 }

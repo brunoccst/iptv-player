@@ -24,6 +24,9 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-017](#d-017) | 2026-09-23 | Title normalizer: regex parsing + guarded fuzzy grouping |
 | [D-018](#d-018) | 2026-09-23 | Python worker runs as a CLI poller locally |
 | [D-019](#d-019) | 2026-09-23 | `DATA_DIR` shared key, paths relative to repo root |
+| [D-020](#d-020) | 2026-09-23 | API contract: OpenAPI export at build → generated TypeScript types |
+| [D-021](#d-021) | 2026-09-23 | Shared client + vanilla Zustand stores behind one app context |
+| [D-022](#d-022) | 2026-09-23 | Session persistence per platform |
 
 ---
 
@@ -399,3 +402,76 @@ Why: Azure Functions needs Core Tools + a storage emulator locally, and SQLite i
 Decision: `BACKEND_DATA_DIR` is renamed `DATA_DIR`. Relative values resolve against the directory containing `.env` (repo root) in both backend and Python. Default: `<repo>/.data`.
 
 Why: backend and worker must open the same `pipeline.db`. One key and one resolution rule removes a class of "worker looks in the wrong folder" bugs. The backend exposes the `.env` directory internally as `DOTENV_DIRECTORY`.
+
+## D-020
+
+**API contract: OpenAPI export at build → generated TypeScript types** — 2026-09-23
+
+Decision:
+- `Microsoft.Extensions.ApiDescription.Server` writes `packages/shared/openapi/backend-openapi.json` on every backend build.
+- `openapi-typescript` turns it into `packages/shared/src/api/generated/schema.ts` (`npm run generate:api`). Both files are committed.
+- The hand-written API client takes its return types from generated `operations` (`OperationResult<'listLibrary'>`). Renaming an operation or changing a DTO breaks the TypeScript build.
+- A Vitest test regenerates the types in memory and fails if the committed file differs.
+
+```mermaid
+flowchart LR
+  CS[C# DTOs + TypedResults] -->|dotnet build| JSON[backend-openapi.json]
+  JSON -->|generate:api| TS[schema.ts]
+  TS --> CLIENT[apiClient.ts return types]
+  JSON -. drift test .-> TS
+```
+
+Backend changes needed for an accurate document:
+- All endpoints return `TypedResults` / `Results<...>` so response bodies and status codes are documented. `.WithName()` sets stable operation ids.
+- `JsonNumberHandling.Strict`: ASP.NET's default accepts numbers as strings, which made every number `integer | string` in the schema.
+- `RequiredPropertiesSchemaTransformer`: System.Text.Json always writes every property (nulls included), so response properties are `required` (nullable ones stay `| null`). Request types (`*Request`) keep nullable properties optional so callers can omit them. Without this, every generated field would be optional (`?`).
+- The build starts the app to export the document. `Program.cs` detects this (`GetDocument.Insider` entry assembly), uses a temp `DATA_DIR`, and skips migrations, so builds never touch real data.
+- The relay endpoint is excluded from the document: players call it via URLs from `/api/playback`, never the client.
+
+Why a hand-written client over a generated one (e.g. `openapi-fetch`): about 20 small functions that juniors can read, no `Request` object dependency (React Native's fetch polyfill differs from browsers), and friendly method names. Types still come from the contract.
+
+## D-021
+
+**Shared client + vanilla Zustand stores behind one app context** — 2026-09-23
+
+Decision: `createAppContext({ config, storage, fetch? })` builds one HTTP client, one API client and four stores (`session`, `catalog`, `library`, `player`). Stores use `zustand/vanilla`; React reads them with `useAppStore(store, selector)`.
+
+```mermaid
+flowchart TD
+  CTX[createAppContext] --> HTTP[httpClient]
+  HTTP -->|getToken| SESSION[session store]
+  HTTP -->|401 → handleUnauthorized| SESSION
+  CTX --> API[apiClient]
+  API --> SESSION & CATALOG[catalog store] & LIBRARY[library store] & PLAYER[player store]
+  SESSION -->|account changed → reset| CATALOG & LIBRARY & PLAYER
+```
+
+Why:
+- Vanilla stores work outside React (tests, service workers, native modules later) and bind to React with one hook.
+- Dependencies are injected (`storage`, `fetch`), so tests run the real stores against a fake backend with no mocking library.
+- One factory per app means one place to wire cross-store rules: any 401 signs out; an account change clears account-scoped caches.
+
+Store rules:
+- Remote data lives in `Resource<T>` records (`data`, `status`, `error`, `updatedAt`) keyed by query. `createResourceLoader` returns cached data unless `force`, and shares one request between concurrent callers.
+- Each loader has a generation counter. `reset()` bumps it, so a request still in flight when the user signs out cannot write stale data into the cleared store (found by test, 2026-09-23).
+- Player `open()` ignores responses from older calls (fast channel zapping).
+- Errors are stored, not thrown. UI reads `error.code` (`ApiErrorCode`).
+- Library page size defaults to 100; the chosen variant per master lives in `selectedVariants` (missing = best variant, which the backend lists first).
+- Login auto-selects the profile when the account has exactly one; otherwise UI shows the picker.
+
+## D-022
+
+**Session persistence per platform** — 2026-09-23
+
+Decision: the session store persists one JSON snapshot (`token`, `account`, `profiles`, `activeProfileId`) through a `KeyValueStorage` adapter.
+
+| Platform | Adapter | Protection |
+|----------|---------|------------|
+| Web | `localStorage`, key `<APP_SLUG>:session` | Readable by any script on the origin (XSS). |
+| TV | `expo-secure-store` | Encrypted with an Android Keystore key. |
+
+Why:
+- Caching account + profiles lets the app start with the profile picker even when the backend is unreachable (`offline = true`), needed later for offline downloads.
+- `restore()` re-validates the token (`/api/auth/me` + `/api/profiles`) whenever the backend answers; 401 clears everything.
+- Persistence is manual (not Zustand `persist` middleware): explicit writes after each change are easier to follow and test with async storage.
+- Web alternative (HttpOnly cookie) needs CSRF protection and same-site hosting; deferred while local-only (KI-017).

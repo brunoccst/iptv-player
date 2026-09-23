@@ -26,7 +26,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: requireEnv('APP_ANDROID_PACKAGE'),
   },
-  plugins: [['@react-native-tvos/config-tv', { isTV: true }]],
+  plugins: [['@react-native-tvos/config-tv', { isTV: true }], 'expo-secure-store'],
   extra: {
     APP_NAME: requireEnv('APP_NAME'),
     APP_SLUG: requireEnv('APP_SLUG'),

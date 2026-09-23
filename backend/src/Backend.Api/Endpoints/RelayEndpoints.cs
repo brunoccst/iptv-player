@@ -14,7 +14,7 @@ public static class RelayEndpoints
 
     public static IEndpointRouteBuilder MapRelayEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/relay/{token}/{fileName}", RelayAsync).WithTags("Relay").AllowAnonymous();
+        app.MapGet("/api/relay/{token}/{fileName}", RelayAsync).AllowAnonymous().ExcludeFromDescription();
         return app;
     }
 

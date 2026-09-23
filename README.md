@@ -67,6 +67,10 @@ cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
 python -m title_normalizer  # dedup worker (venv active); needs the backend to have started once
 ```
 
+## API contract
+
+`dotnet build` writes `packages/shared/openapi/backend-openapi.json`; `npm run generate:api --workspace=@iptv/shared` turns it into TypeScript types. Commit both after backend API changes.
+
 ## Configuration
 
 | File | Committed | Purpose |
