@@ -2,7 +2,16 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "types": [
+      "jest"
+    ]
   },
-  "include": ["index.ts", "app.config.ts", "src"]
+  "include": [
+    "index.ts",
+    "app.config.ts",
+    "src",
+    "modules",
+    "test"
+  ]
 }

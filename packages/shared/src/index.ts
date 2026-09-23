@@ -11,6 +11,8 @@ export * from './stores/playerStore';
 export * from './stores/progressStore';
 export * from './playback/rules';
 export * from './playback/sources';
+export * from './playback/remoteSeek';
+export * from './playback/targets';
 export * from './appContext';
 export * from './utils/format';
 export * from './react';

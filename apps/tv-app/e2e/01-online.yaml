@@ -1,0 +1,79 @@
+# Online flow on an Android TV emulator: login, dedup library, details, playback + D-pad, drawer, download.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- tapOn:
+    id: "login-server"
+- inputText: "http://localhost:8091"
+- hideKeyboard
+- tapOn:
+    id: "login-username"
+- inputText: "demo"
+- hideKeyboard
+- tapOn:
+    id: "login-password"
+- inputText: "demo"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      id: "card-Big Test Movie"
+    timeout: 180000
+- takeScreenshot: 01-home
+# Details: three listings grouped into one title with a version picker.
+- tapOn:
+    id: "card-Big Test Movie"
+    index: 0
+- extendedWaitUntil:
+    visible: "Version: 4K · ENG"
+    timeout: 30000
+- takeScreenshot: 02-details
+# Play has TV preferred focus: the D-pad centre key starts playback.
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:0[2-9] / 0:30.*"
+    timeout: 90000
+- takeScreenshot: 03-player
+# Tap right: +10 s.
+- pressKey: Remote Dpad Right
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:(1[2-9]|2[0-9]) / 0:30.*"
+    timeout: 10000
+# Down: quick drawer (audio / subtitles / versions). Back closes it, second Back leaves the player.
+- pressKey: Remote Dpad Down
+- assertVisible:
+    id: "quick-drawer"
+- takeScreenshot: 04-drawer
+- pressKey: back
+- assertNotVisible:
+    id: "quick-drawer"
+- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "details-screen"
+    timeout: 15000
+# Download for offline (Media3 DownloadManager, app-private storage).
+- tapOn:
+    id: "download-button"
+- extendedWaitUntil:
+    visible: "Downloaded"
+    timeout: 240000
+- pressKey: back
+- tapOn:
+    id: "rail-downloads"
+- assertVisible: "Big Test Movie"
+- takeScreenshot: 05-downloads

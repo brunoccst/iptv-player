@@ -13,7 +13,8 @@ export interface Resource<T> {
 export const emptyResource = <T>(): Resource<T> => ({ data: null, status: 'idle', error: null, updatedAt: null });
 
 export function toApiError(error: unknown): ApiError {
-  return error instanceof ApiError ? error : new ApiError(0, 'http_error', String(error));
+  if (error instanceof ApiError) return error;
+  return new ApiError(0, 'http_error', error instanceof Error ? error.message : String(error));
 }
 
 export interface LoadOptions {

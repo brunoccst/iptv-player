@@ -1,6 +1,9 @@
 import * as SecureStore from 'expo-secure-store';
 import { createAppContext, type KeyValueStorage } from '@iptv/shared';
+import { TvMedia } from '../modules/tv-media';
 import { appConfig } from './config';
+import { createDownloadsStore } from './downloads/downloadsStore';
+import { createNavStore } from './navigation/navStore';
 
 /** Android Keystore-encrypted storage. Session token must not sit in plain files. */
 const secureStorage: KeyValueStorage = {
@@ -11,3 +14,5 @@ const secureStorage: KeyValueStorage = {
 
 export const appContext = createAppContext({ config: appConfig, storage: secureStorage });
 export const { stores, api } = appContext;
+export const navStore = createNavStore();
+export const downloadsStore = createDownloadsStore({ api, native: TvMedia });

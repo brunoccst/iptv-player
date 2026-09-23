@@ -1,61 +1,78 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAppStore } from '@iptv/shared';
-import { stores } from './appContext';
-import { appConfig } from './config';
+import { useEffect } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
+import { downloadsStore, navStore, stores } from './appContext';
+import { Loading } from './components/Feedback';
+import { SideRail } from './components/SideRail';
+import { useNav, useSession } from './hooks';
+import { currentRoute } from './navigation/navStore';
+import { useLibraryWatcher } from './useLibraryWatcher';
+import { PlayerScreen } from './player/PlayerScreen';
+import { BrowseScreen } from './screens/BrowseScreen';
+import { DetailsScreen } from './screens/DetailsScreen';
+import { DownloadsScreen } from './screens/DownloadsScreen';
+import { HomeScreen } from './screens/HomeScreen';
+import { LiveScreen } from './screens/LiveScreen';
+import { LoginScreen } from './screens/LoginScreen';
+import { ProfilesScreen } from './screens/ProfilesScreen';
+import { colors } from './theme';
 
+/** Gate: restore session → login → profile picker → shell. */
 export function App() {
-  const [focused, setFocused] = useState(false);
-  const status = useAppStore(stores.session, (state) => state.status);
+  const status = useSession((s) => s.status);
+  const activeProfileId = useSession((s) => s.activeProfileId);
+  const offline = useSession((s) => s.offline);
 
   useEffect(() => {
     void stores.session.getState().restore();
+    downloadsStore.getState().init();
+    return () => downloadsStore.getState().dispose();
   }, []);
 
+  useEffect(() => {
+    if (offline) navStore.getState().goSection('downloads');
+  }, [offline]);
+
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar hidden />
-      <Text style={styles.title}>{appConfig.appName}</Text>
-      <Pressable
-        hasTVPreferredFocus
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[styles.button, focused && styles.buttonFocused]}
-      >
-        <Text style={styles.buttonText}>TV app scaffold · Session: {status}</Text>
-      </Pressable>
+      {status === 'idle' || status === 'restoring' ? <Loading label="Starting" />
+        : status === 'anonymous' ? <LoginScreen />
+        : !activeProfileId ? <ProfilesScreen />
+        : <Shell />}
+    </View>
+  );
+}
+
+/** Signed-in layout: side rail + current route. Back pops the stack; at the root Android exits. */
+function Shell() {
+  const route = useNav(currentRoute);
+  const revision = useNav((s) => s.libraryRevision);
+  const processing = useLibraryWatcher();
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => navStore.getState().back());
+    return () => subscription.remove();
+  }, []);
+
+  if (route.name === 'player') return <PlayerScreen key={`${route.target.kind}-${route.target.streamId}`} target={route.target} />;
+
+  return (
+    <View style={styles.shell}>
+      <SideRail />
+      <View style={styles.content}>
+        {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} />
+          : route.section === 'home' ? <HomeScreen key={`home-${revision}`} processing={processing} />
+          : route.section === 'movies' || route.section === 'series' ? <BrowseScreen key={`${route.section}-${revision}`} section={route.section} />
+          : route.section === 'live' ? <LiveScreen />
+          : <DownloadsScreen />}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#141414',
-  },
-  title: {
-    color: '#e50914',
-    fontSize: 48,
-    fontWeight: '700',
-    marginBottom: 32,
-  },
-  button: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: '#2a2a2a',
-  },
-  buttonFocused: {
-    borderColor: '#ffffff',
-    transform: [{ scale: 1.08 }],
-  },
-  buttonText: {
-    color: '#e5e5e5',
-    fontSize: 24,
-  },
+  root: { flex: 1, backgroundColor: colors.bg },
+  shell: { flex: 1, flexDirection: 'row' },
+  content: { flex: 1 },
 });

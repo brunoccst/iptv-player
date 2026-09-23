@@ -1,27 +1,13 @@
 import { createStore } from 'zustand/vanilla';
-import type { LibrarySection, PlaybackKind } from '@iptv/shared';
+import type { LibrarySection, PlayTarget } from '@iptv/shared';
+
+export type { PlayTarget } from '@iptv/shared';
 
 export type View = 'home' | 'movies' | 'series' | 'live' | 'downloads' | 'search';
 
 export interface DetailsTarget {
   section: LibrarySection;
   masterId: string;
-}
-
-/** Everything the player needs to start, switch versions, save progress and find the next episode. */
-export interface PlayTarget {
-  kind: PlaybackKind;
-  streamId: string;
-  container: string | null;
-  title: string;
-  subtitle?: string | null;
-  posterUrl?: string | null;
-  masterId?: string | null;
-  seriesId?: string | null;
-  seasonNumber?: number | null;
-  episodeNumber?: number | null;
-  /** Seconds to seek to after load. Undefined = use saved progress. */
-  startAt?: number;
 }
 
 interface UiSnapshot {

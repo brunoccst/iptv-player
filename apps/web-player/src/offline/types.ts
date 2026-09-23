@@ -39,6 +39,7 @@ export interface DownloadRecord extends DownloadTarget {
   error: string | null;
 }
 
+// Same format as downloadIdFor in @iptv/shared; duplicated to keep the Service Worker bundle free of shared code.
 export const downloadId = (kind: DownloadKind, streamId: string) => `${kind}-${streamId.replace(/[^\w-]/g, '_')}`;
 
 export function downloadProgress(record: Pick<DownloadRecord, 'totalParts' | 'completedParts' | 'status'>): number {

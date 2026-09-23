@@ -1,0 +1,108 @@
+name: TV app (Android TV emulator)
+
+on:
+  push:
+    paths:
+      - 'apps/tv-app/**'
+      - 'packages/shared/**'
+      - 'backend/**'
+      - 'services/**'
+      - 'tools/**'
+      - 'scripts/**'
+      - 'package-lock.json'
+      - '.github/workflows/tv-app.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: tv-app-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The emulator reaches the runner's localhost at 10.0.2.2.
+  APP_API_BASE_URL: http://10.0.2.2:5091
+  APP_ID: com.iptvplayer.tv
+  E2E_RUN_DIR: /tmp/iptv-e2e
+
+jobs:
+  android-tv:
+    name: Build APK + Maestro on Android TV emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: npm ci
+
+      - name: TV unit tests
+        run: npm run typecheck --workspace=@iptv/tv-app && npm run test --workspace=@iptv/tv-app
+
+      - name: Prebuild Android project
+        working-directory: apps/tv-app
+        run: CI=1 npx expo prebuild --platform android --no-install
+
+      - name: Build release APK (debug-signed)
+        working-directory: apps/tv-app/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86,armeabi-v7a,arm64-v8a
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-app-apk
+          path: apps/tv-app/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Start local stack (fake panel, backend, worker)
+        run: |
+          python -m venv services/title-normalizer/.venv
+          services/title-normalizer/.venv/bin/pip install -q -r services/title-normalizer/requirements.txt imageio-ffmpeg
+          FFMPEG=$(services/title-normalizer/.venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+            python tools/fake-xtream-server/generate_media.py --codec h264
+          scripts/start-e2e-stack.sh
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run Maestro flows on Android TV emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            adb install -r apps/tv-app/android/app/build/outputs/apk/release/app-release.apk
+            apps/tv-app/e2e/run.sh maestro-output
+
+      - name: Stack logs
+        if: always()
+        run: tail -n 80 $E2E_RUN_DIR/*.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-output
+          path: maestro-output

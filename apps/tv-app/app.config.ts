@@ -26,7 +26,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: requireEnv('APP_ANDROID_PACKAGE'),
   },
-  plugins: [['@react-native-tvos/config-tv', { isTV: true }], 'expo-secure-store'],
+  plugins: [
+    ['@react-native-tvos/config-tv', { isTV: true }],
+    'expo-secure-store',
+    // The local backend is plain HTTP on the LAN (KI-009); Android blocks cleartext by default.
+    ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
+  ],
   extra: {
     APP_NAME: requireEnv('APP_NAME'),
     APP_SLUG: requireEnv('APP_SLUG'),

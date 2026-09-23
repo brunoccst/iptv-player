@@ -22,6 +22,17 @@ export function webPlaybackAttempts(kind: PlaybackKind, container: string | null
     : [{ container: 'm3u8', engine: 'hls' }, { container: original, engine: 'file' }];
 }
 
+/**
+ * TV (ExoPlayer) plays MKV/MP4/TS natively, so VOD tries the original file first and HLS second; live uses HLS then TS.
+ */
+export function tvPlaybackAttempts(kind: PlaybackKind, container: string | null | undefined): PlaybackAttempt[] {
+  if (kind === 'live') return [{ container: 'm3u8', engine: 'hls' }, { container: 'ts', engine: 'file' }];
+  const original = (container ?? 'mp4').toLowerCase();
+  return original === 'm3u8'
+    ? [{ container: 'm3u8', engine: 'hls' }]
+    : [{ container: original, engine: 'file' }, { container: 'm3u8', engine: 'hls' }];
+}
+
 export function isBrowserNativeContainer(container: string | null | undefined): boolean {
   return (BROWSER_NATIVE_CONTAINERS as readonly string[]).includes((container ?? '').toLowerCase());
 }

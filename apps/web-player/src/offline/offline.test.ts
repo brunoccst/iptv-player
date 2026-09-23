@@ -1,6 +1,6 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
-import type { ApiClient } from '@iptv/shared';
+import { downloadIdFor, type ApiClient } from '@iptv/shared';
 import { decryptChunk, encryptChunk, generateChunkKey } from './chunkCrypto';
 import { createMemoryChunkStore } from './chunkStore';
 import { DownloadManager } from './downloadManager';
@@ -118,6 +118,12 @@ describe('hls playlist helpers', () => {
     expect(result.resources).toEqual(['http://x/p/k', 'http://x/p/a.ts', 'http://x/p/b.ts']);
     expect(result.playlist).toBe('#EXTM3U\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/1\n#EXT-X-KEY:URI="/L/0"\n#EXTINF:2,\n/L/2\n#EXT-X-ENDLIST');
     expect(() => prepareOfflinePlaylist('#EXTM3U\n#EXTINF:2,\na.ts', 'http://x/', String)).toThrow(LivePlaylistError);
+  });
+});
+
+describe('download ids', () => {
+  it('match the shared format used by the TV app', () => {
+    expect(downloadId('episode', 'a/b 1')).toBe(downloadIdFor('episode', 'a/b 1'));
   });
 });
 

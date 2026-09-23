@@ -1,0 +1,19 @@
+# Offline flow: backend and provider are stopped before this runs. The app restores the cached session,
+# opens My Downloads and plays the download from private storage.
+appId: ${APP_ID}
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: "downloads-screen"
+    timeout: 90000
+- takeScreenshot: 06-offline-downloads
+- tapOn: "Play"
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:0[2-9] / 0:30.*"
+    timeout: 90000
+- assertVisible: ".*Downloaded.*"
+- takeScreenshot: 07-offline-player

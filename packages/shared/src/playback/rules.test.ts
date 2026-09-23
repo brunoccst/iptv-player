@@ -3,7 +3,7 @@ import type { ProgressDto, SeriesDetails } from '../api/types';
 import {
   clampTime, continueWatching, episodeLabel, introWindow, isCompleted, isInIntro, nextEpisode, nextUpCountdown, resumePosition,
 } from './rules';
-import { isBrowserNativeContainer, webPlaybackAttempts } from './sources';
+import { isBrowserNativeContainer, tvPlaybackAttempts, webPlaybackAttempts } from './sources';
 
 const progress = (itemId: string, position: number, updatedAt: string, extra: Partial<ProgressDto> = {}): ProgressDto => ({
   kind: 'movie', itemId, masterId: null, seriesId: null, seasonNumber: null, episodeNumber: null, title: itemId, posterUrl: null,
@@ -70,6 +70,8 @@ describe('playback rules', () => {
   it('web playback attempts try HLS before the original file', () => {
     expect(webPlaybackAttempts('movie', 'mkv')).toEqual([{ container: 'm3u8', engine: 'hls' }, { container: 'mkv', engine: 'file' }]);
     expect(webPlaybackAttempts('live', 'ts')).toEqual([{ container: 'm3u8', engine: 'hls' }]);
+    expect(tvPlaybackAttempts('movie', 'mkv')).toEqual([{ container: 'mkv', engine: 'file' }, { container: 'm3u8', engine: 'hls' }]);
+    expect(tvPlaybackAttempts('live', null)[0]).toEqual({ container: 'm3u8', engine: 'hls' });
     expect(isBrowserNativeContainer('MP4')).toBe(true);
     expect(isBrowserNativeContainer('mkv')).toBe(false);
   });
