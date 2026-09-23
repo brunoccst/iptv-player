@@ -13,7 +13,7 @@ diagnose() {
   maestro hierarchy 2>/dev/null | grep -oE '"(text|resource-id|accessibilityText)" *: *"[^"]+"' | tail -80 || true
   echo "::endgroup::"
   echo "::group::logcat (app, JS, player)"
-  adb logcat -d -v brief ReactNativeJS:V ReactNative:W ExoPlayerImpl:V MediaCodecRenderer:V MediaCodecUtil:V EventLogger:V AndroidRuntime:E '*:S' | tail -150 || true
+  adb logcat -d -v brief ReactNativeJS:V ExoPlayerImpl:V ExoPlayerImplInternal:V MediaCodecRenderer:V EventLogger:V '*:W' | tail -200 || true
   echo "::endgroup::"
 }
 
