@@ -8,7 +8,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-002](#ki-002) | Limitation | web-player | Open (partly mitigated; deferred by owner) |
 | [KI-003](#ki-003) | Limitation | tv-app | Open (deferred by owner) |
 | [KI-004](#ki-004) | Limitation | backend | Open |
-| [KI-005](#ki-005) | Limitation | tv-app | Open |
+| [KI-005](#ki-005) | Limitation | tv-app | Resolved |
 | [KI-006](#ki-006) | Tech debt | tooling | Open |
 | [KI-007](#ki-007) | Limitation | build env | Open |
 | [KI-008](#ki-008) | Risk | backend | Open |
@@ -21,7 +21,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-015](#ki-015) | Risk | backend + worker | Open |
 | [KI-016](#ki-016) | Limitation | backend | Open |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
-| [KI-018](#ki-018) | Tech debt | shared + backend | Open |
+| [KI-018](#ki-018) | Tech debt | shared + backend | Resolved |
 | [KI-019](#ki-019) | Limitation | players | Open |
 | [KI-020](#ki-020) | Risk | web-player | Open |
 | [KI-021](#ki-021) | Limitation | web-player | Open |
@@ -29,6 +29,10 @@ Bugs, external limitations, technical debt and risks.
 | [KI-023](#ki-023) | Limitation | web-player | Open |
 | [KI-024](#ki-024) | Limitation | web-player | Open |
 | [KI-025](#ki-025) | Limitation | series | Open |
+| [KI-026](#ki-026) | Limitation | tv-app | Open |
+| [KI-027](#ki-027) | Limitation | tv-app | Open |
+| [KI-028](#ki-028) | Limitation | tv-app | Open |
+| [KI-029](#ki-029) | Limitation | build env | Open |
 
 ---
 
@@ -63,7 +67,7 @@ ExoPlayer/Media3 `SimpleCache` in app-private storage is unreadable without root
 
 **`expo-video` does not expose ExoPlayer `DownloadManager`** — logged 2026-09-23
 
-Playback via `expo-video` uses Media3 ExoPlayer, but offline downloads need a custom Expo native module (Kotlin) wrapping `DownloadManager` + `DownloadService`, sharing the same cache with the player. Planned for Step 6.
+Playback via `expo-video` uses Media3 ExoPlayer, but offline downloads need a custom Expo native module (Kotlin) wrapping `DownloadManager` + `DownloadService`, sharing the same cache with the player. Resolved 2026-09-23 by the local `tv-media` module (D-029).
 
 ## KI-006
 
@@ -145,7 +149,7 @@ Any script running on the web player's origin can read the bearer token (XSS). N
 
 **API contract update is two manual steps** — logged 2026-09-23
 
-After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm run generate:api` must be run separately. The Vitest drift test catches a stale `schema.ts`; nothing catches an uncommitted JSON change except `git status`. A CI job running both and checking `git diff --exit-code` would close the gap.
+After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm run generate:api` must be run separately. Resolved 2026-09-23: `ci.yml` builds the backend, regenerates the types and fails on `git diff`.
 
 ## KI-019
 
@@ -188,3 +192,27 @@ Trailers use the provider's YouTube id via `youtube-nocookie.com`. Needs interne
 **"Best" series version can have fewer episodes** — logged 2026-09-23
 
 Series variants are ranked by title tags (e.g. `1080p` beats an untagged listing), not by episode count. A higher-ranked duplicate can contain only part of the series. Users can switch versions in the details modal. Fix: include episode counts when ranking series variants (needs `get_series_info` per variant during normalization).
+
+## KI-026
+
+**TV downloads depend on relay URLs that expire** — logged 2026-09-23
+
+Media3 stores the relay URL (token valid `BACKEND_RELAY_TOKEN_HOURS`, default 12 h) in the download request. A download paused longer than that cannot resume and must be deleted and restarted. Offline playback is unaffected (it reads the cache). HLS downloads without stream keys fetch every rendition of multi-bitrate playlists (Xtream VOD playlists usually have one).
+
+## KI-027
+
+**TV profiles are pick-only** — logged 2026-09-23
+
+Profiles can be selected on TV but only created, renamed or deleted in the web app.
+
+## KI-028
+
+**Hold-to-scrub not covered by device tests** — logged 2026-09-23
+
+Maestro sends single key presses; long-press behaviour is verified by unit/component tests only (D-030). Real remotes that do not report key-up (`eventKeyAction`) fall back to taps and cannot scrub.
+
+## KI-029
+
+**No Android build or emulator in the Claude Code sandbox** — logged 2026-09-23
+
+No `/dev/kvm`, and `dl.google.com` (Android SDK, Google Maven) is blocked by the environment's network policy. Native changes are verified by the `tv-app.yml` GitHub Actions workflow. Allowing `dl.google.com` in the environment's network settings would enable APK builds (not emulation) in the sandbox.

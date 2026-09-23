@@ -7,7 +7,7 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 ```mermaid
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
-  S4 --> S5[5. Web player ✅] --> S6[6. TV app] --> S7[7. Live TV EPG]
+  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG]
 ```
 
 - [x] **Step 1 — Scaffold**: monorepo, workspaces, 3 documentation files, READMEs, central `APP_NAME` config.
@@ -16,14 +16,18 @@ flowchart LR
 - [x] **Step 3 — Python dedup service** (SQLite queue, owner-approved 2026-09-23): regex tag parsing, clean titles, guarded fuzzy grouping, master media + variants, `/api/library` endpoints, tests (D-016 – D-019).
 - [x] **Step 4 — Shared package**: OpenAPI-generated types, typed API client, Zustand stores (session/profiles, catalog, library, player), app context wired into web + TV (D-020 – D-022).
 - [x] **Step 5 — Web player**: Netflix-style UI, hls.js engine (HLS first, MKV hint), timeline frame previews, keyboard controls, version selector, Skip Intro, next-episode countdown, episodes drawer, profiles, Continue Watching (backend progress), encrypted Service Worker downloads, My Downloads, fake Xtream panel + e2e tests (D-023 – D-027).
-- [ ] **Step 6 — TV app**: D-pad spatial navigation (`TVEventHandler`), tap ←/→ 10 s skip with circular overlay, hold-to-scrub with acceleration, ↑/↓ drawer (audio/subtitles/variants), ExoPlayer `DownloadManager` private-storage cache, "My Downloads".
+- [x] **Step 6 — TV app**: native focus navigation, remote handling (tap ±10 s with circle, hold-to-scrub with acceleration), ↑/↓ quick drawer, `tv-media` Expo module (ExoPlayer + Media3 DownloadManager in private storage), My Downloads, Jest tests, Android TV emulator + Maestro CI (D-028 – D-030).
+- [x] **Test environment for the TV app** (requested 2026-09-23): `.github/workflows/tv-app.yml` (D-030).
 - [ ] **Step 7 — Live TV EPG grid**: backend EPG cache, shared state, web and TV grids.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
 ## Agent Suggestions
 
-- **CI pipeline**: GitHub Actions running `npm run typecheck test build`, `dotnet test`, `pytest` on every push, plus API contract check (`dotnet build` + `generate:api` + `git diff --exit-code`, KI-018).
+- **Web e2e in CI**: add the Playwright suite to `ci.yml`.
+- **TV profile editing** (KI-027) and on-screen search.
+- **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
+- **Sign the release APK** with a real keystore (CI secret) for sideloading updates over the debug-signed build.
 - **Linters/formatters**: ESLint (incl. `react-hooks` rules; a hooks-after-return bug was caught only by review) + Prettier (TS), `dotnet format` (C#), Ruff (Python).
 - **E2E in CI**: run `npm run test:e2e` (needs .NET, Python venv, ffmpeg, Chromium) on every push.
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).

@@ -38,6 +38,8 @@ flowchart LR
 | [`backend`](./backend) | C# .NET 10 Web API. |
 | [`services`](./services) | Python background services (title normalizer). |
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
+| [`scripts`](./scripts) | Start/stop the local end-to-end stack. |
+| [`.github`](./.github) | CI workflows. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
@@ -70,6 +72,8 @@ python -m title_normalizer  # dedup worker (venv active); needs the backend to h
 
 No IPTV subscription? Start the fake panel (`tools/fake-xtream-server`, see its README) and sign in with `http://localhost:8090` / `demo` / `demo`.
 
+TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the APK build and Android TV emulator tests run in GitHub Actions (`.github/workflows/tv-app.yml`, artifacts `tv-app-apk` and `maestro-output`).
+
 End-to-end tests (starts its own stack on separate ports):
 
 ```bash
@@ -99,3 +103,4 @@ TV app on a real device: set `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env
 | `turbo.json` | Turborepo task pipeline. |
 | `tsconfig.base.json` | Shared TypeScript compiler options. |
 | `.editorconfig` | Editor formatting rules. |
+| `.npmrc` | `legacy-peer-deps=true` (react-native-tvos pre-release versions, D-028). |

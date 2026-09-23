@@ -32,6 +32,9 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-025](#d-025) | 2026-09-23 | Web UI architecture |
 | [D-026](#d-026) | 2026-09-23 | Watch progress stored per profile on the backend |
 | [D-027](#d-027) | 2026-09-23 | Fake Xtream panel + end-to-end tests |
+| [D-028](#d-028) | 2026-09-23 | TV app architecture: focus, navigation, remote handling |
+| [D-029](#d-029) | 2026-09-23 | TV playback + offline: local Expo module over Media3 |
+| [D-030](#d-030) | 2026-09-23 | TV test environment: Jest here, Android TV emulator + Maestro in CI |
 
 ---
 
@@ -579,3 +582,74 @@ Why:
 - The whole chain (provider → relay → dedup worker → UI → hls.js → Service Worker) only fails in integration; unit tests missed three bugs the e2e run caught (render loop, stale details after re-processing, empty library after first login).
 - VP9 plays in every Chromium build, including Playwright's (no proprietary codecs).
 - Also a demo target: anyone can try the app without an IPTV subscription.
+
+## D-028
+
+**TV app architecture: focus, navigation, remote handling** — 2026-09-23
+
+Decisions:
+- **Focus:** Android's native focus search (react-native-tvos) moves between `Pressable`s; no JS spatial-navigation library. `hasTVPreferredFocus` sets the first focus per screen; `TVFocusGuideView` remembers rail focus (`autoFocus`) and traps focus in the player drawer.
+- **Navigation:** a small Zustand stack (`section` root, `details`, `player`) instead of React Navigation. Hardware Back pops; at the root it returns `false` so Android exits. Mirrors the web's store-driven navigation (D-025).
+- **Layout:** left side rail (Netflix TV pattern), rows per category (a grid with chips is awkward with a D-pad).
+- **Remote in the player:** `useRemote` wraps `useTVEventHandler`. Android reports key-down (auto-repeated while held) and key-up via `eventKeyAction`. `RemoteSeekController` (shared, pure, clock-injected) turns that into:
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Pressed: key-down ←/→ (start 450 ms timer)
+  Pressed --> Idle: key-up before 450 ms → seek ±10 s + circle animation
+  Pressed --> Scrubbing: timer fires
+  Scrubbing --> Scrubbing: every 100 ms preview += speed × 0.1 s (speed 10→640 s/s, doubling every 1.5 s)
+  Scrubbing --> Idle: key-up → single seek to preview
+  Pressed --> Pressed: repeated key-down (auto-repeat) ignored
+```
+
+  Why seek once on release: seeking on every tick would re-buffer the stream 10× per second over the relay. Events without `eventKeyAction` (other platforms/remotes) are treated as taps.
+- ↑/↓ open the quick drawer (Audio, Subtitles, Versions, Episodes). Select toggles play/pause unless a focusable overlay (Skip Intro, Play Now) is shown.
+- The player overlay is not focusable, so ←/→ reach the remote handler instead of moving focus between buttons.
+- Profiles are only picked on TV; creation/editing stays in the web app (text entry with a D-pad is slow).
+- `.npmrc legacy-peer-deps=true`: `react-native-tvos` versions are semver pre-releases (`0.86.3-0`) that never satisfy peer ranges like `react-native >=0.78`. Peers that npm used to add automatically (`@testing-library/dom`, `@react-native/jest-preset`, `test-renderer`) are now explicit devDependencies.
+
+## D-029
+
+**TV playback + offline: local Expo module over Media3** — 2026-09-23
+
+Decision: a local Expo module `apps/tv-app/modules/tv-media` (Kotlin, Media3 1.9 like `expo-video`) provides `TvPlayerView` and download functions. `expo-video` is not used.
+
+Why:
+- The brief requires ExoPlayer `DownloadManager` with private storage. Offline playback must read the same `SimpleCache` the downloads wrote; `expo-video` does not expose its data source or a download API (KI-005).
+- One module owns both sides: `DownloadCenter` holds the cache (`filesDir/offline-media`, private to the app), the `DownloadManager` (1 parallel download) and data-source factories. Offline playback uses `DownloadHelper.createMediaSource(download.request, cacheDataSourceFactory)`, i.e. the exact request that was downloaded, so expiring relay tokens (D-013) don't matter offline.
+- `TvDownloadService` (Media3 `DownloadService`, `dataSync` foreground type) keeps downloads alive in the background with a notification.
+- The view has no built-in controller; React Native draws the UI and calls `seekTo`/`selectTrack`.
+
+Playback order on TV: completed download → original container (ExoPlayer plays MKV/MP4/TS) → panel HLS (`tvPlaybackAttempts`). Live: HLS, then TS. Downloads probe the original file with a 1-byte range request and fall back to HLS, because Media3 reports a missing file only later, in the background.
+
+Download metadata (title, poster, ids) is stored as JSON in `DownloadRequest.data`, so My Downloads needs no second database. Native events fire on state changes only; JS polls progress every second while a download is active.
+
+## D-030
+
+**TV test environment: Jest here, Android TV emulator + Maestro in CI** — 2026-09-23
+
+Constraints (2026-09-23): the Claude Code sandbox has no `/dev/kvm` (no emulator) and its network policy blocks `dl.google.com` (no Android SDK, no Google Maven), so APKs cannot be built there.
+
+Decision: three layers.
+
+```mermaid
+flowchart LR
+  subgraph Sandbox / laptop
+    U1[Vitest: RemoteSeekController, rules] --> U2[Jest jest-expo/android + RNTL: screens, player remote, downloads store]
+  end
+  subgraph GitHub Actions tv-app.yml
+    B[expo prebuild + gradlew assembleRelease] --> APK[(tv-app-apk artifact)]
+    APK --> EMU[Android TV API 33 emulator - KVM]
+    STACK[fake panel + backend + worker on runner] --> EMU
+    EMU --> M[Maestro flows: D-pad, playback, drawer, download, offline]
+  end
+```
+
+- Jest uses `jest-expo/android` (Android `BackHandler`), a mock of the native module that records player props/seeks and simulates downloads, and a remote mock (`pressRemote`).
+- CI (`ubuntu-latest` has KVM) builds a debug-signed release APK for x86 (emulator) and ARM (devices), starts the same fake panel/backend/worker as the web e2e, and runs Maestro flows with `Remote Dpad` key presses. The emulator reaches the runner at `10.0.2.2`, baked into the APK via `APP_API_BASE_URL`.
+- The second flow stops provider and backend first, proving the app restores offline and plays a download from private storage.
+- Hold-to-scrub cannot be scripted with Maestro (single key events); it is covered by unit and component tests.
+
+`ci.yml` also runs every fast suite (JS, .NET, Python) and fails when the committed OpenAPI/TypeScript contract is stale (closes KI-018).
