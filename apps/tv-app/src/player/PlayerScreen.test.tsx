@@ -115,6 +115,20 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('scrub-bar')).toBeNull();
   });
 
+  it('a release-only → (what the emulator reports) still skips 10 s; a release-only ↓ opens the drawer', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(6, 30);
+
+    await act(async () => pressRemote('right', 'up'));
+    expect(playerState.seeks).toEqual([16_000]);
+    await act(async () => pressRemote('down', 'up'));
+    expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+  });
+
   it('↑/↓ opens the quick drawer; Back closes it before leaving the player', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

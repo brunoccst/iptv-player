@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react';
-import type { RemoteEvent } from '../src/tv/remote';
+import { createRemoteNormalizer, type RemoteEvent } from '../src/tv/remoteEvents';
 
-export type { RemoteAction, RemoteEvent } from '../src/tv/remote';
+export type { RemoteAction, RemoteEvent } from '../src/tv/remoteEvents';
 
 const handlers = new Set<(event: RemoteEvent) => void>();
 
-/** Test double for src/tv/remote.ts: `pressRemote` delivers events to mounted `useRemote` handlers. */
+/** Test double for src/tv/remote.ts: `pressRemote` delivers events to mounted `useRemote` handlers, normalized like the real hook. */
 export function useRemote(handler: (event: RemoteEvent) => void) {
   const latest = useRef(handler);
   latest.current = handler;
   useEffect(() => {
-    const listener = (event: RemoteEvent) => latest.current(event);
+    const listener = createRemoteNormalizer((event) => latest.current(event));
     handlers.add(listener);
     return () => void handlers.delete(listener);
   }, []);

@@ -213,7 +213,7 @@ Profiles can be selected on TV but only created, renamed or deleted in the web a
 
 **Hold-to-scrub not covered by device tests** — logged 2026-09-23
 
-Maestro sends single key presses; long-press behaviour is verified by unit/component tests only (D-030). Real remotes that do not report key-up (`eventKeyAction`) fall back to taps and cannot scrub.
+Maestro sends single key presses; long-press behaviour is verified by unit/component tests only (D-030). Remotes or setups that report a key only once (no key-up, or only key-up, as the Android TV emulator does for arrows when the player's focus anchor holds focus) fall back to taps and cannot scrub. Verify on a real TV remote.
 
 ## KI-029
 
