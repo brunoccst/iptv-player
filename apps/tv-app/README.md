@@ -36,7 +36,7 @@ flowchart TD
 | Double tap, left or right third | −10 s / +10 s with circle animation |
 | Drag the timeline | Scrub (time shown above the thumb), seek on release |
 
-The player turns to landscape on phones and the screen stays on while video plays (also on TV, no screensaver). See [D-046](../../documentation/DECISIONS.md#d-046).
+The player turns to landscape and hides the navigation bar on phones, and the screen stays on while video plays (also on TV, no screensaver). See [D-046](../../documentation/DECISIONS.md#d-046).
 
 ## Config
 

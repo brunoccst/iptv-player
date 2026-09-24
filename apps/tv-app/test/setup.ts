@@ -43,3 +43,6 @@ jest.mock('expo-file-system', () => {
   }
   return { Directory, File, Paths: { document: new Directory() }, __files: files };
 });
+
+// Player hides the phone navigation bar; no native module in Jest.
+jest.mock('expo-navigation-bar', () => ({ NavigationBar: () => null }));
