@@ -40,8 +40,14 @@ appId: ${APP_ID}
     id: "card-Big Test Movie"
     index: 0
 - extendedWaitUntil:
-    visible: "4K · ENG \\(best\\)"
+    visible:
+      id: "details-play"
     timeout: 30000
+# The version picker sits below the fold of the details panel at 540 dp.
+- scrollUntilVisible:
+    element: "4K · ENG \\(best\\)"
+    direction: DOWN
+    timeout: 20000
 # Playback straight from the provider (no relay).
 - pressKey: Remote Dpad Center
 - extendedWaitUntil:
