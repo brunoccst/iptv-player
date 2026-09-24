@@ -752,3 +752,16 @@ Decision: the fake panel builds artwork URLs from `FAKE_PANEL_IMAGE_BASE_URL` (t
 
 Why not proxy artwork through the backend: real panels serve public image URLs; only the fake panel on localhost needs this, so the fix stays in dev tooling.
 
+## D-037
+
+**TV APK for a real Android TV, delivered through the codespace** — 2026-09-24 (requested by owner: test on an Android TV)
+
+Decision: a manual workflow (`tv-apk.yml`) builds an ARM release APK with `APP_API_BASE_URL` from an input and uploads it to a `tv-apk` prerelease. In the codespace, `get-tv-apk.sh` downloads it and Vite serves it at `/tv.apk`, so the TV fetches it from the same link it will use.
+
+- The API address is fixed at build time (`app.config.ts` `extra`), so the CI emulator APK (`10.0.2.2`) cannot reach a codespace.
+- The repo is private: release and artifact downloads need a GitHub login, which a TV cannot do. The codespace's own token can download the release.
+- Only ARM ABIs: real TVs are ARM; x86 is only for the emulator and makes the APK larger.
+- The TV needs port 5173 public. Native requests get no Codespaces warning page, so the app works directly.
+
+Why not a runtime "backend address" setting on the TV: better long-term, but it adds a settings screen and validation; the build input is enough for testing now (see NEXT-STEPS).
+

@@ -27,6 +27,7 @@ flowchart LR
 
 ## Agent Suggestions
 
+- **TV backend address setting**: enter the backend URL on the TV at first start instead of baking it into the APK (D-037).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
 - **Guide reminders**: notify (web) / banner (TV) when a chosen programme starts.
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
