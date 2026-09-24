@@ -7,7 +7,7 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 ```mermaid
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
-  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅] --> S8[8. Hybrid: direct mode]
+  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅] --> S8[8. Hybrid: direct mode ✅]
   S8 --> S9[9. Phone app]
 ```
 
@@ -23,7 +23,7 @@ flowchart LR
 - [x] **Linters/formatters + web e2e in CI** (requested 2026-09-23): ESLint + Prettier, `dotnet format`, Ruff, `lint` and `web-e2e` CI jobs (D-033).
 - [x] **One-command dev start** (requested 2026-09-23): `npm run dev:all` (D-034).
 - [x] **Phone testing via Codespaces** (requested 2026-09-23): `.devcontainer` with the fake panel, mobile nav/player fixes (D-035).
-- [ ] **Step 8 — Hybrid: native apps without a server** (requested 2026-09-24, D-038). The TV app talks to the provider directly by default; a backend is optional.
+- [x] **Step 8 — Hybrid: native apps without a server** (requested 2026-09-24, D-038). The TV app talks to the provider directly by default; a backend is optional.
   - [x] 8a. Shared direct provider client (TypeScript): Xtream catalog, series details, live channels, short-EPG guide, direct playback URLs. Tests against fake-panel fixtures.
   - [x] 8b. TypeScript title normalizer (parser, tags, grouping) with JSON test cases shared with the Python tests, so both stay in step.
   - [x] 8c. `createDirectApiClient`: same interface as the backend client; profiles, progress and library kept on the device.
