@@ -28,6 +28,16 @@ flowchart TD
 | Play/Pause, ⏪, ⏩ | – | Play/pause, −10 s, +10 s |
 | Back | Previous screen | Close drawer or skip options, then leave player |
 
+## Touch (phones)
+
+| Gesture | Player |
+|---------|--------|
+| Tap | Show / hide controls |
+| Double tap, left or right third | −10 s / +10 s with circle animation |
+| Drag the timeline | Scrub (time shown above the thumb), seek on release |
+
+The player turns to landscape on phones and the screen stays on while video plays (also on TV, no screensaver). See [D-046](../../documentation/DECISIONS.md#d-046).
+
 ## Config
 
 `app.config.ts` loads the repo root `.env` (then `.env.local`) and sets:

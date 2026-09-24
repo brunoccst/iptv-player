@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import {
+  BackHandler,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type GestureResponderEvent,
+} from 'react-native';
 import {
   appLog,
   errorMessage,
@@ -42,6 +53,8 @@ import { ScrubBar, TapFlash } from './SeekOverlay';
 
 const PROGRESS_SAVE_MS = 10_000;
 const CONTROLS_HIDE_MS = 4000;
+/** Two taps on the left/right third within this time seek ∓10 s (phones). */
+const DOUBLE_TAP_MS = 300;
 
 /**
  * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↑/↓ quick drawer, Select play/pause, Back close.
@@ -177,6 +190,64 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     };
   }, [wake]);
 
+  // Phones: the player turns to landscape; the rest of the app follows the device again on close.
+  useEffect(() => {
+    if (Platform.isTV) return;
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => undefined);
+    return () => void ScreenOrientation.unlockAsync().catch(() => undefined);
+  }, []);
+
+  // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead.
+  const lastTap = useRef<{ at: number; side: SeekDirection | null; controls: boolean } | null>(null);
+  const onScreenTap = (event: GestureResponderEvent) => {
+    if (Platform.isTV) return;
+    const x = event.nativeEvent.locationX;
+    const side: SeekDirection | null = isLive ? null : x < width / 3 ? 'back' : x > (width * 2) / 3 ? 'forward' : null;
+    const previous = lastTap.current;
+    const now = Date.now();
+    if (side && previous && previous.side === side && now - previous.at < DOUBLE_TAP_MS) {
+      // Keep the controls as they were before the first tap.
+      setControls(previous.controls);
+      seekTo(timeRef.current + (side === 'forward' ? SKIP_SECONDS : -SKIP_SECONDS));
+      setFlash({ direction: side, key: now });
+      lastTap.current = { at: now, side, controls: previous.controls };
+      return;
+    }
+    lastTap.current = { at: now, side, controls };
+    if (controls) setControls(false);
+    else wake();
+  };
+
+  // Phones: drag along the timeline to scrub; the video jumps on release.
+  const [dragTime, setDragTime] = useState<number | null>(null);
+  const timeAt = (x: number) =>
+    timelineWidth.current > 0 ? clampTime((x / timelineWidth.current) * durationRef.current, durationRef.current) : 0;
+  const dragRef = useRef<number | null>(null);
+  const timelinePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (event) => {
+        dragRef.current = timeAt(event.nativeEvent.locationX);
+        setDragTime(dragRef.current);
+      },
+      onPanResponderMove: (_, gesture) => {
+        dragRef.current = timeAt(gesture.moveX - timelineLeft.current);
+        setDragTime(dragRef.current);
+      },
+      onPanResponderRelease: () => {
+        if (dragRef.current !== null) seekTo(dragRef.current);
+        dragRef.current = null;
+        setDragTime(null);
+      },
+      onPanResponderTerminate: () => {
+        dragRef.current = null;
+        setDragTime(null);
+      },
+    }),
+  ).current;
+  const timelineLeft = useRef(0);
+
   const playNext = useCallback(() => {
     if (!next || !target.seriesId) return;
     saveProgress();
@@ -246,6 +317,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     });
   };
 
+  const percent = duration > 0 ? ((dragTime ?? time) / duration) * 100 : 0;
+
   return (
     <View style={styles.screen} testID="player-screen">
       <TvPlayerView
@@ -290,8 +363,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           accessibilityLabel="Player"
           hasTVPreferredFocus
           style={StyleSheet.absoluteFill}
-          // Phones have no remote: a tap shows or hides the controls.
-          onPress={() => (Platform.isTV ? undefined : controls ? setControls(false) : wake())}
+          onPress={onScreenTap}
         />
       ) : null}
 
@@ -341,18 +413,26 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           </View>
           <View style={[styles.bottom, { paddingHorizontal: sizes.gutter }]}>
             {isLive ? null : (
-              <Pressable
+              <View
                 style={styles.timeline}
-                focusable={false}
                 accessibilityLabel="Seek"
-                onPress={(event) => timelineWidth.current > 0 && seekTo((event.nativeEvent.locationX / timelineWidth.current) * duration)}
-                onLayout={(event) => (timelineWidth.current = event.nativeEvent.layout.width)}
+                testID="player-timeline"
+                {...timelinePan.panHandlers}
+                onLayout={(event) => {
+                  timelineWidth.current = event.nativeEvent.layout.width;
+                  event.currentTarget.measure((_x, _y, _w, _h, pageX) => (timelineLeft.current = pageX));
+                }}
               >
-                <View style={styles.rail}>
-                  <View style={[styles.played, { width: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
-                  <View style={[styles.thumb, { left: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
+                <View style={styles.rail} pointerEvents="none">
+                  <View style={[styles.played, { width: `${percent}%` }]} />
+                  <View style={[styles.thumb, dragTime !== null && styles.thumbDragging, { left: `${percent}%` }]} />
                 </View>
-              </Pressable>
+                {dragTime !== null ? (
+                  <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none">
+                    {formatClock(dragTime)}
+                  </Text>
+                ) : null}
+              </View>
             )}
             <View style={styles.controls}>
               <IconButton
@@ -506,10 +586,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bottom: { paddingBottom: 20 },
-  timeline: { height: 20, justifyContent: 'center' },
+  // Tall enough to grab with a finger; the rail is drawn in the middle.
+  timeline: { height: 32, justifyContent: 'center' },
   rail: { height: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
   played: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent },
   thumb: { position: 'absolute', top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: 7, backgroundColor: colors.accent },
+  thumbDragging: { top: -8, width: 20, height: 20, marginLeft: -10, borderRadius: 10 },
+  dragTime: {
+    position: 'absolute',
+    bottom: 22,
+    width: 80,
+    marginLeft: -40,
+    textAlign: 'center',
+    color: colors.strong,
+    fontSize: fonts.small,
+    fontWeight: '700',
+  },
   controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   time: { color: colors.strong, fontSize: 14.4, fontVariant: ['tabular-nums'] },
   spacer: { flex: 1 },

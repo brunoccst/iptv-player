@@ -73,6 +73,8 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+      // No screen timeout or TV screensaver while video plays; paused or stopped, the device may sleep again.
+      this@TvPlayerView.keepScreenOn = isPlaying
       onStatus(mapOf("state" to stateName(player?.playbackState ?: Player.STATE_IDLE), "isPlaying" to isPlaying))
     }
 
@@ -197,6 +199,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     player?.release()
     player = null
     playerView.player = null
+    keepScreenOn = false
   }
 
   override fun onDetachedFromWindow() {

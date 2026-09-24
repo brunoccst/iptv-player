@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { Dimensions, Platform } from 'react-native';
 import { HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
@@ -245,5 +247,50 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('right', 'down'));
     await act(async () => pressRemote('right', 'up'));
     expect(playerState.seeks).toEqual([]);
+  });
+  describe('on a phone', () => {
+    beforeEach(() => jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false));
+    afterEach(() => jest.restoreAllMocks());
+
+    it('turns to landscape while playing and back on close', async () => {
+      const lock = jest.spyOn(ScreenOrientation, 'lockAsync').mockResolvedValue();
+      const unlock = jest.spyOn(ScreenOrientation, 'unlockAsync').mockResolvedValue();
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      const view = await render(<PlayerScreen target={movie} />);
+      await flush();
+      expect(lock).toHaveBeenCalledWith(ScreenOrientation.OrientationLock.LANDSCAPE);
+      await view.unmount();
+      expect(unlock).toHaveBeenCalled();
+    });
+
+    it('a tap toggles the controls; a double tap on the right/left third seeks ±10 s', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      await progress(30, 120);
+      const { width } = Dimensions.get('window');
+      const tap = (x: number) => fireEvent.press(screen.getByTestId('player-focus'), { nativeEvent: { locationX: x } });
+
+      expect(screen.getByTestId('player-controls')).toBeTruthy();
+      await act(async () => tap(width / 2));
+      expect(screen.queryByTestId('player-controls')).toBeNull();
+
+      await act(async () => jest.advanceTimersByTime(1000));
+      await act(async () => tap(width * 0.9));
+      await act(async () => jest.advanceTimersByTime(100));
+      await act(async () => tap(width * 0.9));
+      expect(playerState.seeks.at(-1)).toBe(40_000);
+      // Controls stay as they were before the double tap (hidden).
+      expect(screen.queryByTestId('player-controls')).toBeNull();
+
+      await act(async () => jest.advanceTimersByTime(1000));
+      await act(async () => tap(width * 0.1));
+      await act(async () => jest.advanceTimersByTime(100));
+      await act(async () => tap(width * 0.1));
+      expect(playerState.seeks.at(-1)).toBe(30_000);
+    });
   });
 });
