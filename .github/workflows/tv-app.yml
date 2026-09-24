@@ -113,7 +113,7 @@ jobs:
           # No -noaudio: ExoPlayer's clock follows audio output; without a sound device playback stays at 0:00.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
           script: |
-            adb install -r ${{ runner.temp }}/app-release.apk
+            apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output
 
       - name: Stack logs
