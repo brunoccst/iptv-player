@@ -4,7 +4,7 @@ GitHub Codespaces setup: the web app with the fake panel, usable from a phone br
 
 | File | Purpose |
 |------|---------|
-| `devcontainer.json` | Ubuntu + Node 22, .NET 10, Python 3.11. Forwards only port 5173 (the web app). |
+| `devcontainer.json` | Ubuntu + Node 22, .NET 10, Python 3.11, GitHub CLI (`gh`). Forwards only port 5173 (the web app). |
 | `setup.sh` | Runs once when the codespace is created: `npm ci`, worker venv, H.264 test media (plays on phones), backend build. |
 | `start.sh` | Runs on every start: `npm run dev:all -- --fake` in the background with the public HTTPS address as `APP_API_BASE_URL` / `BACKEND_PUBLIC_BASE_URL`. Log: `/tmp/iptv-dev.log`. |
 
