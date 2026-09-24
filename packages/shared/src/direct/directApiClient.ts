@@ -215,18 +215,47 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
   };
 
   /** Loads the cached library of the signed-in account once per account. */
+  // Concurrent callers (restore, status polling, rows) share one read; otherwise the second one saw "no library" and
+  // started a full download although the saved copy was still being read.
+  let loading: { accountId: string; promise: Promise<StoredLibrary | null> } | null = null;
   const loadLibrary = async (): Promise<StoredLibrary | null> => {
     const { stored } = await session();
-    if (library.accountId !== stored.account.id) {
-      library.accountId = stored.account.id;
-      library.data = await readJson<StoredLibrary>(options.dataStorage, libraryKey(stored.account.id));
-      for (const kind of ['movie', 'series'] as const) {
-        library.status[kind] = library.data
-          ? { jobStatus: 'done', itemCount: null, queuedAt: library.data.builtAt, finishedAt: library.data.builtAt, error: null }
-          : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
-      }
+    const accountId = stored.account.id;
+    if (library.accountId === accountId) return library.data;
+    if (loading?.accountId !== accountId) {
+      const promise = readJson<StoredLibrary>(options.dataStorage, libraryKey(accountId)).then((data) => {
+        if (credentials?.account.id === accountId && library.accountId !== accountId) {
+          library.accountId = accountId;
+          library.data = data;
+          for (const kind of ['movie', 'series'] as const) {
+            library.status[kind] = data
+              ? { jobStatus: 'done', itemCount: null, queuedAt: data.builtAt, finishedAt: data.builtAt, error: null }
+              : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
+          }
+        }
+        return library.accountId === accountId ? library.data : data;
+      });
+      loading = { accountId, promise };
     }
-    return library.data;
+    return loading.promise;
+  };
+
+  /** Sorted list, per-category lists and id lookup, built once per library version (list() used to sort on every call). */
+  const indexes = new WeakMap<Master[], { sorted: Master[]; byCategory: Map<string, Master[]>; byId: Map<string, Master> }>();
+  const indexFor = (masters: Master[]) => {
+    let index = indexes.get(masters);
+    if (!index) {
+      const sorted = [...masters].sort((a, b) => ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1));
+      const byCategory = new Map<string, Master[]>();
+      for (const master of sorted) {
+        for (const categoryId of new Set(master.variants.map((variant) => variant.categoryId))) {
+          if (categoryId) byCategory.set(categoryId, [...(byCategory.get(categoryId) ?? []), master]);
+        }
+      }
+      index = { sorted, byCategory, byId: new Map(masters.map((master) => [master.id, master])) };
+      indexes.set(masters, index);
+    }
+    return index;
   };
 
   /** Cached library, refreshed in the background when older than 12 h or missing. */
@@ -325,6 +354,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         await writeJson(options.secureStorage, CREDENTIALS_KEY, stored);
         connect(stored);
         library.accountId = null;
+        loading = null;
 
         let profiles = await loadProfiles(account.id);
         if (profiles.length === 0) {
@@ -343,6 +373,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         await options.secureStorage.removeItem(CREDENTIALS_KEY);
         connect(null);
         library.accountId = null;
+        loading = null;
         library.data = null;
         return undefined;
       },
@@ -488,17 +519,17 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         }));
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
-        const masters = (await ensureLibrary())?.[librarySection(section)] ?? [];
+        const index = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []);
         const search = query.search?.trim().toLowerCase();
-        const matches = masters
-          .filter((master) => !query.categoryId || master.variants.some((variant) => variant.categoryId === query.categoryId))
-          .filter((master) => !search || master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
-          .sort((a, b) => ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1));
+        const scope = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.sorted;
+        const matches = search
+          ? scope.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
+          : scope;
         const offset = Math.max(0, query.offset ?? 0);
         return { total: matches.length, items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard) };
       },
       async get(section: LibrarySection, masterId: string): Promise<MasterDetails> {
-        const master = ((await ensureLibrary())?.[librarySection(section)] ?? []).find((candidate) => candidate.id === masterId);
+        const master = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []).byId.get(masterId);
         if (!master) throw notFound();
         const variants = [...master.variants]
           .sort((a, b) => b.qualityScore - a.qualityScore || ordinal(a.label, b.label))

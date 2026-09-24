@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { FlatList, StyleSheet, Text } from 'react-native';
 import type { LibrarySection } from '@iptv/shared';
 import { stores } from '../appContext';
 import { useCatalog } from '../hooks';
@@ -14,14 +14,20 @@ export function BrowseScreen({ section }: { section: LibrarySection }) {
     void stores.catalog.getState().loadCategories(section);
   }, [section]);
 
+  // Providers have hundreds of categories: only rows near the screen are mounted (and load their titles).
+  const rows = [null, ...categories];
   return (
-    <ScrollView style={styles.screen} testID={`browse-${section}`}>
-      <Text style={styles.title}>{section === 'movies' ? 'Movies' : 'Series'}</Text>
-      <LibraryRow section={section} title="All" />
-      {categories.map((category) => (
-        <LibraryRow key={category.id} section={section} category={category} title={category.name} />
-      ))}
-    </ScrollView>
+    <FlatList
+      style={styles.screen}
+      testID={`browse-${section}`}
+      data={rows}
+      keyExtractor={(row) => row?.id ?? '*'}
+      ListHeaderComponent={<Text style={styles.title}>{section === 'movies' ? 'Movies' : 'Series'}</Text>}
+      renderItem={({ item }) => <LibraryRow section={section} category={item ?? undefined} title={item?.name ?? 'All'} />}
+      initialNumToRender={3}
+      maxToRenderPerBatch={2}
+      windowSize={5}
+    />
   );
 }
 

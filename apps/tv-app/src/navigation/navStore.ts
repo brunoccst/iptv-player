@@ -12,6 +12,9 @@ export interface NavState {
   stack: Route[];
   /** Bumped when the library finished (re)processing; rows remount and reload. */
   libraryRevision: number;
+  /** Side menu reduced to its ☰ button (more room on phones). */
+  railCollapsed: boolean;
+  setRailCollapsed(collapsed: boolean): void;
   bumpLibrary(): void;
   goSection(section: Section): void;
   push(route: Route): void;
@@ -26,6 +29,8 @@ export function createNavStore() {
   return createStore<NavState>()((set, get) => ({
     stack: [{ name: 'section', section: 'home' }],
     libraryRevision: 0,
+    railCollapsed: false,
+    setRailCollapsed: (railCollapsed) => set({ railCollapsed }),
     bumpLibrary: () => set({ libraryRevision: get().libraryRevision + 1 }),
     goSection: (section) => set({ stack: [{ name: 'section', section }] }),
     push: (route) => set({ stack: [...get().stack, route] }),

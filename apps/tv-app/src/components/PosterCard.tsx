@@ -46,7 +46,14 @@ export function PosterCard({
     >
       <View style={[styles.art, size, focused && styles.artFocused]}>
         {posterUrl && !failed ? (
-          <Image source={{ uri: posterUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
+          <Image
+            source={{ uri: posterUrl }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+            // Provider posters are often full-size; decode at card size so scrolling stays smooth.
+            resizeMethod="resize"
+            onError={() => setFailed(true)}
+          />
         ) : (
           <Text style={styles.fallback} numberOfLines={3}>
             {title}

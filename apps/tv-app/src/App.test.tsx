@@ -108,4 +108,18 @@ describe('App (TV)', () => {
     await fireEvent.press(screen.getByTestId('rail-live'));
     expect(await screen.findByTestId('live-screen')).toBeTruthy();
   });
+
+  it('☰ hides and shows the side menu', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    navStore.setState({ railCollapsed: false });
+
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('rail-toggle'));
+    expect(screen.queryByTestId('rail-movies')).toBeNull();
+    expect(screen.getByLabelText('Show menu')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('rail-toggle'));
+    expect(screen.getByTestId('rail-movies')).toBeTruthy();
+  });
 });

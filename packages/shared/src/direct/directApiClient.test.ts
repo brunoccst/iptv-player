@@ -120,6 +120,21 @@ describe('createDirectApiClient', () => {
     expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
   });
 
+  it('reuses the saved library after a restart when many screens ask at once', async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    const downloads = () => first.panel.calls.filter((url) => url.includes('action=get_vod_streams')).length;
+    const before = downloads();
+
+    const restarted = setup(first.panel, first.storages).api;
+    const [, statuses, page] = await Promise.all([restarted.auth.me(), restarted.library.status(), restarted.library.list('movies')]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(statuses.map((status) => status.jobStatus)).toEqual(['done', 'done']);
+    expect(page.total).toBe(2);
+    expect(downloads()).toBe(before);
+  });
+
   it('keeps profiles on the device with the backend rules', async () => {
     const { api } = setup();
     await api.auth.login(login);

@@ -27,6 +27,9 @@ export function Row<T>({ title, items, keyOf, render, empty, testID }: RowProps<
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.content}
           removeClippedSubviews={false}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
         />
       )}
     </View>
