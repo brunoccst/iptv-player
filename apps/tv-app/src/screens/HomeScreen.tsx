@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type ReactElement } from 'react';
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   describeLibraryProgress,
@@ -37,7 +37,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     void catalog.getState().loadCategories('series');
   }, []);
 
-  // Virtualized rows (only rows near the screen stay mounted) keep fast scrolling smooth on phones.
+  // Phones: virtualized rows (only rows near the screen stay mounted) keep fast scrolling smooth.
   type HomeRow = { key: string; render(): ReactElement };
   const rows: HomeRow[] = [
     { key: 'banner', render: () => <LibraryBanner processing={processing} /> },
@@ -54,6 +54,30 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     })),
   ];
 
+  // Rows start over the bottom of the hero, like the web (`margin-bottom: -6vw`).
+  const renderRow = (row: HomeRow, index: number) => (
+    <View key={row.key} style={index === 0 ? [styles.rows, { marginTop: -Math.round(rowGap * 2) }] : styles.rows}>
+      {row.render()}
+    </View>
+  );
+  const onScroll = (y: number) => navStore.getState().setScrolled(y > 10);
+
+  // TV: plain ScrollView. The D-pad and swipes never moved the FlatList on the Android TV emulator.
+  if (Platform.isTV) {
+    return (
+      <ScrollView
+        style={styles.screen}
+        testID="home-screen"
+        scrollEventThrottle={100}
+        onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+      >
+        <Hero candidates={featured} />
+        {rows.map(renderRow)}
+        <View style={styles.bottom} />
+      </ScrollView>
+    );
+  }
+
   return (
     <FlatList
       style={styles.screen}
@@ -61,18 +85,15 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
       data={rows}
       keyExtractor={(row) => row.key}
       ListHeaderComponent={<Hero candidates={featured} />}
-      // Rows start over the bottom of the hero, like the web (`margin-bottom: -6vw`).
-      renderItem={({ item, index }) => (
-        <View style={index === 0 ? [styles.rows, { marginTop: -Math.round(rowGap * 2) }] : styles.rows}>{item.render()}</View>
-      )}
+      renderItem={({ item, index }) => renderRow(item, index)}
       ListFooterComponent={<View style={styles.bottom} />}
-      // FlatList detaches off-screen children on Android by default; on TV that left Home without rows (CI emulator).
+      // FlatList detaches off-screen children on Android by default; keep them attached (nested horizontal rows).
       removeClippedSubviews={false}
       initialNumToRender={6}
       maxToRenderPerBatch={2}
       windowSize={5}
       scrollEventThrottle={100}
-      onScroll={(event) => navStore.getState().setScrolled(event.nativeEvent.contentOffset.y > 10)}
+      onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
     />
   );
 }

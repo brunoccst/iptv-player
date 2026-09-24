@@ -269,3 +269,9 @@ Title parsing runs in chunks of 500 with a yield between them, but the grouping 
 
 The guide uses the provider's short EPG (up to 12 programmes per channel), so it reaches fewer hours ahead than the backend's XMLTV cache. Playback URLs contain the provider username and password (Xtream format); in server mode the relay hides them. They stay on the device, but can appear in Android logs.
 
+
+## KI-037
+
+**TV Home is not virtualized** — logged 2026-09-24
+
+On Android TV, Home renders every row in a plain ScrollView. The virtualized FlatList used on phones never scrolled on the Android TV emulator, by D-pad or by swipe; the cause is unknown. Home has at most 13 rows, each loading its first 30 titles when Home opens.

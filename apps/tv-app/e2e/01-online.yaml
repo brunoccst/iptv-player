@@ -36,22 +36,13 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 - takeScreenshot: 00-home-initial
-# Movie rows sit below the fold at 960x540 dp.
-# Wait for grouping to finish (Home reloads then), then walk down the rows with the D-pad like a TV user.
-# Touch swipes did not move the Home list on the TV emulator.
-- extendedWaitUntil:
-    notVisible:
-      id: "library-processing"
+# Movie rows sit below the fold at 960x540 dp; rows reload once the worker finishes grouping titles.
+- scrollUntilVisible:
+    element:
+      id: "card-Big Test Movie"
+    direction: DOWN
     timeout: 180000
-- repeat:
-    while:
-      notVisible:
-        id: "card-Big Test Movie"
-    times: 30
-    commands:
-      - pressKey: Remote Dpad Down
-      - waitForAnimationToEnd:
-          timeout: 2000
+    centerElement: true
 - takeScreenshot: 01-home
 # Details: three listings grouped into one title with a version picker.
 - tapOn:

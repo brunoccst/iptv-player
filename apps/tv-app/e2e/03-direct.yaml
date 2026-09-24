@@ -29,21 +29,12 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 # The library is grouped on the device (TypeScript normalizer): three listings become one title.
-# Wait for grouping to finish (Home reloads then), then walk down the rows with the D-pad like a TV user.
-# Touch swipes did not move the Home list on the TV emulator.
-- extendedWaitUntil:
-    notVisible:
-      id: "library-processing"
+- scrollUntilVisible:
+    element:
+      id: "card-Big Test Movie"
+    direction: DOWN
     timeout: 120000
-- repeat:
-    while:
-      notVisible:
-        id: "card-Big Test Movie"
-    times: 30
-    commands:
-      - pressKey: Remote Dpad Down
-      - waitForAnimationToEnd:
-          timeout: 2000
+    centerElement: true
 - takeScreenshot: 20-direct-home
 - tapOn:
     id: "card-Big Test Movie"
