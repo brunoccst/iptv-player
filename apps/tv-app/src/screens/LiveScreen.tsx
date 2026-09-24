@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import {
   EPG_SLOT_MS,
@@ -161,7 +161,8 @@ export function LiveScreen() {
                     width={timelineWidth}
                     preferred={index === 0}
                     compact={compact}
-                    selected={selected}
+                    // Only this row's selection: moving focus re-renders two rows, not the whole guide.
+                    selected={selected?.channel.id === row.channel.id ? selected : null}
                     onSelect={setSelected}
                   />
                 ))}
@@ -235,7 +236,8 @@ interface GuideRowProps {
 const activate = (selection: Selection, onSelect: (selection: Selection) => void, playNow: () => void) =>
   Platform.isTV ? playNow() : onSelect(selection);
 
-function GuideRow({ row, from, to, now, width, preferred, compact, selected, onSelect }: GuideRowProps) {
+/** Memoized: loading more channels or moving focus renders only the rows that changed (hundreds of channels, D-048). */
+const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, compact, selected, onSelect }: GuideRowProps) {
   const { channel, programmes } = row;
   const cells = layoutGuideRow(programmes, from, to);
   return (
@@ -305,7 +307,7 @@ function GuideRow({ row, from, to, now, width, preferred, compact, selected, onS
       </View>
     </View>
   );
-}
+});
 
 interface GuideCellButtonProps {
   label: string;

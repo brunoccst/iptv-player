@@ -18,6 +18,8 @@ python server.py                    # http://localhost:8090
 
 Log in to the app with server `http://localhost:8090`, username `demo`, password `demo`.
 
+`FAKE_PANEL_STRESS=5000 python server.py` adds UI stress data: a "Stress Test (huge)" movie category (4/5 of the titles), 60 small categories and a "Stress Channels" live category (one channel per 10 titles). See [D-048](../../documentation/DECISIONS.md#d-048).
+
 ## Behaviour
 
 | Request | Response |
