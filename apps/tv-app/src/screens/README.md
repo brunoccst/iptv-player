@@ -1,19 +1,18 @@
 # screens
 
+Each screen mirrors the web page with the same name ([D-041](../../../../documentation/DECISIONS.md#d-041)).
+
 | File | Screen |
 |------|--------|
-| `LoginScreen.tsx` | Connection choice ("IPTV provider" = direct, "My server" + server address), provider URL, username, password. |
-| `ProfilesScreen.tsx` | "Who's watching?" (profiles are edited in the web app). |
-| `HomeScreen.tsx` | Hero, Continue Watching, Live TV, Series and category rows. |
-| `LibraryRow.tsx` | Row of deduplicated titles for a section/category; loads more while scrolling (spinner at the end). The title ("Drama ›") opens `CategoryScreen`. |
-| `CategoryScreen.tsx` | One category (or All) as a poster grid; next page loads near the bottom with a spinner. |
-| `CategoryScreen.test.tsx` | Row title opens the category; next page loads with a spinner. |
+| `LoginScreen.tsx` | Web sign-in panel plus the connection choice ("IPTV provider" = direct, "My server" + address). |
+| `ProfilesScreen.tsx` | "Who's watching?"; Manage Profiles adds, edits (name, colour, Kids) and deletes profiles. |
+| `HomeScreen.tsx` | Hero, library banner, Continue Watching, Live TV, Series and category rows. |
+| `titles.tsx` | `MasterCardItem`, `TitleRow` (Home rows; the title opens Movies/Series on that category) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads). |
 | `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
-| `BrowseScreen.tsx` | Movies or Series: one row per category, virtualized (`FlatList`: only rows near the screen mount and load). |
-| `SearchScreen.tsx` | Search box (debounced): movies and series rows from the library (`LibraryRow` with `search`), live channels by name. |
-| `LogScreen.tsx` | Diagnostics log preview, **Share log** (Android share sheet, credentials masked), **Clear log**. [D-039](../../../../documentation/DECISIONS.md#d-039). |
-| `SearchScreen.test.tsx` | Search results per kind; shared log is masked. |
-| `LiveScreen.tsx` | TV guide: 2-hour channel × time grid (D-pad), info panel for the focused programme, Earlier / Now / Later, category filter, more channels on scroll. Select plays the channel. [D-032](../../../../documentation/DECISIONS.md#d-032). |
-| `LiveScreen.test.tsx` | Guide layout widths, info panel, playback target, window shift, first-download notice. |
-| `DetailsScreen.tsx` | Details, Play/Resume, Download, version picker, seasons + episodes. |
-| `DownloadsScreen.tsx` | My Downloads: play, pause/resume, delete. |
+| `BrowseScreen.tsx` | Movies or Series: category chips + grid. `Chip` is the web `.chip`. |
+| `SearchScreen.tsx` | "Results for …" from the nav search box: Movies and Series grids, matching live channels. |
+| `DetailsScreen.tsx` | Web details panel over the current page: backdrop, Play/Resume, download, facts, cast, version select, episodes. |
+| `LiveScreen.tsx` | Web guide: categories, Earlier / Now / Later, programme details, 3-hour channel × time grid. TV: focus describes, Select plays. Phone: tap selects, "Watch live" plays. [D-032](../../../../documentation/DECISIONS.md#d-032). |
+| `DownloadsScreen.tsx` | My Downloads: progress bar, round Play / Pause / Resume / Delete buttons. |
+| `LogScreen.tsx` | Diagnostics log preview, **Share log** (credentials masked), **Clear log**. Opened from the account menu. [D-039](../../../../documentation/DECISIONS.md#d-039). |
+| `*.test.tsx` | Search and log, guide (TV and phone), profile editor. |

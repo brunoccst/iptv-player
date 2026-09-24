@@ -83,7 +83,8 @@ describe('PlayerScreen', () => {
     expect(playerState.props?.paused).toBe(false);
     await act(async () => pressRemote('select', 'up'));
     expect(playerState.props?.paused).toBe(true);
-    expect(screen.getByTestId('player-time')).toHaveTextContent(/0:08 \/ 0:30.*Paused/);
+    expect(screen.getByTestId('player-time')).toHaveTextContent('0:08 / 0:30');
+    expect(screen.getByLabelText('Play')).toBeTruthy();
     await act(async () => jest.advanceTimersByTime(10_000));
     expect(screen.getByTestId('player-time')).toBeTruthy();
 

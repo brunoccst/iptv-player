@@ -1,37 +1,69 @@
-import { useEffect } from 'react';
-import { FlatList, StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LibrarySection } from '@iptv/shared';
-import { stores } from '../appContext';
-import { useCatalog } from '../hooks';
-import { colors, fonts, safe } from '../theme';
-import { LibraryRow } from './LibraryRow';
+import { navStore, stores } from '../appContext';
+import { useCatalog, useNav } from '../hooks';
+import { colors, navHeight, useSizes } from '../theme';
+import { TitleGrid } from './titles';
 
-/** Movies or Series: one row per provider category (TV-friendly alternative to a filter + grid). */
+/** Same as the web Movies/Series page: title, category chips (All + provider categories), paged grid. */
 export function BrowseScreen({ section }: { section: LibrarySection }) {
   const categories = useCatalog((s) => s.categories[section]?.data ?? []);
+  const categoryId = useNav((s) => s.categoryId);
+  const sizes = useSizes();
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories(section);
   }, [section]);
 
-  // Providers have hundreds of categories: only rows near the screen are mounted (and load their titles).
-  const rows = [null, ...categories];
+  const header = (
+    <View style={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter }}>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{section === 'movies' ? 'Movies' : 'Series'}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} accessibilityLabel="Categories">
+        <Chip label="All" active={categoryId === null} onPress={() => navStore.getState().setCategory(null)} testID="chip-all" />
+        {categories.map((category) => (
+          <Chip
+            key={category.id}
+            label={category.name}
+            active={categoryId === category.id}
+            testID={`chip-${category.id}`}
+            onPress={() => navStore.getState().setCategory(category.id)}
+          />
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   return (
-    <FlatList
-      style={styles.screen}
-      testID={`browse-${section}`}
-      data={rows}
-      keyExtractor={(row) => row?.id ?? '*'}
-      ListHeaderComponent={<Text style={styles.title}>{section === 'movies' ? 'Movies' : 'Series'}</Text>}
-      renderItem={({ item }) => <LibraryRow section={section} category={item ?? undefined} title={item?.name ?? 'All'} />}
-      initialNumToRender={3}
-      maxToRenderPerBatch={2}
-      windowSize={5}
-    />
+    <TitleGrid key={`${section}-${categoryId}`} section={section} categoryId={categoryId} header={header} testID={`browse-${section}`} />
+  );
+}
+
+/** Web `.chip`: pill; the active one is white with black text. */
+export function Chip({ label, active, onPress, testID }: { label: string; active: boolean; onPress(): void; testID?: string }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.chip, active && styles.chipActive, focused && styles.chipFocused]}
+    >
+      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, paddingTop: safe.vertical },
-  title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700', marginLeft: safe.horizontal, marginBottom: 12 },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
+  chips: { gap: 8, marginBottom: 24 },
+  chip: { paddingVertical: 6, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 999 },
+  chipActive: { borderColor: colors.strong, backgroundColor: colors.strong },
+  chipFocused: { borderColor: colors.strong, borderWidth: 2, paddingVertical: 5, paddingHorizontal: 13 },
+  chipText: { color: colors.text, fontSize: 14 },
+  chipTextActive: { color: '#000' },
 });

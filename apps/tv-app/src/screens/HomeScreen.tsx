@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   describeLibraryProgress,
@@ -11,101 +11,151 @@ import {
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { FocusButton } from '../components/FocusButton';
+import { Gradient } from '../components/Gradient';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { useCatalog, useLibrary, useProgress } from '../hooks';
-import { colors, fonts, safe, spacing } from '../theme';
+import { useCatalog, useLibrary, useProgress, useSession } from '../hooks';
+import { colors, fonts, navHeight, radius, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
-import { LibraryRow } from './LibraryRow';
+import { TitleRow } from './titles';
 
 const ROW_SIZE = 30;
+const MOVIE_ROWS = 6;
+const SERIES_ROWS = 3;
 
-/** Hero + Continue Watching + Live TV + category rows. */
+/** Same as the web Home: hero, library banner, Continue Watching, Live TV, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
-  const progress = describeLibraryProgress(useLibrary((s) => s.status.data));
   const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: ROW_SIZE })]?.data?.items ?? []);
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
   const seriesCategories = useCatalog((s) => s.categories.series?.data ?? []);
-  const resume = useProgress((s) => continueWatching(s.items.data ?? []));
-  const liveCategories = useCatalog((s) => s.categories.live?.data ?? []);
-  const firstLive = liveCategories[0]?.id ?? null;
-  const channels = useCatalog((s) => (firstLive ? (s.liveChannels[firstLive]?.data ?? []) : []));
+  const { rowGap } = useSizes();
 
   useEffect(() => {
     const { library, catalog } = stores;
     void library.getState().loadPage('movies', { limit: ROW_SIZE });
     void catalog.getState().loadCategories('movies');
     void catalog.getState().loadCategories('series');
-    void catalog
-      .getState()
-      .loadCategories('live')
-      .then((loaded) => {
-        if (loaded?.[0]) void catalog.getState().loadLiveChannels(loaded[0].id);
-      });
   }, []);
 
   return (
-    <ScrollView style={styles.screen} testID="home-screen">
+    <ScrollView
+      style={styles.screen}
+      testID="home-screen"
+      scrollEventThrottle={100}
+      onScroll={(event) => navStore.getState().setScrolled(event.nativeEvent.contentOffset.y > 10)}
+    >
       <Hero candidates={featured} />
-      {processing ? (
-        <View style={styles.notice} testID="library-processing">
-          <Text style={styles.noticeTitle}>Organizing your library: grouping duplicate titles and versions…</Text>
-          {progress.map((line) => (
-            <Text key={line} style={styles.noticeLine}>
-              {line}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-      {resume.length > 0 ? (
-        <Row
-          title="Continue Watching"
-          items={resume}
-          keyOf={(p) => `${p.kind}-${p.itemId}`}
-          testID="row-continue"
-          render={(p) => (
-            <PosterCard
-              title={p.title}
-              posterUrl={p.posterUrl}
-              progress={p.positionSeconds / p.durationSeconds}
-              subtitle={p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null}
-              onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
-            />
-          )}
-        />
-      ) : null}
-      <Row
-        title={liveCategories[0] ? `Live TV: ${liveCategories[0].name}` : 'Live TV'}
-        items={channels.slice(0, ROW_SIZE)}
-        keyOf={(c) => c.id}
-        render={(c) => (
-          <PosterCard
-            landscape
-            title={c.name}
-            posterUrl={c.logoUrl}
-            badge="LIVE"
-            onPress={() =>
-              navStore
-                .getState()
-                .push({ name: 'player', target: { kind: 'live', streamId: c.id, container: 'm3u8', title: c.name, posterUrl: c.logoUrl } })
-            }
-          />
-        )}
-      />
-      <LibraryRow section="series" title="Series" />
-      {movieCategories.slice(0, 6).map((category) => (
-        <LibraryRow key={`m-${category.id}`} section="movies" category={category} title={category.name} />
-      ))}
-      {seriesCategories.slice(0, 3).map((category) => (
-        <LibraryRow key={`s-${category.id}`} section="series" category={category} title={`Series: ${category.name}`} />
-      ))}
+      <View style={[styles.rows, { marginTop: -Math.round(rowGap * 2) }]}>
+        <LibraryBanner processing={processing} />
+        <ContinueWatchingRow />
+        <LiveRow />
+        <TitleRow section="series" title="Series" />
+        {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
+          <TitleRow key={`m-${category.id}`} section="movies" category={category} title={category.name} />
+        ))}
+        {seriesCategories.slice(0, SERIES_ROWS).map((category) => (
+          <TitleRow key={`s-${category.id}`} section="series" category={category} title={`Series: ${category.name}`} />
+        ))}
+        <View style={styles.bottom} />
+      </View>
     </ScrollView>
   );
 }
 
+/** Web `.banner`: offline notice or "organizing your library" with per-kind progress (direct mode). */
+function LibraryBanner({ processing }: { processing: boolean }) {
+  const offline = useSession((s) => s.offline);
+  const progress = describeLibraryProgress(useLibrary((s) => s.status.data));
+  const { gutter } = useSizes();
+  if (!offline && !processing) return null;
+  return (
+    <View style={[styles.banner, { marginHorizontal: gutter }]} testID="library-processing" accessibilityRole="alert">
+      {offline ? (
+        <Text style={styles.bannerText}>You're offline. Downloaded titles are available in My Downloads.</Text>
+      ) : (
+        <>
+          <View style={styles.bannerLine}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={styles.bannerText}>Organizing your library: grouping duplicate titles and versions…</Text>
+          </View>
+          {progress.map((line) => (
+            <Text key={line} style={styles.bannerDetail}>
+              {line}
+            </Text>
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
+function ContinueWatchingRow() {
+  const resume = useProgress((s) => continueWatching(s.items.data ?? []));
+  if (resume.length === 0) return null;
+  return (
+    <Row
+      title="Continue Watching"
+      items={resume}
+      keyOf={(p) => `${p.kind}-${p.itemId}`}
+      testID="row-continue"
+      render={(p) => (
+        <PosterCard
+          title={p.title}
+          posterUrl={p.posterUrl}
+          progress={p.positionSeconds / p.durationSeconds}
+          subtitle={p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null}
+          onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
+        />
+      )}
+    />
+  );
+}
+
+function LiveRow() {
+  const categories = useCatalog((s) => s.categories.live?.data ?? []);
+  const first = categories[0]?.id ?? null;
+  const channels = useCatalog((s) => (first ? (s.liveChannels[first]?.data ?? []) : []));
+
+  useEffect(() => {
+    void stores.catalog
+      .getState()
+      .loadCategories('live')
+      .then((loaded) => {
+        if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
+      });
+  }, []);
+
+  return (
+    <Row
+      title={categories[0] ? `Live TV: ${categories[0].name}` : 'Live TV'}
+      items={channels.slice(0, ROW_SIZE)}
+      keyOf={(c) => c.id}
+      empty="No channels."
+      render={(c) => (
+        <PosterCard
+          landscape
+          title={c.name}
+          posterUrl={c.logoUrl}
+          badge="LIVE"
+          onPress={() =>
+            navStore
+              .getState()
+              .push({ name: 'player', target: { kind: 'live', streamId: c.id, container: 'm3u8', title: c.name, posterUrl: c.logoUrl } })
+          }
+        />
+      )}
+    />
+  );
+}
+
+/** Web `.hero`: featured movie backdrop with the two shades, big title, plot, Play and More Info. */
 function Hero({ candidates }: { candidates: MasterCard[] }) {
-  const featured = useMemo(() => candidates.find((item) => item.posterUrl) ?? candidates[0] ?? null, [candidates]);
-  const [focusedOnce, setFocusedOnce] = useState(false);
+  const featured = useMemo(() => {
+    const withArt = candidates.filter((item) => item.posterUrl);
+    return withArt[Math.floor(Math.random() * withArt.length)] ?? candidates[0] ?? null;
+  }, [candidates]);
+  const { width, height } = useWindowDimensions();
+  const sizes = useSizes();
 
   useEffect(() => {
     if (featured) void stores.library.getState().loadDetails('movies', featured.id);
@@ -114,34 +164,49 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
   const details = useLibrary((s) => (featured ? (s.details[`movies|${featured.id}`]?.data ?? null) : null));
   const variant = useLibrary((s) => (details ? selectVariant(s, details) : null));
   const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
-  if (!featured) return <View style={styles.heroPlaceholder} />;
+  if (!featured) return <View style={{ height: navHeight }} />;
 
+  const heroHeight = Math.max(420, Math.min(height * 0.8, width * 0.5625));
   const backdrop = meta.data?.backdropUrls[0] ?? featured.posterUrl;
   return (
-    <View style={styles.hero} accessibilityLabel="Featured">
+    <View style={[styles.hero, { height: heroHeight }]} accessibilityLabel="Featured">
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-      <View style={styles.heroShade} />
-      <View style={styles.heroContent}>
-        <Text style={styles.heroTitle} numberOfLines={2}>
+      <Gradient
+        angle={77}
+        stops={[
+          { offset: 0, color: '#000', opacity: 0.75 },
+          { offset: 0.6, color: '#000', opacity: 0 },
+        ]}
+      />
+      <Gradient
+        stops={[
+          { offset: 0.6, color: colors.bg, opacity: 0 },
+          { offset: 1, color: colors.bg },
+        ]}
+      />
+      <View style={[styles.heroContent, { left: sizes.gutter, bottom: heroHeight * 0.3, width: Math.min(560, width * 0.8) }]}>
+        <Text style={[styles.heroTitle, { fontSize: sizes.heroTitle }]} numberOfLines={2}>
           {featured.title}
         </Text>
         {meta.data?.plot ? (
-          <Text style={styles.heroPlot} numberOfLines={2}>
+          <Text style={[styles.heroPlot, { fontSize: sizes.heroPlot }]} numberOfLines={3}>
             {meta.data.plot}
           </Text>
         ) : null}
         <View style={styles.heroActions}>
           <FocusButton
             label="Play"
+            icon="play"
             variant="primary"
-            hasTVPreferredFocus={!focusedOnce}
-            onFocus={() => setFocusedOnce(true)}
+            hasTVPreferredFocus
             testID="hero-play"
             disabled={!details || !variant}
             onPress={() => details && variant && navStore.getState().push({ name: 'player', target: movieTarget(details, variant) })}
           />
           <FocusButton
             label="More Info"
+            icon="info"
+            variant="secondary"
             testID="hero-info"
             onPress={() => navStore.getState().push({ name: 'details', section: 'movies', masterId: featured.id })}
           />
@@ -151,16 +216,19 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
   );
 }
 
+const shadow = { textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 4 };
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  heroPlaceholder: { height: safe.vertical * 2 },
-  notice: { marginHorizontal: safe.horizontal, marginBottom: spacing.md, gap: spacing.xs },
-  noticeTitle: { color: colors.muted, fontSize: fonts.body },
-  noticeLine: { color: colors.muted, fontSize: fonts.small },
-  hero: { height: 300, marginBottom: spacing.md, justifyContent: 'flex-end' },
-  heroShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
-  heroContent: { paddingHorizontal: safe.horizontal, paddingBottom: spacing.lg, maxWidth: 560, gap: spacing.sm },
-  heroTitle: { color: colors.strong, fontSize: fonts.hero, fontWeight: '900' },
-  heroPlot: { color: colors.text, fontSize: fonts.body },
-  heroActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
+  rows: { zIndex: 1 },
+  bottom: { height: 60 },
+  hero: { overflow: 'hidden' },
+  heroContent: { position: 'absolute' },
+  heroTitle: { color: colors.strong, fontWeight: '900', lineHeight: undefined, marginBottom: 12, ...shadow },
+  heroPlot: { color: colors.text, marginBottom: 20, ...shadow },
+  heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  banner: { marginBottom: 16, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius, backgroundColor: colors.raised, gap: 4 },
+  bannerLine: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bannerText: { color: colors.text, fontSize: 14.4, flexShrink: 1 },
+  bannerDetail: { color: colors.muted, fontSize: fonts.small, marginLeft: 32 },
 });

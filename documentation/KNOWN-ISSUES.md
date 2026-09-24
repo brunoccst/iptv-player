@@ -30,7 +30,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-024](#ki-024) | Limitation | web-player | Open |
 | [KI-025](#ki-025) | Limitation | series | Open |
 | [KI-026](#ki-026) | Limitation | tv-app | Open |
-| [KI-027](#ki-027) | Limitation | tv-app | Open |
+| [KI-027](#ki-027) | Limitation | tv-app | Resolved |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
 | [KI-029](#ki-029) | Limitation | build env | Open |
 | [KI-030](#ki-030) | Limitation | backend | Open |
@@ -208,6 +208,8 @@ Media3 stores the relay URL (token valid `BACKEND_RELAY_TOKEN_HOURS`, default 12
 **TV profiles are pick-only** — logged 2026-09-23
 
 Profiles can be selected on TV but only created, renamed or deleted in the web app.
+
+Resolved 2026-09-24: the TV/phone app has the web's Manage Profiles (add, edit, delete) (D-041).
 
 ## KI-028
 

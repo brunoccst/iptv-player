@@ -1,38 +1,44 @@
 import { useEffect } from 'react';
 import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { downloadsStore, navStore } from '../appContext';
-import { FocusButton } from '../components/FocusButton';
-import { ProgressRing } from '../components/ProgressRing';
+import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
 import { useDownloads } from '../hooks';
-import { colors, fonts, safe, spacing } from '../theme';
+import { colors, fonts, navHeight, radius, useSizes } from '../theme';
 
 const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
 
-/** "My Downloads": Media3 downloads stored in app-private storage. */
+/** Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons. */
 export function DownloadsScreen() {
   const records = useDownloads((s) => Object.values(s.records).filter((r) => r.state !== 'removing'));
+  const sizes = useSizes();
 
   useEffect(() => {
     downloadsStore.getState().refresh();
   }, []);
 
   return (
-    <View style={styles.screen} testID="downloads-screen">
-      <Text style={styles.title}>My Downloads</Text>
-      {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
-      <FlatList
-        data={records}
-        keyExtractor={(r) => r.id}
-        renderItem={({ item, index }) => <DownloadRow record={item} first={index === 0} />}
-      />
-    </View>
+    <FlatList
+      style={styles.screen}
+      testID="downloads-screen"
+      contentContainerStyle={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
+      ListHeaderComponent={
+        <>
+          <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>
+          {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
+        </>
+      }
+      data={records}
+      keyExtractor={(r) => r.id}
+      renderItem={({ item, index }) => <DownloadItem record={item} first={index === 0} />}
+    />
   );
 }
 
-function DownloadRow({ record, first }: { record: TvDownload; first: boolean }) {
+function DownloadItem({ record, first }: { record: TvDownload; first: boolean }) {
   const { pause, resume, remove } = downloadsStore.getState();
   const percent = Math.round(record.progress * 100);
+  const title = record.target.title;
   const status = {
     completed: `Downloaded · ${formatBytes(record.bytesDownloaded)}`,
     downloading: `Downloading ${percent}%`,
@@ -44,58 +50,49 @@ function DownloadRow({ record, first }: { record: TvDownload; first: boolean }) 
   }[record.state];
 
   return (
-    <View style={styles.row} accessibilityLabel={record.target.title}>
+    <View style={styles.item} accessibilityLabel={title}>
       {record.target.posterUrl ? <Image source={{ uri: record.target.posterUrl }} style={styles.art} /> : <View style={styles.art} />}
       <View style={styles.info}>
-        <Text style={styles.name}>{record.target.title}</Text>
+        <Text style={styles.name}>{title}</Text>
         {record.target.subtitle ? <Text style={styles.muted}>{record.target.subtitle}</Text> : null}
-        <View style={styles.statusLine}>
-          {record.state !== 'completed' ? <ProgressRing value={record.progress} size={20} /> : null}
-          <Text style={record.state === 'failed' ? styles.error : styles.muted}>{status}</Text>
-        </View>
+        <Text style={[record.state === 'failed' ? styles.error : styles.muted, styles.status]}>{status}</Text>
+        {record.state !== 'completed' ? (
+          <View style={styles.bar}>
+            <View style={[styles.barValue, { width: `${percent}%` }]} />
+          </View>
+        ) : null}
       </View>
       <View style={styles.actions}>
         {record.state === 'completed' ? (
-          <FocusButton
-            label="Play"
-            variant="primary"
+          <IconButton
+            icon="play"
+            label={`Play ${title}`}
             hasTVPreferredFocus={first}
-            accessibilityLabel={`Play ${record.target.title}`}
+            testID={`download-play-${record.id}`}
             onPress={() => navStore.getState().push({ name: 'player', target: record.target })}
           />
         ) : record.state === 'downloading' || record.state === 'queued' ? (
-          <FocusButton label="Pause" hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
+          <IconButton icon="pause" label={`Pause ${title}`} hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
         ) : (
-          <FocusButton label="Resume" hasTVPreferredFocus={first} onPress={() => resume(record.id)} />
+          <IconButton icon="download" label={`Resume ${title}`} hasTVPreferredFocus={first} onPress={() => resume(record.id)} />
         )}
-        <FocusButton
-          label="Delete"
-          variant="ghost"
-          accessibilityLabel={`Delete ${record.target.title}`}
-          onPress={() => remove(record.id)}
-        />
+        <IconButton icon="trash" label={`Delete ${title}`} onPress={() => remove(record.id)} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, paddingTop: safe.vertical, paddingHorizontal: safe.horizontal },
-  title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700', marginBottom: spacing.md },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.surface,
-    padding: spacing.sm,
-    borderRadius: 4,
-    marginBottom: spacing.sm,
-  },
-  art: { width: 60, height: 90, borderRadius: 4, backgroundColor: colors.raised },
-  info: { flex: 1, gap: 2 },
-  name: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },
-  statusLine: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.xs },
-  muted: { color: colors.muted, fontSize: fonts.small },
-  error: { color: colors.warning, fontSize: fonts.small },
-  actions: { flexDirection: 'row', gap: spacing.sm },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 12, borderRadius: radius, backgroundColor: colors.surface },
+  art: { width: 90, aspectRatio: 2 / 3, borderRadius: radius, backgroundColor: '#333' },
+  info: { flex: 1 },
+  name: { color: colors.strong, fontSize: fonts.body, fontWeight: '700', marginBottom: 4 },
+  status: { marginTop: 6 },
+  bar: { height: 4, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.2)' },
+  barValue: { height: 4, backgroundColor: colors.accent },
+  muted: { color: colors.muted, fontSize: fonts.body },
+  error: { color: colors.warning, fontSize: 14.4 },
+  actions: { flexDirection: 'row', gap: 8 },
 });

@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, safe, spacing } from '../theme';
+import { colors, radius, useSizes } from '../theme';
+import { Icon } from './Icon';
 
 interface RowProps<T> {
   title: string;
@@ -9,7 +10,7 @@ interface RowProps<T> {
   render(item: T, index: number): ReactElement;
   empty?: string;
   testID?: string;
-  /** Makes the title a link ("Drama ›"), e.g. to open the whole category. */
+  /** Makes the title a link ("Drama ›"), like the web row titles. */
   onTitlePress?(): void;
   /** First items still loading: a spinner instead of the empty text. */
   loading?: boolean;
@@ -18,20 +19,23 @@ interface RowProps<T> {
   onEndReached?(): void;
 }
 
-/** Horizontal row. Android's focus search moves between cards; the list scrolls to the focused one. */
+/** Web `.row`: title (optionally a link) + horizontal track of cards. D-pad focus search moves between cards. */
 export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePress, loading, loadingMore, onEndReached }: RowProps<T>) {
+  const sizes = useSizes();
   return (
-    <View style={styles.row} testID={testID} accessibilityLabel={title}>
-      {onTitlePress ? (
-        <TitleLink title={title} onPress={onTitlePress} testID={testID && `${testID}-open`} />
-      ) : (
-        <Text style={styles.title}>{title}</Text>
-      )}
+    <View style={[styles.row, { marginBottom: sizes.rowGap }]} testID={testID} accessibilityLabel={title}>
+      <View style={[styles.header, { marginHorizontal: sizes.gutter }]}>
+        {onTitlePress ? (
+          <TitleLink title={title} fontSize={sizes.rowTitle} onPress={onTitlePress} testID={testID && `${testID}-open`} />
+        ) : (
+          <Text style={[styles.title, { fontSize: sizes.rowTitle }]}>{title}</Text>
+        )}
+      </View>
       {items.length === 0 ? (
         loading ? (
-          <ActivityIndicator style={styles.spinner} color={colors.accent} accessibilityLabel="Loading" />
+          <ActivityIndicator style={[styles.spinner, { marginLeft: sizes.gutter }]} color={colors.accent} accessibilityLabel="Loading" />
         ) : (
-          <Text style={styles.empty}>{empty ?? ' '}</Text>
+          <Text style={[styles.empty, { marginHorizontal: sizes.gutter }]}>{empty ?? ' '}</Text>
         )
       ) : (
         <FlatList
@@ -39,10 +43,11 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
           data={items}
           keyExtractor={keyOf}
           renderItem={({ item, index }) => render(item, index)}
+          ItemSeparatorComponent={Separator}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
           removeClippedSubviews={false}
-          initialNumToRender={6}
+          initialNumToRender={8}
           maxToRenderPerBatch={6}
           windowSize={5}
           onEndReached={onEndReached}
@@ -56,7 +61,9 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
   );
 }
 
-function TitleLink({ title, onPress, testID }: { title: string; onPress(): void; testID?: string }) {
+const Separator = () => <View style={{ width: 8 }} />;
+
+function TitleLink({ title, fontSize, onPress, testID }: { title: string; fontSize: number; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -68,26 +75,30 @@ function TitleLink({ title, onPress, testID }: { title: string; onPress(): void;
       onBlur={() => setFocused(false)}
       style={[styles.link, focused && styles.linkFocused]}
     >
-      <Text style={[styles.title, styles.linkText, focused && styles.linkTextFocused]}>{`${title} ›`}</Text>
+      <Text style={[styles.title, { fontSize }, focused && styles.linkTextFocused]}>{title}</Text>
+      <Icon name="chevronRight" size={18} color={focused ? colors.strong : colors.text} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { marginBottom: spacing.lg },
-  title: { color: colors.text, fontSize: fonts.heading, fontWeight: '700', marginLeft: safe.horizontal, marginBottom: spacing.sm },
+  row: {},
+  header: { marginBottom: 10, flexDirection: 'row' },
+  title: { color: colors.text, fontWeight: '700' },
   link: {
-    alignSelf: 'flex-start',
-    marginLeft: safe.horizontal - spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 4,
-    marginBottom: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: radius,
+    marginHorizontal: -4,
+    paddingHorizontal: 2,
   },
-  linkFocused: { backgroundColor: colors.strong },
-  linkText: { marginLeft: 0, marginBottom: 0 },
-  linkTextFocused: { color: '#000' },
-  content: { paddingHorizontal: safe.horizontal, paddingVertical: spacing.sm },
-  empty: { color: colors.muted, marginLeft: safe.horizontal },
-  spinner: { alignSelf: 'flex-start', marginLeft: safe.horizontal, marginVertical: spacing.lg },
-  more: { alignSelf: 'center', marginHorizontal: spacing.lg },
+  linkFocused: { borderColor: colors.strong },
+  linkTextFocused: { color: colors.strong, textDecorationLine: 'underline' },
+  content: { paddingVertical: 8 },
+  empty: { color: colors.muted },
+  spinner: { alignSelf: 'flex-start', marginVertical: 24 },
+  more: { alignSelf: 'center', marginHorizontal: 24 },
 });

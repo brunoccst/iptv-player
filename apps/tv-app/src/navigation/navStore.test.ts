@@ -21,3 +21,27 @@ describe('nav store', () => {
     expect(nav.getState().stack).toEqual([{ name: 'section', section: 'downloads' }]);
   });
 });
+
+describe('nav store: web-style navigation', () => {
+  it('typing a search opens the Search page; clearing it goes Home', () => {
+    const nav = createNavStore();
+    nav.getState().goSection('movies');
+    nav.getState().setSearch('big');
+    expect(currentRoute(nav.getState())).toEqual({ name: 'section', section: 'search' });
+    nav.getState().setSearch('bigg');
+    expect(nav.getState().stack).toHaveLength(1);
+    nav.getState().setSearch('');
+    expect(currentRoute(nav.getState())).toEqual({ name: 'section', section: 'home' });
+  });
+
+  it('opens a category, and Back closes the menu before leaving a page', () => {
+    const nav = createNavStore();
+    nav.getState().openCategory('movies', '7');
+    expect(nav.getState()).toMatchObject({ categoryId: '7', stack: [{ name: 'section', section: 'movies' }] });
+    nav.getState().push({ name: 'details', section: 'movies', masterId: 'm1' });
+    nav.getState().setMenuOpen(true);
+    expect(nav.getState().back()).toBe(true);
+    expect(nav.getState().menuOpen).toBe(false);
+    expect(nav.getState().stack).toHaveLength(2);
+  });
+});

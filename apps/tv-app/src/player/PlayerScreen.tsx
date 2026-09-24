@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   appLog,
   errorMessage,
@@ -7,6 +7,7 @@ import {
   RemoteSeekController,
   SKIP_SECONDS,
   clampTime,
+  fluid,
   episodeLabel,
   episodeTarget,
   findProgress,
@@ -29,7 +30,9 @@ import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
 import { useLibrary } from '../hooks';
 import { useRemote } from '../tv/remote';
-import { colors, fonts, safe, spacing } from '../theme';
+import { Gradient } from '../components/Gradient';
+import { IconButton } from '../components/IconButton';
+import { colors, fonts, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
 import { QuickDrawer } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
@@ -61,6 +64,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const timeRef = useRef(0);
   const durationRef = useRef(0);
   const isLive = target.kind === 'live';
+  const sizes = useSizes();
+  const { width } = useWindowDimensions();
+  const timelineWidth = useRef(0);
 
   const series = useAsync(target.seriesId ? `series:${target.seriesId}` : null, () => api.catalog.seriesDetails(target.seriesId!));
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
@@ -278,7 +284,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           accessibilityLabel="Player"
           hasTVPreferredFocus
           style={StyleSheet.absoluteFill}
-          onPress={() => {}}
+          // Phones have no remote: a tap shows or hides the controls.
+          onPress={() => (Platform.isTV ? undefined : controls ? setControls(false) : wake())}
         />
       ) : null}
 
@@ -294,47 +301,123 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {scrub ? <ScrubBar preview={scrub.preview} speed={scrub.speed} duration={duration} /> : null}
 
       {controls && !scrub && !error ? (
-        <View style={styles.overlay} pointerEvents="none" testID="player-controls">
-          <View>
-            <Text style={styles.title} numberOfLines={1}>
-              {target.title}
-            </Text>
-            {target.subtitle ? (
-              <Text style={styles.subtitle}>
-                {target.subtitle}
-                {source?.offlineId ? ' · Downloaded' : ''}
+        // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.
+        <View style={styles.overlay} pointerEvents={Platform.isTV ? 'none' : 'box-none'} testID="player-controls">
+          <Gradient
+            stops={[
+              { offset: 0, color: '#000', opacity: 0.7 },
+              { offset: 0.2, color: '#000', opacity: 0 },
+              { offset: 0.7, color: '#000', opacity: 0 },
+              { offset: 1, color: '#000', opacity: 0.85 },
+            ]}
+          />
+          <View style={[styles.top, { paddingHorizontal: sizes.gutter }]}>
+            <IconButton
+              icon="back"
+              label="Back"
+              plain
+              focusable={!Platform.isTV}
+              size={44}
+              iconSize={28}
+              onPress={() => navStore.getState().back()}
+            />
+            <View style={styles.heading}>
+              <Text style={[styles.title, { fontSize: fluid(width, 16, 2, 22) }]} numberOfLines={1}>
+                {target.title}
               </Text>
-            ) : null}
-          </View>
-          <View>
-            {isLive ? (
-              <Text style={styles.live}>LIVE</Text>
-            ) : (
-              <>
-                <View style={styles.track}>
-                  <View style={[styles.fill, { width: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
-                </View>
-                <Text style={styles.time} testID="player-time">
-                  {formatClock(time)} / {formatClock(duration)}
-                  {paused ? '  ❚❚ Paused' : ''}
+              {target.subtitle || source?.offlineId ? (
+                <Text style={styles.subtitle} numberOfLines={1}>
+                  {[target.subtitle, source?.offlineId ? 'Downloaded' : null].filter(Boolean).join(' · ')}
                 </Text>
-              </>
+              ) : null}
+            </View>
+            {isLive ? <Text style={styles.live}>LIVE</Text> : null}
+          </View>
+          <View style={[styles.bottom, { paddingHorizontal: sizes.gutter }]}>
+            {isLive ? null : (
+              <Pressable
+                style={styles.timeline}
+                focusable={false}
+                accessibilityLabel="Seek"
+                onPress={(event) => timelineWidth.current > 0 && seekTo((event.nativeEvent.locationX / timelineWidth.current) * duration)}
+                onLayout={(event) => (timelineWidth.current = event.nativeEvent.layout.width)}
+              >
+                <View style={styles.rail}>
+                  <View style={[styles.played, { width: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
+                  <View style={[styles.thumb, { left: `${duration > 0 ? (time / duration) * 100 : 0}%` }]} />
+                </View>
+              </Pressable>
             )}
-            <Text style={styles.hint}>
-              ◀ ▶ skip {SKIP_SECONDS}s · hold to scrub · ▲ ▼ audio, subtitles{series.data ? ', episodes' : ''}
-            </Text>
+            <View style={styles.controls}>
+              <IconButton
+                icon={paused ? 'play' : 'pause'}
+                label={paused ? 'Play' : 'Pause'}
+                plain
+                focusable={!Platform.isTV}
+                size={44}
+                iconSize={30}
+                testID="player-toggle"
+                onPress={() => setPaused((p) => !p)}
+              />
+              {isLive ? null : (
+                <>
+                  <IconButton
+                    icon="rewind10"
+                    label={`Back ${SKIP_SECONDS} seconds`}
+                    plain
+                    focusable={!Platform.isTV}
+                    size={44}
+                    iconSize={28}
+                    onPress={() => seekTo(timeRef.current - SKIP_SECONDS)}
+                  />
+                  <IconButton
+                    icon="forward10"
+                    label={`Forward ${SKIP_SECONDS} seconds`}
+                    plain
+                    focusable={!Platform.isTV}
+                    size={44}
+                    iconSize={28}
+                    onPress={() => seekTo(timeRef.current + SKIP_SECONDS)}
+                  />
+                  <Text style={styles.time} testID="player-time">
+                    {formatClock(time)} / {formatClock(duration)}
+                  </Text>
+                </>
+              )}
+              <View style={styles.spacer} />
+              {series.data ? (
+                <IconButton
+                  icon="episodes"
+                  label="Episodes"
+                  plain
+                  focusable={!Platform.isTV}
+                  size={44}
+                  iconSize={26}
+                  onPress={() => setDrawer(true)}
+                />
+              ) : null}
+              <IconButton
+                icon="subtitles"
+                label="Audio and subtitles"
+                plain
+                focusable={!Platform.isTV}
+                size={44}
+                iconSize={26}
+                onPress={() => setDrawer(true)}
+              />
+            </View>
           </View>
         </View>
       ) : null}
 
       {showSkipIntro && intro ? (
-        <View style={styles.corner}>
+        <View style={[styles.corner, { right: sizes.gutter }]}>
           <FocusButton label="Skip Intro" hasTVPreferredFocus onPress={() => seekTo(intro.end)} testID="skip-intro" />
         </View>
       ) : null}
 
       {countdown !== null && next ? (
-        <View style={styles.nextUp} testID="next-up">
+        <View style={[styles.nextUp, { right: sizes.gutter }]} testID="next-up">
           <Text style={styles.nextLabel}>Next episode in {Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)}</Text>
           <Text style={styles.nextTitle}>
             {episodeLabel(next)} · {next.title}
@@ -376,33 +459,42 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
-  center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: safe.horizontal },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    justifyContent: 'space-between',
-    paddingHorizontal: safe.horizontal,
-    paddingVertical: safe.vertical,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
+  overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between' },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 20 },
+  heading: { flexShrink: 1 },
+  title: { color: colors.strong, fontWeight: '700' },
+  subtitle: { color: colors.muted, fontSize: 14.4, marginTop: 2 },
+  live: {
+    color: colors.strong,
+    backgroundColor: colors.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 2,
+    overflow: 'hidden',
+    fontSize: fonts.tiny,
+    fontWeight: '700',
   },
-  title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700' },
-  subtitle: { color: colors.muted, fontSize: fonts.body },
-  live: { color: colors.strong, backgroundColor: colors.accent, alignSelf: 'flex-start', paddingHorizontal: spacing.sm, fontWeight: '700' },
-  track: { height: 5, backgroundColor: 'rgba(255,255,255,0.3)', marginBottom: spacing.sm },
-  fill: { height: 5, backgroundColor: colors.accent },
-  time: { color: colors.strong, fontSize: fonts.body },
-  hint: { color: colors.muted, fontSize: fonts.small, marginTop: spacing.xs },
-  corner: { position: 'absolute', right: safe.horizontal, bottom: safe.vertical + 70 },
+  bottom: { paddingBottom: 20 },
+  timeline: { height: 20, justifyContent: 'center' },
+  rail: { height: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
+  played: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent },
+  thumb: { position: 'absolute', top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: 7, backgroundColor: colors.accent },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  time: { color: colors.strong, fontSize: 14.4, fontVariant: ['tabular-nums'] },
+  spacer: { flex: 1 },
+  corner: { position: 'absolute', bottom: 120 },
   nextUp: {
     position: 'absolute',
-    right: safe.horizontal,
-    bottom: safe.vertical + 70,
-    backgroundColor: 'rgba(20,20,20,0.95)',
-    padding: spacing.md,
+    bottom: 120,
+    width: 360,
+    maxWidth: '90%',
+    padding: 16,
+    gap: 12,
     borderRadius: 8,
-    gap: spacing.sm,
-    width: 340,
+    backgroundColor: 'rgba(20,20,20,0.95)',
   },
   nextLabel: { color: colors.muted, fontSize: fonts.small },
   nextTitle: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },
-  row: { flexDirection: 'row', gap: spacing.sm },
+  row: { flexDirection: 'row', gap: 8 },
 });

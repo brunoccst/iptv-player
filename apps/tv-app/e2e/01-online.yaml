@@ -49,7 +49,7 @@ appId: ${APP_ID}
     id: "card-Big Test Movie"
     index: 0
 - extendedWaitUntil:
-    visible: "Version: 4K · ENG"
+    visible: "4K · ENG \\(best\\)"
     timeout: 30000
 - takeScreenshot: 02-details
 # Play has TV preferred focus: the D-pad centre key starts playback.
@@ -64,10 +64,16 @@ appId: ${APP_ID}
     timeout: 6000
     optional: true
 - pressKey: Remote Dpad Center
+# Paused: the play/pause button (web-style controls) reads "Play"; the clock stays put.
+- extendedWaitUntil:
+    visible:
+      id: "player-toggle"
+      text: "Play"
+    timeout: 30000
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30"
     timeout: 30000
 - takeScreenshot: 03-player
 - copyTextFrom:
@@ -102,16 +108,16 @@ appId: ${APP_ID}
 - tapOn:
     id: "download-button"
 - extendedWaitUntil:
-    visible: "Downloaded"
+    visible: "Downloaded: .*"
     timeout: 240000
 - pressKey: back
 - tapOn:
-    id: "rail-downloads"
+    id: "nav-downloads"
 - assertVisible: "Big Test Movie"
 - takeScreenshot: 05-downloads
 # Live TV guide: each channel shows what is on now; "Test Arena" (304) has no XMLTV id and comes from short EPG.
 - tapOn:
-    id: "rail-live"
+    id: "nav-live"
 - extendedWaitUntil:
     visible:
       id: "guide-now-301"

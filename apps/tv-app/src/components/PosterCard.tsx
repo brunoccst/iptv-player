@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { card, colors, fonts, spacing } from '../theme';
+import { colors, radius, useSizes } from '../theme';
+import { Gradient } from './Gradient';
 
 export interface PosterCardProps {
   title: string;
@@ -10,11 +11,16 @@ export interface PosterCardProps {
   /** 0..1 watch progress bar. */
   progress?: number;
   landscape?: boolean;
+  /** Overrides the web `--card-width` (grids stretch cards to fill a line). */
+  width?: number;
   hasTVPreferredFocus?: boolean;
+  /** Top-right corner actions (e.g. download button). */
+  actions?: ReactNode;
   onPress(): void;
   onFocus?(): void;
 }
 
+/** Web `.card`: art (2:3 or 16:9) + title/subtitle on the surface colour; focus scales it up with an outline. */
 export function PosterCard({
   title,
   posterUrl,
@@ -22,13 +28,16 @@ export function PosterCard({
   badge,
   progress,
   landscape,
+  width,
   hasTVPreferredFocus,
+  actions,
   onPress,
   onFocus,
 }: PosterCardProps) {
   const [focused, setFocused] = useState(false);
   const [failed, setFailed] = useState(false);
-  const size = landscape ? { width: card.landscapeWidth, height: card.landscapeHeight } : { width: card.width, height: card.height };
+  const { cardWidth } = useSizes();
+  const cardSize = width ?? cardWidth;
 
   return (
     <Pressable
@@ -42,9 +51,16 @@ export function PosterCard({
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[styles.card, { width: size.width }, focused && styles.focused]}
+      style={[styles.card, { width: cardSize }, focused && styles.focused]}
     >
-      <View style={[styles.art, size, focused && styles.artFocused]}>
+      <View style={[styles.art, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>
+        <Gradient
+          angle={135}
+          stops={[
+            { offset: 0, color: '#2b2b2b' },
+            { offset: 1, color: '#151515' },
+          ]}
+        />
         {posterUrl && !failed ? (
           <Image
             source={{ uri: posterUrl }}
@@ -62,48 +78,47 @@ export function PosterCard({
         {badge ? <Text style={styles.badge}>{badge}</Text> : null}
         {progress !== undefined ? (
           <View style={styles.progressTrack}>
-            <View style={[styles.progressValue, { width: `${Math.round(Math.min(1, progress) * 100)}%` }]} />
+            <View style={[styles.progressValue, { width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }]} />
           </View>
         ) : null}
+        {actions ? <View style={styles.actions}>{actions}</View> : null}
       </View>
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {subtitle}
+      <View style={styles.meta}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
         </Text>
-      ) : null}
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginRight: spacing.md },
-  focused: { transform: [{ scale: 1.1 }], zIndex: 2 },
-  art: {
-    borderRadius: 4,
-    overflow: 'hidden',
-    backgroundColor: colors.raised,
-    borderWidth: 3,
-    borderColor: 'transparent',
-    justifyContent: 'center',
-  },
-  artFocused: { borderColor: colors.strong },
-  fallback: { color: colors.strong, fontSize: fonts.body, fontWeight: '700', textAlign: 'center', padding: spacing.sm },
+  card: { borderRadius: radius, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
+  focused: { transform: [{ scale: 1.08 }], zIndex: 2, borderColor: colors.strong, elevation: 8 },
+  art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center' },
+  fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },
   badge: {
     position: 'absolute',
     top: 6,
     left: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+    overflow: 'hidden',
     backgroundColor: 'rgba(0,0,0,0.75)',
     color: colors.strong,
-    fontSize: 11,
+    fontSize: 11.2,
     fontWeight: '700',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
   },
   progressTrack: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   progressValue: { height: 3, backgroundColor: colors.accent },
-  title: { color: colors.strong, fontSize: fonts.small, fontWeight: '700', marginTop: spacing.xs },
-  subtitle: { color: colors.muted, fontSize: 11 },
+  actions: { position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 4 },
+  meta: { paddingTop: 8, paddingHorizontal: 4, paddingBottom: 4 },
+  title: { color: colors.strong, fontSize: 13.6, fontWeight: '700' },
+  subtitle: { color: colors.muted, fontSize: 12, marginTop: 2 },
 });

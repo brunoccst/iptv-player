@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   episodeTarget,
   findProgress,
+  fluid,
   formatDuration,
   movieTarget,
   progressTarget,
@@ -15,73 +16,86 @@ import {
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton } from '../components/DownloadButton';
-import { ErrorText, errorText, Loading } from '../components/Feedback';
+import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
+import { Gradient } from '../components/Gradient';
+import { IconButton } from '../components/IconButton';
+import { Select } from '../components/Select';
 import { useLibrary, useNav, useProgress } from '../hooks';
-import { colors, fonts, safe, spacing } from '../theme';
+import { colors, fonts, radius } from '../theme';
 import { useAsync } from '../useAsync';
 
-/** Title details: backdrop, facts, Play/Resume, Download, "Version / Stream Quality", seasons and episodes. */
+/** Web `DetailsModal`: a panel over the current page with backdrop, Play/Resume, download, facts, version select, episodes. */
 export function DetailsScreen({ section, masterId }: { section: LibrarySection; masterId: string }) {
   const resource = useLibrary((s) => s.details[`${section}|${masterId}`]);
   const revision = useNav((s) => s.libraryRevision);
+  const { width } = useWindowDimensions();
 
   useEffect(() => {
     void stores.library.getState().loadDetails(section, masterId);
   }, [section, masterId, revision]);
 
-  if (resource?.status === 'error')
-    return (
-      <View style={styles.screen}>
-        <ErrorText>{errorText(resource.error)}</ErrorText>
-      </View>
-    );
-  if (!resource?.data)
-    return (
-      <View style={styles.screen}>
-        <Loading />
-      </View>
-    );
-  return section === 'movies' ? <MovieDetailsView master={resource.data} /> : <SeriesDetailsView master={resource.data} />;
-}
-
-function latestProgress(items: ProgressDto[] | null, kind: 'movie' | 'episode', master: MasterDetails): ProgressDto | null {
+  const close = () => navStore.getState().back();
   return (
-    (items ?? []).find(
-      (p) =>
-        p.kind === kind &&
-        (p.masterId === master.id || master.variants.some((v) => v.streamId === (kind === 'movie' ? p.itemId : p.seriesId))),
-    ) ?? null
+    <View style={styles.overlay} testID="details-screen" accessibilityViewIsModal>
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel="Close details" />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={[styles.panel, { width: Math.min(850, width - 32) }]}>
+          {resource?.data ? (
+            section === 'movies' ? (
+              <MovieDetails master={resource.data} />
+            ) : (
+              <SeriesDetailsView master={resource.data} />
+            )
+          ) : resource?.status === 'error' ? (
+            <View style={styles.padded}>
+              <ErrorText>{errorText(resource.error)}</ErrorText>
+            </View>
+          ) : (
+            <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel="Loading" />
+          )}
+          <View style={styles.close}>
+            <IconButton icon="close" label="Close" iconSize={24} onPress={close} testID="details-close" />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
-function MovieDetailsView({ master }: { master: MasterDetails }) {
-  const variant = useLibrary((s) => selectVariant(s, master));
-  const resume = useProgress((s) => latestProgress(s.items.data, 'movie', master));
-  const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
-  if (!variant)
-    return (
-      <View style={styles.screen}>
-        <ErrorText>No playable versions.</ErrorText>
-      </View>
-    );
+/** Latest progress for any variant of this master (or series), used for "Resume". */
+function useMasterProgress(master: MasterDetails, kind: 'movie' | 'episode'): ProgressDto | null {
+  return useProgress(
+    (s) =>
+      (s.items.data ?? []).find(
+        (p) =>
+          p.kind === kind &&
+          (p.masterId === master.id || master.variants.some((v) => v.streamId === (kind === 'movie' ? p.itemId : p.seriesId))),
+      ) ?? null,
+  );
+}
 
+function MovieDetails({ master }: { master: MasterDetails }) {
+  const variant = useLibrary((s) => selectVariant(s, master));
+  const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
+  const resume = useMasterProgress(master, 'movie');
+  useEffect(() => {
+    // Resuming a different version than the best one: preselect it so "Resume" continues where the user left off.
+    if (resume && master.variants.some((v) => v.streamId === resume.itemId))
+      stores.library.getState().selectVariant(master.id, resume.itemId);
+  }, [resume?.itemId, master]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
   const target = movieTarget(master, variant);
   const canResume = resume?.itemId === variant.streamId;
+  const duration = meta.data?.durationSeconds ?? null;
+
   return (
-    <Layout backdrop={meta.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
-      <Facts
-        year={master.year}
-        rating={meta.data?.summary.rating ?? master.rating}
-        quality={variant.quality}
-        extra={formatDuration(meta.data?.durationSeconds)}
-      />
-      <Text style={styles.plot} numberOfLines={4}>
-        {meta.data?.plot ?? ''}
-      </Text>
-      <View style={styles.actions}>
+    <>
+      <DetailsHero backdrop={meta.data?.backdropUrls[0] ?? meta.data?.summary.posterUrl ?? master.posterUrl} title={master.title}>
         <FocusButton
           label={canResume ? 'Resume' : 'Play'}
+          icon="play"
           variant="primary"
           hasTVPreferredFocus
           testID="details-play"
@@ -90,22 +104,33 @@ function MovieDetailsView({ master }: { master: MasterDetails }) {
           }
         />
         <DownloadButton target={target} />
-        <VariantPicker master={master} value={variant} />
-      </View>
-    </Layout>
+      </DetailsHero>
+      <Body
+        main={
+          <>
+            <Facts year={master.year} rating={meta.data?.summary.rating ?? master.rating} quality={variant.quality} runtime={duration} />
+            <Text style={styles.text}>{meta.data?.plot ?? (meta.loading ? '' : 'No description.')}</Text>
+            <VariantSelect master={master} value={variant} />
+          </>
+        }
+        side={
+          <>
+            <Fact label="Cast" value={meta.data?.cast} />
+            <Fact label="Genres" value={meta.data?.genre} />
+            <Fact label="Director" value={meta.data?.director} />
+            <Fact label="Source" value={variant.rawTitle} />
+          </>
+        }
+      />
+    </>
   );
 }
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   const variant = useLibrary((s) => selectVariant(s, master));
-  const resume = useProgress((s) => latestProgress(s.items.data, 'episode', master));
   const series = useAsync(variant ? `series:${variant.streamId}` : null, () => api.catalog.seriesDetails(variant!.streamId));
-  if (!variant)
-    return (
-      <View style={styles.screen}>
-        <ErrorText>No playable versions.</ErrorText>
-      </View>
-    );
+  const resume = useMasterProgress(master, 'episode');
+  if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
 
   const first = series.data?.seasons[0]?.episodes[0];
   const canResume = resume?.seriesId === variant.streamId;
@@ -119,29 +144,44 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   };
 
   return (
-    <Layout backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
-      <Facts
-        year={master.year}
-        rating={master.rating}
-        quality={variant.quality}
-        extra={series.data ? `${series.data.seasons.length} Season${series.data.seasons.length === 1 ? '' : 's'}` : null}
-      />
-      <Text style={styles.plot} numberOfLines={3}>
-        {series.data?.summary.plot ?? ''}
-      </Text>
-      <View style={styles.actions}>
+    <>
+      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
         <FocusButton
           label={canResume ? `Resume S${resume!.seasonNumber}:E${resume!.episodeNumber}` : 'Play'}
+          icon="play"
           variant="primary"
           hasTVPreferredFocus
           disabled={!series.data}
           onPress={play}
           testID="details-play"
         />
-        <VariantPicker master={master} value={variant} />
-      </View>
-      {series.loading ? <Loading /> : null}
-      {series.error ? <ErrorText>{errorText(series.error)}</ErrorText> : null}
+      </DetailsHero>
+      <Body
+        main={
+          <>
+            <Facts
+              year={master.year}
+              rating={master.rating}
+              quality={variant.quality}
+              extra={series.data ? `${series.data.seasons.length} Season${series.data.seasons.length === 1 ? '' : 's'}` : null}
+            />
+            <Text style={styles.text}>{series.data?.summary.plot ?? ''}</Text>
+            <VariantSelect master={master} value={variant} />
+          </>
+        }
+        side={
+          <>
+            <Fact label="Cast" value={series.data?.cast} />
+            <Fact label="Genres" value={series.data?.summary.genre} />
+          </>
+        }
+      />
+      {series.loading ? <ActivityIndicator color={colors.accent} style={styles.padded} /> : null}
+      {series.error ? (
+        <View style={styles.padded}>
+          <ErrorText>{errorText(series.error)}</ErrorText>
+        </View>
+      ) : null}
       {series.data ? (
         <Episodes
           key={variant.streamId}
@@ -151,7 +191,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           initialSeason={canResume ? resume!.seasonNumber : null}
         />
       ) : null}
-    </Layout>
+    </>
   );
 }
 
@@ -164,47 +204,58 @@ function Episodes({
   series: SeriesDetails;
   master: MasterDetails;
   seriesId: string;
-  initialSeason: number | null;
+  initialSeason: number | null | undefined;
 }) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
-  if (!season) return null;
-  const context = { title: master.title, masterId: master.id, seriesId, posterUrl: master.posterUrl };
+  if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
+  const context = { title: master.title, masterId: master.id, seriesId, posterUrl: series.summary.posterUrl ?? master.posterUrl };
 
   return (
-    <View style={styles.episodes} testID="episodes">
-      <View style={styles.actions}>
-        {series.seasons.map((s) => (
-          <FocusButton
-            key={s.number}
-            label={s.name}
-            variant={s.number === season.number ? 'primary' : 'ghost'}
-            onPress={() => setSeasonNumber(s.number)}
+    <View style={styles.episodes} testID="episodes" accessibilityLabel="Episodes">
+      <View style={styles.episodesHeader}>
+        <Text style={styles.episodesTitle}>Episodes</Text>
+        {series.seasons.length > 1 ? (
+          <Select
+            compact
+            label="Season"
+            value={String(season.number)}
+            options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
+            onChange={(value) => setSeasonNumber(Number(value))}
+            testID="season-select"
           />
-        ))}
+        ) : (
+          <Text style={styles.muted}>{season.name}</Text>
+        )}
       </View>
       {season.episodes.map((episode) => {
         const target = episodeTarget(context, episode);
         const saved = findProgress(progress, 'episode', episode.id);
+        const play = () => navStore.getState().push({ name: 'player', target });
         return (
           <View key={episode.id} style={styles.episode}>
-            <FocusButton
-              label={`${episode.episodeNumber ?? '•'}. ${episode.title}`}
-              testID={`episode-${episode.id}`}
-              accessibilityLabel={`Play ${episode.title}`}
-              style={styles.episodeButton}
-              onPress={() => navStore.getState().push({ name: 'player', target })}
-            />
-            <Text style={styles.episodeMeta}>
-              {[
-                formatDuration(episode.durationSeconds),
-                saved && saved.durationSeconds > 0 ? `${Math.round((saved.positionSeconds / saved.durationSeconds) * 100)}% watched` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-            <DownloadButton target={target} />
+            <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>
+            <Pressable style={styles.still} onPress={play} accessibilityLabel={`Play ${episode.title}`} focusable={false}>
+              {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+              {saved && saved.durationSeconds > 0 ? (
+                <View style={styles.stillTrack}>
+                  <View
+                    style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
+                  />
+                </View>
+              ) : null}
+            </Pressable>
+            <View style={styles.episodeText}>
+              <Text style={styles.episodeTitle}>{episode.title}</Text>
+              <Text style={styles.episodePlot} numberOfLines={2}>
+                {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+            <View style={styles.episodeActions}>
+              <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
+              <DownloadButton target={target} />
+            </View>
           </View>
         );
       })}
@@ -212,47 +263,66 @@ function Episodes({
   );
 }
 
-/** "Version / Stream Quality": opens a list of variants (best first). */
-function VariantPicker({ master, value }: { master: MasterDetails; value: VariantInfo }) {
-  const [open, setOpen] = useState(false);
+/** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first. */
+function VariantSelect({ master, value }: { master: MasterDetails; value: VariantInfo }) {
   if (master.variants.length < 2) return null;
-  const choose = (streamId: string) => {
-    stores.library.getState().selectVariant(master.id, streamId);
-    setOpen(false);
-  };
   return (
-    <>
-      <FocusButton label={`Version: ${value.label}`} onPress={() => setOpen(true)} testID="variant-button" />
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <View style={styles.modalScrim}>
-          <View style={styles.modalPanel} accessibilityLabel="Version / Stream Quality">
-            <Text style={styles.modalTitle}>Version / Stream Quality</Text>
-            {master.variants.map((variant, index) => (
-              <FocusButton
-                key={variant.streamId}
-                label={`${variant.label}${index === 0 ? ' (best)' : ''}`}
-                hasTVPreferredFocus={variant.streamId === value.streamId}
-                variant={variant.streamId === value.streamId ? 'primary' : 'ghost'}
-                onPress={() => choose(variant.streamId)}
-              />
-            ))}
-          </View>
-        </View>
-      </Modal>
-    </>
+    <View style={styles.variant}>
+      <Text style={styles.variantLabel}>Version / Stream Quality</Text>
+      <Select
+        label="Version / Stream Quality"
+        value={value.streamId}
+        options={master.variants.map((variant, index) => ({
+          value: variant.streamId,
+          label: `${variant.label}${index === 0 ? ' (best)' : ''}`,
+        }))}
+        onChange={(streamId) => stores.library.getState().selectVariant(master.id, streamId)}
+        testID="variant-button"
+      />
+    </View>
   );
 }
 
-function Layout({ backdrop, title, children }: { backdrop: string | null | undefined; title: string; children: React.ReactNode }) {
+function DetailsHero({ backdrop, title, children }: { backdrop: string | null | undefined; title: string; children: ReactNode }) {
+  const { width } = useWindowDimensions();
+  const panel = Math.min(850, width - 32);
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} testID="details-screen">
-      {backdrop ? <Image source={{ uri: backdrop }} style={styles.backdrop} resizeMode="cover" /> : null}
-      <View style={styles.shade} />
-      <Text style={styles.title} accessibilityRole="header">
-        {title}
-      </Text>
-      {children}
-    </ScrollView>
+    <View style={[styles.hero, { height: Math.min(480, (panel * 9) / 16) }]}>
+      {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      <Gradient
+        stops={[
+          { offset: 0.5, color: colors.surface, opacity: 0 },
+          { offset: 1, color: colors.surface },
+        ]}
+      />
+      <View style={styles.heading}>
+        <Text style={[styles.title, { fontSize: fluid(width, 26, 4, 45) }]} accessibilityRole="header">
+          {title}
+        </Text>
+        <View style={styles.actions}>{children}</View>
+      </View>
+    </View>
+  );
+}
+
+function Body({ main, side }: { main: ReactNode; side: ReactNode }) {
+  const { width } = useWindowDimensions();
+  const twoColumns = Math.min(850, width - 32) >= 600;
+  return (
+    <View style={[styles.body, twoColumns && styles.bodyColumns]}>
+      <View style={twoColumns ? styles.mainColumn : undefined}>{main}</View>
+      <View style={[styles.side, twoColumns && styles.sideColumn]}>{side}</View>
+    </View>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <Text style={styles.sideText}>
+      {`${label}: `}
+      <Text style={styles.sideValue}>{value}</Text>
+    </Text>
   );
 }
 
@@ -260,17 +330,20 @@ function Facts({
   year,
   rating,
   quality,
+  runtime,
   extra,
 }: {
   year: number | null;
   rating: number | null | undefined;
   quality: string | null;
+  runtime?: number | null;
   extra?: string | null;
 }) {
   return (
     <View style={styles.facts}>
       {rating != null ? <Text style={styles.rating}>{Math.round(rating * 10)}% rating</Text> : null}
       {year ? <Text style={styles.fact}>{year}</Text> : null}
+      {runtime ? <Text style={styles.fact}>{formatDuration(runtime)}</Text> : null}
       {extra ? <Text style={styles.fact}>{extra}</Text> : null}
       {quality ? <Text style={styles.quality}>{quality}</Text> : null}
     </View>
@@ -278,22 +351,49 @@ function Facts({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: safe.horizontal, paddingTop: 120, paddingBottom: spacing.xl },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, height: 320, opacity: 0.6 },
-  shade: { position: 'absolute', top: 160, left: 0, right: 0, height: 160, backgroundColor: 'rgba(20,20,20,0.6)' },
-  title: { color: colors.strong, fontSize: fonts.hero, fontWeight: '900', marginBottom: spacing.sm },
-  facts: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', marginBottom: spacing.sm },
-  rating: { color: colors.success, fontWeight: '700', fontSize: fonts.body },
-  fact: { color: colors.text, fontSize: fonts.body },
-  quality: { color: colors.text, borderWidth: 1, borderColor: colors.muted, paddingHorizontal: 6, fontSize: fonts.small },
-  plot: { color: colors.text, fontSize: fonts.body, maxWidth: 620, marginBottom: spacing.md },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, alignItems: 'center', marginBottom: spacing.md },
-  episodes: { marginTop: spacing.md },
-  episode: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm },
-  episodeButton: { minWidth: 360 },
-  episodeMeta: { color: colors.muted, fontSize: fonts.small, flex: 1 },
-  modalScrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center' },
-  modalPanel: { backgroundColor: colors.surface, padding: spacing.xl, borderRadius: 8, gap: spacing.sm, minWidth: 360 },
-  modalTitle: { color: colors.strong, fontSize: fonts.heading, fontWeight: '700', marginBottom: spacing.sm },
+  overlay: { ...StyleSheet.absoluteFill, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)' },
+  scroll: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 },
+  panel: { overflow: 'hidden', borderRadius: 8, backgroundColor: colors.surface, elevation: 12 },
+  close: { position: 'absolute', top: 16, right: 16, zIndex: 3 },
+  loading: { padding: 64 },
+  padded: { padding: 32 },
+  hero: { width: '100%', backgroundColor: '#000' },
+  heading: { position: 'absolute', left: 32, right: 32, bottom: 24 },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 16 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
+  body: { paddingTop: 16, paddingHorizontal: 32, paddingBottom: 32, gap: 24 },
+  bodyColumns: { flexDirection: 'row' },
+  mainColumn: { flex: 2 },
+  side: { gap: 12 },
+  sideColumn: { flex: 1 },
+  sideText: { color: colors.muted, fontSize: 13.6 },
+  sideValue: { color: colors.text },
+  text: { color: colors.text, fontSize: fonts.body, lineHeight: 24 },
+  muted: { color: colors.muted, fontSize: fonts.body },
+  facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 12 },
+  rating: { color: colors.success, fontWeight: '700', fontSize: 14.4 },
+  fact: { color: colors.text, fontSize: 14.4 },
+  quality: { color: colors.text, borderWidth: 1, borderColor: colors.muted, borderRadius: 3, paddingHorizontal: 6, fontSize: fonts.tiny },
+  variant: { gap: 6, marginTop: 16 },
+  variantLabel: { color: colors.muted, fontSize: 12.8 },
+  episodes: { paddingHorizontal: 32, paddingBottom: 32 },
+  episodesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
+  episodesTitle: { color: colors.strong, fontSize: 22.4, fontWeight: '700' },
+  episode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    borderRadius: radius,
+  },
+  episodeNumber: { width: 32, color: colors.muted, fontSize: 22.4, textAlign: 'center' },
+  still: { width: 140, aspectRatio: 16 / 9, borderRadius: radius, overflow: 'hidden', backgroundColor: '#333' },
+  stillTrack: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
+  stillValue: { height: 3, backgroundColor: colors.accent },
+  episodeText: { flex: 1 },
+  episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
+  episodePlot: { color: colors.muted, fontSize: 13.6 },
+  episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
 });

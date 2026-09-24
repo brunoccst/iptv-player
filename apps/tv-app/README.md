@@ -2,15 +2,15 @@
 
 Android TV client. Expo SDK 57 + `react-native-tvos` 0.86 + TypeScript + local native module `tv-media` (Media3 ExoPlayer + DownloadManager). Output: `.apk`.
 
-Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
+Looks the same as the web app (shared design tokens and icons, [D-041](../../documentation/DECISIONS.md#d-041)). Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
 
 ```mermaid
 flowchart TD
   APP[App.tsx gate] -->|anonymous| LOGIN[LoginScreen]
   APP -->|no profile| PROFILES[ProfilesScreen]
-  APP -->|signed in| SHELL[Shell: SideRail + route]
-  SHELL --> HOME[Home] & BROWSE[Movies / Series] & LIVE[Live TV guide] & DL[Downloads] & DETAILS[Details]
-  BROWSE -->|row title| CATEGORY[Category grid]
+  APP -->|signed in| SHELL[Shell: TopNav + page]
+  SHELL --> HOME[Home] & BROWSE[Movies / Series + chips] & SEARCH[Search] & LIVE[Live TV guide] & DL[My Downloads]
+  SHELL --> DETAILS[Details panel]
   SHELL --> PLAYER[PlayerScreen]
   PLAYER --> VIEW[TvPlayerView - ExoPlayer]
   DETAILS --> STORE[downloadsStore] --> NATIVE[TvMedia - Media3 DownloadManager]

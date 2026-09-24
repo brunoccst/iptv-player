@@ -1,38 +1,7 @@
-/** Inline SVG icon set (24×24, currentColor). */
-const paths = {
-  play: 'M7 4v16l13-8z',
-  pause: 'M6 4h4v16H6zm8 0h4v16h-4z',
-  info: 'M11 10h2v7h-2zm0-4h2v2h-2zm1-4a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z',
-  close: 'M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z',
-  back: 'M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z',
-  chevronLeft: 'M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z',
-  chevronRight: 'M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z',
-  download: 'M12 16 6 10l1.4-1.4 3.6 3.6V3h2v9.2l3.6-3.6L18 10zm-7 3h14v2H5z',
-  check: 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
-  alert: 'M11 15h2v2h-2zm0-8h2v6h-2zm1-5a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
-  rewind10:
-    'M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8zm-1.1 11H10v-3.3L9 13v-.7l1.8-.6h.1zm4.3-1.8c0 .3 0 .6-.1.8l-.3.6-.4.3c-.2.1-.4.1-.6.1s-.4 0-.6-.1l-.4-.3-.3-.6-.1-.8v-.7c0-.3 0-.6.1-.8l.3-.6.4-.3c.2-.1.4-.1.6-.1s.4 0 .6.1l.4.3.3.6.1.8zm-.9-.8v-.5l-.1-.4-.2-.2h-.5l-.2.2-.1.4v1.5l.1.4.2.2h.5l.2-.2.1-.4z',
-  forward10:
-    'M4 13a8 8 0 1 0 8-8V1l5 5-5 5V7a6 6 0 1 1-6 6zm6.9 3H10v-3.3L9 13v-.7l1.8-.6h.1zm4.3-1.8c0 .3 0 .6-.1.8l-.3.6-.4.3c-.2.1-.4.1-.6.1s-.4 0-.6-.1l-.4-.3-.3-.6-.1-.8v-.7c0-.3 0-.6.1-.8l.3-.6.4-.3c.2-.1.4-.1.6-.1s.4 0 .6.1l.4.3.3.6.1.8zm-.9-.8v-.5l-.1-.4-.2-.2h-.5l-.2.2-.1.4v1.5l.1.4.2.2h.5l.2-.2.1-.4z',
-  volume: 'M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z',
-  mute: 'M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.5 2.5V12zm2.5 0c0 .9-.2 1.8-.5 2.6l1.5 1.5A9 9 0 0 0 14 3.2v2.1a7 7 0 0 1 5 6.7zM4.3 3 3 4.3 7.7 9H3v6h4l5 5v-6.7l4.3 4.3c-.7.5-1.4.9-2.3 1.2v2.1a9 9 0 0 0 3.7-1.8l2 2 1.3-1.3L12 12zM12 4 9.9 6.1 12 8.2z',
-  fullscreen: 'M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z',
-  exitFullscreen: 'M5 16h3v3h2v-5H5zm3-8H5v2h5V5H8zm6 11h2v-3h3v-2h-5zm2-11V5h-2v5h5V8z',
-  episodes: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4zm16-4H8a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-8 12.5v-9l6 4.5z',
-  subtitles:
-    'M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM4 12h4v2H4zm10 6H4v-2h10zm6 0h-4v-2h4zm0-4H10v-2h10z',
-  search: 'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z',
-  plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',
-  pencil: 'M3 17.3V21h3.8L17.8 9.9l-3.7-3.7zm17.7-10.2a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7z',
-  trash: 'M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z',
-  refresh: 'M17.7 6.3A8 8 0 1 0 19.7 14h-2.1a6 6 0 1 1-1.4-6.2L13 11h7V4z',
-  offline:
-    'M23.6 7A16.3 16.3 0 0 0 12 3c-1.3 0-2.5.2-3.7.4l10.5 10.5zM3.5 1.5 2 2.9l2.1 2.1A17 17 0 0 0 .4 7L12 21.5l3.9-4.9 3.3 3.3 1.4-1.4z',
-  logout:
-    'M10.1 15.6 11.5 17l5-5-5-5-1.4 1.4 2.6 2.6H3v2h9.7zM19 3H5a2 2 0 0 0-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z',
-} as const;
+/** Inline SVG icon (24×24, currentColor); paths shared with the TV app. */
+import { iconPaths as paths, type IconName } from '@iptv/shared';
 
-export type IconName = keyof typeof paths;
+export type { IconName };
 
 export function Icon({ name, size = 24, title }: { name: IconName; size?: number; title?: string }) {
   return (

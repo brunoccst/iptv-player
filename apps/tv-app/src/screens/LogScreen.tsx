@@ -4,7 +4,7 @@ import { appLog } from '@iptv/shared';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { FocusButton } from '../components/FocusButton';
-import { colors, fonts, safe, spacing } from '../theme';
+import { colors, fonts, navHeight, useSizes } from '../theme';
 
 const PREVIEW_LINES = 150;
 
@@ -12,6 +12,7 @@ const PREVIEW_LINES = 150;
 export function LogScreen() {
   const [, refresh] = useState(0);
   const entries = appLog.entries();
+  const sizes = useSizes();
 
   const share = () => {
     const connection = stores.connection?.getState();
@@ -25,13 +26,18 @@ export function LogScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} testID="log-screen">
-      <Text style={styles.title}>Log</Text>
+    <ScrollView
+      style={styles.screen}
+      testID="log-screen"
+      contentContainerStyle={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
+    >
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Log</Text>
       <Text style={styles.hint}>Share this with support when something goes wrong. Usernames and passwords are hidden.</Text>
       <View style={styles.actions}>
         <FocusButton label="Share log" variant="primary" hasTVPreferredFocus onPress={share} testID="log-share" />
         <FocusButton
           label="Clear log"
+          variant="ghost"
           onPress={() => {
             appLog.clear();
             refresh((n) => n + 1);
@@ -53,10 +59,10 @@ export function LogScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, paddingTop: safe.vertical, paddingHorizontal: safe.horizontal },
-  title: { color: colors.strong, fontSize: fonts.title, fontWeight: '700', marginBottom: spacing.sm },
-  hint: { color: colors.muted, fontSize: fonts.small, marginBottom: spacing.md },
-  actions: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
+  hint: { color: colors.muted, fontSize: fonts.body, marginBottom: 16 },
+  actions: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   line: { color: colors.text, fontSize: fonts.small, fontFamily: 'monospace', marginBottom: 2 },
   warn: { color: '#e5b400' },
   error: { color: '#ff6b6b' },

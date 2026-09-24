@@ -33,6 +33,7 @@ export function usePagedLibrary(section: LibrarySection, filter: { categoryId?: 
     loadingMore: pages > 1 && loading,
     done: resources[0]?.status === 'success' && items.length >= total,
     error: last?.status === 'error' ? last.error : null,
+    hasMore: items.length < total,
     loadMore: () => {
       if (!loading && items.length < total) setPages((count) => count + 1);
     },
