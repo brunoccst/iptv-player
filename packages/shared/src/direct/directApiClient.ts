@@ -20,6 +20,7 @@ import type {
   ProgressRequest,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
+import { appLog, errorMessage } from '../utils/logger';
 import { buildMastersInChunks, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -55,12 +56,18 @@ interface StoredLibrary {
   series: Master[];
 }
 
+interface StoredKind {
+  builtAt: string;
+  masters: Master[];
+}
+
 type LibraryKind = 'movie' | 'series';
 
 const CREDENTIALS_KEY = 'direct.credentials';
 const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
 const progressKey = (profileId: string) => `direct.progress.${profileId}`;
-const libraryKey = (accountId: string) => `direct.library.${accountId}`;
+/** One file per kind: a finished kind never rewrites the other, and each file stays half the size. */
+const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.${accountId}.${kind}`;
 
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
@@ -88,16 +95,35 @@ const randomUuid = () =>
     return (char === 'x' ? value : (value & 0x3) | 0x8).toString(16);
   });
 
-async function readJson<T>(storage: KeyValueStorage, key: string): Promise<T | null> {
+/** Reads and parses a stored value; `null` when missing or broken. Library reads are logged (size, time, errors). */
+async function readJson<T>(storage: KeyValueStorage, key: string, logged = false): Promise<T | null> {
+  const started = Date.now();
   try {
     const text = await storage.getItem(key);
-    return text ? (JSON.parse(text) as T) : null;
-  } catch {
+    if (!text) {
+      if (logged) appLog.info('storage', `${key}: nothing saved`);
+      return null;
+    }
+    const value = JSON.parse(text) as T;
+    if (logged) appLog.info('storage', `${key}: read ${text.length} chars in ${Date.now() - started} ms`);
+    return value;
+  } catch (error) {
+    appLog.error('storage', `${key}: read failed after ${Date.now() - started} ms: ${errorMessage(error)}`);
     return null;
   }
 }
 
-const writeJson = async (storage: KeyValueStorage, key: string, value: unknown) => storage.setItem(key, JSON.stringify(value));
+async function writeJson(storage: KeyValueStorage, key: string, value: unknown, logged = false): Promise<void> {
+  const started = Date.now();
+  try {
+    const text = JSON.stringify(value);
+    await storage.setItem(key, text);
+    if (logged) appLog.info('storage', `${key}: wrote ${text.length} chars in ${Date.now() - started} ms`);
+  } catch (error) {
+    appLog.error('storage', `${key}: write failed after ${Date.now() - started} ms: ${errorMessage(error)}`);
+    throw error;
+  }
+}
 
 export function createDirectApiClient(options: DirectApiClientOptions): ApiClient {
   const now = options.now ?? (() => new Date());
@@ -176,6 +202,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
       const accountId = stored.account.id;
       await loadLibrary();
       const queuedAt = now().toISOString();
+      appLog.info('library', `sync started (saved copy: ${library.data ? `built ${library.data.builtAt}` : 'none'})`);
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       const current = () => credentials?.account.id === accountId;
@@ -187,17 +214,26 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
       for (const promise of Object.values(downloads)) promise.catch(() => undefined);
       for (const kind of ['movie', 'series'] as const) {
         try {
+          const downloadStarted = Date.now();
           const items = await downloads[kind];
+          appLog.info(
+            'library',
+            `${kind}: ${items.length} items downloaded (${Math.round((Date.now() - downloadStarted) / 1000)} s after ${kind === 'movie' ? 'start' : 'movies'})`,
+          );
+          const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
           const masters = await buildMastersInChunks(accountId, kind, items, {
             onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
           });
+          appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms`);
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
-          await writeJson(options.dataStorage, libraryKey(accountId), library.data).catch(() => undefined);
+          const saved: StoredKind = { builtAt: queuedAt, masters };
+          await writeJson(options.dataStorage, libraryKey(accountId, kind), saved, true).catch(() => undefined);
           library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
         } catch (error) {
+          appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
           library.status[kind] = {
             ...library.status[kind],
             jobStatus: 'failed',
@@ -223,7 +259,18 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     const accountId = stored.account.id;
     if (library.accountId === accountId) return library.data;
     if (loading?.accountId !== accountId) {
-      const promise = readJson<StoredLibrary>(options.dataStorage, libraryKey(accountId)).then((data) => {
+      const promise = Promise.all(
+        (['movie', 'series'] as const).map((kind) => readJson<StoredKind>(options.dataStorage, libraryKey(accountId, kind), true)),
+      ).then(([movie, series]) => {
+        // A missing kind counts as very old, so the background refresh fills it in; the other kind still shows.
+        const data: StoredLibrary | null =
+          movie || series
+            ? {
+                builtAt: !movie || !series ? new Date(0).toISOString() : movie.builtAt < series.builtAt ? movie.builtAt : series.builtAt,
+                movie: movie?.masters ?? [],
+                series: series?.masters ?? [],
+              }
+            : null;
         if (credentials?.account.id === accountId && library.accountId !== accountId) {
           library.accountId = accountId;
           library.data = data;

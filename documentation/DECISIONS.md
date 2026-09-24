@@ -789,3 +789,15 @@ Why not drop the backend: it still serves the web app, cross-device sync and hea
 
 Storage on TV: credentials in expo-secure-store; profiles, progress and the library cache in app-private JSON files (`expo-file-system`), because secure storage is meant for small values. The native player and downloads send the provider User-Agent (`BACKEND_PROVIDER_USER_AGENT`), saved natively so downloads resumed after a restart use it. Known limits: KI-034 – KI-036.
 
+## D-039
+
+**On-device diagnostics log with manual sharing** — 2026-09-24 (requested by owner: export the log for analysis)
+
+Decision: a shared ring buffer (`appLog`, 600 lines) records provider requests, library save/load, player sources and native errors, and uncaught errors. It is saved in app storage across restarts. The TV **Log** screen shares it through the Android share sheet.
+
+- Usernames and passwords are masked when a line is recorded (query strings and `/movie|series|live/<user>/<pass>/` paths), so a shared log never contains them.
+- Nothing leaves the device unless the user taps **Share log**; there is no remote logging service.
+- The native player now reports the underlying cause (HTTP status, connection error) with ExoPlayer's generic "Source error", both on screen and in the log.
+
+Why not a crash/analytics service: it needs an account, sends data off the device by default and would still miss the provider-side causes this log records.
+

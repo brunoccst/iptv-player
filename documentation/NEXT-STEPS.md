@@ -41,7 +41,7 @@ flowchart LR
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
 - **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
-- **TV profile editing** (KI-027) and on-screen search.
+- **TV profile editing** (KI-027).
 - **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
 - **Sign the release APK** with a real keystore (CI secret) for sideloading updates over the debug-signed build.
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).

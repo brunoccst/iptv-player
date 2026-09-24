@@ -12,6 +12,7 @@ import type {
   SeriesDetails,
   SeriesSummary,
 } from '../api/types';
+import { appLog } from '../utils/logger';
 import { decodeMaybeBase64 } from './base64Text';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 
@@ -81,6 +82,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
   const getJson = async (action: string | null, parameters: Record<string, string> = {}, signal?: AbortSignal): Promise<Json> => {
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const operation = action ?? 'login';
+    const started = Date.now();
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -98,17 +100,24 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       });
     } catch (error) {
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
-      if (timedOut) throw unavailable(`No answer from ${host()} after ${Math.round(timeoutMs / 1000)} s.`);
-      throw unavailable(`Could not connect to ${host()} (${error instanceof Error ? error.message : 'network error'}).`);
+      const failure = timedOut
+        ? unavailable(`No answer from ${host()} after ${Math.round(timeoutMs / 1000)} s.`)
+        : unavailable(`Could not connect to ${host()} (${error instanceof Error ? error.message : 'network error'}).`);
+      appLog.error('provider', `${operation}: ${failure.message}`);
+      throw failure;
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
     }
     if (response.status === 401 || response.status === 403)
       throw new ApiError(502, 'provider_credentials_rejected', 'Provider rejected the credentials.');
-    if (!response.ok) throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
+    if (!response.ok) {
+      appLog.error('provider', `${operation}: HTTP ${response.status} from ${host()} after ${Date.now() - started} ms`);
+      throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
+    }
     // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects (the backend's parser skips it).
     const text = await response.text().catch(() => '');
+    appLog.info('provider', `${operation}: HTTP ${response.status}, ${text.length} chars in ${Date.now() - started} ms`);
     try {
       return JSON.parse(text.replace(/^\uFEFF/, '').trim()) as Json;
     } catch {

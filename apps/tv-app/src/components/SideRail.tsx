@@ -9,10 +9,12 @@ import { colors, fonts, safe, spacing } from '../theme';
 
 const ITEMS: { section: Section; label: string }[] = [
   { section: 'home', label: 'Home' },
+  { section: 'search', label: 'Search' },
   { section: 'series', label: 'Series' },
   { section: 'movies', label: 'Movies' },
   { section: 'live', label: 'Live TV' },
   { section: 'downloads', label: 'Downloads' },
+  { section: 'log', label: 'Log' },
 ];
 
 const COLLAPSED_KEY = 'ui.railCollapsed';

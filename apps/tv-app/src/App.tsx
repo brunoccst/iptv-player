@@ -13,6 +13,8 @@ import { DetailsScreen } from './screens/DetailsScreen';
 import { DownloadsScreen } from './screens/DownloadsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LiveScreen } from './screens/LiveScreen';
+import { LogScreen } from './screens/LogScreen';
+import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { colors } from './theme';
@@ -72,6 +74,10 @@ function Shell() {
           <HomeScreen key={`home-${revision}`} processing={processing} />
         ) : route.section === 'movies' || route.section === 'series' ? (
           <BrowseScreen key={`${route.section}-${revision}`} section={route.section} />
+        ) : route.section === 'search' ? (
+          <SearchScreen />
+        ) : route.section === 'log' ? (
+          <LogScreen />
         ) : route.section === 'live' ? (
           <LiveScreen />
         ) : (

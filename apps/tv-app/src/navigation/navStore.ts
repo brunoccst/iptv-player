@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import type { LibrarySection, PlayTarget } from '@iptv/shared';
 
-export type Section = 'home' | 'movies' | 'series' | 'live' | 'downloads';
+export type Section = 'home' | 'search' | 'movies' | 'series' | 'live' | 'downloads' | 'log';
 
 export type Route =
   | { name: 'section'; section: Section }

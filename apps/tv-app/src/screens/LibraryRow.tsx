@@ -7,16 +7,26 @@ import { useLibrary } from '../hooks';
 
 const ROW_SIZE = 30;
 
-/** One row of deduplicated titles (optionally filtered by category). Hidden when empty. */
-export function LibraryRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
-  const query = { categoryId: category?.id ?? null, limit: ROW_SIZE };
+/** One row of deduplicated titles (optionally filtered by category or a search term). Hidden when empty. */
+export function LibraryRow({
+  section,
+  category,
+  search,
+  title,
+}: {
+  section: LibrarySection;
+  category?: MediaCategory;
+  search?: string;
+  title: string;
+}) {
+  const query = { categoryId: category?.id ?? null, search: search || null, limit: ROW_SIZE };
   const page = useLibrary((s) => s.pages[pageKey(section, query)]);
 
   useEffect(() => {
     void stores.library.getState().loadPage(section, query);
-    // query is derived from section + category id only.
+    // query is derived from section + category id + search only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, category?.id]);
+  }, [section, category?.id, search]);
 
   const items = page?.data?.items ?? [];
   if (page?.status === 'success' && items.length === 0) return null;
@@ -26,7 +36,7 @@ export function LibraryRow({ section, category, title }: { section: LibrarySecti
       title={title}
       items={items}
       keyOf={(item) => item.id}
-      testID={`row-${section}-${category?.id ?? 'all'}`}
+      testID={`row-${section}-${search ? 'search' : (category?.id ?? 'all')}`}
       render={(item) => (
         <PosterCard
           title={item.title}

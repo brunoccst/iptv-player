@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
+  appLog,
+  errorMessage,
   NEXT_UP_COUNTDOWN_SECONDS,
   RemoteSeekController,
   SKIP_SECONDS,
@@ -80,12 +82,21 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     const plan = tvPlaybackAttempts(target.kind, target.container);
     const step = plan[offline?.state === 'completed' ? attempt - 1 : attempt];
     if (!step) {
+      appLog.error('player', `no playable source left for ${target.kind} ${target.streamId}`);
       setError('This stream could not be played. The provider may be offline.');
       return;
     }
     api.playback.get(target.kind, target.streamId, step.container).then(
-      (info) => !cancelled && setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs }),
-      () => !cancelled && setAttempt((a) => a + 1),
+      (info) => {
+        if (cancelled) return;
+        appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode})`);
+        setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs });
+      },
+      (error) => {
+        if (cancelled) return;
+        appLog.warn('player', `attempt ${attempt + 1}: no URL for ${step.container}: ${errorMessage(error)}`);
+        setAttempt((a) => a + 1);
+      },
     );
     return () => {
       cancelled = true;
@@ -239,11 +250,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (next && !nextDismissed) playNext();
         }}
         onError={(e) => {
+          const { message, code, detail } = e.nativeEvent;
+          appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
           // A failed stream (not a download) moves on to the next attempt.
           if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
             setReady(false);
             setAttempt((a) => a + 1);
-          } else setError(e.nativeEvent.message);
+          } else setError(detail ? `${message} (${detail})` : message);
         }}
       />
 
