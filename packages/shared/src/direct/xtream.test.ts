@@ -187,6 +187,31 @@ describe('createXtreamClient', () => {
   });
 });
 
+describe('provider replies', () => {
+  const reply = (body: string, status = 200) => (async () => new Response(body, { status })) as unknown as typeof globalThis.fetch;
+
+  it('accepts JSON with a byte-order mark or padding', async () => {
+    const body = '\uFEFF  {"user_info":{"auth":1,"status":"Active"}}\n';
+    expect(await createXtreamClient(credentials, { fetch: reply(body) }).validate()).toMatchObject({ status: 'Active' });
+  });
+
+  it('explains what went wrong', async () => {
+    await expect(createXtreamClient(credentials, { fetch: reply('<html>Blocked by firewall</html>') }).validate()).rejects.toThrow(
+      `panel.test:8080 sent a reply that is not JSON for 'login': "<html>Blocked by firewall</html>".`,
+    );
+    await expect(createXtreamClient(credentials, { fetch: reply('', 512) }).validate()).rejects.toThrow(
+      'panel.test:8080 answered HTTP 512',
+    );
+    const hang = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) =>
+        init?.signal?.addEventListener('abort', () => reject(new Error('Aborted'))),
+      )) as unknown as typeof globalThis.fetch;
+    await expect(createXtreamClient(credentials, { fetch: hang, timeoutMs: 10 }).validate()).rejects.toThrow(
+      'No answer from panel.test:8080 after 0 s.',
+    );
+  });
+});
+
 describe('decodeMaybeBase64', () => {
   it.each([
     ['TmV3cw==', 'News'],

@@ -62,6 +62,14 @@ const unavailable = (message: string) => new ApiError(502, 'provider_unavailable
 export function createXtreamClient(credentials: XtreamCredentials, options: XtreamClientOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 30_000;
 
+  const host = () => {
+    try {
+      return new URL(credentials.serverUrl).host;
+    } catch {
+      return 'the provider';
+    }
+  };
+
   const buildUrl = (file: string, query: Record<string, string>) => {
     const all = { username: credentials.username, password: credentials.password, ...query };
     const search = Object.entries(all)
@@ -74,7 +82,11 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const operation = action ?? 'login';
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
     const onAbort = () => controller.abort();
     signal?.addEventListener('abort', onAbort);
     let response: Response;
@@ -86,18 +98,22 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       });
     } catch (error) {
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
-      throw unavailable(`Could not reach the provider (${error instanceof Error ? error.message : 'network error'}).`);
+      if (timedOut) throw unavailable(`No answer from ${host()} after ${Math.round(timeoutMs / 1000)} s.`);
+      throw unavailable(`Could not connect to ${host()} (${error instanceof Error ? error.message : 'network error'}).`);
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
     }
     if (response.status === 401 || response.status === 403)
       throw new ApiError(502, 'provider_credentials_rejected', 'Provider rejected the credentials.');
-    if (!response.ok) throw unavailable(`Provider returned HTTP ${response.status} for '${operation}'.`);
+    if (!response.ok) throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
+    // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects (the backend's parser skips it).
+    const text = await response.text().catch(() => '');
     try {
-      return (await response.json()) as Json;
+      return JSON.parse(text.replace(/^\uFEFF/, '').trim()) as Json;
     } catch {
-      throw unavailable(`Provider returned invalid JSON for '${operation}'.`);
+      const preview = text.replace(/\s+/g, ' ').trim().slice(0, 60);
+      throw unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`);
     }
   };
 
