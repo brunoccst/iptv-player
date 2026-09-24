@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { downloadsStore, navStore } from '../appContext';
 import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
@@ -19,21 +19,18 @@ export function DownloadsScreen() {
   }, []);
 
   return (
-    <FlatList
+    // A plain ScrollView: the list is short, and on the Android TV emulator FlatList rows exposed only their buttons.
+    <ScrollView
       style={styles.screen}
       testID="downloads-screen"
-      removeClippedSubviews={false}
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
-      ListHeaderComponent={
-        <>
-          <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>
-          {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
-        </>
-      }
-      data={records}
-      keyExtractor={(r) => r.id}
-      renderItem={({ item, index }) => <DownloadItem record={item} first={index === 0} />}
-    />
+    >
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>
+      {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
+      {records.map((record, index) => (
+        <DownloadItem key={record.id} record={record} first={index === 0} />
+      ))}
+    </ScrollView>
   );
 }
 

@@ -272,6 +272,6 @@ The guide uses the provider's short EPG (up to 12 programmes per channel), so it
 
 ## KI-037
 
-**TV Home is not virtualized** — logged 2026-09-24
+**TV Home and My Downloads avoid FlatList** — logged 2026-09-24
 
-On Android TV, Home renders every row in a plain ScrollView. The virtualized FlatList used on phones never scrolled on the Android TV emulator, by D-pad or by swipe; the cause is unknown. Home has at most 13 rows, each loading its first 30 titles when Home opens.
+On Android TV, Home and My Downloads render in a plain ScrollView. On the Android TV emulator, FlatList screens never scrolled (by D-pad or swipe), and their rows showed only buttons to UI automation (no text); the cause is unknown. Home has at most 13 rows, each loading its first 30 titles when Home opens. Phones keep the virtualized Home. The Movies/Series grids and horizontal rows still use FlatList.
