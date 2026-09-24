@@ -24,9 +24,9 @@ flowchart TD
 |-----|----------|--------|
 | D-pad | Move focus (Android focus search) | ←/→ tap: ±10 s with circle animation · hold: accelerating scrub (×1 → ×64), seek on release |
 | ↑ / ↓ | Move focus | Open quick drawer: Audio, Subtitles, Versions, Episodes |
-| Select | Activate | Play / pause (or press Skip Intro / Play Now when shown) |
+| Select | Activate | Play / pause (or press Skip ahead / Play Now when shown) |
 | Play/Pause, ⏪, ⏩ | – | Play/pause, −10 s, +10 s |
-| Back | Previous screen | Close drawer, then leave player |
+| Back | Previous screen | Close drawer or skip options, then leave player |
 
 ## Config
 

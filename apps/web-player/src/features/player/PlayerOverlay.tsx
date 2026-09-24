@@ -6,8 +6,11 @@ import {
   clampTime,
   findProgress,
   formatClock,
-  introWindow,
-  isInIntro,
+  isInSkipAheadWindow,
+  skipAheadDescription,
+  skipAheadLabel,
+  skipAheadWindow,
+  SKIP_AHEAD_OPTIONS,
   nextEpisode,
   nextUpCountdown,
   resumePosition,
@@ -51,6 +54,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
   const [panel, setPanel] = useState<'tracks' | 'episodes' | null>(null);
+  // "Skip ahead" options (30 s … 3 min) open under the button; the button or Escape closes them.
+  const [skipOpen, setSkipOpen] = useState(false);
   const [nextDismissed, setNextDismissed] = useState(false);
   const [flash, setFlash] = useState<{ side: 'back' | 'forward'; key: number } | null>(null);
   const [, setTracksVersion] = useState(0);
@@ -225,7 +230,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             toggleFullscreen();
             return true;
           case 'Escape':
-            if (panel) setPanel(null);
+            if (skipOpen) setSkipOpen(false);
+            else if (panel) setPanel(null);
             else if (!document.fullscreenElement) close();
             return true;
           default:
@@ -239,7 +245,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [togglePlay, skip, toggleFullscreen, close, isLive, panel]);
+  }, [togglePlay, skip, toggleFullscreen, close, isLive, panel, skipOpen]);
 
   useEffect(() => {
     const onChange = () => setFullscreen(!!document.fullscreenElement);
@@ -262,7 +268,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     return previewRef.current;
   }, [source, isLive]);
 
-  const intro = introWindow(target.kind, duration);
+  const skipWindow = skipAheadWindow(target.kind, duration);
   const countdown = nextDismissed ? null : nextUpCountdown(time, duration, !!next);
 
   return (
@@ -413,10 +419,36 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         </div>
       ) : null}
 
-      {status === 'ready' && isInIntro(intro, time) && intro ? (
-        <button type="button" className="player__skip-intro" onClick={() => seekTo(intro.end)}>
-          Skip Intro
-        </button>
+      {status === 'ready' && (skipOpen || isInSkipAheadWindow(skipWindow, time)) ? (
+        <div className="player__skip-ahead">
+          {skipOpen ? (
+            <div className="player__skip-options" role="group" aria-label="Skip ahead by">
+              {SKIP_AHEAD_OPTIONS.map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  className="player__skip-button"
+                  aria-label={skipAheadDescription(seconds)}
+                  onClick={() => {
+                    setSkipOpen(false);
+                    seekTo((videoRef.current?.currentTime ?? time) + seconds);
+                  }}
+                >
+                  {skipAheadLabel(seconds)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className="player__skip-button"
+            aria-expanded={skipOpen}
+            aria-label={skipOpen ? 'Close skip options' : 'Skip ahead: choose how far'}
+            onClick={() => setSkipOpen(!skipOpen)}
+          >
+            <Icon name={skipOpen ? 'close' : 'forward10'} size={20} /> Skip ahead
+          </button>
+        </div>
       ) : null}
 
       {status === 'ready' && countdown !== null && next ? (

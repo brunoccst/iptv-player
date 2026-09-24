@@ -12,8 +12,11 @@ import {
   episodeTarget,
   findProgress,
   formatClock,
-  introWindow,
-  isInIntro,
+  isInSkipAheadWindow,
+  skipAheadDescription,
+  skipAheadLabel,
+  skipAheadWindow,
+  SKIP_AHEAD_OPTIONS,
   nextEpisode,
   nextUpCountdown,
   resumePosition,
@@ -186,10 +189,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     });
   }, [next, target, saveProgress]);
 
-  const intro = introWindow(target.kind, duration);
-  const showSkipIntro = ready && isInIntro(intro, time);
+  // "Skip ahead": early in an episode; opens into 30 s … 3 min. Stays up while its options are open.
+  const skipWindow = skipAheadWindow(target.kind, duration);
+  const [skipOpen, setSkipOpen] = useState(false);
+  const showSkipAhead = ready && !error && (skipOpen || isInSkipAheadWindow(skipWindow, time));
   const countdown = nextDismissed ? null : nextUpCountdown(time, duration, !!next);
-  const focusablesVisible = showSkipIntro || countdown !== null;
+  const focusablesVisible = showSkipAhead || countdown !== null;
 
   useRemote(({ key, action }) => {
     if (drawer || error) return;
@@ -215,15 +220,16 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
   });
 
-  // Back: close the drawer first (registered after the shell's handler, so it runs first).
+  // Back: close the drawer or the skip options first (registered after the shell's handler, so it runs first).
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!drawer) return false;
-      setDrawer(false);
+      if (drawer) setDrawer(false);
+      else if (skipOpen) setSkipOpen(false);
+      else return false;
       return true;
     });
     return () => subscription.remove();
-  }, [drawer]);
+  }, [drawer, skipOpen]);
 
   const switchVariant = (variant: VariantInfo) => {
     saveProgress();
@@ -410,9 +416,33 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
-      {showSkipIntro && intro ? (
-        <View style={[styles.corner, { right: sizes.gutter }]}>
-          <FocusButton label="Skip Intro" hasTVPreferredFocus onPress={() => seekTo(intro.end)} testID="skip-intro" />
+      {showSkipAhead ? (
+        <View style={[styles.corner, { right: sizes.gutter }]} testID="skip-ahead-panel">
+          {skipOpen ? (
+            <View style={styles.skipOptions} accessibilityLabel="Skip ahead by">
+              {SKIP_AHEAD_OPTIONS.map((seconds, index) => (
+                <FocusButton
+                  key={seconds}
+                  label={skipAheadLabel(seconds)}
+                  accessibilityLabel={skipAheadDescription(seconds)}
+                  hasTVPreferredFocus={index === 0}
+                  testID={`skip-ahead-${seconds}`}
+                  onPress={() => {
+                    setSkipOpen(false);
+                    seekTo(timeRef.current + seconds);
+                  }}
+                />
+              ))}
+            </View>
+          ) : null}
+          <FocusButton
+            label="Skip ahead"
+            icon={skipOpen ? 'close' : 'forward10'}
+            accessibilityLabel={skipOpen ? 'Close skip options' : 'Skip ahead: choose how far'}
+            hasTVPreferredFocus={!skipOpen}
+            onPress={() => setSkipOpen((open) => !open)}
+            testID="skip-ahead"
+          />
         </View>
       ) : null}
 
@@ -483,7 +513,8 @@ const styles = StyleSheet.create({
   controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   time: { color: colors.strong, fontSize: 14.4, fontVariant: ['tabular-nums'] },
   spacer: { flex: 1 },
-  corner: { position: 'absolute', bottom: 120 },
+  corner: { position: 'absolute', bottom: 120, alignItems: 'flex-end', gap: 8 },
+  skipOptions: { flexDirection: 'row', gap: 8 },
   nextUp: {
     position: 'absolute',
     bottom: 120,

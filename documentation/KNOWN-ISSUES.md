@@ -22,7 +22,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-016](#ki-016) | Limitation | backend | Open |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
 | [KI-018](#ki-018) | Tech debt | shared + backend | Resolved |
-| [KI-019](#ki-019) | Limitation | players | Open |
+| [KI-019](#ki-019) | Limitation | players | Resolved |
 | [KI-020](#ki-020) | Risk | web-player | Open |
 | [KI-021](#ki-021) | Limitation | web-player | Open |
 | [KI-022](#ki-022) | Limitation | web-player | Open |
@@ -157,9 +157,11 @@ After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm r
 
 ## KI-019
 
-**Skip Intro uses a fixed window** — logged 2026-09-23
+**Skip Intro uses a fixed window** — logged 2026-09-23 · resolved 2026-09-24
 
 Providers supply no intro markers. The button shows on episodes ≥ 10 min between 5 s and 90 s and jumps to 90 s. Wrong for shows with cold opens or long intros. Fix options: per-series markers learned from user skips, or audio fingerprinting across episodes.
+
+Resolved 2026-09-24 without detection (D-042): the button is now "Skip ahead" and the viewer picks 30 s, 1, 2 or 3 min, so it no longer claims to know where the intro ends.
 
 ## KI-020
 

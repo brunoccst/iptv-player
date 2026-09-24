@@ -212,10 +212,24 @@
 }
 
 /* Skip + next up */
-.player__skip-intro {
+.player__skip-ahead {
   position: absolute;
   right: var(--gutter);
   bottom: 120px;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.player__skip-options {
+  display: flex;
+  gap: 8px;
+}
+
+.player__skip-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px 24px;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--radius);
@@ -224,7 +238,7 @@
   font-weight: 700;
 }
 
-.player__skip-intro:hover {
+.player__skip-button:hover {
   background: var(--color-text-strong);
   color: #000;
 }

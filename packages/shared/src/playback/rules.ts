@@ -10,8 +10,13 @@ export const MIN_RESUME_SECONDS = 30;
 export const COMPLETED_RATIO = 0.95;
 export const COMPLETED_REMAINING_SECONDS = 120;
 
-/** Heuristic intro window for episodes; providers give no markers. See DECISIONS.md#d-023. */
-export const INTRO_WINDOW = { start: 5, end: 90, minDuration: 600 } as const;
+/**
+ * "Skip ahead" button: shown early in episodes (where intros usually are), no intro detection.
+ * Providers give no intro markers and the backend does no processing. See DECISIONS.md#d-042.
+ */
+export const SKIP_AHEAD_WINDOW = { start: 5, end: 90, minDuration: 600 } as const;
+/** Choices the "Skip ahead" button expands into, in seconds. */
+export const SKIP_AHEAD_OPTIONS = [30, 60, 120, 180] as const;
 
 export function isCompleted(positionSeconds: number, durationSeconds: number): boolean {
   if (!(durationSeconds > 0)) return false;
@@ -45,18 +50,25 @@ export function clampTime(seconds: number, durationSeconds: number): number {
   return Math.min(Math.max(0, seconds), max);
 }
 
-export interface IntroWindow {
+export interface SkipAheadWindow {
   start: number;
   end: number;
 }
 
-/** Intro window for an episode of at least 10 minutes, else null. Movies and live never get one. */
-export function introWindow(kind: 'live' | 'movie' | 'episode', durationSeconds: number): IntroWindow | null {
-  if (kind !== 'episode' || !(durationSeconds >= INTRO_WINDOW.minDuration)) return null;
-  return { start: INTRO_WINDOW.start, end: INTRO_WINDOW.end };
+/** When the "Skip ahead" button shows: episodes of at least 10 minutes, 5–90 s in. Movies and live never. */
+export function skipAheadWindow(kind: 'live' | 'movie' | 'episode', durationSeconds: number): SkipAheadWindow | null {
+  if (kind !== 'episode' || !(durationSeconds >= SKIP_AHEAD_WINDOW.minDuration)) return null;
+  return { start: SKIP_AHEAD_WINDOW.start, end: SKIP_AHEAD_WINDOW.end };
 }
 
-export const isInIntro = (window: IntroWindow | null, time: number) => !!window && time >= window.start && time < window.end;
+export const isInSkipAheadWindow = (window: SkipAheadWindow | null, time: number) => !!window && time >= window.start && time < window.end;
+
+/** "30 s", "1 min", "2 min" … for the option buttons. */
+export const skipAheadLabel = (seconds: number) => (seconds < 60 ? `${seconds} s` : `${seconds / 60} min`);
+
+/** Spoken label: "Skip ahead 30 seconds", "Skip ahead 1 minute". */
+export const skipAheadDescription = (seconds: number) =>
+  seconds < 60 ? `Skip ahead ${seconds} seconds` : `Skip ahead ${seconds / 60} minute${seconds === 60 ? '' : 's'}`;
 
 /** Seconds left on the next-up countdown, or null when the overlay should be hidden. */
 export function nextUpCountdown(currentTime: number, durationSeconds: number, hasNext: boolean): number | null {
