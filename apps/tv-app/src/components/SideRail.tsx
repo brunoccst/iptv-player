@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
 import { selectActiveProfile } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { fileStorage } from '../dataStorage';
@@ -18,6 +18,14 @@ const ITEMS: { section: Section; label: string }[] = [
 ];
 
 const COLLAPSED_KEY = 'ui.railCollapsed';
+
+/** Asks first: signing out needs the provider password again. Downloads and the saved library stay on the device. */
+export function confirmSignOut() {
+  Alert.alert('Sign out?', 'You will need your provider login to sign in again. Downloads stay on this device.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Sign out', style: 'destructive', onPress: () => void stores.session.getState().logout() },
+  ]);
+}
 
 /** Left navigation rail. ☰ collapses it to a narrow strip (choice remembered). `autoFocus` guide returns focus to the last item. */
 export function SideRail() {
@@ -48,18 +56,22 @@ export function SideRail() {
 
   return (
     <TVFocusGuideView autoFocus style={styles.rail} accessibilityLabel="Main menu">
-      <RailItem label="☰" accessibilityLabel="Hide menu" onPress={toggle} testID="rail-toggle" />
-      <RailItem label={profile?.name ?? 'Profile'} onPress={() => stores.session.getState().selectProfile(null)} testID="rail-profile" />
-      <View style={styles.spacer} />
-      {ITEMS.map((item) => (
-        <RailItem
-          key={item.section}
-          label={item.label}
-          active={active === item.section}
-          testID={`rail-${item.section}`}
-          onPress={() => navStore.getState().goSection(item.section)}
-        />
-      ))}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <RailItem label="☰" accessibilityLabel="Hide menu" onPress={toggle} testID="rail-toggle" />
+        <RailItem label={profile?.name ?? 'Profile'} onPress={() => stores.session.getState().selectProfile(null)} testID="rail-profile" />
+        <View style={styles.spacer} />
+        {ITEMS.map((item) => (
+          <RailItem
+            key={item.section}
+            label={item.label}
+            active={active === item.section}
+            testID={`rail-${item.section}`}
+            onPress={() => navStore.getState().goSection(item.section)}
+          />
+        ))}
+        <View style={styles.spacer} />
+        <RailItem label="Sign out" onPress={confirmSignOut} testID="rail-sign-out" />
+      </ScrollView>
     </TVFocusGuideView>
   );
 }

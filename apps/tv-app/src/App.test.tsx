@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
 import { navStore, stores } from './appContext';
 import { nativeState } from '../test/tvMediaMock';
 import { account, playback, pressBack, profile, setupApp, variant } from '../test/utils';
@@ -121,5 +122,24 @@ describe('App (TV)', () => {
     expect(screen.getByLabelText('Show menu')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('rail-toggle'));
     expect(screen.getByTestId('rail-movies')).toBeTruthy();
+  });
+
+  it('signs out from the side menu after confirming', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('POST', '/api/auth/logout', { status: 204, body: null });
+    navStore.setState({ railCollapsed: false });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('rail-sign-out'));
+    expect(screen.queryByTestId('login-submit')).toBeNull();
+    const buttons = alert.mock.calls[0]![2] as AlertButton[];
+    await act(async () => buttons.find((button) => button.text === 'Sign out')!.onPress!());
+    await flush();
+
+    expect(await screen.findByTestId('login-submit')).toBeTruthy();
+    expect(stores.session.getState().status).toBe('anonymous');
   });
 });

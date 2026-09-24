@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { stores } from '../appContext';
 import { FocusButton } from '../components/FocusButton';
+import { confirmSignOut } from '../components/SideRail';
 import { useSession } from '../hooks';
 import { colors, fonts, spacing } from '../theme';
 
@@ -32,7 +33,7 @@ export function ProfilesScreen() {
           />
         ))}
       </View>
-      <FocusButton label="Sign out" variant="ghost" onPress={() => void stores.session.getState().logout()} />
+      <FocusButton label="Sign out" variant="ghost" onPress={confirmSignOut} />
     </View>
   );
 }
