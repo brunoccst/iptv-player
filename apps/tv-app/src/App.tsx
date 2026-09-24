@@ -1,14 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { BackHandler, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores } from './appContext';
-import { Loading } from './components/Feedback';
 import { SideRail } from './components/SideRail';
 import { useNav, useSession } from './hooks';
 import { currentRoute } from './navigation/navStore';
 import { useLibraryWatcher } from './useLibraryWatcher';
 import { PlayerScreen } from './player/PlayerScreen';
 import { BrowseScreen } from './screens/BrowseScreen';
+import { CategoryScreen } from './screens/CategoryScreen';
 import { DetailsScreen } from './screens/DetailsScreen';
 import { DownloadsScreen } from './screens/DownloadsScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -18,6 +18,7 @@ import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { colors } from './theme';
+import splashIcon from '../assets/splash-icon.png';
 
 /** Gate: restore session → login → profile picker → shell. */
 export function App() {
@@ -39,7 +40,7 @@ export function App() {
     <View style={styles.root}>
       <StatusBar hidden />
       {status === 'idle' || status === 'restoring' ? (
-        <Loading label="Starting" />
+        <Starting />
       ) : status === 'anonymous' ? (
         <LoginScreen />
       ) : !activeProfileId ? (
@@ -47,6 +48,16 @@ export function App() {
       ) : (
         <Shell />
       )}
+    </View>
+  );
+}
+
+/** First screen while the saved session loads: same icon as the native launch screen, so start-up looks like one step. */
+function Starting() {
+  return (
+    <View style={styles.starting} accessibilityLabel="Starting">
+      <Image source={splashIcon} style={styles.logo} resizeMode="contain" />
+      <ActivityIndicator color={colors.accent} />
     </View>
   );
 }
@@ -68,7 +79,14 @@ function Shell() {
     <View style={styles.shell}>
       <SideRail />
       <View style={styles.content}>
-        {route.name === 'details' ? (
+        {route.name === 'category' ? (
+          <CategoryScreen
+            key={`${route.section}-${route.categoryId}-${revision}`}
+            section={route.section}
+            categoryId={route.categoryId}
+            title={route.title}
+          />
+        ) : route.name === 'details' ? (
           <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} />
         ) : route.section === 'home' ? (
           <HomeScreen key={`home-${revision}`} processing={processing} />
@@ -92,4 +110,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   shell: { flex: 1, flexDirection: 'row' },
   content: { flex: 1 },
+  starting: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  logo: { width: 200, height: 200 },
 });

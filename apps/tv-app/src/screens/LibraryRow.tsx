@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
-import { pageKey, type LibrarySection, type MediaCategory } from '@iptv/shared';
-import { navStore, stores } from '../appContext';
+import type { LibrarySection, MediaCategory } from '@iptv/shared';
+import { navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { useLibrary } from '../hooks';
+import { usePagedLibrary } from './usePagedLibrary';
 
 const ROW_SIZE = 30;
 
-/** One row of deduplicated titles (optionally filtered by category or a search term). Hidden when empty. */
+/**
+ * One row of deduplicated titles (optionally filtered by category or a search term). Hidden when empty.
+ * More titles load as the row scrolls; the title opens the whole category (not for search rows).
+ */
 export function LibraryRow({
   section,
   category,
@@ -19,24 +21,21 @@ export function LibraryRow({
   search?: string;
   title: string;
 }) {
-  const query = { categoryId: category?.id ?? null, search: search || null, limit: ROW_SIZE };
-  const page = useLibrary((s) => s.pages[pageKey(section, query)]);
-
-  useEffect(() => {
-    void stores.library.getState().loadPage(section, query);
-    // query is derived from section + category id + search only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, category?.id, search]);
-
-  const items = page?.data?.items ?? [];
-  if (page?.status === 'success' && items.length === 0) return null;
+  const page = usePagedLibrary(section, { categoryId: category?.id, search }, ROW_SIZE);
+  if (page.done && page.items.length === 0) return null;
 
   return (
     <Row
       title={title}
-      items={items}
+      items={page.items}
       keyOf={(item) => item.id}
       testID={`row-${section}-${search ? 'search' : (category?.id ?? 'all')}`}
+      loading={page.loadingFirst}
+      loadingMore={page.loadingMore}
+      onEndReached={page.loadMore}
+      onTitlePress={
+        search ? undefined : () => navStore.getState().push({ name: 'category', section, categoryId: category?.id ?? null, title })
+      }
       render={(item) => (
         <PosterCard
           title={item.title}

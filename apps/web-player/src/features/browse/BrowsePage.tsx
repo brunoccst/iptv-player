@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { DEFAULT_PAGE_SIZE, pageKey, type LibrarySection, type MasterCard as MasterCardData } from '@iptv/shared';
-import { stores } from '../../appContext';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { DEFAULT_PAGE_SIZE, type LibrarySection } from '@iptv/shared';
+import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
-import { useCatalog, useLibrary, useUi } from '../../hooks/stores';
+import { useCatalog, useUi } from '../../hooks/stores';
+import { usePagedLibrary } from '../../hooks/usePagedLibrary';
 import { errorText } from '../../ui/errorText';
 import { MasterCard } from '../home/MasterCard';
 
@@ -10,11 +11,11 @@ import { MasterCard } from '../home/MasterCard';
 export function BrowsePage({ section, banner }: { section: LibrarySection; banner: ReactNode }) {
   const revision = useUi((s) => s.libraryRevision);
   const categories = useCatalog((s) => s.categories[section]?.data ?? []);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const categoryId = useUi((s) => s.categoryId);
+  const setCategoryId = (id: string | null) => uiStore.getState().setCategory(id);
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories(section);
-    setCategoryId(null);
   }, [section]);
 
   return (
@@ -49,7 +50,7 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
   );
 }
 
-/** Loads pages of DEFAULT_PAGE_SIZE and appends them ("Load more"). */
+/** Grid of titles; the next page loads automatically (spinner) when the end scrolls into view. */
 export function PagedGrid({
   section,
   categoryId = null,
@@ -59,44 +60,47 @@ export function PagedGrid({
   categoryId?: string | null;
   search?: string | null;
 }) {
-  const [pages, setPages] = useState(1);
-  const resources = useLibrary((s) =>
-    Array.from({ length: pages }, (_, i) => s.pages[pageKey(section, { categoryId, search, offset: i * DEFAULT_PAGE_SIZE })]),
-  );
+  const page = usePagedLibrary(section, { categoryId, search }, DEFAULT_PAGE_SIZE);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const loadMore = useRef(page.loadMore);
+  loadMore.current = page.loadMore;
+  const autoLoad = typeof IntersectionObserver !== 'undefined';
 
   useEffect(() => {
-    void stores.library.getState().loadPage(section, { categoryId, search, offset: (pages - 1) * DEFAULT_PAGE_SIZE });
-  }, [section, categoryId, search, pages]);
+    if (!autoLoad || !sentinel.current) return;
+    const observer = new IntersectionObserver((entries) => entries.some((entry) => entry.isIntersecting) && loadMore.current(), {
+      rootMargin: '600px 0px',
+    });
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, [autoLoad, page.items.length]);
 
-  const items: MasterCardData[] = resources.flatMap((r) => r?.data?.items ?? []);
-  const total = resources[0]?.data?.total ?? 0;
-  const last = resources[resources.length - 1];
-
-  if (last?.status === 'error')
+  if (page.error && page.items.length === 0)
     return (
       <p className="error-text" role="alert">
-        {errorText(last.error)}
+        {errorText(page.error)}
       </p>
     );
-  if (items.length === 0) return last?.status === 'success' ? <p className="muted">No titles found.</p> : <Spinner />;
+  if (page.items.length === 0) return page.done ? <p className="muted">No titles found.</p> : <Spinner />;
 
   return (
     <>
       <div className="grid">
-        {items.map((item) => (
+        {page.items.map((item) => (
           <MasterCard key={item.id} section={section} item={item} />
         ))}
       </div>
-      {items.length < total ? (
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <button
-            type="button"
-            className="button button--secondary"
-            disabled={last?.status === 'loading'}
-            onClick={() => setPages(pages + 1)}
-          >
-            Load more
-          </button>
+      {page.loadingMore ? (
+        <div className="grid__more">
+          <Spinner label="Loading more" />
+        </div>
+      ) : page.hasMore ? (
+        <div className="grid__more" ref={sentinel}>
+          {autoLoad ? null : (
+            <button type="button" className="button button--secondary" onClick={page.loadMore}>
+              Load more
+            </button>
+          )}
         </div>
       ) : null}
     </>

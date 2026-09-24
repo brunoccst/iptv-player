@@ -10,6 +10,7 @@ flowchart TD
   APP -->|no profile| PROFILES[ProfilesScreen]
   APP -->|signed in| SHELL[Shell: SideRail + route]
   SHELL --> HOME[Home] & BROWSE[Movies / Series] & LIVE[Live TV guide] & DL[Downloads] & DETAILS[Details]
+  BROWSE -->|row title| CATEGORY[Category grid]
   SHELL --> PLAYER[PlayerScreen]
   PLAYER --> VIEW[TvPlayerView - ExoPlayer]
   DETAILS --> STORE[downloadsStore] --> NATIVE[TvMedia - Media3 DownloadManager]
@@ -62,7 +63,8 @@ Release `.apk` (debug-signed): `cd android && ./gradlew assembleRelease` after `
 | Path | Purpose |
 |------|---------|
 | `index.ts` | Registers the root component. |
-| `app.config.ts` | Dynamic Expo config + plugins (TV, secure store, cleartext). |
+| `app.config.ts` | Dynamic Expo config + plugins (TV + banner, splash screen, secure store, cleartext), app icon. |
+| `assets/` | App icon, adaptive icon, splash image, TV banner. |
 | `babel.config.js`, `jest.config.js` | Babel preset; Jest config with native-module and remote test doubles. |
 | `modules/tv-media/` | Local Expo native module (Kotlin). |
 | `src/` | Application source. |

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
+import { Spinner } from './Spinner';
 
 interface RowProps {
   title: string;
@@ -7,10 +8,16 @@ interface RowProps {
   /** Called once when the row scrolls near the viewport (lazy data loading). */
   onVisible?: () => void;
   empty?: ReactNode;
+  /** Makes the title a link ("Drama ›"), e.g. to the whole category. */
+  onTitleClick?: () => void;
+  /** Called when the track is scrolled near its end (load the next page). */
+  onNearEnd?: () => void;
+  /** Shows a spinner after the last card. */
+  loadingMore?: boolean;
 }
 
 /** Horizontal scrolling row with arrow buttons. */
-export function Row({ title, children, onVisible, empty }: RowProps) {
+export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd, loadingMore }: RowProps) {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(!onVisible);
@@ -49,14 +56,34 @@ export function Row({ title, children, onVisible, empty }: RowProps) {
 
   return (
     <section className="row" ref={root} aria-label={title}>
-      <h2 className="row__title">{title}</h2>
+      <h2 className="row__title">
+        {onTitleClick ? (
+          <button type="button" className="row__link" onClick={onTitleClick} aria-label={`Open ${title}`}>
+            {title} <Icon name="chevronRight" size={18} />
+          </button>
+        ) : (
+          title
+        )}
+      </h2>
       {hasChildren ? (
         <div className="row__viewport">
           <button type="button" className="row__arrow row__arrow--left" onClick={() => scroll(-1)} aria-label={`Scroll ${title} left`}>
             <Icon name="chevronLeft" size={36} />
           </button>
-          <div className="row__track" ref={track}>
+          <div
+            className="row__track"
+            ref={track}
+            onScroll={(event) => {
+              const element = event.currentTarget;
+              if (onNearEnd && element.scrollLeft + element.clientWidth >= element.scrollWidth - element.clientWidth) onNearEnd();
+            }}
+          >
             {children}
+            {loadingMore ? (
+              <div className="row__more">
+                <Spinner small label="Loading more" />
+              </div>
+            ) : null}
           </div>
           <button type="button" className="row__arrow row__arrow--right" onClick={() => scroll(1)} aria-label={`Scroll ${title} right`}>
             <Icon name="chevronRight" size={36} />

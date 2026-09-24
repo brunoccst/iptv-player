@@ -48,6 +48,38 @@
   color: var(--color-text);
 }
 
+.row__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.row__link:hover,
+.row__link:focus-visible {
+  color: var(--color-text-strong);
+  text-decoration: underline;
+}
+
+.row__more {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+}
+
+.grid__more {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
 .row__viewport {
   position: relative;
 }

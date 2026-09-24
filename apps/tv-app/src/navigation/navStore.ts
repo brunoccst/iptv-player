@@ -6,6 +6,8 @@ export type Section = 'home' | 'search' | 'movies' | 'series' | 'live' | 'downlo
 export type Route =
   | { name: 'section'; section: Section }
   | { name: 'details'; section: LibrarySection; masterId: string }
+  /** One provider category as a grid; `categoryId: null` is "All". */
+  | { name: 'category'; section: LibrarySection; categoryId: string | null; title: string }
   | { name: 'player'; target: PlayTarget };
 
 export interface NavState {
@@ -24,7 +26,7 @@ export interface NavState {
   back(): boolean;
 }
 
-/** Stack navigation for the TV app: root is a section; details and player are pushed on top. See DECISIONS.md#d-028. */
+/** Stack navigation for the TV app: root is a section; category, details and player are pushed on top. See DECISIONS.md#d-028. */
 export function createNavStore() {
   return createStore<NavState>()((set, get) => ({
     stack: [{ name: 'section', section: 'home' }],

@@ -1,9 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { continueWatching, pageKey, type LibrarySection, type MediaCategory } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
 import { useCatalog, useLibrary, useProgress, useUi } from '../../hooks/stores';
+import { usePagedLibrary } from '../../hooks/usePagedLibrary';
 import { progressTarget } from '../../ui/targets';
 import { Hero } from './Hero';
 import { MasterCard } from './MasterCard';
@@ -98,18 +99,20 @@ function LiveRow() {
 }
 
 function LibraryRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
-  const query = { categoryId: category?.id ?? null, limit: ROW_SIZE };
-  const page = useLibrary((s) => s.pages[pageKey(section, query)]);
-  const items = page?.data?.items ?? [];
-  if (page?.status === 'success' && items.length === 0) return null;
+  const [visible, setVisible] = useState(false);
+  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE, visible);
+  if (page.done && page.items.length === 0) return null;
 
   return (
     <Row
       title={title}
-      onVisible={() => void stores.library.getState().loadPage(section, query)}
-      empty={page?.status === 'error' ? 'Could not load this row.' : ' '}
+      onVisible={() => setVisible(true)}
+      onTitleClick={() => uiStore.getState().openCategory(section, category?.id ?? null)}
+      onNearEnd={page.loadMore}
+      loadingMore={page.loadingMore}
+      empty={page.error ? 'Could not load this row.' : ' '}
     >
-      {items.map((item) => (
+      {page.items.map((item) => (
         <MasterCard key={item.id} section={section} item={item} />
       ))}
     </Row>

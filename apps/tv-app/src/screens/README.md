@@ -5,7 +5,10 @@
 | `LoginScreen.tsx` | Connection choice ("IPTV provider" = direct, "My server" + server address), provider URL, username, password. |
 | `ProfilesScreen.tsx` | "Who's watching?" (profiles are edited in the web app). |
 | `HomeScreen.tsx` | Hero, Continue Watching, Live TV, Series and category rows. |
-| `LibraryRow.tsx` | Row of deduplicated titles for a section/category. |
+| `LibraryRow.tsx` | Row of deduplicated titles for a section/category; loads more while scrolling (spinner at the end). The title ("Drama ›") opens `CategoryScreen`. |
+| `CategoryScreen.tsx` | One category (or All) as a poster grid; next page loads near the bottom with a spinner. |
+| `CategoryScreen.test.tsx` | Row title opens the category; next page loads with a spinner. |
+| `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
 | `BrowseScreen.tsx` | Movies or Series: one row per category, virtualized (`FlatList`: only rows near the screen mount and load). |
 | `SearchScreen.tsx` | Search box (debounced): movies and series rows from the library (`LibraryRow` with `search`), live channels by name. |
 | `LogScreen.tsx` | Diagnostics log preview, **Share log** (Android share sheet, credentials masked), **Clear log**. [D-039](../../../../documentation/DECISIONS.md#d-039). |

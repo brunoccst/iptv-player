@@ -806,3 +806,14 @@ Decision: a shared ring buffer (`appLog`, 600 lines) records provider requests, 
 
 Why not a crash/analytics service: it needs an account, sends data off the device by default and would still miss the provider-side causes this log records.
 
+
+## D-040
+
+**Category pages, load-on-scroll and one generated app icon** — 2026-09-24 (requested by owner)
+
+Decision:
+- Row titles are links ("Drama ›"). On TV/phone they open a category grid screen; on the web they open the Movies/Series page with that category chip selected.
+- Rows and grids load the next page when scrolled near the end and show a spinner meanwhile. The web grid loads automatically instead of a "Load more" button (the button stays where `IntersectionObserver` is missing).
+- One icon design lives in `scripts/render-icons.mjs` and is rendered to all PNGs (launcher, adaptive icon, TV banner, splash, web favicon). The APK shows it on the native launch screen (`expo-splash-screen`) and on the first "Starting" screen, so start-up looks like one step.
+
+Why generated PNGs are committed: builds (CI prebuild, Vite) then need no image tooling. The icon has no text because `APP_NAME` comes from `.env`.
