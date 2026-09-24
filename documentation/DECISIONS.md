@@ -848,4 +848,6 @@ Decision:
 - The emulator build compiles only `x86` (the emulator's ABI). Real-TV ARM APKs come from `tv-apk.yml` (D-037).
 - `ci.yml` runs on pull requests and on pushes to `main` only.
 
+Result (first run, runners busy with other jobs): APK build 14.2 → 10.9 min, whole emulator job 25.3 → 21.4 min. Most of the build (JS bundle, Kotlin/Java, per-module Gradle work) does not depend on the ABI count.
+
 Not done (small gain or risky): caching native (CMake) build output between runs; starting the local stack in the background during the Gradle build (~1.5 min); splitting Maestro flows across parallel emulators (three emulator boots and three APK builds cost more than they save).
