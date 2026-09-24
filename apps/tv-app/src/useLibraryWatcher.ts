@@ -3,7 +3,8 @@ import { isLibraryProcessing } from '@iptv/shared';
 import { navStore, stores } from './appContext';
 import { useLibrary, useSession } from './hooks';
 
-const POLL_MS = 4000;
+// Short enough that the per-kind progress on Home moves visibly.
+const POLL_MS = 2000;
 
 /**
  * Polls library status while it is empty or processing; when that ends, invalidates cached pages and bumps

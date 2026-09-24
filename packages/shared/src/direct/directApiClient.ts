@@ -7,7 +7,7 @@ import type {
   EpgGrid,
   EpgListing,
   LibrarySection,
-  LibraryStatus,
+  LibraryStatusProgress,
   LiveChannel,
   LoginRequest,
   MasterCard,
@@ -20,7 +20,7 @@ import type {
   ProgressRequest,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
-import { buildMasters, type Master } from './normalizer/pipeline';
+import { buildMastersInChunks, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
 
@@ -157,7 +157,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     accountId: string | null;
     data: StoredLibrary | null;
     running: Promise<void> | null;
-    status: Record<LibraryKind, Omit<LibraryStatus, 'mediaKind' | 'masterCount'>>;
+    status: Record<LibraryKind, Omit<LibraryStatusProgress, 'mediaKind' | 'masterCount'>>;
   } = {
     accountId: null,
     data: null,
@@ -177,25 +177,31 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
       await loadLibrary();
       const queuedAt = now().toISOString();
       for (const kind of ['movie', 'series'] as const)
-        library.status[kind] = { jobStatus: 'processing', itemCount: null, queuedAt, finishedAt: null, error: null };
+        library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       const current = () => credentials?.account.id === accountId;
+      // Both lists download at once (the slow part on a phone); grouping then runs one kind at a time.
+      const downloads = {
+        movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null }))),
+        series: client.series().then((list) => list.map((s) => ({ ...s, containerExtension: null }))),
+      };
+      for (const promise of Object.values(downloads)) promise.catch(() => undefined);
       for (const kind of ['movie', 'series'] as const) {
         try {
-          const items =
-            kind === 'movie'
-              ? (await client.movies()).map((m) => ({ ...m, releaseDate: null }))
-              : (await client.series()).map((s) => ({ ...s, containerExtension: null }));
-          await yieldToUi();
-          const masters = buildMasters(accountId, kind, items);
+          const items = await downloads[kind];
+          library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
+          const masters = await buildMastersInChunks(accountId, kind, items, {
+            onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
+          });
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
           await writeJson(options.dataStorage, libraryKey(accountId), library.data).catch(() => undefined);
-          library.status[kind] = { ...library.status[kind], jobStatus: 'done', itemCount: items.length, finishedAt: now().toISOString() };
+          library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
         } catch (error) {
           library.status[kind] = {
             ...library.status[kind],
             jobStatus: 'failed',
+            stage: null,
             finishedAt: now().toISOString(),
             error: error instanceof Error ? error.message : 'Library sync failed.',
           };

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { continueWatching, movieTarget, pageKey, progressTarget, selectVariant, type MasterCard } from '@iptv/shared';
+import {
+  continueWatching,
+  describeLibraryProgress,
+  movieTarget,
+  pageKey,
+  progressTarget,
+  selectVariant,
+  type MasterCard,
+} from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { FocusButton } from '../components/FocusButton';
 import { PosterCard } from '../components/PosterCard';
@@ -14,6 +22,7 @@ const ROW_SIZE = 30;
 
 /** Hero + Continue Watching + Live TV + category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
+  const progress = describeLibraryProgress(useLibrary((s) => s.status.data));
   const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: ROW_SIZE })]?.data?.items ?? []);
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
   const seriesCategories = useCatalog((s) => s.categories.series?.data ?? []);
@@ -39,9 +48,14 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     <ScrollView style={styles.screen} testID="home-screen">
       <Hero candidates={featured} />
       {processing ? (
-        <Text style={styles.notice} testID="library-processing">
-          Organizing your library: grouping duplicate titles and versions…
-        </Text>
+        <View style={styles.notice} testID="library-processing">
+          <Text style={styles.noticeTitle}>Organizing your library: grouping duplicate titles and versions…</Text>
+          {progress.map((line) => (
+            <Text key={line} style={styles.noticeLine}>
+              {line}
+            </Text>
+          ))}
+        </View>
       ) : null}
       {resume.length > 0 ? (
         <Row
@@ -140,7 +154,9 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   heroPlaceholder: { height: safe.vertical * 2 },
-  notice: { color: colors.muted, fontSize: fonts.body, marginHorizontal: safe.horizontal, marginBottom: spacing.md },
+  notice: { marginHorizontal: safe.horizontal, marginBottom: spacing.md, gap: spacing.xs },
+  noticeTitle: { color: colors.muted, fontSize: fonts.body },
+  noticeLine: { color: colors.muted, fontSize: fonts.small },
   hero: { height: 300, marginBottom: spacing.md, justifyContent: 'flex-end' },
   heroShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.45)' },
   heroContent: { paddingHorizontal: safe.horizontal, paddingBottom: spacing.lg, maxWidth: 560, gap: spacing.sm },

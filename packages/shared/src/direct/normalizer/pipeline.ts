@@ -49,7 +49,30 @@ const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function buildMasters(accountId: string, mediaKind: string, items: NormalizerItem[]): Master[] {
   const usable = items.filter((item) => text(item.id) && text(item.name));
-  const parsed = usable.map(parseItem);
+  return assemble(accountId, mediaKind, usable, usable.map(parseItem));
+}
+
+/**
+ * Same result as `buildMasters`, but parses in chunks and yields between them so the UI stays responsive
+ * and `onProgress(parsed, total)` can report how far it got (direct mode on TV/phone, D-038).
+ */
+export async function buildMastersInChunks(
+  accountId: string,
+  mediaKind: string,
+  items: NormalizerItem[],
+  { chunkSize = 500, onProgress }: { chunkSize?: number; onProgress?(parsed: number, total: number): void } = {},
+): Promise<Master[]> {
+  const usable = items.filter((item) => text(item.id) && text(item.name));
+  const parsed: ParsedTitle[] = [];
+  for (let start = 0; start < usable.length; start += chunkSize) {
+    for (const item of usable.slice(start, start + chunkSize)) parsed.push(parseItem(item));
+    onProgress?.(parsed.length, usable.length);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+  return assemble(accountId, mediaKind, usable, parsed);
+}
+
+function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], parsed: ParsedTitle[]): Master[] {
   const masters = groupTitles(parsed).map((group) =>
     buildMaster(
       accountId,

@@ -257,7 +257,7 @@ In direct mode (D-038) profiles, progress and the library live on each device. C
 
 **Direct mode: library grouping runs on the UI thread** — logged 2026-09-24
 
-The TypeScript normalizer groups the whole catalog in one pass on the JavaScript thread; it yields between movies and series only. On a catalog with tens of thousands of titles the TV can stutter for a few seconds after sign-in and every 12 h. The cached library keeps later starts fast.
+Title parsing runs in chunks of 500 with a yield between them, but the grouping pass itself runs in one go on the JavaScript thread. On a catalog with tens of thousands of titles the TV can stutter briefly after sign-in and every 12 h. Home shows per-kind progress (downloading, grouping N of M). Movies and series download in parallel; on a phone the download is usually the slow part. The cached library keeps later starts fast.
 
 ## KI-036
 

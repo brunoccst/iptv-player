@@ -94,6 +94,32 @@ describe('createDirectApiClient', () => {
     expect((await restarted.library.list('movies')).total).toBe(2);
   });
 
+  it('reports download and grouping progress while the library builds', async () => {
+    const panel = createFakePanel();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slowMovies = (async (url: string, init?: RequestInit) => {
+      if (url.includes('action=get_vod_streams')) await gate;
+      return panel.fetch(url, init);
+    }) as typeof globalThis.fetch;
+    const { api } = setup({ ...panel, fetch: slowMovies });
+    await api.auth.login(login);
+    const stageOf = async (kind: string) => {
+      const status = (await api.library.status()).find((item) => item.mediaKind === kind) as {
+        stage?: string | null;
+        jobStatus: string | null;
+      };
+      return status.stage ?? status.jobStatus;
+    };
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(await stageOf('movie')).toBe('downloading');
+
+    release();
+    await libraryReady(api);
+    expect(await stageOf('movie')).toBe('done');
+    expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
+  });
+
   it('keeps profiles on the device with the backend rules', async () => {
     const { api } = setup();
     await api.auth.login(login);
