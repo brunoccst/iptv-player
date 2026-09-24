@@ -1,4 +1,4 @@
-# Online flow on an Android TV emulator: login, dedup library, details, playback + D-pad, drawer, download.
+# Server-mode flow on an Android TV emulator ("My server"): login, dedup library, details, playback + D-pad, drawer, download.
 appId: ${APP_ID}
 ---
 - launchApp:
@@ -8,7 +8,16 @@ appId: ${APP_ID}
       id: "login-server"
     timeout: 90000
 - tapOn:
+    id: "login-mode-server"
+- tapOn:
+    id: "login-backend"
+# Clear a prefilled address (APP_API_BASE_URL); the emulator reaches the runner's localhost at 10.0.2.2.
+- eraseText: 60
+- inputText: "http://10.0.2.2:5091"
+- pressKey: Enter
+- tapOn:
     id: "login-server"
+# Provider address as the backend sees it (same machine).
 - inputText: "http://localhost:8091"
 # Enter closes the TV keyboard; hideKeyboard sends Back, which exits the app if the keyboard already closed.
 - pressKey: Enter

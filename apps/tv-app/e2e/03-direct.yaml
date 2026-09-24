@@ -1,0 +1,80 @@
+# Direct mode (default, no backend): sign in to the fake panel from the emulator, on-device library, playback, guide. D-038.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- assertNotVisible:
+    id: "login-backend"
+- tapOn:
+    id: "login-server"
+# The emulator reaches the runner's localhost at 10.0.2.2; only the fake panel runs, no backend.
+- inputText: "http://10.0.2.2:8091"
+- pressKey: Enter
+- tapOn:
+    id: "login-username"
+- inputText: "demo"
+- pressKey: Enter
+- tapOn:
+    id: "login-password"
+- inputText: "demo"
+- pressKey: Enter
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+# The library is grouped on the device (TypeScript normalizer): three listings become one title.
+- scrollUntilVisible:
+    element:
+      id: "card-Big Test Movie"
+    direction: DOWN
+    timeout: 120000
+    centerElement: true
+- takeScreenshot: 20-direct-home
+- tapOn:
+    id: "card-Big Test Movie"
+    index: 0
+- extendedWaitUntil:
+    visible: "Version: 4K · ENG"
+    timeout: 30000
+# Playback straight from the provider (no relay).
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
+      id: "player-screen"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "__wait_6s__"
+    timeout: 6000
+    optional: true
+- pressKey: Remote Dpad Center
+- extendedWaitUntil:
+    visible:
+      id: "player-time"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
+    timeout: 30000
+- takeScreenshot: 21-direct-player
+- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "details-screen"
+    timeout: 15000
+- pressKey: back
+# Guide from the provider's short EPG, including the channel without an XMLTV id.
+- tapOn:
+    id: "rail-live"
+- extendedWaitUntil:
+    visible:
+      id: "guide-now-301"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "guide-now-304"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 22-direct-guide

@@ -20,13 +20,16 @@ flowchart LR
 
   WEB --> SHARED
   TV --> SHARED
-  SHARED -->|HTTP| API
+  SHARED -->|HTTP, web and TV 'My server'| API
+  SHARED -.->|TV direct mode, default| IPTV
   API -->|server-to-server + stream relay| IPTV
   API --> DB
   API -->|enqueue raw VOD/series| Q
   PY -->|claim job, write masters| Q
   API -->|read masters| Q
 ```
+
+The TV app works without a server: by default it talks to the IPTV provider directly and builds the library on the device ([D-038](./documentation/DECISIONS.md#d-038)). The web app always needs the backend.
 
 ## Structure
 
@@ -110,7 +113,7 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format comm
 
 Precedence (low → high): `.env` → `.env.local` → real environment variables. Relative paths resolve against the repo root.
 
-TV app on a real device: set `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env.local`.
+TV app on a real device: direct mode needs no address. For "My server", `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env.local` prefills it.
 
 ## Root files
 

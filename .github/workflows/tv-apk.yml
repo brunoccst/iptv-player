@@ -1,13 +1,14 @@
 name: TV APK for a real TV
 
-# Manual only: builds the TV app for real (ARM) TVs against a given backend address,
-# e.g. a codespace. The APK goes to the `tv-apk` prerelease. See DECISIONS.md#d-037.
+# Manual only: builds the TV app for real (ARM) TVs. The APK goes to the `tv-apk` prerelease. See DECISIONS.md#d-037.
+# The app talks to the IPTV provider directly (D-038); `api_base_url` only prefills "My server".
 on:
   workflow_dispatch:
     inputs:
       api_base_url:
-        description: 'Backend address the TV uses, e.g. https://NAME-5173.app.github.dev'
-        required: true
+        description: 'Optional: prefill for "My server", e.g. http://192.168.1.10:5080'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -26,8 +27,8 @@ jobs:
     steps:
       - name: Check address
         run: |
-          if ! [[ "$APP_API_BASE_URL" =~ ^https?://[^[:space:]/]+/?$ ]]; then
-            echo "::error::api_base_url must be like https://NAME-5173.app.github.dev (no path)"; exit 1
+          if [ -n "$APP_API_BASE_URL" ] && ! [[ "$APP_API_BASE_URL" =~ ^https?://[^[:space:]/]+/?$ ]]; then
+            echo "::error::api_base_url must be empty or like http://192.168.1.10:5080 (no path)"; exit 1
           fi
 
       - uses: actions/checkout@v4
@@ -57,7 +58,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
-          notes="Built from ${GITHUB_SHA::7} for $APP_API_BASE_URL"
+          notes="Built from ${GITHUB_SHA::7}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           gh release edit tv-apk --notes "$notes"
           gh release upload tv-apk tv.apk --clobber
