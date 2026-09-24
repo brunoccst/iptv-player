@@ -9,7 +9,8 @@
   },
   "hostRequirements": { "cpus": 2 },
   "postCreateCommand": "bash .devcontainer/setup.sh",
-  "postStartCommand": "bash .devcontainer/start.sh",
+  "postStartCommand": "bash .devcontainer/start.sh --if-stopped",
+  "postAttachCommand": "bash .devcontainer/start.sh --if-stopped",
   "forwardPorts": [5173],
   "portsAttributes": {
     "5173": { "label": "Web app", "onAutoForward": "notify" }

@@ -28,6 +28,6 @@ Log in to the app with server `http://localhost:8090`, username `demo`, password
 | `/movie|series/{u}/{p}/{id}.m3u8` | `302` → `/media/<name>/index.m3u8` (fMP4 HLS). `404` for items with `noHls`. |
 | `/movie|series/{u}/{p}/{id}.{ext}` | `302` → progressive file. Supports `Range`. |
 | `/live/{u}/{p}/{id}.m3u8` | `302` → sliding 5-segment live playlist (looping media). |
-| `/img/{poster|backdrop|still|logo}/{id}.svg` | Generated artwork. |
+| `/img/{poster|backdrop|still|logo}/{id}.svg` | Generated artwork. Catalog URLs use `FAKE_PANEL_IMAGE_BASE_URL` when set (Codespaces), else the request's host. |
 
 Media codecs: VP9 + Opus by default (`--codec h264` for H.264 + AAC). `movie-mkv` is always H.264 in Matroska.

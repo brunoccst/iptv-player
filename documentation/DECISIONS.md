@@ -740,3 +740,15 @@ Why not a public deployment: free hosts sleep and wipe disks, relay video uses t
 
 Phone layout fixes found while checking: the top navigation wraps to two rows under 720 px (links scroll sideways), and the volume slider is hidden on phones.
 
+## D-036
+
+**Codespaces: artwork through the web port, auto-start on open** — 2026-09-24 (found in the first real codespace run)
+
+Decision: the fake panel builds artwork URLs from `FAKE_PANEL_IMAGE_BASE_URL` (the public web address, set by `start.sh`), and Vite proxies `/img` to the panel in Codespaces. `start.sh --if-stopped` runs on every start and every attach.
+
+- Artwork URLs go straight from the panel to the browser. With the request's host they were `http://localhost:8090/...`, which the phone cannot reach (and which is mixed content on HTTPS).
+- After a stop/start the app was not running. Running the start script on attach as well, and skipping it when the app answers, brings it back without restarting a healthy stack.
+- `gh` is installed in the image so port visibility can be changed from the terminal.
+
+Why not proxy artwork through the backend: real panels serve public image URLs; only the fake panel on localhost needs this, so the fix stays in dev tooling.
+

@@ -50,9 +50,13 @@ export default defineConfig({
   envPrefix: ['VITE_', 'APP_'],
   server: {
     port: 5173,
-    // GitHub Codespaces: only the web port is opened; /api goes through Vite to the backend. See DECISIONS.md#d-035.
+    // GitHub Codespaces: only the web port is opened; /api (backend) and /img (fake panel art) go through Vite. See DECISIONS.md#d-035.
     ...(process.env.CODESPACES === 'true'
-      ? { allowedHosts: ['.app.github.dev'], hmr: { clientPort: 443 }, proxy: { '/api': 'http://localhost:5080' } }
+      ? {
+          allowedHosts: ['.app.github.dev'],
+          hmr: { clientPort: 443 },
+          proxy: { '/api': 'http://localhost:5080', '/img': 'http://localhost:8090' },
+        }
       : {}),
   },
   preview: { port: 4173 },

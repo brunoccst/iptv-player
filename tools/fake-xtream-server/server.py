@@ -7,6 +7,7 @@ load balancers), supports HTTP Range, a sliding-window live HLS playlist, and SV
 import argparse
 import base64
 import json
+import os
 import re
 import time
 from html import escape
@@ -108,7 +109,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.json({"user_info": {"auth": 0}})
         action = query.get("action", [None])[0]
         category = query.get("category_id", [None])[0]
-        base = f"http://{self.headers.get('Host')}"
+        # Codespaces: artwork must load from the phone, so it goes through the public web address. See DECISIONS.md#d-036.
+        base = os.environ.get("FAKE_PANEL_IMAGE_BASE_URL", "").rstrip("/") or f"http://{self.headers.get('Host')}"
 
         def by_category(items: list[dict]) -> list[dict]:
             return [item for item in items if category is None or item["category"] == category]
