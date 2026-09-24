@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fluid, type ConnectionMode } from '@iptv/shared';
-import { ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -24,9 +24,10 @@ export function LoginScreen() {
   const [serverUrl, setServerUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { width, height } = useWindowDimensions();
-  // TV screens are only ~540 dp tall: tighter spacing so more of the form fits (the page still scrolls).
-  const short = height < 600;
+  const { width } = useWindowDimensions();
+  // TV screens are only ~540 dp tall: two columns so every field fits. Uses the physical screen, not the window:
+  // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
+  const short = Dimensions.get('screen').height < 600;
   const sizes = useSizes();
 
   useEffect(() => {
