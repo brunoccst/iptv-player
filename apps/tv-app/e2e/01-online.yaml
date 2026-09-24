@@ -11,8 +11,8 @@ appId: ${APP_ID}
     id: "login-mode-server"
 - tapOn:
     id: "login-backend"
-# Clear a prefilled address (APP_API_BASE_URL); the emulator reaches the runner's localhost at 10.0.2.2.
-- eraseText: 60
+# The field starts empty (the CI build sets no APP_API_BASE_URL and the app is freshly installed), so no eraseText:
+# its 60 key presses on the sign-in form timed out the Maestro driver on the emulator. 10.0.2.2 is the runner's localhost.
 - inputText: "http://10.0.2.2:5091"
 - pressKey: Enter
 - tapOn:
