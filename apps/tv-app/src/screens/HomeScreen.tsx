@@ -1,5 +1,5 @@
 import { useEffect, useMemo, type ReactElement } from 'react';
-import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   describeLibraryProgress,
@@ -69,7 +69,6 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
       initialNumToRender={6}
       maxToRenderPerBatch={2}
       windowSize={5}
-      removeClippedSubviews={Platform.OS === 'android'}
       scrollEventThrottle={100}
       onScroll={(event) => navStore.getState().setScrolled(event.nativeEvent.contentOffset.y > 10)}
     />
