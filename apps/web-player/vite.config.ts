@@ -1,3 +1,4 @@
+import { createReadStream, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { build as esbuild } from 'esbuild';
@@ -44,15 +45,40 @@ function serviceWorker(): Plugin {
   };
 }
 
+/** Codespaces only: serves the TV APK fetched by .devcontainer/get-tv-apk.sh at /tv.apk. See DECISIONS.md#d-037. */
+function tvApkDownload(): Plugin {
+  const file = '/tmp/iptv-tv.apk';
+  return {
+    name: 'tv-apk-download',
+    configureServer(server) {
+      server.middlewares.use('/tv.apk', (_request, response) => {
+        if (!existsSync(file)) {
+          response.statusCode = 404;
+          response.end('No APK yet: run bash .devcontainer/get-tv-apk.sh');
+          return;
+        }
+        response.setHeader('Content-Type', 'application/vnd.android.package-archive');
+        createReadStream(file).pipe(response);
+      });
+    },
+  };
+}
+
+const codespaces = process.env.CODESPACES === 'true';
+
 export default defineConfig({
-  plugins: [react(), serviceWorker()],
+  plugins: [react(), serviceWorker(), ...(codespaces ? [tvApkDownload()] : [])],
   envDir: repoRoot,
   envPrefix: ['VITE_', 'APP_'],
   server: {
     port: 5173,
-    // GitHub Codespaces: only the web port is opened; /api goes through Vite to the backend. See DECISIONS.md#d-035.
-    ...(process.env.CODESPACES === 'true'
-      ? { allowedHosts: ['.app.github.dev'], hmr: { clientPort: 443 }, proxy: { '/api': 'http://localhost:5080' } }
+    // GitHub Codespaces: only the web port is opened; /api (backend) and /img (fake panel art) go through Vite. See DECISIONS.md#d-035.
+    ...(codespaces
+      ? {
+          allowedHosts: ['.app.github.dev'],
+          hmr: { clientPort: 443 },
+          proxy: { '/api': 'http://localhost:5080', '/img': 'http://localhost:8090' },
+        }
       : {}),
   },
   preview: { port: 4173 },

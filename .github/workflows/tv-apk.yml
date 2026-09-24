@@ -1,0 +1,63 @@
+name: TV APK for a real TV
+
+# Manual only: builds the TV app for real (ARM) TVs against a given backend address,
+# e.g. a codespace. The APK goes to the `tv-apk` prerelease. See DECISIONS.md#d-037.
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: 'Backend address the TV uses, e.g. https://NAME-5173.app.github.dev'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tv-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APP_API_BASE_URL: ${{ inputs.api_base_url }}
+    steps:
+      - name: Check address
+        run: |
+          if ! [[ "$APP_API_BASE_URL" =~ ^https?://[^[:space:]/]+/?$ ]]; then
+            echo "::error::api_base_url must be like https://NAME-5173.app.github.dev (no path)"; exit 1
+          fi
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: npm ci
+
+      - name: Prebuild Android project
+        working-directory: apps/tv-app
+        run: CI=1 npx expo prebuild --platform android --no-install
+
+      # Real TVs are ARM; x86 is only for the emulator.
+      - name: Build release APK (debug-signed)
+        working-directory: apps/tv-app/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+
+      - name: Publish to the tv-apk prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
+          notes="Built from ${GITHUB_SHA::7} for $APP_API_BASE_URL"
+          gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
+          gh release edit tv-apk --notes "$notes"
+          gh release upload tv-apk tv.apk --clobber
