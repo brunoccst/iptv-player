@@ -32,6 +32,8 @@ flowchart LR
 - [x] **APK looks like the web app** (requested 2026-09-24, D-041): top nav, hero, rows, grid with category chips, details panel, guide, player controls, profiles; shared tokens and icons.
 - [x] **Skip ahead instead of Skip Intro** (requested 2026-09-24, D-042): the button opens 30 s / 1 / 2 / 3 min; re-press or Back/Esc cancels.
 - [ ] **Try other versions when a stream is refused** (requested 2026-09-24): if the provider refuses one version of a movie (e.g. HTTP 401 for a removed title), the player tries the title's other versions before showing an error.
+- [ ] **Evaluate faster pipelines** (requested 2026-09-24): measure where CI time goes (APK build, Android TV emulator + Maestro, web e2e) and check what caching, parallel jobs or skipping unaffected workflows would save.
+- [ ] **Evaluate a smaller APK** (requested 2026-09-24): the release APK is about 40 MB. Check per-ABI splits or an app bundle, R8/resource shrinking, and unused native libraries and assets.
 - [ ] **Step 9 — Phone app** (requested 2026-09-24): touch UI on the same shared code, direct mode by default.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
