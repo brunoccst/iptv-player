@@ -24,7 +24,9 @@ export function LoginScreen() {
   const [serverUrl, setServerUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  // TV screens are only ~540 dp tall: tighter spacing so more of the form fits (the page still scrolls).
+  const short = height < 600;
   const sizes = useSizes();
 
   useEffect(() => {
@@ -50,8 +52,14 @@ export function LoginScreen() {
       />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={[styles.brand, { left: sizes.gutter, fontSize: fluid(width, 26, 3, 38) }]}>{appConfig.appName}</Text>
-        <View style={[styles.panel, { width: Math.min(440, width - 32), paddingHorizontal: fluid(width, 20, 5, 60) }]}>
-          <Text style={styles.heading}>Sign In</Text>
+        <View
+          style={[
+            styles.panel,
+            short && styles.panelShort,
+            { width: Math.min(440, width - 32), paddingHorizontal: fluid(width, 20, 5, 60) },
+          ]}
+        >
+          <Text style={[styles.heading, short && styles.headingShort]}>Sign In</Text>
           <View style={styles.modes} accessibilityRole="radiogroup">
             <Chip label="IPTV provider" active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
             <Chip label="My server" active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
@@ -139,7 +147,9 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 16 },
   brand: { position: 'absolute', top: 24, color: colors.accent, fontWeight: '900', letterSpacing: -0.5 },
   panel: { marginTop: 72, paddingVertical: 48, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: radius, gap: 16 },
+  panelShort: { marginTop: 56, paddingVertical: 24, gap: 10 },
   heading: { color: colors.strong, fontSize: 32, fontWeight: '700', marginBottom: 8 },
+  headingShort: { fontSize: 26, marginBottom: 0 },
   modes: { flexDirection: 'row', gap: 8 },
   field: { gap: 6 },
   label: { color: colors.muted, fontSize: 14 },

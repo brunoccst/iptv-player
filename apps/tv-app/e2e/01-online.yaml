@@ -25,10 +25,22 @@ appId: ${APP_ID}
     id: "login-username"
 - inputText: "demo"
 - pressKey: Enter
+# The sign-in panel is taller than the emulator's 540 dp TV screen: scroll to the field first.
+- scrollUntilVisible:
+    element:
+      id: "login-password"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "login-password"
 - inputText: "demo"
 - pressKey: Enter
+# The sign-in panel is taller than the emulator's 540 dp TV screen: scroll to the field first.
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
