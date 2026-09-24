@@ -11,6 +11,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.offline.Download
@@ -76,7 +77,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     }
 
     override fun onPlayerError(error: PlaybackException) {
-      onError(mapOf("message" to (error.message ?: "Playback error"), "code" to error.errorCodeName))
+      onError(mapOf("message" to (error.message ?: "Playback error"), "code" to error.errorCodeName, "detail" to causeOf(error)))
     }
 
     override fun onTracksChanged(tracks: Tracks) = emitTracks(tracks)
@@ -204,3 +205,19 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     loadedKey = null
   }
 }
+
+/** The underlying reason ("HTTP 403", "Failed to connect to …") that ExoPlayer's "Source error" hides. For the in-app log. */
+@androidx.annotation.OptIn(UnstableApi::class)
+private fun causeOf(error: Throwable): String {
+  val parts = mutableListOf<String>()
+  var cause: Throwable? = error.cause
+  while (cause != null && parts.size < 4) {
+    parts += when (cause) {
+      is HttpDataSource.InvalidResponseCodeException -> "HTTP ${cause.responseCode} ${cause.responseMessage ?: ""}".trim() + " from ${cause.dataSpec.uri.host}"
+      else -> "${cause.javaClass.simpleName}: ${cause.message ?: ""}".trim()
+    }
+    cause = cause.cause
+  }
+  return parts.joinToString(" <- ")
+}
+

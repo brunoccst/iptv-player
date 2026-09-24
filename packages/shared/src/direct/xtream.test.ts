@@ -34,6 +34,7 @@ describe('createXtreamClient', () => {
     const { fetch, calls } = panel({
       login: {
         user_info: { auth: 1, status: 'Active', exp_date: '1893456000', max_connections: '2', allowed_output_formats: ['m3u8', 'ts'] },
+        server_info: { url: 'stream.test', port: 80, https_port: '443', server_protocol: 'http' },
       },
     });
     const account = await createXtreamClient(credentials, { fetch, userAgent: 'VLC/3' }).validate();
@@ -42,6 +43,7 @@ describe('createXtreamClient', () => {
       expiresAt: '2030-01-01T00:00:00.000Z',
       maxConnections: 2,
       allowedOutputFormats: ['m3u8', 'ts'],
+      streamBaseUrl: 'http://stream.test:80/',
     });
     expect(calls[0]!.url).toBe('http://panel.test:8080/player_api.php?username=u%20s&password=p%26w');
     expect(calls[0]!.headers['User-Agent']).toBe('VLC/3');
@@ -179,11 +181,45 @@ describe('createXtreamClient', () => {
       url: 'http://panel.test:8080/movie/u%20s/p%26w/7.mkv',
       container: 'mkv',
       isLive: false,
+      alternateUrls: [],
     });
+    const announced = {
+      status: 'Active',
+      expiresAt: null,
+      maxConnections: 1,
+      allowedOutputFormats: [],
+      streamBaseUrl: 'http://1.2.3.4:80/',
+    };
+    expect(client.playbackUrl('movie', '7', 'mkv', announced).alternateUrls).toEqual(['http://1.2.3.4:80/movie/u%20s/p%26w/7.mkv']);
     expect(client.playbackUrl('episode', 'e1', 'bad/ext', null).url).toBe('http://panel.test:8080/series/u%20s/p%26w/e1.mp4');
     const tsOnly = { status: 'Active', expiresAt: null, maxConnections: 1, allowedOutputFormats: ['ts'] };
     expect(client.playbackUrl('live', '9', null, tsOnly)).toMatchObject({ container: 'ts', isLive: true });
     expect(client.playbackUrl('live', '9', null, null).container).toBe('m3u8');
+  });
+});
+
+describe('provider replies', () => {
+  const reply = (body: string, status = 200) => (async () => new Response(body, { status })) as unknown as typeof globalThis.fetch;
+
+  it('accepts JSON with a byte-order mark or padding', async () => {
+    const body = '\uFEFF  {"user_info":{"auth":1,"status":"Active"}}\n';
+    expect(await createXtreamClient(credentials, { fetch: reply(body) }).validate()).toMatchObject({ status: 'Active' });
+  });
+
+  it('explains what went wrong', async () => {
+    await expect(createXtreamClient(credentials, { fetch: reply('<html>Blocked by firewall</html>') }).validate()).rejects.toThrow(
+      `panel.test:8080 sent a reply that is not JSON for 'login': "<html>Blocked by firewall</html>".`,
+    );
+    await expect(createXtreamClient(credentials, { fetch: reply('', 512) }).validate()).rejects.toThrow(
+      'panel.test:8080 answered HTTP 512',
+    );
+    const hang = ((_url: string, init?: RequestInit) =>
+      new Promise((_resolve, reject) =>
+        init?.signal?.addEventListener('abort', () => reject(new Error('Aborted'))),
+      )) as unknown as typeof globalThis.fetch;
+    await expect(createXtreamClient(credentials, { fetch: hang, timeoutMs: 10 }).validate()).rejects.toThrow(
+      'No answer from panel.test:8080 after 0 s.',
+    );
   });
 });
 

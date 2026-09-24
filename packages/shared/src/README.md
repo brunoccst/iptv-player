@@ -11,5 +11,6 @@
 | `direct/` | Direct mode (no backend): Xtream client and the TypeScript title normalizer (D-038). |
 | `epg/` | Pure guide-grid helpers: slots, row layout (clip, gaps), now line, current programme. |
 | `playback/` | Pure playback rules shared by web and TV (resume, intro, next episode, source attempts). |
-| `utils/` | Formatting helpers. |
+| `utils/` | Formatting helpers, diagnostics logger. |
+| `design/` | Design tokens (colours, fluid sizes like CSS `clamp()`), icon paths and avatar colours shared by the web and TV apps (D-041). |
 | `testing/` | Test-only fake backend. Not exported. |

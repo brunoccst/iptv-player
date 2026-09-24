@@ -19,7 +19,8 @@ export function errorText(error: ApiError | null | undefined): string {
     case 'provider_credentials_rejected':
       return 'Your IPTV provider no longer accepts the saved login. Sign out and sign in again.';
     case 'provider_unavailable':
-      return 'Your IPTV provider is not responding. Try again in a moment.';
+      // The detail (network error, timeout, HTTP status, bad reply) is the only clue when the app talks to the provider directly.
+      return `Your IPTV provider is not responding. Try again in a moment.${error.message ? `\nDetails: ${error.message}` : ''}`;
     case 'network_error':
     case 'timeout':
       return 'Cannot reach the server. Check the backend address and that it is running.';

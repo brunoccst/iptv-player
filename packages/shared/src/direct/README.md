@@ -4,7 +4,8 @@ Direct mode: native apps talk to the IPTV provider without a backend. Rationale:
 
 | File | Exports |
 |------|---------|
-| `directApiClient.ts` | `createDirectApiClient`: the whole `ApiClient` on the device. Credentials in secure storage; profiles, progress and the library cache in data storage; library rebuilt in the background when older than 12 h; guide from short EPG. |
+| `libraryCodec.ts` | Packs the library into arrays with a poster-prefix table (about a third of plain JSON); older files are ignored and deleted. |
+| `directApiClient.ts` | `createDirectApiClient`: the whole `ApiClient` on the device. Credentials in secure storage; profiles, progress and the library cache in data storage; library saved in a compact format (`libraryCodec.ts`) and rebuilt in the background when older than 24 h; guide from short EPG. |
 | `hybridApiClient.ts` | `createHybridApiClient`: routes each call to the direct or server client by `connectionStore`. |
 | `xtream.ts` | `normalizeServerUrl`, `createXtreamClient` (validate, categories, live channels, movies, series, details, short EPG, direct playback URLs). Same DTOs as the backend. |
 | `looseJson.ts` | Tolerant field readers for panel JSON (string/number/null mixes). |

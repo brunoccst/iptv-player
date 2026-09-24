@@ -11,8 +11,8 @@ appId: ${APP_ID}
     id: "login-mode-server"
 - tapOn:
     id: "login-backend"
-# Clear a prefilled address (APP_API_BASE_URL); the emulator reaches the runner's localhost at 10.0.2.2.
-- eraseText: 60
+# The field starts empty (the CI build sets no APP_API_BASE_URL and the app is freshly installed), so no eraseText:
+# its 60 key presses on the sign-in form timed out the Maestro driver on the emulator. 10.0.2.2 is the runner's localhost.
 - inputText: "http://10.0.2.2:5091"
 - pressKey: Enter
 - tapOn:
@@ -49,8 +49,14 @@ appId: ${APP_ID}
     id: "card-Big Test Movie"
     index: 0
 - extendedWaitUntil:
-    visible: "Version: 4K · ENG"
+    visible:
+      id: "details-play"
     timeout: 30000
+# The version picker sits below the fold of the details panel at 540 dp.
+- scrollUntilVisible:
+    element: "4K · ENG \\(best\\)"
+    direction: DOWN
+    timeout: 20000
 - takeScreenshot: 02-details
 # Play has TV preferred focus: the D-pad centre key starts playback.
 - pressKey: Remote Dpad Center
@@ -64,10 +70,16 @@ appId: ${APP_ID}
     timeout: 6000
     optional: true
 - pressKey: Remote Dpad Center
+# Paused: the play/pause button (web-style controls) reads "Play"; the clock stays put.
+- extendedWaitUntil:
+    visible:
+      id: "player-toggle"
+      text: "Play"
+    timeout: 30000
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30"
     timeout: 30000
 - takeScreenshot: 03-player
 - copyTextFrom:
@@ -102,16 +114,16 @@ appId: ${APP_ID}
 - tapOn:
     id: "download-button"
 - extendedWaitUntil:
-    visible: "Downloaded"
+    visible: "Downloaded: .*"
     timeout: 240000
 - pressKey: back
 - tapOn:
-    id: "rail-downloads"
+    id: "nav-downloads"
 - assertVisible: "Big Test Movie"
 - takeScreenshot: 05-downloads
 # Live TV guide: each channel shows what is on now; "Test Arena" (304) has no XMLTV id and comes from short EPG.
 - tapOn:
-    id: "rail-live"
+    id: "nav-live"
 - extendedWaitUntil:
     visible:
       id: "guide-now-301"

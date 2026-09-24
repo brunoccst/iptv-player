@@ -12,6 +12,8 @@ export interface DetailsTarget {
 
 interface UiSnapshot {
   view: View;
+  /** Category chip on the Movies/Series page (`null` = All). */
+  categoryId: string | null;
   search: string;
   details: DetailsTarget | null;
   playing: PlayTarget | null;
@@ -22,6 +24,9 @@ export interface UiState extends UiSnapshot {
   libraryRevision: number;
   bumpLibrary(): void;
   navigate(view: View): void;
+  /** Movies/Series page filtered to one category (row title links on Home). */
+  openCategory(section: LibrarySection, categoryId: string | null): void;
+  setCategory(categoryId: string | null): void;
   setSearch(query: string): void;
   openDetails(target: DetailsTarget): void;
   closeDetails(): void;
@@ -31,14 +36,14 @@ export interface UiState extends UiSnapshot {
   stopPlayback(): void;
 }
 
-const initial: UiSnapshot = { view: 'home', search: '', details: null, playing: null };
+const initial: UiSnapshot = { view: 'home', categoryId: null, search: '', details: null, playing: null };
 
 /** Navigation state mirrored into browser history so Back closes the player/modal. See DECISIONS.md#d-025. */
 export function createUiStore(history: History | null = typeof window !== 'undefined' ? window.history : null) {
   const store = createStore<UiState>()((set, get) => {
     const snapshot = (): UiSnapshot => {
-      const { view, search, details, playing } = get();
-      return { view, search, details, playing };
+      const { view, categoryId, search, details, playing } = get();
+      return { view, categoryId, search, details, playing };
     };
     const push = (next: Partial<UiSnapshot>) => {
       set(next);
@@ -49,7 +54,12 @@ export function createUiStore(history: History | null = typeof window !== 'undef
       ...initial,
       libraryRevision: 0,
       bumpLibrary: () => set({ libraryRevision: get().libraryRevision + 1 }),
-      navigate: (view) => push({ view, details: null, playing: null }),
+      navigate: (view) => push({ view, categoryId: null, details: null, playing: null }),
+      openCategory: (section, categoryId) => push({ view: section, categoryId, details: null, playing: null }),
+      setCategory: (categoryId) => {
+        set({ categoryId });
+        history?.replaceState({ ui: snapshot() }, '');
+      },
       setSearch: (search) => {
         set({ search, view: search.trim() ? 'search' : get().view === 'search' ? 'home' : get().view });
         history?.replaceState({ ui: snapshot() }, '');

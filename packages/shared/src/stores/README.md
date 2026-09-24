@@ -27,6 +27,6 @@ stateDiagram-v2
   authenticated --> anonymous: logout() / any 401
 ```
 
-Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`, `findProgress`.
+Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`, `describeLibraryProgress` (one line per kind: waiting, downloading, grouping N of M, ready), `findProgress`.
 
 The progress store reloads whenever the active profile changes (wired in `appContext.ts`).

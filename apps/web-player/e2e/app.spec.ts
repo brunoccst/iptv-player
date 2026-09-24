@@ -53,7 +53,7 @@ test('MKV-only titles explain they need the TV app', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('only available as MKV', { timeout: 60_000 });
 });
 
-test('episodes: skip intro, continue watching + resume, next-episode countdown', async ({ page }) => {
+test('episodes: skip ahead, continue watching + resume, next-episode countdown', async ({ page }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
   await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog');
@@ -63,9 +63,17 @@ test('episodes: skip intro, continue watching + resume, next-episode countdown',
     .first()
     .click();
 
-  await expect(page.getByRole('button', { name: 'Skip Intro' })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole('button', { name: 'Skip Intro' }).click();
-  await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(89);
+  // "Skip ahead" opens 30 s … 3 min; Escape (or the button again) closes the options without skipping.
+  const skipAhead = page.getByRole('button', { name: 'Skip ahead: choose how far' });
+  await expect(skipAhead).toBeVisible({ timeout: 20_000 });
+  await skipAhead.click();
+  await expect(page.getByRole('button', { name: 'Skip ahead 30 seconds' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Skip ahead 30 seconds' })).toBeHidden();
+  await expect(page.getByTestId('player')).toBeVisible();
+  await skipAhead.click();
+  await page.getByRole('button', { name: 'Skip ahead 2 minutes' }).click();
+  await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(124);
 
   await page.getByRole('button', { name: 'Back', exact: true }).click();
   await page.keyboard.press('Escape');

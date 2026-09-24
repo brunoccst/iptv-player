@@ -48,7 +48,7 @@ export interface TvPlayerViewProps extends ViewProps {
   onProgress?(event: NativeSyntheticEvent<PlayerProgressEvent>): void;
   onTracks?(event: NativeSyntheticEvent<{ tracks: PlayerTrack[] }>): void;
   onEnd?(event: NativeSyntheticEvent<Record<string, never>>): void;
-  onError?(event: NativeSyntheticEvent<{ message: string; code: string }>): void;
+  onError?(event: NativeSyntheticEvent<{ message: string; code: string; detail?: string }>): void;
 }
 
 export interface TvPlayerViewRef {

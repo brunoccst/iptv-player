@@ -1,11 +1,18 @@
 # components
 
+Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#d-041)); everything is also D-pad focusable.
+
 | File | Purpose |
 |------|---------|
-| `FocusButton.tsx` | D-pad button; focus = white fill / border + scale. |
-| `PosterCard.tsx` | Poster or landscape card (badge, progress bar); `testID="card-<title>"`. |
-| `Row.tsx` | Titled horizontal list. |
-| `SideRail.tsx` | Left navigation (profile, Home, Series, Movies, Live TV, Downloads) in a `TVFocusGuideView`. |
+| `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. |
+| `AccountMenu.tsx` | Menu under the avatar: other profiles, Manage Profiles, Refresh library, Log, Sign out. `confirmSignOut` asks first. |
+| `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus shows a white outline. |
+| `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
+| `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
+| `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |
+| `PosterCard.tsx` | Web `.card`: 2:3 or 16:9 art, badge, progress bar, title + subtitle; focus scales it up. `testID="card-<title>"`. |
+| `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinners. |
+| `Select.tsx` | Web `.select`: box with the current value; opens an option list. |
+| `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume. |
 | `ProgressRing.tsx` | SVG progress circle. |
-| `DownloadButton.tsx` | "Download" with progress ring; start / pause / resume. |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` mapping. |

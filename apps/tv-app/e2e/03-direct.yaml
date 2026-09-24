@@ -40,8 +40,14 @@ appId: ${APP_ID}
     id: "card-Big Test Movie"
     index: 0
 - extendedWaitUntil:
-    visible: "Version: 4K · ENG"
+    visible:
+      id: "details-play"
     timeout: 30000
+# The version picker sits below the fold of the details panel at 540 dp.
+- scrollUntilVisible:
+    element: "4K · ENG \\(best\\)"
+    direction: DOWN
+    timeout: 20000
 # Playback straight from the provider (no relay).
 - pressKey: Remote Dpad Center
 - extendedWaitUntil:
@@ -53,10 +59,16 @@ appId: ${APP_ID}
     timeout: 6000
     optional: true
 - pressKey: Remote Dpad Center
+# Paused: the play/pause button (web-style controls) reads "Play"; the clock stays put.
+- extendedWaitUntil:
+    visible:
+      id: "player-toggle"
+      text: "Play"
+    timeout: 30000
 - extendedWaitUntil:
     visible:
       id: "player-time"
-      text: "0:(0[2-9]|[12][0-9]) / 0:30.*Paused.*"
+      text: "0:(0[2-9]|[12][0-9]) / 0:30"
     timeout: 30000
 - takeScreenshot: 21-direct-player
 - pressKey: back
@@ -67,7 +79,7 @@ appId: ${APP_ID}
 - pressKey: back
 # Guide from the provider's short EPG, including the channel without an XMLTV id.
 - tapOn:
-    id: "rail-live"
+    id: "nav-live"
 - extendedWaitUntil:
     visible:
       id: "guide-now-301"

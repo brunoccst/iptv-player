@@ -23,11 +23,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'dark',
   backgroundColor: '#141414',
   platforms: ['android'],
+  // Rendered by scripts/render-icons.mjs from one design (web uses the same).
+  icon: './assets/icon.png',
   android: {
     package: requireEnv('APP_ANDROID_PACKAGE'),
+    adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#141414' },
   },
   plugins: [
-    ['@react-native-tvos/config-tv', { isTV: true }],
+    ['@react-native-tvos/config-tv', { isTV: true, androidTVBanner: './assets/tv-banner.png' }],
+    // Native launch screen: the icon on the dark background until the first frame.
+    ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: '#141414' }],
     'expo-secure-store',
     // The local backend is plain HTTP on the LAN (KI-009); Android blocks cleartext by default.
     ['expo-build-properties', { android: { usesCleartextTraffic: true } }],

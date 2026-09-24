@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
 import type { ApiError } from '../api/httpClient';
-import type { LibraryPage, LibrarySection, LibraryStatus, MasterDetails, VariantInfo } from '../api/types';
+import type { LibraryPage, LibrarySection, LibraryStatus, LibraryStatusProgress, MasterDetails, VariantInfo } from '../api/types';
 import { createResourceLoader, emptyResource, toApiError, type LoadOptions, type Resource } from './resource';
 
 /** Deduplicated library (master cards + variants) and the user's "Version / Stream Quality" choices. */
@@ -110,4 +110,31 @@ export function selectVariant(state: Pick<LibraryState, 'selectedVariants'>, det
 /** True while any library kind still has a queued or running normalization job. */
 export function isLibraryProcessing(statuses: LibraryStatus[] | null): boolean {
   return (statuses ?? []).some((status) => status.jobStatus === 'pending' || status.jobStatus === 'processing');
+}
+
+const count = (value: number) => String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/**
+ * One line per library kind for the "organizing your library" notice. Uses the direct-mode stage and count when
+ * present (D-038) and plain backend job states otherwise. Empty when nothing is running.
+ */
+export function describeLibraryProgress(statuses: LibraryStatus[] | null): string[] {
+  if (!isLibraryProcessing(statuses)) return [];
+  return (statuses ?? []).map((status) => {
+    const { stage, parsedCount } = status as LibraryStatusProgress;
+    const label = status.mediaKind === 'series' ? 'Series' : 'Movies';
+    const total = status.itemCount ?? 0;
+    switch (status.jobStatus) {
+      case 'pending':
+        return `${label}: waiting to start…`;
+      case 'processing':
+        if (stage === 'downloading') return `${label}: downloading the list from your provider…`;
+        if (stage === 'grouping' && total > 0) return `${label}: grouping titles ${count(parsedCount ?? 0)} of ${count(total)}…`;
+        return total > 0 ? `${label}: grouping ${count(total)} titles…` : `${label}: grouping titles…`;
+      case 'failed':
+        return `${label}: failed${status.error ? ` (${status.error})` : ''}`;
+      default:
+        return `${label}: ${count(status.masterCount)} titles ready`;
+    }
+  });
 }

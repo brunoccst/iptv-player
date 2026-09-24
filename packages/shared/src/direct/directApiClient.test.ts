@@ -94,6 +94,47 @@ describe('createDirectApiClient', () => {
     expect((await restarted.library.list('movies')).total).toBe(2);
   });
 
+  it('reports download and grouping progress while the library builds', async () => {
+    const panel = createFakePanel();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slowMovies = (async (url: string, init?: RequestInit) => {
+      if (url.includes('action=get_vod_streams')) await gate;
+      return panel.fetch(url, init);
+    }) as typeof globalThis.fetch;
+    const { api } = setup({ ...panel, fetch: slowMovies });
+    await api.auth.login(login);
+    const stageOf = async (kind: string) => {
+      const status = (await api.library.status()).find((item) => item.mediaKind === kind) as {
+        stage?: string | null;
+        jobStatus: string | null;
+      };
+      return status.stage ?? status.jobStatus;
+    };
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(await stageOf('movie')).toBe('downloading');
+
+    release();
+    await libraryReady(api);
+    expect(await stageOf('movie')).toBe('done');
+    expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
+  });
+
+  it('reuses the saved library after a restart when many screens ask at once', async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    const downloads = () => first.panel.calls.filter((url) => url.includes('action=get_vod_streams')).length;
+    const before = downloads();
+
+    const restarted = setup(first.panel, first.storages).api;
+    const [, statuses, page] = await Promise.all([restarted.auth.me(), restarted.library.status(), restarted.library.list('movies')]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(statuses.map((status) => status.jobStatus)).toEqual(['done', 'done']);
+    expect(page.total).toBe(2);
+    expect(downloads()).toBe(before);
+  });
+
   it('keeps profiles on the device with the backend rules', async () => {
     const { api } = setup();
     await api.auth.login(login);
@@ -158,6 +199,7 @@ describe('createDirectApiClient', () => {
       url: 'http://panel.test:8080/live/demo/demo/1.m3u8',
       container: 'm3u8',
       isLive: true,
+      alternateUrls: [],
       deliveryMode: 'direct',
     });
     await expect(api.catalog.movie('999')).rejects.toMatchObject({ status: 404 });

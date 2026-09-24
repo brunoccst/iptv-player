@@ -83,7 +83,8 @@ describe('PlayerScreen', () => {
     expect(playerState.props?.paused).toBe(false);
     await act(async () => pressRemote('select', 'up'));
     expect(playerState.props?.paused).toBe(true);
-    expect(screen.getByTestId('player-time')).toHaveTextContent(/0:08 \/ 0:30.*Paused/);
+    expect(screen.getByTestId('player-time')).toHaveTextContent('0:08 / 0:30');
+    expect(screen.getByLabelText('Play')).toBeTruthy();
     await act(async () => jest.advanceTimersByTime(10_000));
     expect(screen.getByTestId('player-time')).toBeTruthy();
 
@@ -154,7 +155,7 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('quick-drawer')).toBeNull();
   });
 
-  it('episodes: Skip Intro jumps past the intro; next-up counts down and offers the next episode', async () => {
+  it('episodes: Skip ahead opens 30 s … 3 min, cancels on re-press or Back; next-up offers the next episode', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
     backend.on('GET', '/api/catalog/series/s1', {
@@ -211,8 +212,22 @@ describe('PlayerScreen', () => {
     await ready();
     await progress(30, 2400);
 
-    await fireEvent.press(screen.getByTestId('skip-intro'));
+    // Re-pressing the button cancels.
+    await fireEvent.press(screen.getByTestId('skip-ahead'));
+    expect(screen.getAllByText(/^(30 s|1 min|2 min|3 min)$/)).toHaveLength(4);
+    await fireEvent.press(screen.getByTestId('skip-ahead'));
+    expect(screen.queryByTestId('skip-ahead-30')).toBeNull();
+    // Back cancels without leaving the player.
+    await fireEvent.press(screen.getByTestId('skip-ahead'));
+    await act(async () => pressBack());
+    expect(screen.queryByTestId('skip-ahead-30')).toBeNull();
+    expect(screen.getByTestId('skip-ahead')).toBeTruthy();
+    expect(playerState.seeks).toEqual([]);
+    // Choosing an option seeks from the current position.
+    await fireEvent.press(screen.getByTestId('skip-ahead'));
+    await fireEvent.press(screen.getByLabelText('Skip ahead 1 minute'));
     expect(playerState.seeks).toEqual([90_000]);
+    expect(screen.queryByTestId('skip-ahead-60')).toBeNull();
 
     await progress(2394, 2400);
     expect(await screen.findByText('Next episode in 6')).toBeTruthy();

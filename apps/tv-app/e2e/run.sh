@@ -9,6 +9,13 @@ mkdir -p "$OUT"
 
 # On failure, print what was on screen and the app/player logs, so the CI log alone explains it.
 diagnose() {
+  local name="$1"
+  echo "::group::Failed step (Maestro report)"
+  grep -oE '<failure[^>]*>[^<]*' "$OUT/$name.xml" 2>/dev/null | head -20 || true
+  find "$OUT/$name" -name 'commands-*.json' -exec grep -hoE '"(status|errorMessage|message)" *: *"[^"]{0,200}"' {} + 2>/dev/null | grep -B2 -A2 -iE 'fail|error' | tail -30 || true
+  echo "::endgroup::"
+  # A text field may have left the TV keyboard up; close it so the screen dump shows the app.
+  adb shell input keyevent 111 >/dev/null 2>&1 || true
   echo "::group::Screen (text and ids)"
   maestro hierarchy 2>/dev/null | grep -oE '"(text|resource-id|accessibilityText)" *: *"[^"]+"' | tail -80 || true
   echo "::endgroup::"
@@ -31,7 +38,7 @@ diagnose() {
 run_flow() {
   local name="$1"
   maestro test "$HERE/$name.yaml" -e APP_ID="$APP_ID" --format junit --output "$OUT/$name.xml" \
-    --debug-output "$OUT/$name" --test-output-dir "$OUT/$name" || { diagnose; return 1; }
+    --debug-output "$OUT/$name" --test-output-dir "$OUT/$name" || { diagnose "$name"; return 1; }
 }
 
 run_flow 01-online

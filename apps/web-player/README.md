@@ -58,7 +58,8 @@ npm run dev:web                                                                 
 
 | Path | Purpose |
 |------|---------|
-| `index.html` | HTML entry. `%APP_NAME%` replaced at build time. |
+| `index.html` | HTML entry (favicon links). `%APP_NAME%` replaced at build time. |
+| `public/` | Icons served at the site root. |
 | `vite.config.ts` | Env from repo root; Service Worker bundling plugin (`/sw.js`). |
 | `tsconfig.sw.json` | Type-checks the Service Worker with the WebWorker lib. |
 | `playwright.config.ts`, `e2e/` | End-to-end tests. |

@@ -1,12 +1,16 @@
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, fonts, spacing } from '../theme';
+import { colors, fonts, radius } from '../theme';
+import { Icon, type IconName } from './Icon';
+
+type Variant = 'primary' | 'secondary' | 'accent' | 'ghost';
 
 interface FocusButtonProps {
   label: string;
   onPress(): void;
-  variant?: 'primary' | 'secondary' | 'ghost';
-  icon?: ReactNode;
+  /** Same variants as the web `.button--*` classes. */
+  variant?: Variant;
+  icon?: IconName | ReactNode;
   hasTVPreferredFocus?: boolean;
   disabled?: boolean;
   testID?: string;
@@ -15,7 +19,9 @@ interface FocusButtonProps {
   onFocus?(): void;
 }
 
-/** D-pad focusable button. Focus = white fill (primary) or white border + scale. */
+const TEXT: Record<Variant, string> = { primary: '#000', secondary: colors.strong, accent: colors.strong, ghost: colors.text };
+
+/** Web-style button (`.button`) that the D-pad can focus: focus shows the web's white outline. */
 export function FocusButton({
   label,
   onPress,
@@ -29,6 +35,7 @@ export function FocusButton({
   onFocus,
 }: FocusButtonProps) {
   const [focused, setFocused] = useState(false);
+  const textColor = TEXT[variant];
   return (
     <Pressable
       testID={testID}
@@ -43,18 +50,11 @@ export function FocusButton({
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[
-        styles.base,
-        styles[variant],
-        focused && styles.focused,
-        focused && variant !== 'primary' && styles.focusedSecondary,
-        disabled && styles.disabled,
-        style,
-      ]}
+      style={[styles.outline, focused && styles.outlineFocused, style]}
     >
-      <View style={styles.content}>
-        {icon}
-        <Text style={[styles.label, (variant === 'primary' || focused) && styles.labelDark]} numberOfLines={1}>
+      <View style={[styles.base, styles[variant], disabled && styles.disabled]}>
+        {typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon}
+        <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
           {label}
         </Text>
       </View>
@@ -63,20 +63,22 @@ export function FocusButton({
 }
 
 const styles = StyleSheet.create({
+  outline: { borderWidth: 2, borderColor: 'transparent', borderRadius: radius + 3, padding: 2, margin: -4 },
+  outlineFocused: { borderColor: colors.strong },
   base: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    minHeight: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: radius,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   primary: { backgroundColor: colors.strong },
-  secondary: { backgroundColor: 'rgba(109,109,110,0.7)' },
-  ghost: { backgroundColor: 'transparent', borderColor: colors.muted },
-  focused: { transform: [{ scale: 1.08 }], borderColor: colors.strong },
-  focusedSecondary: { backgroundColor: colors.strong },
-  disabled: { opacity: 0.4 },
-  content: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  label: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },
-  labelDark: { color: '#000' },
+  secondary: { backgroundColor: colors.secondaryButton },
+  accent: { backgroundColor: colors.accent },
+  ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.muted },
+  disabled: { opacity: 0.5 },
+  label: { fontSize: fonts.body, fontWeight: '700' },
 });

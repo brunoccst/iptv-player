@@ -29,6 +29,9 @@ flowchart LR
   - [x] 8c. `createDirectApiClient`: same interface as the backend client; profiles, progress and library kept on the device.
   - [x] 8d. TV app: sign-in chooses "IPTV provider" (default) or "My server"; provider User-Agent on playback and downloads.
   - [x] 8e. CI: Maestro flows in direct mode against the fake panel, plus one server-mode flow; `tv-apk.yml` no longer needs a backend address.
+- [x] **APK looks like the web app** (requested 2026-09-24, D-041): top nav, hero, rows, grid with category chips, details panel, guide, player controls, profiles; shared tokens and icons.
+- [x] **Skip ahead instead of Skip Intro** (requested 2026-09-24, D-042): the button opens 30 s / 1 / 2 / 3 min; re-press or Back/Esc cancels.
+- [ ] **Try other versions when a stream is refused** (requested 2026-09-24): if the provider refuses one version of a movie (e.g. HTTP 401 for a removed title), the player tries the title's other versions before showing an error.
 - [ ] **Step 9 — Phone app** (requested 2026-09-24): touch UI on the same shared code, direct mode by default.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
@@ -41,11 +44,9 @@ flowchart LR
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
 - **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
-- **TV profile editing** (KI-027) and on-screen search.
 - **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
 - **Sign the release APK** with a real keystore (CI secret) for sideloading updates over the debug-signed build.
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
-- **Intro markers**: learn per-series intro end from user skips (KI-019).
 - **URL routing** for deep links (KI-023).
 - **mpegts.js** fallback for TS-only live panels (KI-022).
 - **Series ranking by episode count** (KI-025).

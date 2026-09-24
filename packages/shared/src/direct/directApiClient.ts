@@ -7,7 +7,7 @@ import type {
   EpgGrid,
   EpgListing,
   LibrarySection,
-  LibraryStatus,
+  LibraryStatusProgress,
   LiveChannel,
   LoginRequest,
   MasterCard,
@@ -20,7 +20,9 @@ import type {
   ProgressRequest,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
-import { buildMasters, type Master } from './normalizer/pipeline';
+import { appLog, errorMessage } from '../utils/logger';
+import { LIBRARY_FORMAT, packLibrary, unpackLibrary } from './libraryCodec';
+import { buildMastersInChunks, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
 
@@ -60,13 +62,16 @@ type LibraryKind = 'movie' | 'series';
 const CREDENTIALS_KEY = 'direct.credentials';
 const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
 const progressKey = (profileId: string) => `direct.progress.${profileId}`;
-const libraryKey = (accountId: string) => `direct.library.${accountId}`;
+/** One file per kind: a finished kind never rewrites the other, and each file stays half the size. */
+const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.v${LIBRARY_FORMAT}.${accountId}.${kind}`;
+/** Plain-JSON files from before the compact format; deleted on load to free space. */
+const oldLibraryKey = (accountId: string, kind: LibraryKind) => `direct.library.${accountId}.${kind}`;
 
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
 const SHORT_EPG_LIMIT = 12;
 const SHORT_EPG_PARALLELISM = 4;
-const LIBRARY_REFRESH_MS = 12 * 3600_000;
+const LIBRARY_REFRESH_MS = 24 * 3600_000;
 const SLOT_MS = 30 * 60_000;
 const MAX_PROFILES = 5;
 const MAX_PROFILE_NAME = 50;
@@ -88,16 +93,35 @@ const randomUuid = () =>
     return (char === 'x' ? value : (value & 0x3) | 0x8).toString(16);
   });
 
-async function readJson<T>(storage: KeyValueStorage, key: string): Promise<T | null> {
+/** Reads and parses a stored value; `null` when missing or broken. Library reads are logged (size, time, errors). */
+async function readJson<T>(storage: KeyValueStorage, key: string, logged = false): Promise<T | null> {
+  const started = Date.now();
   try {
     const text = await storage.getItem(key);
-    return text ? (JSON.parse(text) as T) : null;
-  } catch {
+    if (!text) {
+      if (logged) appLog.info('storage', `${key}: nothing saved`);
+      return null;
+    }
+    const value = JSON.parse(text) as T;
+    if (logged) appLog.info('storage', `${key}: read ${text.length} chars in ${Date.now() - started} ms`);
+    return value;
+  } catch (error) {
+    appLog.error('storage', `${key}: read failed after ${Date.now() - started} ms: ${errorMessage(error)}`);
     return null;
   }
 }
 
-const writeJson = async (storage: KeyValueStorage, key: string, value: unknown) => storage.setItem(key, JSON.stringify(value));
+async function writeJson(storage: KeyValueStorage, key: string, value: unknown, logged = false): Promise<void> {
+  const started = Date.now();
+  try {
+    const text = JSON.stringify(value);
+    await storage.setItem(key, text);
+    if (logged) appLog.info('storage', `${key}: wrote ${text.length} chars in ${Date.now() - started} ms`);
+  } catch (error) {
+    appLog.error('storage', `${key}: write failed after ${Date.now() - started} ms: ${errorMessage(error)}`);
+    throw error;
+  }
+}
 
 export function createDirectApiClient(options: DirectApiClientOptions): ApiClient {
   const now = options.now ?? (() => new Date());
@@ -157,7 +181,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     accountId: string | null;
     data: StoredLibrary | null;
     running: Promise<void> | null;
-    status: Record<LibraryKind, Omit<LibraryStatus, 'mediaKind' | 'masterCount'>>;
+    status: Record<LibraryKind, Omit<LibraryStatusProgress, 'mediaKind' | 'masterCount'>>;
   } = {
     accountId: null,
     data: null,
@@ -176,26 +200,41 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
       const accountId = stored.account.id;
       await loadLibrary();
       const queuedAt = now().toISOString();
+      appLog.info('library', `sync started (saved copy: ${library.data ? `built ${library.data.builtAt}` : 'none'})`);
       for (const kind of ['movie', 'series'] as const)
-        library.status[kind] = { jobStatus: 'processing', itemCount: null, queuedAt, finishedAt: null, error: null };
+        library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       const current = () => credentials?.account.id === accountId;
+      // Both lists download at once (the slow part on a phone); grouping then runs one kind at a time.
+      const downloads = {
+        movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null }))),
+        series: client.series().then((list) => list.map((s) => ({ ...s, containerExtension: null }))),
+      };
+      for (const promise of Object.values(downloads)) promise.catch(() => undefined);
       for (const kind of ['movie', 'series'] as const) {
         try {
-          const items =
-            kind === 'movie'
-              ? (await client.movies()).map((m) => ({ ...m, releaseDate: null }))
-              : (await client.series()).map((s) => ({ ...s, containerExtension: null }));
-          await yieldToUi();
-          const masters = buildMasters(accountId, kind, items);
+          const downloadStarted = Date.now();
+          const items = await downloads[kind];
+          appLog.info(
+            'library',
+            `${kind}: ${items.length} items downloaded (${Math.round((Date.now() - downloadStarted) / 1000)} s after ${kind === 'movie' ? 'start' : 'movies'})`,
+          );
+          const groupStarted = Date.now();
+          library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
+          const masters = await buildMastersInChunks(accountId, kind, items, {
+            onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
+          });
+          appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms`);
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
-          await writeJson(options.dataStorage, libraryKey(accountId), library.data).catch(() => undefined);
-          library.status[kind] = { ...library.status[kind], jobStatus: 'done', itemCount: items.length, finishedAt: now().toISOString() };
+          await writeJson(options.dataStorage, libraryKey(accountId, kind), packLibrary(queuedAt, masters), true).catch(() => undefined);
+          library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
         } catch (error) {
+          appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
           library.status[kind] = {
             ...library.status[kind],
             jobStatus: 'failed',
+            stage: null,
             finishedAt: now().toISOString(),
             error: error instanceof Error ? error.message : 'Library sync failed.',
           };
@@ -209,21 +248,64 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
   };
 
   /** Loads the cached library of the signed-in account once per account. */
+  // Concurrent callers (restore, status polling, rows) share one read; otherwise the second one saw "no library" and
+  // started a full download although the saved copy was still being read.
+  let loading: { accountId: string; promise: Promise<StoredLibrary | null> } | null = null;
   const loadLibrary = async (): Promise<StoredLibrary | null> => {
     const { stored } = await session();
-    if (library.accountId !== stored.account.id) {
-      library.accountId = stored.account.id;
-      library.data = await readJson<StoredLibrary>(options.dataStorage, libraryKey(stored.account.id));
-      for (const kind of ['movie', 'series'] as const) {
-        library.status[kind] = library.data
-          ? { jobStatus: 'done', itemCount: null, queuedAt: library.data.builtAt, finishedAt: library.data.builtAt, error: null }
-          : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
-      }
+    const accountId = stored.account.id;
+    if (library.accountId === accountId) return library.data;
+    if (loading?.accountId !== accountId) {
+      const promise = Promise.all(
+        (['movie', 'series'] as const).map(async (kind) => {
+          void Promise.resolve(options.dataStorage.removeItem(oldLibraryKey(accountId, kind))).catch(() => undefined);
+          return unpackLibrary(await readJson<unknown>(options.dataStorage, libraryKey(accountId, kind), true));
+        }),
+      ).then(([movie, series]) => {
+        // A missing kind counts as very old, so the background refresh fills it in; the other kind still shows.
+        const data: StoredLibrary | null =
+          movie || series
+            ? {
+                builtAt: !movie || !series ? new Date(0).toISOString() : movie.builtAt < series.builtAt ? movie.builtAt : series.builtAt,
+                movie: movie?.masters ?? [],
+                series: series?.masters ?? [],
+              }
+            : null;
+        if (credentials?.account.id === accountId && library.accountId !== accountId) {
+          library.accountId = accountId;
+          library.data = data;
+          for (const kind of ['movie', 'series'] as const) {
+            library.status[kind] = data
+              ? { jobStatus: 'done', itemCount: null, queuedAt: data.builtAt, finishedAt: data.builtAt, error: null }
+              : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
+          }
+        }
+        return library.accountId === accountId ? library.data : data;
+      });
+      loading = { accountId, promise };
     }
-    return library.data;
+    return loading.promise;
   };
 
-  /** Cached library, refreshed in the background when older than 12 h or missing. */
+  /** Sorted list, per-category lists and id lookup, built once per library version (list() used to sort on every call). */
+  const indexes = new WeakMap<Master[], { sorted: Master[]; byCategory: Map<string, Master[]>; byId: Map<string, Master> }>();
+  const indexFor = (masters: Master[]) => {
+    let index = indexes.get(masters);
+    if (!index) {
+      const sorted = [...masters].sort((a, b) => ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1));
+      const byCategory = new Map<string, Master[]>();
+      for (const master of sorted) {
+        for (const categoryId of new Set(master.variants.map((variant) => variant.categoryId))) {
+          if (categoryId) byCategory.set(categoryId, [...(byCategory.get(categoryId) ?? []), master]);
+        }
+      }
+      index = { sorted, byCategory, byId: new Map(masters.map((master) => [master.id, master])) };
+      indexes.set(masters, index);
+    }
+    return index;
+  };
+
+  /** Cached library, refreshed in the background when older than 24 h or missing. */
   const ensureLibrary = async (): Promise<StoredLibrary | null> => {
     const data = await loadLibrary();
     const age = data ? now().getTime() - Date.parse(data.builtAt) : Infinity;
@@ -319,6 +401,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         await writeJson(options.secureStorage, CREDENTIALS_KEY, stored);
         connect(stored);
         library.accountId = null;
+        loading = null;
 
         let profiles = await loadProfiles(account.id);
         if (profiles.length === 0) {
@@ -337,6 +420,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         await options.secureStorage.removeItem(CREDENTIALS_KEY);
         connect(null);
         library.accountId = null;
+        loading = null;
         library.data = null;
         return undefined;
       },
@@ -482,17 +566,17 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         }));
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
-        const masters = (await ensureLibrary())?.[librarySection(section)] ?? [];
+        const index = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []);
         const search = query.search?.trim().toLowerCase();
-        const matches = masters
-          .filter((master) => !query.categoryId || master.variants.some((variant) => variant.categoryId === query.categoryId))
-          .filter((master) => !search || master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
-          .sort((a, b) => ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1));
+        const scope = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.sorted;
+        const matches = search
+          ? scope.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
+          : scope;
         const offset = Math.max(0, query.offset ?? 0);
         return { total: matches.length, items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard) };
       },
       async get(section: LibrarySection, masterId: string): Promise<MasterDetails> {
-        const master = ((await ensureLibrary())?.[librarySection(section)] ?? []).find((candidate) => candidate.id === masterId);
+        const master = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []).byId.get(masterId);
         if (!master) throw notFound();
         const variants = [...master.variants]
           .sort((a, b) => b.qualityScore - a.qualityScore || ordinal(a.label, b.label))

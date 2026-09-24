@@ -12,6 +12,7 @@ import type {
   SeriesDetails,
   SeriesSummary,
 } from '../api/types';
+import { appLog } from '../utils/logger';
 import { decodeMaybeBase64 } from './base64Text';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 
@@ -28,6 +29,8 @@ export interface XtreamAccountInfo {
   expiresAt: string | null;
   maxConnections: number | null;
   allowedOutputFormats: string[];
+  /** Stream server announced in `server_info` (often differs from the portal address), e.g. `http://1.2.3.4:8080/`. */
+  streamBaseUrl?: string | null;
 }
 
 export interface XtreamClientOptions {
@@ -62,6 +65,14 @@ const unavailable = (message: string) => new ApiError(502, 'provider_unavailable
 export function createXtreamClient(credentials: XtreamCredentials, options: XtreamClientOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 30_000;
 
+  const host = () => {
+    try {
+      return new URL(credentials.serverUrl).host;
+    } catch {
+      return 'the provider';
+    }
+  };
+
   const buildUrl = (file: string, query: Record<string, string>) => {
     const all = { username: credentials.username, password: credentials.password, ...query };
     const search = Object.entries(all)
@@ -73,8 +84,13 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
   const getJson = async (action: string | null, parameters: Record<string, string> = {}, signal?: AbortSignal): Promise<Json> => {
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const operation = action ?? 'login';
+    const started = Date.now();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
     const onAbort = () => controller.abort();
     signal?.addEventListener('abort', onAbort);
     let response: Response;
@@ -86,18 +102,29 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       });
     } catch (error) {
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
-      throw unavailable(`Could not reach the provider (${error instanceof Error ? error.message : 'network error'}).`);
+      const failure = timedOut
+        ? unavailable(`No answer from ${host()} after ${Math.round(timeoutMs / 1000)} s.`)
+        : unavailable(`Could not connect to ${host()} (${error instanceof Error ? error.message : 'network error'}).`);
+      appLog.error('provider', `${operation}: ${failure.message}`);
+      throw failure;
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
     }
     if (response.status === 401 || response.status === 403)
       throw new ApiError(502, 'provider_credentials_rejected', 'Provider rejected the credentials.');
-    if (!response.ok) throw unavailable(`Provider returned HTTP ${response.status} for '${operation}'.`);
+    if (!response.ok) {
+      appLog.error('provider', `${operation}: HTTP ${response.status} from ${host()} after ${Date.now() - started} ms`);
+      throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
+    }
+    // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects (the backend's parser skips it).
+    const text = await response.text().catch(() => '');
+    appLog.info('provider', `${operation}: HTTP ${response.status}, ${text.length} chars in ${Date.now() - started} ms`);
     try {
-      return (await response.json()) as Json;
+      return JSON.parse(text.replace(/^\uFEFF/, '').trim()) as Json;
     } catch {
-      throw unavailable(`Provider returned invalid JSON for '${operation}'.`);
+      const preview = text.replace(/\s+/g, ' ').trim().slice(0, 60);
+      throw unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`);
     }
   };
 
@@ -154,18 +181,27 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     credentials,
 
     async validate(signal?: AbortSignal): Promise<XtreamAccountInfo> {
-      const userInfo = prop(await getJson(null, {}, signal), 'user_info');
+      const root = await getJson(null, {}, signal);
+      const userInfo = prop(root, 'user_info');
+      const serverInfo = prop(root, 'server_info');
       if (!isObject(userInfo) || !bool(userInfo, 'auth'))
         throw new ApiError(401, 'invalid_provider_credentials', 'Invalid username or password.');
       const status = str(userInfo, 'status') ?? 'Unknown';
       if (status.toLowerCase() !== 'active')
         throw new ApiError(401, 'invalid_provider_credentials', `Provider account status is '${status}'.`);
-      return {
+      const info: XtreamAccountInfo = {
         status,
         expiresAt: unixTime(userInfo, 'exp_date'),
         maxConnections: int(userInfo, 'max_connections'),
         allowedOutputFormats: strList(userInfo, 'allowed_output_formats'),
+        streamBaseUrl: streamBase(serverInfo),
       };
+      appLog.info(
+        'provider',
+        `account ${status}, connections ${int(userInfo, 'active_cons') ?? '?'}/${info.maxConnections ?? '?'}, formats [${info.allowedOutputFormats.join(', ')}], ` +
+          `portal ${host()}, stream server ${info.streamBaseUrl ?? 'not announced'}`,
+      );
+      return info;
     },
 
     async categories(kind: MediaKind, signal?: AbortSignal): Promise<MediaCategory[]> {
@@ -268,18 +304,31 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       });
     },
 
-    /** Direct provider URL. Live prefers HLS unless the account only allows other formats. */
+    /** Direct provider URL on the portal address; `alternateUrls` holds the same stream on the announced stream server.
+     * Live prefers HLS unless the account only allows other formats. */
     playbackUrl(kind: PlaybackKind, id: string, container: string | null | undefined, account: XtreamAccountInfo | null) {
       const clean = sanitizeContainer(container);
       const segment = kind === 'episode' ? 'series' : kind;
       const chosen = kind === 'live' ? chooseLiveContainer(clean, account?.allowedOutputFormats ?? []) : (clean ?? 'mp4');
-      const path = [segment, credentials.username, credentials.password].map(encodeURIComponent).join('/');
-      return { url: `${credentials.serverUrl}${path}/${encodeURIComponent(id)}.${chosen}`, container: chosen, isLive: kind === 'live' };
+      const path = `${[segment, credentials.username, credentials.password].map(encodeURIComponent).join('/')}/${encodeURIComponent(id)}.${chosen}`;
+      const stream = account?.streamBaseUrl;
+      const alternateUrls = stream && stream !== credentials.serverUrl ? [`${stream}${path}`] : [];
+      return { url: `${credentials.serverUrl}${path}`, container: chosen, isLive: kind === 'live', alternateUrls };
     },
   };
 }
 
 export type XtreamClient = ReturnType<typeof createXtreamClient>;
+
+/** `server_info` → `protocol://url:port/`; null when the panel does not announce one. */
+function streamBase(serverInfo: Json): string | null {
+  const url = str(serverInfo, 'url');
+  if (!url) return null;
+  const protocol = str(serverInfo, 'server_protocol') === 'https' ? 'https' : 'http';
+  const port = str(serverInfo, protocol === 'https' ? 'https_port' : 'port');
+  const host = url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return `${protocol}://${host}${port && !host.includes(':') ? `:${port}` : ''}/`;
+}
 
 function sanitizeContainer(container: string | null | undefined): string | null {
   const value = container?.trim().replace(/^\.+/, '').toLowerCase();

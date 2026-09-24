@@ -4,7 +4,7 @@ import { account, createFakeBackend } from '../testing/fakeBackend';
 import type { MasterDetails } from '../api/types';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
-import { isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
+import { describeLibraryProgress, isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
 
 const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
 
@@ -126,5 +126,33 @@ describe('library store', () => {
     expect(context.stores.session.getState().status).toBe('anonymous');
     expect(library.getState().selectedVariants).toEqual({});
     expect(library.getState().pages).toEqual({});
+  });
+});
+
+describe('describeLibraryProgress', () => {
+  const status = (mediaKind: string, extra: Record<string, unknown>) =>
+    ({ mediaKind, jobStatus: 'done', itemCount: null, queuedAt: null, finishedAt: null, error: null, masterCount: 0, ...extra }) as never;
+
+  it('is empty when nothing runs', () => {
+    expect(describeLibraryProgress(null)).toEqual([]);
+    expect(describeLibraryProgress([status('movie', { masterCount: 5 })])).toEqual([]);
+  });
+
+  it('describes direct-mode stages and backend job states', () => {
+    expect(
+      describeLibraryProgress([
+        status('movie', { jobStatus: 'processing', stage: 'grouping', itemCount: 12345, parsedCount: 4000 }),
+        status('series', { jobStatus: 'processing', stage: 'downloading' }),
+      ]),
+    ).toEqual(['Movies: grouping titles 4,000 of 12,345…', 'Series: downloading the list from your provider…']);
+    expect(
+      describeLibraryProgress([status('movie', { jobStatus: 'done', masterCount: 1500 }), status('series', { jobStatus: 'pending' })]),
+    ).toEqual(['Movies: 1,500 titles ready', 'Series: waiting to start…']);
+    expect(
+      describeLibraryProgress([
+        status('movie', { jobStatus: 'processing', itemCount: 900 }),
+        status('series', { jobStatus: 'failed', error: 'HTTP 500' }),
+      ]),
+    ).toEqual(['Movies: grouping 900 titles…', 'Series: failed (HTTP 500)']);
   });
 });

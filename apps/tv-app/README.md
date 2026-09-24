@@ -2,14 +2,15 @@
 
 Android TV client. Expo SDK 57 + `react-native-tvos` 0.86 + TypeScript + local native module `tv-media` (Media3 ExoPlayer + DownloadManager). Output: `.apk`.
 
-Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
+Looks the same as the web app (shared design tokens and icons, [D-041](../../documentation/DECISIONS.md#d-041)). Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
 
 ```mermaid
 flowchart TD
   APP[App.tsx gate] -->|anonymous| LOGIN[LoginScreen]
   APP -->|no profile| PROFILES[ProfilesScreen]
-  APP -->|signed in| SHELL[Shell: SideRail + route]
-  SHELL --> HOME[Home] & BROWSE[Movies / Series] & LIVE[Live TV guide] & DL[Downloads] & DETAILS[Details]
+  APP -->|signed in| SHELL[Shell: TopNav + page]
+  SHELL --> HOME[Home] & BROWSE[Movies / Series + chips] & SEARCH[Search] & LIVE[Live TV guide] & DL[My Downloads]
+  SHELL --> DETAILS[Details panel]
   SHELL --> PLAYER[PlayerScreen]
   PLAYER --> VIEW[TvPlayerView - ExoPlayer]
   DETAILS --> STORE[downloadsStore] --> NATIVE[TvMedia - Media3 DownloadManager]
@@ -23,9 +24,9 @@ flowchart TD
 |-----|----------|--------|
 | D-pad | Move focus (Android focus search) | ←/→ tap: ±10 s with circle animation · hold: accelerating scrub (×1 → ×64), seek on release |
 | ↑ / ↓ | Move focus | Open quick drawer: Audio, Subtitles, Versions, Episodes |
-| Select | Activate | Play / pause (or press Skip Intro / Play Now when shown) |
+| Select | Activate | Play / pause (or press Skip ahead / Play Now when shown) |
 | Play/Pause, ⏪, ⏩ | – | Play/pause, −10 s, +10 s |
-| Back | Previous screen | Close drawer, then leave player |
+| Back | Previous screen | Close drawer or skip options, then leave player |
 
 ## Config
 
@@ -62,7 +63,8 @@ Release `.apk` (debug-signed): `cd android && ./gradlew assembleRelease` after `
 | Path | Purpose |
 |------|---------|
 | `index.ts` | Registers the root component. |
-| `app.config.ts` | Dynamic Expo config + plugins (TV, secure store, cleartext). |
+| `app.config.ts` | Dynamic Expo config + plugins (TV + banner, splash screen, secure store, cleartext), app icon. |
+| `assets/` | App icon, adaptive icon, splash image, TV banner. |
 | `babel.config.js`, `jest.config.js` | Babel preset; Jest config with native-module and remote test doubles. |
 | `modules/tv-media/` | Local Expo native module (Kotlin). |
 | `src/` | Application source. |

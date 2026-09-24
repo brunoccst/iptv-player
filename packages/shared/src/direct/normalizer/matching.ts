@@ -45,10 +45,10 @@ export function groupTitles(titles: ParsedTitle[]): number[][] {
   // Pass 3: fuzzy match within blocks sharing a key prefix (keeps comparisons near-linear).
   const blocks = new Map<string, number[]>();
   representative.forEach((title, index) => push(blocks, compactKey(title).slice(0, BLOCK_PREFIX_LENGTH), index));
+  const featured = representative.map(features);
   for (const block of blocks.values()) {
     block.forEach((left, position) => {
-      for (const right of block.slice(position + 1))
-        if (isFuzzyMatch(representative[left]!, representative[right]!)) union.union(left, right);
+      for (const right of block.slice(position + 1)) if (fuzzyMatch(featured[left]!, featured[right]!)) union.union(left, right);
     });
   }
 
@@ -59,12 +59,28 @@ export function groupTitles(titles: ParsedTitle[]): number[][] {
 
 /** Typo-tolerant match. Years must be equal; numbers must match (sequels); short keys only match exactly. */
 export function isFuzzyMatch(left: ParsedTitle, right: ParsedTitle): boolean {
+  return fuzzyMatch(features(left), features(right));
+}
+
+interface Features {
+  year: number | null;
+  key: string;
+  length: number;
+  numbers: Set<string>;
+}
+
+const features = (title: ParsedTitle): Features => {
+  const key = compactKey(title);
+  return { year: title.year, key, length: [...key].length, numbers: numberTokens(title) };
+};
+
+function fuzzyMatch(left: Features, right: Features): boolean {
   if (left.year !== right.year) return false;
-  const [leftNumbers, rightNumbers] = [numberTokens(left), numberTokens(right)];
-  if (leftNumbers.size !== rightNumbers.size || [...leftNumbers].some((token) => !rightNumbers.has(token))) return false;
-  const [a, b] = [compactKey(left), compactKey(right)];
-  if (Math.min(a.length, b.length) < MIN_FUZZY_LENGTH) return a === b;
-  return ratio(a, b) >= FUZZY_THRESHOLD;
+  if (left.numbers.size !== right.numbers.size || [...left.numbers].some((token) => !right.numbers.has(token))) return false;
+  if (Math.min(left.length, right.length) < MIN_FUZZY_LENGTH) return left.key === right.key;
+  // ratio can be at most 200·min/(sum): skip the LCS when the lengths alone rule a match out. Same result, much faster.
+  if ((200 * Math.min(left.length, right.length)) / (left.length + right.length) < FUZZY_THRESHOLD) return false;
+  return ratio(left.key, right.key) >= FUZZY_THRESHOLD;
 }
 
 /** rapidfuzz `fuzz.ratio`: 100 · 2·LCS / (|a| + |b|), the normalized Indel similarity. */

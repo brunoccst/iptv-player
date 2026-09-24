@@ -21,4 +21,8 @@ export { createHybridApiClient } from './direct/hybridApiClient';
 export { normalizeServerUrl } from './direct/xtream';
 export * from './appContext';
 export * from './utils/format';
+export * from './utils/logger';
 export * from './react';
+export * from './design/tokens';
+export * from './design/icons';
+export * from './design/avatar';

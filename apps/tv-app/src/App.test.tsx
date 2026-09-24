@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
 import { navStore, stores } from './appContext';
 import { nativeState } from '../test/tvMediaMock';
 import { account, playback, pressBack, profile, setupApp, variant } from '../test/utils';
@@ -77,11 +78,11 @@ describe('App (TV)', () => {
     await act(async () => navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' }));
     await flush();
 
-    expect(await screen.findByText('Version: 4K · ENG')).toBeTruthy();
+    expect(await screen.findByText('4K · ENG (best)')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('variant-button'));
     await fireEvent.press(screen.getByLabelText('1080p'));
     expect(stores.library.getState().selectedVariants).toEqual({ m1: '102' });
-    expect(screen.getByText('Version: 1080p')).toBeTruthy();
+    expect(screen.getByTestId('variant-button')).toHaveTextContent('1080p');
 
     await fireEvent.press(screen.getByTestId('download-button'));
     await flush();
@@ -97,15 +98,56 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
   });
 
-  it('rail switches sections', async () => {
+  it('top nav switches pages; typing a search opens results', async () => {
     const backend = setupApp();
     stubLibrary(backend);
+    backend.on('GET', '/api/catalog/live/channels', { body: [] });
     await render(<App />);
     await flush();
 
-    await fireEvent.press(screen.getByTestId('rail-downloads'));
+    await fireEvent.press(screen.getByTestId('nav-downloads'));
     expect(await screen.findByTestId('downloads-screen')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('rail-live'));
+    await fireEvent.press(screen.getByTestId('nav-live'));
     expect(await screen.findByTestId('live-screen')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('nav-movies'));
+    expect(await screen.findByTestId('browse-movies')).toBeTruthy();
+
+    await fireEvent.changeText(screen.getByTestId('nav-search'), 'big');
+    expect(await screen.findByTestId('search-screen')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('nav-search-clear'));
+    expect(await screen.findByTestId('home-screen')).toBeTruthy();
+  });
+
+  it('row titles open Movies on that category, like the web', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/catalog/movies/categories', { body: [{ id: '7', name: 'Drama', parentId: null }] });
+    await render(<App />);
+    await flush();
+
+    await fireEvent.press(await screen.findByTestId('row-movies-7-open'));
+    await flush();
+    expect(await screen.findByTestId('browse-movies')).toBeTruthy();
+    expect(screen.getByTestId('chip-7')).toHaveProp('accessibilityState', { selected: true });
+    expect(backend.calls.some((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7')).toBe(true);
+  });
+
+  it('signs out from the account menu after confirming', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('POST', '/api/auth/logout', { status: 204, body: null });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-sign-out'));
+    expect(screen.queryByTestId('login-submit')).toBeNull();
+    const buttons = alert.mock.calls[0]![2] as AlertButton[];
+    await act(async () => buttons.find((button) => button.text === 'Sign out')!.onPress!());
+    await flush();
+
+    expect(await screen.findByTestId('login-submit')).toBeTruthy();
+    expect(stores.session.getState().status).toBe('anonymous');
   });
 });

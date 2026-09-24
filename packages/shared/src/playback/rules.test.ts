@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 import type { ProgressDto, SeriesDetails } from '../api/types';
 import {
   clampTime,
+  isInSkipAheadWindow,
+  skipAheadDescription,
+  skipAheadLabel,
+  skipAheadWindow,
+  SKIP_AHEAD_OPTIONS,
   continueWatching,
   episodeLabel,
-  introWindow,
   isCompleted,
-  isInIntro,
   nextEpisode,
   nextUpCountdown,
   resumePosition,
@@ -85,12 +88,19 @@ describe('playback rules', () => {
     expect(continueWatching(items).map((p) => p.itemId)).toEqual(['new-ep', 'movie']);
   });
 
-  it('intro window, countdown and clamping', () => {
-    expect(introWindow('movie', 6000)).toBeNull();
-    expect(introWindow('episode', 300)).toBeNull();
-    const window = introWindow('episode', 2400);
-    expect(isInIntro(window, 30)).toBe(true);
-    expect(isInIntro(window, 95)).toBe(false);
+  it('skip-ahead window and labels, countdown and clamping', () => {
+    expect(skipAheadWindow('movie', 6000)).toBeNull();
+    expect(skipAheadWindow('episode', 300)).toBeNull();
+    const window = skipAheadWindow('episode', 2400);
+    expect(isInSkipAheadWindow(window, 30)).toBe(true);
+    expect(isInSkipAheadWindow(window, 95)).toBe(false);
+    expect(SKIP_AHEAD_OPTIONS.map(skipAheadLabel)).toEqual(['30 s', '1 min', '2 min', '3 min']);
+    expect(SKIP_AHEAD_OPTIONS.map(skipAheadDescription)).toEqual([
+      'Skip ahead 30 seconds',
+      'Skip ahead 1 minute',
+      'Skip ahead 2 minutes',
+      'Skip ahead 3 minutes',
+    ]);
     expect(nextUpCountdown(2395.2, 2400, true)).toBe(5);
     expect(nextUpCountdown(2000, 2400, true)).toBeNull();
     expect(nextUpCountdown(2399, 2400, false)).toBeNull();

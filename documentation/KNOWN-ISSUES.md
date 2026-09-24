@@ -22,7 +22,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-016](#ki-016) | Limitation | backend | Open |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
 | [KI-018](#ki-018) | Tech debt | shared + backend | Resolved |
-| [KI-019](#ki-019) | Limitation | players | Open |
+| [KI-019](#ki-019) | Limitation | players | Resolved |
 | [KI-020](#ki-020) | Risk | web-player | Open |
 | [KI-021](#ki-021) | Limitation | web-player | Open |
 | [KI-022](#ki-022) | Limitation | web-player | Open |
@@ -30,7 +30,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-024](#ki-024) | Limitation | web-player | Open |
 | [KI-025](#ki-025) | Limitation | series | Open |
 | [KI-026](#ki-026) | Limitation | tv-app | Open |
-| [KI-027](#ki-027) | Limitation | tv-app | Open |
+| [KI-027](#ki-027) | Limitation | tv-app | Resolved |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
 | [KI-029](#ki-029) | Limitation | build env | Open |
 | [KI-030](#ki-030) | Limitation | backend | Open |
@@ -157,9 +157,11 @@ After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm r
 
 ## KI-019
 
-**Skip Intro uses a fixed window** — logged 2026-09-23
+**Skip Intro uses a fixed window** — logged 2026-09-23 · resolved 2026-09-24
 
 Providers supply no intro markers. The button shows on episodes ≥ 10 min between 5 s and 90 s and jumps to 90 s. Wrong for shows with cold opens or long intros. Fix options: per-series markers learned from user skips, or audio fingerprinting across episodes.
+
+Resolved 2026-09-24 without detection (D-042): the button is now "Skip ahead" and the viewer picks 30 s, 1, 2 or 3 min, so it no longer claims to know where the intro ends.
 
 ## KI-020
 
@@ -209,6 +211,8 @@ Media3 stores the relay URL (token valid `BACKEND_RELAY_TOKEN_HOURS`, default 12
 
 Profiles can be selected on TV but only created, renamed or deleted in the web app.
 
+Resolved 2026-09-24: the TV/phone app has the web's Manage Profiles (add, edit, delete) (D-041).
+
 ## KI-028
 
 **Hold-to-scrub not covered by device tests** — logged 2026-09-23
@@ -257,7 +261,7 @@ In direct mode (D-038) profiles, progress and the library live on each device. C
 
 **Direct mode: library grouping runs on the UI thread** — logged 2026-09-24
 
-The TypeScript normalizer groups the whole catalog in one pass on the JavaScript thread; it yields between movies and series only. On a catalog with tens of thousands of titles the TV can stutter for a few seconds after sign-in and every 12 h. The cached library keeps later starts fast.
+Title parsing runs in chunks of 500 with a yield between them, but the grouping pass itself runs in one go on the JavaScript thread. On a catalog with tens of thousands of titles the TV can stutter briefly after sign-in and every 24 h. Home shows per-kind progress (downloading, grouping N of M). Movies and series download in parallel; on a phone the download is usually the slow part. The cached library keeps later starts fast.
 
 ## KI-036
 
@@ -265,3 +269,9 @@ The TypeScript normalizer groups the whole catalog in one pass on the JavaScript
 
 The guide uses the provider's short EPG (up to 12 programmes per channel), so it reaches fewer hours ahead than the backend's XMLTV cache. Playback URLs contain the provider username and password (Xtream format); in server mode the relay hides them. They stay on the device, but can appear in Android logs.
 
+
+## KI-037
+
+**TV Home and My Downloads avoid FlatList** — logged 2026-09-24
+
+On Android TV, Home and My Downloads render in a plain ScrollView. On the Android TV emulator, FlatList screens never scrolled (by D-pad or swipe), and their rows showed only buttons to UI automation (no text); the cause is unknown. Home has at most 13 rows, each loading its first 30 titles when Home opens. Phones keep the virtualized Home. The Movies/Series grids and horizontal rows still use FlatList.

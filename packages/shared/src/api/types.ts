@@ -12,6 +12,9 @@ export type HealthResponse = Schemas['HealthResponse'];
 export type LibraryPage = Schemas['LibraryPage'];
 export type LibraryStatus = Schemas['LibraryStatus'];
 export type LiveChannel = Schemas['LiveChannel'];
+/** Client-side extension of LibraryStatus: direct mode also reports the stage and how many titles it has read (D-038). */
+export type LibraryStage = 'downloading' | 'grouping';
+export type LibraryStatusProgress = LibraryStatus & { stage?: LibraryStage | null; parsedCount?: number | null };
 export type LoginRequest = Schemas['LoginRequest'];
 export type LoginResponse = Schemas['LoginResponse'];
 export type MasterCard = Schemas['MasterCard'];
@@ -21,6 +24,8 @@ export type MediaKind = Schemas['MediaKind'];
 export type MovieDetails = Schemas['MovieDetails'];
 export type MovieSummary = Schemas['MovieSummary'];
 export type PlaybackInfo = Schemas['PlaybackInfo'];
+/** Client-side: direct mode can offer the same stream on the provider's announced stream server (D-038). */
+export type PlaybackInfoWithAlternates = PlaybackInfo & { alternateUrls?: string[] };
 export type ProfileDto = Schemas['ProfileDto'];
 export type ProfileRequest = Schemas['ProfileRequest'];
 export type ProgressDto = Schemas['ProgressDto'];
