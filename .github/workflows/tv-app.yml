@@ -72,9 +72,10 @@ jobs:
         working-directory: apps/tv-app
         run: CI=1 npx expo prebuild --platform android --no-install
 
+      # Only the emulator's ABI: native code compiles once instead of three times. The ARM APK for real TVs is tv-apk.yml.
       - name: Build release APK (debug-signed)
         working-directory: apps/tv-app/android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86,armeabi-v7a,arm64-v8a
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86
 
       - name: Keep APK, drop build output
         run: |

@@ -1,7 +1,9 @@
 name: CI
 
+# Branch pushes are covered by their pull request; running on both doubled every PR check.
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
