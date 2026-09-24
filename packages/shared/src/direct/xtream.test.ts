@@ -34,6 +34,7 @@ describe('createXtreamClient', () => {
     const { fetch, calls } = panel({
       login: {
         user_info: { auth: 1, status: 'Active', exp_date: '1893456000', max_connections: '2', allowed_output_formats: ['m3u8', 'ts'] },
+        server_info: { url: 'stream.test', port: 80, https_port: '443', server_protocol: 'http' },
       },
     });
     const account = await createXtreamClient(credentials, { fetch, userAgent: 'VLC/3' }).validate();
@@ -42,6 +43,7 @@ describe('createXtreamClient', () => {
       expiresAt: '2030-01-01T00:00:00.000Z',
       maxConnections: 2,
       allowedOutputFormats: ['m3u8', 'ts'],
+      streamBaseUrl: 'http://stream.test:80/',
     });
     expect(calls[0]!.url).toBe('http://panel.test:8080/player_api.php?username=u%20s&password=p%26w');
     expect(calls[0]!.headers['User-Agent']).toBe('VLC/3');
@@ -179,7 +181,16 @@ describe('createXtreamClient', () => {
       url: 'http://panel.test:8080/movie/u%20s/p%26w/7.mkv',
       container: 'mkv',
       isLive: false,
+      alternateUrls: [],
     });
+    const announced = {
+      status: 'Active',
+      expiresAt: null,
+      maxConnections: 1,
+      allowedOutputFormats: [],
+      streamBaseUrl: 'http://1.2.3.4:80/',
+    };
+    expect(client.playbackUrl('movie', '7', 'mkv', announced).alternateUrls).toEqual(['http://1.2.3.4:80/movie/u%20s/p%26w/7.mkv']);
     expect(client.playbackUrl('episode', 'e1', 'bad/ext', null).url).toBe('http://panel.test:8080/series/u%20s/p%26w/e1.mp4');
     const tsOnly = { status: 'Active', expiresAt: null, maxConnections: 1, allowedOutputFormats: ['ts'] };
     expect(client.playbackUrl('live', '9', null, tsOnly)).toMatchObject({ container: 'ts', isLive: true });

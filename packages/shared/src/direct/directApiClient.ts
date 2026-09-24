@@ -21,6 +21,7 @@ import type {
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
+import { LIBRARY_FORMAT, packLibrary, unpackLibrary } from './libraryCodec';
 import { buildMastersInChunks, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -56,24 +57,21 @@ interface StoredLibrary {
   series: Master[];
 }
 
-interface StoredKind {
-  builtAt: string;
-  masters: Master[];
-}
-
 type LibraryKind = 'movie' | 'series';
 
 const CREDENTIALS_KEY = 'direct.credentials';
 const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
 const progressKey = (profileId: string) => `direct.progress.${profileId}`;
 /** One file per kind: a finished kind never rewrites the other, and each file stays half the size. */
-const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.${accountId}.${kind}`;
+const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.v${LIBRARY_FORMAT}.${accountId}.${kind}`;
+/** Plain-JSON files from before the compact format; deleted on load to free space. */
+const oldLibraryKey = (accountId: string, kind: LibraryKind) => `direct.library.${accountId}.${kind}`;
 
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
 const SHORT_EPG_LIMIT = 12;
 const SHORT_EPG_PARALLELISM = 4;
-const LIBRARY_REFRESH_MS = 12 * 3600_000;
+const LIBRARY_REFRESH_MS = 24 * 3600_000;
 const SLOT_MS = 30 * 60_000;
 const MAX_PROFILES = 5;
 const MAX_PROFILE_NAME = 50;
@@ -229,8 +227,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
-          const saved: StoredKind = { builtAt: queuedAt, masters };
-          await writeJson(options.dataStorage, libraryKey(accountId, kind), saved, true).catch(() => undefined);
+          await writeJson(options.dataStorage, libraryKey(accountId, kind), packLibrary(queuedAt, masters), true).catch(() => undefined);
           library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
         } catch (error) {
           appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
@@ -260,7 +257,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     if (library.accountId === accountId) return library.data;
     if (loading?.accountId !== accountId) {
       const promise = Promise.all(
-        (['movie', 'series'] as const).map((kind) => readJson<StoredKind>(options.dataStorage, libraryKey(accountId, kind), true)),
+        (['movie', 'series'] as const).map(async (kind) => {
+          void Promise.resolve(options.dataStorage.removeItem(oldLibraryKey(accountId, kind))).catch(() => undefined);
+          return unpackLibrary(await readJson<unknown>(options.dataStorage, libraryKey(accountId, kind), true));
+        }),
       ).then(([movie, series]) => {
         // A missing kind counts as very old, so the background refresh fills it in; the other kind still shows.
         const data: StoredLibrary | null =
@@ -305,7 +305,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     return index;
   };
 
-  /** Cached library, refreshed in the background when older than 12 h or missing. */
+  /** Cached library, refreshed in the background when older than 24 h or missing. */
   const ensureLibrary = async (): Promise<StoredLibrary | null> => {
     const data = await loadLibrary();
     const age = data ? now().getTime() - Date.parse(data.builtAt) : Infinity;

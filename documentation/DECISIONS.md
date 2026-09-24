@@ -789,6 +789,11 @@ Why not drop the backend: it still serves the web app, cross-device sync and hea
 
 Storage on TV: credentials in expo-secure-store; profiles, progress and the library cache in app-private JSON files (`expo-file-system`), because secure storage is meant for small values. The native player and downloads send the provider User-Agent (`BACKEND_PROVIDER_USER_AGENT`), saved natively so downloads resumed after a restart use it. Known limits: KI-034 – KI-036.
 
+2026-09-24 update, after a real 125k-title catalog:
+- Library files use a compact array format (`libraryCodec.ts`, about a third of plain JSON, 85 MB before). Old files are deleted, not migrated.
+- Background refresh every 24 h instead of 12 h: grouping a big catalog takes about 2 minutes on a phone.
+- Playback falls back to the stream server named in the login reply (`server_info`) when the portal address fails. Some panels answer API calls on one host and streams on another.
+
 ## D-039
 
 **On-device diagnostics log with manual sharing** — 2026-09-24 (requested by owner: export the log for analysis)

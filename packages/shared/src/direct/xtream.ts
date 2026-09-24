@@ -29,6 +29,8 @@ export interface XtreamAccountInfo {
   expiresAt: string | null;
   maxConnections: number | null;
   allowedOutputFormats: string[];
+  /** Stream server announced in `server_info` (often differs from the portal address), e.g. `http://1.2.3.4:8080/`. */
+  streamBaseUrl?: string | null;
 }
 
 export interface XtreamClientOptions {
@@ -179,18 +181,27 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     credentials,
 
     async validate(signal?: AbortSignal): Promise<XtreamAccountInfo> {
-      const userInfo = prop(await getJson(null, {}, signal), 'user_info');
+      const root = await getJson(null, {}, signal);
+      const userInfo = prop(root, 'user_info');
+      const serverInfo = prop(root, 'server_info');
       if (!isObject(userInfo) || !bool(userInfo, 'auth'))
         throw new ApiError(401, 'invalid_provider_credentials', 'Invalid username or password.');
       const status = str(userInfo, 'status') ?? 'Unknown';
       if (status.toLowerCase() !== 'active')
         throw new ApiError(401, 'invalid_provider_credentials', `Provider account status is '${status}'.`);
-      return {
+      const info: XtreamAccountInfo = {
         status,
         expiresAt: unixTime(userInfo, 'exp_date'),
         maxConnections: int(userInfo, 'max_connections'),
         allowedOutputFormats: strList(userInfo, 'allowed_output_formats'),
+        streamBaseUrl: streamBase(serverInfo),
       };
+      appLog.info(
+        'provider',
+        `account ${status}, connections ${int(userInfo, 'active_cons') ?? '?'}/${info.maxConnections ?? '?'}, formats [${info.allowedOutputFormats.join(', ')}], ` +
+          `portal ${host()}, stream server ${info.streamBaseUrl ?? 'not announced'}`,
+      );
+      return info;
     },
 
     async categories(kind: MediaKind, signal?: AbortSignal): Promise<MediaCategory[]> {
@@ -293,18 +304,31 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       });
     },
 
-    /** Direct provider URL. Live prefers HLS unless the account only allows other formats. */
+    /** Direct provider URL on the portal address; `alternateUrls` holds the same stream on the announced stream server.
+     * Live prefers HLS unless the account only allows other formats. */
     playbackUrl(kind: PlaybackKind, id: string, container: string | null | undefined, account: XtreamAccountInfo | null) {
       const clean = sanitizeContainer(container);
       const segment = kind === 'episode' ? 'series' : kind;
       const chosen = kind === 'live' ? chooseLiveContainer(clean, account?.allowedOutputFormats ?? []) : (clean ?? 'mp4');
-      const path = [segment, credentials.username, credentials.password].map(encodeURIComponent).join('/');
-      return { url: `${credentials.serverUrl}${path}/${encodeURIComponent(id)}.${chosen}`, container: chosen, isLive: kind === 'live' };
+      const path = `${[segment, credentials.username, credentials.password].map(encodeURIComponent).join('/')}/${encodeURIComponent(id)}.${chosen}`;
+      const stream = account?.streamBaseUrl;
+      const alternateUrls = stream && stream !== credentials.serverUrl ? [`${stream}${path}`] : [];
+      return { url: `${credentials.serverUrl}${path}`, container: chosen, isLive: kind === 'live', alternateUrls };
     },
   };
 }
 
 export type XtreamClient = ReturnType<typeof createXtreamClient>;
+
+/** `server_info` → `protocol://url:port/`; null when the panel does not announce one. */
+function streamBase(serverInfo: Json): string | null {
+  const url = str(serverInfo, 'url');
+  if (!url) return null;
+  const protocol = str(serverInfo, 'server_protocol') === 'https' ? 'https' : 'http';
+  const port = str(serverInfo, protocol === 'https' ? 'https_port' : 'port');
+  const host = url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return `${protocol}://${host}${port && !host.includes(':') ? `:${port}` : ''}/`;
+}
 
 function sanitizeContainer(container: string | null | undefined): string | null {
   const value = container?.trim().replace(/^\.+/, '').toLowerCase();

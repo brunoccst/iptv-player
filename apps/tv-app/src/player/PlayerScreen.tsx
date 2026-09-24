@@ -17,6 +17,7 @@ import {
   nextUpCountdown,
   resumePosition,
   tvPlaybackAttempts,
+  type PlaybackInfoWithAlternates,
   type PlayTarget,
   type SeekDirection,
   type VariantInfo,
@@ -44,6 +45,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const playerRef = useRef<TvPlayerViewRef>(null);
   const [source, setSource] = useState<PlayerSource | null>(null);
   const [attempt, setAttempt] = useState(0);
+  // Same stream on the provider's other server, tried before the next attempt (D-038).
+  const alternates = useRef<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [paused, setPaused] = useState(false);
   const [ready, setReady] = useState(false);
@@ -86,9 +89,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       setError('This stream could not be played. The provider may be offline.');
       return;
     }
+    alternates.current = [];
     api.playback.get(target.kind, target.streamId, step.container).then(
-      (info) => {
+      (info: PlaybackInfoWithAlternates) => {
         if (cancelled) return;
+        alternates.current = [...(info.alternateUrls ?? [])];
         appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode})`);
         setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs });
       },
@@ -252,6 +257,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         onError={(e) => {
           const { message, code, detail } = e.nativeEvent;
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
+          const alternate = source?.offlineId ? undefined : alternates.current.shift();
+          if (alternate) {
+            appLog.info('player', `attempt ${attempt + 1}: retrying on the stream server ${alternate}`);
+            setSource({ ...source, uri: alternate });
+            return;
+          }
           // A failed stream (not a download) moves on to the next attempt.
           if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
             setReady(false);

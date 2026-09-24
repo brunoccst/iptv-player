@@ -213,7 +213,7 @@ private fun causeOf(error: Throwable): String {
   var cause: Throwable? = error.cause
   while (cause != null && parts.size < 4) {
     parts += when (cause) {
-      is HttpDataSource.InvalidResponseCodeException -> "HTTP ${cause.responseCode} ${cause.responseMessage ?: ""}".trim()
+      is HttpDataSource.InvalidResponseCodeException -> "HTTP ${cause.responseCode} ${cause.responseMessage ?: ""}".trim() + " from ${cause.dataSpec.uri.host}"
       else -> "${cause.javaClass.simpleName}: ${cause.message ?: ""}".trim()
     }
     cause = cause.cause

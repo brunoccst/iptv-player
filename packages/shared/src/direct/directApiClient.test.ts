@@ -199,6 +199,7 @@ describe('createDirectApiClient', () => {
       url: 'http://panel.test:8080/live/demo/demo/1.m3u8',
       container: 'm3u8',
       isLive: true,
+      alternateUrls: [],
       deliveryMode: 'direct',
     });
     await expect(api.catalog.movie('999')).rejects.toMatchObject({ status: 404 });
