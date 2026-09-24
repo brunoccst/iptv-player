@@ -850,4 +850,6 @@ Decision:
 
 Result (first run, runners busy with other jobs): APK build 14.2 → 10.9 min, whole emulator job 25.3 → 21.4 min. Most of the build (JS bundle, Kotlin/Java, per-module Gradle work) does not depend on the ABI count.
 
+- The emulator build prefills "My server" with the backend address (`APP_API_BASE_URL`), so the server-mode flow no longer types it: long `inputText` on a busy emulator made Maestro's driver die (`DeviceServerDiedException`) twice on 2026-09-24.
+
 Not done (small gain or risky): caching native (CMake) build output between runs; starting the local stack in the background during the Gradle build (~1.5 min); splitting Maestro flows across parallel emulators (three emulator boots and three APK builds cost more than they save).
