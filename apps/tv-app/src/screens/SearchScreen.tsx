@@ -4,7 +4,7 @@ import type { LibrarySection, LiveChannel } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
-import { colors, navHeight, useSizes } from '../theme';
+import { colors, useSizes, useNavHeight } from '../theme';
 import { MasterCardItem, useGridColumns } from './titles';
 import { usePagedLibrary } from './usePagedLibrary';
 
@@ -17,6 +17,7 @@ export function SearchScreen() {
   const search = useNav((s) => s.search);
   const [query, setQuery] = useState(search.trim());
   const sizes = useSizes();
+  const navH = useNavHeight();
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(search.trim()), DEBOUNCE_MS);
@@ -24,7 +25,7 @@ export function SearchScreen() {
   }, [search]);
 
   return (
-    <ScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navHeight + 24, paddingBottom: 60 }}>
+    <ScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>{`Results for “${query}”`}</Text>
       {query ? (
         <>

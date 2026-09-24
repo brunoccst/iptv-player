@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -121,7 +122,7 @@ export function TitleGrid({
       ListEmptyComponent={empty}
       renderItem={({ item, index }) => (
         <View style={columns === 1 ? { paddingHorizontal: gutter, marginBottom: 24 } : undefined}>
-          <MasterCardItem section={section} item={item} width={itemWidth} hasTVPreferredFocus={index === 0} />
+          <MasterCardItem section={section} item={item} width={itemWidth} hasTVPreferredFocus={Platform.isTV && index === 0} />
         </View>
       )}
       onEndReached={page.loadMore}

@@ -4,7 +4,7 @@ import { downloadsStore, navStore } from '../appContext';
 import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
 import { useDownloads } from '../hooks';
-import { colors, fonts, navHeight, radius, useSizes } from '../theme';
+import { colors, fonts, radius, useSizes, useNavHeight } from '../theme';
 
 const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
 
@@ -12,6 +12,7 @@ const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(
 export function DownloadsScreen() {
   const records = useDownloads((s) => Object.values(s.records).filter((r) => r.state !== 'removing'));
   const sizes = useSizes();
+  const navH = useNavHeight();
 
   useEffect(() => {
     downloadsStore.getState().refresh();
@@ -21,7 +22,7 @@ export function DownloadsScreen() {
     <FlatList
       style={styles.screen}
       testID="downloads-screen"
-      contentContainerStyle={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
+      contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
       ListHeaderComponent={
         <>
           <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>

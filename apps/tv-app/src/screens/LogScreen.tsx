@@ -4,7 +4,7 @@ import { appLog } from '@iptv/shared';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { FocusButton } from '../components/FocusButton';
-import { colors, fonts, navHeight, useSizes } from '../theme';
+import { colors, fonts, useSizes, useNavHeight } from '../theme';
 
 const PREVIEW_LINES = 150;
 
@@ -13,6 +13,7 @@ export function LogScreen() {
   const [, refresh] = useState(0);
   const entries = appLog.entries();
   const sizes = useSizes();
+  const navH = useNavHeight();
 
   const share = () => {
     const connection = stores.connection?.getState();
@@ -29,7 +30,7 @@ export function LogScreen() {
     <ScrollView
       style={styles.screen}
       testID="log-screen"
-      contentContainerStyle={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
+      contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Log</Text>
       <Text style={styles.hint}>Share this with support when something goes wrong. Usernames and passwords are hidden.</Text>

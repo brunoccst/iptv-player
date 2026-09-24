@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo, type ReactElement } from 'react';
+import { ActivityIndicator, FlatList, Image, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   describeLibraryProgress,
@@ -15,7 +15,7 @@ import { Gradient } from '../components/Gradient';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { useCatalog, useLibrary, useProgress, useSession } from '../hooks';
-import { colors, fonts, navHeight, radius, useSizes } from '../theme';
+import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
 import { TitleRow } from './titles';
 
@@ -37,28 +37,42 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     void catalog.getState().loadCategories('series');
   }, []);
 
+  // Virtualized rows (only rows near the screen stay mounted) keep fast scrolling smooth on phones.
+  type HomeRow = { key: string; render(): ReactElement };
+  const rows: HomeRow[] = [
+    { key: 'banner', render: () => <LibraryBanner processing={processing} /> },
+    { key: 'continue', render: () => <ContinueWatchingRow /> },
+    { key: 'live', render: () => <LiveRow /> },
+    { key: 'series', render: () => <TitleRow section="series" title="Series" /> },
+    ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
+      key: `m-${category.id}`,
+      render: () => <TitleRow section="movies" category={category} title={category.name} />,
+    })),
+    ...seriesCategories.slice(0, SERIES_ROWS).map((category) => ({
+      key: `s-${category.id}`,
+      render: () => <TitleRow section="series" category={category} title={`Series: ${category.name}`} />,
+    })),
+  ];
+
   return (
-    <ScrollView
+    <FlatList
       style={styles.screen}
       testID="home-screen"
+      data={rows}
+      keyExtractor={(row) => row.key}
+      ListHeaderComponent={<Hero candidates={featured} />}
+      // Rows start over the bottom of the hero, like the web (`margin-bottom: -6vw`).
+      renderItem={({ item, index }) => (
+        <View style={index === 0 ? [styles.rows, { marginTop: -Math.round(rowGap * 2) }] : styles.rows}>{item.render()}</View>
+      )}
+      ListFooterComponent={<View style={styles.bottom} />}
+      initialNumToRender={6}
+      maxToRenderPerBatch={2}
+      windowSize={5}
+      removeClippedSubviews={Platform.OS === 'android'}
       scrollEventThrottle={100}
       onScroll={(event) => navStore.getState().setScrolled(event.nativeEvent.contentOffset.y > 10)}
-    >
-      <Hero candidates={featured} />
-      <View style={[styles.rows, { marginTop: -Math.round(rowGap * 2) }]}>
-        <LibraryBanner processing={processing} />
-        <ContinueWatchingRow />
-        <LiveRow />
-        <TitleRow section="series" title="Series" />
-        {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
-          <TitleRow key={`m-${category.id}`} section="movies" category={category} title={category.name} />
-        ))}
-        {seriesCategories.slice(0, SERIES_ROWS).map((category) => (
-          <TitleRow key={`s-${category.id}`} section="series" category={category} title={`Series: ${category.name}`} />
-        ))}
-        <View style={styles.bottom} />
-      </View>
-    </ScrollView>
+    />
   );
 }
 
@@ -156,6 +170,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
   }, [candidates]);
   const { width, height } = useWindowDimensions();
   const sizes = useSizes();
+  const navH = useNavHeight();
 
   useEffect(() => {
     if (featured) void stores.library.getState().loadDetails('movies', featured.id);
@@ -164,7 +179,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
   const details = useLibrary((s) => (featured ? (s.details[`movies|${featured.id}`]?.data ?? null) : null));
   const variant = useLibrary((s) => (details ? selectVariant(s, details) : null));
   const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
-  if (!featured) return <View style={{ height: navHeight }} />;
+  if (!featured) return <View style={{ height: navH }} />;
 
   const heroHeight = Math.max(420, Math.min(height * 0.8, width * 0.5625));
   const backdrop = meta.data?.backdropUrls[0] ?? featured.posterUrl;

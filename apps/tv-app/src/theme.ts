@@ -38,5 +38,18 @@ export function useSizes() {
   return fluidSizes(width);
 }
 
+/** Web breakpoint (`max-width: 720px`): phones in portrait get the two-row nav and single-column layouts. */
+export const COMPACT_WIDTH = 720;
+export const COMPACT_NAV_HEIGHT = 104;
+
+export function useCompact() {
+  return useWindowDimensions().width <= COMPACT_WIDTH;
+}
+
+/** Nav height for this screen (`--nav-height`: 68, or 104 when the nav wraps to two rows). */
+export function useNavHeight() {
+  return useCompact() ? COMPACT_NAV_HEIGHT : navHeight;
+}
+
 /** Visible D-pad focus, like the web's `:focus-visible` outline. */
 export const focusRing = { borderColor: colors.strong, borderWidth: 2 } as const;

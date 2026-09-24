@@ -20,7 +20,7 @@ import { navStore, stores } from '../appContext';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { useCatalog } from '../hooks';
-import { colors, fonts, navHeight, radius, useSizes } from '../theme';
+import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 
 /** Same 3-hour window as the web guide. The backend caches now −3 h … +48 h (DECISIONS.md#d-031). */
 const HOURS = 3;
@@ -66,9 +66,13 @@ export function LiveScreen() {
   const [pageWidth, setPageWidth] = useState(0);
   const guide = useEpgGuide(stores.epg, { categoryId, from, hours: HOURS }, pages);
   const sizes = useSizes();
+  const navH = useNavHeight();
   const to = from + HOURS * 3600_000;
   const nowSlot = floorToSlot(now);
-  const timelineWidth = Math.max(MIN_TIMELINE, pageWidth - CHANNEL_WIDTH);
+  // Web phones: category list becomes a sideways row; the channel column shows only the logo (64 px).
+  const compact = useCompact();
+  const channelWidth = compact ? 64 : CHANNEL_WIDTH;
+  const timelineWidth = Math.max(MIN_TIMELINE, pageWidth - channelWidth);
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories('live');
@@ -90,7 +94,7 @@ export function LiveScreen() {
     <ScrollView
       style={styles.screen}
       testID="live-screen"
-      contentContainerStyle={{ paddingTop: navHeight + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
+      contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
       onScroll={(event) => {
         const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
         if (moreChannels && !guide.loading && layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) setPages(pages + 1);
@@ -98,15 +102,21 @@ export function LiveScreen() {
       scrollEventThrottle={200}
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Live TV</Text>
-      <View style={styles.live}>
-        <View style={styles.categories} accessibilityLabel="Channel categories">
+      <View style={[styles.live, compact && styles.liveCompact]}>
+        <ScrollView
+          horizontal={compact}
+          scrollEnabled={compact}
+          style={compact ? styles.categoriesCompact : styles.categories}
+          contentContainerStyle={compact ? styles.categoriesRow : undefined}
+          accessibilityLabel="Channel categories"
+        >
           <CategoryItem label="All channels" active={categoryId === null} onPress={() => chooseCategory(null)} />
           {categories.map((c) => (
             <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
           ))}
-        </View>
+        </ScrollView>
 
-        <View style={styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
+        <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
           <View style={styles.toolbar}>
             <FocusButton
               label="◀ Earlier"
@@ -138,9 +148,9 @@ export function LiveScreen() {
           {guide.loading && guide.rows.length === 0 ? (
             <Loading />
           ) : pageWidth > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - CHANNEL_WIDTH < MIN_TIMELINE}>
-              <View style={[styles.guide, { width: CHANNEL_WIDTH + timelineWidth }]} testID="guide">
-                <TimeHeader from={from} to={to} width={timelineWidth} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
+              <View style={[styles.guide, { width: channelWidth + timelineWidth }]} testID="guide">
+                <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
                 {guide.rows.map((row, index) => (
                   <GuideRow
                     key={row.channel.id}
@@ -150,12 +160,13 @@ export function LiveScreen() {
                     now={now}
                     width={timelineWidth}
                     preferred={index === 0}
+                    compact={compact}
                     selected={selected}
                     onSelect={setSelected}
                   />
                 ))}
                 {nowAt != null ? (
-                  <View pointerEvents="none" style={[styles.nowLine, { left: CHANNEL_WIDTH + nowAt * timelineWidth }]} />
+                  <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
                 ) : null}
               </View>
             </ScrollView>
@@ -192,11 +203,11 @@ function CategoryItem({ label, active, onPress }: { label: string; active: boole
   );
 }
 
-function TimeHeader({ from, to, width }: { from: number; to: number; width: number }) {
+function TimeHeader({ from, to, width, channelWidth }: { from: number; to: number; width: number; channelWidth: number }) {
   const slots = useMemo(() => guideSlots(from, to), [from, to]);
   return (
     <View style={styles.timeHeader}>
-      <View style={{ width: CHANNEL_WIDTH }} />
+      <View style={{ width: channelWidth }} />
       <View style={{ width }}>
         {slots.map((slot) => (
           <Text key={slot} style={[styles.slot, { left: ((slot - from) / (to - from)) * width }]}>
@@ -215,6 +226,7 @@ interface GuideRowProps {
   now: number;
   width: number;
   preferred: boolean;
+  compact: boolean;
   selected: Selection | null;
   onSelect(selection: Selection): void;
 }
@@ -223,13 +235,13 @@ interface GuideRowProps {
 const activate = (selection: Selection, onSelect: (selection: Selection) => void, playNow: () => void) =>
   Platform.isTV ? playNow() : onSelect(selection);
 
-function GuideRow({ row, from, to, now, width, preferred, selected, onSelect }: GuideRowProps) {
+function GuideRow({ row, from, to, now, width, preferred, compact, selected, onSelect }: GuideRowProps) {
   const { channel, programmes } = row;
   const cells = layoutGuideRow(programmes, from, to);
   return (
     <View style={styles.row}>
       <GuideCellButton
-        style={styles.channel}
+        style={[styles.channel, compact && styles.channelCompact]}
         testID={`guide-channel-${channel.id}`}
         label={`Watch ${channel.name}`}
         onPress={() => play(channel, programmeAt(programmes, now))}
@@ -240,10 +252,12 @@ function GuideRow({ row, from, to, now, width, preferred, selected, onSelect }: 
         ) : (
           <View style={styles.logo} />
         )}
-        <Text style={styles.channelName} numberOfLines={1}>
-          {channel.number != null ? <Text style={styles.channelNumber}>{`${channel.number} `}</Text> : null}
-          {channel.name}
-        </Text>
+        {compact ? null : (
+          <Text style={styles.channelName} numberOfLines={1}>
+            {channel.number != null ? <Text style={styles.channelNumber}>{`${channel.number} `}</Text> : null}
+            {channel.name}
+          </Text>
+        )}
       </GuideCellButton>
       <View style={[styles.timeline, { width }]}>
         {cells.map((cell) => {
@@ -368,7 +382,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
   live: { flexDirection: 'row', gap: 24 },
-  categories: { width: CATEGORY_WIDTH, gap: 4 },
+  categories: { width: CATEGORY_WIDTH, flexGrow: 0 },
+  categoriesRow: { gap: 4, alignItems: 'flex-start' },
+  categoriesCompact: { flexGrow: 0 },
+  liveCompact: { flexDirection: 'column', gap: 12 },
   category: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
   categoryActive: { backgroundColor: colors.raised },
   categoryFocused: { borderColor: colors.strong },
@@ -428,6 +445,7 @@ const styles = StyleSheet.create({
     borderRadius: radius,
   },
   logo: { width: 44, height: 44 },
+  channelCompact: { width: 64, paddingRight: 8 },
   channelName: { flex: 1, color: colors.text, fontSize: fonts.body },
   channelNumber: { color: colors.muted },
   timeline: { flexDirection: 'row', paddingVertical: 4 },

@@ -22,7 +22,7 @@ import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { Select } from '../components/Select';
 import { useLibrary, useNav, useProgress } from '../hooks';
-import { colors, fonts, radius } from '../theme';
+import { colors, fonts, radius, useCompact } from '../theme';
 import { useAsync } from '../useAsync';
 
 /** Web `DetailsModal`: a panel over the current page with backdrop, Play/Resume, download, facts, version select, episodes. */
@@ -209,6 +209,7 @@ function Episodes({
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
+  const compact = useCompact();
   if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
   const context = { title: master.title, masterId: master.id, seriesId, posterUrl: series.summary.posterUrl ?? master.posterUrl };
 
@@ -235,8 +236,13 @@ function Episodes({
         const play = () => navStore.getState().push({ name: 'player', target });
         return (
           <View key={episode.id} style={styles.episode}>
-            <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>
-            <Pressable style={styles.still} onPress={play} accessibilityLabel={`Play ${episode.title}`} focusable={false}>
+            {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
+            <Pressable
+              style={[styles.still, compact && styles.stillCompact]}
+              onPress={play}
+              accessibilityLabel={`Play ${episode.title}`}
+              focusable={false}
+            >
               {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
               {saved && saved.durationSeconds > 0 ? (
                 <View style={styles.stillTrack}>
@@ -390,6 +396,7 @@ const styles = StyleSheet.create({
   },
   episodeNumber: { width: 32, color: colors.muted, fontSize: 22.4, textAlign: 'center' },
   still: { width: 140, aspectRatio: 16 / 9, borderRadius: radius, overflow: 'hidden', backgroundColor: '#333' },
+  stillCompact: { width: 110 },
   stillTrack: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   stillValue: { height: 3, backgroundColor: colors.accent },
   episodeText: { flex: 1 },

@@ -4,7 +4,7 @@ import { avatarColor, selectActiveProfile } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, useSession } from '../hooks';
-import { colors, fonts, navHeight, radius, useSizes } from '../theme';
+import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { Icon, type IconName } from './Icon';
 
 /** Asks first: signing out needs the provider password again. Downloads and the saved library stay on the device. */
@@ -21,6 +21,7 @@ export function AccountMenu() {
   const profile = useSession(selectActiveProfile);
   const profiles = useSession((s) => s.profiles);
   const sizes = useSizes();
+  const navH = useNavHeight();
   if (!open) return null;
 
   const close = () => navStore.getState().setMenuOpen(false);
@@ -28,7 +29,7 @@ export function AccountMenu() {
   return (
     <>
       <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close menu" focusable={false} />
-      <View style={[styles.menu, { right: sizes.gutter }]} accessibilityRole="menu" testID="account-menu">
+      <View style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]} accessibilityRole="menu" testID="account-menu">
         {others.map((p, index) => (
           <MenuItem
             key={p.id}
@@ -118,7 +119,6 @@ function MenuItem({
 const styles = StyleSheet.create({
   menu: {
     position: 'absolute',
-    top: navHeight - 8,
     zIndex: 30,
     minWidth: 220,
     paddingVertical: 8,

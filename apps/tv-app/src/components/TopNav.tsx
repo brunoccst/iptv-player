@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { avatarColor, selectActiveProfile } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, useSession } from '../hooks';
 import { currentSection, type Section } from '../navigation/navStore';
-import { colors, fonts, navHeight, radius, useSizes } from '../theme';
+import { colors, fonts, radius, useCompact, useNavHeight, useSizes } from '../theme';
 import { Gradient } from './Gradient';
 import { Icon } from './Icon';
 
@@ -30,53 +30,83 @@ export function TopNav() {
   const sizes = useSizes();
   const solid = scrolled || section !== 'home';
 
+  const compact = useCompact();
+  const height = useNavHeight();
+
+  const brand = (
+    <NavPressable onPress={() => navStore.getState().goSection('home')} testID="nav-brand" label={appConfig.appName}>
+      {() => <Text style={[styles.brand, { fontSize: sizes.brand }]}>{appConfig.appName}</Text>}
+    </NavPressable>
+  );
+  const links = LINKS.map((link) => (
+    <NavPressable
+      key={link.section}
+      label={link.label}
+      testID={`nav-${link.section}`}
+      selected={section === link.section}
+      onPress={() => navStore.getState().goSection(link.section)}
+    >
+      {(focused) => (
+        <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label}</Text>
+      )}
+    </NavPressable>
+  ));
+  const right = (
+    <View style={styles.right}>
+      <SearchBox value={search} width={compact ? 130 : sizes.search} />
+      <NavPressable
+        label="Account menu"
+        testID="nav-account"
+        selected={menuOpen}
+        onPress={() => navStore.getState().setMenuOpen(!menuOpen)}
+      >
+        {(focused) => (
+          <View style={[styles.avatar, { backgroundColor: profile ? avatarColor(profile) : '#555' }, focused && styles.avatarFocused]}>
+            <Text style={styles.avatarText}>{profile?.name.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+      </NavPressable>
+    </View>
+  );
+  const shade = solid ? null : (
+    <Gradient
+      stops={[
+        { offset: 0, color: '#000', opacity: 0.75 },
+        { offset: 1, color: '#000', opacity: 0 },
+      ]}
+    />
+  );
+
+  // Web `@media (max-width: 720px)`: brand, search and account on the first row; page links scroll sideways below.
+  if (compact) {
+    return (
+      <View
+        style={[styles.nav, styles.navCompact, { height, paddingHorizontal: sizes.gutter }, solid && styles.solid]}
+        accessibilityRole="header"
+        testID="top-nav"
+      >
+        {shade}
+        <View style={styles.firstRow}>
+          {brand}
+          {right}
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.links, { gap: sizes.navLinkGap }]}>
+          {links}
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View
-      style={[styles.nav, { paddingHorizontal: sizes.gutter, gap: sizes.navGap }, solid && styles.solid]}
+      style={[styles.nav, { height, paddingHorizontal: sizes.gutter, gap: sizes.navGap }, solid && styles.solid]}
       accessibilityRole="header"
       testID="top-nav"
     >
-      {solid ? null : (
-        <Gradient
-          stops={[
-            { offset: 0, color: '#000', opacity: 0.75 },
-            { offset: 1, color: '#000', opacity: 0 },
-          ]}
-        />
-      )}
-      <NavPressable onPress={() => navStore.getState().goSection('home')} testID="nav-brand" label={appConfig.appName}>
-        {() => <Text style={[styles.brand, { fontSize: sizes.brand }]}>{appConfig.appName}</Text>}
-      </NavPressable>
-      <View style={[styles.links, { gap: sizes.navLinkGap }]}>
-        {LINKS.map((link) => (
-          <NavPressable
-            key={link.section}
-            label={link.label}
-            testID={`nav-${link.section}`}
-            selected={section === link.section}
-            onPress={() => navStore.getState().goSection(link.section)}
-          >
-            {(focused) => (
-              <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label}</Text>
-            )}
-          </NavPressable>
-        ))}
-      </View>
-      <View style={styles.right}>
-        <SearchBox value={search} width={sizes.search} />
-        <NavPressable
-          label="Account menu"
-          testID="nav-account"
-          selected={menuOpen}
-          onPress={() => navStore.getState().setMenuOpen(!menuOpen)}
-        >
-          {(focused) => (
-            <View style={[styles.avatar, { backgroundColor: profile ? avatarColor(profile) : '#555' }, focused && styles.avatarFocused]}>
-              <Text style={styles.avatarText}>{profile?.name.charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
-        </NavPressable>
-      </View>
+      {shade}
+      {brand}
+      <View style={[styles.links, { gap: sizes.navLinkGap }]}>{links}</View>
+      {right}
     </View>
   );
 }
@@ -144,10 +174,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
-    height: navHeight,
     flexDirection: 'row',
     alignItems: 'center',
   },
+  navCompact: { flexDirection: 'column', alignItems: 'stretch', justifyContent: 'center', gap: 8 },
+  firstRow: { flexDirection: 'row', alignItems: 'center' },
   solid: { backgroundColor: colors.bg },
   brand: { color: colors.accent, fontWeight: '900', letterSpacing: -0.5 },
   links: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },

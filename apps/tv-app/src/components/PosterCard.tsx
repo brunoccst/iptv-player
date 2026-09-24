@@ -100,7 +100,7 @@ export function PosterCard({
 const styles = StyleSheet.create({
   card: { borderRadius: radius, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
   focused: { transform: [{ scale: 1.08 }], zIndex: 2, borderColor: colors.strong, elevation: 8 },
-  art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center' },
+  art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1f1f1f' },
   fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },
   badge: {
     position: 'absolute',
