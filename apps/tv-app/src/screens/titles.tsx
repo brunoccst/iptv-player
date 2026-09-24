@@ -136,6 +136,7 @@ export function TitleGrid({
           <View style={styles.bottom} />
         )
       }
+      removeClippedSubviews={false}
       initialNumToRender={columns * 3}
       maxToRenderPerBatch={columns * 2}
       windowSize={5}

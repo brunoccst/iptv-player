@@ -66,6 +66,8 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
         <View style={index === 0 ? [styles.rows, { marginTop: -Math.round(rowGap * 2) }] : styles.rows}>{item.render()}</View>
       )}
       ListFooterComponent={<View style={styles.bottom} />}
+      // FlatList detaches off-screen children on Android by default; on TV that left Home without rows (CI emulator).
+      removeClippedSubviews={false}
       initialNumToRender={6}
       maxToRenderPerBatch={2}
       windowSize={5}

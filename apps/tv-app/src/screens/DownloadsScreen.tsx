@@ -22,6 +22,7 @@ export function DownloadsScreen() {
     <FlatList
       style={styles.screen}
       testID="downloads-screen"
+      removeClippedSubviews={false}
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
       ListHeaderComponent={
         <>
