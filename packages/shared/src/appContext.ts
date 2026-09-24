@@ -1,7 +1,10 @@
 import { createApiClient, type ApiClient } from './api/apiClient';
 import { createHttpClient } from './api/httpClient';
 import type { AppConfig } from './config/appConfig';
+import { createDirectApiClient } from './direct/directApiClient';
+import { createHybridApiClient } from './direct/hybridApiClient';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
+import { createConnectionStore, type ConnectionStore } from './stores/connectionStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
@@ -19,6 +22,8 @@ export interface AppContext {
     library: LibraryStore;
     player: PlayerStore;
     progress: ProgressStore;
+    /** Present when direct mode is enabled (native apps). */
+    connection?: ConnectionStore;
   };
 }
 
@@ -26,18 +31,35 @@ export interface AppContextOptions {
   config: AppConfig;
   storage: KeyValueStorage;
   fetch?: typeof fetch;
+  /** Native apps: talk to the provider directly unless the user picks "My server". See DECISIONS.md#d-038. */
+  direct?: { dataStorage: KeyValueStorage; userAgent?: string };
 }
 
 /** Wires API client and stores together. Each app creates exactly one context at startup. */
-export function createAppContext({ config, storage, fetch }: AppContextOptions): AppContext {
+export function createAppContext({ config, storage, fetch, direct }: AppContextOptions): AppContext {
+  const connection = direct ? createConnectionStore({ storage, defaultServerUrl: config.apiBaseUrl }) : undefined;
   const http = createHttpClient({
-    baseUrl: config.apiBaseUrl,
+    baseUrl: connection ? () => connection.getState().serverUrl : config.apiBaseUrl,
     fetch,
     // Called per request, after `session` below is initialized.
     getToken: () => session.getState().token ?? null,
     onUnauthorized: () => session.getState().handleUnauthorized(),
   });
-  const api = createApiClient(http);
+  const serverApi = createApiClient(http);
+  const api =
+    direct && connection
+      ? createHybridApiClient({
+          server: serverApi,
+          connection,
+          direct: createDirectApiClient({
+            appName: config.appName,
+            secureStorage: storage,
+            dataStorage: direct.dataStorage,
+            fetch,
+            userAgent: direct.userAgent,
+          }),
+        })
+      : serverApi;
 
   const session = createSessionStore({ api, storage });
   const catalog = createCatalogStore({ api });
@@ -61,5 +83,5 @@ export function createAppContext({ config, storage, fetch }: AppContextOptions):
     }
   });
 
-  return { config, api, stores: { session, catalog, epg, library, player, progress } };
+  return { config, api, stores: { session, catalog, epg, library, player, progress, connection } };
 }

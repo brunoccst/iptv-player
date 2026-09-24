@@ -156,10 +156,10 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     async validate(signal?: AbortSignal): Promise<XtreamAccountInfo> {
       const userInfo = prop(await getJson(null, {}, signal), 'user_info');
       if (!isObject(userInfo) || !bool(userInfo, 'auth'))
-        throw new ApiError(400, 'invalid_provider_credentials', 'Invalid username or password.');
+        throw new ApiError(401, 'invalid_provider_credentials', 'Invalid username or password.');
       const status = str(userInfo, 'status') ?? 'Unknown';
       if (status.toLowerCase() !== 'active')
-        throw new ApiError(400, 'invalid_provider_credentials', `Provider account status is '${status}'.`);
+        throw new ApiError(401, 'invalid_provider_credentials', `Provider account status is '${status}'.`);
       return {
         status,
         expiresAt: unixTime(userInfo, 'exp_date'),

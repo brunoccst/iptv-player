@@ -3,7 +3,7 @@
 | Path | Purpose |
 |------|---------|
 | `index.ts` | Public exports. Import only from `@iptv/shared`. |
-| `appContext.ts` | `createAppContext()`: builds HTTP client, API client and all stores, wires 401 → sign-out and cache resets. |
+| `appContext.ts` | `createAppContext()`: builds HTTP client, API client and all stores, wires 401 → sign-out and cache resets. With `direct` (native apps) the API client is hybrid: direct by default, server when chosen (D-038). |
 | `react.ts` | React hooks: `useAppStore(store, selector)`, `useNow`, `useEpgGuide` (paged guide + polling). |
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |

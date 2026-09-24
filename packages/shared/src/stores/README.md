@@ -5,6 +5,7 @@ Vanilla Zustand stores (`zustand/vanilla`). Created by `createAppContext()`; rea
 | File | State | Main actions |
 |------|-------|--------------|
 | `sessionStore.ts` | `status`, `token`, `account`, `profiles`, `activeProfileId`, `offline`, `busy`, `error` | `restore`, `login`, `logout`, `selectProfile`, `create/update/deleteProfile` |
+| `connectionStore.ts` | `mode` (`direct` / `server`), `serverUrl`, `loaded` | `load`, `setConnection` (persisted; native apps only, D-038) |
 | `catalogStore.ts` | `categories[section]`, `liveChannels[categoryId or *]` | `loadCategories`, `loadLiveChannels`, `reset` |
 | `epgStore.ts` | `grids[key]` (one guide page: category + window + offset) | `loadGrid`, `watchGrid` (polls while `refreshing`), `refresh`, `reset` |
 | `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `invalidate`, `reset` |
