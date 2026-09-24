@@ -1,3 +1,6 @@
+import pytest
+
+from tests.cases_loader import load
 from title_normalizer.parser import parse_title
 from title_normalizer.pipeline import build_masters, master_id, quality_score, variant_label
 
@@ -78,3 +81,26 @@ def test_quality_score_ranks_sources():
 def test_variant_label_falls_back_to_container():
     assert variant_label(parse_title("Heat (1995)"), "mkv") == "MKV"
     assert variant_label(parse_title("Heat (1995)"), None) == "STANDARD"
+
+
+@pytest.mark.parametrize("case", load("pipeline")["masters"], ids=lambda case: case["name"])
+def test_build_masters_matches_shared_cases(case):
+    masters = build_masters(case["accountId"], case["kind"], case["items"])
+
+    actual = [
+        {
+            "id": m.id,
+            "title": m.title,
+            "key": m.normalized_key,
+            "year": m.year,
+            "posterUrl": m.poster_url,
+            "rating": m.rating,
+            "bestQuality": m.best_quality,
+            "variants": [
+                {"streamId": v.stream_id, "label": v.label, "qualityScore": v.quality_score, "categoryId": v.category_id}
+                for v in m.variants
+            ],
+        }
+        for m in masters
+    ]
+    assert actual == case["expect"]

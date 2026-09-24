@@ -8,6 +8,7 @@
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |
+| `direct/` | Direct mode (no backend): Xtream client and the TypeScript title normalizer (D-038). |
 | `epg/` | Pure guide-grid helpers: slots, row layout (clip, gaps), now line, current programme. |
 | `playback/` | Pure playback rules shared by web and TV (resume, intro, next episode, source attempts). |
 | `utils/` | Formatting helpers. |

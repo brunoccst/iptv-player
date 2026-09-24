@@ -1,0 +1,83 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { groupTitles, ratio } from './matching';
+import { normalizeKey, parseTitle } from './parser';
+import { buildMasters } from './pipeline';
+import { sha1Hex } from './sha1';
+
+/** The same JSON cases the Python tests run (services/title-normalizer/tests/cases). See DECISIONS.md#d-038. */
+const load = (name: string) =>
+  JSON.parse(readFileSync(new URL(`../../../../../services/title-normalizer/tests/cases/${name}.json`, import.meta.url), 'utf8'));
+
+interface ParseCase {
+  raw: string;
+  title: string;
+  year?: number | null;
+  quality?: string | null;
+  source?: string | null;
+  languages?: string[];
+  audioTag?: string | null;
+  hdr?: boolean;
+}
+
+const parser = load('parser') as { parse: ParseCase[]; keys: { title: string; key: string }[] };
+
+describe('parseTitle (shared cases)', () => {
+  it.each(parser.parse)('$raw', (testCase) => {
+    const parsed = parseTitle(testCase.raw);
+    const actual = {
+      title: parsed.cleanTitle,
+      year: parsed.year,
+      quality: parsed.quality,
+      source: parsed.source,
+      languages: parsed.audioLanguages,
+      audioTag: parsed.audioTag,
+      hdr: parsed.isHdr,
+    };
+    const fields = Object.keys(actual).filter((field) => field in testCase) as (keyof typeof actual)[];
+    expect(Object.fromEntries(fields.map((field) => [field, actual[field]]))).toEqual(
+      Object.fromEntries(fields.map((field) => [field, testCase[field]])),
+    );
+  });
+});
+
+describe('normalizeKey (shared cases)', () => {
+  it.each(parser.keys)('$title → $key', ({ title, key }) => expect(normalizeKey(title)).toBe(key));
+});
+
+describe('groupTitles (shared cases)', () => {
+  const cases = (load('matching') as { groups: { name: string; titles: string[]; groups: number }[] }).groups;
+  it.each(cases)('$name', ({ titles, groups }) => expect(groupTitles(titles.map(parseTitle))).toHaveLength(groups));
+});
+
+describe('buildMasters (shared cases)', () => {
+  const cases = (load('pipeline') as { masters: { name: string; accountId: string; kind: string; items: []; expect: unknown[] }[] })
+    .masters;
+  it.each(cases)('$name', ({ accountId, kind, items, expect: expected }) => {
+    const masters = buildMasters(accountId, kind, items).map((master) => ({
+      id: master.id,
+      title: master.title,
+      key: master.normalizedKey,
+      year: master.year,
+      posterUrl: master.posterUrl,
+      rating: master.rating,
+      bestQuality: master.bestQuality,
+      variants: master.variants.map(({ streamId, label, qualityScore, categoryId }) => ({ streamId, label, qualityScore, categoryId })),
+    }));
+    expect(masters).toEqual(expected);
+  });
+});
+
+describe('helpers', () => {
+  it('sha1Hex matches known digests', () => {
+    expect(sha1Hex('')).toBe('da39a3ee5e6b4b0d3255bfef95601890afd80709');
+    expect(sha1Hex('abc')).toBe('a9993e364706816aba3e25717850c26c9cd0d89d');
+    expect(sha1Hex('a'.repeat(1000))).toBe('291e9a6c66994949b57ba5e650361e98fc36b1ba');
+  });
+
+  it('ratio matches rapidfuzz fuzz.ratio', () => {
+    expect(ratio('shawshankredemption', 'shawshankredemtion')).toBeCloseTo(97.297, 3);
+    expect(ratio('abc', '')).toBe(0);
+    expect(ratio('', '')).toBe(100);
+  });
+});

@@ -765,3 +765,25 @@ Decision: a manual workflow (`tv-apk.yml`) builds an ARM release APK with `APP_A
 
 Why not a runtime "backend address" setting on the TV: better long-term, but it adds a settings screen and validation; the build input is enough for testing now (see NEXT-STEPS).
 
+## D-038
+
+**Hybrid: native apps work without a server** — 2026-09-24 (owner choice: TV and phone apps must not need a self-hosted backend)
+
+Decision: the shared package gets a second `ApiClient` implementation that talks to the provider directly ("direct mode"). Native apps use it by default; "My server" (the existing backend) stays available and is required only for the web app.
+
+```mermaid
+flowchart LR
+  TV[TV / phone app] -->|direct mode, default| P[IPTV provider]
+  TV -.->|server mode, optional| B[Backend] --> P
+  WEB[Web app] --> B
+```
+
+- Same interface as the backend client, so stores and screens do not change; only the app context picks the client.
+- On the device: profiles, progress and the deduplicated library live in secure storage / memory. No sync between devices in direct mode (a later option).
+- Title normalizer is ported to TypeScript. Both versions run the same JSON test cases to avoid drift.
+- Live guide uses the provider's short EPG per visible channel; full XMLTV files are too large to parse on a TV.
+- Playback goes straight to the provider with the configured User-Agent; no relay.
+- The web app keeps needing the backend: browsers block direct provider calls (HTTP from an HTTPS page, no CORS).
+
+Why not drop the backend: it still serves the web app, cross-device sync and heavier work (full XMLTV); keeping it optional costs nothing for native users.
+
