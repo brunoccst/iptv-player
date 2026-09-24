@@ -246,3 +246,22 @@ Channels report `hasCatchup`, but past programmes cannot be played; selecting on
 Run 6 of `tv-app.yml` showed the player ready but the position at 0:00. The emulator now runs with a sound device (D-030); until a green run confirms it, TV playback is verified by Jest tests only.
 
 Resolved 2026-09-23: `tv-app.yml` run 15 is green (login, playback, pause, +10 s skip, quick drawer, download, TV guide, offline playback). The runs on the way found and fixed three device bugs Jest could not see: no focused view on the player (D-028), `select` reported on release only, and release-only arrow events (remote normalizer).
+
+## KI-034
+
+**Direct mode: no sync between devices** — logged 2026-09-24
+
+In direct mode (D-038) profiles, progress and the library live on each device. Continue Watching on the TV does not show what was watched on the web app or another TV. Workaround: use "My server". Planned: optional sync to a backend (NEXT-STEPS).
+
+## KI-035
+
+**Direct mode: library grouping runs on the UI thread** — logged 2026-09-24
+
+The TypeScript normalizer groups the whole catalog in one pass on the JavaScript thread; it yields between movies and series only. On a catalog with tens of thousands of titles the TV can stutter for a few seconds after sign-in and every 12 h. The cached library keeps later starts fast.
+
+## KI-036
+
+**Direct mode: shorter guide, credentials in stream URLs** — logged 2026-09-24
+
+The guide uses the provider's short EPG (up to 12 programmes per channel), so it reaches fewer hours ahead than the backend's XMLTV cache. Playback URLs contain the provider username and password (Xtream format); in server mode the relay hides them. They stay on the device, but can appear in Android logs.
+

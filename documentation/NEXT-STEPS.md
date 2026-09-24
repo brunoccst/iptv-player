@@ -7,7 +7,8 @@ Execution plan from the project brief. Each step ends with a review checkpoint. 
 ```mermaid
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
-  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅]
+  S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅] --> S8[8. Hybrid: direct mode ✅]
+  S8 --> S9[9. Phone app]
 ```
 
 - [x] **Step 1 — Scaffold**: monorepo, workspaces, 3 documentation files, READMEs, central `APP_NAME` config.
@@ -22,12 +23,19 @@ flowchart LR
 - [x] **Linters/formatters + web e2e in CI** (requested 2026-09-23): ESLint + Prettier, `dotnet format`, Ruff, `lint` and `web-e2e` CI jobs (D-033).
 - [x] **One-command dev start** (requested 2026-09-23): `npm run dev:all` (D-034).
 - [x] **Phone testing via Codespaces** (requested 2026-09-23): `.devcontainer` with the fake panel, mobile nav/player fixes (D-035).
+- [x] **Step 8 — Hybrid: native apps without a server** (requested 2026-09-24, D-038). The TV app talks to the provider directly by default; a backend is optional.
+  - [x] 8a. Shared direct provider client (TypeScript): Xtream catalog, series details, live channels, short-EPG guide, direct playback URLs. Tests against fake-panel fixtures.
+  - [x] 8b. TypeScript title normalizer (parser, tags, grouping) with JSON test cases shared with the Python tests, so both stay in step.
+  - [x] 8c. `createDirectApiClient`: same interface as the backend client; profiles, progress and library kept on the device.
+  - [x] 8d. TV app: sign-in chooses "IPTV provider" (default) or "My server"; provider User-Agent on playback and downloads.
+  - [x] 8e. CI: Maestro flows in direct mode against the fake panel, plus one server-mode flow; `tv-apk.yml` no longer needs a backend address.
+- [ ] **Step 9 — Phone app** (requested 2026-09-24): touch UI on the same shared code, direct mode by default.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
 ## Agent Suggestions
 
-- **TV backend address setting**: enter the backend URL on the TV at first start instead of baking it into the APK (D-037).
+- **Direct mode + server sync**: let a direct-mode device also push progress/profiles to a backend when one is configured (after Step 8).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
 - **Guide reminders**: notify (web) / banner (TV) when a chosen programme starts.
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the Maestro flows against an installed APK. Expects the local stack from scripts/start-e2e-stack.sh.
+# Runs the Maestro flows (server mode, offline, direct mode) against an installed APK. Expects the local stack from scripts/start-e2e-stack.sh.
 # Usage: apps/tv-app/e2e/run.sh <output-dir>
 set -euo pipefail
 OUT="${1:-maestro-output}"
@@ -39,3 +39,7 @@ run_flow 01-online
 # Offline: stop provider and backend, then relaunch.
 "$HERE/../../../scripts/stop-e2e-stack.sh" backend panel
 run_flow 02-offline
+
+# Direct mode: only the provider runs; the app talks to it without the backend (DECISIONS.md#d-038).
+"$HERE/../../../scripts/start-e2e-stack.sh" panel
+run_flow 03-direct

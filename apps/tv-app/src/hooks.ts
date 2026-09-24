@@ -1,10 +1,13 @@
 import { useAppStore } from '@iptv/shared';
-import type { CatalogState, LibraryState, ProgressState, SessionState } from '@iptv/shared';
+import type { CatalogState, ConnectionState, LibraryState, ProgressState, SessionState } from '@iptv/shared';
 import { downloadsStore, navStore, stores } from './appContext';
 import type { DownloadsState } from './downloads/downloadsStore';
 import type { NavState } from './navigation/navStore';
 
 export const useSession = <T>(selector: (state: SessionState) => T) => useAppStore(stores.session, selector);
+/** The TV context always enables direct mode, so `connection` exists. */
+export const connectionStore = stores.connection!;
+export const useConnection = <T>(selector: (state: ConnectionState) => T) => useAppStore(connectionStore, selector);
 export const useCatalog = <T>(selector: (state: CatalogState) => T) => useAppStore(stores.catalog, selector);
 export const useLibrary = <T>(selector: (state: LibraryState) => T) => useAppStore(stores.library, selector);
 export const useProgress = <T>(selector: (state: ProgressState) => T) => useAppStore(stores.progress, selector);

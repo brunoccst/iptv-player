@@ -22,6 +22,8 @@ import java.util.concurrent.Executors
 object DownloadCenter {
   const val CHANNEL_ID = "downloads"
   const val USER_AGENT = "TvMedia/1.0 (Media3)"
+  private const val PREFERENCES = "tv-media"
+  private const val KEY_USER_AGENT = "user-agent"
 
   private var initialized = false
   private val listeners = CopyOnWriteArraySet<() -> Unit>()
@@ -42,7 +44,7 @@ object DownloadCenter {
     val database = StandaloneDatabaseProvider(app)
     cache = SimpleCache(File(app.filesDir, "offline-media"), NoOpCacheEvictor(), database)
     httpDataSourceFactory = DefaultHttpDataSource.Factory()
-      .setUserAgent(USER_AGENT)
+      .setUserAgent(savedUserAgent(app))
       .setAllowCrossProtocolRedirects(true)
     // Read-only cache view: offline playback reads downloaded data; streaming does not fill the download cache.
     cacheDataSourceFactory = CacheDataSource.Factory()
@@ -59,6 +61,19 @@ object DownloadCenter {
     }
     initialized = true
   }
+
+  /**
+   * Providers often only answer player-like agents; direct mode talks to them without a relay (DECISIONS.md#d-038).
+   * Saved so downloads resumed by the service after a restart use it before JS runs.
+   */
+  @Synchronized
+  fun setUserAgent(context: Context, userAgent: String) {
+    context.applicationContext.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit().putString(KEY_USER_AGENT, userAgent).apply()
+    if (initialized) httpDataSourceFactory.setUserAgent(userAgent)
+  }
+
+  private fun savedUserAgent(context: Context): String =
+    context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getString(KEY_USER_AGENT, null) ?: USER_AGENT
 
   fun addListener(listener: () -> Unit) = listeners.add(listener)
 

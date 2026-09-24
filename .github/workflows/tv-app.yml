@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # The emulator reaches the runner's localhost at 10.0.2.2.
-  APP_API_BASE_URL: http://10.0.2.2:5091
+  # Empty (overrides .env): the app starts in direct mode; the server-mode flow types the backend address (D-038).
+  APP_API_BASE_URL: ''
   APP_ID: com.iptvplayer.tv
   # Logs every remote event to logcat so failed flows show which keys reached the app.
   APP_TV_DEBUG_REMOTE: '1'
@@ -113,7 +113,7 @@ jobs:
           # No -noaudio: ExoPlayer's clock follows audio output; without a sound device playback stays at 0:00.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
           script: |
-            adb install -r ${{ runner.temp }}/app-release.apk
+            apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output
 
       - name: Stack logs

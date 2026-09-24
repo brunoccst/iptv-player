@@ -3,9 +3,10 @@
 | Path | Purpose |
 |------|---------|
 | `App.tsx` | Gate (restore → login → profiles → shell), Back handling, library watcher. |
-| `appContext.ts` | Shared app context (secure-store session), navigation store, downloads store. |
-| `config.ts` | `appConfig` from `Constants.expoConfig.extra`. |
-| `hooks.ts` | Store hooks (`useSession`, `useLibrary`, `useDownloads`, `useNav`, …). |
+| `appContext.ts` | Shared app context with direct mode enabled (secure-store credentials, file data storage), navigation store, downloads store; sets the provider User-Agent on the native player. |
+| `dataStorage.ts` | `fileStorage`: JSON files in app-private storage for profiles, progress and the library cache (direct mode). |
+| `config.ts` | `appConfig` from `Constants.expoConfig.extra` (API address optional), `providerUserAgent`. |
+| `hooks.ts` | Store hooks (`useSession`, `useConnection`, `useLibrary`, `useDownloads`, `useNav`, …) and `connectionStore`. |
 | `useAsync.ts` | Cached one-off reads (movie metadata, series episodes). |
 | `useLibraryWatcher.ts` | Polls library status while empty/processing; reloads rows when done. |
 | `theme.ts` | Colours, spacing, TV-safe margins, font and card sizes. |

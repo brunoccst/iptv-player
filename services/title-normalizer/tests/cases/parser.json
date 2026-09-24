@@ -1,0 +1,301 @@
+{
+  "parse": [
+    {
+      "raw": "EN - The Matrix (1999) [4K] [MULTI]",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": "4K",
+      "source": null,
+      "languages": [
+        "ENG"
+      ],
+      "audioTag": "MULTI",
+      "hdr": false
+    },
+    {
+      "raw": "The.Matrix.1999.1080p.BluRay.x264-GROUP",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": "1080p",
+      "source": "BLURAY",
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "|EN| The Matrix 4K HDR",
+      "title": "The Matrix",
+      "year": null,
+      "quality": "4K",
+      "source": null,
+      "languages": [
+        "ENG"
+      ],
+      "audioTag": null,
+      "hdr": true
+    },
+    {
+      "raw": "Matrix, The (1999)",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": null,
+      "source": null,
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "The Matrix (1999) HDTS ENG",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": null,
+      "source": "TS",
+      "languages": [
+        "ENG"
+      ],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "The Matrix - 1999 - CAM",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": null,
+      "source": "CAM",
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "ES: Matrix (1999) Dual Audio",
+      "title": "Matrix",
+      "year": 1999,
+      "quality": null,
+      "source": null,
+      "languages": [
+        "ESP"
+      ],
+      "audioTag": "DUAL",
+      "hdr": false
+    },
+    {
+      "raw": "[4K] The Matrix 1999 UHD",
+      "title": "The Matrix",
+      "year": 1999,
+      "quality": "4K",
+      "source": null,
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "4K-EN - Dune: Part Two (2024) HDR10+",
+      "title": "Dune: Part Two",
+      "year": 2024,
+      "quality": "4K",
+      "source": null,
+      "languages": [
+        "ENG"
+      ],
+      "audioTag": null,
+      "hdr": true
+    },
+    {
+      "raw": "Spider-Man: No Way Home (2021) WEB-DL 1080p",
+      "title": "Spider-Man: No Way Home",
+      "year": 2021,
+      "quality": "1080p",
+      "source": "WEB",
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "Movie Name 2023 HDCAM",
+      "title": "Movie Name",
+      "year": 2023,
+      "quality": null,
+      "source": "CAM",
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "Leon The Professional (1994) [Extended] ENG-ESP",
+      "title": "Leon The Professional",
+      "year": 1994,
+      "quality": null,
+      "source": null,
+      "languages": [
+        "ENG",
+        "ESP"
+      ],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "Taken 2 (2012) DUAL-1080p",
+      "title": "Taken 2",
+      "year": 2012,
+      "quality": "1080p",
+      "source": null,
+      "languages": [],
+      "audioTag": "DUAL",
+      "hdr": false
+    },
+    {
+      "raw": "O Auto da Compadecida (2000) Dublado",
+      "title": "O Auto da Compadecida",
+      "year": 2000,
+      "quality": null,
+      "source": null,
+      "languages": [
+        "POR"
+      ],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "Amélie (2001) [FR]",
+      "title": "Amélie",
+      "year": 2001,
+      "quality": null,
+      "source": null,
+      "languages": [
+        "FRE"
+      ],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "The Matrix - EN",
+      "title": "The Matrix",
+      "year": null,
+      "quality": null,
+      "source": null,
+      "languages": [
+        "ENG"
+      ],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "|NF| Stranger Things",
+      "title": "Stranger Things",
+      "year": null,
+      "quality": null,
+      "source": null,
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "Film (2020) [1080p] [720p]",
+      "title": "Film",
+      "year": 2020,
+      "quality": "1080p",
+      "source": null,
+      "languages": [],
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "It (2017)",
+      "title": "It",
+      "year": 2017,
+      "note": "\"IT\" is also Italian; lowercase title must survive"
+    },
+    {
+      "raw": "It: Chapter Two (2019)",
+      "title": "It: Chapter Two",
+      "year": 2019
+    },
+    {
+      "raw": "Us (2019)",
+      "title": "Us",
+      "year": 2019
+    },
+    {
+      "raw": "Toy Story 2 (1999)",
+      "title": "Toy Story 2",
+      "year": 1999
+    },
+    {
+      "raw": "2001: A Space Odyssey (1968)",
+      "title": "2001: A Space Odyssey",
+      "year": 1968,
+      "note": "leading number is title, not year"
+    },
+    {
+      "raw": "Blade Runner 2049 (2017)",
+      "title": "Blade Runner 2049",
+      "year": 2017,
+      "note": "2049 is out of year range"
+    },
+    {
+      "raw": "Mission: Impossible - Fallout (2018) 720p",
+      "title": "Mission: Impossible - Fallout",
+      "year": 2018
+    },
+    {
+      "raw": "The Office (US)",
+      "title": "The Office (US)",
+      "year": null,
+      "note": "country qualifier is not a language tag"
+    },
+    {
+      "raw": "Ted ENG",
+      "title": "Ted",
+      "year": null
+    },
+    {
+      "raw": "Pan (2015)",
+      "title": "Pan",
+      "year": 2015
+    },
+    {
+      "raw": "1917 (2019)",
+      "title": "1917",
+      "year": 2019
+    },
+    {
+      "raw": "[4K]",
+      "title": "[4K]",
+      "note": "only tags: falls back to the raw title"
+    }
+  ],
+  "keys": [
+    {
+      "title": "The Matrix",
+      "key": "matrix"
+    },
+    {
+      "title": "Amélie",
+      "key": "amelie"
+    },
+    {
+      "title": "Ocean's Eleven",
+      "key": "oceans eleven"
+    },
+    {
+      "title": "Fast & Furious",
+      "key": "fast and furious"
+    },
+    {
+      "title": "Rocky II",
+      "key": "rocky 2"
+    },
+    {
+      "title": "Spider-Man: No Way Home",
+      "key": "spider man no way home"
+    },
+    {
+      "title": "A",
+      "key": "a"
+    },
+    {
+      "title": "Москва слезам не верит",
+      "key": "москва слезам не верит"
+    }
+  ]
+}

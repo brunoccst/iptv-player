@@ -20,4 +20,8 @@ describe('createAppConfig', () => {
     expect(() => createAppConfig({ APP_NAME: '  ' })).toThrow(AppConfigError);
     expect(() => createAppConfig({})).toThrow(/APP_NAME, APP_SLUG, APP_API_BASE_URL/);
   });
+
+  it('allows a missing API address when the app can run in direct mode', () => {
+    expect(createAppConfig({ APP_NAME: 'A', APP_SLUG: 'a' }, { requireApiBaseUrl: false }).apiBaseUrl).toBe('');
+  });
 });

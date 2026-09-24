@@ -3,7 +3,8 @@ import type { ApiErrorCode, ProblemDetails } from './types';
 export type QueryValue = string | number | boolean | null | undefined;
 
 export interface HttpClientOptions {
-  baseUrl: string;
+  /** A function is read per request, so the address can change at runtime (TV "My server", D-038). */
+  baseUrl: string | (() => string);
   /** Returns the current bearer token, or null when signed out. Read on every request. */
   getToken?: () => string | null;
   /** Called when a request that carried a token gets 401 (session expired or revoked). */
@@ -40,7 +41,7 @@ export interface HttpClient {
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 export function createHttpClient(options: HttpClientOptions): HttpClient {
-  const baseUrl = options.baseUrl.replace(/\/+$/, '');
+  const resolveBaseUrl = () => (typeof options.baseUrl === 'function' ? options.baseUrl() : options.baseUrl).replace(/\/+$/, '');
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   return {
@@ -63,7 +64,7 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 
       let response: Response;
       try {
-        response = await fetchImpl(baseUrl + path + buildQuery(query), {
+        response = await fetchImpl(resolveBaseUrl() + path + buildQuery(query), {
           method,
           headers,
           body: body === undefined ? undefined : JSON.stringify(body),

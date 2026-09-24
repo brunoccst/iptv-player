@@ -1,0 +1,154 @@
+import { groupTitles } from './matching';
+import { compactKey, parseTitle, parseYear, type ParsedTitle } from './parser';
+import { sha1Hex } from './sha1';
+import * as tags from './tags';
+
+/** Raw provider items → master titles with variants. Port of title_normalizer/pipeline.py (D-038). Pure: no I/O. */
+export interface NormalizerItem {
+  id?: unknown;
+  name?: unknown;
+  categoryId?: string | null;
+  posterUrl?: string | null;
+  rating?: number | null;
+  containerExtension?: string | null;
+  releaseDate?: string | null;
+}
+
+export interface Variant {
+  streamId: string;
+  rawTitle: string;
+  label: string;
+  quality: string | null;
+  source: string | null;
+  audioLanguages: string[];
+  audioTag: string | null;
+  isHdr: boolean;
+  qualityScore: number;
+  categoryId: string | null;
+  posterUrl: string | null;
+  rating: number | null;
+  containerExtension: string | null;
+}
+
+export interface Master {
+  id: string;
+  title: string;
+  normalizedKey: string;
+  year: number | null;
+  posterUrl: string | null;
+  rating: number | null;
+  bestQuality: string | null;
+  variants: Variant[];
+}
+
+const text = (value: unknown) => (value === null || value === undefined ? '' : String(value).trim());
+const optional = (value: unknown) => text(value) || null;
+const rank = (quality: string) => tags.QUALITY_RANK[quality] ?? 0;
+/** Python compares str by code point; localeCompare would not. */
+const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
+export function buildMasters(accountId: string, mediaKind: string, items: NormalizerItem[]): Master[] {
+  const usable = items.filter((item) => text(item.id) && text(item.name));
+  const parsed = usable.map(parseItem);
+  const masters = groupTitles(parsed).map((group) =>
+    buildMaster(
+      accountId,
+      mediaKind,
+      group.map((index) => usable[index]!),
+      group.map((index) => parsed[index]!),
+    ),
+  );
+  return masters.sort((a, b) => compare(a.title.toLowerCase(), b.title.toLowerCase()) || (a.year ?? 0) - (b.year ?? 0));
+}
+
+export function qualityScore(title: ParsedTitle): number {
+  let score = title.quality ? (tags.QUALITY_RANK[title.quality] ?? tags.UNKNOWN_QUALITY_RANK) : tags.UNKNOWN_QUALITY_RANK;
+  score += title.source ? (tags.SOURCE_ADJUSTMENT[title.source] ?? 0) : 0;
+  score += title.isHdr ? 5 : 0;
+  return Math.max(score, 0);
+}
+
+export function variantLabel(title: ParsedTitle, containerExtension: string | null): string {
+  const parts = [
+    title.quality,
+    title.source && ['CAM', 'TS', 'TC', 'SCR', 'REMUX'].includes(title.source) ? title.source : null,
+    title.isHdr ? 'HDR' : null,
+    title.audioLanguages.join('/') || null,
+    title.audioTag,
+  ];
+  return parts.filter(Boolean).join(' · ') || (containerExtension || 'Standard').toUpperCase();
+}
+
+/** Stable across re-syncs while the group's key and year stay the same. Same hash as the Python normalizer. */
+export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
+  sha1Hex(`${accountId}|${mediaKind}|${key}|${year ?? ''}`).slice(0, 20);
+
+function parseItem(item: NormalizerItem): ParsedTitle {
+  const parsed = parseTitle(String(item.name));
+  const releaseYear = parsed.year === null ? parseYear(text(item.releaseDate).slice(0, 4)) : null;
+  return releaseYear ? { ...parsed, year: releaseYear } : parsed;
+}
+
+function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem[], parsed: ParsedTitle[]): Master {
+  const built = items.map((item, index) => buildVariant(item, parsed[index]!));
+  const order = built
+    .map((_, index) => index)
+    .sort((a, b) => built[b]!.qualityScore - built[a]!.qualityScore || compare(built[a]!.streamId, built[b]!.streamId));
+  const variants = dedupeLabels(order.map((index) => built[index]!));
+  const ordered = order.map((index) => parsed[index]!);
+
+  // Most common spelling wins; ties go to the spelling seen first (best variant first).
+  const titleCounts = countInOrder(ordered.map((title) => title.cleanTitle));
+  const displayTitle = [...titleCounts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0];
+  const yearCounts = countInOrder(ordered.flatMap((title) => (title.year === null ? [] : [title.year])));
+  const year = yearCounts.size ? [...yearCounts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0] : null;
+  const canonical = ordered.find((title) => title.cleanTitle === displayTitle)!;
+  const ratings = variants.flatMap((variant) => (variant.rating === null ? [] : [variant.rating]));
+  const qualities = variants.flatMap((variant) => (variant.quality ? [variant.quality] : []));
+
+  return {
+    id: masterId(accountId, mediaKind, compactKey(canonical), year),
+    title: displayTitle,
+    normalizedKey: canonical.key,
+    year,
+    posterUrl: variants.find((variant) => variant.posterUrl)?.posterUrl ?? null,
+    rating: ratings.length ? Math.max(...ratings) : null,
+    bestQuality: qualities.length ? qualities.reduce((best, quality) => (rank(quality) > rank(best) ? quality : best)) : null,
+    variants,
+  };
+}
+
+function buildVariant(item: NormalizerItem, title: ParsedTitle): Variant {
+  const container = optional(item.containerExtension);
+  return {
+    streamId: text(item.id),
+    rawTitle: String(item.name),
+    label: variantLabel(title, container),
+    quality: title.quality,
+    source: title.source,
+    audioLanguages: title.audioLanguages,
+    audioTag: title.audioTag,
+    isHdr: title.isHdr,
+    qualityScore: qualityScore(title),
+    categoryId: optional(item.categoryId),
+    posterUrl: optional(item.posterUrl),
+    rating: typeof item.rating === 'number' ? item.rating : null,
+    containerExtension: container,
+  };
+}
+
+/** Identical labels get " (2)", " (3)" so the version selector stays unambiguous. */
+function dedupeLabels(variants: Variant[]): Variant[] {
+  const seen = new Map<string, number>();
+  return variants.map((variant) => {
+    const count = (seen.get(variant.label) ?? 0) + 1;
+    seen.set(variant.label, count);
+    return count === 1 ? variant : { ...variant, label: `${variant.label} (${count})` };
+  });
+}
+
+function countInOrder<T>(values: T[]): Map<T, number> {
+  const counts = new Map<T, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return counts;
+}

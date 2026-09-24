@@ -1,0 +1,324 @@
+{
+  "masters": [
+    {
+      "name": "groups variants and orders them best first",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "The Matrix (1999) CAM",
+          "posterUrl": null,
+          "rating": 6.0
+        },
+        {
+          "id": "2",
+          "name": "EN - The Matrix (1999) [4K] HDR",
+          "posterUrl": "http://img/4k.jpg",
+          "rating": 8.7,
+          "containerExtension": "mkv"
+        },
+        {
+          "id": "3",
+          "name": "The Matrix (1999) 1080p",
+          "posterUrl": "http://img/hd.jpg",
+          "categoryId": "10"
+        },
+        {
+          "id": "4",
+          "name": "Inception (2010)"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "fbf22a23bb97fee7967f",
+          "title": "Inception",
+          "key": "inception",
+          "year": 2010,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "4",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "b1328d8f0d2097b2be37",
+          "title": "The Matrix",
+          "key": "matrix",
+          "year": 1999,
+          "posterUrl": "http://img/4k.jpg",
+          "rating": 8.7,
+          "bestQuality": "4K",
+          "variants": [
+            {
+              "streamId": "2",
+              "label": "4K · HDR · ENG",
+              "qualityScore": 405,
+              "categoryId": null
+            },
+            {
+              "streamId": "3",
+              "label": "1080p",
+              "qualityScore": 300,
+              "categoryId": "10"
+            },
+            {
+              "streamId": "1",
+              "label": "CAM",
+              "qualityScore": 0,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "release date supplies a missing year",
+      "kind": "series",
+      "items": [
+        {
+          "id": "7",
+          "name": "Breaking Bad",
+          "releaseDate": "2008-01-20"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "c7283c63696fc646d343",
+          "title": "Breaking Bad",
+          "key": "breaking bad",
+          "year": 2008,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "7",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "duplicate labels are numbered",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "Heat (1995) 1080p"
+        },
+        {
+          "id": "2",
+          "name": "Heat (1995) 1080p"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "75391ef8a4198e4a0c63",
+          "title": "Heat",
+          "key": "heat",
+          "year": 1995,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": "1080p",
+          "variants": [
+            {
+              "streamId": "1",
+              "label": "1080p",
+              "qualityScore": 300,
+              "categoryId": null
+            },
+            {
+              "streamId": "2",
+              "label": "1080p (2)",
+              "qualityScore": 300,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "invalid items are skipped",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "",
+          "name": "x"
+        },
+        {
+          "id": "1"
+        },
+        {
+          "name": "y"
+        }
+      ],
+      "accountId": "acc",
+      "expect": []
+    },
+    {
+      "name": "display title is the most common spelling",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "Spider-Man: No Way Home (2021)"
+        },
+        {
+          "id": "2",
+          "name": "Spider-Man: No Way Home (2021) 4K"
+        },
+        {
+          "id": "3",
+          "name": "Spiderman No Way Home (2021)"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "13d6d2024a2e56d00f6d",
+          "title": "Spider-Man: No Way Home",
+          "key": "spider man no way home",
+          "year": 2021,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": "4K",
+          "variants": [
+            {
+              "streamId": "2",
+              "label": "4K",
+              "qualityScore": 400,
+              "categoryId": null
+            },
+            {
+              "streamId": "1",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            },
+            {
+              "streamId": "3",
+              "label": "STANDARD (2)",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "label falls back to the container",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "Heat (1995)",
+          "containerExtension": "mkv"
+        },
+        {
+          "id": "5",
+          "name": "Ronin (1998)"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "75391ef8a4198e4a0c63",
+          "title": "Heat",
+          "key": "heat",
+          "year": 1995,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "1",
+              "label": "MKV",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "ffe26f9e47689bf0e0d3",
+          "title": "Ronin",
+          "key": "ronin",
+          "year": 1998,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "5",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "non-ASCII titles hash like Python",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "Amélie (2001) [FR]"
+        },
+        {
+          "id": "2",
+          "name": "Москва слезам не верит (1979)"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "cdf66cfcae156a0771dd",
+          "title": "Amélie",
+          "key": "amelie",
+          "year": 2001,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "1",
+              "label": "FRE",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "4461a5dfcde276f7d07a",
+          "title": "Москва слезам не верит",
+          "key": "москва слезам не верит",
+          "year": 1979,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "2",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

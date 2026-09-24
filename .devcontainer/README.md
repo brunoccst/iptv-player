@@ -23,8 +23,10 @@ Sign in with server `http://localhost:8090`, username `demo`, password `demo` (t
 
 ## Android TV
 
-1. Make port 5173 public (the TV app cannot do GitHub sign-in).
-2. GitHub → Actions → **TV APK for a real TV** → Run workflow, with `api_base_url` = your codespace link (no trailing path). Takes ~20 min.
-3. In the codespace terminal: `bash .devcontainer/get-tv-apk.sh`.
+The TV app talks to the IPTV provider directly (D-038), so the codespace is only used to download the APK.
+
+1. GitHub → Actions → **TV APK for a real TV** → Run workflow (leave `api_base_url` empty). Takes ~20 min.
+2. In the codespace terminal: `bash .devcontainer/get-tv-apk.sh`.
+3. Make port 5173 public while the TV downloads (the TV cannot do GitHub sign-in); set it back to private after.
 4. On the TV, install the **Downloader** app, allow it to install unknown apps, and open `<codespace link>/tv.apk`.
-5. Sign in on the TV with server `http://localhost:8090`, `demo` / `demo`.
+5. Sign in on the TV with **IPTV provider** and your provider's address, username and password. The fake panel in the codespace is not reachable from the TV.

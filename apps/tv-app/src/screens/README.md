@@ -2,7 +2,7 @@
 
 | File | Screen |
 |------|--------|
-| `LoginScreen.tsx` | Server URL, username, password. |
+| `LoginScreen.tsx` | Connection choice ("IPTV provider" = direct, "My server" + server address), provider URL, username, password. |
 | `ProfilesScreen.tsx` | "Who's watching?" (profiles are edited in the web app). |
 | `HomeScreen.tsx` | Hero, Continue Watching, Live TV, Series and category rows. |
 | `LibraryRow.tsx` | Row of deduplicated titles for a section/category. |

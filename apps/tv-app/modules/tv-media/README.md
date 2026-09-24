@@ -18,6 +18,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `TvPlayerView` | Props: `source` (`uri` + `isHls`, or `offlineId`), `paused`. Events: `onStatus`, `onProgress` (500 ms), `onTracks`, `onEnd`, `onError`. Ref: `seekTo(ms)`, `selectTrack(type, group, track)`. |
 | `TvMedia.startDownload(id, uri, isHls, metadataJson)` | Queues a download (foreground service). |
 | `TvMedia.pauseDownload / resumeDownload / removeDownload(id)` | Control a download. |
+| `TvMedia.setUserAgent(ua)` | HTTP User-Agent for playback and downloads; saved natively so resumed downloads use it too (D-038). |
 | `TvMedia.listDownloads()` | All downloads with state, percent, metadata. |
 | `onDownloadsChanged` event | Fired on state changes (not on every progress tick). |
 
