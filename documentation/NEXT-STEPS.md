@@ -29,6 +29,7 @@ flowchart LR
   - [x] 8c. `createDirectApiClient`: same interface as the backend client; profiles, progress and library kept on the device.
   - [x] 8d. TV app: sign-in chooses "IPTV provider" (default) or "My server"; provider User-Agent on playback and downloads.
   - [x] 8e. CI: Maestro flows in direct mode against the fake panel, plus one server-mode flow; `tv-apk.yml` no longer needs a backend address.
+- [ ] **Try other versions when a stream is refused** (requested 2026-09-24): if the provider refuses one version of a movie (e.g. HTTP 401 for a removed title), the player tries the title's other versions before showing an error.
 - [ ] **Step 9 — Phone app** (requested 2026-09-24): touch UI on the same shared code, direct mode by default.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
