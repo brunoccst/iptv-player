@@ -35,7 +35,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     APP_NAME: requireEnv('APP_NAME'),
     APP_SLUG: requireEnv('APP_SLUG'),
-    APP_API_BASE_URL: requireEnv('APP_API_BASE_URL'),
+    // Optional: prefills "My server". Without it the app starts in direct mode only (D-038).
+    APP_API_BASE_URL: process.env.APP_API_BASE_URL?.trim() ?? '',
+    APP_PROVIDER_USER_AGENT: process.env.BACKEND_PROVIDER_USER_AGENT?.trim() ?? '',
     // Optional: '1' logs every remote event (used by the emulator CI build).
     APP_TV_DEBUG_REMOTE: process.env.APP_TV_DEBUG_REMOTE ?? '',
   },

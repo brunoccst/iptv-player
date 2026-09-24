@@ -2,6 +2,8 @@
 
 Android TV client. Expo SDK 57 + `react-native-tvos` 0.86 + TypeScript + local native module `tv-media` (Media3 ExoPlayer + DownloadManager). Output: `.apk`.
 
+Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
+
 ```mermaid
 flowchart TD
   APP[App.tsx gate] -->|anonymous| LOGIN[LoginScreen]
@@ -34,9 +36,9 @@ flowchart TD
 | `name` | `APP_NAME` |
 | `slug` | `APP_SLUG` |
 | `android.package` | `APP_ANDROID_PACKAGE` |
-| `extra.*` | `APP_NAME`, `APP_SLUG`, `APP_API_BASE_URL`; optional `APP_TV_DEBUG_REMOTE=1` logs every remote event to logcat (`ReactNativeJS`), used by the emulator CI build |
+| `extra.*` | `APP_NAME`, `APP_SLUG`; optional `APP_API_BASE_URL` (prefills "My server"), `APP_PROVIDER_USER_AGENT` (from `BACKEND_PROVIDER_USER_AGENT`, default VLC), `APP_TV_DEBUG_REMOTE=1` (logs every remote event to logcat, used by the emulator CI build) |
 
-Real device: `APP_API_BASE_URL=http://<PC LAN IP>:5080`. Emulator: `http://10.0.2.2:5080`. Plain HTTP is allowed (`usesCleartextTraffic`).
+Direct mode needs no address. For "My server": real device `http://<PC LAN IP>:5080`, emulator `http://10.0.2.2:5080`. Plain HTTP is allowed (`usesCleartextTraffic`).
 
 ## Commands
 

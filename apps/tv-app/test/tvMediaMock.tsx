@@ -21,6 +21,7 @@ export const nativeState = {
 };
 
 export const TvMedia = {
+  setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   addListener: (_event: 'onDownloadsChanged', listener: Listener) => {
     nativeState.listeners.add(listener);

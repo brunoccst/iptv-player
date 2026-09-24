@@ -9,6 +9,8 @@ type TvMediaEvents = {
 };
 
 declare class TvMediaModule extends NativeModule<TvMediaEvents> {
+  /** HTTP User-Agent for playback and downloads (persisted natively). */
+  setUserAgent(userAgent: string): void;
   listDownloads(): NativeDownload[];
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;

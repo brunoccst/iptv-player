@@ -34,6 +34,10 @@ class TvMediaModule : Module() {
       DownloadCenter.removeListener(downloadsListener)
     }
 
+    Function("setUserAgent") { userAgent: String ->
+      DownloadCenter.setUserAgent(context, userAgent)
+    }
+
     Function("listDownloads") {
       DownloadCenter.list()
     }

@@ -12,3 +12,34 @@ jest.mock('expo-secure-store', () => {
     deleteItemAsync: async (key: string) => void data.delete(key),
   };
 });
+
+// App-private JSON files (src/dataStorage.ts) kept in memory.
+jest.mock('expo-file-system', () => {
+  const files = new Map<string, string>();
+  class Directory {
+    exists = true;
+    create() {}
+  }
+  class File {
+    private readonly path: string;
+    constructor(_directory: unknown, name: string) {
+      this.path = name;
+    }
+    get exists() {
+      return files.has(this.path);
+    }
+    async text() {
+      return files.get(this.path) ?? '';
+    }
+    create() {
+      files.set(this.path, '');
+    }
+    write(value: string) {
+      files.set(this.path, value);
+    }
+    delete() {
+      files.delete(this.path);
+    }
+  }
+  return { Directory, File, Paths: { document: new Directory() }, __files: files };
+});
