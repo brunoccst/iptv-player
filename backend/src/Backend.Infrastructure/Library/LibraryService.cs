@@ -20,6 +20,11 @@ public sealed class LibraryService(PipelineDbContext db)
             masters = masters.Where(m => m.Variants.Any(v => v.CategoryId == query.CategoryId));
         }
 
+        if (query.CategoryIds is { } allowed)
+        {
+            masters = masters.Where(m => m.Variants.Any(v => v.CategoryId != null && allowed.Contains(v.CategoryId)));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var pattern = $"%{query.Search.Trim().ToLowerInvariant()}%";
@@ -115,8 +120,15 @@ public sealed class LibraryService(PipelineDbContext db)
     private static DateTimeOffset? FromUnix(long? seconds) => seconds is { } value ? DateTimeOffset.FromUnixTimeSeconds(value) : null;
 }
 
+/// <summary><c>CategoryIds</c>, when set, keeps only titles with a version in one of those categories (Kids profiles, D-053).</summary>
 public sealed record LibraryQuery(
-    string? CategoryId, string? Search, int Offset = 0, int Limit = 100, LibrarySort Sort = LibrarySort.Added, SortOrder? Order = null);
+    string? CategoryId,
+    string? Search,
+    int Offset = 0,
+    int Limit = 100,
+    LibrarySort Sort = LibrarySort.Added,
+    SortOrder? Order = null,
+    IReadOnlyList<string>? CategoryIds = null);
 
 /// <summary><c>Sorts</c> lists the orders this library has data for; <c>title</c> is always there.</summary>
 public sealed record LibraryPage(int Total, IReadOnlyList<MasterCard> Items, IReadOnlyList<LibrarySort> Sorts);

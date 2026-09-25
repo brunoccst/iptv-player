@@ -108,6 +108,8 @@ describe('createDirectApiClient', () => {
     expect(await titles({ sort: 'title', order: 'desc' })).toEqual(['Big Test Movie', 'Another Film']);
     expect(await titles({ sort: 'released' })).toEqual(['Big Test Movie', 'Another Film']);
     expect((await api.library.list('movies', { search: 'big' })).total).toBe(1);
+    expect((await api.library.list('movies', { categoryIds: ['11', 'x'] })).items.map((card) => card.title)).toEqual(['Big Test Movie']);
+    expect((await api.library.list('movies', { categoryIds: ['x'] })).total).toBe(0);
     expect((await api.library.list('movies', { categoryId: '11' })).items.map((card) => card.title)).toEqual(['Big Test Movie']);
     expect((await api.library.list('series')).items[0]).toMatchObject({ title: 'Test Series', year: 2021 });
 

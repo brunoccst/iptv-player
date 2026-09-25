@@ -57,6 +57,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-050](#d-050) | 2026-09-25 | Offline downloads: encrypted on Android, tied to the account, 30-day online check |
 | [D-051](#d-051) | 2026-09-25 | Periodic library sync in the backend |
 | [D-052](#d-052) | 2026-09-25 | Release-signed APK and increasing version codes |
+| [D-053](#d-053) | 2026-09-25 | Kids profiles show only kids categories |
 
 ---
 
@@ -993,3 +994,17 @@ Consequences:
 - The key must be backed up. Without it, later APKs cannot install over installed ones.
 
 Update 2026-09-25 (requested by owner: automate the setup): the script also saves both secrets itself with the GitHub CLI (`gh secret set`) after a one-time browser login. It ignores the Codespace's own token, which cannot write secrets. A workflow cannot create and store the key by itself: its token has no permission to write secrets, and in a public repository artifacts, release files and caches are readable by others. Backing up `.signing/` stays manual.
+
+## D-053
+
+**Kids profiles show only kids categories** — 2026-09-25 (chosen by owner from the suggestions)
+
+Before: "Kids profile" was only a label; a Kids profile saw everything.
+
+Decision:
+- Xtream providers send no age ratings, so a category counts as "for kids" when its name says so, in several languages (Kids, Kinder, Children, Cartoons, Animation, Family, Disney, KiKA, Enfants, …), unless the name also suggests adult content (Adult, XXX, 18+, …). The rule lives in `packages/shared/src/profiles/kidsFilter.ts`.
+- While a Kids profile is active, the shared API client (`withKidsFilter`) only returns kids categories, live channels in them, guide rows for them, and library titles with a version in one of them. This covers Home rows, Movies/Series, Live TV, the guide and search on web and TV/phone, in server and direct mode.
+- The backend and the direct-mode client accept `categoryIds` (comma-separated) on `/api/library/{kind}` and `/api/epg` for the "all categories" views. When a provider has no kids categories, a Kids profile sees nothing rather than everything.
+- Switching between a Kids and a regular profile drops cached categories, guide and library pages, so nothing loaded for an adult profile stays on screen.
+
+Not done (see KI-039): a PIN to leave a Kids profile or edit it; per-profile choice of allowed categories.

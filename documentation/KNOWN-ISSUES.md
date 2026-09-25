@@ -42,6 +42,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-036](#ki-036) | Limitation | tv-app (direct mode) | Open |
 | [KI-037](#ki-037) | Limitation | tv-app | Open |
 | [KI-038](#ki-038) | Limitation | web-player, tv-app | Open |
+| [KI-039](#ki-039) | Limitation | shared, clients | Open |
 
 ---
 
@@ -292,3 +293,9 @@ On Android TV, Home and My Downloads render in a plain ScrollView. On the Androi
 **Download rules run inside the apps** — logged 2026-09-25
 
 The 30-day online check, the subscription check and sign-out deletion (D-050) are enforced by the web and TV apps, not by the stored files. A modified app, DevTools (web) or root access (Android) can get around them. Media3 also keeps each download's source URL in its private database; in direct mode that URL contains the provider username and password (see KI-036).
+
+## KI-039
+
+**Kids profiles filter by category name, without a PIN** — logged 2026-09-25
+
+Providers send no age ratings, so Kids profiles show only categories whose names look like children's content (D-053). A kids title in a general category ("Movies 2024") is hidden, and an unsuitable title inside a "Kids" category is shown. Any profile can pick another profile or untick "Kids profile" without a PIN, so this is a convenience filter, not a lock.
