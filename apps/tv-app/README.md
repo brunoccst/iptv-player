@@ -51,7 +51,7 @@ npm run prebuild --workspace=@iptv/tv-app    # generates android/ (TV manifest, 
 npm run android --workspace=@iptv/tv-app     # build + install on emulator/device
 ```
 
-Release `.apk` (debug-signed): `cd android && ./gradlew assembleRelease` after `prebuild`. Output: `android/app/build/outputs/apk/release/app-release.apk`. CI builds it on every TV-related push (artifact `tv-app-apk`).
+Release `.apk` (debug-signed): `cd android && ./gradlew assembleRelease` after `prebuild`. Output: `android/app/build/outputs/apk/release/app-release.apk`. CI builds an x86 one for the emulator on every TV-related push (artifact `tv-app-apk`); `tv-apk.yml` builds the ARM one for real TVs.
 
 ## Requirements
 
