@@ -17,7 +17,8 @@ function createWebStorage(prefix: string): KeyValueStorage {
 
 const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
-const storage = createWebStorage(appConfig.appSlug);
+/** One storage holds everything on the web; the user-data backup reads it (D-056). */
+export const storage = createWebStorage(appConfig.appSlug);
 export const appContext = createAppContext({ config: appConfig, storage });
 export const { stores, api } = appContext;
 

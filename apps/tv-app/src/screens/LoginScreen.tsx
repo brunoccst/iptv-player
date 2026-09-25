@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { fluid, type ConnectionMode } from '@iptv/shared';
-import { Dimensions, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
+import { BackupDialog } from '../components/BackupDialog';
 import { Chip } from '../components/ChipBar';
+import { Field } from '../components/Field';
 import { connectionStore, useConnection, useSession } from '../hooks';
-import { colors, fonts, radius, useSizes } from '../theme';
+import { colors, radius, useSizes } from '../theme';
 
 /**
  * Xtream login. "IPTV provider" (default) talks to the provider directly; "My server" goes through a backend (D-038).
@@ -24,6 +26,7 @@ export function LoginScreen() {
   const [serverUrl, setServerUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [restore, setRestore] = useState(false);
   const { width } = useWindowDimensions();
   // TV screens are only ~540 dp tall: two columns so every field fits. Uses the physical screen, not the window:
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
@@ -110,52 +113,12 @@ export function LoginScreen() {
               disabled={busy || (mode === 'server' && !backendUrl.trim())}
               testID="login-submit"
             />
+            <FocusButton label="Restore from backup" variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
             {short ? null : note}
           </View>
         </View>
       </ScrollView>
-    </View>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  secure,
-  testID,
-  autoFocus,
-  placeholder,
-  compact,
-}: {
-  label: string;
-  value: string;
-  onChange(v: string): void;
-  secure?: boolean;
-  testID: string;
-  autoFocus?: boolean;
-  placeholder?: string;
-  compact?: boolean;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={[styles.field, compact && styles.fieldCompact]}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        testID={testID}
-        accessibilityLabel={label}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={secure}
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder={placeholder}
-        placeholderTextColor={colors.muted}
-        hasTVPreferredFocus={autoFocus}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={[styles.input, compact && styles.inputCompact, focused && styles.inputFocused]}
-      />
+      {restore ? <BackupDialog mode="restore" onClose={() => setRestore(false)} /> : null}
     </View>
   );
 }
@@ -171,21 +134,5 @@ const styles = StyleSheet.create({
   heading: { color: colors.strong, fontSize: 32, fontWeight: '700', marginBottom: 8 },
   headingShort: { fontSize: 26, marginBottom: 0 },
   modes: { flexDirection: 'row', gap: 8 },
-  field: { gap: 6 },
-  fieldCompact: { gap: 4 },
-  label: { color: colors.muted, fontSize: 14 },
-  input: {
-    minHeight: 48,
-    backgroundColor: colors.input,
-    color: colors.strong,
-    fontSize: fonts.body,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: radius,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputCompact: { minHeight: 40, paddingVertical: 8 },
-  inputFocused: { borderColor: colors.strong },
   note: { color: colors.muted, fontSize: 12.8 },
 });

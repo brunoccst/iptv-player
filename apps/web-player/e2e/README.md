@@ -26,4 +26,4 @@ npm run test:e2e --workspace=@iptv/web-player
 | `stack.ts` | Ports and repo paths. |
 | `global-setup.ts` | Starts/stops the stack. |
 | `helpers.ts` | Login, library wait, video time helpers. |
-| `app.spec.ts` | Scenarios: dedup + variants, HLS playback + preview + version switch, MKV hint, skip intro + next episode + continue watching, live, encrypted offline downloads. |
+| `app.spec.ts` | Scenarios: dedup + variants, HLS playback + preview + version switch, MKV hint, skip intro + next episode + continue watching, live, encrypted offline downloads, My List, parental PIN, backup + restore in a second browser. |

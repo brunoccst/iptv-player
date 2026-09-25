@@ -32,6 +32,8 @@ export interface AppContext {
     /** Present when direct mode is enabled (native apps). */
     connection?: ConnectionStore;
   };
+  /** Re-reads the saved login, connection and profile data, e.g. after restoring a backup (D-056). */
+  reload(): Promise<void>;
 }
 
 export interface AppContextOptions {
@@ -53,20 +55,16 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     onUnauthorized: () => session.getState().handleUnauthorized(),
   });
   const serverApi = createApiClient(http);
-  const providerApi =
-    direct && connection
-      ? createHybridApiClient({
-          server: serverApi,
-          connection,
-          direct: createDirectApiClient({
-            appName: config.appName,
-            secureStorage: storage,
-            dataStorage: direct.dataStorage,
-            fetch,
-            userAgent: direct.userAgent,
-          }),
-        })
-      : serverApi;
+  const directApi = direct
+    ? createDirectApiClient({
+        appName: config.appName,
+        secureStorage: storage,
+        dataStorage: direct.dataStorage,
+        fetch,
+        userAgent: direct.userAgent,
+      })
+    : undefined;
+  const providerApi = directApi && connection ? createHybridApiClient({ server: serverApi, connection, direct: directApi }) : serverApi;
 
   // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
   const kids = withKidsFilter(providerApi, () => selectActiveProfile(session.getState())?.isKids === true);
@@ -104,5 +102,24 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     }
   });
 
-  return { config, api, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection } };
+  const reload = async () => {
+    await connection?.getState().reload();
+    directApi?.reloadCredentials();
+    kids.reset();
+    catalog.getState().reset();
+    epg.getState().reset();
+    library.getState().reset();
+    player.getState().close();
+    progress.getState().reset();
+    watchlist.getState().reset();
+    await session.getState().restore();
+    // restore() keeps the same profile id when nothing changed, so the subscription above may not load it.
+    const profileId = session.getState().activeProfileId;
+    if (profileId) {
+      void progress.getState().load(profileId);
+      void watchlist.getState().load(profileId);
+    }
+  };
+
+  return { config, api, reload, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection } };
 }

@@ -193,3 +193,28 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await prompt.getByRole('button', { name: 'OK' }).click();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 });
+
+test('back up to an encrypted file and restore it in another browser (D-056)', async ({ page, browser }) => {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Back up & restore' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Back up and restore' });
+  await dialog.getByLabel('Password (at least 8 characters)').fill('correct horse');
+  await dialog.getByLabel('Repeat the password').fill('correct horse');
+  const downloading = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Save backup file' }).click();
+  const file = await (await downloading).path();
+  await expect(dialog.getByRole('status')).toHaveText('Backup saved to your downloads.');
+
+  const other = await browser.newPage();
+  await other.goto('/');
+  await other.getByRole('button', { name: 'Restore from a backup' }).click();
+  const restore = other.getByRole('dialog', { name: 'Back up and restore' });
+  await restore.getByLabel('Backup file').setInputFiles(file);
+  await restore.getByLabel('Backup password').fill('wrong password');
+  await restore.getByRole('button', { name: 'Restore backup' }).click();
+  await expect(restore.getByRole('alert')).toHaveText('Wrong password, or the file is damaged.');
+  await restore.getByLabel('Backup password').fill('correct horse');
+  await restore.getByRole('button', { name: 'Restore backup' }).click();
+  await expect(other.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  await other.close();
+});

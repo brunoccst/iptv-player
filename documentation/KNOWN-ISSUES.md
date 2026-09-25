@@ -43,6 +43,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-037](#ki-037) | Limitation | tv-app | Open |
 | [KI-038](#ki-038) | Limitation | web-player, tv-app | Open |
 | [KI-039](#ki-039) | Limitation | shared, clients | Open |
+| [KI-040](#ki-040) | Limitation | tv-app, web-player | Open |
 
 ---
 
@@ -301,3 +302,9 @@ The 30-day online check, the subscription check and sign-out deletion (D-050) ar
 Providers send no age ratings, so Kids profiles show only categories whose names look like children's content (D-053). A kids title in a general category ("Movies 2024") is hidden, and an unsuitable title inside a "Kids" category is shown. Any profile can pick another profile or untick "Kids profile" without a PIN, so this is a convenience filter, not a lock.
 
 Update 2026-09-25 (D-054): an optional parental PIN now locks leaving a Kids profile and managing profiles. The PIN is per device, and the name-based filter is unchanged.
+
+## KI-040
+
+**Backups: no password recovery, and TV pickers need a file manager** — logged 2026-09-25
+
+A backup file (D-056) can only be opened with its password; a forgotten password cannot be recovered. On Android TV the system folder and file pickers come from a file manager app; some TVs ship without one, and saving or restoring then fails with a message saying so (a file manager from the store fixes it). A server-mode session in a backup expires like any other session, so an old backup may need a new sign-in. The TV app's JS engine (Hermes) has no secure random source, so its salt and nonce come from `Math.random`; they only need to be unique, not secret, and each backup gets a new salt and so a new key, but a secure source would be better.

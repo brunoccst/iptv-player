@@ -5,6 +5,7 @@ import { navStore, signOut, stores } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
+import { BackupDialog } from './BackupDialog';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
@@ -25,13 +26,15 @@ export function AccountMenu() {
   const pinStatus = usePin((s) => s.status);
   const { gate, dialog } = usePinGate();
   const [pinSettings, setPinSettings] = useState(false);
+  const [backup, setBackup] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
-  // PIN prompts outlive the menu: it closes before they open.
+  // PIN prompts and the backup dialog outlive the menu: it closes before they open.
   const overlays = (
     <>
       {dialog}
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
+      {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -77,6 +80,15 @@ export function AccountMenu() {
           onPress={() => {
             close();
             setPinSettings(true);
+          }}
+        />
+        <MenuItem
+          icon="backup"
+          label="Back up data"
+          testID="menu-backup"
+          onPress={() => {
+            close();
+            setBackup(true);
           }}
         />
         <MenuItem
