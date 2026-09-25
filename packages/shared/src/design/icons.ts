@@ -7,6 +7,8 @@ export const iconPaths = {
   back: 'M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z',
   chevronLeft: 'M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z',
   chevronRight: 'M8.6 16.6 10 18l6-6-6-6-1.4 1.4 4.6 4.6z',
+  chevronDown: 'M16.6 8.6 12 13.2 7.4 8.6 6 10l6 6 6-6z',
+  chevronUp: 'M12 8l-6 6 1.4 1.4 4.6-4.6 4.6 4.6L18 14z',
   download: 'M12 16 6 10l1.4-1.4 3.6 3.6V3h2v9.2l3.6-3.6L18 10zm-7 3h14v2H5z',
   check: 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
   alert: 'M11 15h2v2h-2zm0-8h2v6h-2zm1-5a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',

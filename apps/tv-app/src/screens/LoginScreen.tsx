@@ -6,7 +6,7 @@ import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
-import { Chip } from './BrowseScreen';
+import { Chip } from '../components/ChipBar';
 import { connectionStore, useConnection, useSession } from '../hooks';
 import { colors, fonts, radius, useSizes } from '../theme';
 
