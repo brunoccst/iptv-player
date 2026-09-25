@@ -174,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
                         "stream_id": int(m["id"]),
                         "stream_icon": base + image("poster", m["id"]),
                         "rating": str(m["rating"]),
-                        "added": "1700000000",
+                        "added": str(1700000000 + i * 86400),
                         "category_id": m["category"],
                         "container_extension": m["container"],
                     }
@@ -219,8 +219,8 @@ class Handler(BaseHTTPRequestHandler):
                         "genre": s["genre"],
                         "rating": str(s["rating"]),
                         "category_id": s["category"],
-                        "releaseDate": "2022-01-01",
-                        "last_modified": "1700000000",
+                        "releaseDate": f"{2012 + i % 12}-{1 + i % 12:02d}-15",
+                        "last_modified": str(1700000000 + i * 86400),
                         "backdrop_path": [base + image("backdrop", s["id"])],
                     }
                     for i, s in enumerate(by_category(CATALOG["series"]))

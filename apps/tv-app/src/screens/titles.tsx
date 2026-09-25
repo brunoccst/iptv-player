@@ -10,11 +10,20 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import type { LibrarySection, MasterCard, MediaCategory } from '@iptv/shared';
+import {
+  LIBRARY_SORT_OPTIONS,
+  sortChoiceKey,
+  type LibrarySection,
+  type LibrarySort,
+  type LibrarySortChoice,
+  type MasterCard,
+  type MediaCategory,
+} from '@iptv/shared';
 import { navStore } from '../appContext';
 import { ErrorText, errorText } from '../components/Feedback';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
+import { Select } from '../components/Select';
 import { colors, useSizes } from '../theme';
 import { usePagedLibrary } from './usePagedLibrary';
 
@@ -79,12 +88,14 @@ export function useGridColumns() {
 
 /**
  * Web `PagedGrid`: titles for a section (category or search), 100 per page; the next page loads near the end with a spinner.
- * `header` renders above the grid (page title, chips); `embedded` renders all loaded items without its own scroll (search page).
+ * `header` renders above the grid (page title, chips); with `onSort` a "Sort by" select follows it.
  */
 export function TitleGrid({
   section,
   categoryId = null,
   search = null,
+  sort = null,
+  onSort,
   header,
   testID,
   onScroll,
@@ -92,11 +103,13 @@ export function TitleGrid({
   section: LibrarySection;
   categoryId?: string | null;
   search?: string | null;
+  sort?: LibrarySortChoice | null;
+  onSort?(choice: LibrarySortChoice): void;
   header?: ReactElement;
   testID?: string;
   onScroll?(event: NativeSyntheticEvent<NativeScrollEvent>): void;
 }) {
-  const page = usePagedLibrary(section, { categoryId, search }, GRID_PAGE);
+  const page = usePagedLibrary(section, { categoryId, search, sort }, GRID_PAGE);
   const { columns, itemWidth } = useGridColumns();
   const { gutter } = useSizes();
 
@@ -119,7 +132,16 @@ export function TitleGrid({
       numColumns={columns}
       keyExtractor={(item) => item.id}
       columnWrapperStyle={columns > 1 ? [styles.line, { paddingHorizontal: gutter }] : undefined}
-      ListHeaderComponent={header}
+      ListHeaderComponent={
+        onSort && sort ? (
+          <>
+            {header}
+            <SortBar value={sort} sorts={page.sorts ?? [sort.sort]} onChange={onSort} />
+          </>
+        ) : (
+          header
+        )
+      }
       ListEmptyComponent={empty}
       renderItem={({ item, index }) => (
         <View style={columns === 1 ? { paddingHorizontal: gutter, marginBottom: 24 } : undefined}>
@@ -145,7 +167,38 @@ export function TitleGrid({
   );
 }
 
+/** Web "Sort by" menu: only the orders the library has data for. */
+function SortBar({
+  value,
+  sorts,
+  onChange,
+}: {
+  value: LibrarySortChoice;
+  sorts: LibrarySort[];
+  onChange(choice: LibrarySortChoice): void;
+}) {
+  const { gutter } = useSizes();
+  const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
+  return (
+    <View style={[styles.sortBar, { paddingHorizontal: gutter }]}>
+      <Text style={styles.muted}>Sort by</Text>
+      <Select
+        compact
+        label="Sort by"
+        testID="sort"
+        value={sorts.includes(value.sort) ? sortChoiceKey(value) : 'title-asc'}
+        options={options.map((option) => ({ value: sortChoiceKey(option), label: option.label }))}
+        onChange={(key) => {
+          const choice = options.find((option) => sortChoiceKey(option) === key);
+          if (choice) onChange({ sort: choice.sort, order: choice.order });
+        }}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  sortBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: -8, marginBottom: 16 },
   list: { flex: 1, backgroundColor: colors.bg },
   line: { gap: GRID_GAP, marginBottom: 24 },
   muted: { color: colors.muted, fontSize: 16 },

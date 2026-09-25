@@ -10,6 +10,8 @@ export type EpgStatus = Schemas['EpgStatus'];
 export type Episode = Schemas['Episode'];
 export type HealthResponse = Schemas['HealthResponse'];
 export type LibraryPage = Schemas['LibraryPage'];
+export type LibrarySort = Schemas['LibrarySort'];
+export type SortOrder = 'asc' | 'desc';
 export type LibraryStatus = Schemas['LibraryStatus'];
 export type LiveChannel = Schemas['LiveChannel'];
 /** Client-side extension of LibraryStatus: direct mode also reports the stage and how many titles it has read (D-038). */

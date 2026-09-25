@@ -24,7 +24,7 @@ Log in to the app with server `http://localhost:8090`, username `demo`, password
 
 | Request | Response |
 |---------|----------|
-| `/player_api.php` | Catalog JSON. Wrong credentials → `{"user_info":{"auth":0}}`. |
+| `/player_api.php` | Catalog JSON. Wrong credentials → `{"user_info":{"auth":0}}`. Each movie/series is one day newer (`added`, `last_modified`) than the one before; series get varied `releaseDate`s. |
 | `/player_api.php?action=get_short_epg&stream_id=&limit=` | Next programmes, base64 titles (like real panels). |
 | `/xmltv.php` | XMLTV guide for now −3 h … +24 h. Channel ids lower-cased (catalog has `KIDS.test`) to exercise case-insensitive matching. |
 | `/movie|series/{u}/{p}/{id}.m3u8` | `302` → `/media/<name>/index.m3u8` (fMP4 HLS). `404` for items with `noHls`. |

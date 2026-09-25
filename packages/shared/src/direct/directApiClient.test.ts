@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ApiClient } from '../api/apiClient';
+import type { ApiClient, LibraryListQuery } from '../api/apiClient';
 import { createConnectionStore } from '../stores/connectionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
@@ -78,6 +78,11 @@ describe('createDirectApiClient', () => {
       ['Another Film', 2019, 1, null],
       ['Big Test Movie', 2020, 2, '4K'],
     ]);
+    expect(page.sorts).toEqual(['added', 'title', 'released']);
+    const titles = async (query: LibraryListQuery) => (await api.library.list('movies', query)).items.map((card) => card.title);
+    expect(await titles({ order: 'asc' })).toEqual(['Big Test Movie', 'Another Film']);
+    expect(await titles({ sort: 'title', order: 'desc' })).toEqual(['Big Test Movie', 'Another Film']);
+    expect(await titles({ sort: 'released' })).toEqual(['Big Test Movie', 'Another Film']);
     expect((await api.library.list('movies', { search: 'big' })).total).toBe(1);
     expect((await api.library.list('movies', { categoryId: '11' })).items.map((card) => card.title)).toEqual(['Big Test Movie']);
     expect((await api.library.list('series')).items[0]).toMatchObject({ title: 'Test Series', year: 2021 });

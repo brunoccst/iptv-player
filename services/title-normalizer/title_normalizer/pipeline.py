@@ -1,6 +1,7 @@
 """Turns a job payload (raw provider items) into master media records with variants. Pure: no I/O."""
 
 import hashlib
+import re
 from collections import Counter
 from dataclasses import dataclass, replace
 from typing import Any
@@ -25,6 +26,8 @@ class Variant:
     poster_url: str | None
     rating: float | None
     container_extension: str | None
+    added_at: int | None
+    release_key: int | None
 
 
 @dataclass(frozen=True)
@@ -36,11 +39,13 @@ class Master:
     poster_url: str | None
     rating: float | None
     best_quality: str | None
+    added_at: int | None
+    release_key: int | None
     variants: tuple[Variant, ...]
 
 
 def build_masters(account_id: str, media_kind: str, items: list[dict[str, Any]]) -> list[Master]:
-    """`items` use the backend payload shape: id, name, categoryId, posterUrl, rating, containerExtension, releaseDate."""
+    """`items` use the backend payload shape: id, name, categoryId, posterUrl, rating, containerExtension, releaseDate, addedAt."""
     usable = [item for item in items if str(item.get("id") or "").strip() and str(item.get("name") or "").strip()]
     parsed = [_parse_item(item) for item in usable]
     masters = [
@@ -66,6 +71,14 @@ def variant_label(title: ParsedTitle, container_extension: str | None) -> str:
     ]
     label = " · ".join(part for part in parts if part)
     return label or (container_extension or "Standard").upper()
+
+
+def release_key(release_date: str | None, year: int | None) -> int | None:
+    """YYYYMMDD from an ISO-like date ("2020-05-12"), else YYYY0000 from the year, for sorting."""
+    match = re.match(r"\s*(\d{4})-(\d{1,2})-(\d{1,2})", release_date or "")
+    if match and parse_year(match[1]) and 1 <= int(match[2]) <= 12 and 1 <= int(match[3]) <= 31:
+        return int(match[1]) * 10000 + int(match[2]) * 100 + int(match[3])
+    return year * 10000 if year else None
 
 
 def master_id(account_id: str, media_kind: str, compact_key: str, year: int | None) -> str:
@@ -94,6 +107,8 @@ def _build_master(account_id: str, media_kind: str, items: list[dict[str, Any]],
     canonical = next(title for title in parsed if title.clean_title == display_title)
     ratings = [variant.rating for variant in variants if variant.rating is not None]
     qualities = [variant.quality for variant in variants if variant.quality]
+    added = [variant.added_at for variant in variants if variant.added_at is not None]
+    released = [variant.release_key for variant in variants if variant.release_key is not None]
 
     return Master(
         id=master_id(account_id, media_kind, canonical.compact_key, year),
@@ -103,6 +118,8 @@ def _build_master(account_id: str, media_kind: str, items: list[dict[str, Any]],
         poster_url=next((variant.poster_url for variant in variants if variant.poster_url), None),
         rating=max(ratings) if ratings else None,
         best_quality=max(qualities, key=lambda q: tags.QUALITY_RANK.get(q, 0)) if qualities else None,
+        added_at=max(added) if added else None,
+        release_key=min(released) if released else release_key(None, year),
         variants=tuple(variants),
     )
 
@@ -110,6 +127,7 @@ def _build_master(account_id: str, media_kind: str, items: list[dict[str, Any]],
 def _build_variant(item: dict[str, Any], title: ParsedTitle) -> Variant:
     container = _optional_str(item.get("containerExtension"))
     rating = item.get("rating")
+    added_at = item.get("addedAt")
     return Variant(
         stream_id=str(item["id"]).strip(),
         raw_title=str(item["name"]),
@@ -124,6 +142,8 @@ def _build_variant(item: dict[str, Any], title: ParsedTitle) -> Variant:
         poster_url=_optional_str(item.get("posterUrl")),
         rating=float(rating) if isinstance(rating, (int, float)) else None,
         container_extension=container,
+        added_at=int(added_at) if isinstance(added_at, (int, float)) and added_at > 0 else None,
+        release_key=release_key(_optional_str(item.get("releaseDate")), None),
     )
 
 

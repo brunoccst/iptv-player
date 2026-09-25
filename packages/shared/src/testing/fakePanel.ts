@@ -5,9 +5,16 @@ export function createFakePanel() {
   const nowSeconds = Math.floor(Date.UTC(2026, 0, 1, 20, 0) / 1000);
 
   const movies = [
-    { stream_id: 101, name: 'EN - Big Test Movie (2020) [4K]', category_id: '11', rating: '8.1', container_extension: 'mkv' },
+    {
+      stream_id: 101,
+      name: 'EN - Big Test Movie (2020) [4K]',
+      category_id: '11',
+      rating: '8.1',
+      container_extension: 'mkv',
+      added: '1700000000',
+    },
     { stream_id: 102, name: 'Big.Test.Movie.2020.1080p.WEB-DL', category_id: '10', container_extension: 'mp4' },
-    { stream_id: 103, name: 'Another Film (2019)', category_id: '10', container_extension: 'mp4' },
+    { stream_id: 103, name: 'Another Film (2019)', category_id: '10', container_extension: 'mp4', added: '1800000000' },
   ];
   const series = [
     { series_id: 201, name: 'Test Series (2021)', category_id: '20', cover: 'http://panel/c.jpg', releaseDate: '2021-05-01' },

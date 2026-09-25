@@ -74,11 +74,24 @@ def complete(connection: sqlite3.Connection, job: Job, masters: list[Master], no
         connection.executemany(
             """
             INSERT INTO master_media (id, account_id, media_kind, title, normalized_key, year, poster_url, rating,
-                                      best_quality, variant_count, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                      best_quality, variant_count, added_at, release_key, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
-                (m.id, *scope, m.title, m.normalized_key, m.year, m.poster_url, m.rating, m.best_quality, len(m.variants), now)
+                (
+                    m.id,
+                    *scope,
+                    m.title,
+                    m.normalized_key,
+                    m.year,
+                    m.poster_url,
+                    m.rating,
+                    m.best_quality,
+                    len(m.variants),
+                    m.added_at,
+                    m.release_key,
+                    now,
+                )
                 for m in masters
             ],
         )

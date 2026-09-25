@@ -2,19 +2,24 @@ import type { HttpClient } from './httpClient';
 import type {
   CatalogSection,
   LibrarySection,
+  LibrarySort,
   LoginRequest,
   OperationResult,
   PlaybackKind,
   ProfileRequest,
   ProgressKind,
   ProgressRequest,
+  SortOrder,
 } from './types';
 
+/** Omitted `sort` = `added`; omitted `order` = `desc` for dates, `asc` for titles (D-049). */
 export interface LibraryListQuery {
   categoryId?: string | null;
   search?: string | null;
   offset?: number;
   limit?: number;
+  sort?: LibrarySort;
+  order?: SortOrder;
 }
 
 /** `from` is an ISO timestamp; the backend defaults it to the current half hour. */

@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { LibrarySection } from '@iptv/shared';
+import { DEFAULT_LIBRARY_SORT, sortChoiceKey, type LibrarySection } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
-import { useCatalog, useNav } from '../hooks';
+import { useCatalog, useLibrary, useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
 import { TitleGrid } from './titles';
 
-/** Same as the web Movies/Series page: title, category chips (All + provider categories, expandable), paged grid. */
+/** Same as the web Movies/Series page: title, category chips (All + provider categories, expandable), sort, paged grid. */
 export function BrowseScreen({ section }: { section: LibrarySection }) {
   const categories = useCatalog((s) => s.categories[section]?.data ?? []);
   const categoryId = useNav((s) => s.categoryId);
+  const sort = useLibrary((s) => s.sortChoices[section]) ?? DEFAULT_LIBRARY_SORT;
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -45,7 +46,15 @@ export function BrowseScreen({ section }: { section: LibrarySection }) {
   );
 
   return (
-    <TitleGrid key={`${section}-${categoryId}`} section={section} categoryId={categoryId} header={header} testID={`browse-${section}`} />
+    <TitleGrid
+      key={`${section}-${categoryId}-${sortChoiceKey(sort)}`}
+      section={section}
+      categoryId={categoryId}
+      sort={sort}
+      onSort={(choice) => stores.library.getState().chooseSort(section, choice)}
+      header={header}
+      testID={`browse-${section}`}
+    />
   );
 }
 

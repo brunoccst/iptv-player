@@ -1,8 +1,16 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { DEFAULT_PAGE_SIZE, type LibrarySection } from '@iptv/shared';
+import {
+  DEFAULT_LIBRARY_SORT,
+  DEFAULT_PAGE_SIZE,
+  LIBRARY_SORT_OPTIONS,
+  sortChoiceKey,
+  type LibrarySection,
+  type LibrarySort,
+  type LibrarySortChoice,
+} from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
-import { useCatalog, useUi } from '../../hooks/stores';
+import { useCatalog, useLibrary, useUi } from '../../hooks/stores';
 import { usePagedLibrary } from '../../hooks/usePagedLibrary';
 import { errorText } from '../../ui/errorText';
 import { MasterCard } from '../home/MasterCard';
@@ -13,6 +21,7 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
   const categories = useCatalog((s) => s.categories[section]?.data ?? []);
   const categoryId = useUi((s) => s.categoryId);
   const setCategoryId = (id: string | null) => uiStore.getState().setCategory(id);
+  const sort = useLibrary((s) => s.sortChoices[section]) ?? DEFAULT_LIBRARY_SORT;
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories(section);
@@ -45,22 +54,35 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
           </button>
         ))}
       </div>
-      <PagedGrid key={`${section}-${categoryId}-${revision}`} section={section} categoryId={categoryId} />
+      <PagedGrid
+        key={`${section}-${categoryId}-${sortChoiceKey(sort)}-${revision}`}
+        section={section}
+        categoryId={categoryId}
+        sort={sort}
+        onSort={(choice) => stores.library.getState().chooseSort(section, choice)}
+      />
     </div>
   );
 }
 
-/** Grid of titles; the next page loads automatically (spinner) when the end scrolls into view. */
+/**
+ * Grid of titles; the next page loads automatically (spinner) when the end scrolls into view.
+ * With `onSort`, a "Sort by" menu offers the orders the library has data for.
+ */
 export function PagedGrid({
   section,
   categoryId = null,
   search = null,
+  sort = null,
+  onSort,
 }: {
   section: LibrarySection;
   categoryId?: string | null;
   search?: string | null;
+  sort?: LibrarySortChoice | null;
+  onSort?(choice: LibrarySortChoice): void;
 }) {
-  const page = usePagedLibrary(section, { categoryId, search }, DEFAULT_PAGE_SIZE);
+  const page = usePagedLibrary(section, { categoryId, search, sort }, DEFAULT_PAGE_SIZE);
   const sentinel = useRef<HTMLDivElement>(null);
   const loadMore = useRef(page.loadMore);
   loadMore.current = page.loadMore;
@@ -75,16 +97,27 @@ export function PagedGrid({
     return () => observer.disconnect();
   }, [autoLoad, page.items.length]);
 
+  const toolbar = onSort && sort ? <SortSelect value={sort} sorts={page.sorts ?? [sort.sort]} onChange={onSort} /> : null;
   if (page.error && page.items.length === 0)
     return (
-      <p className="error-text" role="alert">
-        {errorText(page.error)}
-      </p>
+      <>
+        {toolbar}
+        <p className="error-text" role="alert">
+          {errorText(page.error)}
+        </p>
+      </>
     );
-  if (page.items.length === 0) return page.done ? <p className="muted">No titles found.</p> : <Spinner />;
+  if (page.items.length === 0)
+    return (
+      <>
+        {toolbar}
+        {page.done ? <p className="muted">No titles found.</p> : <Spinner />}
+      </>
+    );
 
   return (
     <>
+      {toolbar}
       <div className="grid">
         {page.items.map((item) => (
           <MasterCard key={item.id} section={section} item={item} />
@@ -104,5 +137,38 @@ export function PagedGrid({
         </div>
       ) : null}
     </>
+  );
+}
+
+/** "Sort by" menu: only orders listed in `sorts` (the library's available data). */
+function SortSelect({
+  value,
+  sorts,
+  onChange,
+}: {
+  value: LibrarySortChoice;
+  sorts: LibrarySort[];
+  onChange(choice: LibrarySortChoice): void;
+}) {
+  const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
+  return (
+    <div className="grid__toolbar">
+      <label htmlFor="library-sort">Sort by</label>
+      <select
+        id="library-sort"
+        className="select"
+        value={sorts.includes(value.sort) ? sortChoiceKey(value) : 'title-asc'}
+        onChange={(event) => {
+          const choice = options.find((option) => sortChoiceKey(option) === event.target.value);
+          if (choice) onChange({ sort: choice.sort, order: choice.order });
+        }}
+      >
+        {options.map((option) => (
+          <option key={sortChoiceKey(option)} value={sortChoiceKey(option)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
