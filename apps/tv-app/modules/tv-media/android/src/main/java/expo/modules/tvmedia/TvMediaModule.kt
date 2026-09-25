@@ -1,5 +1,7 @@
 package expo.modules.tvmedia
 
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
@@ -61,6 +63,32 @@ class TvMediaModule : Module() {
 
     Function("removeDownload") { id: String ->
       DownloadService.sendRemoveDownload(context, TvDownloadService::class.java, id, false)
+    }
+
+    /**
+     * Hands a stream to another installed video player (VLC, MX Player, Just Player, …), DECISIONS.md#d-057.
+     * `headers` go in the `headers` extra (["User-Agent", "…"]), which MX Player and Just Player read. Returns "opened"
+     * when a default player took it, "chooser" when the system app chooser was shown, "none" when no app can play it.
+     */
+    Function("openExternalPlayer") { uri: String, mimeType: String, title: String, headers: Map<String, String> ->
+      val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
+      val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(Uri.parse(uri), mimeType)
+        putExtra("title", title)
+        putExtra("headers", headers.flatMap { (name, value) -> listOf(name, value) }.toTypedArray())
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
+      val packageManager = activity.packageManager
+      if (packageManager.queryIntentActivities(intent, 0).isEmpty()) return@Function "none"
+      // Without a default app, Android resolves to its own resolver ("android"): show the chooser instead.
+      val default = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+      if (default == null || default == "android") {
+        activity.startActivity(Intent.createChooser(intent, "Open with"))
+        "chooser"
+      } else {
+        activity.startActivity(intent)
+        "opened"
+      }
     }
 
     /** Sign-out and account change (DECISIONS.md#d-050). */

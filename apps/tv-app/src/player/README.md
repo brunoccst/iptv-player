@@ -4,4 +4,5 @@
 |------|---------|
 | `PlayerScreen.tsx` | Source resolution (download → original file → HLS), remote handling via `RemoteSeekController`, phone touch (tap, double tap ±10 s, timeline drag, landscape lock), progress saving, Skip ahead (30 s / 1 / 2 / 3 min), next-up, overlay. |
 | `SeekOverlay.tsx` | `TapFlash` (±10 circle animation) and `ScrubBar` (preview position + speed). |
+| `externalPlayer.ts` | `openInExternalPlayer(target)`: resolves the stream and hands it to another player app (D-057). |
 | `QuickDrawer.tsx` | Audio, Subtitles, Versions, Episodes panel with trapped focus. |
