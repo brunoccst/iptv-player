@@ -15,7 +15,7 @@ export interface NavState {
   libraryRevision: number;
   /** Search box text in the top nav (web: `uiStore.search`). */
   search: string;
-  /** Category chip on Movies/Series (`null` = All), like the web `uiStore.categoryId`. */
+  /** Category chip on Movies/Series, or the Live TV category (`null` = All), like the web `uiStore.categoryId`. */
   categoryId: string | null;
   /** Home scrolled: the nav gets a solid background (web `.nav--solid`). */
   scrolled: boolean;
@@ -23,8 +23,8 @@ export interface NavState {
   menuOpen: boolean;
   bumpLibrary(): void;
   goSection(section: Section): void;
-  /** Movies/Series filtered to one category (row title links). */
-  openCategory(section: LibrarySection, categoryId: string | null): void;
+  /** Movies/Series/Live TV filtered to one category (Home row title links and arrow cards). */
+  openCategory(section: LibrarySection | 'live', categoryId: string | null): void;
   setCategory(categoryId: string | null): void;
   /** Typing switches to the Search page; clearing it goes back Home (web behaviour). */
   setSearch(search: string): void;

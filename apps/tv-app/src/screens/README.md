@@ -7,7 +7,7 @@ Each screen mirrors the web page with the same name ([D-041](../../../../documen
 | `LoginScreen.tsx` | Web sign-in panel plus the connection choice ("IPTV provider" = direct, "My server" + address). |
 | `ProfilesScreen.tsx` | "Who's watching?"; Manage Profiles adds, edits (name, colour, Kids) and deletes profiles. |
 | `HomeScreen.tsx` | Hero, library banner, Continue Watching, Live TV, Series and category rows. |
-| `titles.tsx` | `MasterCardItem`, `TitleRow` (Home rows; the title opens Movies/Series on that category) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads). |
+| `titles.tsx` | `MasterCardItem`, `TitleRow` (Home rows: first 10 titles; the title and the "See all" arrow card open Movies/Series on that category, D-043) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads). |
 | `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
 | `BrowseScreen.tsx` | Movies or Series: category chips + grid. `Chip` is the web `.chip`. |
 | `SearchScreen.tsx` | "Results for …" from the nav search box: Movies and Series grids, matching live channels. |

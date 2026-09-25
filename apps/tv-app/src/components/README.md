@@ -11,7 +11,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
 | `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |
 | `PosterCard.tsx` | Web `.card`: 2:3 or 16:9 art, badge, progress bar, title + subtitle; focus scales it up. `testID="card-<title>"`. |
-| `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinners. |
+| `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end (D-043). |
 | `Select.tsx` | Web `.select`: box with the current value; opens an option list. |
 | `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume. |
 | `ProgressRing.tsx` | SVG progress circle. |
