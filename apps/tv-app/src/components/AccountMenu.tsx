@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { avatarColor, selectActiveProfile } from '@iptv/shared';
+import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
 import { navStore, signOut, stores } from '../appContext';
 import { appConfig } from '../config';
-import { useNav, useSession } from '../hooks';
+import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { Icon, type IconName } from './Icon';
+import { usePinGate } from './PinPad';
+import { PinSettings } from './PinSettings';
 
 /** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
 export function confirmSignOut() {
@@ -20,14 +22,25 @@ export function AccountMenu() {
   const open = useNav((s) => s.menuOpen);
   const profile = useSession(selectActiveProfile);
   const profiles = useSession((s) => s.profiles);
+  const pinStatus = usePin((s) => s.status);
+  const { gate, dialog } = usePinGate();
+  const [pinSettings, setPinSettings] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
-  if (!open) return null;
+  // PIN prompts outlive the menu: it closes before they open.
+  const overlays = (
+    <>
+      {dialog}
+      {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
+    </>
+  );
+  if (!open) return overlays;
 
   const close = () => navStore.getState().setMenuOpen(false);
   const others = profiles.filter((p) => p.id !== profile?.id);
   return (
     <>
+      {overlays}
       <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close menu" focusable={false} />
       <View style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]} accessibilityRole="menu" testID="account-menu">
         {others.map((p, index) => (
@@ -38,8 +51,12 @@ export function AccountMenu() {
             first={index === 0}
             avatar={avatarColor(p)}
             onPress={() => {
-              stores.session.getState().selectProfile(p.id);
-              navStore.getState().goSection('home');
+              close();
+              // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
+              gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                stores.session.getState().selectProfile(p.id);
+                navStore.getState().goSection('home');
+              });
             }}
           />
         ))}
@@ -51,6 +68,15 @@ export function AccountMenu() {
           onPress={() => {
             close();
             stores.session.getState().selectProfile(null);
+          }}
+        />
+        <MenuItem
+          icon="lock"
+          label="Parental PIN"
+          testID="menu-pin"
+          onPress={() => {
+            close();
+            setPinSettings(true);
           }}
         />
         <MenuItem

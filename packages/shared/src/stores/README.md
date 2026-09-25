@@ -12,6 +12,7 @@ Vanilla Zustand stores (`zustand/vanilla`). Created by `createAppContext()`; rea
 | `playerStore.ts` | `request`, `playback`, `status`, `error` | `open`, `close` |
 | `progressStore.ts` | `profileId`, `items`, `saveError` | `load`, `save` (optimistic), `remove` |
 | `watchlistStore.ts` | `profileId`, `items`, `saveError` | `load`, `toggle` (optimistic, undone on error); `isOnWatchlist`, `watchlistCard` ("My List", D-055) |
+| `pinStore.ts` | `status` (`none`/`set`), `lockedUntil` | `verify`, `setPin`, `removePin`; `needsPinToOpen`, `needsPinToManage` (optional parental PIN, D-054) |
 | `downloadsOwner.ts` | – | `bindDownloadsToAccount`: deletes downloads on `signOut()` and when another account signs in (D-050) |
 | `resource.ts` | `Resource<T>` = `{ data, status, error, updatedAt }` | `createResourceLoader` (cache, in-flight sharing, reset-safe) |
 | `storage.ts` | `KeyValueStorage` interface | `createMemoryStorage` (tests) |
