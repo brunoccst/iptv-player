@@ -46,6 +46,7 @@ flowchart LR
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
   - [x] Home rows: 10 titles and a "See all" arrow card (D-043).
 - [ ] **Export and import user data** (requested 2026-09-25): most users run without a backend, so their data lives only on the device. Add an easy export to a file and an import on another device or after reinstalling, so nothing is lost when updating or moving the app. Include at least: provider credentials and server settings (connection mode, "My server" address), profiles, the parental PIN, watch progress (Continue Watching, series episodes) and preferences. The export holds passwords, so protect it (e.g. a password chosen at export). Downloads stay out (large, and tied to the device's encryption key, D-050).
+- [ ] **Watchlist** (requested 2026-09-25): let each profile save movies and series to watch later ("My List"), with an add/remove button on the details panel and a Watchlist row on Home plus its own page, on web, TV and phone. Stored per profile like watch progress (backend in server mode, on the device in direct mode) and included in the data export.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
