@@ -61,6 +61,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-054](#d-054) | 2026-09-25 | Optional parental PIN |
 | [D-055](#d-055) | 2026-09-25 | Watchlist ("My List") per profile |
 | [D-056](#d-056) | 2026-09-25 | Password-protected backup and restore of user data |
+| [D-058](#d-058) | 2026-09-25 | Live TV: see-through guide over the playing channel (TV/phone) |
 
 ---
 
@@ -1055,3 +1056,18 @@ Decision:
 - TV/phone use the Android system pickers from `expo-file-system` to choose a folder (save) or a file (restore), e.g. Downloads, a USB stick or a cloud drive. No new native modules or permissions.
 
 Alternatives: an unencrypted file (holds the provider password, rejected); syncing through the backend (most users run without one).
+
+## D-058
+
+**Live TV: see-through guide over the playing channel (TV/phone)** — 2026-09-25 (requested in PR #18)
+
+Decision:
+- While a live channel plays, a semi-transparent panel on the left lists the channels of the same category with the programme on now (time, progress bar) and the next one. The video keeps playing, visible beside and through the panel.
+- TV remote: ↑ opens it (↓ still opens the audio/subtitles drawer); ↑/↓ move through the channels, starting on the one playing; Select switches to the focused channel; Back closes it. Focus stays inside the panel.
+- Phones: swipe up on the video, or the Guide button in the player controls; tap a channel to switch, tap beside the panel to close.
+- It closes by itself after 6 s without a key press, focus change or scroll.
+- It shows the first 50 channels of the category (one guide page) for the next 3 hours; the full grid stays on the Live TV page. Players opened from the Home row or Search also know their channel's category (`liveTarget`, `PlayTarget.categoryId`).
+- Web: not part of this change.
+
+Alternative: a full-screen guide (the Live TV page) stops being "over" the video, which the request wanted to avoid.
+

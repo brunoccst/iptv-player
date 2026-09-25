@@ -23,6 +23,7 @@ import {
   episodeLabel,
   episodeTarget,
   findProgress,
+  liveTarget,
   offlineAccess,
   formatClock,
   isInSkipAheadWindow,
@@ -34,6 +35,8 @@ import {
   nextUpCountdown,
   resumePosition,
   tvPlaybackAttempts,
+  type EpgListing,
+  type LiveChannel,
   type PlaybackInfoWithAlternates,
   type PlayTarget,
   type SeekDirection,
@@ -50,6 +53,7 @@ import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { colors, fonts, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
+import { GuideOverlay } from './GuideOverlay';
 import { QuickDrawer } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 
@@ -60,7 +64,7 @@ const DOUBLE_TAP_MS = 300;
 
 /**
  * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↑/↓ quick drawer, Select play/pause, Back close.
- * See DECISIONS.md#d-028.
+ * Live: ↑ opens the guide overlay (phones: swipe up or the Guide button), ↓ the drawer. See DECISIONS.md#d-028, #d-058.
  */
 export function PlayerScreen({ target }: { target: PlayTarget }) {
   const playerRef = useRef<TvPlayerViewRef>(null);
@@ -76,6 +80,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [tracks, setTracks] = useState<PlayerTrack[]>([]);
   const [controls, setControls] = useState(true);
   const [drawer, setDrawer] = useState(false);
+  const [guide, setGuide] = useState(false);
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
   const [scrub, setScrub] = useState<{ preview: number; speed: number } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -278,7 +283,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const focusablesVisible = showSkipAhead || countdown !== null;
 
   useRemote(({ key, action }) => {
-    if (drawer || error) return;
+    if (drawer || guide || error) return;
     wake();
     if ((key === 'left' || key === 'right') && !isLive) {
       const direction: SeekDirection = key === 'left' ? 'back' : 'forward';
@@ -296,7 +301,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    if (key === 'up' || key === 'down') setDrawer(true);
+    if (key === 'up' && isLive) setGuide(true);
+    else if (key === 'up' || key === 'down') setDrawer(true);
     else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
   });
@@ -304,13 +310,31 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Back: close the drawer or the skip options first (registered after the shell's handler, so it runs first).
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (drawer) setDrawer(false);
+      if (guide) setGuide(false);
+      else if (drawer) setDrawer(false);
       else if (skipOpen) setSkipOpen(false);
       else return false;
       return true;
     });
     return () => subscription.remove();
-  }, [drawer, skipOpen]);
+  }, [guide, drawer, skipOpen]);
+
+  // Phones, live: swipe up anywhere on the video opens the guide overlay.
+  const swipeEnabled = useRef(false);
+  swipeEnabled.current = isLive && !Platform.isTV && !guide && !drawer && !error;
+  const swipe = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, gesture) =>
+        swipeEnabled.current && gesture.dy < -40 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 2,
+      onPanResponderGrant: () => setGuide(true),
+    }),
+  ).current;
+
+  const zap = (channel: LiveChannel, programme: EpgListing | null) => {
+    setGuide(false);
+    if (channel.id === target.streamId) return;
+    navStore.getState().replaceTop({ name: 'player', target: liveTarget(channel, programme?.title) });
+  };
 
   const switchVariant = (variant: VariantInfo) => {
     saveProgress();
@@ -330,7 +354,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const percent = duration > 0 ? ((dragTime ?? time) / duration) * 100 : 0;
 
   return (
-    <View style={styles.screen} testID="player-screen">
+    <View style={styles.screen} testID="player-screen" {...swipe.panHandlers}>
       <TvPlayerView
         ref={playerRef}
         style={StyleSheet.absoluteFill}
@@ -370,7 +394,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {Platform.isTV ? null : <NavigationBar hidden />}
 
       {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028. */}
-      {!drawer && !focusablesVisible && !error ? (
+      {!drawer && !guide && !focusablesVisible && !error ? (
         <Pressable
           testID="player-focus"
           accessibilityLabel="Player"
@@ -391,7 +415,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {flash ? <TapFlash direction={flash.direction} flashKey={flash.key} /> : null}
       {scrub ? <ScrubBar preview={scrub.preview} speed={scrub.speed} duration={duration} /> : null}
 
-      {controls && !scrub && !error ? (
+      {controls && !guide && !scrub && !error ? (
         // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.
         <View style={styles.overlay} pointerEvents={Platform.isTV ? 'none' : 'box-none'} testID="player-controls">
           <Gradient
@@ -484,6 +508,18 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 </>
               )}
               <View style={styles.spacer} />
+              {isLive ? (
+                <IconButton
+                  icon="guide"
+                  label="Guide"
+                  plain
+                  focusable={!Platform.isTV}
+                  size={44}
+                  iconSize={26}
+                  testID="player-guide"
+                  onPress={() => setGuide(true)}
+                />
+              ) : null}
               {series.data ? (
                 <IconButton
                   icon="episodes"
@@ -550,6 +586,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             <FocusButton label="Cancel" onPress={() => setNextDismissed(true)} />
           </View>
         </View>
+      ) : null}
+
+      {guide ? (
+        <GuideOverlay channelId={target.streamId} categoryId={target.categoryId ?? null} onSelect={zap} onClose={() => setGuide(false)} />
       ) : null}
 
       {drawer ? (

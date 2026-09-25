@@ -7,6 +7,7 @@ import {
   formatProgrammeTime,
   guideSlots,
   layoutGuideRow,
+  liveTarget,
   nowFraction,
   programmeAt,
   programmeProgress,
@@ -42,14 +43,7 @@ interface Selection {
 function play(channel: LiveChannel, programme: EpgListing | null) {
   navStore.getState().push({
     name: 'player',
-    target: {
-      kind: 'live',
-      streamId: channel.id,
-      container: 'm3u8',
-      title: channel.name,
-      subtitle: programme?.title ?? null,
-      posterUrl: channel.logoUrl,
-    },
+    target: liveTarget(channel, programme?.title),
   });
 }
 

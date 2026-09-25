@@ -4,7 +4,7 @@
 
 | File | Purpose |
 |------|---------|
-| `01-online.yaml` | "My server" login (backend at `10.0.2.2:5091`), deduplicated library, details + version picker, playback, D-pad skip, quick drawer, download, Live TV guide (XMLTV + short-EPG channel) → play. |
+| `01-online.yaml` | "My server" login (backend at `10.0.2.2:5091`), deduplicated library, details + version picker, playback, D-pad skip, quick drawer, download, Live TV guide (XMLTV + short-EPG channel) → play → ↑ guide overlay → Back. |
 | `02-offline.yaml` | With provider and backend stopped: cached session → My Downloads → offline playback. |
 | `03-direct.yaml` | Direct mode (no backend): login to the panel at `10.0.2.2:8091`, on-device library, playback from the provider, short-EPG guide. |
 | `install.sh <apk>` | Waits for the emulator's package manager, then installs the APK (3 attempts). |

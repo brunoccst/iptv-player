@@ -136,4 +136,14 @@ appId: ${APP_ID}
     visible:
       id: "player-screen"
     timeout: 30000
+# Up opens the see-through guide over the playing channel (D-058); Back closes it, the second Back the player.
+- pressKey: Remote Dpad Up
+- extendedWaitUntil:
+    visible:
+      id: "guide-channel-301"
+    timeout: 20000
+- takeScreenshot: 05c-live-guide-overlay
+- pressKey: back
+- assertNotVisible:
+    id: "guide-overlay"
 - pressKey: back
