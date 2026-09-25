@@ -39,7 +39,7 @@ export function Select({
         onBlur={() => setFocused(false)}
         style={[styles.box, compact ? styles.compact : styles.full, focused && styles.focused]}
       >
-        <Text style={styles.value} numberOfLines={1}>
+        <Text style={[styles.value, compact && styles.valueCompact]} numberOfLines={1}>
           {current?.label ?? ''}
         </Text>
         <Icon name="chevronRight" size={18} color={colors.text} />
@@ -101,9 +101,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.input,
   },
   full: { alignSelf: 'stretch' },
-  compact: { alignSelf: 'flex-start', minHeight: 40, paddingVertical: 8 },
+  // Sized to its text, and allowed to shrink so a label beside it stays visible on narrow phones.
+  compact: { alignSelf: 'flex-start', flexShrink: 1, minHeight: 40, paddingVertical: 8 },
   focused: { borderColor: colors.strong, borderWidth: 2 },
   value: { flex: 1, color: colors.strong, fontSize: fonts.body },
+  valueCompact: { flex: 0, flexShrink: 1 },
   scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 16 },
   panel: {
     minWidth: 320,

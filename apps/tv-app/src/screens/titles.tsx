@@ -181,7 +181,7 @@ function SortBar({
   const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
   return (
     <View style={[styles.sortBar, { paddingHorizontal: gutter }]}>
-      <Text style={styles.muted}>Sort by</Text>
+      <Text style={[styles.muted, styles.noShrink]}>Sort by</Text>
       <Select
         compact
         label="Sort by"
@@ -202,6 +202,7 @@ const styles = StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
   line: { gap: GRID_GAP, marginBottom: 24 },
   muted: { color: colors.muted, fontSize: 16 },
+  noShrink: { flexShrink: 0 },
   first: { marginVertical: 40 },
   more: { marginVertical: 24 },
   bottom: { height: 60 },
