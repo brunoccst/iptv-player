@@ -1,6 +1,6 @@
 import { requireNativeModule, requireNativeViewManager, type NativeModule } from 'expo-modules-core';
 import type { ComponentType, Ref } from 'react';
-import type { NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from './types-only';
+import type { ExternalPlayerResult, NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from './types-only';
 
 export * from './types-only';
 
@@ -18,6 +18,8 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   removeDownload(id: string): void;
   /** Removes every download (sign-out, account change). */
   removeAllDownloads(): void;
+  /** Opens the stream in another video player app (D-057). */
+  openExternalPlayer(uri: string, mimeType: string, title: string, headers: Record<string, string>): ExternalPlayerResult;
 }
 
 /** Media3 DownloadManager bridge (android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt). */

@@ -5,7 +5,6 @@
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
 - [ ] **Live TV: transparent guide overlay** (requested 2026-09-25, PR #18): a semi-transparent EPG over the playing channel, without stopping or interrupting the stream. Opens with the D-pad on TV and with a swipe/tap on phones; closes after 5–8 s without input or with Back, while playback continues.
-- [ ] **External player for movies and episodes** (requested 2026-09-25, PR #18): an "Open in external player" button on movie, series and episode details. Hands the stream to an installed player (VLC, MX Player, Just Player, …) with an Android `ACTION_VIEW` intent, keeping the stream's headers and User-Agent; shows the system app chooser when no default player is set.
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
@@ -41,6 +40,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **External player for movies and episodes** (requested 2026-09-25, PR #18, D-057): "Open in another player" on movie details and on each episode; hands the stream to VLC, MX Player, Just Player and others with the provider User-Agent; the app chooser when no default player is set.
 - [x] **Export and import user data** (requested 2026-09-25, D-056): password-protected backup file with sign-in, server settings, profiles, PIN, progress and My List; restore from the login screen.
 - [x] **Watchlist** (requested 2026-09-25, D-055): "My List" per profile, from the details panel, with a Home row and its own page.
 - [x] **Parental PIN** (suggested, chosen 2026-09-25, D-054): optional; locks leaving a Kids profile and managing profiles.

@@ -1,6 +1,6 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import { View } from 'react-native';
-import type { NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from '../modules/tv-media/src/types-only';
+import type { ExternalPlayerResult, NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from '../modules/tv-media/src/types-only';
 
 export type * from '../modules/tv-media/src/types-only';
 
@@ -11,12 +11,14 @@ export const nativeState = {
   downloads: [] as NativeDownload[],
   listeners: new Set<Listener>(),
   calls: [] as string[],
+  externalPlayerResult: 'chooser' as ExternalPlayerResult,
   emit() {
     this.listeners.forEach((listener) => listener({ downloads: [...this.downloads] }));
   },
   reset() {
     this.downloads = [];
     this.calls = [];
+    this.externalPlayerResult = 'chooser';
   },
 };
 
@@ -40,6 +42,10 @@ export const TvMedia = {
   removeAllDownloads: () => {
     nativeState.calls.push('remove-all');
     nativeState.downloads = [];
+  },
+  openExternalPlayer: (uri: string, mimeType: string, title: string, headers: Record<string, string>) => {
+    nativeState.calls.push(`external:${uri}:${mimeType}:${title}:${JSON.stringify(headers)}`);
+    return nativeState.externalPlayerResult;
   },
 };
 

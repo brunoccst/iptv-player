@@ -44,6 +44,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-038](#ki-038) | Limitation | web-player, tv-app | Open |
 | [KI-039](#ki-039) | Limitation | shared, clients | Open |
 | [KI-040](#ki-040) | Limitation | tv-app, web-player | Open |
+| [KI-041](#ki-041) | Limitation | tv-app | Open |
 
 ---
 
@@ -308,3 +309,10 @@ Update 2026-09-25 (D-054): an optional parental PIN now locks leaving a Kids pro
 **Backups: no password recovery, and TV pickers need a file manager** — logged 2026-09-25
 
 A backup file (D-056) can only be opened with its password; a forgotten password cannot be recovered. On Android TV the system folder and file pickers come from a file manager app; some TVs ship without one, and saving or restoring then fails with a message saying so (a file manager from the store fixes it). A server-mode session in a backup expires like any other session, so an old backup may need a new sign-in. The TV app's JS engine (Hermes) has no secure random source, so its salt and nonce come from `Math.random`; they only need to be unique, not secret, and each backup gets a new salt and so a new key, but a secure source would be better.
+
+## KI-041
+
+**External players: no progress, and not every app sends the User-Agent** — logged 2026-09-25
+
+Titles opened in another player (D-057) do not save progress, so Continue Watching and Resume stay where they were. The provider User-Agent goes in the `headers` extra, which MX Player and Just Player read; VLC uses its own User-Agent, so providers that only accept certain players may refuse the stream in VLC. In server mode the relay link expires after a while, so a paused stream in the other app may stop when resumed much later.
+

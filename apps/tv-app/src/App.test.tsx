@@ -93,6 +93,31 @@ describe('App (TV)', () => {
     expect(screen.getByTestId('row-mylist')).toBeTruthy();
   });
 
+  it('opens a movie in another player app with the provider User-Agent (D-057)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/playback/movie/101', { body: playback('http://relay.test/101.mkv') });
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await render(<App />);
+    await flush();
+    await act(async () => navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' }));
+    await flush();
+
+    await fireEvent.press(await screen.findByLabelText('Open Big Test Movie in another player'));
+    await flush();
+    expect(backend.calls.find((c) => c.url.pathname === '/api/playback/movie/101')?.url.searchParams.get('container')).toBe('mkv');
+    expect(nativeState.calls).toContain(
+      'external:http://relay.test/101.mkv:video/*:Big Test Movie:{"User-Agent":"VLC/3.0.21 LibVLC/3.0.21"}',
+    );
+    expect(alert).not.toHaveBeenCalled();
+
+    nativeState.externalPlayerResult = 'none';
+    await fireEvent.press(screen.getByLabelText('Open Big Test Movie in another player'));
+    await flush();
+    expect(alert).toHaveBeenCalledWith('Open in another player', 'No video player app is installed. Install one (e.g. VLC) and try again.');
+    alert.mockRestore();
+  });
+
   it('details: version picker, download with metadata, Back returns home', async () => {
     const backend = setupApp();
     stubLibrary(backend);
