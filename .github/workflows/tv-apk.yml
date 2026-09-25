@@ -28,6 +28,8 @@ jobs:
     timeout-minutes: 60
     env:
       APP_API_BASE_URL: ${{ inputs.api_base_url }}
+      # Each build counts as a newer version, so Android installs it over the previous one (D-052).
+      APP_ANDROID_VERSION_CODE: ${{ github.run_number }}
     steps:
       - name: Check address
         run: |
@@ -52,10 +54,34 @@ jobs:
         working-directory: apps/tv-app
         run: CI=1 npx expo prebuild --platform android --no-install
 
+      # Repo secrets from scripts/create-signing-key.sh (D-052). Without them the APK is debug-signed.
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_BASE64/ANDROID_KEYSTORE_PASSWORD secrets: the APK is debug-signed and will not install over a release-signed one."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+
       # Real TVs are ARM; x86 is only for the emulator.
-      - name: Build release APK (debug-signed)
+      - name: Build release APK
         working-directory: apps/tv-app/android
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+
+      - name: Signature
+        run: |
+          apksigner="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          {
+            echo "### Signature"
+            echo '```'
+            "$apksigner" verify --print-certs apps/tv-app/android/app/build/outputs/apk/release/app-release.apk | grep -E 'Signer #1 certificate (DN|SHA-256)'
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: APK size report
         run: python3 scripts/apk-size-report.py apps/tv-app/android/app/build/outputs/apk/release/app-release.apk | tee -a "$GITHUB_STEP_SUMMARY"
@@ -72,7 +98,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
-          notes="Built from ${GITHUB_SHA::7}. My server prefill: ${APP_API_BASE_URL:-none}"
+          signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
+          notes="Built from ${GITHUB_SHA::7}, version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           gh release edit tv-apk --notes "$notes"
           gh release upload tv-apk tv.apk --clobber

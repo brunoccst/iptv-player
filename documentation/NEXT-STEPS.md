@@ -38,6 +38,7 @@ flowchart LR
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
 - [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
 - [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
+- [x] **Signed APK** (suggested, chosen 2026-09-25, D-052): `tv-apk.yml` signs with a release key from repository secrets, so new APKs install over old ones.
 - [x] **Periodic library sync** (suggested, chosen 2026-09-25, D-051): server libraries refresh in the background every 12 h for signed-in accounts (KI-016).
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
@@ -53,7 +54,6 @@ flowchart LR
 - **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
 - **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
-- **Sign the release APK** with a real keystore (CI secret) for sideloading updates over the debug-signed build.
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
 - **URL routing** for deep links (KI-023).
 - **mpegts.js** fallback for TS-only live panels (KI-022).
