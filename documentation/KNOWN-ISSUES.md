@@ -19,7 +19,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-013](#ki-013) | Limitation | title-normalizer | Open |
 | [KI-014](#ki-014) | Limitation | title-normalizer | Open |
 | [KI-015](#ki-015) | Risk | backend + worker | Open |
-| [KI-016](#ki-016) | Limitation | backend | Open |
+| [KI-016](#ki-016) | Limitation | backend | Resolved (D-051) |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
 | [KI-018](#ki-018) | Tech debt | shared + backend | Resolved |
 | [KI-019](#ki-019) | Limitation | players | Resolved |
@@ -151,6 +151,8 @@ The worker's library replace holds a write lock for the transaction (≈ 1 s for
 **Library refreshes only on login or manual sync** — logged 2026-09-23
 
 `/api/library` data is refreshed after each login and on `POST /api/library/sync`. Sessions last 30 days, so new provider titles can be missing for weeks. The worker must also be running; otherwise jobs stay `pending` (visible in `/api/library/status`).
+
+Resolved 2026-09-25 (D-051): the backend re-syncs signed-in accounts every 12 h (`BACKEND_LIBRARY_REFRESH_HOURS`). The worker must still be running.
 
 ## KI-017
 

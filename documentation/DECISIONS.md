@@ -55,6 +55,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-048](#d-048) | 2026-09-24 | UI stress test: huge categories |
 | [D-049](#d-049) | 2026-09-25 | Library sort: recently added by default; name and release date on request |
 | [D-050](#d-050) | 2026-09-25 | Offline downloads: encrypted on Android, tied to the account, 30-day online check |
+| [D-051](#d-051) | 2026-09-25 | Periodic library sync in the backend |
 
 ---
 
@@ -957,3 +958,18 @@ Decision:
 Why: downloads are private copies for the subscriber. They should not outlive the subscription, move to another account, or be readable as plain files.
 
 Limits (see KI-002, KI-038): the rules run inside the apps. Web chunks are encrypted, but any script on the origin (DevTools) can still get decrypted bytes; on a rooted Android device, code running as the app can use the key. Real protection needs DRM, which Xtream providers do not offer.
+
+## D-051
+
+**Periodic library sync in the backend** — 2026-09-25 (chosen by owner from the suggestions; KI-016)
+
+Before: a server library was refreshed only at login or with "Refresh library". Sessions last 30 days, so new titles and the sort dates (D-049) could be weeks old.
+
+Decision:
+- A background timer in the backend checks at start and every 30 minutes.
+- It queues a library sync for every account that has a valid session, has no queued or running job, and whose last sync is older than `BACKEND_LIBRARY_REFRESH_HOURS` (default 12; `0` turns it off).
+- Syncs go through the existing queue (`LibrarySyncQueue`), one account at a time, like a login sync.
+
+Why accounts with a valid session: signed-out accounts do not need fresh data, and each sync downloads the full provider catalog.
+
+Direct mode is unchanged: the app already rebuilds its library in the background when it is older than 24 h (D-038).

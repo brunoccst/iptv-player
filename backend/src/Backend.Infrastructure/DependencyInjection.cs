@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<LibraryService>();
         services.AddSingleton<LibrarySyncQueue>();
         services.AddHostedService<LibrarySyncWorker>();
+        services.AddScoped<LibraryRefreshService>();
+        services.AddHostedService<LibraryRefreshScheduler>();
         services.AddScoped<EpgRefreshService>();
         services.AddScoped<EpgService>();
         services.AddSingleton<EpgRefreshQueue>();
