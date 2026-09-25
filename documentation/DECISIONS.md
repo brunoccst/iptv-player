@@ -983,7 +983,7 @@ Direct mode is unchanged: the app already rebuilds its library in the background
 
 **Release-signed APK and increasing version codes** — 2026-09-25 (chosen by owner from the suggestions)
 
-Before: every APK was signed with the Android debug key and had version code 1, so updates needed "uninstall first" in some cases.
+Before: every APK was signed with the debug key from Expo's project template (`android/app/debug.keystore`). That key is the same file in every Expo project, so updates did install over each other and kept their data, but so would any APK that anyone signs with that public key and gives the same package name: it could replace the app and read its data (sign-in, provider password, downloads). Every APK also had version code 1.
 
 Decision:
 - `scripts/create-signing-key.sh` creates one release key (PKCS12, RSA 2048, valid 100 years) in the git-ignored `.signing/` folder and prints two values for the repository secrets `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD`. It uses keytool, or openssl when Java is missing.
@@ -993,8 +993,9 @@ Decision:
 - The emulator CI signs with a throwaway key made by the same script, so the signing setup is tested on every TV change.
 
 Consequences:
-- Switching an installed debug-signed app to the release key needs one uninstall (Android refuses a different signature). Downloads and the sign-in on that device are lost once.
-- The key must be backed up. Without it, later APKs cannot install over installed ones.
+- Only APKs signed with this private key can replace an installed release-signed app.
+- Switching an installed debug-signed app to the release key needs one uninstall (Android refuses a different signature). Back up first (D-056) and restore after installing; downloads are lost once.
+- The key must be backed up. If it is lost, the next APK needs a new key and again one uninstall.
 
 Update 2026-09-25 (requested by owner: automate the setup): the script also saves both secrets itself with the GitHub CLI (`gh secret set`) after a one-time browser login. It ignores the Codespace's own token, which cannot write secrets. A workflow cannot create and store the key by itself: its token has no permission to write secrets, and in a public repository artifacts, release files and caches are readable by others. Backing up `.signing/` stays manual.
 

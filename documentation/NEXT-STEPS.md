@@ -42,7 +42,7 @@ flowchart LR
 - [x] **Watchlist** (requested 2026-09-25, D-055): "My List" per profile, from the details panel, with a Home row and its own page.
 - [x] **Parental PIN** (suggested, chosen 2026-09-25, D-054): optional; locks leaving a Kids profile and managing profiles.
 - [x] **Kids profile filters content** (suggested, chosen 2026-09-25, D-053): Kids profiles only see kids categories.
-- [x] **Signed APK** (suggested, chosen 2026-09-25, D-052): `tv-apk.yml` signs with a release key from repository secrets, so new APKs install over old ones.
+- [x] **Signed APK** (suggested, chosen 2026-09-25, D-052): `tv-apk.yml` signs with a private release key from repository secrets instead of Expo's public debug key, so only your own APKs can replace the installed app.
 - [x] **Periodic library sync** (suggested, chosen 2026-09-25, D-051): server libraries refresh in the background every 12 h for signed-in accounts (KI-016).
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).

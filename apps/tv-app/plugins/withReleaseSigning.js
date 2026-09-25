@@ -3,7 +3,8 @@ const { withAppBuildGradle } = require('expo/config-plugins');
 
 /**
  * Release builds use the key in `ANDROID_KEYSTORE_FILE` when it is set at Gradle time (tv-apk.yml, from repo
- * secrets), so every APK has the same signature and installs over the previous one. Without it: debug key. D-052.
+ * secrets), so only APKs signed with that private key can replace the installed app. Without it: the debug key from Expo's
+ * template, which is the same public file in every Expo project. D-052.
  * @type {import('expo/config-plugins').ConfigPlugin}
  */
 const withReleaseSigning = (config) =>

@@ -47,8 +47,9 @@ MSG
 }
 backup() {
   echo
-  echo "Now back up the .signing folder (e.g. right-click it in the Codespace file list → Download) and keep it private."
-  echo "Without it, future APKs cannot install over the ones signed with it."
+  echo "Now back up the .signing folder (e.g. right-click it in the Codespace file list → Download) and keep it private,"
+  echo "for example as attachments in a password manager entry."
+  echo "If it is lost, the next APK needs a new key and one uninstall (back up the app data first)."
 }
 
 if ! command -v gh >/dev/null 2>&1; then
