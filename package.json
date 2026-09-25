@@ -25,8 +25,8 @@
     "lint": "npm run lint:js && npm run lint:backend && npm run lint:py",
     "lint:js": "eslint . --max-warnings=0 && prettier --check .",
     "lint:backend": "dotnet format backend/Backend.sln --verify-no-changes",
-    "lint:py": "cd services/title-normalizer && python -m ruff check . ../../tools/fake-xtream-server && python -m ruff format --check . ../../tools/fake-xtream-server",
-    "format": "prettier --write . && dotnet format backend/Backend.sln && cd services/title-normalizer && python -m ruff check --fix . ../../tools/fake-xtream-server && python -m ruff format . ../../tools/fake-xtream-server",
+    "lint:py": "cd services/title-normalizer && python -m ruff check . ../../tools/fake-xtream-server ../../scripts && python -m ruff format --check . ../../tools/fake-xtream-server ../../scripts",
+    "format": "prettier --write . && dotnet format backend/Backend.sln && cd services/title-normalizer && python -m ruff check --fix . ../../tools/fake-xtream-server ../../scripts && python -m ruff format . ../../tools/fake-xtream-server ../../scripts",
     "test:e2e": "npm run test:e2e --workspace=@iptv/web-player"
   },
   "devDependencies": {
