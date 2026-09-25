@@ -58,6 +58,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-051](#d-051) | 2026-09-25 | Periodic library sync in the backend |
 | [D-052](#d-052) | 2026-09-25 | Release-signed APK and increasing version codes |
 | [D-053](#d-053) | 2026-09-25 | Kids profiles show only kids categories |
+| [D-054](#d-054) | 2026-09-25 | Optional parental PIN |
 
 ---
 
@@ -1008,3 +1009,18 @@ Decision:
 - Switching between a Kids and a regular profile drops cached categories, guide and library pages, so nothing loaded for an adult profile stays on screen.
 
 Not done (see KI-039): a PIN to leave a Kids profile or edit it; per-profile choice of allowed categories.
+
+## D-054
+
+**Optional parental PIN** — 2026-09-25 (requested by owner: "it must be optional to set one up")
+
+Decision:
+- Account menu → "Parental PIN" (web and TV/phone) sets a 4-digit PIN, typed twice. It is off until someone sets one; changing or removing it needs the current PIN.
+- With a PIN set, it is needed to open a regular profile from a Kids profile or from "Who's watching?", and to add, edit or delete profiles (asked once per visit to the picker). Opening a Kids profile, and switching between regular profiles, never asks.
+- Stored per account on the device as a salted, repeatedly hashed value (secure storage on TV/phone, browser storage on the web), never in plain text. Five wrong tries lock checks for a minute.
+- Signing out removes the PIN on that device, so a forgotten PIN costs one sign-in with the provider password (which a child should not have).
+- The TV/phone prompt is an on-screen keypad that works with the D-pad and touch.
+
+Why per device and not on the server: it also has to work in direct mode, where there is no server, and a child is kept out on the device they use.
+
+Limits: the PIN is not shared between devices; on the web, clearing the site's data removes it but also signs out.

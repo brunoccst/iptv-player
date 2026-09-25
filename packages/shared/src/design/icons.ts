@@ -10,6 +10,7 @@ export const iconPaths = {
   chevronDown: 'M16.6 8.6 12 13.2 7.4 8.6 6 10l6 6 6-6z',
   chevronUp: 'M12 8l-6 6 1.4 1.4 4.6-4.6 4.6 4.6L18 14z',
   download: 'M12 16 6 10l1.4-1.4 3.6 3.6V3h2v9.2l3.6-3.6L18 10zm-7 3h14v2H5z',
+  lock: 'M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9zm9 14H6V10h12zm-6-3a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
   check: 'M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
   alert: 'M11 15h2v2h-2zm0-8h2v6h-2zm1-5a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
   rewind10:

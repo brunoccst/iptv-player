@@ -8,6 +8,7 @@ import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
 import { createConnectionStore, type ConnectionStore } from './stores/connectionStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
+import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
@@ -23,6 +24,8 @@ export interface AppContext {
     library: LibraryStore;
     player: PlayerStore;
     progress: ProgressStore;
+    /** Optional parental PIN (D-054). */
+    pin: PinStore;
     /** Present when direct mode is enabled (native apps). */
     connection?: ConnectionStore;
   };
@@ -72,6 +75,7 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
+  const pin = createPinStore({ session, storage });
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
@@ -92,5 +96,5 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     }
   });
 
-  return { config, api, stores: { session, catalog, epg, library, player, progress, connection } };
+  return { config, api, stores: { session, catalog, epg, library, player, progress, pin, connection } };
 }

@@ -1,3 +1,4 @@
+import { pinStorageKey } from '@iptv/shared';
 import * as SecureStore from 'expo-secure-store';
 import { DeviceEventEmitter } from 'react-native';
 import { createFakeBackend, type FakeBackend } from '../../../packages/shared/src/testing/fakeBackend';
@@ -37,6 +38,9 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   stores.epg.getState().reset();
   stores.progress.getState().reset();
   downloadsStore.setState({ records: {}, errors: {} });
+  // No parental PIN unless a test sets one (D-054).
+  void SecureStore.deleteItemAsync(pinStorageKey(account.id));
+  stores.pin.setState({ status: 'none', lockedUntil: null });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
   stores.session.setState(
     options.signedIn === false

@@ -155,3 +155,26 @@ test('downloads are encrypted in-app and play offline, even after reload', async
   await page.getByRole('button', { name: 'Play Big Test Movie' }).click();
   await expectPlaying(page);
 });
+
+test('optional parental PIN guards opening a regular profile from the picker', async ({ page }) => {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Parental PIN' }).click();
+  const settings = page.getByRole('dialog', { name: 'Parental PIN' });
+  await settings.getByLabel('PIN (4 digits)').fill('2468');
+  await settings.getByLabel('Repeat the PIN').fill('2468');
+  await settings.getByRole('button', { name: 'Set PIN' }).click();
+  await expect(settings.getByRole('status')).toHaveText('PIN set.');
+  await settings.getByRole('button', { name: 'Close' }).first().click();
+
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Manage Profiles' }).click();
+  await expect(page.getByRole('heading', { name: "Who's watching?" })).toBeVisible();
+  await page.locator('.profile-tile').first().click();
+  const prompt = page.getByRole('dialog', { name: /Enter the parental PIN/ });
+  await prompt.getByLabel('Parental PIN').fill('1111');
+  await prompt.getByRole('button', { name: 'OK' }).click();
+  await expect(prompt.getByRole('alert')).toHaveText('Wrong PIN.');
+  await prompt.getByLabel('Parental PIN').fill('2468');
+  await prompt.getByRole('button', { name: 'OK' }).click();
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+});
