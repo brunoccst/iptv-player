@@ -11,7 +11,9 @@ using Microsoft.Extensions.Options;
 
 namespace Backend.Infrastructure.Epg;
 
-public sealed record EpgGridQuery(string? CategoryId, DateTimeOffset? From, int Hours, int Offset, int Limit);
+/// <summary><c>CategoryIds</c>, when set, keeps only channels in those categories (Kids profiles, D-053).</summary>
+public sealed record EpgGridQuery(
+    string? CategoryId, DateTimeOffset? From, int Hours, int Offset, int Limit, IReadOnlyList<string>? CategoryIds = null);
 
 /// <summary>Builds guide pages from the cached XMLTV data, with per-channel short EPG as fallback. See DECISIONS.md#d-031.</summary>
 public sealed class EpgService(
@@ -41,6 +43,10 @@ public sealed class EpgService(
         var status = await EnsureFreshAsync(accountId, now, ct);
 
         var channels = await catalog.GetLiveChannelsAsync(accountId, query.CategoryId, ct);
+        if (query.CategoryIds is { } allowed)
+        {
+            channels = channels.Where(c => c.CategoryId is not null && allowed.Contains(c.CategoryId)).ToList();
+        }
         var page = channels.Skip(Math.Max(0, query.Offset)).Take(Math.Clamp(query.Limit, 1, MaxLimit)).ToList();
 
         var byKey = await LoadCachedAsync(accountId, page, from, to, ct);

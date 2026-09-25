@@ -154,6 +154,17 @@ public class EpgEndpointTests : IDisposable
     }
 
     [Fact]
+    public async Task Grid_KeepsOnlyChannelsInTheGivenCategories()
+    {
+        await _client.LoginAndAuthorizeAsync();
+
+        Assert.Equal(2, (await WaitForReadyAsync("?categoryIds=5,99")).TotalChannels);
+        var none = await WaitForReadyAsync("?categoryIds=");
+        Assert.Equal(0, none.TotalChannels);
+        Assert.Empty(none.Channels);
+    }
+
+    [Fact]
     public async Task Grid_UsesXmltvCache_AndShortEpgForChannelsWithoutGuideId()
     {
         await _client.LoginAndAuthorizeAsync();

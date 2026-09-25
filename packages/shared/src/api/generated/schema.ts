@@ -1128,6 +1128,7 @@ export interface operations {
         parameters: {
             query?: {
                 categoryId?: string;
+                categoryIds?: string;
                 from?: string;
                 hours?: number;
                 limit?: number;
@@ -1246,6 +1247,7 @@ export interface operations {
         parameters: {
             query?: {
                 categoryId?: string;
+                categoryIds?: string;
                 limit?: number;
                 offset?: number;
                 order?: string;

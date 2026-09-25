@@ -61,7 +61,7 @@ Running the backend only for yourself or your household is private use. As soon 
 - **Storage on devices (§ 25 TDDDG):** the apps store data on the device only where the function needs it (session, downloads, settings). They have no tracking or analytics, so no consent banner is needed for that.
 - **Youth protection (JMStV):**
   - Offering adult content to the public requires age verification.
-  - The app's "Kids" profile flag is only a label; it filters no content. It is not an approved youth protection system.
+  - A "Kids" profile only shows categories whose names mark them as children's content (e.g. "Kids", "Kinder", "Cartoons"), because providers send no age ratings (D-053). This depends on how the provider names its categories, and any profile can switch to another one without a PIN. It is not an approved youth protection system.
 
 ### Other points
 

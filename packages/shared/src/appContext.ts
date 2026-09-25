@@ -3,13 +3,14 @@ import { createHttpClient } from './api/httpClient';
 import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import { createHybridApiClient } from './direct/hybridApiClient';
+import { withKidsFilter } from './profiles/kidsFilter';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
 import { createConnectionStore, type ConnectionStore } from './stores/connectionStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
-import { createSessionStore, type SessionStore } from './stores/sessionStore';
+import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 
 export interface AppContext {
@@ -46,7 +47,7 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     onUnauthorized: () => session.getState().handleUnauthorized(),
   });
   const serverApi = createApiClient(http);
-  const api =
+  const providerApi =
     direct && connection
       ? createHybridApiClient({
           server: serverApi,
@@ -61,6 +62,10 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
         })
       : serverApi;
 
+  // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
+  const kids = withKidsFilter(providerApi, () => selectActiveProfile(session.getState())?.isKids === true);
+  const api = kids.api;
+
   const session = createSessionStore({ api, storage });
   const catalog = createCatalogStore({ api });
   const epg = createEpgStore({ api });
@@ -70,7 +75,11 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
-    if (previous.account?.id && state.account?.id !== previous.account.id) {
+    const accountChanged = Boolean(previous.account?.id) && state.account?.id !== previous.account?.id;
+    // Switching between a Kids and a regular profile changes what may be shown: drop everything cached.
+    const kidsChanged = (selectActiveProfile(state)?.isKids === true) !== (selectActiveProfile(previous)?.isKids === true);
+    if (accountChanged) kids.reset();
+    if (accountChanged || kidsChanged) {
       catalog.getState().reset();
       epg.getState().reset();
       library.getState().reset();

@@ -20,6 +20,8 @@ export interface LibraryListQuery {
   limit?: number;
   sort?: LibrarySort;
   order?: SortOrder;
+  /** Only titles in these categories (Kids profiles, D-053). An empty list is not sent: callers handle "nothing allowed". */
+  categoryIds?: string[] | null;
 }
 
 /** `from` is an ISO timestamp; the backend defaults it to the current half hour. */
@@ -29,9 +31,16 @@ export interface EpgGridQuery {
   hours?: number;
   offset?: number;
   limit?: number;
+  /** Only channels in these categories (Kids profiles, D-053). An empty list is not sent: callers handle "nothing allowed". */
+  categoryIds?: string[] | null;
 }
 
 const segment = encodeURIComponent;
+/** Lists travel as one comma-separated parameter; absent stays absent. */
+const withCategoryIds = <T extends { categoryIds?: string[] | null }>({ categoryIds, ...rest }: T) => ({
+  ...rest,
+  categoryIds: categoryIds ? categoryIds.join(',') : undefined,
+});
 
 /** Typed wrapper for every backend endpoint. Return types come from the generated OpenAPI operations. */
 export function createApiClient(http: HttpClient) {
@@ -88,13 +97,14 @@ export function createApiClient(http: HttpClient) {
       sync: () => http.request<OperationResult<'syncLibrary', 202>>('POST', '/api/library/sync'),
       status: (signal?: AbortSignal) => get<OperationResult<'getLibraryStatus'>>('/api/library/status', undefined, signal),
       list: (section: LibrarySection, query: LibraryListQuery = {}, signal?: AbortSignal) =>
-        get<OperationResult<'listLibrary'>>(`/api/library/${section}`, { ...query }, signal),
+        get<OperationResult<'listLibrary'>>(`/api/library/${section}`, withCategoryIds(query), signal),
       get: (section: LibrarySection, masterId: string, signal?: AbortSignal) =>
         get<OperationResult<'getLibraryItem'>>(`/api/library/${section}/${segment(masterId)}`, undefined, signal),
     },
 
     epg: {
-      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) => get<OperationResult<'getEpgGrid'>>('/api/epg', { ...query }, signal),
+      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) =>
+        get<OperationResult<'getEpgGrid'>>('/api/epg', withCategoryIds(query), signal),
       refresh: () => http.request<OperationResult<'refreshEpg', 202>>('POST', '/api/epg/refresh'),
     },
 

@@ -12,6 +12,7 @@ export * from './stores/libraryStore';
 export * from './stores/playerStore';
 export * from './stores/progressStore';
 export * from './stores/downloadsOwner';
+export { isKidsCategory } from './profiles/kidsFilter';
 export * from './playback/rules';
 export * from './playback/sources';
 export * from './playback/remoteSeek';

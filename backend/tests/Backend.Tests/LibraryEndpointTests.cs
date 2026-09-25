@@ -72,6 +72,10 @@ public class LibraryEndpointTests : IDisposable
         var byCategory = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?categoryId=4k", ApiClientExtensions.Json);
         Assert.Equal(["Zulu"], byCategory!.Items.Select(i => i.Title));
 
+        var byCategories = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?categoryIds=4k,other", ApiClientExtensions.Json);
+        Assert.Equal(["Zulu"], byCategories!.Items.Select(i => i.Title));
+        Assert.Equal(0, (await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?categoryIds=", ApiClientExtensions.Json))!.Total);
+
         var bySearch = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?search=ZUL", ApiClientExtensions.Json);
         Assert.Equal(["Zulu"], bySearch!.Items.Select(i => i.Title));
 

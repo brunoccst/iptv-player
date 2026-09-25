@@ -12,9 +12,11 @@ public static class EpgEndpoints
         var group = app.MapGroup("/api/epg").WithTags("Epg").RequireAuthorization().ProducesProviderErrors();
 
         // `from` defaults to the current half hour; `hours` is clamped to 1..12 and `limit` (channels) to 1..200.
-        group.MapGet("/", (string? categoryId, DateTimeOffset? from, int? hours, int? offset, int? limit,
+        // `categoryIds` (comma-separated) keeps only channels in those categories (Kids profiles, D-053).
+        group.MapGet("/", (string? categoryId, DateTimeOffset? from, int? hours, int? offset, int? limit, string? categoryIds,
                 HttpContext context, EpgService epg, CancellationToken ct) =>
-            epg.GetGridAsync(context.User.GetAccountId(), new EpgGridQuery(categoryId, from, hours ?? 3, offset ?? 0, limit ?? 50), ct))
+            epg.GetGridAsync(context.User.GetAccountId(),
+                new EpgGridQuery(categoryId, from, hours ?? 3, offset ?? 0, limit ?? 50, CategoryList.Parse(categoryIds)), ct))
             .WithName("getEpgGrid");
 
         group.MapPost("/refresh", (HttpContext context, EpgRefreshQueue queue) =>

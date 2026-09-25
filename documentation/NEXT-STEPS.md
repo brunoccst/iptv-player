@@ -38,6 +38,7 @@ flowchart LR
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
 - [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
 - [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
+- [x] **Kids profile filters content** (suggested, chosen 2026-09-25, D-053): Kids profiles only see kids categories.
 - [x] **Signed APK** (suggested, chosen 2026-09-25, D-052): `tv-apk.yml` signs with a release key from repository secrets, so new APKs install over old ones.
 - [x] **Periodic library sync** (suggested, chosen 2026-09-25, D-051): server libraries refresh in the background every 12 h for signed-in accounts (KI-016).
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
@@ -46,6 +47,8 @@ flowchart LR
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
+
+- **Profile PIN**: lock leaving or editing a Kids profile, and optionally let parents pick the allowed categories per Kids profile (KI-039).
 
 - **Direct mode + server sync**: let a direct-mode device also push progress/profiles to a backend when one is configured (after Step 8).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.

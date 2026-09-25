@@ -406,7 +406,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     const current = now();
     const from = query.from ? new Date(query.from) : new Date(Math.floor(current.getTime() / SLOT_MS) * SLOT_MS);
     const to = new Date(from.getTime() + clamp(query.hours ?? 3, 1, 12) * 3600_000);
-    const channels = await liveChannels(query.categoryId, signal);
+    const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
+    const channels = (await liveChannels(query.categoryId, signal)).filter(
+      (channel) => !allowed || (channel.categoryId !== null && allowed.has(channel.categoryId)),
+    );
     const offset = Math.max(0, query.offset ?? 0);
     const page = channels.slice(offset, offset + clamp(query.limit ?? 50, 1, 200));
     const programmes = await shortEpg(page);
@@ -641,7 +644,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         const sort = query.sort ?? 'added';
         const index = ordered(masters, sort, query.order ?? defaultOrder(sort));
         const search = query.search?.trim().toLowerCase();
-        const scope = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.all;
+        const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
+        const inCategory = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.all;
+        const categoriesOf = indexFor(masters).categories;
+        const scope = allowed
+          ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
+          : inCategory;
         const matches = search
           ? scope.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
           : scope;
