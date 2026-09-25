@@ -76,7 +76,7 @@ jobs:
       # Signs with a throwaway key so the release-signing setup (D-052) is exercised on every change.
       - name: Throwaway signing key
         run: |
-          bash scripts/create-signing-key.sh > /dev/null
+          bash scripts/create-signing-key.sh --no-upload > /dev/null
           echo "ANDROID_KEYSTORE_FILE=$PWD/.signing/iptv-player-release.p12" >> "$GITHUB_ENV"
           echo "ANDROID_KEYSTORE_PASSWORD=$(cat .signing/ANDROID_KEYSTORE_PASSWORD.txt)" >> "$GITHUB_ENV"
 
