@@ -38,6 +38,7 @@ flowchart LR
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
 - [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
 - [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
+- [x] **Export and import user data** (requested 2026-09-25, D-056): password-protected backup file with sign-in, server settings, profiles, PIN, progress and My List; restore from the login screen.
 - [x] **Watchlist** (requested 2026-09-25, D-055): "My List" per profile, from the details panel, with a Home row and its own page.
 - [x] **Parental PIN** (suggested, chosen 2026-09-25, D-054): optional; locks leaving a Kids profile and managing profiles.
 - [x] **Kids profile filters content** (suggested, chosen 2026-09-25, D-053): Kids profiles only see kids categories.
@@ -46,7 +47,6 @@ flowchart LR
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
   - [x] Home rows: 10 titles and a "See all" arrow card (D-043).
-- [ ] **Export and import user data** (requested 2026-09-25): most users run without a backend, so their data lives only on the device. Add an easy export to a file and an import on another device or after reinstalling, so nothing is lost when updating or moving the app. Include at least: provider credentials and server settings (connection mode, "My server" address), profiles, the parental PIN, watch progress (Continue Watching, series episodes) and preferences. The export holds passwords, so protect it (e.g. a password chosen at export). Downloads stay out (large, and tied to the device's encryption key, D-050).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions

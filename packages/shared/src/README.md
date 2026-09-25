@@ -8,6 +8,7 @@
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |
+| `backup/` | `exportUserData` / `importUserData`: password-encrypted backup file of the saved sign-in, settings, PIN, profiles, progress and My List (D-056). `AppContext.reload()` applies a restored backup. |
 | `direct/` | Direct mode (no backend): Xtream client and the TypeScript title normalizer (D-038). |
 | `epg/` | Pure guide-grid helpers: slots, row layout (clip, gaps), now line, current programme. |
 | `playback/` | Pure playback rules shared by web and TV (resume, intro, next episode, source attempts). |

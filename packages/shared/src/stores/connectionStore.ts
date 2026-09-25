@@ -12,6 +12,8 @@ export interface ConnectionState {
   loaded: boolean;
   /** Reads the saved choice once; later calls return the same promise. */
   load(): Promise<void>;
+  /** Reads the saved choice again (a restored backup, D-056). */
+  reload(): Promise<void>;
   setConnection(mode: ConnectionMode, serverUrl?: string): Promise<void>;
 }
 
@@ -33,6 +35,11 @@ export function createConnectionStore({ storage, defaultServerUrl = '' }: { stor
         set({ loaded: true });
       })();
       return loading;
+    },
+    reload() {
+      loading = null;
+      set({ mode: 'direct', serverUrl: defaultServerUrl, loaded: false });
+      return get().load();
     },
     async setConnection(mode, serverUrl) {
       const url = (serverUrl ?? get().serverUrl).trim().replace(/\/+$/, '');

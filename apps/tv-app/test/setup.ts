@@ -19,12 +19,22 @@ jest.mock('expo-file-system', () => {
   class Directory {
     exists = true;
     create() {}
+    createFile(name: string) {
+      return new File(this, name);
+    }
+    // System folder picker (backup, D-056); tests replace it.
+    static pickDirectoryAsync = jest.fn(async () => new Directory());
   }
   class File {
     private readonly path: string;
     constructor(_directory: unknown, name: string) {
       this.path = name;
     }
+    get name() {
+      return this.path;
+    }
+    // System file picker (restore, D-056); tests replace it.
+    static pickFileAsync = jest.fn(async () => ({ canceled: true, result: null }));
     get exists() {
       return files.has(this.path);
     }

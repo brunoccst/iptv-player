@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert, type AlertButton } from 'react-native';
+import { Directory, File, Paths } from 'expo-file-system';
+import { BACKUP_FORMAT, createMemoryStorage, exportUserData } from '@iptv/shared';
 import { navStore, stores } from './appContext';
 import { nativeState } from '../test/tvMediaMock';
 import { account, playback, pressBack, profile, setupApp, variant } from '../test/utils';
@@ -226,5 +228,51 @@ describe('App (TV)', () => {
 
     expect(await screen.findByTestId('login-submit')).toBeTruthy();
     expect(stores.session.getState().status).toBe('anonymous');
+  });
+
+  it('Back up data encrypts the saved login into a file in the picked folder (D-056)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-backup'));
+    await fireEvent.changeText(screen.getByTestId('backup-password'), 'correct horse');
+    await fireEvent.changeText(screen.getByTestId('backup-confirm'), 'correct horse');
+    await fireEvent.press(screen.getByTestId('backup-save'));
+    expect(Directory.pickDirectoryAsync).toHaveBeenCalled();
+    // Key stretching (PBKDF2, 100k rounds) takes a moment.
+    const saved = await screen.findByText(/^Saved .*-backup-.*\.iptvbackup/, {}, { timeout: 10_000 });
+    const name = /(\S+\.iptvbackup)/.exec(String(saved.props.children))![1]!;
+    const text = await new File(Paths.document, name).text();
+    expect(JSON.parse(text)).toMatchObject({ format: BACKUP_FORMAT });
+    expect(text).not.toContain('tok');
+  });
+
+  it('Restore from backup on the login screen signs in with the restored data (D-056)', async () => {
+    const backend = setupApp({ signedIn: false });
+    stubLibrary(backend);
+    backend.on('GET', '/api/auth/me', { body: account });
+    backend.on('GET', '/api/profiles', { body: [profile] });
+    const old = createMemoryStorage({
+      session: JSON.stringify({ token: 'restored', account, profiles: [profile], activeProfileId: 'p1' }),
+      connection: JSON.stringify({ mode: 'server', serverUrl: 'http://api.test' }),
+    });
+    const backup = new File(Paths.document, 'old-device.iptvbackup');
+    backup.write(await exportUserData({ secure: old }, 'correct horse'));
+    jest.mocked(File.pickFileAsync).mockResolvedValueOnce({ canceled: false, result: backup } as never);
+
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('login-restore'));
+    await fireEvent.press(await screen.findByTestId('restore-pick'));
+    expect(await screen.findByText('File: old-device.iptvbackup')).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('restore-password'), 'wrong password');
+    await fireEvent.press(screen.getByTestId('restore-submit'));
+    expect(await screen.findByText('Wrong password, or the file is damaged.', {}, { timeout: 10_000 })).toBeTruthy();
+    await fireEvent.changeText(screen.getByTestId('restore-password'), 'correct horse');
+    await fireEvent.press(screen.getByTestId('restore-submit'));
+    expect(await screen.findByTestId('home-screen', {}, { timeout: 10_000 })).toBeTruthy();
+    expect(stores.session.getState()).toMatchObject({ status: 'authenticated', token: 'restored' });
   });
 });

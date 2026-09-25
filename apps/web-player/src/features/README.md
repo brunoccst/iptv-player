@@ -3,6 +3,7 @@
 | Folder | Screen / feature |
 |--------|------------------|
 | `auth/` | Login form. |
+| `backup/` | Back up & restore dialog (account menu; restore also from the login page). |
 | `profiles/` | "Who's watching?" picker and profile editor. |
 | `shell/` | Signed-in layout, top navigation, library status banner. |
 | `home/` | Hero (backdrop + trailer), Continue Watching, Live and category rows. |

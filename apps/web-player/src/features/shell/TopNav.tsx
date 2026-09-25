@@ -5,6 +5,7 @@ import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
+import { BackupDialog } from '../backup/BackupDialog';
 import { avatarColor } from '../profiles/avatar';
 import { usePinGate } from '../profiles/PinDialog';
 import { PinSettings } from '../profiles/PinSettings';
@@ -26,6 +27,7 @@ export function TopNav() {
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [pinSettings, setPinSettings] = useState(false);
+  const [backup, setBackup] = useState(false);
   const pinStatus = usePin((s) => s.status);
   const { gate, dialog } = usePinGate();
   const ui = uiStore.getState();
@@ -123,6 +125,17 @@ export function TopNav() {
                 className="menu__item"
                 onClick={() => {
                   setMenuOpen(false);
+                  setBackup(true);
+                }}
+              >
+                <Icon name="backup" size={18} /> Back up &amp; restore
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="menu__item"
+                onClick={() => {
+                  setMenuOpen(false);
                   void stores.library.getState().sync();
                 }}
               >
@@ -147,6 +160,7 @@ export function TopNav() {
       </div>
       {dialog}
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
+      {backup ? <BackupDialog onClose={() => setBackup(false)} /> : null}
     </header>
   );
 }

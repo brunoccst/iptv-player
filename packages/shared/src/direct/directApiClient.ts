@@ -63,10 +63,11 @@ interface StoredLibrary {
 
 type LibraryKind = 'movie' | 'series';
 
-const CREDENTIALS_KEY = 'direct.credentials';
-const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
-const progressKey = (profileId: string) => `direct.progress.${profileId}`;
-const watchlistKey = (profileId: string) => `direct.watchlist.${profileId}`;
+/** Storage keys; the user-data backup (D-056) reads and writes the same ones. */
+export const CREDENTIALS_KEY = 'direct.credentials';
+export const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
+export const progressKey = (profileId: string) => `direct.progress.${profileId}`;
+export const watchlistKey = (profileId: string) => `direct.watchlist.${profileId}`;
 const MAX_WATCHLIST = 500;
 /** One file per kind: a finished kind never rewrites the other, and each file stays half the size. */
 const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.v${LIBRARY_FORMAT}.${accountId}.${kind}`;
@@ -157,7 +158,10 @@ async function writeJson(storage: KeyValueStorage, key: string, value: unknown, 
   }
 }
 
-export function createDirectApiClient(options: DirectApiClientOptions): ApiClient {
+/** `reloadCredentials`: forget the cached login so the next call reads storage again (a restored backup, D-056). */
+export type DirectApiClient = ApiClient & { reloadCredentials(): void };
+
+export function createDirectApiClient(options: DirectApiClientOptions): DirectApiClient {
   const now = options.now ?? (() => new Date());
   const newId = options.randomId ?? randomUuid;
   let credentials: StoredCredentials | null | undefined;
@@ -436,6 +440,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
   const catalogKind: Record<CatalogSection, MediaKind> = { live: 'live', movies: 'movie', series: 'series' };
 
   return {
+    reloadCredentials() {
+      credentials = undefined;
+      xtream = null;
+      cache.clear();
+    },
+
     health: async () => ({ status: 'ok', app: options.appName }),
 
     auth: {

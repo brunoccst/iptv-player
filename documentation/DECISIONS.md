@@ -60,6 +60,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-053](#d-053) | 2026-09-25 | Kids profiles show only kids categories |
 | [D-054](#d-054) | 2026-09-25 | Optional parental PIN |
 | [D-055](#d-055) | 2026-09-25 | Watchlist ("My List") per profile |
+| [D-056](#d-056) | 2026-09-25 | Password-protected backup and restore of user data |
 
 ---
 
@@ -1037,4 +1038,17 @@ Decision:
 - Stored like watch progress: in the backend (`/api/profiles/{id}/watchlist`, table `Watchlist`) in server mode, in the device's data storage in direct mode. Deleting a profile deletes its list. At most 500 titles per profile.
 - Adding and removing update the screen at once and are undone if saving fails.
 
-Kids profiles only reach kids titles (D-053), so their lists only hold those. The planned data export will include the lists.
+Kids profiles only reach kids titles (D-053), so their lists only hold those. The data backup (D-056) includes the lists.
+
+## D-056
+
+**Password-protected backup and restore of user data** — 2026-09-25 (requested by owner)
+
+Decision:
+- Account menu → "Back up data" (TV/phone) or "Back up & restore" (web) saves one `.iptvbackup` file. "Restore from backup" on the login screen (and in the web dialog) reads it back and signs in, without restarting the app (`AppContext.reload()`; the web reloads the page).
+- The file holds what the app keeps in storage: the saved sign-in (session, and in direct mode the provider login), the connection choice and "My server" address, the parental PIN, and per profile the profiles, watch progress and My List. The library cache (rebuilt after sign-in), downloads (large, and tied to this device's key, D-050) and the diagnostics log stay out. Restoring a different account still removes the previous account's downloads.
+- The contents are encrypted with a password chosen when saving (at least 8 characters): PBKDF2-SHA256 with 100,000 rounds and a random salt, then XChaCha20-Poly1305 (`@noble/hashes`, `@noble/ciphers`: audited, plain JavaScript, so the same code runs in browsers and on Hermes). A wrong password or a changed file fails the check and nothing is written.
+- The file carries a format name and version; files from a newer app version are refused with a message to update first.
+- TV/phone use the Android system pickers from `expo-file-system` to choose a folder (save) or a file (restore), e.g. Downloads, a USB stick or a cloud drive. No new native modules or permissions.
+
+Alternatives: an unencrypted file (holds the provider password, rejected); syncing through the backend (most users run without one).
