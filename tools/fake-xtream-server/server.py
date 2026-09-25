@@ -19,6 +19,37 @@ from urllib.parse import parse_qs, urlparse
 HERE = Path(__file__).resolve().parent
 MEDIA = HERE / "media"
 CATALOG = json.loads((HERE / "catalog.json").read_text())
+
+
+def add_stress_titles(catalog: dict, count: int) -> None:
+    """UI stress tests: one category with `count` distinct movies, 60 small categories, count/10 live channels."""
+    if count <= 0:
+        return
+    catalog["vodCategories"].append({"id": "900", "name": "Stress Test (huge)"})
+    catalog["vodCategories"] += [{"id": str(901 + i), "name": f"Stress Category {i + 1:02d}"} for i in range(60)]
+    genres = ["Action", "Drama", "Comedy", "Thriller", "Documentary"]
+    for i in range(count):
+        catalog["movies"].append(
+            {
+                "id": str(100000 + i),
+                "name": f"Stress Movie {i + 1:05d} ({1990 + i % 35})",
+                "category": "900" if i % 5 else str(901 + (i // 5) % 60),
+                "media": "movie-hls",
+                "container": "mp4",
+                "rating": round(5 + (i % 50) / 10, 1),
+                "plot": f"Synthetic title number {i + 1} for UI stress tests.",
+                "genre": genres[i % len(genres)],
+                "duration": 30,
+            }
+        )
+    catalog["liveCategories"].append({"id": "90", "name": "Stress Channels"})
+    catalog["live"] += [
+        {"id": str(9000 + i), "name": f"Stress Channel {i + 1:04d}", "category": "90", "epg": None} for i in range(count // 10)
+    ]
+
+
+# FAKE_PANEL_STRESS=5000 adds thousands of titles (see NEXT-STEPS "UI stress tests").
+add_stress_titles(CATALOG, int(os.environ.get("FAKE_PANEL_STRESS", "0") or 0))
 USER = CATALOG["credentials"]["username"]
 PASSWORD = CATALOG["credentials"]["password"]
 LIVE_SEGMENT_SECONDS = 2
