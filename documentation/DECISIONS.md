@@ -934,6 +934,8 @@ Result: on busy runners (2026-09-24 evening) the APK build went 14.2 → 10.9 mi
 
 Not done (small gain or risky): caching native (CMake) build output between runs; starting the local stack in the background during the Gradle build (~1.5 min); splitting Maestro flows across parallel emulators (three emulator boots and three APK builds cost more than they save).
 
+Update 2026-09-25 (requested by owner): changes that touch only Markdown files or `LICENSE` skip the builds. In `ci.yml` a small `changes` job compares the pull request (or push) with its base; when nothing else changed, `checks` and `web-e2e` are skipped, which GitHub counts as passed, and `lint` still checks the Markdown formatting. `tv-app.yml` ignores `*.md` in its path filter. Manual runs always build everything.
+
 ## D-049
 
 **Library sort: recently added by default; name and release date on request** — 2026-09-25 (requested by owner)

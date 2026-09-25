@@ -11,6 +11,8 @@ on:
       - 'scripts/**'
       - 'package-lock.json'
       - '.github/workflows/tv-app.yml'
+      # READMEs inside those folders do not need an APK build.
+      - '!**/*.md'
   workflow_dispatch:
 
 concurrency:
