@@ -1,8 +1,19 @@
 name: TV APK for a real TV
 
-# Manual only: builds the TV app for real (ARM) TVs. The APK goes to the `tv-apk` prerelease. See DECISIONS.md#d-037.
+# Builds the TV app for real (ARM) TVs and phones. The APK goes to the `tv-apk` prerelease. See DECISIONS.md#d-037.
+# Runs by itself after app changes reach `main` (no "My server" prefill), or by hand with the inputs below.
 # The app talks to the IPTV provider directly (D-038); `api_base_url` only prefills "My server".
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/tv-app/**'
+      - 'packages/shared/**'
+      - 'package-lock.json'
+      - '.github/workflows/tv-apk.yml'
+      # Docs and the emulator flows do not change the APK.
+      - '!**/*.md'
+      - '!apps/tv-app/e2e/**'
   workflow_dispatch:
     inputs:
       api_base_url:
@@ -30,6 +41,8 @@ jobs:
       APP_API_BASE_URL: ${{ inputs.api_base_url }}
       # Each build counts as a newer version, so Android installs it over the previous one (D-052).
       APP_ANDROID_VERSION_CODE: ${{ github.run_number }}
+      # Pushes always publish; manual runs follow the `publish` input.
+      PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
     steps:
       - name: Check address
         run: |
@@ -87,19 +100,19 @@ jobs:
         run: python3 scripts/apk-size-report.py apps/tv-app/android/app/build/outputs/apk/release/app-release.apk | tee -a "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v4
-        if: ${{ !inputs.publish }}
+        if: env.PUBLISH != 'true'
         with:
           name: tv-apk
           path: apps/tv-app/android/app/build/outputs/apk/release/app-release.apk
 
       - name: Publish to the tv-apk prerelease
-        if: ${{ inputs.publish }}
+        if: env.PUBLISH == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
           signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
-          notes="Built from ${GITHUB_SHA::7}, version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}. My server prefill: ${APP_API_BASE_URL:-none}"
+          notes="Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           gh release edit tv-apk --notes "$notes"
           gh release upload tv-apk tv.apk --clobber
