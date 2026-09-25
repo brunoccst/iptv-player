@@ -18,8 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Empty (overrides .env): the app starts in direct mode; the server-mode flow types the backend address (D-038).
-  APP_API_BASE_URL: ''
+  # Prefills "My server" (the app still starts in direct mode, D-038), so the server-mode flow does not type it:
+  # long inputText on the busy emulator made Maestro's driver die (DeviceServerDiedException). 10.0.2.2 = runner.
+  APP_API_BASE_URL: 'http://10.0.2.2:5091'
   APP_ID: com.iptvplayer.tv
   # Logs every remote event to logcat so failed flows show which keys reached the app.
   APP_TV_DEBUG_REMOTE: '1'
@@ -72,9 +73,10 @@ jobs:
         working-directory: apps/tv-app
         run: CI=1 npx expo prebuild --platform android --no-install
 
+      # Only the emulator's ABI: native code compiles once instead of three times. The ARM APK for real TVs is tv-apk.yml.
       - name: Build release APK (debug-signed)
         working-directory: apps/tv-app/android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86,armeabi-v7a,arm64-v8a
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86
 
       - name: Keep APK, drop build output
         run: |
