@@ -68,8 +68,14 @@ Running the backend only for yourself or your household is private use. As soon 
 - **Broadcasting fee (Rundfunkbeitrag):** unchanged. It is due per household, whatever devices or apps you use.
 - **Provider terms:** even with a lawful provider, sharing your account, exceeding the allowed number of streams, or relaying to other homes usually breaks the contract. The provider can then close the account.
 - **Licence of this repository:**
-  - The repository has no licence file yet, so all rights are reserved by default. Anyone else needs the owner's permission to copy or redistribute it.
+  - [MIT No Attribution](./LICENSE) (`MIT-0`). Anyone may use, copy, change, publish, sell and redistribute the code, without having to credit the author.
+  - The software comes "as is", without any warranty, and the authors are not liable for any claim or damage arising from its use (see [LICENSE](./LICENSE)).
   - Third-party libraries keep their own licences (mostly MIT, BSD and Apache 2.0). Distributing an APK should include their licence notices.
+- **Responsibility for use:**
+  - The authors provide a player only. They do not provide, host, select or link to any content, provider or channel list.
+  - They have no control over how the code or apps built from it are used.
+  - Whoever uses, runs, modifies or distributes this software is solely responsible for complying with the law, including copyright, and with their provider's terms.
+  - Using this software to watch, download or share content without the rights holder's permission is not intended or endorsed.
 - **Names:** "Xtream Codes" is used only to describe the provider API this app speaks. The app is not affiliated with any provider.
 
 ## Architecture
@@ -188,6 +194,7 @@ TV app on a real device: direct mode needs no address. For "My server", `APP_API
 
 | File | Purpose |
 |------|---------|
+| `LICENSE` | MIT No Attribution (`MIT-0`). |
 | `package.json` | npm workspaces, root scripts, `react-native` → `react-native-tvos` override. |
 | `turbo.json` | Turborepo task pipeline. |
 | `tsconfig.base.json` | Shared TypeScript compiler options. |

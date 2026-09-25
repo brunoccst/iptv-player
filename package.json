@@ -1,6 +1,7 @@
 {
   "name": "iptv-player-monorepo",
   "private": true,
+  "license": "MIT-0",
   "packageManager": "npm@10.9.7",
   "engines": {
     "node": ">=22"
