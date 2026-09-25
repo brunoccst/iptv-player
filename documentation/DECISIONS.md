@@ -991,3 +991,5 @@ Decision:
 Consequences:
 - Switching an installed debug-signed app to the release key needs one uninstall (Android refuses a different signature). Downloads and the sign-in on that device are lost once.
 - The key must be backed up. Without it, later APKs cannot install over installed ones.
+
+Update 2026-09-25 (requested by owner: automate the setup): the script also saves both secrets itself with the GitHub CLI (`gh secret set`) after a one-time browser login. It ignores the Codespace's own token, which cannot write secrets. A workflow cannot create and store the key by itself: its token has no permission to write secrets, and in a public repository artifacts, release files and caches are readable by others. Backing up `.signing/` stays manual.
