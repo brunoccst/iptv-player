@@ -57,6 +57,7 @@ public static class DependencyInjection
         services.AddScoped<SessionService>();
         services.AddScoped<ProfileService>();
         services.AddScoped<ProgressService>();
+        services.AddScoped<WatchlistService>();
         services.AddScoped<CatalogService>();
         services.AddScoped<PlaybackService>();
         services.AddScoped<LibrarySyncService>();

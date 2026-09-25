@@ -16,6 +16,7 @@ import {
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton } from '../components/DownloadButton';
+import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
@@ -104,6 +105,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           }
         />
         <DownloadButton target={target} />
+        <WatchlistButton section="movies" title={master} />
       </DetailsHero>
       <Body
         main={
@@ -155,6 +157,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           onPress={play}
           testID="details-play"
         />
+        <WatchlistButton section="series" title={master} />
       </DetailsHero>
       <Body
         main={

@@ -78,6 +78,8 @@ OpenAPI document: served at `GET /openapi/v1.json` (Development only) and writte
 | PUT/DELETE | `/api/profiles/{id}` | Bearer | Update / delete profile (last one cannot be deleted). |
 | GET | `/api/profiles/{id}/progress?limit=` | Bearer | Watch progress, newest first ("Continue Watching"). |
 | PUT/DELETE | `/api/profiles/{id}/progress/{movie\|episode}/{itemId}` | Bearer | Save / remove a position. |
+| GET | `/api/profiles/{id}/watchlist` | Bearer | "My List", newest first (D-055). |
+| PUT/DELETE | `/api/profiles/{id}/watchlist/{movies\|series}/{masterId}` | Bearer | Add (body: `title`, `year`, `posterUrl`; adding again updates them) / remove a title. At most 500 per profile. |
 | GET | `/api/catalog/live/categories`, `/api/catalog/live/channels?categoryId=` | Bearer | Live TV. |
 | GET | `/api/catalog/movies/categories`, `/api/catalog/movies?categoryId=`, `/api/catalog/movies/{id}` | Bearer | VOD. |
 | GET | `/api/catalog/series/categories`, `/api/catalog/series?categoryId=`, `/api/catalog/series/{id}` | Bearer | Series + seasons + episodes. |

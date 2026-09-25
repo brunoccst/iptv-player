@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Profile> Profiles => Set<Profile>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<WatchProgress> WatchProgress => Set<WatchProgress>();
+    public DbSet<WatchlistItem> Watchlist => Set<WatchlistItem>();
     public DbSet<EpgProgrammeRow> EpgProgrammes => Set<EpgProgrammeRow>();
     public DbSet<EpgState> EpgStates => Set<EpgState>();
 
@@ -45,6 +46,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             progress.Property(p => p.ItemId).HasMaxLength(64);
             progress.Property(p => p.Title).HasMaxLength(300);
             progress.HasOne(p => p.Profile).WithMany().HasForeignKey(p => p.ProfileId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WatchlistItem>(item =>
+        {
+            item.ToTable("Watchlist");
+            item.HasIndex(i => new { i.ProfileId, i.Section, i.MasterId }).IsUnique();
+            item.Property(i => i.Section).HasMaxLength(16);
+            item.Property(i => i.MasterId).HasMaxLength(64);
+            item.Property(i => i.Title).HasMaxLength(300);
+            item.HasOne(i => i.Profile).WithMany().HasForeignKey(i => i.ProfileId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<EpgProgrammeRow>(programme =>

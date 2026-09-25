@@ -64,3 +64,20 @@ public sealed class WatchProgress
     public DateTimeOffset UpdatedAt { get; set; }
     public Profile? Profile { get; set; }
 }
+
+/// <summary>A title a profile saved to watch later ("My List", D-055). Points at a library master.</summary>
+public sealed class WatchlistItem
+{
+    public Guid Id { get; set; }
+    public Guid ProfileId { get; set; }
+
+    /// <summary><c>movies</c> or <c>series</c> (library section).</summary>
+    public required string Section { get; set; }
+
+    public required string MasterId { get; set; }
+    public required string Title { get; set; }
+    public int? Year { get; set; }
+    public string? PosterUrl { get; set; }
+    public DateTimeOffset AddedAt { get; set; }
+    public Profile? Profile { get; set; }
+}

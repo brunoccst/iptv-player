@@ -76,6 +76,7 @@ app.MapHealthEndpoints();
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapProgressEndpoints();
+app.MapWatchlistEndpoints();
 app.MapCatalogEndpoints();
 app.MapEpgEndpoints();
 app.MapPlaybackEndpoints();

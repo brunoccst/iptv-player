@@ -10,6 +10,8 @@ import type {
   ProgressKind,
   ProgressRequest,
   SortOrder,
+  WatchlistDto,
+  WatchlistRequest,
 } from './types';
 
 /** Omitted `sort` = `added`; omitted `order` = `desc` for dates, `asc` for titles (D-049). */
@@ -75,6 +77,21 @@ export function createApiClient(http: HttpClient) {
         http.request<OperationResult<'deleteProgress', 204>>(
           'DELETE',
           `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`,
+        ),
+    },
+
+    /** "My List" per profile (D-055). */
+    watchlist: {
+      list: (profileId: string, signal?: AbortSignal) =>
+        get<WatchlistDto[]>(`/api/profiles/${segment(profileId)}/watchlist`, undefined, signal),
+      add: (profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest) =>
+        http.request<WatchlistDto>('PUT', `/api/profiles/${segment(profileId)}/watchlist/${section}/${segment(masterId)}`, {
+          body: request,
+        }),
+      remove: (profileId: string, section: LibrarySection, masterId: string) =>
+        http.request<OperationResult<'removeFromWatchlist', 204>>(
+          'DELETE',
+          `/api/profiles/${segment(profileId)}/watchlist/${section}/${segment(masterId)}`,
         ),
     },
 

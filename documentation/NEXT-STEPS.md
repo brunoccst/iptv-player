@@ -38,6 +38,7 @@ flowchart LR
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
 - [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
 - [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
+- [x] **Watchlist** (requested 2026-09-25, D-055): "My List" per profile, from the details panel, with a Home row and its own page.
 - [x] **Kids profile filters content** (suggested, chosen 2026-09-25, D-053): Kids profiles only see kids categories.
 - [x] **Signed APK** (suggested, chosen 2026-09-25, D-052): `tv-apk.yml` signs with a release key from repository secrets, so new APKs install over old ones.
 - [x] **Periodic library sync** (suggested, chosen 2026-09-25, D-051): server libraries refresh in the background every 12 h for signed-in accounts (KI-016).

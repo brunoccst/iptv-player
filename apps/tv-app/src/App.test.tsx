@@ -68,6 +68,29 @@ describe('App (TV)', () => {
     expect(await screen.findByText('Your IPTV provider rejected this username or password.')).toBeTruthy();
   });
 
+  it('My List: the details button saves the title and Home shows a My List row (D-055)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/profiles/p1/watchlist', { body: [] });
+    backend.on('PUT', '/api/profiles/p1/watchlist/movies/m1', ({ body }) => ({
+      body: { section: 'movies', masterId: 'm1', ...(body as object), addedAt: '2026-09-25T00:00:00Z' },
+    }));
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.watchlist.getState().load('p1', { force: true })));
+
+    await act(async () => navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' }));
+    await flush();
+    await fireEvent.press(screen.getByLabelText('Add Big Test Movie to My List'));
+    await flush();
+    expect(backend.calls.find((c) => c.method === 'PUT')?.body).toEqual({ title: 'Big Test Movie', year: 2020, posterUrl: null });
+    expect(screen.getByLabelText('Remove Big Test Movie from My List')).toBeTruthy();
+
+    pressBack();
+    await flush();
+    expect(screen.getByTestId('row-mylist')).toBeTruthy();
+  });
+
   it('details: version picker, download with metadata, Back returns home', async () => {
     const backend = setupApp();
     stubLibrary(backend);

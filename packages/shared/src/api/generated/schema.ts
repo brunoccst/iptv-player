@@ -369,6 +369,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profiles/{profileId}/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listWatchlist"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles/{profileId}/watchlist/{section}/{masterId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["addToWatchlist"];
+        post?: never;
+        delete: operations["removeFromWatchlist"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -625,6 +657,22 @@ export interface components {
             rawTitle: string;
             source: null | string;
             streamId: string;
+        };
+        WatchlistDto: {
+            /** Format: date-time */
+            addedAt: string;
+            masterId: string;
+            posterUrl: null | string;
+            section: string;
+            title: string;
+            /** Format: int32 */
+            year: null | number;
+        };
+        WatchlistRequest: {
+            posterUrl?: null | string;
+            title: string;
+            /** Format: int32 */
+            year?: null | number;
         };
     };
     responses: never;
@@ -1621,6 +1669,108 @@ export interface operations {
                 itemId: string;
                 kind: string;
                 profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listWatchlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistDto"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    addToWatchlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                masterId: string;
+                profileId: string;
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WatchlistRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeFromWatchlist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                masterId: string;
+                profileId: string;
+                section: string;
             };
             cookie?: never;
         };
