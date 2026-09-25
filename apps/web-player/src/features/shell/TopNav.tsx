@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { selectActiveProfile } from '@iptv/shared';
+import { needsPinToOpen, selectActiveProfile } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
-import { useSession, useUi } from '../../hooks/stores';
+import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
 import { avatarColor } from '../profiles/avatar';
+import { usePinGate } from '../profiles/PinDialog';
+import { PinSettings } from '../profiles/PinSettings';
 
 const LINKS: { view: View; label: string }[] = [
   { view: 'home', label: 'Home' },
@@ -23,6 +25,9 @@ export function TopNav() {
   const profiles = useSession((s) => s.profiles);
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pinSettings, setPinSettings] = useState(false);
+  const pinStatus = usePin((s) => s.status);
+  const { gate, dialog } = usePinGate();
   const ui = uiStore.getState();
 
   useEffect(() => {
@@ -85,8 +90,11 @@ export function TopNav() {
                     className="menu__item"
                     onClick={() => {
                       setMenuOpen(false);
-                      stores.session.getState().selectProfile(p.id);
-                      ui.navigate('home');
+                      // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
+                      gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                        stores.session.getState().selectProfile(p.id);
+                        ui.navigate('home');
+                      });
                     }}
                   >
                     <span className="menu__avatar" style={{ background: avatarColor(p), width: 26, height: 26 }}>
@@ -97,6 +105,17 @@ export function TopNav() {
                 ))}
               <button type="button" role="menuitem" className="menu__item" onClick={() => stores.session.getState().selectProfile(null)}>
                 <Icon name="pencil" size={18} /> Manage Profiles
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="menu__item"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setPinSettings(true);
+                }}
+              >
+                <Icon name="lock" size={18} /> Parental PIN
               </button>
               <button
                 type="button"
@@ -126,6 +145,8 @@ export function TopNav() {
           ) : null}
         </div>
       </div>
+      {dialog}
+      {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
     </header>
   );
 }

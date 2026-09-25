@@ -1,21 +1,36 @@
 import { useState } from 'react';
-import type { ProfileDto } from '@iptv/shared';
+import { needsPinToManage, needsPinToOpen, type ProfileDto } from '@iptv/shared';
 import { stores } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
-import { useSession } from '../../hooks/stores';
+import { usePin, useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { AVATAR_COLORS, avatarColor } from './avatar';
+import { usePinGate } from './PinDialog';
 
 const MAX_PROFILES = 5;
 
-/** "Who's watching?" screen. Manage mode edits or deletes profiles. */
+/** "Who's watching?" screen. Manage mode edits or deletes profiles. With a parental PIN (D-054), regular profiles and managing ask for it. */
 export function ProfilePicker() {
   const profiles = useSession((s) => s.profiles);
+  const pinStatus = usePin((s) => s.status);
   const [managing, setManaging] = useState(false);
   const [editing, setEditing] = useState<ProfileDto | 'new' | null>(null);
+  // Once the PIN was entered for managing, it is not asked again until the picker closes.
+  const [unlocked, setUnlocked] = useState(false);
+  const { gate, dialog } = usePinGate();
+  const manage = (action: () => void) =>
+    gate(needsPinToManage(pinStatus) && !unlocked, 'Enter the parental PIN to manage profiles', () => {
+      setUnlocked(true);
+      action();
+    });
 
-  const select = (profile: ProfileDto) => (managing ? setEditing(profile) : stores.session.getState().selectProfile(profile.id));
+  const select = (profile: ProfileDto) =>
+    managing
+      ? setEditing(profile)
+      : gate(needsPinToOpen(pinStatus, null, profile), `Enter the parental PIN to open ${profile.name}`, () =>
+          stores.session.getState().selectProfile(profile.id),
+        );
 
   return (
     <main className="center-screen profiles">
@@ -32,7 +47,7 @@ export function ProfilePicker() {
             </button>
           ))}
           {profiles.length < MAX_PROFILES ? (
-            <button type="button" className="profile-tile" onClick={() => setEditing('new')}>
+            <button type="button" className="profile-tile" onClick={() => manage(() => setEditing('new'))}>
               <span className="profile-tile__avatar profile-tile__avatar--add">
                 <Icon name="plus" size={48} />
               </span>
@@ -40,11 +55,16 @@ export function ProfilePicker() {
             </button>
           ) : null}
         </div>
-        <button type="button" className="button button--ghost" onClick={() => setManaging(!managing)}>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
+        >
           {managing ? 'Done' : 'Manage Profiles'}
         </button>
       </div>
       {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
+      {dialog}
     </main>
   );
 }

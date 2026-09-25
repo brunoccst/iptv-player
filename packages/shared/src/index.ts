@@ -13,6 +13,7 @@ export * from './stores/playerStore';
 export * from './stores/progressStore';
 export * from './stores/watchlistStore';
 export * from './stores/downloadsOwner';
+export * from './stores/pinStore';
 export { isKidsCategory } from './profiles/kidsFilter';
 export * from './playback/rules';
 export * from './playback/sources';
