@@ -27,6 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/icon.png',
   android: {
     package: requireEnv('APP_ANDROID_PACKAGE'),
+    // tv-apk.yml passes its run number so each APK counts as a newer version (D-052).
+    versionCode: Number(process.env.APP_ANDROID_VERSION_CODE) || 1,
     adaptiveIcon: { foregroundImage: './assets/adaptive-icon.png', backgroundColor: '#141414' },
   },
   plugins: [
@@ -47,6 +49,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+    './plugins/withReleaseSigning.js',
   ],
   extra: {
     APP_NAME: requireEnv('APP_NAME'),

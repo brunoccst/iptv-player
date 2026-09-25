@@ -38,5 +38,11 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', 'apps/tv-app/test/**', 'apps/tv-app/jest.config.js', 'apps/tv-app/babel.config.js'],
     languageOptions: { globals: { ...globals.jest } },
   },
+  {
+    // Expo config plugins are loaded by Node as CommonJS during prebuild.
+    files: ['apps/tv-app/plugins/**/*.js'],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
   prettier,
 );

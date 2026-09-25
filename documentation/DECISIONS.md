@@ -56,6 +56,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-049](#d-049) | 2026-09-25 | Library sort: recently added by default; name and release date on request |
 | [D-050](#d-050) | 2026-09-25 | Offline downloads: encrypted on Android, tied to the account, 30-day online check |
 | [D-051](#d-051) | 2026-09-25 | Periodic library sync in the backend |
+| [D-052](#d-052) | 2026-09-25 | Release-signed APK and increasing version codes |
 
 ---
 
@@ -973,3 +974,20 @@ Decision:
 Why accounts with a valid session: signed-out accounts do not need fresh data, and each sync downloads the full provider catalog.
 
 Direct mode is unchanged: the app already rebuilds its library in the background when it is older than 24 h (D-038).
+
+## D-052
+
+**Release-signed APK and increasing version codes** — 2026-09-25 (chosen by owner from the suggestions)
+
+Before: every APK was signed with the Android debug key and had version code 1, so updates needed "uninstall first" in some cases.
+
+Decision:
+- `scripts/create-signing-key.sh` creates one release key (PKCS12, RSA 2048, valid 100 years) in the git-ignored `.signing/` folder and prints two values for the repository secrets `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD`. It uses keytool, or openssl when Java is missing.
+- The config plugin `apps/tv-app/plugins/withReleaseSigning.js` adds a release signing config to the generated Gradle file. It uses the key only when `ANDROID_KEYSTORE_FILE` is set at build time, so local builds still work without it.
+- `tv-apk.yml` decodes the secrets, signs with the release key, and prints the certificate fingerprint in the run summary. Without secrets it warns and falls back to the debug key.
+- `tv-apk.yml` sets the version code to its run number, so each APK counts as newer than the last.
+- The emulator CI signs with a throwaway key made by the same script, so the signing setup is tested on every TV change.
+
+Consequences:
+- Switching an installed debug-signed app to the release key needs one uninstall (Android refuses a different signature). Downloads and the sign-in on that device are lost once.
+- The key must be backed up. Without it, later APKs cannot install over installed ones.

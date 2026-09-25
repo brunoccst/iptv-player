@@ -73,8 +73,15 @@ jobs:
         working-directory: apps/tv-app
         run: CI=1 npx expo prebuild --platform android --no-install
 
+      # Signs with a throwaway key so the release-signing setup (D-052) is exercised on every change.
+      - name: Throwaway signing key
+        run: |
+          bash scripts/create-signing-key.sh > /dev/null
+          echo "ANDROID_KEYSTORE_FILE=$PWD/.signing/iptv-player-release.p12" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$(cat .signing/ANDROID_KEYSTORE_PASSWORD.txt)" >> "$GITHUB_ENV"
+
       # Only the emulator's ABI: native code compiles once instead of three times. The ARM APK for real TVs is tv-apk.yml.
-      - name: Build release APK (debug-signed)
+      - name: Build release APK
         working-directory: apps/tv-app/android
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86
 

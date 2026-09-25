@@ -31,3 +31,6 @@ local.settings.json
 *.user
 .DS_Store
 coverage/
+
+# APK signing key (scripts/create-signing-key.sh). Never commit.
+.signing/
