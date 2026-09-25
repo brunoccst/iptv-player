@@ -16,6 +16,7 @@ import {
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton } from '../components/DownloadButton';
+import { ExternalPlayerButton } from '../components/ExternalPlayerButton';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -105,6 +106,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           }
         />
         <DownloadButton target={target} />
+        <ExternalPlayerButton target={target} testID="details-external" />
         <WatchlistButton section="movies" title={master} />
       </DetailsHero>
       <Body
@@ -241,6 +243,7 @@ function Episodes({
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
             <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
             <DownloadButton target={target} />
+            <ExternalPlayerButton target={target} testID={`episode-${episode.id}-external`} />
           </View>
         );
         return (

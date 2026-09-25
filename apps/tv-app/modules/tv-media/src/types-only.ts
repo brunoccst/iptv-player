@@ -56,3 +56,6 @@ export interface TvPlayerViewRef {
   /** `groupIndex` -1 turns text tracks off. */
   selectTrack(type: 'audio' | 'text', groupIndex: number, trackIndex: number): Promise<void>;
 }
+
+/** `opened`: a default player took the stream; `chooser`: the system app chooser was shown; `none`: no player app. */
+export type ExternalPlayerResult = 'opened' | 'chooser' | 'none';

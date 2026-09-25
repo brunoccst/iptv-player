@@ -4,6 +4,18 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+  <!-- External players (D-057): Android 11+ only lists apps the manifest declares interest in. -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="video/*" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:mimeType="application/vnd.apple.mpegurl" />
+    </intent>
+  </queries>
+
   <application>
     <!-- Media3 DownloadService: keeps downloads running while the app is in the background. -->
     <service

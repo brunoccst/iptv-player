@@ -7,7 +7,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `index.ts`, `src/index.ts` | JS API: `TvPlayerView` component, `TvMedia` download functions, types. |
 | `expo-module.config.json` | Registers `expo.modules.tvmedia.TvMediaModule`. |
 | `android/build.gradle` | Library build; Media3 dependencies. |
-| `android/src/main/AndroidManifest.xml` | `TvDownloadService` + foreground-service permissions. |
+| `android/src/main/AndroidManifest.xml` | `TvDownloadService` + foreground-service permissions; `<queries>` for video players (D-057). |
 | `android/src/main/java/expo/modules/tvmedia/` | Kotlin sources (see its README). |
 | `android/src/main/res/values/strings.xml` | Download notification channel name. |
 
@@ -21,6 +21,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `TvMedia.removeAllDownloads()` | Deletes every download (sign-out, account change, D-050). |
 | `TvMedia.setUserAgent(ua)` | HTTP User-Agent for playback and downloads; saved natively so resumed downloads use it too (D-038). |
 | `TvMedia.listDownloads()` | All downloads with state, percent, metadata. |
+| `TvMedia.openExternalPlayer(uri, mimeType, title, headers)` | Opens the stream in another player app with `ACTION_VIEW` (headers in the `headers` extra); the app chooser when no default player is set. Returns `opened`, `chooser` or `none` (D-057). |
 | `onDownloadsChanged` event | Fired on state changes (not on every progress tick). |
 
 Tests replace this module with `test/tvMediaMock.tsx` (Jest `moduleNameMapper`).

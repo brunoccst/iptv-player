@@ -61,6 +61,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-054](#d-054) | 2026-09-25 | Optional parental PIN |
 | [D-055](#d-055) | 2026-09-25 | Watchlist ("My List") per profile |
 | [D-056](#d-056) | 2026-09-25 | Password-protected backup and restore of user data |
+| [D-057](#d-057) | 2026-09-25 | Open movies and episodes in an external player (TV/phone) |
 | [D-058](#d-058) | 2026-09-25 | Live TV: see-through guide over the playing channel (TV/phone) |
 
 ---
@@ -1002,6 +1003,8 @@ Consequences:
 
 Update 2026-09-25 (requested by owner: automate the setup): the script also saves both secrets itself with the GitHub CLI (`gh secret set`) after a one-time browser login. It ignores the Codespace's own token, which cannot write secrets. A workflow cannot create and store the key by itself: its token has no permission to write secrets, and in a public repository artifacts, release files and caches are readable by others. Backing up `.signing/` stays manual.
 
+Update 2026-09-25 (requested by owner): `--delete` removes both secrets from the repository (for example to stop signing, or before handing over the repo), and `--replace` makes a new key, keeps the old folder as `.signing.old-<time>` and saves the new secrets (a lost or leaked key). Both ask for "yes" first, because replacing the key means one uninstall on every device.
+
 ## D-053
 
 **Kids profiles show only kids categories** — 2026-09-25 (chosen by owner from the suggestions)
@@ -1056,6 +1059,20 @@ Decision:
 - TV/phone use the Android system pickers from `expo-file-system` to choose a folder (save) or a file (restore), e.g. Downloads, a USB stick or a cloud drive. No new native modules or permissions.
 
 Alternatives: an unencrypted file (holds the provider password, rejected); syncing through the backend (most users run without one).
+
+## D-057
+
+**Open movies and episodes in an external player (TV/phone)** — 2026-09-25 (requested in PR #18)
+
+Decision:
+- The details panel has a round "open in another player" button next to Play (movies) and next to each episode's Play and Download buttons. It hands the stream to an installed video player such as VLC, MX Player or Just Player.
+- The app asks for the same stream our player would start with (the original file, else HLS) and sends it with an Android `ACTION_VIEW` intent: MIME type `video/*` (`application/vnd.apple.mpegurl` for HLS), the title in the `title` extra, and the provider User-Agent in the `headers` extra (`["User-Agent", "…"]`, read by MX Player and Just Player).
+- When the user has chosen a default video player, Android opens it directly; otherwise the system app chooser is shown. With no player app installed, a message suggests installing one.
+- Server mode hands over the relay URL, which carries its own short-lived token, so the other app needs no login. Offline, and for downloads, the button explains that downloads only play in this app (they are encrypted, D-050).
+- The manifest declares a `<queries>` entry for video intents, which Android 11+ needs to list other players.
+- Web: not offered (browsers cannot start another app with a stream).
+
+Consequences: progress watched in another app is not saved, so Continue Watching does not move (KI-041).
 
 ## D-058
 
