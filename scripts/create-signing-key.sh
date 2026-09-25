@@ -1,14 +1,66 @@
 #!/usr/bin/env bash
 # APK signing key (D-052): creates it once in .signing/ (git-ignored), then saves the two repository secrets
-# tv-apk.yml needs with the GitHub CLI. An existing key is reused, never replaced. Back up .signing/.
-# Usage: scripts/create-signing-key.sh [--no-upload]   (--no-upload: only create; CI uses it for a throwaway key)
+# tv-apk.yml needs with the GitHub CLI. An existing key is reused unless --replace is given. Back up .signing/.
+# Usage: scripts/create-signing-key.sh [--no-upload | --replace | --delete]
+#   --no-upload  only create the key (CI uses it for a throwaway key)
+#   --replace    make a new key (the old folder is kept as .signing.old-<time>) and save it to GitHub
+#   --delete     remove the two secrets from GitHub (later APKs are debug-signed again); .signing/ stays
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/.signing"
 KEYSTORE="$OUT/iptv-player-release.p12"
 ALIAS="iptv-player"
-UPLOAD=1
-[ "${1:-}" = "--no-upload" ] && UPLOAD=0
+SECRETS=(ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD)
+MODE="${1:-create}"
+case "$MODE" in
+  create | --no-upload | --replace | --delete) ;;
+  *)
+    sed -n '4,7p' "$0" | sed 's/^# \{0,1\}//'
+    exit 2
+    ;;
+esac
+
+# Asks before anything that cannot be undone.
+confirm() {
+  printf '%s Type "yes" to continue: ' "$1"
+  read -r answer
+  [ "$answer" = "yes" ] || { echo "Nothing changed."; exit 1; }
+}
+
+REPO="$(git -C "$ROOT" remote get-url origin 2>/dev/null | sed -E 's#^(https://[^/]+/|git@[^:]+:)##; s#\.git$##')" || true
+# Codespaces set GITHUB_TOKEN, which may not save secrets; use your own login instead.
+ghx() { env -u GITHUB_TOKEN -u GH_TOKEN gh "$@"; }
+gh_login() {
+  if ! command -v gh >/dev/null 2>&1; then
+    echo "The GitHub CLI (gh) is not installed."
+    return 1
+  fi
+  if ! ghx auth status -h github.com >/dev/null 2>&1; then
+    echo
+    echo "Log in to GitHub once so the script can change the secrets (a browser tab or a one-time code follows)."
+    ghx auth login -h github.com --web --git-protocol https
+  fi
+}
+
+if [ "$MODE" = "--delete" ]; then
+  confirm "This removes ${SECRETS[*]} from $REPO. Later APKs are signed with the public debug key again."
+  if ! gh_login; then
+    echo "Delete them by hand: GitHub → Settings → Secrets and variables → Actions."
+    exit 1
+  fi
+  for name in "${SECRETS[@]}"; do
+    if ghx secret delete "$name" --repo "$REPO" 2>/dev/null; then echo "Deleted $name."; else echo "$name was not set."; fi
+  done
+  [ -e "$KEYSTORE" ] && echo "The local key in .signing/ was not touched; delete that folder yourself if you no longer need it."
+  exit 0
+fi
+
+if [ "$MODE" = "--replace" ] && [ -e "$KEYSTORE" ]; then
+  confirm "This makes a new key. Installed apps signed with the old one need one uninstall (back up the app data first)."
+  OLD="$ROOT/.signing.old-$(date +%Y%m%d-%H%M%S)"
+  mv "$OUT" "$OLD"
+  echo "The old key moved to $OLD"
+fi
 
 if [ -e "$KEYSTORE" ]; then
   echo "Using the existing key: $KEYSTORE"
@@ -35,7 +87,7 @@ fi
 FINGERPRINT="$(openssl pkcs12 -in "$KEYSTORE" -passin "file:$OUT/ANDROID_KEYSTORE_PASSWORD.txt" -nokeys 2>/dev/null \
   | openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d= -f2 || true)"
 [ -n "$FINGERPRINT" ] && echo "Certificate SHA-256: $FINGERPRINT (tv-apk.yml prints the same in its summary)"
-[ "$UPLOAD" = 1 ] || exit 0
+[ "$MODE" = "--no-upload" ] && exit 0
 
 manual() {
   cat <<MSG
@@ -52,20 +104,11 @@ backup() {
   echo "If it is lost, the next APK needs a new key and one uninstall (back up the app data first)."
 }
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "The GitHub CLI (gh) is not installed, so the secrets cannot be saved automatically."
+if ! gh_login; then
+  echo "The secrets cannot be saved automatically."
   manual
   backup
   exit 0
-fi
-
-REPO="$(git -C "$ROOT" remote get-url origin | sed -E 's#^(https://[^/]+/|git@[^:]+:)##; s#\.git$##')"
-# Codespaces set GITHUB_TOKEN, which may not save secrets; use your own login instead.
-ghx() { env -u GITHUB_TOKEN -u GH_TOKEN gh "$@"; }
-if ! ghx auth status -h github.com >/dev/null 2>&1; then
-  echo
-  echo "Log in to GitHub once so the script can save the secrets (a browser tab or a one-time code follows)."
-  ghx auth login -h github.com --web --git-protocol https
 fi
 
 if ghx secret set ANDROID_KEYSTORE_BASE64 --repo "$REPO" < "$OUT/ANDROID_KEYSTORE_BASE64.txt" \
