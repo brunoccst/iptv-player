@@ -4,7 +4,9 @@ import { Dimensions, Platform } from 'react-native';
 import { HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
+import { navStore } from '../appContext';
 import { playback, pressBack, setupApp } from '../../test/utils';
+import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { PlayerScreen } from './PlayerScreen';
 
 const movie: PlayTarget = { kind: 'movie', streamId: '55', container: 'mkv', title: 'Heat', subtitle: '4K' };
@@ -248,6 +250,108 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('right', 'up'));
     expect(playerState.seeks).toEqual([]);
   });
+  describe('live guide overlay (D-058)', () => {
+    const news: PlayTarget = { kind: 'live', streamId: '7', container: 'm3u8', title: 'News', categoryId: '1' };
+    const channel = (id: string, name: string) => ({
+      id,
+      name,
+      categoryId: '1',
+      number: Number(id),
+      logoUrl: null,
+      epgChannelId: null,
+      hasCatchup: false,
+    });
+    function stubGuide() {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/live/7', { body: playback('http://relay/7.m3u8', 'm3u8') });
+      const now = Date.now();
+      const at = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
+      backend.on('GET', '/api/epg', {
+        body: {
+          status: 'ready',
+          totalChannels: 2,
+          from: at(-30),
+          to: at(150),
+          updatedAt: null,
+          channels: [
+            { channel: channel('7', 'News'), programmes: [{ title: 'Evening News', description: null, start: at(-10), end: at(20) }] },
+            {
+              channel: channel('8', 'Sports'),
+              programmes: [
+                { title: 'Match Live', description: null, start: at(-5), end: at(25) },
+                { title: 'Highlights', description: null, start: at(25), end: at(55) },
+              ],
+            },
+          ],
+        },
+      });
+      navStore.setState({
+        stack: [
+          { name: 'section', section: 'live' },
+          { name: 'player', target: news },
+        ],
+      });
+      return backend;
+    }
+
+    it('↑ opens a guide of the category over the playing channel; Select switches channel', async () => {
+      const backend = stubGuide();
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      await act(async () => pressRemote('up', 'down'));
+      await flush();
+
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
+      expect(backend.calls.find((c) => c.url.pathname === '/api/epg')?.url.searchParams.get('categoryId')).toBe('1');
+      expect(screen.getByTestId('guide-channel-7')).toHaveProp('accessibilityState', { selected: true });
+      expect(screen.getByText(/Match Live/)).toBeTruthy();
+      expect(screen.getByText(/^Next .* · Highlights$/)).toBeTruthy();
+      // The stream keeps playing: same source, not paused.
+      expect(playerState.props).toMatchObject({ source: { uri: 'http://relay/7.m3u8' }, paused: false });
+
+      await fireEvent.press(screen.getByTestId('guide-channel-8'));
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+      expect(navStore.getState().stack.at(-1)).toMatchObject({
+        name: 'player',
+        target: { kind: 'live', streamId: '8', title: 'Sports', subtitle: 'Match Live', categoryId: '1' },
+      });
+    });
+
+    it('closes after a few seconds without input, and with Back', async () => {
+      stubGuide();
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      await act(async () => pressRemote('up', 'down'));
+      await flush();
+      await act(async () => jest.advanceTimersByTime(GUIDE_HIDE_MS - 500));
+      await fireEvent(screen.getByTestId('guide-channel-8'), 'focus');
+      await act(async () => jest.advanceTimersByTime(GUIDE_HIDE_MS - 500));
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
+      await act(async () => jest.advanceTimersByTime(1000));
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+
+      await act(async () => pressRemote('up', 'down'));
+      await flush();
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
+      await act(async () => pressBack());
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+      expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player' });
+    });
+
+    it('phones open it with the Guide button', async () => {
+      jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+      stubGuide();
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      await fireEvent.press(screen.getByTestId('player-guide'));
+      await flush();
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
+      await fireEvent.press(screen.getByLabelText('Close guide'));
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+      jest.restoreAllMocks();
+    });
+  });
+
   describe('on a phone', () => {
     beforeEach(() => jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false));
     afterEach(() => jest.restoreAllMocks());

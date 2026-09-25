@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { LibrarySection, LibrarySortChoice, LiveChannel } from '@iptv/shared';
+import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
@@ -108,7 +108,7 @@ function ChannelResults({ query }: { query: string }) {
             onPress={() =>
               navStore.getState().push({
                 name: 'player',
-                target: { kind: 'live', streamId: channel.id, container: 'm3u8', title: channel.name, posterUrl: channel.logoUrl },
+                target: liveTarget(channel),
               })
             }
           />

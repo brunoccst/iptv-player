@@ -1,4 +1,4 @@
-import type { Episode, MasterDetails, PlaybackKind, ProgressDto, VariantInfo } from '../api/types';
+import type { Episode, LiveChannel, MasterDetails, PlaybackKind, ProgressDto, VariantInfo } from '../api/types';
 import { episodeLabel } from './rules';
 
 /** Everything a player needs to start, switch versions, save progress and find the next episode. */
@@ -15,6 +15,21 @@ export interface PlayTarget {
   episodeNumber?: number | null;
   /** Seconds to seek to after load. Undefined = use saved progress. */
   startAt?: number;
+  /** Live: the channel's category, so the player's guide overlay lists its neighbours (D-058). */
+  categoryId?: string | null;
+}
+
+/** A live channel; `programme` is the title shown under the channel name. */
+export function liveTarget(channel: LiveChannel, programme?: string | null): PlayTarget {
+  return {
+    kind: 'live',
+    streamId: channel.id,
+    container: 'm3u8',
+    title: channel.name,
+    subtitle: programme ?? null,
+    posterUrl: channel.logoUrl,
+    categoryId: channel.categoryId,
+  };
 }
 
 export function movieTarget(master: MasterDetails, variant: VariantInfo): PlayTarget {

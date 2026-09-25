@@ -4,6 +4,7 @@ import {
   continueWatching,
   watchlistCard,
   describeLibraryProgress,
+  liveTarget,
   movieTarget,
   pageKey,
   progressTarget,
@@ -200,11 +201,7 @@ function LiveRow() {
           title={c.name}
           posterUrl={c.logoUrl}
           badge="LIVE"
-          onPress={() =>
-            navStore
-              .getState()
-              .push({ name: 'player', target: { kind: 'live', streamId: c.id, container: 'm3u8', title: c.name, posterUrl: c.logoUrl } })
-          }
+          onPress={() => navStore.getState().push({ name: 'player', target: liveTarget(c) })}
         />
       )}
     />
