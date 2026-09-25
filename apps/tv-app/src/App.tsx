@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, BackHandler, Image, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { TopNav } from './components/TopNav';
@@ -26,6 +26,11 @@ export function App() {
   const status = useSession((s) => s.status);
   const activeProfileId = useSession((s) => s.activeProfileId);
   const offline = useSession((s) => s.offline);
+  const playing = useNav((s) => currentRoute(s).name === 'player');
+  // Phones show the status bar and start the app below it, so rounded corners and the camera cut-out do not cover
+  // the header. The player (and TVs) stay full screen.
+  const fullScreen = Platform.isTV || (playing && status === 'authenticated' && !!activeProfileId);
+  const topInset = fullScreen ? 0 : (SystemBars.currentHeight ?? 0);
 
   useEffect(() => {
     void stores.session.getState().restore();
@@ -39,16 +44,19 @@ export function App() {
 
   return (
     <View style={styles.root}>
-      <StatusBar hidden />
-      {status === 'idle' || status === 'restoring' ? (
-        <Starting />
-      ) : status === 'anonymous' ? (
-        <LoginScreen />
-      ) : !activeProfileId ? (
-        <ProfilesScreen />
-      ) : (
-        <Shell />
-      )}
+      <StatusBar hidden={fullScreen} style="light" />
+      <View style={{ height: topInset }} testID="status-bar-space" />
+      <View style={styles.app}>
+        {status === 'idle' || status === 'restoring' ? (
+          <Starting />
+        ) : status === 'anonymous' ? (
+          <LoginScreen />
+        ) : !activeProfileId ? (
+          <ProfilesScreen />
+        ) : (
+          <Shell />
+        )}
+      </View>
     </View>
   );
 }
@@ -106,6 +114,7 @@ function Shell() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  app: { flex: 1 },
   shell: { flex: 1 },
   content: { flex: 1 },
   starting: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },

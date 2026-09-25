@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert, type AlertButton } from 'react-native';
+import { Alert, Platform, StatusBar, type AlertButton } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import { BACKUP_FORMAT, createMemoryStorage, exportUserData } from '@iptv/shared';
 import { navStore, stores } from './appContext';
@@ -234,6 +234,29 @@ describe('App (TV)', () => {
     await flush();
     expect(await screen.findByTestId('live-screen')).toBeTruthy();
     expect(screen.getByLabelText('News')).toHaveProp('accessibilityState', { selected: true });
+  });
+
+  it('phones start below the status bar (rounded corners, camera cut-out); the player and TVs use the full screen', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/playback/live/7', { body: playback('http://relay/7.m3u8', 'm3u8') });
+    Object.defineProperty(StatusBar, 'currentHeight', { value: 48, configurable: true });
+    const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    await render(<App />);
+    await flush();
+    expect(screen.getByTestId('status-bar-space')).toHaveStyle({ height: 48 });
+
+    await act(async () =>
+      navStore.getState().push({ name: 'player', target: { kind: 'live', streamId: '7', container: 'm3u8', title: 'News' } }),
+    );
+    await flush();
+    expect(screen.getByTestId('status-bar-space')).toHaveStyle({ height: 0 });
+
+    isTV.mockReturnValue(true);
+    await act(async () => navStore.getState().back());
+    await flush();
+    expect(screen.getByTestId('status-bar-space')).toHaveStyle({ height: 0 });
+    isTV.mockRestore();
   });
 
   it('signs out from the account menu after confirming', async () => {
