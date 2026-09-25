@@ -59,6 +59,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-052](#d-052) | 2026-09-25 | Release-signed APK and increasing version codes |
 | [D-053](#d-053) | 2026-09-25 | Kids profiles show only kids categories |
 | [D-054](#d-054) | 2026-09-25 | Optional parental PIN |
+| [D-055](#d-055) | 2026-09-25 | Watchlist ("My List") per profile |
 
 ---
 
@@ -1010,6 +1011,7 @@ Decision:
 
 Not done (see KI-039): a PIN to leave a Kids profile or edit it; per-profile choice of allowed categories.
 
+
 ## D-054
 
 **Optional parental PIN** — 2026-09-25 (requested by owner: "it must be optional to set one up")
@@ -1024,3 +1026,15 @@ Decision:
 Why per device and not on the server: it also has to work in direct mode, where there is no server, and a child is kept out on the device they use.
 
 Limits: the PIN is not shared between devices; on the web, clearing the site's data removes it but also signs out.
+
+## D-055
+
+**Watchlist ("My List") per profile** — 2026-09-25 (requested by owner)
+
+Decision:
+- Each profile can save movies and series to "My List" with a round +/✓ button on the details panel (web and TV/phone). Saved titles show as a "My List" row on Home (after Continue Watching) and on their own page in the top navigation.
+- An entry points at a library title (section + master id, stable across re-syncs) and keeps its title, year and poster, so the list shows without loading the library.
+- Stored like watch progress: in the backend (`/api/profiles/{id}/watchlist`, table `Watchlist`) in server mode, in the device's data storage in direct mode. Deleting a profile deletes its list. At most 500 titles per profile.
+- Adding and removing update the screen at once and are undone if saving fails.
+
+Kids profiles only reach kids titles (D-053), so their lists only hold those. The planned data export will include the lists.

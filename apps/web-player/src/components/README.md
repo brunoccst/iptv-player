@@ -9,3 +9,4 @@
 | `Row.tsx` | Horizontal scrolling row with arrows; `onVisible` for lazy loading; optional title link (`onTitleClick`), `onNearEnd` + `loadingMore` spinner for paging. |
 | `Modal.tsx` | Dialog overlay (Esc, backdrop click, focus). |
 | `DownloadButton.tsx` | "Download for Offline" toggle with progress circle. |
+| `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |

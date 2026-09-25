@@ -156,6 +156,21 @@ test('downloads are encrypted in-app and play offline, even after reload', async
   await expectPlaying(page);
 });
 
+test('My List: save a title from its details and find it on the My List page', async ({ page }) => {
+  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  const details = page.getByRole('dialog');
+  await details.getByRole('button', { name: 'Add Big Test Movie to My List' }).click();
+  await expect(details.getByRole('button', { name: 'Remove Big Test Movie from My List' })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'My List', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'My List' })).toBeVisible();
+  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove Big Test Movie from My List' }).click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Add movies and series with the + button')).toBeVisible();
+});
+
 test('optional parental PIN guards opening a regular profile from the picker', async ({ page }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'Parental PIN' }).click();

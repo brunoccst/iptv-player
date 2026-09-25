@@ -63,6 +63,21 @@ describe('createDirectApiClient', () => {
     await expect(restarted.api.auth.me()).rejects.toMatchObject({ status: 401 });
   });
 
+  it('keeps My List per profile on the device (D-055)', async () => {
+    const { api } = setup();
+    const { profiles } = await api.auth.login(login);
+    const profileId = profiles[0]!.id;
+    await api.watchlist.add(profileId, 'movies', 'm1', { title: 'Heat', year: 1995, posterUrl: null });
+    await api.watchlist.add(profileId, 'series', 's1', { title: 'Dark', year: null, posterUrl: null });
+    await api.watchlist.add(profileId, 'movies', 'm1', { title: 'Heat (1995)', year: 1995, posterUrl: null });
+    expect((await api.watchlist.list(profileId)).map((item) => [item.masterId, item.title])).toEqual([
+      ['m1', 'Heat (1995)'],
+      ['s1', 'Dark'],
+    ]);
+    await api.watchlist.remove(profileId, 'movies', 'm1');
+    expect((await api.watchlist.list(profileId)).map((item) => item.masterId)).toEqual(['s1']);
+  });
+
   it('checks the account with the provider on restore (D-050)', async () => {
     const first = setup();
     await first.api.auth.login(login);

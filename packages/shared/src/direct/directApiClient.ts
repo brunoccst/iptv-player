@@ -20,6 +20,8 @@ import type {
   ProgressKind,
   ProgressRequest,
   SortOrder,
+  WatchlistDto,
+  WatchlistRequest,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
@@ -64,6 +66,8 @@ type LibraryKind = 'movie' | 'series';
 const CREDENTIALS_KEY = 'direct.credentials';
 const profilesKey = (accountId: string) => `direct.profiles.${accountId}`;
 const progressKey = (profileId: string) => `direct.progress.${profileId}`;
+const watchlistKey = (profileId: string) => `direct.watchlist.${profileId}`;
+const MAX_WATCHLIST = 500;
 /** One file per kind: a finished kind never rewrites the other, and each file stays half the size. */
 const libraryKey = (accountId: string, kind: LibraryKind) => `direct.library.v${LIBRARY_FORMAT}.${accountId}.${kind}`;
 /** Plain-JSON files from before the compact format; deleted on load to free space. */
@@ -554,6 +558,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
           profiles.filter((profile) => profile.id !== profileId),
         );
         await options.dataStorage.removeItem(progressKey(profileId));
+        await options.dataStorage.removeItem(watchlistKey(profileId));
         return undefined;
       },
     },
@@ -592,6 +597,41 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
           options.dataStorage,
           progressKey(profileId),
           items.filter((item) => !(item.kind === kind && item.itemId === itemId)),
+        );
+        return undefined;
+      },
+    },
+
+    watchlist: {
+      async list(profileId: string) {
+        await ownedProfile(profileId);
+        const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        return items.sort((a, b) => ordinal(b.addedAt, a.addedAt));
+      },
+      async add(profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest) {
+        await ownedProfile(profileId);
+        const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        const existing = items.find((item) => item.section === section && item.masterId === masterId);
+        if (!existing && items.length >= MAX_WATCHLIST) throw validation(`My List holds at most ${MAX_WATCHLIST} titles.`);
+        const saved: WatchlistDto = {
+          section,
+          masterId,
+          title: request.title.trim(),
+          year: request.year ?? null,
+          posterUrl: request.posterUrl ?? null,
+          addedAt: existing?.addedAt ?? now().toISOString(),
+        };
+        const others = items.filter((item) => item !== existing);
+        await writeJson(options.dataStorage, watchlistKey(profileId), [saved, ...others]);
+        return saved;
+      },
+      async remove(profileId: string, section: LibrarySection, masterId: string) {
+        await ownedProfile(profileId);
+        const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        await writeJson(
+          options.dataStorage,
+          watchlistKey(profileId),
+          items.filter((item) => !(item.section === section && item.masterId === masterId)),
         );
         return undefined;
       },

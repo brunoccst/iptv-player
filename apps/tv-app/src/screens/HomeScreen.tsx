@@ -2,6 +2,7 @@ import { useEffect, useMemo, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
+  watchlistCard,
   describeLibraryProgress,
   movieTarget,
   pageKey,
@@ -14,10 +15,10 @@ import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { useCatalog, useLibrary, useProgress, useSession } from '../hooks';
+import { useCatalog, useLibrary, useProgress, useSession, useWatchlist } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
-import { TitleRow } from './titles';
+import { MasterCardItem, TitleRow } from './titles';
 
 /** Movies the hero picks its featured title from. */
 const HERO_CANDIDATES = 30;
@@ -45,6 +46,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const rows: HomeRow[] = [
     { key: 'banner', render: () => <LibraryBanner processing={processing} /> },
     { key: 'continue', render: () => <ContinueWatchingRow /> },
+    { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
     { key: 'series', render: () => <TitleRow section="series" title="Series" /> },
     ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
@@ -146,6 +148,24 @@ function ContinueWatchingRow() {
           onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
         />
       )}
+    />
+  );
+}
+
+/** Saved titles (D-055): the first 10; the title and the arrow card open My List. */
+function MyListRow() {
+  const items = useWatchlist((s) => s.items.data ?? []);
+  if (items.length === 0) return null;
+  const open = () => navStore.getState().goSection('mylist');
+  return (
+    <Row
+      title="My List"
+      items={items.slice(0, 10)}
+      keyOf={(item) => `${item.section}-${item.masterId}`}
+      testID="row-mylist"
+      onTitlePress={open}
+      more={items.length > 10 ? { onPress: open } : undefined}
+      render={(item) => <MasterCardItem section={item.section} item={watchlistCard(item)} />}
     />
   );
 }

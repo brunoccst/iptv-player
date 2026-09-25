@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { formatDuration, selectVariant, type MasterDetails, type ProgressDto, type VariantInfo } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
+import { WatchlistButton } from '../../components/WatchlistButton';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
@@ -84,6 +85,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           <Icon name="play" /> {resume && resume.itemId === variant.streamId ? 'Resume' : 'Play'}
         </button>
         <DownloadButton target={downloadTarget(movieTarget(master, variant), duration)} />
+        <WatchlistButton section="movies" title={master} />
       </DetailsHero>
       <div className="details__body">
         <div>
@@ -148,6 +150,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           <Icon name="play" />{' '}
           {resume && resume.seriesId === variant.streamId ? `Resume S${resume.seasonNumber}:E${resume.episodeNumber}` : 'Play'}
         </button>
+        <WatchlistButton section="series" title={master} />
       </DetailsHero>
       <div className="details__body">
         <div>

@@ -14,6 +14,7 @@ const LINKS: { section: Section; label: string }[] = [
   { section: 'series', label: 'Series' },
   { section: 'movies', label: 'Movies' },
   { section: 'live', label: 'Live TV' },
+  { section: 'mylist', label: 'My List' },
   { section: 'downloads', label: 'My Downloads' },
 ];
 

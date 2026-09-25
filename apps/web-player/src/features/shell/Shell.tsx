@@ -5,6 +5,7 @@ import { BrowsePage } from '../browse/BrowsePage';
 import { SearchPage } from '../browse/SearchPage';
 import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
+import { MyListPage } from '../browse/MyListPage';
 import { HomePage } from '../home/HomePage';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { LibraryBanner } from './LibraryBanner';
@@ -27,6 +28,7 @@ export function Shell() {
         {view === 'movies' || view === 'series' ? <BrowsePage section={view} banner={<LibraryBanner />} /> : null}
         {view === 'search' ? <SearchPage /> : null}
         {view === 'live' ? <LiveTvPage /> : null}
+        {view === 'mylist' ? <MyListPage /> : null}
         {view === 'downloads' ? <DownloadsPage /> : null}
       </main>
       {details ? <DetailsModal target={details} /> : null}

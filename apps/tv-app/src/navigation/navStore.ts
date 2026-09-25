@@ -2,7 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import type { LibrarySection, PlayTarget } from '@iptv/shared';
 
 /** Same pages as the web top nav, plus Log (account menu). */
-export type Section = 'home' | 'search' | 'movies' | 'series' | 'live' | 'downloads' | 'log';
+export type Section = 'home' | 'search' | 'movies' | 'series' | 'live' | 'mylist' | 'downloads' | 'log';
 
 export type Route =
   | { name: 'section'; section: Section }

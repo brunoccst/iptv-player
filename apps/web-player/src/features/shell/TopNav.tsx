@@ -14,6 +14,7 @@ const LINKS: { view: View; label: string }[] = [
   { view: 'series', label: 'Series' },
   { view: 'movies', label: 'Movies' },
   { view: 'live', label: 'Live TV' },
+  { view: 'mylist', label: 'My List' },
   { view: 'downloads', label: 'My Downloads' },
 ];
 

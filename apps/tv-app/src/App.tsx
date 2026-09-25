@@ -13,6 +13,7 @@ import { DetailsScreen } from './screens/DetailsScreen';
 import { DownloadsScreen } from './screens/DownloadsScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LiveScreen } from './screens/LiveScreen';
+import { MyListScreen } from './screens/MyListScreen';
 import { LogScreen } from './screens/LogScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -90,6 +91,8 @@ function Shell() {
           <LogScreen />
         ) : section === 'live' ? (
           <LiveScreen />
+        ) : section === 'mylist' ? (
+          <MyListScreen />
         ) : (
           <DownloadsScreen />
         )}

@@ -11,6 +11,7 @@ import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
+import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 
@@ -24,6 +25,8 @@ export interface AppContext {
     library: LibraryStore;
     player: PlayerStore;
     progress: ProgressStore;
+    /** "My List" of the active profile (D-055). */
+    watchlist: WatchlistStore;
     /** Optional parental PIN (D-054). */
     pin: PinStore;
     /** Present when direct mode is enabled (native apps). */
@@ -75,6 +78,7 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
+  const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
 
   // Account-scoped caches must not leak into the next login.
@@ -92,9 +96,13 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     // Progress belongs to a profile: reload whenever the active profile changes.
     if (state.activeProfileId !== previous.activeProfileId) {
       progress.getState().reset();
-      if (state.activeProfileId) void progress.getState().load(state.activeProfileId);
+      watchlist.getState().reset();
+      if (state.activeProfileId) {
+        void progress.getState().load(state.activeProfileId);
+        void watchlist.getState().load(state.activeProfileId);
+      }
     }
   });
 
-  return { config, api, stores: { session, catalog, epg, library, player, progress, pin, connection } };
+  return { config, api, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection } };
 }

@@ -36,6 +36,9 @@ export type Season = Schemas['Season'];
 export type SeriesDetails = Schemas['SeriesDetails'];
 export type SeriesSummary = Schemas['SeriesSummary'];
 export type VariantInfo = Schemas['VariantInfo'];
+/** `section` is always a library section (the backend validates it). */
+export type WatchlistDto = Omit<Schemas['WatchlistDto'], 'section'> & { section: LibrarySection };
+export type WatchlistRequest = Schemas['WatchlistRequest'];
 
 /** Route segment for catalog and library endpoints. */
 export type CatalogSection = 'live' | 'movies' | 'series';

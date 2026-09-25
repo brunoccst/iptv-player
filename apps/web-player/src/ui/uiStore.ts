@@ -3,7 +3,7 @@ import type { LibrarySection, PlayTarget } from '@iptv/shared';
 
 export type { PlayTarget } from '@iptv/shared';
 
-export type View = 'home' | 'movies' | 'series' | 'live' | 'downloads' | 'search';
+export type View = 'home' | 'movies' | 'series' | 'live' | 'mylist' | 'downloads' | 'search';
 
 export interface DetailsTarget {
   section: LibrarySection;

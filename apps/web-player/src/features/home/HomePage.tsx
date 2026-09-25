@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { continueWatching, pageKey, type LibrarySection, type MediaCategory } from '@iptv/shared';
+import { continueWatching, pageKey, watchlistCard, type LibrarySection, type MediaCategory } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
-import { useCatalog, useLibrary, useProgress, useUi } from '../../hooks/stores';
+import { useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
 import { usePagedLibrary } from '../../hooks/usePagedLibrary';
 import { progressTarget } from '../../ui/targets';
 import { Hero } from './Hero';
@@ -32,6 +32,7 @@ export function HomePage({ banner }: { banner: ReactNode }) {
       <div className="home__rows">
         {banner}
         <ContinueWatchingRow />
+        <MyListRow />
         <LiveRow />
         <LibraryRow key={`all-series-${revision}`} section="series" title="Series" />
         {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
@@ -59,6 +60,19 @@ function ContinueWatchingRow() {
           subtitle={item.kind === 'episode' && item.seasonNumber != null ? `S${item.seasonNumber}:E${item.episodeNumber ?? '?'}` : null}
           onSelect={() => uiStore.getState().play(progressTarget(item))}
         />
+      ))}
+    </Row>
+  );
+}
+
+/** Saved titles (D-055); the title opens the My List page. */
+function MyListRow() {
+  const items = useWatchlist((s) => s.items.data ?? []);
+  if (items.length === 0) return null;
+  return (
+    <Row title="My List" onTitleClick={() => uiStore.getState().navigate('mylist')}>
+      {items.slice(0, ROW_SIZE).map((item) => (
+        <MasterCard key={`${item.section}-${item.masterId}`} section={item.section} item={watchlistCard(item)} />
       ))}
     </Row>
   );
