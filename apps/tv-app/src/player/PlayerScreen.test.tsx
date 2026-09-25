@@ -7,7 +7,7 @@ import { playerState } from '../../test/tvMediaMock';
 import { navStore } from '../appContext';
 import { playback, pressBack, setupApp } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
-import { PlayerScreen } from './PlayerScreen';
+import { playbackErrorText, PlayerScreen } from './PlayerScreen';
 
 const movie: PlayTarget = { kind: 'movie', streamId: '55', container: 'mkv', title: 'Heat', subtitle: '4K' };
 
@@ -47,6 +47,12 @@ describe('PlayerScreen', () => {
 
     await act(async () => playerState.props?.onError?.({ nativeEvent: { message: 'Source error', code: 'X' } } as never));
     expect(await screen.findByText('Source error')).toBeTruthy();
+  });
+
+  it('explains a provider refusal (HTTP 401/403) in plain words', () => {
+    expect(playbackErrorText('Source error', 'HTTP 401 Unauthorized from panel')).toMatch(/^Your IPTV provider refused this stream/);
+    expect(playbackErrorText('Source error', 'HTTP 403 Forbidden from panel')).toContain('(HTTP 403 Forbidden from panel)');
+    expect(playbackErrorText('Source error', 'HTTP 404 Not Found from panel')).toBe('Source error (HTTP 404 Not Found from panel)');
   });
 
   it('keeps the controls and clock up while loading; hides them 4 s after playback starts', async () => {

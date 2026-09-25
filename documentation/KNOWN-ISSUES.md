@@ -45,6 +45,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-039](#ki-039) | Limitation | shared, clients | Open |
 | [KI-040](#ki-040) | Limitation | tv-app, web-player | Open |
 | [KI-041](#ki-041) | Limitation | tv-app | Open |
+| [KI-042](#ki-042) | Bug | tv-app (direct mode) | Open |
 
 ---
 
@@ -315,4 +316,10 @@ A backup file (D-056) can only be opened with its password; a forgotten password
 **External players: no progress, and not every app sends the User-Agent** — logged 2026-09-25
 
 Titles opened in another player (D-057) do not save progress, so Continue Watching and Resume stay where they were. The provider User-Agent goes in the `headers` extra, which MX Player and Just Player read; VLC uses its own User-Agent, so providers that only accept certain players may refuse the stream in VLC. In server mode the relay link expires after a while, so a paused stream in the other app may stop when resumed much later.
+
+## KI-042
+
+**Some providers refuse streams with HTTP 401 while the login works** — logged 2026-09-25
+
+Reported on a phone in direct mode: every movie and episode failed with `HTTP 401 Unauthorized` from the provider's stream server (file and HLS, both stream addresses), while login and catalog requests succeeded and the account showed 0 of 1 connections in use. Not reproduced with the fake panel. Likely causes on the provider side: a connection still counted for another app or device, or a temporary block after many requests in a short time (full library download, bursts of guide requests; one guide request got HTTP 503). The player now explains a 401/403 in plain words and the log records the User-Agent of each attempt; guide requests to the provider run 2 at a time instead of 4. Next step: compare with the same title in another player (D-057).
 

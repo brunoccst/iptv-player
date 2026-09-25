@@ -44,6 +44,7 @@ import {
 } from '@iptv/shared';
 import { TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, downloadsStore, navStore, stores } from '../appContext';
+import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
@@ -58,6 +59,17 @@ import { QuickDrawer } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 
 const PROGRESS_SAVE_MS = 10_000;
+
+/**
+ * Error text for the last failed attempt. HTTP 401/403 from the stream server means the provider refused this stream
+ * although the login works: usually the account's connection limit, or the provider blocking the stream for a while.
+ */
+export function playbackErrorText(message: string, detail?: string | null): string {
+  const text = detail ? `${message} (${detail})` : message;
+  if (/HTTP 40[13]\b/.test(detail ?? '') || /HTTP 40[13]\b/.test(message))
+    return `Your IPTV provider refused this stream. Another device or app may be using the account's connections, or the provider is blocking streams for now. Try again later, or open it in another player. (${detail ?? message})`;
+  return text;
+}
 const CONTROLS_HIDE_MS = 4000;
 /** Two taps on the left/right third within this time seek ∓10 s (phones). */
 const DOUBLE_TAP_MS = 300;
@@ -131,7 +143,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       (info: PlaybackInfoWithAlternates) => {
         if (cancelled) return;
         alternates.current = [...(info.alternateUrls ?? [])];
-        appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode})`);
+        appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode}, User-Agent ${providerUserAgent})`);
         setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs });
       },
       (error) => {
@@ -386,7 +398,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
             setReady(false);
             setAttempt((a) => a + 1);
-          } else setError(detail ? `${message} (${detail})` : message);
+          } else setError(playbackErrorText(message, detail));
         }}
       />
 
