@@ -36,11 +36,12 @@ flowchart LR
 - [x] **Expandable category chips** (requested 2026-09-24, PR #9, D-047): on Movies/Series (and the Live TV categories), the chips are one horizontal line today, so users must scroll sideways to find one. Add an expand button that shows all categories wrapped across the full width, plus a clearly visible button to collapse back to the single line.
 - [x] **UI stress tests** (requested 2026-09-24, PR #10, D-048): fill the fake panel with very large categories (e.g. thousands of titles in one category, many categories and channels) and scroll to the end on phone, TV and web, to find the point where the UI slows down (frame drops, memory, load time), then fix what shows up.
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
+- [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
+- [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
 - [ ] **Step 9 — Phone app** (requested 2026-09-24): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
   - [x] Home rows: 10 titles and a "See all" arrow card (D-043).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
-- [ ] **Later — Offline anti-piracy hardening** (deferred 2026-09-23): KI-002, KI-003.
 
 ## Agent Suggestions
 

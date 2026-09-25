@@ -25,6 +25,8 @@ export interface DownloadsState {
   pause(id: string): void;
   resume(id: string): void;
   remove(id: string): void;
+  /** Sign-out and account change (D-050). */
+  removeAll(): void;
   refresh(): void;
   dispose(): void;
 }
@@ -120,6 +122,11 @@ export function createDownloadsStore({
       },
       remove: (id) => {
         native.removeDownload(id);
+        get().refresh();
+      },
+      removeAll: () => {
+        native.removeAllDownloads();
+        set({ errors: {} });
         get().refresh();
       },
       dispose() {

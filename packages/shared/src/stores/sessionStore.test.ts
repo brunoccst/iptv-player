@@ -75,6 +75,35 @@ describe('session store', () => {
     expect(session.getState()).toMatchObject({ status: 'authenticated', offline: true, activeProfileId: 'p1' });
   });
 
+  it('records when the account was last confirmed online (gates downloads, D-050)', async () => {
+    const saved = '2026-09-01T00:00:00.000Z';
+    storage.data.set(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null, lastOnlineAt: saved }),
+    );
+    backend.on('GET', '/api/auth/me', { networkError: true });
+    backend.on('GET', '/api/profiles', { networkError: true });
+    await create().getState().restore();
+    expect(JSON.parse(storage.data.get(SESSION_STORAGE_KEY)!).lastOnlineAt).toBe(saved);
+
+    backend.on('GET', '/api/auth/me', { body: account });
+    backend.on('GET', '/api/profiles', { body: [] });
+    const online = create();
+    await online.getState().restore();
+    expect(Date.parse(online.getState().lastOnlineAt!)).toBeGreaterThan(Date.parse(saved));
+    expect(JSON.parse(storage.data.get(SESSION_STORAGE_KEY)!).lastOnlineAt).toBe(online.getState().lastOnlineAt);
+  });
+
+  it('starts the offline window for sessions saved before it existed', async () => {
+    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }));
+    backend.on('GET', '/api/auth/me', { networkError: true });
+    backend.on('GET', '/api/profiles', { networkError: true });
+    const session = create();
+    await session.getState().restore();
+    expect(session.getState().lastOnlineAt).not.toBeNull();
+    expect(JSON.parse(storage.data.get(SESSION_STORAGE_KEY)!).lastOnlineAt).toBe(session.getState().lastOnlineAt);
+  });
+
   it('restore without stored session or with corrupt data is anonymous', async () => {
     const session = create();
     await session.getState().restore();

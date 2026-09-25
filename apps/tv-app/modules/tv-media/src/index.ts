@@ -16,6 +16,8 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;
   removeDownload(id: string): void;
+  /** Removes every download (sign-out, account change). */
+  removeAllDownloads(): void;
 }
 
 /** Media3 DownloadManager bridge (android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt). */

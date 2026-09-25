@@ -1,4 +1,4 @@
-import { createAppContext, type KeyValueStorage } from '@iptv/shared';
+import { bindDownloadsToAccount, createAppContext, type KeyValueStorage } from '@iptv/shared';
 import { appConfig } from './config';
 import { createCacheChunkStore, createMemoryChunkStore } from './offline/chunkStore';
 import { createDownloadsStore } from './offline/downloadsStore';
@@ -17,7 +17,8 @@ function createWebStorage(prefix: string): KeyValueStorage {
 
 const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
-export const appContext = createAppContext({ config: appConfig, storage: createWebStorage(appConfig.appSlug) });
+const storage = createWebStorage(appConfig.appSlug);
+export const appContext = createAppContext({ config: appConfig, storage });
 export const { stores, api } = appContext;
 
 export const downloadsStore = createDownloadsStore({
@@ -26,6 +27,16 @@ export const downloadsStore = createDownloadsStore({
   db: createOfflineDb(offlineSupported ? indexedDB : undefined),
   chunks: offlineSupported ? createCacheChunkStore(caches, location.origin) : createMemoryChunkStore(),
   storage: navigator.storage,
+});
+
+/** Downloads belong to the signed-in account; `signOut` removes them first (D-050). */
+export const { signOut } = bindDownloadsToAccount({
+  session: stores.session,
+  storage,
+  async removeAll() {
+    await downloadsStore.getState().init();
+    for (const id of Object.keys(downloadsStore.getState().records)) await downloadsStore.getState().remove(id);
+  },
 });
 
 export const uiStore = createUiStore();

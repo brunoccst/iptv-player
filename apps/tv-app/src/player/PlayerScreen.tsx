@@ -23,6 +23,7 @@ import {
   episodeLabel,
   episodeTarget,
   findProgress,
+  offlineAccess,
   formatClock,
   isInSkipAheadWindow,
   skipAheadDescription,
@@ -100,13 +101,21 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     let cancelled = false;
     const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
     const startPositionMs = (target.startAt ?? resumePosition(saved)) * 1000;
-    const offline = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
-    if (offline?.state === 'completed' && attempt === 0) {
-      setSource({ offlineId: offline.id, startPositionMs });
+    const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
+    const session = stores.session.getState();
+    const access = offlineAccess(session.account, session.lastOnlineAt);
+    // A blocked download is skipped: online it streams instead; offline there is nothing else to play (D-050).
+    if (download?.state === 'completed' && !access.allowed && session.offline) {
+      setError(access.message);
+      return;
+    }
+    const useDownload = download?.state === 'completed' && access.allowed;
+    if (useDownload && attempt === 0) {
+      setSource({ offlineId: download.id, startPositionMs });
       return;
     }
     const plan = tvPlaybackAttempts(target.kind, target.container);
-    const step = plan[offline?.state === 'completed' ? attempt - 1 : attempt];
+    const step = plan[useDownload ? attempt - 1 : attempt];
     if (!step) {
       appLog.error('player', `no playable source left for ${target.kind} ${target.streamId}`);
       setError('This stream could not be played. The provider may be offline.');

@@ -15,6 +15,7 @@ interface PersistedSession {
   account: AccountDto;
   profiles: ProfileDto[];
   activeProfileId: string | null;
+  lastOnlineAt: string | null;
 }
 
 export interface SessionState {
@@ -28,6 +29,8 @@ export interface SessionState {
   error: ApiError | null;
   /** True when restore could not reach the backend and cached data is shown. */
   offline: boolean;
+  /** Last time login or restore reached the backend (server mode) or provider (direct mode). Gates downloads (D-050). */
+  lastOnlineAt: string | null;
 
   restore(): Promise<void>;
   login(request: LoginRequest): Promise<boolean>;
@@ -42,20 +45,29 @@ export interface SessionState {
   clearError(): void;
 }
 
-const signedOut = (): Pick<SessionState, 'token' | 'account' | 'profiles' | 'activeProfileId' | 'offline'> => ({
+const signedOut = (): Pick<SessionState, 'token' | 'account' | 'profiles' | 'activeProfileId' | 'offline' | 'lastOnlineAt'> => ({
   token: null,
   account: null,
   profiles: [],
   activeProfileId: null,
   offline: false,
+  lastOnlineAt: null,
 });
 
-export function createSessionStore({ api, storage }: { api: ApiClient; storage: KeyValueStorage }) {
+export function createSessionStore({
+  api,
+  storage,
+  now = () => new Date(),
+}: {
+  api: ApiClient;
+  storage: KeyValueStorage;
+  now?: () => Date;
+}) {
   const store = createStore<SessionState>()((set, get) => {
     const persist = async () => {
-      const { token, account, profiles, activeProfileId } = get();
+      const { token, account, profiles, activeProfileId, lastOnlineAt } = get();
       if (token && account) {
-        const snapshot: PersistedSession = { token, account, profiles, activeProfileId };
+        const snapshot: PersistedSession = { token, account, profiles, activeProfileId, lastOnlineAt };
         await storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(snapshot));
       } else {
         await storage.removeItem(SESSION_STORAGE_KEY);
@@ -88,11 +100,12 @@ export function createSessionStore({ api, storage }: { api: ApiClient; storage: 
           return;
         }
 
-        set({ ...snapshot, offline: false });
+        // Sessions saved before D-050 start their offline window now.
+        set({ ...snapshot, lastOnlineAt: snapshot.lastOnlineAt ?? now().toISOString(), offline: false });
         try {
           const [account, profiles] = await Promise.all([api.auth.me(), api.profiles.list()]);
           const activeProfileId = profiles.some((p) => p.id === snapshot.activeProfileId) ? snapshot.activeProfileId : null;
-          set({ status: 'authenticated', account, profiles, activeProfileId });
+          set({ status: 'authenticated', account, profiles, activeProfileId, lastOnlineAt: now().toISOString() });
           await persist();
         } catch (error) {
           const apiError = toApiError(error);
@@ -102,6 +115,7 @@ export function createSessionStore({ api, storage }: { api: ApiClient; storage: 
             await storage.removeItem(SESSION_STORAGE_KEY);
           } else {
             set({ status: 'authenticated', offline: true, error: apiError });
+            if (!snapshot.lastOnlineAt) await persist();
           }
         }
       },
@@ -118,6 +132,7 @@ export function createSessionStore({ api, storage }: { api: ApiClient; storage: 
             profiles: response.profiles,
             activeProfileId,
             offline: false,
+            lastOnlineAt: now().toISOString(),
             busy: false,
           });
           await persist();
@@ -204,7 +219,13 @@ function parseSnapshot(raw: string | null): PersistedSession | null {
   try {
     const value = JSON.parse(raw) as Partial<PersistedSession>;
     return value.token && value.account && Array.isArray(value.profiles)
-      ? { token: value.token, account: value.account, profiles: value.profiles, activeProfileId: value.activeProfileId ?? null }
+      ? {
+          token: value.token,
+          account: value.account,
+          profiles: value.profiles,
+          activeProfileId: value.activeProfileId ?? null,
+          lastOnlineAt: value.lastOnlineAt ?? null,
+        }
       : null;
   } catch {
     return null;

@@ -37,6 +37,10 @@ export const TvMedia = {
     nativeState.calls.push(`remove:${id}`);
     nativeState.downloads = nativeState.downloads.filter((d) => d.id !== id);
   },
+  removeAllDownloads: () => {
+    nativeState.calls.push('remove-all');
+    nativeState.downloads = [];
+  },
 };
 
 /** Latest props + ref calls of the mounted TvPlayerView. */

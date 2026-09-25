@@ -6,6 +6,7 @@ import {
   clampTime,
   findProgress,
   formatClock,
+  offlineAccess,
   isInSkipAheadWindow,
   skipAheadDescription,
   skipAheadLabel,
@@ -92,11 +93,20 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
   // Load the stream whenever the item changes. The completed download (if any) is read once at start.
   useEffect(() => {
+    const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
+    // A blocked download is skipped: online it streams instead; offline there is nothing else to play (D-050).
+    const session = stores.session.getState();
+    const access = offlineAccess(session.account, session.lastOnlineAt);
+    if (download?.status === 'completed' && !access.allowed && session.offline) {
+      setError(access.message);
+      setStatus('error');
+      return;
+    }
+    const offlineRecord = access.allowed ? download : null;
     const video = videoRef.current!;
     const engine = new PlaybackEngine(video, api);
     engineRef.current = engine;
     const controller = new AbortController();
-    const offlineRecord = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
     setStatus('loading');
     setError(null);
     setNextDismissed(false);

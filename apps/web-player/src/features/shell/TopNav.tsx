@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { selectActiveProfile } from '@iptv/shared';
 import { appConfig } from '../../config';
-import { stores, uiStore } from '../../appContext';
+import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
@@ -108,7 +108,17 @@ export function TopNav() {
               >
                 <Icon name="refresh" size={18} /> Refresh library
               </button>
-              <button type="button" role="menuitem" className="menu__item" onClick={() => void stores.session.getState().logout()}>
+              <button
+                type="button"
+                role="menuitem"
+                className="menu__item"
+                onClick={() => {
+                  // Downloads belong to this account and are deleted on sign-out (D-050).
+                  const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
+                  if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
+                  void signOut();
+                }}
+              >
                 <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
               </button>
             </div>

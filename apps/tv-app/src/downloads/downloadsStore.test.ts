@@ -1,4 +1,4 @@
-import { downloadsStore } from '../appContext';
+import { downloadsStore, signOut, stores } from '../appContext';
 import { nativeState } from '../../test/tvMediaMock';
 import { playback, setupApp } from '../../test/utils';
 
@@ -69,5 +69,23 @@ describe('downloads store', () => {
     nativeState.downloads = [{ id: 'x', state: 'completed', percent: 100, bytesDownloaded: 1, metadata: 'not json', failureReason: 0 }];
     downloadsStore.getState().refresh();
     expect(downloadsStore.getState().records).toEqual({});
+  });
+});
+
+describe('sign-out (D-050)', () => {
+  it('removes every download before signing out', async () => {
+    const backend = setupApp();
+    backend.on('POST', '/api/auth/logout', { status: 204 });
+    nativeState.downloads = [
+      { id: 'movie-1', state: 'completed', percent: 100, bytesDownloaded: 1, metadata: JSON.stringify(target), failureReason: 0 },
+    ];
+    downloadsStore.getState().init();
+
+    await signOut();
+
+    expect(nativeState.calls).toContain('remove-all');
+    expect(downloadsStore.getState().records).toEqual({});
+    expect(stores.session.getState().status).toBe('anonymous');
+    downloadsStore.getState().dispose();
   });
 });

@@ -1,13 +1,18 @@
+import { formatOfflineDate } from '@iptv/shared';
 import { downloadsStore, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
-import { useDownloads } from '../../hooks/stores';
+import { useDownloads, useOfflineAccess } from '../../hooks/stores';
 import { downloadProgress, posterPath, type DownloadRecord } from '../../offline/types';
 import { playTargetFromDownload } from '../../ui/targets';
 
 const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
 
-/** "My Downloads": encrypted in-app copies. Playable offline; never exposed as files. */
+/**
+ * "My Downloads": encrypted in-app copies. Playable offline; never exposed as files. Play is hidden while downloads
+ * are blocked (subscription expired or no online check for 30 days, D-050).
+ */
 export function DownloadsPage() {
+  const access = useOfflineAccess();
   const supported = useDownloads((s) => s.supported);
   const records = useDownloads((s) => Object.values(s.records).sort((a, b) => b.createdAt - a.createdAt));
   const estimate = useDownloads((s) => s.estimate);
@@ -22,16 +27,23 @@ export function DownloadsPage() {
         </p>
       ) : null}
       {supported && records.length === 0 ? <p className="muted">Movies and episodes you download appear here.</p> : null}
+      {records.length > 0 && !access.allowed ? (
+        <p className="error-text" role="status">
+          {access.message}
+        </p>
+      ) : records.length > 0 && access.allowed && access.recheckBy ? (
+        <p className="muted">Downloads play offline until {formatOfflineDate(access.recheckBy)}; opening the app online extends this.</p>
+      ) : null}
       <div className="downloads__list">
         {records.map((record) => (
-          <DownloadItem key={record.id} record={record} />
+          <DownloadItem key={record.id} record={record} playable={access.allowed} />
         ))}
       </div>
     </div>
   );
 }
 
-function DownloadItem({ record }: { record: DownloadRecord }) {
+function DownloadItem({ record, playable }: { record: DownloadRecord; playable: boolean }) {
   const { pause, resume, remove } = downloadsStore.getState();
   const progress = downloadProgress(record);
   const statusText = {
@@ -67,14 +79,16 @@ function DownloadItem({ record }: { record: DownloadRecord }) {
       </div>
       <div className="download-item__actions">
         {record.status === 'completed' ? (
-          <button
-            type="button"
-            className="icon-button"
-            aria-label={`Play ${record.title}`}
-            onClick={() => uiStore.getState().play(playTargetFromDownload(record))}
-          >
-            <Icon name="play" size={20} />
-          </button>
+          playable ? (
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`Play ${record.title}`}
+              onClick={() => uiStore.getState().play(playTargetFromDownload(record))}
+            >
+              <Icon name="play" size={20} />
+            </button>
+          ) : null
         ) : record.status === 'downloading' || record.status === 'queued' ? (
           <button type="button" className="icon-button" aria-label={`Pause ${record.title}`} onClick={() => void pause(record.id)}>
             <Icon name="pause" size={20} />

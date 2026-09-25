@@ -5,8 +5,8 @@ Bugs, external limitations, technical debt and risks.
 | ID | Type | Area | Status |
 |----|------|------|--------|
 | [KI-001](#ki-001) | Risk | backend | Resolved |
-| [KI-002](#ki-002) | Limitation | web-player | Open (partly mitigated; deferred by owner) |
-| [KI-003](#ki-003) | Limitation | tv-app | Open (deferred by owner) |
+| [KI-002](#ki-002) | Limitation | web-player | Open (mitigated by D-024, D-050; needs DRM to close) |
+| [KI-003](#ki-003) | Limitation | tv-app | Resolved (D-050) |
 | [KI-004](#ki-004) | Limitation | backend | Open |
 | [KI-005](#ki-005) | Limitation | tv-app | Resolved |
 | [KI-006](#ki-006) | Tech debt | tooling | Open |
@@ -37,6 +37,11 @@ Bugs, external limitations, technical debt and risks.
 | [KI-031](#ki-031) | Limitation | web-player, tv-app | Open |
 | [KI-032](#ki-032) | Limitation | backend, clients | Open |
 | [KI-033](#ki-033) | Risk | tv-app CI | Resolved |
+| [KI-034](#ki-034) | Limitation | tv-app (direct mode) | Open |
+| [KI-035](#ki-035) | Limitation | tv-app (direct mode) | Open |
+| [KI-036](#ki-036) | Limitation | tv-app (direct mode) | Open |
+| [KI-037](#ki-037) | Limitation | tv-app | Open |
+| [KI-038](#ki-038) | Limitation | web-player, tv-app | Open |
 
 ---
 
@@ -52,11 +57,15 @@ Resolved by moving to .NET 10 LTS (D-009).
 
 Cache API / IndexedDB content is inside the browser sandbox (no `.mp4` file in the user's Downloads). Since 2026-09-23 chunks are AES-GCM encrypted with a non-extractable key (D-024): copied cache files are ciphertext. But any script on the origin, including DevTools, can ask the Service Worker for decrypted bytes. It raises the bar; it does not stop a technical user. Real protection needs DRM (Widevine/PlayReady via EME), which Xtream Codes sources do not provide. Owner decision (2026-09-23): acceptable while the app is private.
 
+Update 2026-09-25 (D-050): downloads are now deleted on sign-out and account change, and only play while the subscription is active and the app was online within 30 days. The DevTools gap stays.
+
 ## KI-003
 
 **Android offline cache is not encrypted by default** — logged 2026-09-23
 
 ExoPlayer/Media3 `SimpleCache` in app-private storage is unreadable without root. On rooted devices, cached segments are readable. Possible fix: encrypt segments with a key in Android Keystore. Owner decision (2026-09-23): acceptable while the app is private.
+
+Resolved 2026-09-25 (D-050): segments are AES-encrypted; the key is stored wrapped by a non-exportable Android Keystore key. On a rooted device, code running as the app can still unwrap it.
 
 ## KI-004
 
@@ -275,3 +284,9 @@ The guide uses the provider's short EPG (up to 12 programmes per channel), so it
 **TV Home and My Downloads avoid FlatList** — logged 2026-09-24
 
 On Android TV, Home and My Downloads render in a plain ScrollView. On the Android TV emulator, FlatList screens never scrolled (by D-pad or swipe), and their rows showed only buttons to UI automation (no text); the cause is unknown. Home has at most 13 rows, each loading its first 10 titles when Home opens. Phones keep the virtualized Home. The Movies/Series grids and horizontal rows still use FlatList.
+
+## KI-038
+
+**Download rules run inside the apps** — logged 2026-09-25
+
+The 30-day online check, the subscription check and sign-out deletion (D-050) are enforced by the web and TV apps, not by the stored files. A modified app, DevTools (web) or root access (Android) can get around them. Media3 also keeps each download's source URL in its private database; in direct mode that URL contains the provider username and password (see KI-036).

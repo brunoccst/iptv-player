@@ -1,6 +1,6 @@
 # tv-media
 
-Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline downloads. Auto-linked by Expo from `modules/`.
+Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline downloads (AES-encrypted, key wrapped by Android Keystore, D-050). Auto-linked by Expo from `modules/`.
 
 | Path | Purpose |
 |------|---------|
@@ -18,6 +18,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `TvPlayerView` | Props: `source` (`uri` + `isHls`, or `offlineId`), `paused`. Events: `onStatus`, `onProgress` (500 ms), `onTracks`, `onEnd`, `onError`. Ref: `seekTo(ms)`, `selectTrack(type, group, track)`. |
 | `TvMedia.startDownload(id, uri, isHls, metadataJson)` | Queues a download (foreground service). |
 | `TvMedia.pauseDownload / resumeDownload / removeDownload(id)` | Control a download. |
+| `TvMedia.removeAllDownloads()` | Deletes every download (sign-out, account change, D-050). |
 | `TvMedia.setUserAgent(ua)` | HTTP User-Agent for playback and downloads; saved natively so resumed downloads use it too (D-038). |
 | `TvMedia.listDownloads()` | All downloads with state, percent, metadata. |
 | `onDownloadsChanged` event | Fired on state changes (not on every progress tick). |
