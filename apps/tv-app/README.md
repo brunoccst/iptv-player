@@ -61,7 +61,7 @@ npm run prebuild --workspace=@iptv/tv-app    # generates android/ (TV manifest, 
 npm run android --workspace=@iptv/tv-app     # build + install on emulator/device
 ```
 
-Release `.apk`: `cd android && ./gradlew assembleRelease` after `prebuild`. It is signed with the release key when `ANDROID_KEYSTORE_FILE` and `ANDROID_KEYSTORE_PASSWORD` are set (`plugins/withReleaseSigning.js`, D-052), else with the debug key. Output: `android/app/build/outputs/apk/release/app-release.apk`. CI builds an x86 one for the emulator on every TV-related push (artifact `tv-app-apk`); `tv-apk.yml` builds the ARM one for real TVs.
+Release `.apk`: `cd android && ./gradlew assembleRelease` after `prebuild`. It is signed with the release key when `ANDROID_KEYSTORE_FILE` and `ANDROID_KEYSTORE_PASSWORD` are set (`plugins/withReleaseSigning.js`, D-052), else with the debug key from Expo's template (the same public key in every Expo project, so anyone can sign an APK that installs over it). Output: `android/app/build/outputs/apk/release/app-release.apk`. CI builds an x86 one for the emulator on every TV-related push (artifact `tv-app-apk`); `tv-apk.yml` builds the ARM one for real TVs.
 
 ## Requirements
 
