@@ -132,6 +132,60 @@ describe('App (TV)', () => {
     expect(backend.calls.some((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7')).toBe(true);
   });
 
+  it('Home rows show 10 titles and end with an arrow card that opens the category', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/catalog/movies/categories', { body: [{ id: '7', name: 'Drama', parentId: null }] });
+    backend.on('GET', '/api/library/movies', ({ url }) => {
+      const limit = Number(url.searchParams.get('limit'));
+      const items = Array.from({ length: limit }, (_, i) => ({
+        id: `m${i}`,
+        title: `Movie ${i}`,
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: null,
+        variantCount: 1,
+      }));
+      return { body: { total: 25, items } };
+    });
+    await render(<App />);
+    await flush();
+
+    const rowCalls = backend.calls.filter((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7');
+    expect(rowCalls.map((c) => c.url.searchParams.get('limit'))).toEqual(['10']);
+    await fireEvent.press(await screen.findByTestId('row-movies-7-more'));
+    await flush();
+    expect(await screen.findByTestId('browse-movies')).toBeTruthy();
+    expect(screen.getByTestId('chip-7')).toHaveProp('accessibilityState', { selected: true });
+  });
+
+  it('the Live TV row arrow card opens Live TV on that category', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', parentId: null }] });
+    const channels = Array.from({ length: 12 }, (_, i) => ({
+      id: `${i + 1}`,
+      name: `Channel ${i + 1}`,
+      categoryId: '1',
+      number: i + 1,
+      logoUrl: null,
+      epgChannelId: null,
+      hasCatchup: false,
+    }));
+    backend.on('GET', '/api/catalog/live/channels', { body: channels });
+    backend.on('GET', '/api/epg', { body: { total: 0, channels: [] } });
+    await render(<App />);
+    await flush();
+
+    expect(await screen.findByTestId('card-Channel 1')).toBeTruthy();
+    expect(screen.queryByTestId('card-Channel 11')).toBeNull();
+    await fireEvent.press(await screen.findByTestId('row-live-more'));
+    await flush();
+    expect(await screen.findByTestId('live-screen')).toBeTruthy();
+    expect(screen.getByLabelText('News')).toHaveProp('accessibilityState', { selected: true });
+  });
+
   it('signs out from the account menu after confirming', async () => {
     const backend = setupApp();
     stubLibrary(backend);

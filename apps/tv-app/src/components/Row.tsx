@@ -14,13 +14,12 @@ interface RowProps<T> {
   onTitlePress?(): void;
   /** First items still loading: a spinner instead of the empty text. */
   loading?: boolean;
-  /** Next page loading: a spinner after the last card. */
-  loadingMore?: boolean;
-  onEndReached?(): void;
+  /** Last card: an arrow that opens the full list (Home rows show only the first few titles). */
+  more?: { onPress(): void; landscape?: boolean };
 }
 
 /** Web `.row`: title (optionally a link) + horizontal track of cards. D-pad focus search moves between cards. */
-export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePress, loading, loadingMore, onEndReached }: RowProps<T>) {
+export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePress, loading, more }: RowProps<T>) {
   const sizes = useSizes();
   return (
     <View style={[styles.row, { marginBottom: sizes.rowGap }]} testID={testID} accessibilityLabel={title}>
@@ -50,10 +49,8 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
           initialNumToRender={8}
           maxToRenderPerBatch={6}
           windowSize={5}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={1.5}
           ListFooterComponent={
-            loadingMore ? <ActivityIndicator style={styles.more} color={colors.accent} accessibilityLabel="Loading more" /> : null
+            more ? <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} /> : null
           }
         />
       )}
@@ -62,6 +59,30 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
 }
 
 const Separator = () => <View style={{ width: 8 }} />;
+
+/** Card-sized arrow after the last title: opens the category page. */
+function MoreCard({ title, landscape, onPress, testID }: { title: string; landscape?: boolean; onPress(): void; testID?: string }) {
+  const [focused, setFocused] = useState(false);
+  const { cardWidth } = useSizes();
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="link"
+      accessibilityLabel={`See all: ${title}`}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.moreCard, { width: cardWidth, marginLeft: 8 }, focused && styles.moreFocused]}
+    >
+      <View style={[styles.moreArt, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>
+        <View style={[styles.moreCircle, focused && styles.moreCircleFocused]}>
+          <Icon name="chevronRight" size={32} color={focused ? colors.bg : colors.strong} />
+        </View>
+        <Text style={styles.moreText}>See all</Text>
+      </View>
+    </Pressable>
+  );
+}
 
 function TitleLink({ title, fontSize, onPress, testID }: { title: string; fontSize: number; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
@@ -100,5 +121,25 @@ const styles = StyleSheet.create({
   content: { paddingVertical: 8 },
   empty: { color: colors.muted },
   spinner: { alignSelf: 'flex-start', marginVertical: 24 },
-  more: { alignSelf: 'center', marginHorizontal: 24 },
+  moreCard: { borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
+  moreFocused: { transform: [{ scale: 1.08 }], borderColor: colors.strong },
+  moreArt: {
+    width: '100%',
+    borderRadius: radius,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  moreCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.strong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreCircleFocused: { backgroundColor: colors.strong },
+  moreText: { color: colors.strong, fontSize: 14.4, fontWeight: '700' },
 });
