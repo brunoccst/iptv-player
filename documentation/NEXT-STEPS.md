@@ -47,7 +47,16 @@ flowchart LR
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
   - [x] Home rows: 10 titles and a "See all" arrow card (D-043).
-- [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
+  - [ ] ### Live TV: Transparent EPG Overlay
+      **Transparent HUD Overlay:** Implement a semi-transparent EPG layout on top of active video playback without stopping or interrupting the stream.
+      **TV & Touch Navigation:** Fully support Android TV D-pad focus state and mobile swipe/tap gestures to summon the overlay.
+      **Auto-Dismiss & Controls:** Add an auto-dismiss timer (e.g., 5-8 seconds of inactivity) and dismiss on back key press while maintaining playback.
+
+  - [ ] ### VOD / Series / Movies: External Player Support
+      **External Launcher Action:** Add an "Open in External Viewer" button on VOD, Movie, and Episode detail screens.
+      **Android Intent Handoff:** Launch streams via standard `Intent.ACTION_VIEW` targeting installed players (e.g., VLC, MX Player, Just Player) with stream headers/User-Agent intact.
+      **App Chooser:** Fall back to `Intent.createChooser` when no default external player is assigned.
+      **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
 
