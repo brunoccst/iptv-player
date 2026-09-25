@@ -35,6 +35,13 @@ public sealed class MasterMedia
     public double? Rating { get; set; }
     public string? BestQuality { get; set; }
     public int VariantCount { get; set; }
+
+    /// <summary>Newest provider "added" time among the variants (Unix seconds).</summary>
+    public long? AddedAt { get; set; }
+
+    /// <summary>Release date as YYYYMMDD for sorting; a year-only date is YYYY0000.</summary>
+    public int? ReleaseKey { get; set; }
+
     public long UpdatedAt { get; set; }
     public List<MediaVariant> Variants { get; set; } = [];
 }
@@ -80,6 +87,20 @@ public static class LibraryKind
     public static readonly string[] All = [Movie, Series];
 }
 
+/// <summary>Library list order. Missing values sort last; ties go by title, then year.</summary>
+public enum LibrarySort
+{
+    Added,
+    Title,
+    Released,
+}
+
+public enum SortOrder
+{
+    Asc,
+    Desc,
+}
+
 /// <summary>Job payload item. Serialized camelCase. Python reads the same field names.</summary>
 public sealed record LibraryPayloadItem(
     string Id,
@@ -88,4 +109,5 @@ public sealed record LibraryPayloadItem(
     string? PosterUrl,
     double? Rating,
     string? ContainerExtension,
-    string? ReleaseDate);
+    string? ReleaseDate,
+    long? AddedAt);

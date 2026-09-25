@@ -48,7 +48,7 @@ public class LibraryEndpointTests : IDisposable
         var accountId = Guid.NewGuid();
         await using var scope = _factory.Services.CreateAsyncScope();
         var sync = scope.ServiceProvider.GetRequiredService<LibrarySyncService>();
-        var item = new LibraryPayloadItem("1", "A", null, null, null, null, null);
+        var item = new LibraryPayloadItem("1", "A", null, null, null, null, null, null);
 
         var first = await sync.EnqueueAsync(accountId, LibraryKind.Movie, [item], CancellationToken.None);
         var second = await sync.EnqueueAsync(accountId, LibraryKind.Movie, [item, item with { Id = "2" }], CancellationToken.None);
@@ -65,7 +65,7 @@ public class LibraryEndpointTests : IDisposable
         await SeedAsync(login.Account.Id.ToString());
         await SeedAsync(Guid.NewGuid().ToString(), idPrefix: "other-");
 
-        var page = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?limit=1", ApiClientExtensions.Json);
+        var page = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies?limit=1&sort=title", ApiClientExtensions.Json);
         Assert.Equal(2, page!.Total);
         Assert.Equal("Alpha", Assert.Single(page.Items).Title);
 
@@ -77,6 +77,24 @@ public class LibraryEndpointTests : IDisposable
 
         Assert.Equal(0, (await _client.GetFromJsonAsync<LibraryPage>("/api/library/series", ApiClientExtensions.Json))!.Total);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/api/library/podcasts")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("", "Zulu,Alpha")]
+    [InlineData("?sort=added&order=asc", "Alpha,Zulu")]
+    [InlineData("?sort=title", "Alpha,Zulu")]
+    [InlineData("?sort=title&order=desc", "Zulu,Alpha")]
+    [InlineData("?sort=released", "Zulu,Alpha")]
+    [InlineData("?sort=released&order=asc", "Zulu,Alpha")]
+    public async Task Library_SortsWithMissingValuesLast(string query, string expected)
+    {
+        var login = await _client.LoginAndAuthorizeAsync();
+        await SeedAsync(login.Account.Id.ToString());
+
+        var page = await _client.GetFromJsonAsync<LibraryPage>("/api/library/movies" + query, ApiClientExtensions.Json);
+
+        Assert.Equal(expected.Split(','), page!.Items.Select(i => i.Title));
+        Assert.Equal([LibrarySort.Added, LibrarySort.Title, LibrarySort.Released], page.Sorts);
     }
 
     [Fact]
@@ -146,6 +164,8 @@ public class LibraryEndpointTests : IDisposable
                 Title = "Zulu",
                 NormalizedKey = "zulu",
                 VariantCount = 2,
+                AddedAt = 200,
+                ReleaseKey = 19640122,
                 Variants = [Variant("3", idPrefix + "zulu", 10, "hd", "[]"), Variant("2", idPrefix + "zulu", 90, "4k", "[\"ENG\",\"ESP\"]")],
             },
             new MasterMedia
@@ -156,6 +176,7 @@ public class LibraryEndpointTests : IDisposable
                 Title = "Alpha",
                 NormalizedKey = "alpha",
                 VariantCount = 1,
+                AddedAt = 100,
                 Variants = [Variant("1", idPrefix + "alpha", 50, "hd", "[]")],
             });
         await db.SaveChangesAsync();

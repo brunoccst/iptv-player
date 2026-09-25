@@ -86,7 +86,7 @@ OpenAPI document: served at `GET /openapi/v1.json` (Development only) and writte
 | GET | `/api/relay/{token}/{fileName}` | token in path | Stream relay. Rewrites HLS playlists; forwards `Range`. |
 | POST | `/api/library/sync` | Bearer | Queue a library sync (also runs after every login). `202`. |
 | GET | `/api/library/status` | Bearer | Latest normalization job per kind + master count. |
-| GET | `/api/library/{movies\|series}?categoryId=&search=&offset=&limit=` | Bearer | Deduplicated master cards `{total, items}`. `limit` ≤ 500. |
+| GET | `/api/library/{movies\|series}?categoryId=&search=&offset=&limit=&sort=&order=` | Bearer | Deduplicated master cards `{total, items, sorts}`. `limit` ≤ 500. `sort`: `added` (default), `title`, `released`; `order`: `asc`/`desc` (default `desc` for dates, `asc` for title). `sorts` lists the orders this library has data for (D-049). |
 | GET | `/api/library/{movies\|series}/{masterId}` | Bearer | Master + variants (best first). Play a variant via `/api/playback/{movie\|...}/{streamId}`. |
 
 Error bodies are RFC 9457 problem details with a `code` field:

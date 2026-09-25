@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { LibrarySection, LiveChannel } from '@iptv/shared';
+import type { LibrarySection, LibrarySortChoice, LiveChannel } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
@@ -10,6 +10,8 @@ import { usePagedLibrary } from './usePagedLibrary';
 
 const DEBOUNCE_MS = 300;
 const PAGE = 100;
+/** Search results read best alphabetically. */
+const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 const MAX_CHANNELS = 30;
 
 /** Same as the web search page ("Results for …": Movies and Series grids), plus matching live channels. Text comes from the top nav. */
@@ -40,7 +42,7 @@ export function SearchScreen() {
 
 /** One result grid; "More results" loads the next page (the page scrolls as a whole). */
 function SearchGrid({ section, query, title }: { section: LibrarySection; query: string; title: string }) {
-  const page = usePagedLibrary(section, { search: query }, PAGE);
+  const page = usePagedLibrary(section, { search: query, sort: BY_TITLE }, PAGE);
   const { columns, itemWidth } = useGridColumns();
   const sizes = useSizes();
   const lines = Array.from({ length: Math.ceil(page.items.length / columns) }, (_, i) => page.items.slice(i * columns, (i + 1) * columns));

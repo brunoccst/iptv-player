@@ -430,9 +430,12 @@ export interface components {
         };
         LibraryPage: {
             items: components["schemas"]["MasterCard"][];
+            sorts: components["schemas"]["LibrarySort"][];
             /** Format: int32 */
             total: number;
         };
+        /** @enum {unknown} */
+        LibrarySort: "added" | "title" | "released";
         LibraryStatus: {
             error: null | string;
             /** Format: date-time */
@@ -1245,7 +1248,9 @@ export interface operations {
                 categoryId?: string;
                 limit?: number;
                 offset?: number;
+                order?: string;
                 search?: string;
+                sort?: string;
             };
             header?: never;
             path: {

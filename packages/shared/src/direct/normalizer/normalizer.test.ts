@@ -68,6 +68,14 @@ describe('buildMasters (shared cases)', () => {
   });
 });
 
+describe('sort keys (shared cases)', () => {
+  const cases = (load('pipeline') as { sortKeys: { name: string; kind: string; items: []; expect: unknown[] }[] }).sortKeys;
+  it.each(cases)('$name', ({ kind, items, expect: expected }) => {
+    const masters = buildMasters('acc', kind, items).map(({ title, addedAt, releaseKey }) => ({ title, addedAt, releaseKey }));
+    expect(masters).toEqual(expected);
+  });
+});
+
 describe('helpers', () => {
   it('sha1Hex matches known digests', () => {
     expect(sha1Hex('')).toBe('da39a3ee5e6b4b0d3255bfef95601890afd80709');

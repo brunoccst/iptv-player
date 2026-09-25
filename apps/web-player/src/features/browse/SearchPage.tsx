@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LiveChannel } from '@iptv/shared';
+import type { LibrarySortChoice, LiveChannel } from '@iptv/shared';
 import { api, uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
 import { useUi } from '../../hooks/stores';
@@ -7,6 +7,8 @@ import { PagedGrid } from './BrowsePage';
 
 const DEBOUNCE_MS = 300;
 const MAX_CHANNELS = 30;
+/** Search results read best alphabetically. */
+const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 
 /** Searches movies and series (title or normalized key) and live channels by name; same as the TV app. */
 export function SearchPage() {
@@ -26,11 +28,11 @@ export function SearchPage() {
           <h2 className="row__title" style={{ margin: '0 0 12px' }}>
             Movies
           </h2>
-          <PagedGrid key={`m-${query}`} section="movies" search={query} />
+          <PagedGrid key={`m-${query}`} section="movies" search={query} sort={BY_TITLE} />
           <h2 className="row__title" style={{ margin: '32px 0 12px' }}>
             Series
           </h2>
-          <PagedGrid key={`s-${query}`} section="series" search={query} />
+          <PagedGrid key={`s-${query}`} section="series" search={query} sort={BY_TITLE} />
           <ChannelResults key={`c-${query}`} query={query} />
         </>
       ) : null}

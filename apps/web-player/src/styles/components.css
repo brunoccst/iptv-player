@@ -252,6 +252,22 @@
   flex: none;
 }
 
+.grid__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.grid__toolbar .select {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
 /* Download button */
 .download-button {
   position: relative;

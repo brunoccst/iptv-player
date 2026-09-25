@@ -60,6 +60,20 @@ describe('library store', () => {
     expect(backend.calls).toHaveLength(3);
   });
 
+  it('sends the sort, caches each order separately and forgets the choice on reset', async () => {
+    const { backend, library } = setup();
+    backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
+
+    library.getState().chooseSort('movies', { sort: 'title', order: 'desc' });
+    await library.getState().loadPage('movies', { sort: 'title', order: 'desc' });
+    await library.getState().loadPage('movies');
+
+    expect(backend.calls.map((c) => c.url.search)).toEqual(['?limit=100&sort=title&order=desc', '?limit=100']);
+    expect(pageKey('movies', { sort: 'title' })).not.toBe(pageKey('movies'));
+    library.getState().reset();
+    expect(library.getState().sortChoices).toEqual({});
+  });
+
   it('records errors per key and keeps previous data', async () => {
     const { backend, library } = setup();
     backend.on('GET', '/api/library/series/m1', { body: details });

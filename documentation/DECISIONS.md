@@ -895,3 +895,19 @@ Result: on busy runners (2026-09-24 evening) the APK build went 14.2 → 10.9 mi
 - The emulator build prefills "My server" with the backend address (`APP_API_BASE_URL`), so the server-mode flow no longer types it: long `inputText` on a busy emulator made Maestro's driver die (`DeviceServerDiedException`) twice on 2026-09-24.
 
 Not done (small gain or risky): caching native (CMake) build output between runs; starting the local stack in the background during the Gradle build (~1.5 min); splitting Maestro flows across parallel emulators (three emulator boots and three APK builds cost more than they save).
+
+## D-049
+
+**Library sort: recently added by default; name and release date on request** — 2026-09-25 (requested by owner)
+
+Before: Movies/Series grids were always A–Z. That order came from this app (backend `LibraryService` and the direct-mode client sorted by title), not from the provider.
+
+Decision:
+- Sort keys per master title, computed by the normalizer (Python and the TypeScript port, same shared cases):
+  - `added_at`: newest provider time among the variants. Movies use Xtream `added`; series use `last_modified` (series lists have no `added`).
+  - `release_key`: `YYYYMMDD` from the provider release date (series), else `YYYY0000` from the year in the title.
+- `GET /api/library/{kind}` takes `sort` (`added` default, `title`, `released`) and `order` (`asc`/`desc`; dates default to newest first, title to A–Z). Missing values sort last; ties go by title, then year. The response lists in `sorts` which orders the library has data for, and the apps only offer those.
+- Web and TV/phone Movies/Series pages have a "Sort by" menu: Recently added, Oldest added, Name A–Z/Z–A, Newest/Oldest release. The choice is kept per section until sign-out. Home rows use the default; search results stay A–Z.
+- Direct mode sorts the same way; the saved library format goes to 3, so it is rebuilt once.
+
+Existing server libraries get the dates on their next sync (every login, or "Refresh library" in the account menu); until then only Name is offered.

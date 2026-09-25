@@ -9,6 +9,8 @@ CREATE TABLE "master_media" (
     "rating" REAL NULL,
     "best_quality" TEXT NULL,
     "variant_count" INTEGER NOT NULL,
+    "added_at" INTEGER NULL,
+    "release_key" INTEGER NULL,
     "updated_at" INTEGER NOT NULL
 );
 

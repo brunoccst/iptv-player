@@ -7,6 +7,7 @@ import type {
   EpgGrid,
   EpgListing,
   LibrarySection,
+  LibrarySort,
   LibraryStatusProgress,
   LiveChannel,
   LoginRequest,
@@ -18,6 +19,7 @@ import type {
   ProgressDto,
   ProgressKind,
   ProgressRequest,
+  SortOrder,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
@@ -81,6 +83,32 @@ const validation = (message: string) => new ApiError(400, 'validation_failed', m
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 /** Ordinal compare, like the backend's SQLite ORDER BY and StringComparer.Ordinal. */
 const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.parse(iso) / 1000) || null : null);
+
+/** Same order as the backend (D-049): missing values last, then title, year and id. */
+const defaultOrder = (sort: LibrarySort): SortOrder => (sort === 'title' ? 'asc' : 'desc');
+const sortValue = (master: Master, sort: LibrarySort) => (sort === 'added' ? master.addedAt : master.releaseKey);
+function compareMasters(sort: LibrarySort, order: SortOrder) {
+  const sign = order === 'desc' ? -1 : 1;
+  return (a: Master, b: Master) => {
+    const x = sort === 'title' ? null : sortValue(a, sort);
+    const y = sort === 'title' ? null : sortValue(b, sort);
+    const result =
+      sort === 'title'
+        ? sign * ordinal(a.title, b.title)
+        : x === null || y === null
+          ? (x === null ? 1 : 0) - (y === null ? 1 : 0)
+          : sign * (x - y);
+    return result || ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1) || ordinal(a.id, b.id);
+  };
+}
+function availableSorts(masters: Master[]): LibrarySort[] {
+  const sorts: LibrarySort[] = [];
+  if (masters.some((master) => master.addedAt !== null)) sorts.push('added');
+  sorts.push('title');
+  if (masters.some((master) => master.releaseKey !== null)) sorts.push('released');
+  return sorts;
+}
 
 function uuidFromHash(text: string): string {
   const hex = sha1Hex(text);
@@ -206,8 +234,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
       const current = () => credentials?.account.id === accountId;
       // Both lists download at once (the slow part on a phone); grouping then runs one kind at a time.
       const downloads = {
-        movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null }))),
-        series: client.series().then((list) => list.map((s) => ({ ...s, containerExtension: null }))),
+        movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null, addedAt: unixSeconds(m.addedAt) }))),
+        series: client
+          .series()
+          .then((list) => list.map((s) => ({ ...s, containerExtension: null, addedAt: unixSeconds(s.lastModifiedAt) }))),
       };
       for (const promise of Object.values(downloads)) promise.catch(() => undefined);
       for (const kind of ['movie', 'series'] as const) {
@@ -287,22 +317,43 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
     return loading.promise;
   };
 
-  /** Sorted list, per-category lists and id lookup, built once per library version (list() used to sort on every call). */
-  const indexes = new WeakMap<Master[], { sorted: Master[]; byCategory: Map<string, Master[]>; byId: Map<string, Master> }>();
+  /** Per library version: id lookup, category membership and each requested order, built once (not on every list()). */
+  interface LibraryIndex {
+    byId: Map<string, Master>;
+    categories: Map<string, Set<string>>;
+    orders: Map<string, { all: Master[]; byCategory: Map<string, Master[]> }>;
+  }
+  const indexes = new WeakMap<Master[], LibraryIndex>();
   const indexFor = (masters: Master[]) => {
     let index = indexes.get(masters);
     if (!index) {
-      const sorted = [...masters].sort((a, b) => ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1));
-      const byCategory = new Map<string, Master[]>();
-      for (const master of sorted) {
-        for (const categoryId of new Set(master.variants.map((variant) => variant.categoryId))) {
-          if (categoryId) byCategory.set(categoryId, [...(byCategory.get(categoryId) ?? []), master]);
-        }
+      const categories = new Map<string, Set<string>>();
+      for (const master of masters) {
+        categories.set(master.id, new Set(master.variants.flatMap((variant) => variant.categoryId ?? [])));
       }
-      index = { sorted, byCategory, byId: new Map(masters.map((master) => [master.id, master])) };
+      index = { byId: new Map(masters.map((master) => [master.id, master])), categories, orders: new Map() };
       indexes.set(masters, index);
     }
     return index;
+  };
+  const ordered = (masters: Master[], sort: LibrarySort, order: SortOrder) => {
+    const index = indexFor(masters);
+    const key = `${sort}|${order}`;
+    let result = index.orders.get(key);
+    if (!result) {
+      const all = [...masters].sort(compareMasters(sort, order));
+      const byCategory = new Map<string, Master[]>();
+      for (const master of all) {
+        for (const categoryId of index.categories.get(master.id) ?? []) {
+          const list = byCategory.get(categoryId);
+          if (list) list.push(master);
+          else byCategory.set(categoryId, [master]);
+        }
+      }
+      result = { all, byCategory };
+      index.orders.set(key, result);
+    }
+    return result;
   };
 
   /** Cached library, refreshed in the background when older than 24 h or missing. */
@@ -566,14 +617,20 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         }));
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
-        const index = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []);
+        const masters = (await ensureLibrary())?.[librarySection(section)] ?? [];
+        const sort = query.sort ?? 'added';
+        const index = ordered(masters, sort, query.order ?? defaultOrder(sort));
         const search = query.search?.trim().toLowerCase();
-        const scope = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.sorted;
+        const scope = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.all;
         const matches = search
           ? scope.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
           : scope;
         const offset = Math.max(0, query.offset ?? 0);
-        return { total: matches.length, items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard) };
+        return {
+          total: matches.length,
+          items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard),
+          sorts: availableSorts(masters),
+        };
       },
       async get(section: LibrarySection, masterId: string): Promise<MasterDetails> {
         const master = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []).byId.get(masterId);

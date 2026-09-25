@@ -1187,6 +1187,20 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1466,7 +1480,8 @@
       "LibraryPage": {
         "required": [
           "total",
-          "items"
+          "items",
+          "sorts"
         ],
         "type": "object",
         "properties": {
@@ -1479,8 +1494,21 @@
             "items": {
               "$ref": "#/components/schemas/MasterCard"
             }
+          },
+          "sorts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LibrarySort"
+            }
           }
         }
+      },
+      "LibrarySort": {
+        "enum": [
+          "added",
+          "title",
+          "released"
+        ]
       },
       "LibraryStatus": {
         "required": [

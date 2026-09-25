@@ -27,14 +27,45 @@ public sealed class LibraryService(PipelineDbContext db)
         }
 
         var total = await masters.CountAsync(ct);
-        var items = await masters
-            .OrderBy(m => m.Title).ThenBy(m => m.Year)
+        var items = await Sort(masters, query.Sort, query.Order ?? DefaultOrder(query.Sort))
             .Skip(Math.Max(0, query.Offset))
             .Take(Math.Clamp(query.Limit, 1, MaxPageSize))
             .Select(m => new MasterCard(m.Id, m.Title, m.Year, m.PosterUrl, m.Rating, m.BestQuality, m.VariantCount))
             .ToListAsync(ct);
 
-        return new LibraryPage(total, items);
+        var all = db.MasterMedia.AsNoTracking().Where(m => m.AccountId == account && m.MediaKind == mediaKind);
+        var sorts = new List<LibrarySort>();
+        if (await all.AnyAsync(m => m.AddedAt != null, ct))
+        {
+            sorts.Add(LibrarySort.Added);
+        }
+
+        sorts.Add(LibrarySort.Title);
+        if (await all.AnyAsync(m => m.ReleaseKey != null, ct))
+        {
+            sorts.Add(LibrarySort.Released);
+        }
+
+        return new LibraryPage(total, items, sorts);
+    }
+
+    /// <summary>Dates default to newest first, titles to A–Z.</summary>
+    public static SortOrder DefaultOrder(LibrarySort sort) => sort == LibrarySort.Title ? SortOrder.Asc : SortOrder.Desc;
+
+    private static IOrderedQueryable<MasterMedia> Sort(IQueryable<MasterMedia> masters, LibrarySort sort, SortOrder order)
+    {
+        var desc = order == SortOrder.Desc;
+        var sorted = sort switch
+        {
+            LibrarySort.Added => desc
+                ? masters.OrderBy(m => m.AddedAt == null).ThenByDescending(m => m.AddedAt)
+                : masters.OrderBy(m => m.AddedAt == null).ThenBy(m => m.AddedAt),
+            LibrarySort.Released => desc
+                ? masters.OrderBy(m => m.ReleaseKey == null).ThenByDescending(m => m.ReleaseKey)
+                : masters.OrderBy(m => m.ReleaseKey == null).ThenBy(m => m.ReleaseKey),
+            _ => desc ? masters.OrderByDescending(m => m.Title) : masters.OrderBy(m => m.Title),
+        };
+        return sorted.ThenBy(m => m.Title).ThenBy(m => m.Year).ThenBy(m => m.Id);
     }
 
     public async Task<MasterDetails?> GetAsync(Guid accountId, string mediaKind, string masterId, CancellationToken ct)
@@ -84,9 +115,11 @@ public sealed class LibraryService(PipelineDbContext db)
     private static DateTimeOffset? FromUnix(long? seconds) => seconds is { } value ? DateTimeOffset.FromUnixTimeSeconds(value) : null;
 }
 
-public sealed record LibraryQuery(string? CategoryId, string? Search, int Offset = 0, int Limit = 100);
+public sealed record LibraryQuery(
+    string? CategoryId, string? Search, int Offset = 0, int Limit = 100, LibrarySort Sort = LibrarySort.Added, SortOrder? Order = null);
 
-public sealed record LibraryPage(int Total, IReadOnlyList<MasterCard> Items);
+/// <summary><c>Sorts</c> lists the orders this library has data for; <c>title</c> is always there.</summary>
+public sealed record LibraryPage(int Total, IReadOnlyList<MasterCard> Items, IReadOnlyList<LibrarySort> Sorts);
 
 public sealed record MasterCard(string Id, string Title, int? Year, string? PosterUrl, double? Rating, string? BestQuality, int VariantCount);
 

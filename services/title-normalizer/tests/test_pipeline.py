@@ -104,3 +104,11 @@ def test_build_masters_matches_shared_cases(case):
         for m in masters
     ]
     assert actual == case["expect"]
+
+
+@pytest.mark.parametrize("case", load("pipeline")["sortKeys"], ids=lambda case: case["name"])
+def test_sort_keys_match_shared_cases(case):
+    masters = build_masters("acc", case["kind"], case["items"])
+
+    actual = [{"title": m.title, "addedAt": m.added_at, "releaseKey": m.release_key} for m in masters]
+    assert actual == case["expect"]

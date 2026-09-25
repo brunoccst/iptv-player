@@ -320,5 +320,98 @@
         }
       ]
     }
+  ],
+  "sortKeys": [
+    {
+      "name": "added is the newest variant, release falls back to the year",
+      "kind": "movie",
+      "items": [
+        {
+          "id": "1",
+          "name": "Heat (1995) 1080p",
+          "addedAt": 100
+        },
+        {
+          "id": "2",
+          "name": "Heat (1995) 4K",
+          "addedAt": 300
+        },
+        {
+          "id": "3",
+          "name": "Alien (1979)"
+        },
+        {
+          "id": "4",
+          "name": "Nameless"
+        }
+      ],
+      "expect": [
+        {
+          "title": "Alien",
+          "addedAt": null,
+          "releaseKey": 19790000
+        },
+        {
+          "title": "Heat",
+          "addedAt": 300,
+          "releaseKey": 19950000
+        },
+        {
+          "title": "Nameless",
+          "addedAt": null,
+          "releaseKey": null
+        }
+      ]
+    },
+    {
+      "name": "release dates become YYYYMMDD",
+      "kind": "series",
+      "items": [
+        {
+          "id": "1",
+          "name": "Breaking Bad",
+          "releaseDate": "2008-01-20",
+          "addedAt": 50
+        },
+        {
+          "id": "2",
+          "name": "Lost",
+          "releaseDate": "2004"
+        },
+        {
+          "id": "3",
+          "name": "Fringe",
+          "releaseDate": "2008-13-40"
+        },
+        {
+          "id": "4",
+          "name": "Dark",
+          "releaseDate": "2017-12-01 00:00:00",
+          "addedAt": 0
+        }
+      ],
+      "expect": [
+        {
+          "title": "Breaking Bad",
+          "addedAt": 50,
+          "releaseKey": 20080120
+        },
+        {
+          "title": "Dark",
+          "addedAt": null,
+          "releaseKey": 20171201
+        },
+        {
+          "title": "Fringe",
+          "addedAt": null,
+          "releaseKey": 20080000
+        },
+        {
+          "title": "Lost",
+          "addedAt": null,
+          "releaseKey": 20040000
+        }
+      ]
+    }
   ]
 }

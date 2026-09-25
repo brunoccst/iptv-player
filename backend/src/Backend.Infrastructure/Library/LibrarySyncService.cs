@@ -19,11 +19,11 @@ public sealed class LibrarySyncService(AccountService accounts, PipelineDbContex
 
         var movies = await context.Provider.GetMoviesAsync(context.Credentials, categoryId: null, ct);
         jobIds.Add(await EnqueueAsync(accountId, LibraryKind.Movie,
-            movies.Select(m => new LibraryPayloadItem(m.Id, m.Name, m.CategoryId, m.PosterUrl, m.Rating, m.ContainerExtension, null)).ToList(), ct));
+            movies.Select(m => new LibraryPayloadItem(m.Id, m.Name, m.CategoryId, m.PosterUrl, m.Rating, m.ContainerExtension, null, m.AddedAt?.ToUnixTimeSeconds())).ToList(), ct));
 
         var series = await context.Provider.GetSeriesAsync(context.Credentials, categoryId: null, ct);
         jobIds.Add(await EnqueueAsync(accountId, LibraryKind.Series,
-            series.Select(s => new LibraryPayloadItem(s.Id, s.Name, s.CategoryId, s.PosterUrl, s.Rating, null, s.ReleaseDate)).ToList(), ct));
+            series.Select(s => new LibraryPayloadItem(s.Id, s.Name, s.CategoryId, s.PosterUrl, s.Rating, null, s.ReleaseDate, s.LastModifiedAt?.ToUnixTimeSeconds())).ToList(), ct));
 
         return jobIds;
     }

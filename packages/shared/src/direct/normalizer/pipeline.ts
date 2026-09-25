@@ -12,6 +12,8 @@ export interface NormalizerItem {
   rating?: number | null;
   containerExtension?: string | null;
   releaseDate?: string | null;
+  /** Unix seconds the provider added (movies) or last changed (series) the item. */
+  addedAt?: number | null;
 }
 
 export interface Variant {
@@ -38,6 +40,10 @@ export interface Master {
   posterUrl: string | null;
   rating: number | null;
   bestQuality: string | null;
+  /** Newest `addedAt` among the variants (Unix seconds). */
+  addedAt: number | null;
+  /** Release date as YYYYMMDD for sorting; a year-only date is YYYY0000. */
+  releaseKey: number | null;
   variants: Variant[];
 }
 
@@ -102,6 +108,14 @@ export function variantLabel(title: ParsedTitle, containerExtension: string | nu
   return parts.filter(Boolean).join(' · ') || (containerExtension || 'Standard').toUpperCase();
 }
 
+/** YYYYMMDD from an ISO-like date ("2020-05-12"), else YYYY0000 from the year, for sorting. */
+export function releaseKey(releaseDate: string | null, year: number | null): number | null {
+  const match = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})/.exec(releaseDate ?? '');
+  if (match && parseYear(match[1]!) && +match[2]! >= 1 && +match[2]! <= 12 && +match[3]! >= 1 && +match[3]! <= 31)
+    return +match[1]! * 10000 + +match[2]! * 100 + +match[3]!;
+  return year ? year * 10000 : null;
+}
+
 /** Stable across re-syncs while the group's key and year stay the same. Same hash as the Python normalizer. */
 export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
   sha1Hex(`${accountId}|${mediaKind}|${key}|${year ?? ''}`).slice(0, 20);
@@ -128,6 +142,8 @@ function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem
   const canonical = ordered.find((title) => title.cleanTitle === displayTitle)!;
   const ratings = variants.flatMap((variant) => (variant.rating === null ? [] : [variant.rating]));
   const qualities = variants.flatMap((variant) => (variant.quality ? [variant.quality] : []));
+  const added = items.flatMap((item) => (typeof item.addedAt === 'number' && item.addedAt > 0 ? [Math.trunc(item.addedAt)] : []));
+  const released = items.flatMap((item) => releaseKey(optional(item.releaseDate), null) ?? []);
 
   return {
     id: masterId(accountId, mediaKind, compactKey(canonical), year),
@@ -137,6 +153,8 @@ function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem
     posterUrl: variants.find((variant) => variant.posterUrl)?.posterUrl ?? null,
     rating: ratings.length ? Math.max(...ratings) : null,
     bestQuality: qualities.length ? qualities.reduce((best, quality) => (rank(quality) > rank(best) ? quality : best)) : null,
+    addedAt: added.length ? Math.max(...added) : null,
+    releaseKey: released.length ? Math.min(...released) : releaseKey(null, year),
     variants,
   };
 }

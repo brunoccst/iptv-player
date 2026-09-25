@@ -4,7 +4,7 @@ import type { Master, Variant } from './normalizer/pipeline';
  * Compact on-device format for the direct-mode library (D-038): arrays instead of objects, poster URL prefixes in a
  * table, and master poster/rating derived on load. A 125k-title catalog was ~85 MB as plain JSON; this is about a third.
  */
-export const LIBRARY_FORMAT = 2;
+export const LIBRARY_FORMAT = 3;
 
 type PackedVariant = [
   streamId: string,
@@ -30,6 +30,8 @@ type PackedMaster = [
   year: number | null,
   bestQuality: string | null,
   variants: PackedVariant[],
+  addedAt: number | null,
+  releaseKey: number | null,
 ];
 
 export interface PackedLibrary {
@@ -76,7 +78,16 @@ export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
     format: LIBRARY_FORMAT,
     builtAt,
     prefixes,
-    masters: masters.map((m) => [m.id, m.title, m.normalizedKey, m.year, m.bestQuality, m.variants.map(packVariant)]),
+    masters: masters.map((m) => [
+      m.id,
+      m.title,
+      m.normalizedKey,
+      m.year,
+      m.bestQuality,
+      m.variants.map(packVariant),
+      m.addedAt,
+      m.releaseKey,
+    ]),
   };
 }
 
@@ -85,7 +96,7 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
   const packed = value as PackedLibrary | null;
   if (!packed || packed.format !== LIBRARY_FORMAT || !Array.isArray(packed.masters)) return null;
   const { prefixes } = packed;
-  const masters = packed.masters.map(([id, title, normalizedKey, year, bestQuality, packedVariants]): Master => {
+  const masters = packed.masters.map(([id, title, normalizedKey, year, bestQuality, packedVariants, addedAt, releaseKey]): Master => {
     const variants = packedVariants.map((p): Variant => ({
       streamId: p[0],
       rawTitle: p[1],
@@ -110,6 +121,8 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
       posterUrl: variants.find((variant) => variant.posterUrl)?.posterUrl ?? null,
       rating: ratings.length ? Math.max(...ratings) : null,
       bestQuality,
+      addedAt,
+      releaseKey,
       variants,
     };
   });
