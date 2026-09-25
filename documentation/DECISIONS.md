@@ -855,6 +855,14 @@ Decision:
 
 Not done: full virtualization of the web grid (fixed card height per breakpoint) and of the Live TV guide; worth it if providers with far larger categories show hitches on real devices.
 
+## D-047
+
+**Expandable category chips in the TV/phone app** — 2026-09-24 (requested by owner)
+
+Decision: Movies/Series (and Live TV on phones in portrait) show category chips on one horizontal line. When they do not fit, a **Show all ⌄** button at the end of the line wraps every chip across the full width; the same spot then shows **Show less ⌃**, which returns to the single line. Picking a chip also returns to the line, scrolled so the chosen chip is visible (also when a category is opened from a Home row). The web page already wraps its chips, so it is unchanged.
+
+Why: providers often have dozens of categories with long names; scrolling a single line sideways to find one is slow on a phone and with a remote.
+
 ## D-046
 
 **Phone player: full-screen landscape, double tap to seek, timeline drag, screen stays on** — 2026-09-24 (Step 9, phone app)

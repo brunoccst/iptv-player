@@ -17,6 +17,7 @@ import {
   type LiveChannel,
 } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
+import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { useCatalog } from '../hooks';
@@ -104,18 +105,24 @@ export function LiveScreen() {
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Live TV</Text>
       <View style={[styles.live, compact && styles.liveCompact]}>
-        <ScrollView
-          horizontal={compact}
-          scrollEnabled={compact}
-          style={compact ? styles.categoriesCompact : styles.categories}
-          contentContainerStyle={compact ? styles.categoriesRow : undefined}
-          accessibilityLabel="Channel categories"
-        >
-          <CategoryItem label="All channels" active={categoryId === null} onPress={() => chooseCategory(null)} />
-          {categories.map((c) => (
-            <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
-          ))}
-        </ScrollView>
+        {compact ? (
+          // Phones (portrait): the same expandable chips as Movies/Series.
+          <ChipBar
+            label="Channel categories"
+            testID="live-chips"
+            chips={[
+              { key: 'all', label: 'All channels', active: categoryId === null, onPress: () => chooseCategory(null) },
+              ...categories.map((c) => ({ key: c.id, label: c.name, active: categoryId === c.id, onPress: () => chooseCategory(c.id) })),
+            ]}
+          />
+        ) : (
+          <ScrollView style={styles.categories} accessibilityLabel="Channel categories">
+            <CategoryItem label="All channels" active={categoryId === null} onPress={() => chooseCategory(null)} />
+            {categories.map((c) => (
+              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
+            ))}
+          </ScrollView>
+        )}
 
         <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
           <View style={styles.toolbar}>
@@ -386,8 +393,6 @@ const styles = StyleSheet.create({
   title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
   live: { flexDirection: 'row', gap: 24 },
   categories: { width: CATEGORY_WIDTH, flexGrow: 0 },
-  categoriesRow: { gap: 4, alignItems: 'flex-start' },
-  categoriesCompact: { flexGrow: 0 },
   liveCompact: { flexDirection: 'column', gap: 12 },
   category: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
   categoryActive: { backgroundColor: colors.raised },
