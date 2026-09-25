@@ -77,7 +77,8 @@ const oldLibraryKey = (accountId: string, kind: LibraryKind) => `direct.library.
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
 const SHORT_EPG_LIMIT = 12;
-const SHORT_EPG_PARALLELISM = 4;
+// Low on purpose: some providers treat bursts of guide requests as flooding (a 503 was seen at 4 in parallel).
+const SHORT_EPG_PARALLELISM = 2;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
 const SLOT_MS = 30 * 60_000;
 const MAX_PROFILES = 5;

@@ -10,10 +10,23 @@ const folder = () => {
 
 const fileFor = (key: string) => new File(folder(), `${key.replace(/[^A-Za-z0-9._-]/g, '_')}.json`);
 
+/**
+ * Files being read. The native file object can be released when JS no longer references it, even while `text()` is
+ * still reading ("Cannot use shared object that was already released", seen at start-up while large library files
+ * were read). Holding it here until the read finishes prevents that.
+ */
+const reading = new Set<File>();
+
 export const fileStorage: KeyValueStorage = {
   async getItem(key) {
     const file = fileFor(key);
-    return file.exists ? file.text() : null;
+    if (!file.exists) return null;
+    reading.add(file);
+    try {
+      return await file.text();
+    } finally {
+      reading.delete(file);
+    }
   },
   setItem(key, value) {
     const file = fileFor(key);
