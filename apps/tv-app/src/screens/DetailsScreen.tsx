@@ -214,7 +214,7 @@ function Episodes({
   const context = { title: master.title, masterId: master.id, seriesId, posterUrl: series.summary.posterUrl ?? master.posterUrl };
 
   return (
-    <View style={styles.episodes} testID="episodes" accessibilityLabel="Episodes">
+    <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel="Episodes">
       <View style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>Episodes</Text>
         {series.seasons.length > 1 ? (
@@ -234,8 +234,14 @@ function Episodes({
         const target = episodeTarget(context, episode);
         const saved = findProgress(progress, 'episode', episode.id);
         const play = () => navStore.getState().push({ name: 'player', target });
+        const actions = (
+          <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
+            <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
+            <DownloadButton target={target} />
+          </View>
+        );
         return (
-          <View key={episode.id} style={styles.episode}>
+          <View key={episode.id} style={[styles.episode, compact && styles.episodeCompact]}>
             {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
             <Pressable
               style={[styles.still, compact && styles.stillCompact]}
@@ -253,15 +259,16 @@ function Episodes({
               ) : null}
             </Pressable>
             <View style={styles.episodeText}>
-              <Text style={styles.episodeTitle}>{episode.title}</Text>
+              <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
+                {episode.title}
+              </Text>
               <Text style={styles.episodePlot} numberOfLines={2}>
                 {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
               </Text>
+              {/* Phones: buttons under the text, so the title keeps the width. */}
+              {compact ? actions : null}
             </View>
-            <View style={styles.episodeActions}>
-              <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
-              <DownloadButton target={target} />
-            </View>
+            {compact ? null : actions}
           </View>
         );
       })}
@@ -292,6 +299,7 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
 function DetailsHero({ backdrop, title, children }: { backdrop: string | null | undefined; title: string; children: ReactNode }) {
   const { width } = useWindowDimensions();
   const panel = Math.min(850, width - 32);
+  const compact = useCompact();
   return (
     <View style={[styles.hero, { height: Math.min(480, (panel * 9) / 16) }]}>
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
@@ -301,7 +309,7 @@ function DetailsHero({ backdrop, title, children }: { backdrop: string | null | 
           { offset: 1, color: colors.surface },
         ]}
       />
-      <View style={styles.heading}>
+      <View style={[styles.heading, compact && styles.headingCompact]}>
         <Text style={[styles.title, { fontSize: fluid(width, 26, 4, 45) }]} accessibilityRole="header">
           {title}
         </Text>
@@ -314,8 +322,9 @@ function DetailsHero({ backdrop, title, children }: { backdrop: string | null | 
 function Body({ main, side }: { main: ReactNode; side: ReactNode }) {
   const { width } = useWindowDimensions();
   const twoColumns = Math.min(850, width - 32) >= 600;
+  const compact = useCompact();
   return (
-    <View style={[styles.body, twoColumns && styles.bodyColumns]}>
+    <View style={[styles.body, twoColumns && styles.bodyColumns, compact && styles.bodyCompact]}>
       <View style={twoColumns ? styles.mainColumn : undefined}>{main}</View>
       <View style={[styles.side, twoColumns && styles.sideColumn]}>{side}</View>
     </View>
@@ -365,10 +374,13 @@ const styles = StyleSheet.create({
   padded: { padding: 32 },
   hero: { width: '100%', backgroundColor: '#000' },
   heading: { position: 'absolute', left: 32, right: 32, bottom: 24 },
+  // Phones: 16 px sides, the same as the episode list.
+  headingCompact: { left: 16, right: 16 },
   title: { color: colors.strong, fontWeight: '700', marginBottom: 16 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
   body: { paddingTop: 16, paddingHorizontal: 32, paddingBottom: 32, gap: 24 },
   bodyColumns: { flexDirection: 'row' },
+  bodyCompact: { paddingHorizontal: 16 },
   mainColumn: { flex: 2 },
   side: { gap: 12 },
   sideColumn: { flex: 1 },
@@ -383,6 +395,7 @@ const styles = StyleSheet.create({
   variant: { gap: 6, marginTop: 16 },
   variantLabel: { color: colors.muted, fontSize: 12.8 },
   episodes: { paddingHorizontal: 32, paddingBottom: 32 },
+  episodesCompact: { paddingHorizontal: 16 },
   episodesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   episodesTitle: { color: colors.strong, fontSize: 22.4, fontWeight: '700' },
   episode: {
@@ -394,13 +407,15 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     borderRadius: radius,
   },
+  episodeCompact: { padding: 8, gap: 12, alignItems: 'flex-start' },
   episodeNumber: { width: 32, color: colors.muted, fontSize: 22.4, textAlign: 'center' },
   still: { width: 140, aspectRatio: 16 / 9, borderRadius: radius, overflow: 'hidden', backgroundColor: '#333' },
-  stillCompact: { width: 110 },
+  stillCompact: { width: 96 },
   stillTrack: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   stillValue: { height: 3, backgroundColor: colors.accent },
   episodeText: { flex: 1 },
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
   episodePlot: { color: colors.muted, fontSize: 13.6 },
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  episodeActionsCompact: { marginTop: 8 },
 });
