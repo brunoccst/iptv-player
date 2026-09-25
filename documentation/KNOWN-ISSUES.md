@@ -299,3 +299,5 @@ The 30-day online check, the subscription check and sign-out deletion (D-050) ar
 **Kids profiles filter by category name, without a PIN** — logged 2026-09-25
 
 Providers send no age ratings, so Kids profiles show only categories whose names look like children's content (D-053). A kids title in a general category ("Movies 2024") is hidden, and an unsuitable title inside a "Kids" category is shown. Any profile can pick another profile or untick "Kids profile" without a PIN, so this is a convenience filter, not a lock.
+
+Update 2026-09-25 (D-054): an optional parental PIN now locks leaving a Kids profile and managing profiles. The PIN is per device, and the name-based filter is unchanged.

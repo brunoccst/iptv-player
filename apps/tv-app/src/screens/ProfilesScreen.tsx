@@ -1,27 +1,42 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { AVATAR_COLORS, avatarColor, fluid, type ProfileDto } from '@iptv/shared';
+import { AVATAR_COLORS, avatarColor, fluid, needsPinToManage, needsPinToOpen, type ProfileDto } from '@iptv/shared';
 import { stores } from '../appContext';
 import { confirmSignOut } from '../components/AccountMenu';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Icon } from '../components/Icon';
-import { useSession } from '../hooks';
+import { usePinGate } from '../components/PinPad';
+import { usePin, useSession } from '../hooks';
 import { colors, fonts, radius } from '../theme';
 
 export { avatarColor };
 
 const MAX_PROFILES = 5;
 
-/** Same as the web "Who's watching?": pick a profile; Manage Profiles edits, adds or deletes them. */
+/** Same as the web "Who's watching?": pick a profile; Manage Profiles edits, adds or deletes them. PIN rules: D-054. */
 export function ProfilesScreen() {
   const profiles = useSession((s) => s.profiles);
+  const pinStatus = usePin((s) => s.status);
   const [managing, setManaging] = useState(false);
   const [editing, setEditing] = useState<ProfileDto | 'new' | null>(null);
+  // Once the PIN was entered for managing, it is not asked again until the picker closes.
+  const [unlocked, setUnlocked] = useState(false);
+  const { gate, dialog } = usePinGate();
   const { width } = useWindowDimensions();
   const tile = fluid(width, 90, 10, 150);
 
-  const select = (profile: ProfileDto) => (managing ? setEditing(profile) : stores.session.getState().selectProfile(profile.id));
+  const manage = (action: () => void) =>
+    gate(needsPinToManage(pinStatus) && !unlocked, 'Enter the parental PIN to manage profiles', () => {
+      setUnlocked(true);
+      action();
+    });
+  const select = (profile: ProfileDto) =>
+    managing
+      ? setEditing(profile)
+      : gate(needsPinToOpen(pinStatus, null, profile), `Enter the parental PIN to open ${profile.name}`, () =>
+          stores.session.getState().selectProfile(profile.id),
+        );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.center}>
@@ -39,18 +54,21 @@ export function ProfilesScreen() {
             onPress={() => select(profile)}
           />
         ))}
-        {profiles.length < MAX_PROFILES ? <ProfileTile name="Add Profile" size={tile} add onPress={() => setEditing('new')} /> : null}
+        {profiles.length < MAX_PROFILES ? (
+          <ProfileTile name="Add Profile" size={tile} add onPress={() => manage(() => setEditing('new'))} />
+        ) : null}
       </View>
       <View style={styles.actions}>
         <FocusButton
           label={managing ? 'Done' : 'Manage Profiles'}
           variant="ghost"
-          onPress={() => setManaging(!managing)}
+          onPress={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
           testID="profiles-manage"
         />
         <FocusButton label="Sign out" variant="ghost" onPress={confirmSignOut} testID="profiles-sign-out" />
       </View>
       {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
+      {dialog}
     </ScrollView>
   );
 }
