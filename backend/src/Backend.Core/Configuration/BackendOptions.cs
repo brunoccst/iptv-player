@@ -22,6 +22,7 @@ public sealed class BackendOptions
         public const string ProviderUserAgent = "BACKEND_PROVIDER_USER_AGENT";
         public const string CatalogCacheMinutes = "BACKEND_CATALOG_CACHE_MINUTES";
         public const string EpgRefreshHours = "BACKEND_EPG_REFRESH_HOURS";
+        public const string LibraryRefreshHours = "BACKEND_LIBRARY_REFRESH_HOURS";
         public const string PublicBaseUrl = "BACKEND_PUBLIC_BASE_URL";
     }
 
@@ -47,6 +48,9 @@ public sealed class BackendOptions
 
     /// <summary>Guide older than this is downloaded again (in the background) on the next grid request.</summary>
     public int EpgRefreshHours { get; set; } = 6;
+
+    /// <summary>Signed-in accounts get a background library sync when their last one is older than this. 0 disables.</summary>
+    public int LibraryRefreshHours { get; set; } = 12;
 
     /// <summary>
     /// Address clients use to reach the API when it sits behind a proxy (e.g. GitHub Codespaces).
