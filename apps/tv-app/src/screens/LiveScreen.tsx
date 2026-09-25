@@ -59,7 +59,8 @@ function play(channel: LiveChannel, programme: EpgListing | null) {
  */
 export function LiveScreen() {
   const categories = useCatalog((s) => s.categories.live?.data ?? []);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  // Starts on the category opened from the Home row's arrow card (null = All channels).
+  const [categoryId, setCategoryId] = useState<string | null>(() => navStore.getState().categoryId);
   const now = useNow();
   const [from, setFrom] = useState(() => floorToSlot(Date.now()));
   const [pages, setPages] = useState(1);

@@ -18,7 +18,8 @@ import { Row } from '../components/Row';
 import { colors, useSizes } from '../theme';
 import { usePagedLibrary } from './usePagedLibrary';
 
-const ROW_SIZE = 30;
+/** Home rows show only the first titles; the arrow card at the end opens the category page. */
+const ROW_SIZE = 10;
 const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
@@ -47,10 +48,11 @@ export function MasterCardItem({
   );
 }
 
-/** Home row of titles for a section/category; more load while scrolling. The title opens Movies/Series on that category. */
+/** Home row: the first 10 titles of a section/category. The title and the arrow card open Movies/Series on that category. */
 export function TitleRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
   const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE);
   if (page.done && page.items.length === 0) return null;
+  const open = () => navStore.getState().openCategory(section, category?.id ?? null);
   return (
     <Row
       title={title}
@@ -58,10 +60,9 @@ export function TitleRow({ section, category, title }: { section: LibrarySection
       keyOf={(item) => item.id}
       testID={`row-${section}-${category?.id ?? 'all'}`}
       loading={page.loadingFirst}
-      loadingMore={page.loadingMore}
-      onEndReached={page.loadMore}
       empty={page.error ? 'Could not load this row.' : ' '}
-      onTitlePress={() => navStore.getState().openCategory(section, category?.id ?? null)}
+      onTitlePress={open}
+      more={page.hasMore ? { onPress: open } : undefined}
       render={(item) => <MasterCardItem section={section} item={item} />}
     />
   );

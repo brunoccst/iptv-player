@@ -846,6 +846,14 @@ Decision: Movies/Series (and Live TV on phones in portrait) show category chips 
 
 Why: providers often have dozens of categories with long names; scrolling a single line sideways to find one is slow on a phone and with a remote.
 
+## D-043
+
+**APK Home rows: 10 titles and a "See all" arrow card** — 2026-09-24 (requested by owner: phone rows slowed down while scrolling)
+
+Decision: in the TV/phone app, each Home row shows its first 10 items (titles or live channels) and no longer loads more while scrolling. When the category has more, the last card is an arrow ("See all") that opens that category: Movies/Series with its chip selected, or Live TV on that channel category. The row title link does the same. The web keeps D-040 (rows load more on scroll).
+
+Why: loading and rendering more pages inside a horizontal row made fast scrolling stutter on phones. A short row plus one tap to the full, paged category grid keeps Home light.
+
 ## D-044
 
 **Faster pipelines: build one ABI for the emulator, run CI once per PR push** — 2026-09-24 (requested by owner: evaluate faster pipelines)
