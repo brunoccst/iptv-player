@@ -19,20 +19,23 @@ import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
 import { TitleRow } from './titles';
 
-const ROW_SIZE = 30;
+/** Movies the hero picks its featured title from. */
+const HERO_CANDIDATES = 30;
+/** Home rows show only the first items; the arrow card at the end opens the full list. */
+const LIVE_ROW_SIZE = 10;
 const MOVIE_ROWS = 6;
 const SERIES_ROWS = 3;
 
 /** Same as the web Home: hero, library banner, Continue Watching, Live TV, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
-  const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: ROW_SIZE })]?.data?.items ?? []);
+  const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.data?.items ?? []);
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
   const seriesCategories = useCatalog((s) => s.categories.series?.data ?? []);
   const { rowGap } = useSizes();
 
   useEffect(() => {
     const { library, catalog } = stores;
-    void library.getState().loadPage('movies', { limit: ROW_SIZE });
+    void library.getState().loadPage('movies', { limit: HERO_CANDIDATES });
     void catalog.getState().loadCategories('movies');
     void catalog.getState().loadCategories('series');
   }, []);
@@ -164,9 +167,13 @@ function LiveRow() {
   return (
     <Row
       title={categories[0] ? `Live TV: ${categories[0].name}` : 'Live TV'}
-      items={channels.slice(0, ROW_SIZE)}
+      items={channels.slice(0, LIVE_ROW_SIZE)}
       keyOf={(c) => c.id}
       empty="No channels."
+      testID="row-live"
+      more={
+        channels.length > LIVE_ROW_SIZE ? { landscape: true, onPress: () => navStore.getState().openCategory('live', first) } : undefined
+      }
       render={(c) => (
         <PosterCard
           landscape
