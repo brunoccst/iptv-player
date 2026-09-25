@@ -34,8 +34,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Native launch screen: the icon on the dark background until the first frame.
     ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: '#141414' }],
     'expo-secure-store',
-    // The local backend is plain HTTP on the LAN (KI-009); Android blocks cleartext by default.
-    ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          // The local backend is plain HTTP on the LAN (KI-009); Android blocks cleartext by default.
+          usesCleartextTraffic: true,
+          // Smaller APK (D-045): compress native libraries, strip unused Java code (R8) and resources.
+          useLegacyPackaging: true,
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+      },
+    ],
   ],
   extra: {
     APP_NAME: requireEnv('APP_NAME'),
