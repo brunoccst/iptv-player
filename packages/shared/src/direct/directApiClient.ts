@@ -83,6 +83,8 @@ const validation = (message: string) => new ApiError(400, 'validation_failed', m
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 /** Ordinal compare, like the backend's SQLite ORDER BY and StringComparer.Ordinal. */
 const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+/** Startup waits this long for the provider before showing the app offline. */
+const ME_TIMEOUT_MS = 10_000;
 const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.parse(iso) / 1000) || null : null);
 
 /** Same order as the backend (D-049): missing values last, then title, year and id. */
@@ -475,10 +477,28 @@ export function createDirectApiClient(options: DirectApiClientOptions): ApiClien
         library.data = null;
         return undefined;
       },
+      /**
+       * Confirms the account with the provider, so "online" means the subscription was checked (downloads, D-050).
+       * Unreachable within 10 s → error (offline mode); rejected or inactive account → 401 (signed out).
+       */
       async me() {
-        const { stored } = await session();
+        const { stored, client } = await session();
         void ensureLibrary().catch(() => undefined);
-        return stored.account;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), ME_TIMEOUT_MS);
+        const info = await client.validate(controller.signal).finally(() => clearTimeout(timer));
+        const account: AccountDto = {
+          ...stored.account,
+          status: info.status,
+          expiresAt: info.expiresAt,
+          maxConnections: info.maxConnections,
+        };
+        if (credentials === stored) {
+          const updated: StoredCredentials = { ...stored, account, info };
+          await writeJson(options.secureStorage, CREDENTIALS_KEY, updated).catch(() => undefined);
+          connect(updated);
+        }
+        return account;
       },
     },
 

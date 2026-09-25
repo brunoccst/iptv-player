@@ -30,11 +30,15 @@ export function createFakePanel() {
     stop_timestamp: String(nowSeconds + (startOffset + minutes) * 60),
   });
 
+  let accountStatus = 'Active';
+  let expDate: string | null = null;
   const answer = (params: URLSearchParams): unknown => {
     if (params.get('username') !== 'demo' || params.get('password') !== 'demo') return { user_info: { auth: 0 } };
     switch (params.get('action')) {
       case null:
-        return { user_info: { auth: 1, status: 'Active', max_connections: '1', allowed_output_formats: ['m3u8', 'ts'] } };
+        return {
+          user_info: { auth: 1, status: accountStatus, exp_date: expDate, max_connections: '1', allowed_output_formats: ['m3u8', 'ts'] },
+        };
       case 'get_vod_streams':
         return movies;
       case 'get_series':
@@ -70,6 +74,11 @@ export function createFakePanel() {
     nowSeconds,
     offline: () => {
       down = true;
+    },
+    /** Account as the provider reports it on the next login check (e.g. 'Expired', a new `exp_date`). */
+    setAccount: (status: string, expiresAtSeconds: number | null = null) => {
+      accountStatus = status;
+      expDate = expiresAtSeconds === null ? null : String(expiresAtSeconds);
     },
   };
 }

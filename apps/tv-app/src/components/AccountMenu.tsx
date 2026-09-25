@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { avatarColor, selectActiveProfile } from '@iptv/shared';
-import { navStore, stores } from '../appContext';
+import { navStore, signOut, stores } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { Icon, type IconName } from './Icon';
 
-/** Asks first: signing out needs the provider password again. Downloads and the saved library stay on the device. */
+/** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
 export function confirmSignOut() {
-  Alert.alert('Sign out?', 'You will need your provider login to sign in again. Downloads stay on this device.', [
+  Alert.alert('Sign out?', 'You will need your provider login to sign in again. Downloads on this device are deleted.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Sign out', style: 'destructive', onPress: () => void stores.session.getState().logout() },
+    { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
   ]);
 }
 

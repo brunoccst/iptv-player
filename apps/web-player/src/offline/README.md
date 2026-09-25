@@ -2,6 +2,8 @@
 
 Secure in-app offline viewing. No media file ever reaches the user's filesystem.
 
+Downloads are deleted on sign-out and play only while the subscription is active and the app was online within 30 days (D-050, `appContext.ts`, `DownloadsPage.tsx`).
+
 | File | Runs in | Purpose |
 |------|---------|---------|
 | `types.ts` | both | Constants, `DownloadRecord`, URL helpers. |

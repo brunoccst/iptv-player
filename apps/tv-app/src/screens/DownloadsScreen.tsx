@@ -1,16 +1,21 @@
 import { useEffect } from 'react';
+import { formatOfflineDate } from '@iptv/shared';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { downloadsStore, navStore } from '../appContext';
 import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
-import { useDownloads } from '../hooks';
+import { useDownloads, useOfflineAccess } from '../hooks';
 import { colors, fonts, radius, useSizes, useNavHeight } from '../theme';
 
 const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
 
-/** Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons. */
+/**
+ * Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons.
+ * Play is hidden while downloads are blocked (subscription expired or no online check for 30 days, D-050).
+ */
 export function DownloadsScreen() {
   const records = useDownloads((s) => Object.values(s.records).filter((r) => r.state !== 'removing'));
+  const access = useOfflineAccess();
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -27,14 +32,23 @@ export function DownloadsScreen() {
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>
       {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
+      {records.length > 0 ? (
+        <Text testID="downloads-access" style={access.allowed ? styles.muted : styles.error}>
+          {access.allowed
+            ? access.recheckBy
+              ? `Downloads play offline until ${formatOfflineDate(access.recheckBy)}; opening the app online extends this.`
+              : null
+            : access.message}
+        </Text>
+      ) : null}
       {records.map((record, index) => (
-        <DownloadItem key={record.id} record={record} first={index === 0} />
+        <DownloadItem key={record.id} record={record} first={index === 0} playable={access.allowed} />
       ))}
     </ScrollView>
   );
 }
 
-function DownloadItem({ record, first }: { record: TvDownload; first: boolean }) {
+function DownloadItem({ record, first, playable }: { record: TvDownload; first: boolean; playable: boolean }) {
   const { pause, resume, remove } = downloadsStore.getState();
   const percent = Math.round(record.progress * 100);
   const title = record.target.title;
@@ -63,13 +77,15 @@ function DownloadItem({ record, first }: { record: TvDownload; first: boolean })
       </View>
       <View style={styles.actions}>
         {record.state === 'completed' ? (
-          <IconButton
-            icon="play"
-            label={`Play ${title}`}
-            hasTVPreferredFocus={first}
-            testID={`download-play-${record.id}`}
-            onPress={() => navStore.getState().push({ name: 'player', target: record.target })}
-          />
+          playable ? (
+            <IconButton
+              icon="play"
+              label={`Play ${title}`}
+              hasTVPreferredFocus={first}
+              testID={`download-play-${record.id}`}
+              onPress={() => navStore.getState().push({ name: 'player', target: record.target })}
+            />
+          ) : null
         ) : record.state === 'downloading' || record.state === 'queued' ? (
           <IconButton icon="pause" label={`Pause ${title}`} hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
         ) : (

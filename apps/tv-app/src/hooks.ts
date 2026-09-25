@@ -1,4 +1,4 @@
-import { useAppStore } from '@iptv/shared';
+import { offlineAccess, useAppStore } from '@iptv/shared';
 import type { CatalogState, ConnectionState, LibraryState, ProgressState, SessionState } from '@iptv/shared';
 import { downloadsStore, navStore, stores } from './appContext';
 import type { DownloadsState } from './downloads/downloadsStore';
@@ -13,3 +13,10 @@ export const useLibrary = <T>(selector: (state: LibraryState) => T) => useAppSto
 export const useProgress = <T>(selector: (state: ProgressState) => T) => useAppStore(stores.progress, selector);
 export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAppStore(downloadsStore, selector);
 export const useNav = <T>(selector: (state: NavState) => T) => useAppStore(navStore, selector);
+
+/** Whether downloads may play (subscription active, online within 30 days). D-050. */
+export function useOfflineAccess() {
+  const expiresAt = useSession((s) => s.account?.expiresAt ?? null);
+  const lastOnlineAt = useSession((s) => s.lastOnlineAt);
+  return offlineAccess({ expiresAt }, lastOnlineAt);
+}

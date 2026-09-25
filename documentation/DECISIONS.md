@@ -40,6 +40,21 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-033](#d-033) | 2026-09-23 | Linters and formatters: ESLint + Prettier, dotnet format, Ruff; web e2e in CI |
 | [D-034](#d-034) | 2026-09-23 | One-command dev stack: `scripts/dev.mjs` |
 | [D-035](#d-035) | 2026-09-23 | Phone testing via GitHub Codespaces (web app + fake panel) |
+| [D-036](#d-036) | 2026-09-24 | Codespaces: artwork through the web port, auto-start on open |
+| [D-037](#d-037) | 2026-09-24 | TV APK for a real Android TV, delivered through the codespace |
+| [D-038](#d-038) | 2026-09-24 | Hybrid: native apps work without a server |
+| [D-039](#d-039) | 2026-09-24 | On-device diagnostics log with manual sharing |
+| [D-040](#d-040) | 2026-09-24 | Category pages, load-on-scroll and one generated app icon |
+| [D-041](#d-041) | 2026-09-24 | The TV/phone app copies the web design |
+| [D-042](#d-042) | 2026-09-24 | "Skip ahead" with fixed choices instead of Skip Intro |
+| [D-043](#d-043) | 2026-09-24 | APK Home rows: 10 titles and a "See all" arrow card |
+| [D-044](#d-044) | 2026-09-24 | Faster pipelines: build one ABI for the emulator, run CI once per PR push |
+| [D-045](#d-045) | 2026-09-24 | Smaller APK: compressed native libraries, R8 and resource shrinking |
+| [D-046](#d-046) | 2026-09-24 | Phone player: full-screen landscape, double tap to seek, timeline drag, screen stays on |
+| [D-047](#d-047) | 2026-09-24 | Expandable category chips in the TV/phone app |
+| [D-048](#d-048) | 2026-09-24 | UI stress test: huge categories |
+| [D-049](#d-049) | 2026-09-25 | Library sort: recently added by default; name and release date on request |
+| [D-050](#d-050) | 2026-09-25 | Offline downloads: encrypted on Android, tied to the account, 30-day online check |
 
 ---
 
@@ -928,3 +943,17 @@ Decision:
 - Direct mode sorts the same way; the saved library format goes to 3, so it is rebuilt once.
 
 Existing server libraries get the dates on their next sync (every login, or "Refresh library" in the account menu); until then only Name is offered.
+
+## D-050
+
+**Offline downloads: encrypted on Android, tied to the account, 30-day online check** — 2026-09-25 (requested by owner: offline anti-piracy hardening, KI-002, KI-003)
+
+Decision:
+- **Android (KI-003):** downloaded media is AES-encrypted in the Media3 cache (`AesCipherDataSink`/`AesCipherDataSource`). The key is random per install and stored only wrapped by an Android Keystore key, which cannot be exported. Downloads made before this change cannot be read and are deleted once on the first start.
+- **Tied to the account (web + Android):** "Sign out" deletes the downloads on the device (the menu warns first). Signing in with a different account deletes the previous account's downloads. Before, downloads stayed after sign-out and were visible to the next account.
+- **Online check (web + Android):** downloads play only if the provider subscription has not expired and the app reached the server (server mode) or the provider (direct mode) within the last 30 days. Opening the app online renews it; My Downloads shows the date. A device clock set back before the last check also blocks. When blocked, Play is hidden; online, the player streams instead.
+- **Direct mode** now asks the provider for the account status on start (10 s limit). Unreachable → offline mode; rejected or inactive account → signed out. Before, it trusted the saved account.
+
+Why: downloads are private copies for the subscriber. They should not outlive the subscription, move to another account, or be readable as plain files.
+
+Limits (see KI-002, KI-038): the rules run inside the apps. Web chunks are encrypted, but any script on the origin (DevTools) can still get decrypted bytes; on a rooted Android device, code running as the app can use the key. Real protection needs DRM, which Xtream providers do not offer.

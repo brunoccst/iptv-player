@@ -63,6 +63,30 @@ describe('createDirectApiClient', () => {
     await expect(restarted.api.auth.me()).rejects.toMatchObject({ status: 401 });
   });
 
+  it('checks the account with the provider on restore (D-050)', async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    const renewed = first.panel.nowSeconds + 90 * 24 * 3600;
+    first.panel.setAccount('Active', renewed);
+
+    const restarted = setup(first.panel, first.storages);
+    expect((await restarted.api.auth.me()).expiresAt).toBe(new Date(renewed * 1000).toISOString());
+
+    first.panel.setAccount('Expired');
+    await expect(setup(first.panel, first.storages).api.auth.me()).rejects.toMatchObject({ status: 401 });
+
+    first.panel.setAccount('Active');
+    first.panel.offline();
+    const offline = await setup(first.panel, first.storages)
+      .api.auth.me()
+      .then(
+        () => null,
+        (error: { status: number }) => error.status,
+      );
+    expect(offline).not.toBeNull();
+    expect(offline).not.toBe(401);
+  });
+
   it('builds the deduplicated library on the device and serves it offline after a restart', async () => {
     const { api, panel, storages } = setup();
     await api.auth.login(login);

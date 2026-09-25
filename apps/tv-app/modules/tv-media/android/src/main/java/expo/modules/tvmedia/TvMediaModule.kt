@@ -63,6 +63,11 @@ class TvMediaModule : Module() {
       DownloadService.sendRemoveDownload(context, TvDownloadService::class.java, id, false)
     }
 
+    /** Sign-out and account change (DECISIONS.md#d-050). */
+    Function("removeAllDownloads") {
+      DownloadService.sendRemoveAllDownloads(context, TvDownloadService::class.java, false)
+    }
+
     View(TvPlayerView::class) {
       Events("onStatus", "onProgress", "onTracks", "onEnd", "onError")
 
