@@ -77,7 +77,7 @@ python -m title_normalizer  # dedup worker (venv active); needs the backend to h
 
 No IPTV subscription? Start the fake panel (`tools/fake-xtream-server`, see its README) and sign in with `http://localhost:8090` / `demo` / `demo`.
 
-TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the APK build and Android TV emulator tests run in GitHub Actions (`.github/workflows/tv-app.yml`, artifacts `tv-app-apk` and `maestro-output`).
+TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the APK build and Android TV emulator tests run in GitHub Actions (`.github/workflows/tv-app.yml`, artifacts `tv-app-apk` (x86, emulator only) and `maestro-output`; the ARM APK for real TVs comes from `tv-apk.yml`).
 
 Try it from a phone (no computer needed), free within the GitHub Codespaces monthly allowance:
 
