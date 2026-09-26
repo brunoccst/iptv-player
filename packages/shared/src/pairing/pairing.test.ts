@@ -49,6 +49,17 @@ const via = (tv: { secure: ReturnType<typeof createMemoryStorage>; data: ReturnT
   }) as typeof fetch;
 
 describe('phone-to-TV pairing (D-060)', () => {
+  it('hands the remote-play key to the phone inside the encrypted answer (D-061)', async () => {
+    const tv = { secure: createMemoryStorage(), data: createMemoryStorage() };
+    const remote = { tvId: 'tv-1', tvName: 'TV', phoneId: 'p-1', key: KEY, port: 38127 };
+    const toTv = (async (_url: string, init?: RequestInit) => {
+      const reply = await acceptPairing(tv, KEY, String(init?.body), { remote });
+      expect(reply.result).toMatchObject({ ok: true, remote });
+      return new Response(reply.body, { status: reply.status });
+    }) as typeof fetch;
+    await expect(sendPairing(phone(), offer, { fetch: toTv })).resolves.toMatchObject({ ok: true, remote });
+  });
+
   it('the QR text carries address and key', () => {
     const text = pairingQrText(offer);
     expect(text).toMatch(/^IPTVPAIR:1:192\.168\.1\.20:38123:[A-Za-z0-9_-]{43}$/);
@@ -59,7 +70,7 @@ describe('phone-to-TV pairing (D-060)', () => {
   it('a signed-out TV signs in with the phone account, its PIN and media, but not its device settings', async () => {
     const tv = { secure: createMemoryStorage(), data: createMemoryStorage({ 'settings.playback': '{"audioDecoder":"device"}' }) };
     const result = await sendPairing(phone(), offer, { fetch: via(tv) });
-    expect(result).toEqual({ ok: true, mode: 'login', accountName: 'demo' });
+    expect(result).toEqual({ ok: true, mode: 'login', accountName: 'demo', remote: undefined });
 
     const session = JSON.parse(tv.secure.data.get(SESSION_STORAGE_KEY)!);
     expect(session).toMatchObject({ token: 'direct-x', account, activeProfileId: null });

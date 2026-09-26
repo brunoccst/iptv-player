@@ -1,11 +1,12 @@
-import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ProfileDto, ProgressDto, WatchlistDto } from '../api/types';
 import { collectUserData, type BackupStorages, type UserDataContents } from '../backup/userData';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
-import { asciiJson, fromAscii, fromBase64, parseJson, randomBytes, toBase64 } from '../utils/bytes';
+import { parseJson } from '../utils/bytes';
+import { seal, unseal } from './sealed';
+import type { RemoteOffer } from './remote';
 
 /**
  * Phone-to-TV pairing (D-060). The TV shows a QR code with its address on the home network and a one-time key. The
@@ -44,10 +45,11 @@ interface PairingRequest {
   contents: UserDataContents;
 }
 /** What the TV answers. */
-type PairingReply = { ok: true; mode: PairingMode; data: Record<string, string> } | { ok: false; error: PairingError };
+type PairingReply =
+  { ok: true; mode: PairingMode; data: Record<string, string>; remote?: RemoteOffer } | { ok: false; error: PairingError };
 
-/** Result on either side, for the UI. */
-export type PairingResult = { ok: true; mode: PairingMode; accountName: string } | { ok: false; error: PairingError };
+/** Result on either side, for the UI. `remote`: the remote-play key both devices keep (D-061). */
+export type PairingResult = { ok: true; mode: PairingMode; accountName: string; remote?: RemoteOffer } | { ok: false; error: PairingError };
 
 export function pairingMessage(error: PairingError | 'unreachable' | 'wrong-code'): string {
   switch (error) {
@@ -60,22 +62,6 @@ export function pairingMessage(error: PairingError | 'unreachable' | 'wrong-code
       return 'This code is no longer valid. Open the QR code on the TV again and scan the new one.';
     case 'unreachable':
       return 'Could not reach the TV. Phone and TV must be on the same home network (Wi-Fi).';
-  }
-}
-
-function seal(key: string, value: unknown): string {
-  const nonce = randomBytes(24);
-  const bytes = Uint8Array.from(asciiJson(value), (c) => c.charCodeAt(0));
-  return JSON.stringify({ nonce: toBase64(nonce), data: toBase64(xchacha20poly1305(fromBase64(key), nonce).encrypt(bytes)) });
-}
-
-/** `null` when the text was not sealed with this key (wrong or old code, or changed on the way). */
-function unseal<T>(key: string, text: string): T | null {
-  try {
-    const { nonce, data } = JSON.parse(text) as { nonce: string; data: string };
-    return JSON.parse(fromAscii(xchacha20poly1305(fromBase64(key), fromBase64(nonce)).decrypt(fromBase64(data)))) as T;
-  } catch {
-    return null;
   }
 }
 
@@ -182,6 +168,8 @@ export async function acceptPairing(
   storages: BackupStorages,
   key: string,
   body: string,
+  /** Remote play (D-061): the key for this phone, handed over in the encrypted answer. */
+  options: { remote?: RemoteOffer } = {},
 ): Promise<{ status: number; body: string; result: PairingResult | null }> {
   const request = unseal<PairingRequest>(key, body);
   if (!request?.contents?.secure) return { status: 403, body: 'forbidden', result: null };
@@ -230,7 +218,8 @@ export async function acceptPairing(
   }
 
   const accountName = phoneSession.account?.username ?? 'your account';
-  return reply({ ok: true, mode, data: entries }, { ok: true, mode, accountName });
+  const { remote } = options;
+  return reply({ ok: true, mode, data: entries, remote }, { ok: true, mode, accountName, remote });
 }
 
 /**
@@ -279,7 +268,7 @@ export async function sendPairing(
     const updated = { ...session, profiles: profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids })) };
     await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
   }
-  return { ok: true, mode: reply.mode, accountName: session.account?.username ?? 'your account' };
+  return { ok: true, mode: reply.mode, accountName: session.account?.username ?? 'your account', remote: reply.remote };
 }
 
 export class PairingFailure extends Error {

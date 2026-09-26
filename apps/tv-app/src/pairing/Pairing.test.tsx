@@ -1,7 +1,20 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { acceptPairing, createMemoryStorage, pairingQrText, sendPairing } from '@iptv/shared';
+import {
+  acceptPairing,
+  createMemoryStorage,
+  openRemoteRequest,
+  pairingQrText,
+  sendPairing,
+  sendRemoteCommand,
+  type PairedTv,
+  type RemoteOffer,
+} from '@iptv/shared';
+import { Alert } from 'react-native';
+import { navStore } from '../appContext';
+import { PlayOnTvButton } from '../components/PlayOnTvButton';
+import { pairedTv } from './remote';
 import { App } from '../App';
 import { stores } from '../appContext';
 import { account, profile, setupApp } from '../../test/utils';
@@ -82,7 +95,8 @@ describe('phone-to-TV pairing (D-060)', () => {
     const tv = { secure: createMemoryStorage(), data: createMemoryStorage() };
     globalThis.fetch = (async (url: string, init?: RequestInit) => {
       if (!String(url).startsWith('http://192.168.1.20:38123/')) return backend.fetch(url, init);
-      const reply = await acceptPairing(tv, PAIRING_KEY, String(init?.body));
+      const remote = { tvId: 't', tvName: 'Living room TV', phoneId: 'p1', key: PAIRING_KEY, port: 38127 };
+      const reply = await acceptPairing(tv, PAIRING_KEY, String(init?.body), { remote });
       return new Response(reply.body, { status: reply.status });
     }) as typeof fetch;
     await SecureStore.setItemAsync('settings.playback', '{"audioDecoder":"ffmpeg"}');
@@ -96,6 +110,9 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(await screen.findByText(/The TV is signed in with your account/)).toBeTruthy();
     expect(JSON.parse(tv.secure.data.get('session')!)).toMatchObject({ token: 'tok', activeProfileId: null });
     expect(JSON.stringify([...tv.secure.data, ...tv.data.data])).not.toContain('audioDecoder');
+    // The phone keeps the TV for "Play on TV" (D-061).
+    expect(pairedTv.getState().tv).toMatchObject({ host: '192.168.1.20', port: 38127, tvName: 'Living room TV' });
+    expect(JSON.parse((await SecureStore.getItemAsync('remote.tv'))!)).toMatchObject({ host: '192.168.1.20' });
   });
 
   it('phone: a code from something else is explained', async () => {
@@ -107,5 +124,69 @@ describe('phone-to-TV pairing (D-060)', () => {
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-pairing'));
     expect(await screen.findByText(/not a TV code from this app/)).toBeTruthy();
+  });
+
+  describe('play on TV (D-061)', () => {
+    const movie = { kind: 'movie' as const, streamId: '55', container: 'mkv', title: 'Big Movie' };
+    const toRemote = (async (_url: string, init?: RequestInit) => {
+      const reply = await nativeState.remoteRequest(String(init?.body));
+      return new Response(reply.body, { status: reply.status });
+    }) as typeof fetch;
+
+    it('the TV plays what a paired phone sends, and refuses other accounts and unknown phones', async () => {
+      setupApp();
+      await render(<App />);
+      await flush();
+      expect(nativeState.remoteRunning).toBe(true);
+      await fireEvent.press(screen.getByTestId('nav-account'));
+      await fireEvent.press(screen.getByTestId('menu-pairing'));
+      let remote: RemoteOffer | undefined;
+      await act(async () => {
+        remote = (await sendPairing(phoneStorages(), offer, { fetch: toTv })).remote;
+      });
+      await flush();
+      expect(remote).toMatchObject({ tvName: 'Living room TV', port: 38127 });
+      await fireEvent.press(screen.getByTestId('sync-with-phone-close'));
+      const tv: PairedTv = { ...remote!, host: '192.168.1.20', pairedAt: '2026-09-26T12:00:00Z' };
+
+      await act(async () => {
+        await sendRemoteCommand(tv, { type: 'play', accountId: account.id, target: movie }, { fetch: toRemote });
+      });
+      await flush();
+      expect(navStore.getState().stack.at(-1)).toEqual({ name: 'player', target: movie });
+
+      await act(async () => {
+        await expect(
+          sendRemoteCommand(tv, { type: 'play', accountId: 'acc-other', target: movie }, { fetch: toRemote }),
+        ).rejects.toMatchObject({ reason: 'other-account' });
+        await expect(
+          sendRemoteCommand({ ...tv, phoneId: 'stranger' }, { type: 'play', accountId: account.id, target: movie }, { fetch: toRemote }),
+        ).rejects.toMatchObject({ reason: 'unknown-phone' });
+      });
+    });
+
+    it('phones with a paired TV show "Play on TV"; it sends the title', async () => {
+      setupApp();
+      stores.session.setState({ account: { ...account } });
+      jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+      const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+      const key = PAIRING_KEY;
+      const tv: PairedTv = { tvId: 't', tvName: 'Living room TV', phoneId: 'p1', key, port: 38127, host: '192.168.1.20', pairedAt: 'x' };
+      const received: unknown[] = [];
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const opened = openRemoteRequest([{ phoneId: 'p1', key, pairedAt: 'x' }], String(init?.body))!;
+        received.push(opened.command);
+        return new Response(opened.reply({ ok: true }), { status: 200 });
+      }) as typeof fetch;
+
+      const view = await render(<PlayOnTvButton target={movie} testID="tv-button" />);
+      expect(screen.queryByTestId('tv-button')).toBeNull();
+      await act(async () => pairedTv.setState({ tv }));
+      await fireEvent.press(screen.getByLabelText('Play Big Movie on Living room TV'));
+      await flush();
+      expect(received).toEqual([{ type: 'play', accountId: account.id, target: movie }]);
+      expect(alert).toHaveBeenCalledWith('Play on TV', 'Playing on Living room TV.');
+      await view.unmount();
+    });
   });
 });

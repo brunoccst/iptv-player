@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.net.Inet4Address
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
@@ -16,19 +17,33 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
- * Phone-to-TV pairing (DECISIONS.md#d-060): a tiny HTTP server on the home network that takes `POST /pair` while the
- * QR code is on screen. Bodies go to JS (`onRequest`), which decrypts them and answers with `respond`. Plain HTTP is
- * fine: the bodies are encrypted with the one-time key from the QR code.
+ * Tiny HTTP server on the home network for phone-to-TV pairing (DECISIONS.md#d-060) and remote play (D-061). It takes
+ * `POST <path>`; bodies go to JS (`onRequest`), which decrypts them and answers with `respond`. Plain HTTP is fine: the
+ * bodies are encrypted with keys the devices exchanged through the QR code.
  */
-class PairingServer(private val onRequest: (id: String, body: String) -> Unit) {
+class PairingServer(private val path: String, private val onRequest: (id: String, body: String) -> Unit) {
   private var socket: ServerSocket? = null
   private val pending = ConcurrentHashMap<String, CompletableFuture<Pair<Int, String>>>()
 
-  /** Starts on a free port. Returns host (null when not on a network), port and a fresh 32-byte key (base64). */
+  /**
+   * Starts on the first free port of `ports` (else any free port). Returns host (null when not on a network), port and a
+   * fresh 32-byte key (base64).
+   */
   @Synchronized
-  fun start(): Map<String, Any?> {
+  fun start(ports: List<Int> = emptyList()): Map<String, Any?> {
     stop()
-    val server = ServerSocket(0)
+    val server = ports.firstNotNullOfOrNull { port ->
+      val candidate = ServerSocket()
+      try {
+        // Reuse: a restarted app gets its fixed port back while the old socket is still in TIME_WAIT.
+        candidate.reuseAddress = true
+        candidate.bind(InetSocketAddress(port))
+        candidate
+      } catch (_: IOException) {
+        candidate.close()
+        null
+      }
+    } ?: ServerSocket(0)
     socket = server
     thread(name = "pairing-server", isDaemon = true) {
       while (!server.isClosed) {
@@ -40,9 +55,11 @@ class PairingServer(private val onRequest: (id: String, body: String) -> Unit) {
         thread(name = "pairing-request", isDaemon = true) { handle(client) }
       }
     }
-    val key = ByteArray(32).also { SecureRandom().nextBytes(it) }
-    return mapOf("host" to lanAddress(), "port" to server.localPort, "key" to Base64.encodeToString(key, Base64.NO_WRAP))
+    return mapOf("host" to lanAddress(), "port" to server.localPort, "key" to randomKey())
   }
+
+  val isRunning: Boolean
+    get() = socket?.isClosed == false
 
   fun respond(id: String, status: Int, body: String) {
     pending.remove(id)?.complete(status to body)
@@ -72,7 +89,7 @@ class PairingServer(private val onRequest: (id: String, body: String) -> Unit) {
         if (name.equals("Content-Length", ignoreCase = true)) length = value.toIntOrNull() ?: 0
       }
       val (status, body) = when {
-        !requestLine.startsWith("POST /pair ") -> 404 to ""
+        !requestLine.startsWith("POST $path ") -> 404 to ""
         length <= 0 || length > MAX_BODY -> 413 to ""
         else -> {
           val bytes = ByteArray(length)
@@ -119,6 +136,9 @@ class PairingServer(private val onRequest: (id: String, body: String) -> Unit) {
 
   companion object {
     private const val MAX_BODY = 8 * 1024 * 1024
+
+    /** 32 bytes from `SecureRandom`, base64. */
+    fun randomKey(): String = Base64.encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) }, Base64.NO_WRAP)
 
     /** The device's IPv4 address on the home network (Wi-Fi or Ethernet). */
     fun lanAddress(): String? = try {

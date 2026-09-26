@@ -12,6 +12,7 @@ import {
 } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { appContext, backupStorages } from '../appContext';
+import { pairedTv, rememberPhone, remoteOffer } from './remote';
 
 /** Sign-in and media data only: device settings (the audio decoder, D-059) stay on each device (D-060). */
 const storages = { secure: backupStorages.secure, data: backupStorages.data };
@@ -51,7 +52,9 @@ export function usePairingServer(): PairingServerState {
         if (finished) return TvMedia.respondPairing(id, 410, '');
         try {
           setState({ phase: 'working', qr });
-          const reply = await acceptPairing(storages, offer.key, body);
+          // The phone also gets a key for remote play (D-061); kept here once pairing succeeded.
+          const remote = await remoteOffer();
+          const reply = await acceptPairing(storages, offer.key, body, { remote });
           const result: PairingResult | null = reply.result;
           if (result?.ok) finished = true;
           TvMedia.respondPairing(id, reply.status, reply.body);
@@ -64,6 +67,7 @@ export function usePairingServer(): PairingServerState {
           } else {
             appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} with a phone`);
             TvMedia.stopPairing();
+            await rememberPhone(remote);
             await appContext.reload();
             setState({ phase: 'done', mode: result.mode, accountName: result.accountName });
           }
@@ -97,10 +101,13 @@ export async function connectToTv(): Promise<string | null> {
   try {
     const result = await sendPairing(storages, offer);
     appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} a TV`);
+    if (result.remote) await pairedTv.getState().save({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     return result.mode === 'login'
-      ? 'The TV is signed in with your account. Pick a profile on the TV. Phone and TV now have the same profiles, My List and progress.'
-      : 'Phone and TV now have the same profiles, My List and progress.';
+      ? 'The TV is signed in with your account. Pick a profile on the TV. Phone and TV now have the same profiles, My List and progress.' +
+          (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '')
+      : 'Phone and TV now have the same profiles, My List and progress.' +
+          (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '');
   } catch (error) {
     appLog.warn('pairing', errorMessage(error));
     throw error instanceof PairingFailure ? error : new Error('Something went wrong. Try again.');

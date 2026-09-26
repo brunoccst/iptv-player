@@ -22,6 +22,17 @@ export const nativeState = {
   pairingListeners: new Set<PairingListener>(),
   pairingReplies: new Map<string, (reply: { status: number; body: string }) => void>(),
   scanResult: null as string | null,
+  /** Remote play (D-061): the TV's remote server. */
+  remoteRunning: false,
+  remoteListeners: new Set<PairingListener>(),
+  /** Delivers a request to the running remote server, like a paired phone would. */
+  remoteRequest(body: string): Promise<{ status: number; body: string }> {
+    const id = `remote-${this.pairingReplies.size + 1}-${Date.now()}`;
+    return new Promise((resolve) => {
+      this.pairingReplies.set(id, resolve);
+      this.remoteListeners.forEach((listener) => listener({ id, body }));
+    });
+  },
   /** Delivers a request to the running pairing server, like a phone on the network would. */
   pairingRequest(body: string): Promise<{ status: number; body: string }> {
     const id = `req-${this.pairingReplies.size + 1}-${Date.now()}`;
@@ -43,6 +54,8 @@ export const nativeState = {
     this.pairingListeners.clear();
     this.pairingReplies.clear();
     this.scanResult = null;
+    this.remoteRunning = false;
+    this.remoteListeners.clear();
   },
 };
 
@@ -50,13 +63,19 @@ export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
-  addListener: ((event: 'onDownloadsChanged' | 'onPairingRequest', listener: Listener | PairingListener) => {
-    const set = (event === 'onPairingRequest' ? nativeState.pairingListeners : nativeState.listeners) as Set<typeof listener>;
+  addListener: ((event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest', listener: Listener | PairingListener) => {
+    const set = (
+      event === 'onPairingRequest'
+        ? nativeState.pairingListeners
+        : event === 'onRemoteRequest'
+          ? nativeState.remoteListeners
+          : nativeState.listeners
+    ) as Set<typeof listener>;
     set.add(listener);
     return { remove: () => set.delete(listener) };
   }) as {
     (event: 'onDownloadsChanged', listener: Listener): { remove(): void };
-    (event: 'onPairingRequest', listener: PairingListener): { remove(): void };
+    (event: 'onPairingRequest' | 'onRemoteRequest', listener: PairingListener): { remove(): void };
   },
   startPairing: () => {
     nativeState.pairingRunning = true;
@@ -72,6 +91,19 @@ export const TvMedia = {
     nativeState.calls.push('pairing-stop');
   },
   scanQrCode: async () => nativeState.scanResult,
+  startRemote: (ports: number[]) => {
+    nativeState.remoteRunning = true;
+    return { host: nativeState.pairingHost, port: ports[0]! };
+  },
+  respondRemote: (id: string, status: number, body: string) => {
+    nativeState.pairingReplies.get(id)?.({ status, body });
+    nativeState.pairingReplies.delete(id);
+  },
+  stopRemote: () => {
+    nativeState.remoteRunning = false;
+  },
+  randomKey: () => btoa(String.fromCharCode(...Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)))),
+  deviceName: () => 'Living room TV',
   startDownload: (id: string, uri: string, isHls: boolean, metadata: string) => {
     nativeState.calls.push(`start:${id}:${uri}:${isHls}`);
     nativeState.downloads.push({ id, state: 'queued', percent: 0, bytesDownloaded: 0, metadata, failureReason: 0 });
