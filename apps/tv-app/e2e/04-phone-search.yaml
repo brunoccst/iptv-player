@@ -1,0 +1,58 @@
+# Phone (touch, on-screen keyboard), direct mode: tap the search box and type. The typed text must stay in the box
+# and search; before the fix, focus jumped to the first Live TV card and the typing went nowhere. D-073.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- tapOn:
+    id: "login-server"
+- inputText: "http://10.0.2.2:8091"
+- tapOn:
+    id: "login-username"
+- inputText: "demo"
+- tapOn:
+    id: "login-password"
+- inputText: "demo"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+# Wait until the on-device library has titles, so search has something to find.
+- scrollUntilVisible:
+    element:
+      id: "card-Big Test Movie"
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 40-phone-home
+- tapOn:
+    id: "nav-search"
+- extendedWaitUntil:
+    visible: "__wait_2s__"
+    timeout: 2000
+    optional: true
+- takeScreenshot: 41-phone-search-tapped
+- inputText: "Big"
+- extendedWaitUntil:
+    visible:
+      id: "search-screen"
+    timeout: 15000
+- assertVisible:
+    id: "nav-search"
+    text: "Big"
+# More typing still goes to the box (focus did not move on after the page switched to the results).
+- inputText: " Test"
+- assertVisible:
+    id: "nav-search"
+    text: "Big Test"
+- extendedWaitUntil:
+    visible:
+      id: "card-Big Test Movie"
+    timeout: 30000
+- takeScreenshot: 42-phone-search-results

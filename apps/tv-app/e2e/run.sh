@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the Maestro flows (server mode, offline, direct mode) against an installed APK. Expects the local stack from scripts/start-e2e-stack.sh.
-# Usage: apps/tv-app/e2e/run.sh <output-dir>
+# Usage: apps/tv-app/e2e/run.sh <output-dir> [phone]   ("phone": only the phone flow; needs the fake panel)
 set -euo pipefail
 OUT="${1:-maestro-output}"
 APP_ID="${APP_ID:-com.iptvplayer.tv}"
@@ -16,6 +16,9 @@ diagnose() {
   echo "::endgroup::"
   # A text field may have left the TV keyboard up; close it so the screen dump shows the app.
   adb shell input keyevent 111 >/dev/null 2>&1 || true
+  echo "::group::Focused view"
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml 2>/dev/null | tr '>' '\n' | grep 'focused="true"' | head -5 || true
+  echo "::endgroup::"
   echo "::group::Screen (text and ids)"
   maestro hierarchy 2>/dev/null | grep -oE '"(text|resource-id|accessibilityText)" *: *"[^"]+"' | tail -80 || true
   echo "::endgroup::"
@@ -40,6 +43,13 @@ run_flow() {
   maestro test "$HERE/$name.yaml" -e APP_ID="$APP_ID" --format junit --output "$OUT/$name.xml" \
     --debug-output "$OUT/$name" --test-output-dir "$OUT/$name" || { diagnose "$name"; return 1; }
 }
+
+# Phone emulator (touch and the on-screen keyboard): only the phone flow, against the fake panel.
+if [ "${2:-}" = "phone" ]; then
+  curl -sf "http://localhost:8091/player_api.php" > /dev/null || "$HERE/../../../scripts/start-e2e-stack.sh" panel
+  run_flow 04-phone-search
+  exit 0
+fi
 
 run_flow 01-online
 

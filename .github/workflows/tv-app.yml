@@ -30,7 +30,7 @@ env:
 
 jobs:
   android-tv:
-    name: Build APK + Maestro on Android TV emulator
+    name: Build APK + Maestro on Android TV and phone emulators
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -128,6 +128,23 @@ jobs:
           script: |
             apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output
+
+      # The same APK on a phone: touch and the on-screen keyboard (search box focus, D-073). The fake panel from the
+      # direct-mode flow is still running.
+      - name: Run the phone flow on a phone emulator
+        if: success() || failure()
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86
+          profile: pixel_4
+          cores: 4
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+          script: |
+            apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
+            apps/tv-app/e2e/run.sh maestro-output phone
 
       - name: Stack logs
         if: always()
