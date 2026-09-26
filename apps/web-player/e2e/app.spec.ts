@@ -176,6 +176,11 @@ test('My List: save a title from its details and find it on the My List page', a
 
 test('optional parental PIN guards opening a regular profile from the picker', async ({ page }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  // A group shows only its own items, under its name with a back arrow.
+  await expect(page.getByRole('menuitem', { name: /^Sign out/ })).toBeHidden();
+  await page.getByRole('menuitem', { name: 'Back from Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Parental PIN' }).click();
   const settings = page.getByRole('dialog', { name: 'Parental PIN' });
   await settings.getByLabel('PIN (4 digits)').fill('2468');
@@ -185,6 +190,7 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await settings.getByRole('button', { name: 'Close' }).first().click();
 
   await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Manage Profiles' }).click();
   await expect(page.getByRole('heading', { name: "Who's watching?" })).toBeVisible();
   await page.locator('.profile-tile').first().click();
@@ -199,6 +205,7 @@ test('optional parental PIN guards opening a regular profile from the picker', a
 
 test('back up to an encrypted file and restore it in another browser (D-056)', async ({ page, browser }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Library & data' }).click();
   await page.getByRole('menuitem', { name: 'Back up & restore' }).click();
   const dialog = page.getByRole('dialog', { name: 'Back up and restore' });
   await dialog.getByLabel('Password (at least 8 characters)').fill('correct horse');

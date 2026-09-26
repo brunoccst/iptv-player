@@ -21,6 +21,7 @@ describe('account menu → Languages (D-063, D-067)', () => {
     expect(languages().every((language) => language === null)).toBe(true);
 
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-language'));
     expect(screen.getByText('Languages for Alex')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('language-GER'));
@@ -37,6 +38,7 @@ describe('account menu → Languages (D-063, D-067)', () => {
 
     // "All languages" clears the choice.
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-language'));
     await fireEvent.press(screen.getByTestId('language-all'));
     await fireEvent.press(screen.getByTestId('language-close'));

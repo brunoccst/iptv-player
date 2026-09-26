@@ -70,6 +70,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(screen.getByTestId('menu-pairing'));
     expect(screen.getByTestId('pairing-qr')).toBeTruthy();
 
@@ -105,6 +106,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     expect(screen.getByText('Connect a TV')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('menu-pairing'));
     expect(await screen.findByText(/The TV is signed in with your account/)).toBeTruthy();
@@ -122,6 +124,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(screen.getByTestId('menu-pairing'));
     expect(await screen.findByText(/not a TV code from this app/)).toBeTruthy();
   });
@@ -139,6 +142,7 @@ describe('phone-to-TV pairing (D-060)', () => {
       await flush();
       expect(nativeState.remoteRunning).toBe(true);
       await fireEvent.press(screen.getByTestId('nav-account'));
+      await fireEvent.press(screen.getByTestId('menu-group-library'));
       await fireEvent.press(screen.getByTestId('menu-pairing'));
       let remote: RemoteOffer | undefined;
       await act(async () => {

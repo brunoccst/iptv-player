@@ -26,6 +26,7 @@ export function confirmSignOut() {
 /** Account menu under the nav avatar, same items as the web (plus Log, for sharing diagnostics). */
 export function AccountMenu() {
   const open = useNav((s) => s.menuOpen);
+  const groupName = useNav((s) => s.menuGroup);
   const profile = useSession(selectActiveProfile);
   const profiles = useSession((s) => s.profiles);
   const pinStatus = usePin((s) => s.status);
@@ -53,131 +54,150 @@ export function AccountMenu() {
 
   const close = () => navStore.getState().setMenuOpen(false);
   const others = profiles.filter((p) => p.id !== profile?.id);
+  /** Closes the menu, then opens a dialog or runs an action. */
+  const then = (action: () => void) => () => {
+    close();
+    action();
+  };
+  // The menu shows other profiles, groups and Sign out; a group opens in place with its name and a back arrow.
+  const groups: MenuGroup[] = [
+    {
+      name: 'Profiles',
+      icon: 'pencil',
+      testID: 'menu-group-profiles',
+      items: [
+        {
+          icon: 'pencil',
+          label: 'Manage Profiles',
+          testID: 'menu-profiles',
+          onPress: then(() => stores.session.getState().selectProfile(null)),
+        },
+        { icon: 'lock', label: 'Parental PIN', testID: 'menu-pin', onPress: then(() => setPinSettings(true)) },
+        { icon: 'subtitles', label: 'Languages', testID: 'menu-language', onPress: then(() => setLanguage(true)) },
+      ],
+    },
+    {
+      name: 'Library & devices',
+      icon: 'refresh',
+      testID: 'menu-group-library',
+      items: [
+        {
+          icon: 'refresh',
+          label: 'Refresh library',
+          testID: 'menu-refresh',
+          onPress: then(() => void stores.library.getState().sync()),
+        },
+        // Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it.
+        {
+          icon: Platform.isTV ? 'phone' : 'tv',
+          label: Platform.isTV ? 'Sync with phone' : 'Connect a TV',
+          testID: 'menu-pairing',
+          onPress: then(() => pairingDialog.setState({ open: true })),
+        },
+        { icon: 'backup', label: 'Back up data', testID: 'menu-backup', onPress: then(() => setBackup(true)) },
+        // Only builds with the FFmpeg audio decoders have something to choose (D-059).
+        ...(TvMedia.ffmpegAudioAvailable()
+          ? [{ icon: 'subtitles' as const, label: 'Playback', testID: 'menu-playback', onPress: then(() => setPlayback(true)) }]
+          : []),
+      ],
+    },
+    {
+      name: 'App',
+      icon: 'info',
+      testID: 'menu-group-app',
+      items: [
+        // Builds from the GitHub release can update themselves (D-062).
+        ...(updateRepo
+          ? [
+              {
+                icon: 'download' as const,
+                label: 'Check for updates',
+                testID: 'menu-update',
+                onPress: then(() => {
+                  updater.open();
+                  void updater.check();
+                }),
+              },
+            ]
+          : []),
+        { icon: 'info', label: 'About', testID: 'menu-about', onPress: then(() => setAbout(true)) },
+        { icon: 'info', label: 'Log', testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
+      ],
+    },
+  ];
+  const openGroup = groups.find((group) => group.name === groupName);
+
   return (
     <>
       {overlays}
       <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close menu" focusable={false} />
       <View style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]} accessibilityRole="menu" testID="account-menu">
-        {others.map((p, index) => (
-          <MenuItem
-            key={p.id}
-            label={p.name}
-            testID={`menu-profile-${p.id}`}
-            first={index === 0}
-            avatar={avatarColor(p)}
-            onPress={() => {
-              close();
-              // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
-              gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
-                stores.session.getState().selectProfile(p.id);
-                navStore.getState().goSection('home');
-              });
-            }}
-          />
-        ))}
-        <MenuItem
-          icon="pencil"
-          label="Manage Profiles"
-          testID="menu-profiles"
-          first={others.length === 0}
-          onPress={() => {
-            close();
-            stores.session.getState().selectProfile(null);
-          }}
-        />
-        <MenuItem
-          icon="lock"
-          label="Parental PIN"
-          testID="menu-pin"
-          onPress={() => {
-            close();
-            setPinSettings(true);
-          }}
-        />
-        {/* Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it. */}
-        <MenuItem
-          icon={Platform.isTV ? 'phone' : 'tv'}
-          label={Platform.isTV ? 'Sync with phone' : 'Connect a TV'}
-          testID="menu-pairing"
-          onPress={() => {
-            close();
-            pairingDialog.setState({ open: true });
-          }}
-        />
-        <MenuItem
-          icon="subtitles"
-          label="Languages"
-          testID="menu-language"
-          onPress={() => {
-            close();
-            setLanguage(true);
-          }}
-        />
-        <MenuItem
-          icon="backup"
-          label="Back up data"
-          testID="menu-backup"
-          onPress={() => {
-            close();
-            setBackup(true);
-          }}
-        />
-        {/* Only builds with the FFmpeg audio decoders have something to choose (D-059). */}
-        {TvMedia.ffmpegAudioAvailable() ? (
-          <MenuItem
-            icon="subtitles"
-            label="Playback"
-            testID="menu-playback"
-            onPress={() => {
-              close();
-              setPlayback(true);
-            }}
-          />
-        ) : null}
-        <MenuItem
-          icon="refresh"
-          label="Refresh library"
-          testID="menu-refresh"
-          onPress={() => {
-            close();
-            void stores.library.getState().sync();
-          }}
-        />
-        {/* Builds from the GitHub release can update themselves (D-062). */}
-        {updateRepo ? (
-          <MenuItem
-            icon="download"
-            label="Check for updates"
-            testID="menu-update"
-            onPress={() => {
-              close();
-              updater.open();
-              void updater.check();
-            }}
-          />
-        ) : null}
-        <MenuItem icon="info" label="Log" testID="menu-log" onPress={() => navStore.getState().goSection('log')} />
-        <MenuItem
-          icon="info"
-          label="About"
-          testID="menu-about"
-          onPress={() => {
-            close();
-            setAbout(true);
-          }}
-        />
-        <MenuItem
-          icon="logout"
-          label={`Sign out of ${appConfig.appName}`}
-          testID="menu-sign-out"
-          onPress={() => {
-            close();
-            confirmSignOut();
-          }}
-        />
+        {openGroup ? (
+          <>
+            {/* The group's name with a back arrow: back to the main list (so does the Back key). */}
+            <MenuItem
+              key={`back-${openGroup.name}`}
+              icon="back"
+              label={openGroup.name}
+              accessibilityLabel={`Back from ${openGroup.name}`}
+              header
+              first
+              testID="menu-back"
+              onPress={() => navStore.getState().setMenuGroup(null)}
+            />
+            {openGroup.items.map((item) => (
+              <MenuItem key={item.testID} {...item} />
+            ))}
+          </>
+        ) : (
+          <>
+            {others.map((p, index) => (
+              <MenuItem
+                key={p.id}
+                label={p.name}
+                testID={`menu-profile-${p.id}`}
+                first={index === 0}
+                avatar={avatarColor(p)}
+                onPress={then(() =>
+                  // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
+                  gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                    stores.session.getState().selectProfile(p.id);
+                    navStore.getState().goSection('home');
+                  }),
+                )}
+              />
+            ))}
+            {groups.map((group, index) => (
+              <MenuItem
+                key={group.testID}
+                icon={group.icon}
+                label={group.name}
+                testID={group.testID}
+                first={others.length === 0 && index === 0}
+                opens
+                onPress={() => navStore.getState().setMenuGroup(group.name)}
+              />
+            ))}
+            <MenuItem icon="logout" label={`Sign out of ${appConfig.appName}`} testID="menu-sign-out" onPress={then(confirmSignOut)} />
+          </>
+        )}
       </View>
     </>
   );
+}
+
+interface MenuEntry {
+  icon: IconName;
+  label: string;
+  testID: string;
+  onPress(): void;
+}
+
+interface MenuGroup {
+  name: string;
+  icon: IconName;
+  testID: string;
+  items: MenuEntry[];
 }
 
 function MenuItem({
@@ -185,6 +205,9 @@ function MenuItem({
   icon,
   avatar,
   first,
+  opens,
+  header,
+  accessibilityLabel,
   testID,
   onPress,
 }: {
@@ -192,6 +215,11 @@ function MenuItem({
   icon?: IconName;
   avatar?: string;
   first?: boolean;
+  /** Opens a group: a chevron at the end. */
+  opens?: boolean;
+  /** A group's title row (bold, with a divider under it). */
+  header?: boolean;
+  accessibilityLabel?: string;
   testID: string;
   onPress(): void;
 }) {
@@ -200,12 +228,12 @@ function MenuItem({
     <Pressable
       testID={testID}
       accessibilityRole="menuitem"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       hasTVPreferredFocus={first}
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={[styles.item, focused && styles.itemFocused]}
+      style={[styles.item, header && styles.header, focused && styles.itemFocused]}
     >
       {avatar ? (
         <View style={[styles.miniAvatar, { backgroundColor: avatar }]}>
@@ -214,7 +242,12 @@ function MenuItem({
       ) : icon ? (
         <Icon name={icon} size={18} color={colors.text} />
       ) : null}
-      <Text style={styles.itemText}>{label}</Text>
+      <Text style={[styles.itemText, header && styles.headerText]}>{label}</Text>
+      {opens ? (
+        <View style={styles.chevron}>
+          <Icon name="chevronRight" size={18} color={colors.muted} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -232,6 +265,9 @@ const styles = StyleSheet.create({
   item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16 },
   itemFocused: { backgroundColor: colors.raised },
   itemText: { color: colors.text, fontSize: 14.4 },
+  header: { borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 4 },
+  headerText: { color: colors.strong, fontWeight: '700' },
+  chevron: { marginLeft: 'auto', paddingLeft: 16 },
   miniAvatar: { width: 26, height: 26, borderRadius: radius, alignItems: 'center', justifyContent: 'center' },
   miniAvatarText: { color: colors.strong, fontWeight: '700', fontSize: fonts.small },
 });

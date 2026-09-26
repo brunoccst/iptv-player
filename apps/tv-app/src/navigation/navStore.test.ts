@@ -40,6 +40,10 @@ describe('nav store: web-style navigation', () => {
     expect(nav.getState()).toMatchObject({ categoryId: '7', stack: [{ name: 'section', section: 'movies' }] });
     nav.getState().push({ name: 'details', section: 'movies', masterId: 'm1' });
     nav.getState().setMenuOpen(true);
+    nav.getState().setMenuGroup('App');
+    // Back leaves the menu group first, then closes the menu.
+    expect(nav.getState().back()).toBe(true);
+    expect(nav.getState()).toMatchObject({ menuOpen: true, menuGroup: null });
     expect(nav.getState().back()).toBe(true);
     expect(nav.getState().menuOpen).toBe(false);
     expect(nav.getState().stack).toHaveLength(2);
