@@ -5,7 +5,18 @@ import { Platform, TVFocusGuideView, View, type StyleProp, type ViewStyle } from
  * A horizontal group of focusable items (a row of cards, chips, buttons). On TV, Left/Right stay inside it: at the ends
  * they stop instead of jumping to a row above or below. Up/Down leave it as usual.
  */
-export function FocusRow({ children, style, testID }: { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
+export function FocusRow({
+  children,
+  style,
+  testID,
+  autoFocus,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  /** Entering from above/below lands on the first item (or the last one focused there), not the nearest one. */
+  autoFocus?: boolean;
+}) {
   if (!Platform.isTV)
     return (
       <View style={style} testID={testID}>
@@ -13,7 +24,7 @@ export function FocusRow({ children, style, testID }: { children: ReactNode; sty
       </View>
     );
   return (
-    <TVFocusGuideView trapFocusLeft trapFocusRight style={style} testID={testID}>
+    <TVFocusGuideView trapFocusLeft trapFocusRight autoFocus={autoFocus} style={style} testID={testID}>
       {children}
     </TVFocusGuideView>
   );
