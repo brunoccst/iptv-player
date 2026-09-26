@@ -4,10 +4,12 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
+import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { asPlayer, contentType, isNewer, keyFile, releaseVersion, staticFile, withCors } from './lib/helpers.mjs';
+import { asPlayer, contentType, isNewer, keyFile, lanAddress, releaseVersion, staticFile, withCors } from './lib/helpers.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const config = (() => {
@@ -21,6 +23,10 @@ const config = (() => {
 const PORT = 47831;
 const UPDATE_CHECK_DELAY_MS = 15_000;
 const RELEASE_TAG = 'desktop';
+/** Same limit as the TV (PairingServer.kt): sign-in, profiles, progress and My List. */
+const MAX_PAIRING_BODY = 8 * 1024 * 1024;
+/** The phone gives up after 30 s; the page answers much sooner. */
+const PAIRING_ANSWER_TIMEOUT_MS = 45_000;
 
 app.setName(config.appName);
 // Tests start the app with a fresh profile folder.
@@ -115,6 +121,80 @@ function registerStorage() {
   });
 }
 
+/**
+ * Phone-to-computer pairing (D-072), the TV's protocol (D-060): while the page shows the QR code, a small HTTP server
+ * listens on the home network (random port) at /pair. Each request body goes to the page, which checks the one-time
+ * key, merges and answers (packages/shared/src/pairing); the answer goes back to the phone.
+ */
+function registerPairing() {
+  let server = null;
+  const waiting = new Map();
+  let nextId = 1;
+
+  const answer = (id, status, body = '') => {
+    const response = waiting.get(id);
+    if (!response) return;
+    waiting.delete(id);
+    response.writeHead(status, { 'Content-Type': 'text/plain; charset=utf-8' }).end(body);
+  };
+  const stop = () => {
+    server?.close();
+    server = null;
+    for (const id of [...waiting.keys()]) answer(id, 410);
+  };
+  const fromApp = (event) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+  };
+
+  ipcMain.handle('iptv:pairing-start', async (event) => {
+    fromApp(event);
+    stop();
+    const host = lanAddress(networkInterfaces());
+    if (!host) return { host: null, port: 0, key: '' };
+    const sender = event.sender;
+    const current = createServer((request, response) => {
+      if (request.method !== 'POST' || !request.url?.startsWith('/pair')) {
+        response.writeHead(404).end();
+        return;
+      }
+      const length = Number(request.headers['content-length']);
+      if (!(length > 0 && length <= MAX_PAIRING_BODY)) {
+        response.writeHead(413).end();
+        request.resume();
+        return;
+      }
+      const chunks = [];
+      let size = 0;
+      request.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > MAX_PAIRING_BODY) request.destroy();
+        else chunks.push(chunk);
+      });
+      request.on('end', () => {
+        const id = nextId++;
+        waiting.set(id, response);
+        sender.send('iptv:pairing-request', { id, body: Buffer.concat(chunks).toString('utf8') });
+        setTimeout(() => answer(id, 504), PAIRING_ANSWER_TIMEOUT_MS);
+      });
+    });
+    const port = await new Promise((resolve, reject) => {
+      current.once('error', reject);
+      current.listen(0, '0.0.0.0', () => resolve(current.address().port));
+    });
+    server = current;
+    return { host, port, key: randomBytes(32).toString('base64') };
+  });
+  ipcMain.handle('iptv:pairing-respond', (event, id, status, body) => {
+    fromApp(event);
+    answer(Number(id), Number(status), String(body ?? ''));
+  });
+  ipcMain.handle('iptv:pairing-stop', (event) => {
+    fromApp(event);
+    stop();
+  });
+  app.on('before-quit', stop);
+}
+
 function createWindow() {
   window = new BrowserWindow({
     width: 1280,
@@ -190,6 +270,7 @@ app.whenReady().then(async () => {
   appOrigin = `http://127.0.0.1:${await startServer()}`;
   prepareSession();
   registerStorage();
+  registerPairing();
   createWindow();
   setTimeout(() => void checkForUpdate(), UPDATE_CHECK_DELAY_MS);
   app.on('activate', () => {

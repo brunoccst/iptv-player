@@ -76,6 +76,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-069](#d-069) | 2026-09-26 | TV navigation: Left/Right stay in their row; Home centres the focused row |
 | [D-070](#d-070) | 2026-09-26 | App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app |
 | [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
+| [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
 
 ---
 
@@ -1300,3 +1301,14 @@ Limits:
 - Updates are downloaded and installed by hand (the app only points to the new version). Automatic updates need signed builds on macOS.
 
 Alternatives: the backend bundled in the app (a .NET runtime and the Python worker per system, much larger, and only useful for the web's server mode); Tauri (smaller, but the system web view differs per system: no HLS on Windows WebView2 without extra work, older WebKit on Linux); a PWA installed from the browser (still needs the backend because of CORS).
+
+## D-072
+
+**Desktop app: sync with the phone by QR code, choose the install folder, smaller download** — 2026-09-26 (requested by owner)
+
+Decision:
+- **Sync with phone:** the desktop app is a pairing target like the TV (D-060, same protocol and merge). The login page has **Sign in with your phone** and the account menu → Library & data has **Sync with phone**; both show a QR code. On the phone app, account menu → **Connect a TV or computer** (renamed from "Connect a TV") scans it. While the code is shown, the main process listens on the home network (random port, `/pair`, 8 MB limit) and passes each request to the page, which checks the one-time key and merges (`apps/web-player/src/features/pairing/`); the answer goes back to the phone. The address in the code is the first private IPv4 address, skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs). Windows asks once whether the app may use private networks. The computer does not accept "Play on TV" (D-061).
+- **Install folder (Windows):** a setup wizard instead of the one-click installer: for this user only (no administrator rights, default `%LOCALAPPDATA%\Programs\<app>`) or for all users (Program Files), then any folder on any drive. The data (sign-in, library) stays in the user's profile (`%APPDATA%\<app>`), as usual for Windows apps.
+- **Size:** only the English Chromium texts and the strongest installer compression. Linux: installed 284 → 276 MB, AppImage 120 → 93 MB.
+
+Why still ~270 MB installed: Electron brings its own Chromium (about 200 MB, plus ~20 MB of licence notices that must ship with it); the app itself is about 1 MB. Much smaller needs the system's web view instead (Tauri, ~10–20 MB): WebView2 on Windows is Chromium and would behave like now, but macOS (WebKit) and Linux (WebKitGTK) play differently, and without Electron's request hooks the provider's CORS and User-Agent need a small proxy for every stream. Not done without the owner's choice.

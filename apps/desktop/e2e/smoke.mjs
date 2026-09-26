@@ -35,9 +35,23 @@ try {
   await page.getByLabel('Server URL').fill(panelUrl);
   await page.getByLabel('Username').fill('demo');
   await page.getByLabel('Password').fill('demo');
-  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible({ timeout: 30_000 });
   console.log('signed in directly to the panel');
+
+  // Sync with phone (D-072): the code names this computer's pairing server; a request with a wrong key goes through
+  // the app and is refused (403), and the code stays valid.
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: /Library & data/ }).click();
+  await page.getByRole('menuitem', { name: 'Sync with phone' }).click();
+  const qr = await page.getByTestId('pairing-qr').getAttribute('data-text');
+  const [, host, port] = /^IPTVPAIR:1:([\d.]+):(\d+):/.exec(qr ?? '') ?? [];
+  assert.ok(host && port, `pairing code: ${qr}`);
+  const refused = await fetch(`http://${host}:${port}/pair`, { method: 'POST', body: 'not sealed with the key' });
+  assert.equal(refused.status, 403);
+  await expect(page.getByTestId('pairing-qr')).toBeVisible();
+  await page.getByRole('button', { name: 'Close', exact: true }).last().click();
+  console.log('pairing server answers through the app');
 
   await page.getByRole('button', { name: 'Movies', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Big Test Movie' }).first()).toBeVisible({ timeout: 90_000 });

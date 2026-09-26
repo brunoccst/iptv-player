@@ -13,4 +13,15 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   platform: info.platform,
   secure: storage('secure'),
   data: storage('data'),
+  // Phone-to-computer pairing (D-072): the main process runs the server, the page decides and answers.
+  pairing: {
+    start: () => ipcRenderer.invoke('iptv:pairing-start'),
+    stop: () => ipcRenderer.invoke('iptv:pairing-stop'),
+    respond: (id, status, body) => ipcRenderer.invoke('iptv:pairing-respond', id, status, body),
+    onRequest(listener) {
+      const handler = (_event, request) => listener(request);
+      ipcRenderer.on('iptv:pairing-request', handler);
+      return () => ipcRenderer.removeListener('iptv:pairing-request', handler);
+    },
+  },
 });

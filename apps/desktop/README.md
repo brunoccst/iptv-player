@@ -6,13 +6,13 @@ Not an npm workspace: it has its own `package-lock.json`, so other pipelines do 
 
 | Path | Purpose |
 |------|---------|
-| `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, one window, update check. |
-| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage), read by `apps/web-player/src/desktop.ts`. |
-| `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version. |
+| `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, the pairing server for phone sync (D-072), one window, update check. |
+| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `pairing`), read by `apps/web-player/src/desktop.ts`. |
+| `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version, home network address. |
 | `scripts/prepare.mjs` | Writes `build-config.json` (name, User-Agent, update repository) from the root `.env` and CI variables; copies the icon. |
-| `electron-builder.config.cjs` | Installers: NSIS (Windows), DMG (macOS universal), AppImage and deb (Linux), with fixed file names. |
+| `electron-builder.config.cjs` | Installers: NSIS setup wizard with folder choice (Windows), DMG (macOS universal), AppImage and deb (Linux), with fixed file names; English Chromium texts only, maximum compression (D-072). |
 | `test/` | Unit tests (`npm test`, Node's test runner). |
-| `e2e/smoke.mjs` | Starts the app against the fake panel: sign-in, a movie that plays, sign-in kept after a restart. |
+| `e2e/smoke.mjs` | Starts the app against the fake panel: sign-in, the phone-sync server answering through the app, a movie that plays, sign-in kept after a restart. |
 
 ## Commands
 

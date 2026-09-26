@@ -78,3 +78,23 @@ export function isNewer(a, b) {
   for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
   return false;
 }
+
+/**
+ * The computer's address on the home network for the pairing QR code (D-072): the first private IPv4 address,
+ * skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs) a phone cannot reach. `interfaces` is
+ * `os.networkInterfaces()`.
+ */
+export function lanAddress(interfaces) {
+  const virtual = /vethernet|virtualbox|vmware|docker|wsl|hyper-v|tailscale|zerotier|utun|tun|tap|br-|veth/i;
+  const candidates = [];
+  for (const [name, addresses] of Object.entries(interfaces ?? {})) {
+    for (const address of addresses ?? []) {
+      if (address.family !== 'IPv4' && address.family !== 4) continue;
+      if (address.internal || address.address.startsWith('169.254.')) continue;
+      const isPrivate = /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(address.address);
+      candidates.push({ address: address.address, score: (isPrivate ? 2 : 0) + (virtual.test(name) ? 0 : 1) });
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0]?.address ?? null;
+}

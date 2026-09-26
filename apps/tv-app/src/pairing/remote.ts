@@ -123,7 +123,7 @@ export function useRemoteServer(enabled: boolean) {
 export async function playOnTv(target: PlayTarget): Promise<string> {
   const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
-  if (!tv || !accountId) throw new Error('Connect a TV first: account menu → Connect a TV.');
+  if (!tv || !accountId) throw new Error('Connect a TV first: account menu → Connect a TV or computer.');
   try {
     const { port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
     if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });

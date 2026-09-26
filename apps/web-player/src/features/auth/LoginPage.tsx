@@ -5,6 +5,7 @@ import { stores } from '../../appContext';
 import { useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { BackupDialog } from '../backup/BackupDialog';
+import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 
 /** Xtream login. Credentials go to the backend once; the app keeps only a session token. The desktop app signs in to the provider itself (D-071). */
 export function LoginPage() {
@@ -75,6 +76,12 @@ export function LoginPage() {
             ? 'The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.'
             : 'Your IPTV password is sent once to your own backend, stored encrypted there, and never kept in this browser.'}
         </p>
+        {/* Desktop app: scan a code with the phone app instead of typing the provider login (D-072). */}
+        {desktop ? (
+          <button type="button" className="button button--ghost" onClick={() => openSyncWithPhone(true)}>
+            Sign in with your phone
+          </button>
+        ) : null}
         <button type="button" className="button button--ghost" onClick={() => setRestore(true)}>
           Restore from a backup
         </button>
