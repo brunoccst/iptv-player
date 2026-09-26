@@ -41,4 +41,21 @@ describe('createLogger', () => {
     expect(second.entries().map((entry) => entry.message)).toEqual(['saved', '--- app started ---', 'booting']);
     vi.useRealTimers();
   });
+
+  it('shares the newest lines within a size limit and folds repeats (share targets cut long texts)', () => {
+    const log = createLogger({ limit: 1000 });
+    for (let i = 0; i < 50; i++) log.info('provider', `get_short_epg: HTTP 200, 19 chars in ${100 + i} ms`);
+    for (let i = 0; i < 200; i++) log.info('player', `attempt ${i}: failed with a fairly long message to fill the budget`);
+    log.error('player', 'newest line');
+
+    const small = log.shareText(2000);
+    expect(small.text.endsWith('newest line')).toBe(true);
+    expect(small.text.length).toBeLessThanOrEqual(2000);
+    expect(small.omitted).toBeGreaterThan(0);
+
+    const all = log.shareText(1_000_000);
+    expect(all.omitted).toBe(0);
+    expect(all.text).toContain('get_short_epg: HTTP 200, 19 chars in 100 ms (×50 until the next line)');
+    expect(all.lines).toBe(1 + 200 + 1);
+  });
 });

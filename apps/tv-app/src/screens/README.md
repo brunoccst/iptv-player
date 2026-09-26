@@ -15,5 +15,5 @@ Each screen mirrors the web page with the same name ([D-041](../../../../documen
 | `LiveScreen.tsx` | Web guide: categories, Earlier / Now / Later, programme details, 3-hour channel × time grid. TV: focus describes, Select plays. Phone: tap selects, "Watch live" plays. [D-032](../../../../documentation/DECISIONS.md#d-032). |
 | `MyListScreen.tsx` | My List: saved titles as a grid, newest first (D-055). Home also shows a My List row (first 10 + arrow card). |
 | `DownloadsScreen.tsx` | My Downloads: progress bar, round Play / Pause / Resume / Delete buttons. |
-| `LogScreen.tsx` | Diagnostics log preview, **Share log** (credentials masked), **Clear log**. Opened from the account menu. [D-039](../../../../documentation/DECISIONS.md#d-039). |
+| `LogScreen.tsx` | Diagnostics log preview, **Share log** (newest ~15,000 characters with repeated lines folded, because share targets cut long texts; credentials masked), **Clear log**. Opened from the account menu. [D-039](../../../../documentation/DECISIONS.md#d-039). |
 | `*.test.tsx` | Search and log, guide (TV and phone), profile editor. |
