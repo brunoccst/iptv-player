@@ -3,6 +3,7 @@ package expo.modules.tvmedia
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.view.WindowManager
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
@@ -162,6 +163,16 @@ class TvMediaModule : Module() {
         "opened"
       }
     }
+
+    /**
+     * Keeps the screen on while the app is open (sleep mode, D-068): otherwise the TV's screensaver starts, the app goes
+     * to the background and Android may close it, so the next key press restarts it.
+     */
+    AsyncFunction("setKeepScreenOn") { on: Boolean ->
+      val window = appContext.currentActivity?.window ?: return@AsyncFunction
+      if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+      else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }.runOnQueue(Queues.MAIN)
 
     /** Self-update (DECISIONS.md#d-062): installed version code and name. */
     Function("installedVersion") {
