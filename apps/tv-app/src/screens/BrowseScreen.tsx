@@ -5,10 +5,11 @@ import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
 import { useCatalog, useLibrary, useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
+import { LibraryBanner } from '../components/LibraryBanner';
 import { TitleGrid } from './titles';
 
 /** Same as the web Movies/Series page: title, category chips (All + provider categories, expandable), sort, paged grid. */
-export function BrowseScreen({ section }: { section: LibrarySection }) {
+export function BrowseScreen({ section, processing = false }: { section: LibrarySection; processing?: boolean }) {
   const categories = useCatalog((s) => s.categories[section]?.data ?? []);
   const categoryId = useNav((s) => s.categoryId);
   const sort = useLibrary((s) => s.sortChoices[section]) ?? DEFAULT_LIBRARY_SORT;
@@ -46,18 +47,24 @@ export function BrowseScreen({ section }: { section: LibrarySection }) {
   );
 
   return (
-    <TitleGrid
-      key={`${section}-${categoryId}-${sortChoiceKey(sort)}`}
-      section={section}
-      categoryId={categoryId}
-      sort={sort}
-      onSort={(choice) => stores.library.getState().chooseSort(section, choice)}
-      header={header}
-      testID={`browse-${section}`}
-    />
+    <View style={styles.screen}>
+      <TitleGrid
+        key={`${section}-${categoryId}-${sortChoiceKey(sort)}`}
+        section={section}
+        categoryId={categoryId}
+        sort={sort}
+        onSort={(choice) => stores.library.getState().chooseSort(section, choice)}
+        header={header}
+        testID={`browse-${section}`}
+        // First start: the library is still being organized, so the page is empty for now; the banner shows progress.
+        emptyText={processing ? 'Your library is being organized. Titles appear here as soon as it is done.' : undefined}
+      />
+      <LibraryBanner processing={processing} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1 },
   title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
 });

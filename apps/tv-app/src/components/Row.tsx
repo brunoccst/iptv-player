@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import { colors, radius, useSizes } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { FocusRow, useRowFocus } from './FocusRow';
 
 interface RowProps<T> {
   title: string;
@@ -38,22 +39,24 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
           <Text style={[styles.empty, { marginHorizontal: sizes.gutter }]}>{empty ?? ' '}</Text>
         )
       ) : (
-        <FlatList
-          horizontal
-          data={items}
-          keyExtractor={keyOf}
-          renderItem={({ item, index }) => render(item, index)}
-          ItemSeparatorComponent={Separator}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
-          removeClippedSubviews={false}
-          initialNumToRender={8}
-          maxToRenderPerBatch={6}
-          windowSize={5}
-          ListFooterComponent={
-            more ? <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} /> : null
-          }
-        />
+        <FocusRow>
+          <FlatList
+            horizontal
+            data={items}
+            keyExtractor={keyOf}
+            renderItem={({ item, index }) => render(item, index)}
+            ItemSeparatorComponent={Separator}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
+            removeClippedSubviews={false}
+            initialNumToRender={8}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            ListFooterComponent={
+              more ? <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} /> : null
+            }
+          />
+        </FocusRow>
       )}
     </View>
   );
@@ -65,6 +68,7 @@ const Separator = () => <View style={{ width: 8 }} />;
  * it lines up with landscape (live) cards too. */
 function MoreCard({ title, landscape, onPress, testID }: { title: string; landscape?: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
+  const rowFocus = useRowFocus();
   const { cardWidth } = useSizes();
   return (
     <Pressable
@@ -72,7 +76,10 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
       accessibilityRole="link"
       accessibilityLabel={`See all: ${title}`}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        rowFocus?.();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.moreCard, { width: cardWidth, marginLeft: 8 }, focused && styles.moreFocused]}
     >
@@ -90,13 +97,17 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
 
 function TitleLink({ title, fontSize, onPress, testID }: { title: string; fontSize: number; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
+  const rowFocus = useRowFocus();
   return (
     <Pressable
       testID={testID}
       accessibilityRole="link"
       accessibilityLabel={`Open ${title}`}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        rowFocus?.();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.link, focused && styles.linkFocused]}
     >

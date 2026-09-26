@@ -73,6 +73,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-066](#d-066) | 2026-09-26 | One episode list per series, across its versions |
 | [D-067](#d-067) | 2026-09-26 | Several languages per profile in the language filter |
 | [D-068](#d-068) | 2026-09-26 | TV sleep mode instead of the system screensaver |
+| [D-069](#d-069) | 2026-09-26 | TV navigation: Left/Right stay in their row; Home centres the focused row |
 
 ---
 
@@ -1247,4 +1248,15 @@ Decision:
 - Phones keep their usual behaviour (screen timeout; the player keeps the screen on while playing).
 
 Alternatives: only making restarts faster (still a restart, and the saved library has to load again); a wake lock (keeps the CPU on, not needed); keeping the screen on forever (burn-in risk, wastes power).
+
+## D-069
+
+**TV navigation: Left/Right stay in their row; Home centres the focused row** — 2026-09-26 (requested by owner)
+
+Decision:
+- Left/Right never move focus up or down. Every horizontal group of focusable items is a `FocusRow`, a `TVFocusGuideView` that traps Left/Right: the nav (already since #51), Home rows including their "See all" card, the lines of the Movies/Series grids (the grid now renders line by line), the category chips, the details buttons and each episode row. At the ends, focus stops. The Live TV page is the exception: there, Left/Right move between the category list and the guide on purpose.
+- Home (TV) scrolls the focused row to the middle of the screen, instead of Android's minimal scroll that left rows cut off at the top.
+- Choosing Home, Movies, Series or Live TV shows a spinner on the first frame and builds the page right after, so the choice is answered at once. Search, lists and the log switch directly.
+- Movies/Series also show the "organizing your library" banner, and while it runs an empty grid says that titles appear when it is done, instead of a black page.
+- Cards no longer draw an SVG gradient behind the poster (one per card made scrolling rows stutter); a solid colour takes its place.
 

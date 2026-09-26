@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
-import { Gradient } from './Gradient';
+import { useRowFocus } from './FocusRow';
 
 export interface PosterCardProps {
   title: string;
@@ -40,6 +40,7 @@ export function PosterCard({
   const { cardWidth } = useSizes();
   const cardSize = width ?? cardWidth;
   const scale = useFocusScale(focused, 1.08);
+  const rowFocus = useRowFocus();
 
   return (
     <AnimatedPressable
@@ -50,19 +51,14 @@ export function PosterCard({
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
+        rowFocus?.();
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
       style={[styles.card, { width: cardSize }, focused && styles.focused, { transform: [{ scale }] }]}
     >
       <View style={[styles.art, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>
-        <Gradient
-          angle={135}
-          stops={[
-            { offset: 0, color: '#2b2b2b' },
-            { offset: 1, color: '#151515' },
-          ]}
-        />
+        {/* Solid placeholder behind the poster: an SVG gradient per card made scrolling rows stutter on TV. */}
         {posterUrl && !failed ? (
           <Image
             source={{ uri: posterUrl }}

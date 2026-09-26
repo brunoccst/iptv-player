@@ -26,6 +26,7 @@ import { PlayOnTvButton } from '../components/PlayOnTvButton';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
+import { FocusRow } from '../components/FocusRow';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { Select } from '../components/Select';
@@ -259,7 +260,7 @@ function Episodes({
           </View>
         );
         return (
-          <View key={listed.id} style={[styles.episode, compact && styles.episodeCompact]}>
+          <FocusRow key={listed.id} style={[styles.episode, compact && styles.episodeCompact]}>
             {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
             <Pressable
               style={[styles.still, compact && styles.stillCompact]}
@@ -301,7 +302,7 @@ function Episodes({
               {compact ? actions : null}
             </View>
             {compact ? null : actions}
-          </View>
+          </FocusRow>
         );
       })}
     </View>
@@ -345,7 +346,7 @@ function DetailsHero({ backdrop, title, children }: { backdrop: string | null | 
         <Text style={[styles.title, { fontSize: fluid(width, 26, 4, 45) }]} accessibilityRole="header">
           {title}
         </Text>
-        <View style={styles.actions}>{children}</View>
+        <FocusRow style={styles.actions}>{children}</FocusRow>
       </View>
     </View>
   );

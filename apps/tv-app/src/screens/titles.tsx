@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -21,6 +21,7 @@ import {
 } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { ErrorText, errorText } from '../components/Feedback';
+import { FocusRow } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { Select } from '../components/Select';
@@ -99,6 +100,7 @@ export function TitleGrid({
   header,
   testID,
   onScroll,
+  emptyText,
 }: {
   section: LibrarySection;
   categoryId?: string | null;
@@ -108,10 +110,19 @@ export function TitleGrid({
   header?: ReactElement;
   testID?: string;
   onScroll?(event: NativeSyntheticEvent<NativeScrollEvent>): void;
+  /** Text when there are no titles (default "No titles found."). */
+  emptyText?: string;
 }) {
   const page = usePagedLibrary(section, { categoryId, search, sort }, GRID_PAGE);
   const { columns, itemWidth } = useGridColumns();
   const { gutter } = useSizes();
+  // Rendered line by line: each line is a focus row, so Left/Right at its ends stop instead of moving up or down.
+  const items = page.items;
+  const lines = useMemo(() => {
+    const result: (typeof items)[] = [];
+    for (let start = 0; start < items.length; start += columns) result.push(items.slice(start, start + columns));
+    return result;
+  }, [items, columns]);
 
   const empty = page.loadingFirst ? (
     <ActivityIndicator size="large" color={colors.accent} style={styles.first} accessibilityLabel="Loading" />
@@ -120,7 +131,7 @@ export function TitleGrid({
       <ErrorText>{errorText(page.error)}</ErrorText>
     </View>
   ) : (
-    <Text style={[styles.muted, { marginHorizontal: gutter }]}>No titles found.</Text>
+    <Text style={[styles.muted, { marginHorizontal: gutter }]}>{emptyText ?? 'No titles found.'}</Text>
   );
 
   return (
@@ -128,10 +139,8 @@ export function TitleGrid({
       key={columns}
       testID={testID ?? `grid-${section}`}
       style={styles.list}
-      data={page.items}
-      numColumns={columns}
-      keyExtractor={(item) => item.id}
-      columnWrapperStyle={columns > 1 ? [styles.line, { paddingHorizontal: gutter }] : undefined}
+      data={lines}
+      keyExtractor={(line) => line[0]!.id}
       ListHeaderComponent={
         onSort && sort ? (
           <>
@@ -143,10 +152,18 @@ export function TitleGrid({
         )
       }
       ListEmptyComponent={empty}
-      renderItem={({ item, index }) => (
-        <View style={columns === 1 ? { paddingHorizontal: gutter, marginBottom: 24 } : undefined}>
-          <MasterCardItem section={section} item={item} width={itemWidth} hasTVPreferredFocus={Platform.isTV && index === 0} />
-        </View>
+      renderItem={({ item: line, index: lineIndex }) => (
+        <FocusRow style={[styles.line, { paddingHorizontal: gutter }]}>
+          {line.map((item, index) => (
+            <MasterCardItem
+              key={item.id}
+              section={section}
+              item={item}
+              width={itemWidth}
+              hasTVPreferredFocus={Platform.isTV && lineIndex === 0 && index === 0}
+            />
+          ))}
+        </FocusRow>
       )}
       onEndReached={page.loadMore}
       onEndReachedThreshold={1.5}
@@ -160,8 +177,8 @@ export function TitleGrid({
         )
       }
       removeClippedSubviews={false}
-      initialNumToRender={columns * 3}
-      maxToRenderPerBatch={columns * 2}
+      initialNumToRender={3}
+      maxToRenderPerBatch={2}
       windowSize={5}
     />
   );
@@ -200,7 +217,7 @@ function SortBar({
 const styles = StyleSheet.create({
   sortBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: -8, marginBottom: 16 },
   list: { flex: 1, backgroundColor: colors.bg },
-  line: { gap: GRID_GAP, marginBottom: 24 },
+  line: { flexDirection: 'row', gap: GRID_GAP, marginBottom: 24 },
   muted: { color: colors.muted, fontSize: 16 },
   noShrink: { flexShrink: 0 },
   first: { marginVertical: 40 },

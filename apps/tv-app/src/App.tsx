@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
-import { currentRoute, currentSection } from './navigation/navStore';
+import { currentRoute, currentSection, type Section } from './navigation/navStore';
 import { useLibraryWatcher } from './useLibraryWatcher';
 import { PlayerScreen } from './player/PlayerScreen';
 import { BrowseScreen } from './screens/BrowseScreen';
@@ -78,6 +78,39 @@ export function App() {
   );
 }
 
+/**
+ * The page on screen. A new page (Movies, Series, …) takes a moment to build on a TV, so the first frame after
+ * choosing it shows a spinner (the nav link is already highlighted); the page follows right after.
+ */
+const HEAVY_PAGES: Section[] = ['home', 'movies', 'series', 'live'];
+
+function useShownSection(section: Section): Section {
+  const [shown, setShown] = useState(section);
+  // Light pages (search results as you type, lists, the log) switch at once.
+  const heavy = HEAVY_PAGES.includes(section);
+  useEffect(() => {
+    if (shown === section) return;
+    if (!heavy) return setShown(section);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = requestAnimationFrame(() => {
+      timer = setTimeout(() => setShown(section), 0);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (timer) clearTimeout(timer);
+    };
+  }, [section, shown, heavy]);
+  return heavy ? shown : section;
+}
+
+function PageLoading() {
+  return (
+    <View style={styles.pageLoading} accessibilityLabel="Loading page" testID="page-loading">
+      <ActivityIndicator size="large" color={colors.accent} />
+    </View>
+  );
+}
+
 /** First screen while the saved session loads: same icon as the native launch screen, so start-up looks like one step. */
 function Starting() {
   return (
@@ -95,6 +128,7 @@ function Shell() {
   const revision = useNav((s) => s.libraryRevision);
   const categoryId = useNav((s) => s.categoryId);
   const processing = useLibraryWatcher();
+  const shown = useShownSection(section);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => navStore.getState().back());
@@ -106,10 +140,12 @@ function Shell() {
   return (
     <View style={styles.shell}>
       <View style={styles.content} importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}>
-        {section === 'home' ? (
+        {shown !== section ? (
+          <PageLoading />
+        ) : section === 'home' ? (
           <HomeScreen key={`home-${revision}`} processing={processing} />
         ) : section === 'movies' || section === 'series' ? (
-          <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} />
+          <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} processing={processing} />
         ) : section === 'search' ? (
           <SearchScreen />
         ) : section === 'log' ? (
@@ -135,5 +171,6 @@ const styles = StyleSheet.create({
   shell: { flex: 1 },
   content: { flex: 1 },
   starting: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  pageLoading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 200, height: 200 },
 });
