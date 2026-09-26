@@ -12,6 +12,7 @@ export function createFakePanel() {
       rating: '8.1',
       container_extension: 'mkv',
       added: '1700000000',
+      tmdb: '603',
     },
     { stream_id: 102, name: 'Big.Test.Movie.2020.1080p.WEB-DL', category_id: '10', container_extension: 'mp4' },
     { stream_id: 103, name: 'Another Film (2019) SUB ITA', category_id: '10', container_extension: 'mp4', added: '1800000000' },

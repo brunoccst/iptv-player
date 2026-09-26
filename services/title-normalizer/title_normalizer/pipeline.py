@@ -46,13 +46,49 @@ class Master:
 
 
 def build_masters(account_id: str, media_kind: str, items: list[dict[str, Any]]) -> list[Master]:
-    """`items` use the backend payload shape: id, name, categoryId, posterUrl, rating, containerExtension, releaseDate, addedAt."""
+    """`items` use the backend payload shape: id, name, categoryId, posterUrl, rating, containerExtension, releaseDate, addedAt,
+    tmdbId."""
     usable = [item for item in items if str(item.get("id") or "").strip() and str(item.get("name") or "").strip()]
     parsed = [_parse_item(item) for item in usable]
-    masters = [
-        _build_master(account_id, media_kind, [usable[i] for i in group], [parsed[i] for i in group]) for group in group_titles(parsed)
-    ]
+    groups = merge_by_tmdb(group_titles(parsed), [tmdb_id(item) for item in usable], [title.year for title in parsed])
+    masters = [_build_master(account_id, media_kind, [usable[i] for i in group], [parsed[i] for i in group]) for group in groups]
     return sorted(masters, key=lambda master: (master.title.lower(), master.year or 0))
+
+
+def tmdb_id(item: dict[str, Any]) -> str | None:
+    """The TMDB id some providers send in their lists (`tmdb` or `tmdb_id`); "0" and empty mean none."""
+    value = str(item.get("tmdbId") or "").strip()
+    return value if value.isdigit() and value.strip("0") else None
+
+
+def merge_by_tmdb(groups: list[list[int]], tmdb_ids: list[str | None], years: list[int | None]) -> list[list[int]]:
+    """Joins name groups that share a TMDB id, e.g. "La Casa de Papel" and "Money Heist" (D-065). A shared id only joins
+    groups whose years agree (or are unknown): providers sometimes reuse an id for a remake or get it wrong."""
+    parent = list(range(len(groups)))
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    group_years = [{years[i] for i in group if years[i] is not None} for group in groups]
+    first_group: dict[str, int] = {}
+    for index, group in enumerate(groups):
+        for identifier in sorted({tmdb_ids[i] for i in group if tmdb_ids[i]}):
+            other = first_group.setdefault(identifier, index)
+            if other == index:
+                continue
+            root, other_root = find(index), find(other)
+            known = group_years[root], group_years[other_root]
+            if root != other_root and (not known[0] or not known[1] or known[0] & known[1]):
+                parent[max(root, other_root)] = min(root, other_root)
+                group_years[min(root, other_root)] = known[0] | known[1]
+
+    merged: dict[int, list[int]] = {}
+    for index, group in enumerate(groups):
+        merged.setdefault(find(index), []).extend(group)
+    return [sorted(indexes) for indexes in merged.values()]
 
 
 def quality_score(title: ParsedTitle) -> int:

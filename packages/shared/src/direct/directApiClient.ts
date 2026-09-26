@@ -26,7 +26,7 @@ import type {
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
-import { buildMastersInChunks, type Master } from './normalizer/pipeline';
+import { buildMastersInChunks, tmdbId, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
 
@@ -267,7 +267,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const items = await downloads[kind];
           appLog.info(
             'library',
-            `${kind}: ${items.length} items downloaded (${Math.round((Date.now() - downloadStarted) / 1000)} s after ${kind === 'movie' ? 'start' : 'movies'})`,
+            `${kind}: ${items.length} items downloaded (${Math.round((Date.now() - downloadStarted) / 1000)} s after ${kind === 'movie' ? 'start' : 'movies'}), ` +
+              `${items.filter((item) => tmdbId(item)).length} with a TMDB id`,
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };

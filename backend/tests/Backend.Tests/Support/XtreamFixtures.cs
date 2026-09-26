@@ -20,7 +20,7 @@ public static class XtreamFixtures
     public const string VodStreams = """
         [
           {"num":1,"name":"The Movie (2020) 4K","stream_type":"movie","stream_id":55,"stream_icon":"http://img/55.jpg",
-           "rating":"7.1","added":"1600000000","category_id":"10","container_extension":"mkv"},
+           "rating":"7.1","added":"1600000000","category_id":"10","container_extension":"mkv","tmdb":603},
           {"num":2,"name":"Other","stream_id":"56","rating":"","added":null,"category_id":10,"container_extension":"mp4"},
           {"num":3,"name":"No id"}
         ]

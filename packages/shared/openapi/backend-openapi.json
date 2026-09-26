@@ -2044,7 +2044,8 @@
           "posterUrl",
           "rating",
           "addedAt",
-          "containerExtension"
+          "containerExtension",
+          "tmdbId"
         ],
         "type": "object",
         "properties": {
@@ -2081,6 +2082,12 @@
             "format": "date-time"
           },
           "containerExtension": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tmdbId": {
             "type": [
               "null",
               "string"
@@ -2425,7 +2432,8 @@
           "plot",
           "genre",
           "releaseDate",
-          "lastModifiedAt"
+          "lastModifiedAt",
+          "tmdbId"
         ],
         "type": "object",
         "properties": {
@@ -2478,6 +2486,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "tmdbId": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

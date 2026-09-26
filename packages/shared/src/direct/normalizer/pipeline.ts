@@ -14,6 +14,8 @@ export interface NormalizerItem {
   releaseDate?: string | null;
   /** Unix seconds the provider added (movies) or last changed (series) the item. */
   addedAt?: number | null;
+  /** TMDB id when the provider's list sends one (D-065). */
+  tmdbId?: unknown;
 }
 
 export interface Variant {
@@ -60,6 +62,62 @@ export function buildMasters(accountId: string, mediaKind: string, items: Normal
   return assemble(accountId, mediaKind, usable, usable.map(parseItem));
 }
 
+/** The TMDB id some providers send in their lists; "0" and empty mean none. */
+export function tmdbId(item: NormalizerItem): string | null {
+  const value = text(item.tmdbId);
+  return /^\d+$/.test(value) && /[1-9]/.test(value) ? value : null;
+}
+
+/**
+ * Joins name groups that share a TMDB id, e.g. "La Casa de Papel" and "Money Heist" (D-065). A shared id only joins
+ * groups whose years agree (or are unknown): providers sometimes reuse an id for a remake or get it wrong. Port of
+ * `merge_by_tmdb` in pipeline.py.
+ */
+export function mergeByTmdb(groups: number[][], tmdbIds: (string | null)[], years: (number | null)[]): number[][] {
+  const parent = groups.map((_, index) => index);
+  const find = (index: number): number => {
+    while (parent[index] !== index) {
+      parent[index] = parent[parent[index]!]!;
+      index = parent[index]!;
+    }
+    return index;
+  };
+  const groupYears = groups.map((group) => new Set(group.flatMap((i) => (years[i] === null ? [] : [years[i]!]))));
+  const firstGroup = new Map<string, number>();
+  groups.forEach((group, index) => {
+    const ids = [...new Set(group.flatMap((i) => (tmdbIds[i] ? [tmdbIds[i]!] : [])))].sort(compare);
+    for (const id of ids) {
+      const other = firstGroup.get(id);
+      if (other === undefined) {
+        firstGroup.set(id, index);
+        continue;
+      }
+      const [root, otherRoot] = [find(index), find(other)];
+      const [a, b] = [groupYears[root]!, groupYears[otherRoot]!];
+      if (root !== otherRoot && (a.size === 0 || b.size === 0 || [...a].some((year) => b.has(year)))) {
+        const [low, high] = [Math.min(root, otherRoot), Math.max(root, otherRoot)];
+        parent[high] = low;
+        groupYears[low] = new Set([...a, ...b]);
+      }
+    }
+  });
+  const merged = new Map<number, number[]>();
+  groups.forEach((group, index) => {
+    const root = find(index);
+    const list = merged.get(root);
+    if (list) list.push(...group);
+    else merged.set(root, [...group]);
+  });
+  return [...merged.values()].map((indexes) => indexes.sort((a, b) => a - b));
+}
+
+const byTmdb = (groups: number[][], usable: NormalizerItem[], parsed: ParsedTitle[]) =>
+  mergeByTmdb(
+    groups,
+    usable.map(tmdbId),
+    parsed.map((title) => title.year),
+  );
+
 /**
  * Same result as `buildMasters`, but works in chunks and yields between them so the UI stays responsive, and
  * `onProgress(done, total)` reports how far it got (direct mode on TV/phone, D-038). `done` runs from 0 to `total`
@@ -83,7 +141,7 @@ export async function buildMastersInChunks(
     for (const item of usable.slice(start, start + chunkSize)) parsed.push(parseItem(item));
     await pause((0.5 * parsed.length) / total);
   }
-  const groups = await groupTitlesAsync(parsed, (done) => pause(0.5 + 0.3 * done));
+  const groups = byTmdb(await groupTitlesAsync(parsed, (done) => pause(0.5 + 0.3 * done)), usable, parsed);
   const masters: Master[] = [];
   for (let start = 0; start < groups.length; start += chunkSize) {
     for (const group of groups.slice(start, start + chunkSize)) masters.push(masterOf(accountId, mediaKind, usable, parsed, group));
@@ -94,7 +152,7 @@ export async function buildMastersInChunks(
 }
 
 function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], parsed: ParsedTitle[]): Master[] {
-  return sortMasters(groupTitles(parsed).map((group) => masterOf(accountId, mediaKind, usable, parsed, group)));
+  return sortMasters(byTmdb(groupTitles(parsed), usable, parsed).map((group) => masterOf(accountId, mediaKind, usable, parsed, group)));
 }
 
 const masterOf = (accountId: string, mediaKind: string, usable: NormalizerItem[], parsed: ParsedTitle[], group: number[]) =>

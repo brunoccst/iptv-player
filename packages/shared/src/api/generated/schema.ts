@@ -557,6 +557,7 @@ export interface components {
             posterUrl: null | string;
             /** Format: double */
             rating: null | number;
+            tmdbId: null | string;
         };
         PlaybackInfo: {
             container: string;
@@ -645,6 +646,7 @@ export interface components {
             /** Format: double */
             rating: null | number;
             releaseDate: null | string;
+            tmdbId: null | string;
         };
         VariantInfo: {
             audioLanguages: string[];

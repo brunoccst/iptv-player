@@ -34,7 +34,8 @@ public sealed record MovieSummary(
     string? PosterUrl,
     double? Rating,
     DateTimeOffset? AddedAt,
-    string? ContainerExtension);
+    string? ContainerExtension,
+    string? TmdbId = null);
 
 public sealed record MovieDetails(
     MovieSummary Summary,
@@ -57,7 +58,8 @@ public sealed record SeriesSummary(
     string? Plot,
     string? Genre,
     string? ReleaseDate,
-    DateTimeOffset? LastModifiedAt);
+    DateTimeOffset? LastModifiedAt,
+    string? TmdbId = null);
 
 public sealed record Episode(
     string Id,
