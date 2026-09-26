@@ -75,6 +75,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-068](#d-068) | 2026-09-26 | TV sleep mode instead of the system screensaver |
 | [D-069](#d-069) | 2026-09-26 | TV navigation: Left/Right stay in their row; Home centres the focused row |
 | [D-070](#d-070) | 2026-09-26 | App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app |
+| [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
 
 ---
 
@@ -1280,3 +1281,22 @@ Update installer (bug: after "Update now" and the download the dialog said Andro
 - Now the installer is started from the app's own screen, in the app's task, on the main thread; only without a screen does it fall back to a new task. The dialog also offers "Open the installer again", which reuses the downloaded file, and says so when Android refuses to open it.
 
 Limits: not reproduced on a device in CI (the emulator flows do not install updates); the fix follows how Android places activities in tasks.
+
+## D-071
+
+**Desktop app: the web player in Electron, talking to the provider directly** — 2026-09-26 (requested by owner: use it on the computer like a normal application, without the repository or commands)
+
+Decision:
+- `apps/desktop` is an Electron app with installers for Windows (`.exe`, per user, no administrator rights), macOS (`.dmg`, Intel and Apple silicon) and Linux (`.AppImage`, `.deb`). It shows the web player (`apps/web-player`, bundled) in its own window.
+- No server: like the TV app it talks to the IPTV provider directly (D-038) and builds the library on the computer (`createAppContext` with `direct`). The web player notices the app from what its preload script adds (`window.iptvDesktop`, `apps/web-player/src/desktop.ts`); in a browser nothing changes.
+- A browser page may not read another site's answers (CORS), and providers send no permission for it. The app serves the page from `http://127.0.0.1:47831` itself and adds the permission to provider answers (`webRequest`); provider requests get the player User-Agent (as on the TV) and no page origin. 127.0.0.1 is a secure context, so offline downloads (Service Worker, Web Crypto) work as in the browser. The port is fixed because the page's saved state belongs to its address; if another program uses it, a free port is taken (then only the sign-in carries over).
+- Storage goes through the main process: `secure` (session, provider password, PIN) is encrypted by the system (`safeStorage`: Windows DPAPI, macOS Keychain, Linux secret store); `data` (library, profiles, progress) is plain files, since a large library does not fit in `localStorage`. The backup (D-056) covers both, in the same format as the TV app's.
+- `desktop.yml` builds the installers on Windows, macOS and Linux runners after changes to the app, the web player or the shared package reach `main`, and publishes them to the `desktop` prerelease with fixed names. The version is MAJOR.MINOR.PATCH (D-070) from `apps/desktop/package.json`. About 15 s after start the app reads that release; for a newer version it offers to open the download page.
+- `apps/desktop` is not an npm workspace (its own `package-lock.json`), so the other pipelines do not download Electron. CI (`ci.yml` → Desktop) runs its unit tests and starts it against the fake panel: sign-in without a backend, a movie that plays, and the sign-in kept after a restart.
+
+Limits:
+- Plays what Chromium plays, like the web player: MKV-only titles and Dolby/DTS audio need the TV app or an external player (KI-045).
+- Installers are not code-signed: Windows SmartScreen and macOS Gatekeeper ask once before the first start. Signing needs paid certificates.
+- Updates are downloaded and installed by hand (the app only points to the new version). Automatic updates need signed builds on macOS.
+
+Alternatives: the backend bundled in the app (a .NET runtime and the Python worker per system, much larger, and only useful for the web's server mode); Tauri (smaller, but the system web view differs per system: no HLS on Windows WebView2 without extra work, older WebKit on Linux); a PWA installed from the browser (still needs the backend because of CORS).

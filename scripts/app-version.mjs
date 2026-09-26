@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// Prints the TV/phone app version, MAJOR.MINOR.PATCH (Semantic Versioning, DECISIONS.md#d-070).
-// MAJOR.MINOR come from apps/tv-app/package.json and are raised by hand there (write X.Y.0). PATCH counts the builds
+// Prints an app's version, MAJOR.MINOR.PATCH (Semantic Versioning, DECISIONS.md#d-070).
+// Usage: node scripts/app-version.mjs [package.json] (default: the TV/phone app; apps/desktop/package.json: desktop).
+// MAJOR.MINOR come from that package.json and are raised by hand there (write X.Y.0). PATCH counts the builds
 // on main since then: the commits on main's first-parent line that already carry this MAJOR.MINOR, minus one, so the
 // first build of 1.2 is 1.2.0 and the next one 1.2.1. Needs the full history (actions/checkout fetch-depth: 0).
 import { execFileSync } from 'node:child_process';
 
-const FILE = 'apps/tv-app/package.json';
+const FILE = process.argv[2] ?? 'apps/tv-app/package.json';
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
 const majorMinor = (commit) => {
   try {
@@ -16,7 +17,7 @@ const majorMinor = (commit) => {
   }
 };
 
-const head = process.argv[2] ?? 'HEAD';
+const head = 'HEAD';
 const base = majorMinor(head);
 if (!base) throw new Error(`No MAJOR.MINOR.PATCH version in ${FILE}`);
 let same = 0;

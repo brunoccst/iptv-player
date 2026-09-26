@@ -48,6 +48,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-042](#ki-042) | Bug | tv-app (direct mode) | Resolved |
 | [KI-043](#ki-043) | Limitation | tv-app | Open |
 | [KI-044](#ki-044) | Bug | shared (direct mode) | Resolved |
+| [KI-045](#ki-045) | Limitation | desktop | Open |
 
 ---
 
@@ -347,3 +348,8 @@ With 159,801 movies the TV stopped responding at "grouping titles 158,000 of 159
 
 Fix: the fuzzy pass only compares titles with the same prefix, year and numbers (a match needs those anyway), sorted by length so hopeless pairs are skipped, with a cheap shared-letters bound before the LCS; lists grow in place; SHA-1 ids without per-round allocations. Matching, building and saving (`packLibraryText`) now pause regularly, and progress runs across all steps as a percentage. Same groups as before (checked on 30,000 titles with typos). On the PC the longest block is now about 0.1 s.
 
+## KI-045
+
+**The desktop app plays only what Chromium plays** — logged 2026-09-26
+
+The desktop app (D-071) uses the web player, so it has the same limits: MKV-only titles, HEVC on some computers, and Dolby Digital/DTS audio do not play (the player says so and suggests another version). The TV app and external players such as VLC play them. A lasting fix would hand such titles to an installed VLC or mpv, or embed libmpv.

@@ -130,3 +130,38 @@ jobs:
         with:
           name: web-e2e-results
           path: apps/web-player/test-results
+
+  desktop:
+    name: Desktop app (unit tests, start against the fake panel)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/desktop/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - name: Web player build
+        run: npx turbo run build --filter=@iptv/web-player
+      - name: Desktop dependencies and unit tests
+        working-directory: apps/desktop
+        run: npm ci && npm test && node scripts/prepare.mjs
+      - name: Test media
+        run: |
+          pip install -q imageio-ffmpeg
+          FFMPEG=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") python tools/fake-xtream-server/generate_media.py
+      # Sign-in without a backend, a movie that plays, sign-in kept after a restart (D-071).
+      - name: Start the app against the fake panel
+        run: |
+          (cd tools/fake-xtream-server && python server.py > "$RUNNER_TEMP/panel.log" 2>&1 &)
+          sleep 2
+          cd apps/desktop && xvfb-run -a node e2e/smoke.mjs

@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { appConfig } from '../../config';
+import { desktop } from '../../desktop';
 import { stores } from '../../appContext';
 import { useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { BackupDialog } from '../backup/BackupDialog';
 
-/** Xtream login. Credentials go to the backend once; the app keeps only a session token. */
+/** Xtream login. Credentials go to the backend once; the app keeps only a session token. The desktop app signs in to the provider itself (D-071). */
 export function LoginPage() {
   const busy = useSession((s) => s.busy);
   const error = useSession((s) => s.error);
@@ -70,7 +71,9 @@ export function LoginPage() {
           {busy ? 'Signing in…' : 'Sign In'}
         </button>
         <p className="muted" style={{ fontSize: '0.8rem', margin: 0 }}>
-          Your IPTV password is sent once to your own backend, stored encrypted there, and never kept in this browser.
+          {desktop
+            ? 'The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.'
+            : 'Your IPTV password is sent once to your own backend, stored encrypted there, and never kept in this browser.'}
         </p>
         <button type="button" className="button button--ghost" onClick={() => setRestore(true)}>
           Restore from a backup

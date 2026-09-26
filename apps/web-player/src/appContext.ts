@@ -1,5 +1,6 @@
-import { bindDownloadsToAccount, createAppContext, type KeyValueStorage } from '@iptv/shared';
+import { bindDownloadsToAccount, createAppContext, PROFILE_PREFS_KEY, type BackupStorages, type KeyValueStorage } from '@iptv/shared';
 import { appConfig } from './config';
+import { desktop } from './desktop';
 import { createCacheChunkStore, createMemoryChunkStore } from './offline/chunkStore';
 import { createDownloadsStore } from './offline/downloadsStore';
 import { createOfflineDb } from './offline/offlineDb';
@@ -17,10 +18,23 @@ function createWebStorage(prefix: string): KeyValueStorage {
 
 const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
-/** One storage holds everything on the web; the user-data backup reads it (D-056). */
-export const storage = createWebStorage(appConfig.appSlug);
-export const appContext = createAppContext({ config: appConfig, storage });
+/**
+ * One storage holds everything on the web; the user-data backup reads it (D-056). The desktop app (D-071) keeps it
+ * encrypted by the operating system and talks to the provider directly, like the TV app (D-038); it sets the player
+ * User-Agent itself, so none is sent from the page.
+ */
+export const storage = desktop ? desktop.secure : createWebStorage(appConfig.appSlug);
+export const appContext = createAppContext({
+  config: appConfig,
+  storage,
+  ...(desktop ? { direct: { dataStorage: desktop.data } } : {}),
+});
 export const { stores, api } = appContext;
+
+/** What the user-data backup reads and writes (D-056); the desktop app also has the TV app's direct-mode data. */
+export const backupStorages: BackupStorages = desktop
+  ? { secure: storage, data: desktop.data, settingsKeys: [PROFILE_PREFS_KEY] }
+  : { secure: storage };
 
 export const downloadsStore = createDownloadsStore({
   api,

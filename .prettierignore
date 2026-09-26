@@ -19,3 +19,5 @@ documentation/
 *.yaml
 *.json
 package-lock.json
+apps/desktop/release/
+apps/desktop/build/
