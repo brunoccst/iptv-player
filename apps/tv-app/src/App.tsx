@@ -18,6 +18,7 @@ import { LogScreen } from './screens/LogScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
+import { PairingDialogHost } from './pairing/PairingDialogs';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
 
@@ -57,6 +58,7 @@ export function App() {
           <Shell />
         )}
       </View>
+      <PairingDialogHost />
     </View>
   );
 }

@@ -6,6 +6,8 @@ export * from './types-only';
 
 type TvMediaEvents = {
   onDownloadsChanged(event: { downloads: NativeDownload[] }): void;
+  /** Phone-to-TV pairing: a request reached the TV's pairing server; answer with `respondPairing` (D-060). */
+  onPairingRequest(event: { id: string; body: string }): void;
 };
 
 declare class TvMediaModule extends NativeModule<TvMediaEvents> {
@@ -22,6 +24,12 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   removeAllDownloads(): void;
   /** Opens the stream in another video player app (D-057). */
   openExternalPlayer(uri: string, mimeType: string, title: string, headers: Record<string, string>): ExternalPlayerResult;
+  /** TV: starts the pairing server on the home network (D-060). `host` is null when not connected. */
+  startPairing(): { host: string | null; port: number; key: string };
+  respondPairing(id: string, status: number, body: string): void;
+  stopPairing(): void;
+  /** Phone: scans a QR code with Google's code scanner; null when cancelled. */
+  scanQrCode(): Promise<string | null>;
 }
 
 /** Media3 DownloadManager bridge (android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt). */

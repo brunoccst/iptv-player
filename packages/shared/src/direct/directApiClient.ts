@@ -25,7 +25,7 @@ import type {
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
-import { LIBRARY_FORMAT, packLibrary, unpackLibrary } from './libraryCodec';
+import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
 import { buildMastersInChunks, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -148,9 +148,13 @@ async function readJson<T>(storage: KeyValueStorage, key: string, logged = false
 }
 
 async function writeJson(storage: KeyValueStorage, key: string, value: unknown, logged = false): Promise<void> {
+  return writeText(storage, key, () => JSON.stringify(value), logged);
+}
+
+async function writeText(storage: KeyValueStorage, key: string, build: () => string | Promise<string>, logged = false): Promise<void> {
   const started = Date.now();
   try {
-    const text = JSON.stringify(value);
+    const text = await build();
     await storage.setItem(key, text);
     if (logged) appLog.info('storage', `${key}: wrote ${text.length} chars in ${Date.now() - started} ms`);
   } catch (error) {
@@ -268,7 +272,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
-          await writeJson(options.dataStorage, libraryKey(accountId, kind), packLibrary(queuedAt, masters), true).catch(() => undefined);
+          await writeText(
+            options.dataStorage,
+            libraryKey(accountId, kind),
+            () => packLibraryText(queuedAt, masters, yieldToUi),
+            true,
+          ).catch(() => undefined);
           library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
         } catch (error) {
           appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);

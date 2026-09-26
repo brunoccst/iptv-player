@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { groupTitles, ratio } from './matching';
+import { groupTitles, groupTitlesAsync, ratio } from './matching';
 import { normalizeKey, parseTitle } from './parser';
-import { buildMasters } from './pipeline';
+import { buildMasters, buildMastersInChunks } from './pipeline';
 import { sha1Hex } from './sha1';
 
 /** The same JSON cases the Python tests run (services/title-normalizer/tests/cases). See DECISIONS.md#d-038. */
@@ -87,5 +87,36 @@ describe('helpers', () => {
     expect(ratio('shawshankredemption', 'shawshankredemtion')).toBeCloseTo(97.297, 3);
     expect(ratio('abc', '')).toBe(0);
     expect(ratio('', '')).toBe(100);
+  });
+});
+
+describe('grouping large libraries (D-038)', () => {
+  it('the async version gives the same groups and pauses along the way', async () => {
+    const names = Array.from(
+      // Varied first letters (like real names) keep the fuzzy blocks small; enough titles to pause several times.
+      { length: 12_000 },
+      (_, i) =>
+        `${['EN - ', 'DE - ', ''][i % 3]}${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + (Math.floor(i / 26) % 26))} Title ${Math.floor(i / 676)} (${2000 + (i % 20)})`,
+    );
+    names.push('Spiderman (2002)', 'Spider-Man (2002)', 'Spider Mann (2002)', 'The Matrix', 'The Matrix (1999)');
+    const titles = names.map(parseTitle);
+    const pauses: number[] = [];
+    const groups = await groupTitlesAsync(titles, async (done) => void pauses.push(done));
+    expect(groups).toEqual(groupTitles(titles));
+    expect(pauses.length).toBeGreaterThan(3);
+    expect(pauses.every((done, index) => done >= 0 && done <= 1 && (index === 0 || done >= pauses[index - 1]!))).toBe(true);
+    expect(groups.find((group) => group.includes(names.indexOf('Spiderman (2002)')))?.length).toBe(3);
+  });
+
+  it('buildMastersInChunks reports progress up to the total and matches buildMasters', async () => {
+    const items = Array.from({ length: 3000 }, (_, i) => ({
+      id: i + 1,
+      name: `Film ${i % 1000} (${2000 + (i % 3)}) ${['4K', '1080p', ''][i % 3]}`,
+    }));
+    const reported: number[] = [];
+    const masters = await buildMastersInChunks('acc', 'movie', items, { onProgress: (done, total) => reported.push(done / total) });
+    expect(masters).toEqual(buildMasters('acc', 'movie', items));
+    expect(reported.at(-1)).toBe(1);
+    expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
   });
 });

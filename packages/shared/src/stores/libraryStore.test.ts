@@ -158,7 +158,7 @@ describe('describeLibraryProgress', () => {
         status('movie', { jobStatus: 'processing', stage: 'grouping', itemCount: 12345, parsedCount: 4000 }),
         status('series', { jobStatus: 'processing', stage: 'downloading' }),
       ]),
-    ).toEqual(['Movies: grouping titles 4,000 of 12,345…', 'Series: downloading the list from your provider…']);
+    ).toEqual(['Movies: grouping 12,345 titles, 32%…', 'Series: downloading the list from your provider…']);
     expect(
       describeLibraryProgress([status('movie', { jobStatus: 'done', masterCount: 1500 }), status('series', { jobStatus: 'pending' })]),
     ).toEqual(['Movies: 1,500 titles ready', 'Series: waiting to start…']);

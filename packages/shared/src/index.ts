@@ -32,3 +32,4 @@ export * from './react';
 export * from './design/tokens';
 export * from './design/icons';
 export * from './design/avatar';
+export * from './pairing/pairing';

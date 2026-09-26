@@ -6,6 +6,7 @@ import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import type { KeyValueStorage } from '../stores/storage';
+import { asciiJson, fromAscii, fromBase64, parseJson, randomBytes, toBase64, utf8 } from '../utils/bytes';
 
 /**
  * User-data backup (D-056): the device's settings and per-profile data in one password-protected file, so a reinstall
@@ -37,10 +38,12 @@ interface BackupFile {
   data: string;
 }
 
-interface BackupContents {
+/** Stored values by key, as the backup and the phone-to-TV pairing (D-060) carry them. */
+export interface UserDataContents {
   secure: Record<string, string>;
   data: Record<string, string>;
 }
+type BackupContents = UserDataContents;
 
 export type BackupError = 'no-data' | 'short-password' | 'not-a-backup' | 'wrong-password' | 'newer-version';
 
@@ -65,46 +68,11 @@ export function backupMessage(reason: BackupError): string {
   }
 }
 
-const toBase64 = (bytes: Uint8Array) => btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
-const fromBase64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
-/** UTF-8 by hand: TextDecoder is not available on every JS engine the apps run on (Hermes). */
-const utf8 = (text: string) => {
-  const bytes: number[] = [];
-  for (const char of text) {
-    const code = char.codePointAt(0)!;
-    if (code < 0x80) bytes.push(code);
-    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 63));
-    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 63), 0x80 | (code & 63));
-    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 63), 0x80 | ((code >> 6) & 63), 0x80 | (code & 63));
-  }
-  return Uint8Array.from(bytes);
-};
-/** JSON with every non-ASCII character escaped, so bytes and characters map one to one. */
-const asciiJson = (value: unknown) =>
-  JSON.stringify(value).replace(/[\u0080-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
-const fromAscii = (bytes: Uint8Array) => Array.from(bytes, (b) => String.fromCharCode(b)).join('');
-
-/** Web Crypto when available. Otherwise Math.random: salt and nonce must be unique, not secret, and each backup gets a fresh salt, so a fresh key. */
-function randomBytes(length: number): Uint8Array {
-  const bytes = new Uint8Array(length);
-  if (globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(bytes);
-  for (let i = 0; i < length; i++) bytes[i] = Math.floor(Math.random() * 256);
-  return bytes;
-}
-
 const deriveKey = (password: string, salt: Uint8Array, iterations: number) =>
   pbkdf2Async(sha256, utf8(password), salt, { c: iterations, dkLen: 32, asyncTick: 20 });
 
-const parse = <T>(value: string | null): T | null => {
-  try {
-    return value ? (JSON.parse(value) as T) : null;
-  } catch {
-    return null;
-  }
-};
-
 /** Keys that exist for the signed-in account on this device. */
-async function collect(storages: BackupStorages): Promise<BackupContents> {
+export async function collectUserData(storages: BackupStorages): Promise<BackupContents> {
   const secure: Record<string, string> = {};
   const data: Record<string, string> = {};
   const read = async (storage: KeyValueStorage, key: string, into: Record<string, string>) => {
@@ -113,14 +81,14 @@ async function collect(storages: BackupStorages): Promise<BackupContents> {
   };
 
   for (const key of [SESSION_STORAGE_KEY, CONNECTION_STORAGE_KEY, CREDENTIALS_KEY]) await read(storages.secure, key, secure);
-  const session = parse<{ account?: { id: string }; profiles?: { id: string }[] }>(secure[SESSION_STORAGE_KEY] ?? null);
+  const session = parseJson<{ account?: { id: string }; profiles?: { id: string }[] }>(secure[SESSION_STORAGE_KEY] ?? null);
   const accountId = session?.account?.id;
   if (!accountId) throw new BackupFailure('no-data');
   await read(storages.secure, pinStorageKey(accountId), secure);
 
   if (storages.data) {
     await read(storages.data, profilesKey(accountId), data);
-    const profiles = parse<{ id: string }[]>(data[profilesKey(accountId)] ?? null) ?? session?.profiles ?? [];
+    const profiles = parseJson<{ id: string }[]>(data[profilesKey(accountId)] ?? null) ?? session?.profiles ?? [];
     for (const { id } of profiles) {
       await read(storages.data, progressKey(id), data);
       await read(storages.data, watchlistKey(id), data);
@@ -133,7 +101,7 @@ async function collect(storages: BackupStorages): Promise<BackupContents> {
 /** The backup file's text. The password is needed to restore it; it is not stored anywhere. */
 export async function exportUserData(storages: BackupStorages, password: string, now = new Date()): Promise<string> {
   if (password.length < MIN_BACKUP_PASSWORD) throw new BackupFailure('short-password');
-  const contents = await collect(storages);
+  const contents = await collectUserData(storages);
   const salt = randomBytes(16);
   const nonce = randomBytes(24);
   const key = await deriveKey(password, salt, ITERATIONS);
@@ -156,7 +124,7 @@ export async function exportUserData(storages: BackupStorages, password: string,
  * restored account (D-050).
  */
 export async function importUserData(storages: BackupStorages, text: string, password: string): Promise<{ createdAt: string }> {
-  const file = parse<BackupFile>(text);
+  const file = parseJson<BackupFile>(text);
   if (!file || file.format !== BACKUP_FORMAT || typeof file.data !== 'string') throw new BackupFailure('not-a-backup');
   if (file.version > BACKUP_VERSION) throw new BackupFailure('newer-version');
 

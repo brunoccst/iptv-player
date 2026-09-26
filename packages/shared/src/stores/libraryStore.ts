@@ -177,7 +177,9 @@ export function describeLibraryProgress(statuses: LibraryStatus[] | null): strin
         return `${label}: waiting to start…`;
       case 'processing':
         if (stage === 'downloading') return `${label}: downloading the list from your provider…`;
-        if (stage === 'grouping' && total > 0) return `${label}: grouping titles ${count(parsedCount ?? 0)} of ${count(total)}…`;
+        // Direct mode: `parsedCount` runs to `itemCount` over all grouping steps, so a percentage reads right.
+        if (stage === 'grouping' && total > 0)
+          return `${label}: grouping ${count(total)} titles, ${Math.floor((100 * (parsedCount ?? 0)) / total)}%…`;
         return total > 0 ? `${label}: grouping ${count(total)} titles…` : `${label}: grouping titles…`;
       case 'failed':
         return `${label}: failed${status.error ? ` (${status.error})` : ''}`;
