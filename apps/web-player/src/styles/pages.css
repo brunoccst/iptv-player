@@ -214,6 +214,21 @@
   background: var(--color-surface-raised);
 }
 
+/* A group's title row: its name with a back arrow (account menu groups). */
+.menu__item--header {
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.menu__chevron {
+  display: flex;
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--color-muted);
+}
+
 /* Hero */
 .hero {
   position: relative;

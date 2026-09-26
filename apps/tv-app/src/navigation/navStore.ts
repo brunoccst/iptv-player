@@ -23,6 +23,8 @@ export interface NavState {
   scrolled: boolean;
   /** Account menu under the avatar. */
   menuOpen: boolean;
+  /** The account menu's open group ("Profiles", "Library & devices", …); `null` = the main list. */
+  menuGroup: string | null;
   bumpLibrary(): void;
   goSection(section: Section): void;
   /** Movies/Series/Live TV filtered to one category (Home row title links and arrow cards). */
@@ -33,10 +35,11 @@ export interface NavState {
   submitSearch(): void;
   setScrolled(scrolled: boolean): void;
   setMenuOpen(open: boolean): void;
+  setMenuGroup(group: string | null): void;
   push(route: Route): void;
   /** Swaps the top route (next episode, version switch) without growing the stack. */
   replaceTop(route: Route): void;
-  /** Closes the menu or pops one route. Returns false at the root so Android can exit the app. */
+  /** Leaves a menu group, closes the menu or pops one route. Returns false at the root so Android can exit the app. */
   back(): boolean;
 }
 
@@ -50,6 +53,7 @@ export function createNavStore() {
     categoryId: null,
     scrolled: false,
     menuOpen: false,
+    menuGroup: null,
     bumpLibrary: () => set({ libraryRevision: get().libraryRevision + 1 }),
     goSection: (section) =>
       set({
@@ -71,11 +75,16 @@ export function createNavStore() {
     setScrolled: (scrolled) => {
       if (get().scrolled !== scrolled) set({ scrolled });
     },
-    setMenuOpen: (menuOpen) => set({ menuOpen }),
+    setMenuOpen: (menuOpen) => set({ menuOpen, menuGroup: null }),
+    setMenuGroup: (menuGroup) => set({ menuGroup }),
     push: (route) => set({ stack: [...get().stack, route], menuOpen: false }),
     replaceTop: (route) => set({ stack: [...get().stack.slice(0, -1), route] }),
     back: () => {
-      const { stack, menuOpen } = get();
+      const { stack, menuOpen, menuGroup } = get();
+      if (menuOpen && menuGroup) {
+        set({ menuGroup: null });
+        return true;
+      }
       if (menuOpen) {
         set({ menuOpen: false });
         return true;

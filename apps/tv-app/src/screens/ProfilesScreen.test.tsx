@@ -99,6 +99,7 @@ describe('Parental PIN (TV, D-054)', () => {
     await flush();
     await act(async () => stores.session.getState().selectProfile(profile.id));
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-pin'));
     await typePin('1357');
     await typePin('1357');

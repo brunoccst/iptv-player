@@ -16,6 +16,7 @@ describe('account menu → About', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-app'));
     await fireEvent.press(screen.getByTestId('menu-about'));
 
     expect(within(screen.getByTestId('about-dialog')).getByText('Test TV')).toBeTruthy();

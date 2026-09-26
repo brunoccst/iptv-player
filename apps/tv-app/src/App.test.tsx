@@ -266,11 +266,13 @@ describe('App (TV)', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     expect(screen.queryByTestId('menu-playback')).toBeNull(); // no FFmpeg in this build
     await fireEvent.press(screen.getByTestId('nav-account'));
 
     nativeState.ffmpegAudio = true;
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(await screen.findByTestId('menu-playback'));
     await fireEvent.press(await screen.findByTestId('audio-decoder-ffmpeg'));
     await flush();
@@ -309,6 +311,7 @@ describe('App (TV)', () => {
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(screen.getByTestId('menu-backup'));
     await fireEvent.changeText(screen.getByTestId('backup-password'), 'correct horse');
     await fireEvent.changeText(screen.getByTestId('backup-confirm'), 'correct horse');

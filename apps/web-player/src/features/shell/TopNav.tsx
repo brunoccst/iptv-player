@@ -20,6 +20,10 @@ const LINKS: { view: View; label: string }[] = [
   { view: 'downloads', label: 'My Downloads' },
 ];
 
+/** Account menu groups; each opens in place with its name and a back arrow. */
+const GROUPS = ['Profiles', 'Library & data'] as const;
+type MenuGroup = (typeof GROUPS)[number];
+
 export function TopNav() {
   const view = useUi((s) => s.view);
   const search = useUi((s) => s.search);
@@ -27,6 +31,12 @@ export function TopNav() {
   const profiles = useSession((s) => s.profiles);
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // The menu's open group; `null` = the main list (other profiles, groups, Sign out).
+  const [group, setGroup] = useState<MenuGroup | null>(null);
+  const toggleMenu = (open: boolean) => {
+    setMenuOpen(open);
+    setGroup(null);
+  };
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
@@ -78,95 +88,132 @@ export function TopNav() {
             aria-haspopup="menu"
             aria-expanded={menuOpen}
             aria-label="Account menu"
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={() => toggleMenu(!menuOpen)}
           >
             {profile?.name.charAt(0).toUpperCase()}
           </button>
           {menuOpen ? (
-            <div className="menu__list" role="menu" onMouseLeave={() => setMenuOpen(false)}>
-              {profiles
-                .filter((p) => p.id !== profile?.id)
-                .map((p) => (
+            <div className="menu__list" role="menu" onMouseLeave={() => toggleMenu(false)}>
+              {group ? (
+                <>
+                  {/* The group's name with a back arrow: back to the main list. */}
                   <button
-                    key={p.id}
+                    type="button"
+                    role="menuitem"
+                    className="menu__item menu__item--header"
+                    aria-label={`Back from ${group}`}
+                    onClick={() => setGroup(null)}
+                  >
+                    <Icon name="back" size={18} /> {group}
+                  </button>
+                  {group === 'Profiles' ? (
+                    <>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => stores.session.getState().selectProfile(null)}
+                      >
+                        <Icon name="pencil" size={18} /> Manage Profiles
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setPinSettings(true);
+                        }}
+                      >
+                        <Icon name="lock" size={18} /> Parental PIN
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setLanguage(true);
+                        }}
+                      >
+                        <Icon name="subtitles" size={18} /> Languages
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          void stores.library.getState().sync();
+                        }}
+                      >
+                        <Icon name="refresh" size={18} /> Refresh library
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setBackup(true);
+                        }}
+                      >
+                        <Icon name="backup" size={18} /> Back up &amp; restore
+                      </button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {profiles
+                    .filter((p) => p.id !== profile?.id)
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
+                          gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                            stores.session.getState().selectProfile(p.id);
+                            ui.navigate('home');
+                          });
+                        }}
+                      >
+                        <span className="menu__avatar" style={{ background: avatarColor(p), width: 26, height: 26 }}>
+                          {p.name.charAt(0)}
+                        </span>
+                        {p.name}
+                      </button>
+                    ))}
+                  {GROUPS.map((name) => (
+                    <button key={name} type="button" role="menuitem" className="menu__item" onClick={() => setGroup(name)}>
+                      <Icon name={name === 'Profiles' ? 'pencil' : 'refresh'} size={18} /> {name}
+                      <span className="menu__chevron" aria-hidden>
+                        <Icon name="chevronRight" size={18} />
+                      </span>
+                    </button>
+                  ))}
+                  <button
                     type="button"
                     role="menuitem"
                     className="menu__item"
                     onClick={() => {
-                      setMenuOpen(false);
-                      // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
-                      gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
-                        stores.session.getState().selectProfile(p.id);
-                        ui.navigate('home');
-                      });
+                      // Downloads belong to this account and are deleted on sign-out (D-050).
+                      const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
+                      if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
+                      void signOut();
                     }}
                   >
-                    <span className="menu__avatar" style={{ background: avatarColor(p), width: 26, height: 26 }}>
-                      {p.name.charAt(0)}
-                    </span>
-                    {p.name}
+                    <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
                   </button>
-                ))}
-              <button type="button" role="menuitem" className="menu__item" onClick={() => stores.session.getState().selectProfile(null)}>
-                <Icon name="pencil" size={18} /> Manage Profiles
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu__item"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setPinSettings(true);
-                }}
-              >
-                <Icon name="lock" size={18} /> Parental PIN
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu__item"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setLanguage(true);
-                }}
-              >
-                <Icon name="subtitles" size={18} /> Languages
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu__item"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setBackup(true);
-                }}
-              >
-                <Icon name="backup" size={18} /> Back up &amp; restore
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu__item"
-                onClick={() => {
-                  setMenuOpen(false);
-                  void stores.library.getState().sync();
-                }}
-              >
-                <Icon name="refresh" size={18} /> Refresh library
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="menu__item"
-                onClick={() => {
-                  // Downloads belong to this account and are deleted on sign-out (D-050).
-                  const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
-                  if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
-                  void signOut();
-                }}
-              >
-                <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
-              </button>
+                </>
+              )}
             </div>
           ) : null}
         </div>

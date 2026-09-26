@@ -6,7 +6,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 |------|---------|
 | `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. |
 | `AboutDialog.tsx` | Account menu → About: installed version (the release build number), commit and date it was built from, connection, FFmpeg audio, Android version; Check for updates. |
-| `AccountMenu.tsx` | Menu under the avatar: other profiles, Manage Profiles, Parental PIN, Languages (D-063, D-067), Sync with phone (TV) or Connect a TV (phone, D-060), Back up data, Playback (when FFmpeg is bundled), Refresh library, Check for updates (release builds, D-062), Log, About, Sign out. `confirmSignOut` asks first. |
+| `AccountMenu.tsx` | Menu under the avatar: other profiles, three groups and Sign out. A group opens in place under its name with a back arrow (Back also returns): **Profiles** (Manage Profiles, Parental PIN, Languages, D-063/D-067), **Library & devices** (Refresh library, Sync with phone on TV or Connect a TV on phones (D-060), Back up data, Playback when FFmpeg is bundled), **App** (Check for updates in release builds (D-062), About, Log). `confirmSignOut` asks first. |
 | `PinPad.tsx` | Parental PIN keypad for D-pad and touch, and `usePinGate` (D-054). |
 | `PinSettings.tsx` | Parental PIN flow: set (typed twice), or change/remove after the current PIN. |
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
