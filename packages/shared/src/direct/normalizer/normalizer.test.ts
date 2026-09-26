@@ -93,8 +93,10 @@ describe('helpers', () => {
 describe('grouping large libraries (D-038)', () => {
   it('the async version gives the same groups and pauses along the way', async () => {
     const names = Array.from(
+      // Varied first letters (like real names) keep the fuzzy blocks small; enough titles to pause several times.
       { length: 12_000 },
-      (_, i) => `${['EN - ', 'DE - ', ''][i % 3]}Title ${String.fromCharCode(97 + (i % 26))}${Math.floor(i / 26)} (${2000 + (i % 20)})`,
+      (_, i) =>
+        `${['EN - ', 'DE - ', ''][i % 3]}${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + (Math.floor(i / 26) % 26))} Title ${Math.floor(i / 676)} (${2000 + (i % 20)})`,
     );
     names.push('Spiderman (2002)', 'Spider-Man (2002)', 'Spider Mann (2002)', 'The Matrix', 'The Matrix (1999)');
     const titles = names.map(parseTitle);
