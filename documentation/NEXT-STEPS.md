@@ -34,6 +34,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **About** (requested 2026-09-26): account menu → About on TV/phone shows the installed version (the `tv-apk` build number), the commit and date it was built from, and how the app connects.
 - [x] **Several languages per profile** (requested 2026-09-26, D-067): the language filter takes any number of languages; titles with audio or subtitles in one of them show.
 - [x] **One episode list per series** (requested 2026-09-26, D-066): the details page and the player show the episodes of all versions of a series in one list; each episode plays in the chosen version where it has it, and can switch version.
 - [x] **Faster TV emulator CI step** (requested 2026-09-26, D-044): the emulator build keeps Gradle's cache between runs; the APK build went 7:19 → 4:17.

@@ -88,7 +88,8 @@ export function createUpdater({
       const current = installed();
       if (!release || release.versionCode <= current) {
         appLog.info('update', `no update (installed ${current}, release ${release?.versionCode ?? 'none'})`);
-        return set({ phase: 'current' }, false);
+        // Asked from the menu: the dialog stays open and says so until the user closes it.
+        return set({ phase: 'current' }, !automatic && store.getState().prompt);
       }
       const skipped = Number(await storage.getItem(SKIPPED_KEY));
       appLog.info('update', `version ${release.versionCode} available (installed ${current})`);

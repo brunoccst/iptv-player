@@ -6,6 +6,7 @@ import { appConfig, updateRepo } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
+import { AboutDialog } from './AboutDialog';
 import { BackupDialog } from './BackupDialog';
 import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
@@ -33,6 +34,7 @@ export function AccountMenu() {
   const [backup, setBackup] = useState(false);
   const [playback, setPlayback] = useState(false);
   const [language, setLanguage] = useState(false);
+  const [about, setAbout] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -44,6 +46,7 @@ export function AccountMenu() {
       {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
+      {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -154,6 +157,15 @@ export function AccountMenu() {
           />
         ) : null}
         <MenuItem icon="info" label="Log" testID="menu-log" onPress={() => navStore.getState().goSection('log')} />
+        <MenuItem
+          icon="info"
+          label="About"
+          testID="menu-about"
+          onPress={() => {
+            close();
+            setAbout(true);
+          }}
+        />
         <MenuItem
           icon="logout"
           label={`Sign out of ${appConfig.appName}`}

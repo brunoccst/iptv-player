@@ -35,8 +35,8 @@ export function UpdateDialog() {
     case 'current':
       body = (
         <>
-          <Text style={styles.text}>You have the newest version{current ? ` (${current})` : ''}.</Text>
-          <FocusButton label="Close" variant="primary" hasTVPreferredFocus onPress={close} testID="update-close" />
+          <Text style={styles.text}>No update available: you have the newest version{current ? ` (${current})` : ''}.</Text>
+          <FocusButton label="OK" variant="primary" hasTVPreferredFocus onPress={close} testID="update-close" />
         </>
       );
       break;

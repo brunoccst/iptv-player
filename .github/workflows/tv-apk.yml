@@ -51,6 +51,8 @@ jobs:
       IPTV_FFMPEG_AUDIO: ${{ github.event_name == 'push' || inputs.ffmpeg_audio }}
       # The app looks for updates in this repository's tv-apk release (D-062).
       APP_UPDATE_REPO: ${{ github.repository }}
+      # Shown in the app under account menu → About.
+      APP_BUILD_COMMIT: ${{ github.sha }}
     steps:
       - name: Check address
         run: |

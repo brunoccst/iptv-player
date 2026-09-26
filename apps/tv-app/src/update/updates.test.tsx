@@ -61,6 +61,11 @@ describe('self-update (D-062)', () => {
     await current.check(true);
     expect(current.store.getState()).toMatchObject({ prompt: false, status: { phase: 'current' } });
 
+    // Asked from the menu, the dialog stays open with the answer until the user closes it.
+    current.open();
+    await current.check();
+    expect(current.store.getState()).toMatchObject({ prompt: true, status: { phase: 'current' } });
+
     const offline = createUpdater({ repo: 'o/r', storage: createMemoryStorage(), fetch: github({}, 500) });
     await offline.check(true);
     expect(offline.store.getState()).toMatchObject({ prompt: false, status: { phase: 'idle' } });
@@ -88,6 +93,14 @@ describe('self-update (D-062)', () => {
     nativeState.canInstall = false;
     await updates.install(release);
     expect(updates.store.getState().status.phase).toBe('permission');
+  });
+
+  it('Check for updates without a newer version says so and waits for OK', async () => {
+    updater.store.setState({ prompt: true, status: { phase: 'current' } });
+    await render(<UpdateDialog />);
+    expect(screen.getByText('No update available: you have the newest version (31).')).toBeTruthy();
+    await fireEvent.press(screen.getByText('OK'));
+    expect(screen.queryByTestId('update-dialog')).toBeNull();
   });
 
   it('the dialog asks, then installs; without permission it opens the settings', async () => {
