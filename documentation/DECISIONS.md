@@ -68,6 +68,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-061](#d-061) | 2026-09-26 | Play on TV: start a title on the paired TV from the phone app |
 | [D-062](#d-062) | 2026-09-26 | Self-update from the GitHub release (TV/phone) |
 | [D-063](#d-063) | 2026-09-26 | Language filter per profile (audio or subtitles from the names) |
+| [D-065](#d-065) | 2026-09-26 | Merge translated titles by the TMDB id in provider lists |
 
 ---
 
@@ -1173,4 +1174,16 @@ Decision:
 - Live TV is not filtered (channels rarely have language tags in a usable form).
 
 Alternatives: reading tracks per title with `get_vod_info` (one request per title, not possible for lists of 100,000+); the category name as a language hint (useful for some providers, needs category names in the server-mode pipeline; possible follow-up).
+
+## D-065
+
+**Merge translated titles by the TMDB id in provider lists** — 2026-09-26 (requested by owner)
+
+Decision:
+- After name grouping (D-017), groups that share a TMDB id become one title: "La Casa de Papel (2017)" and "EN - Money Heist (2017)" show as one title with two versions. Same rule in the Python normalizer (`merge_by_tmdb`) and the TypeScript port (`mergeByTmdb`), with a shared case.
+- The id is read from the provider lists (`get_vod_streams`, `get_series`: field `tmdb` or `tmdb_id`); "0" and empty mean none. Server mode passes it through `MovieSummary`/`SeriesSummary` to the pipeline; direct mode reads it in `xtream.ts`.
+- A shared id only joins groups whose years agree, or when one side has no year: providers reuse ids for remakes or set them wrongly, and a wrong merge hides a title.
+- Not all panels send ids in their lists. The direct-mode log line "N items downloaded … M with a TMDB id" shows whether a provider does; with none, titles group by name as before (KI-014).
+
+Alternatives: `get_vod_info`/`get_series_info` per title (has the id more often, but one request per title, not possible for 100,000+ titles); looking titles up on TMDB itself (needs an API key and a network call per title; possible follow-up for providers without ids).
 

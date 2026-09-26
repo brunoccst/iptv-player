@@ -319,6 +319,113 @@
           ]
         }
       ]
+    },
+    {
+      "name": "translated titles merge by TMDB id when the years agree",
+      "kind": "series",
+      "items": [
+        {
+          "id": "1",
+          "name": "La Casa de Papel (2017)",
+          "tmdbId": "71446"
+        },
+        {
+          "id": "2",
+          "name": "EN - Money Heist (2017)",
+          "tmdbId": "71446"
+        },
+        {
+          "id": "3",
+          "name": "Money Heist (2010)",
+          "tmdbId": "71446"
+        },
+        {
+          "id": "4",
+          "name": "Other Show (2017)",
+          "tmdbId": "0"
+        },
+        {
+          "id": "5",
+          "name": "Another Show (2017)"
+        }
+      ],
+      "accountId": "acc",
+      "expect": [
+        {
+          "id": "81efbfbf683f3313fdff",
+          "title": "Another Show",
+          "key": "another show",
+          "year": 2017,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "5",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "5daae2b1ef65f37996ca",
+          "title": "La Casa de Papel",
+          "key": "la casa de papel",
+          "year": 2017,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "1",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            },
+            {
+              "streamId": "2",
+              "label": "ENG",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "e19e3a6cc7cef2ec8df4",
+          "title": "Money Heist",
+          "key": "money heist",
+          "year": 2010,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "3",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        },
+        {
+          "id": "6aea04c01715d65e5fd4",
+          "title": "Other Show",
+          "key": "other show",
+          "year": 2017,
+          "posterUrl": null,
+          "rating": null,
+          "bestQuality": null,
+          "variants": [
+            {
+              "streamId": "4",
+              "label": "STANDARD",
+              "qualityScore": 150,
+              "categoryId": null
+            }
+          ]
+        }
+      ]
     }
   ],
   "sortKeys": [

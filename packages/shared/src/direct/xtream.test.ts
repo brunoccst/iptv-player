@@ -67,7 +67,16 @@ describe('createXtreamClient', () => {
   it('reads mixed string/number fields and skips items without ids', async () => {
     const { fetch, calls } = panel({
       get_vod_streams: [
-        { stream_id: 7, name: ' Film ', category_id: 3, stream_icon: '', rating: '7.5', added: '1700000000', container_extension: 'mkv' },
+        {
+          stream_id: 7,
+          name: ' Film ',
+          category_id: 3,
+          stream_icon: '',
+          rating: '7.5',
+          added: '1700000000',
+          container_extension: 'mkv',
+          tmdb: 603,
+        },
         { name: 'no id' },
       ],
       get_live_streams: [{ stream_id: '9', name: 'News', num: '4', epg_channel_id: 'news.uk', tv_archive: 1 }],
@@ -83,6 +92,7 @@ describe('createXtreamClient', () => {
         rating: 7.5,
         addedAt: '2023-11-14T22:13:20.000Z',
         containerExtension: 'mkv',
+        tmdbId: '603',
       },
     ]);
     expect(calls[0]!.url).toContain('action=get_vod_streams&category_id=3');

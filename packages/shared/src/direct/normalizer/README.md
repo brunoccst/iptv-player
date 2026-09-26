@@ -7,7 +7,7 @@ TypeScript port of `services/title-normalizer` (parser, tags, grouping, masters)
 | `tags.ts` | `tags.py` | Tag tables and quality ranks. |
 | `parser.ts` | `parser.py` | `parseTitle`, `normalizeKey`, `parseYear`, `compactKey`, `numberTokens`. |
 | `matching.ts` | `matching.py` | `groupTitles`, `isFuzzyMatch`, `ratio` (same result as rapidfuzz `fuzz.ratio`). |
-| `pipeline.ts` | `pipeline.py` | `buildMasters`, `buildMastersInChunks` (yields every 500 titles, reports progress), `qualityScore`, `variantLabel`, `masterId`. |
+| `pipeline.ts` | `pipeline.py` | `buildMasters`, `buildMastersInChunks` (yields every 500 titles, reports progress), `mergeByTmdb` (joins translated titles with the same TMDB id, D-065), `qualityScore`, `variantLabel`, `masterId`. |
 | `sha1.ts` | `hashlib.sha1` | `sha1Hex`, so master ids equal the Python ones. |
 | `normalizer.test.ts` | — | Runs `services/title-normalizer/tests/cases/*.json`, the same cases as the Python tests. |
 

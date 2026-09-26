@@ -113,4 +113,5 @@ public sealed record LibraryPayloadItem(
     double? Rating,
     string? ContainerExtension,
     string? ReleaseDate,
-    long? AddedAt);
+    long? AddedAt,
+    string? TmdbId = null);

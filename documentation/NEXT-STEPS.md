@@ -25,7 +25,6 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 - **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
 - **Local HTTPS** for LAN traffic (KI-009).
 - **Before any cloud move**: SSRF guard + login rate limit (KI-008), hybrid relay/direct delivery (D-013), Bicep templates, Key Vault–backed Data Protection keys.
-- **TMDB enrichment**: `get_vod_info` exposes `tmdb_id`; matching by TMDB id would merge translated titles and fix KI-014.
 - **Series episode merge**: series variants each have their own episode lists; merge seasons/episodes across variants for a single episode picker.
 - **Manual override**: admin endpoint to split/merge masters, stored as rules the worker applies.
 
@@ -40,6 +39,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Merge translated titles** (requested 2026-09-26, D-065): titles with the same TMDB id in the provider lists become one title, when their years agree.
 - [x] **Language filter** (requested 2026-09-26, D-063): account menu → Language per profile; titles with that audio or subtitle language (from the names) only.
 - [x] **Self-update** (requested 2026-09-26, D-062): the app checks the GitHub `tv-apk` release, offers newer versions, downloads and verifies the APK and opens the Android installer; account menu → Check for updates.
 - [x] **Live TV: transparent guide overlay** (requested 2026-09-25, PR #18, D-058): see-through list of the category's channels with now/next over the playing video; ↑ on TV, swipe up or the Guide button on phones; Select switches channel; closes after 6 s or with Back.

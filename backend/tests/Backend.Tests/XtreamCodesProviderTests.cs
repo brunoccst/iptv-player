@@ -104,11 +104,12 @@ public class XtreamCodesProviderTests
 
         Assert.Equal(2, movies.Count);
         Assert.Equal(new MovieSummary("55", "The Movie (2020) 4K", "10", "http://img/55.jpg", 7.1,
-            DateTimeOffset.FromUnixTimeSeconds(1600000000), "mkv"), movies[0]);
+            DateTimeOffset.FromUnixTimeSeconds(1600000000), "mkv", "603"), movies[0]);
         Assert.Equal("56", movies[1].Id);
         Assert.Equal("10", movies[1].CategoryId);
         Assert.Null(movies[1].Rating);
         Assert.Null(movies[1].AddedAt);
+        Assert.Null(movies[1].TmdbId);
     }
 
     [Fact]

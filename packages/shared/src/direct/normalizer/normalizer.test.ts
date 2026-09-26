@@ -114,10 +114,13 @@ describe('grouping large libraries (D-038)', () => {
     const items = Array.from({ length: 3000 }, (_, i) => ({
       id: i + 1,
       name: `Film ${i % 1000} (${2000 + (i % 3)}) ${['4K', '1080p', ''][i % 3]}`,
+      // Some titles share a TMDB id with one of the same year: those merge (D-065).
+      tmdbId: i % 30 === 0 || i % 30 === 3 ? 5000 + Math.floor(i / 30) : undefined,
     }));
     const reported: number[] = [];
     const masters = await buildMastersInChunks('acc', 'movie', items, { onProgress: (done, total) => reported.push(done / total) });
     expect(masters).toEqual(buildMasters('acc', 'movie', items));
+    expect(masters).toHaveLength(2900);
     expect(reported.at(-1)).toBe(1);
     expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
   });
