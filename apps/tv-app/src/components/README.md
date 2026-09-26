@@ -15,6 +15,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
 | `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |
+| `PlayOnTvButton.tsx` | Phones with a paired TV: round TV button next to Play that starts the title on the TV (D-061). |
 | `PosterCard.tsx` | Web `.card`: 2:3 or 16:9 art, badge, progress bar, title + subtitle; focus scales it up. `testID="card-<title>"`. |
 | `ChipBar.tsx` | Category chips on one scrollable line; "Show all" wraps them across the width, "Show less" (or picking one) returns to the line with the chosen chip in view (D-047). Also exports `Chip`. |
 | `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end (D-043). |

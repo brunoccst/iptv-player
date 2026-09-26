@@ -5,6 +5,7 @@ import { createFakeBackend, type FakeBackend } from '../../../packages/shared/sr
 import { downloadsStore, navStore, playbackSettings, stores } from '../src/appContext';
 import { connectionStore } from '../src/hooks';
 import { pairingDialog } from '../src/pairing/PairingDialogs';
+import { pairedTv } from '../src/pairing/remote';
 import { nativeState, playerState } from './tvMediaMock';
 
 export const profile = { id: 'p1', name: 'Alex', avatarKey: null, isKids: false };
@@ -45,6 +46,9 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
   playbackSettings.setState({ audioDecoder: 'device' });
   pairingDialog.setState({ open: false });
+  pairedTv.setState({ tv: null });
+  void SecureStore.deleteItemAsync('remote.tv');
+  void SecureStore.deleteItemAsync('remote.phones');
   stores.session.setState(
     options.signedIn === false
       ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }

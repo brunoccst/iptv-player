@@ -15,6 +15,6 @@
 | `navigation/` | Stack navigation store. |
 | `screens/` | Login, profiles, home, browse, live, details, downloads. |
 | `player/` | Player screen, seek overlay, quick drawer. |
-| `pairing/` | Phone-to-TV sign-in and sync (D-060): `usePairingServer` (TV), `connectToTv` (phone), QR code, dialogs. |
+| `pairing/` | Phone-to-TV sign-in and sync (D-060): `usePairingServer` (TV), `connectToTv` (phone), QR code, dialogs. Play on TV (D-061): `remote.ts` (`useRemoteServer` on the TV, `playOnTv` and the paired TV on the phone). |
 | `downloads/` | Store bridging the native download manager. |
 | `tv/` | Remote-control event wrapper. |

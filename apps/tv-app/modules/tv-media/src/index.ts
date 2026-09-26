@@ -8,6 +8,8 @@ type TvMediaEvents = {
   onDownloadsChanged(event: { downloads: NativeDownload[] }): void;
   /** Phone-to-TV pairing: a request reached the TV's pairing server; answer with `respondPairing` (D-060). */
   onPairingRequest(event: { id: string; body: string }): void;
+  /** Remote play: a paired phone sent a command; answer with `respondRemote` (D-061). */
+  onRemoteRequest(event: { id: string; body: string }): void;
 };
 
 declare class TvMediaModule extends NativeModule<TvMediaEvents> {
@@ -28,6 +30,14 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   startPairing(): { host: string | null; port: number; key: string };
   respondPairing(id: string, status: number, body: string): void;
   stopPairing(): void;
+  /** TV: starts the remote-play server on the first free port of `ports` (D-061). */
+  startRemote(ports: number[]): { host: string | null; port: number };
+  respondRemote(id: string, status: number, body: string): void;
+  stopRemote(): void;
+  /** 32 random bytes (SecureRandom), base64. */
+  randomKey(): string;
+  /** The device's name from Settings, else its model. */
+  deviceName(): string;
   /** Phone: scans a QR code with Google's code scanner; null when cancelled. */
   scanQrCode(): Promise<string | null>;
 }
