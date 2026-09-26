@@ -11,15 +11,12 @@ appId: ${APP_ID}
 - tapOn:
     id: "login-server"
 - inputText: "http://10.0.2.2:8091"
-- tapOn:
-    id: "login-username"
+# Enter moves to the next field; on the password it signs in. (In landscape the keyboard covers the lower fields.)
+- pressKey: Enter
 - inputText: "demo"
-- tapOn:
-    id: "login-password"
+- pressKey: Enter
 - inputText: "demo"
-- hideKeyboard
-- tapOn:
-    id: "login-submit"
+- pressKey: Enter
 - extendedWaitUntil:
     visible:
       id: "home-screen"
