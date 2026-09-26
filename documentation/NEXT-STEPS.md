@@ -4,7 +4,6 @@
 
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
-- [ ] **Faster TV emulator CI step** (requested 2026-09-26): speed up `TV app (Android TV emulator) / Build APK + Maestro on Android TV emulator`, only where the gain is worth it; keep the workflow readable (see D-044 for what was already done).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
@@ -36,6 +35,7 @@ flowchart LR
 ```
 
 - [x] **One episode list per series** (requested 2026-09-26, D-066): the details page and the player show the episodes of all versions of a series in one list; each episode plays in the chosen version where it has it, and can switch version.
+- [x] **Faster TV emulator CI step** (requested 2026-09-26, D-044): the emulator build keeps Gradle's cache between runs; the APK build went 7:19 → 4:17.
 - [x] **Merge translated titles** (requested 2026-09-26, D-065): titles with the same TMDB id in the provider lists become one title, when their years agree.
 - [x] **Kids profiles: parents choose the categories** (suggested, chosen 2026-09-26, D-064): per Kids profile and section, starting from the name rule.
 - [x] **Language filter** (requested 2026-09-26, D-063): account menu → Language per profile; titles with that audio or subtitle language (from the names) only.
