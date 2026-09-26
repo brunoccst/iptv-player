@@ -17,13 +17,15 @@ export function LogScreen() {
 
   const share = () => {
     const connection = stores.connection?.getState();
+    // Newest lines only: share targets cut long texts off at the end, which lost the lines that mattered.
+    const { text, lines, omitted } = appLog.shareText();
     const header = [
       `${appConfig.appName} diagnostics log`,
       `Shared ${new Date().toISOString()} · Android ${Platform.Version} · mode ${connection?.mode ?? 'server'}`,
-      `${entries.length} lines (credentials masked)`,
+      `${lines} newest lines${omitted ? `, ${omitted} older left out` : ''}; repeats folded (credentials masked)`,
       '',
     ].join('\n');
-    void Share.share({ title: `${appConfig.appName} log`, message: header + appLog.text() });
+    void Share.share({ title: `${appConfig.appName} log`, message: header + text });
   };
 
   return (
