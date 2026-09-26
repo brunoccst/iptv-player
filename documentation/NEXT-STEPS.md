@@ -34,6 +34,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **TV sleep mode** (requested 2026-09-26, D-068): the app keeps the screen on and shows its own sleep screen after 10 idle minutes, so the system screensaver no longer sends it to the background (where it was closed and restarted); after 3 hours asleep the TV's own settings apply.
 - [x] **Kids profiles: only what makes sense for kids** (requested 2026-09-26, D-053): their account menu only switches profile (no settings, backup, updates, log or sign-out) and they have no "Open in another player"; parents set languages and categories in the profile editor.
 - [x] **Account menu groups** (requested 2026-09-26): the menu under the avatar shows other profiles, groups and Sign out; a group opens in place under its name with a back arrow (TV/phone: Profiles, Library & devices, App; web: Profiles, Library & data).
 - [x] **About** (requested 2026-09-26): account menu → About on TV/phone shows the installed version (the `tv-apk` build number), the commit and date it was built from, and how the app connects.

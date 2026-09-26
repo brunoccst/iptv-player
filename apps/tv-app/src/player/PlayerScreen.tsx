@@ -60,6 +60,7 @@ import { useAsync } from '../useAsync';
 import { GuideOverlay } from './GuideOverlay';
 import { QuickDrawer } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
+import { sleepControl } from '../tv/SleepMode';
 
 const PROGRESS_SAVE_MS = 10_000;
 
@@ -247,6 +248,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Controls stay up while loading or paused; they hide CONTROLS_HIDE_MS after the last key once playing.
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playing = ready && !paused;
+  // No sleep screen while a video plays (D-068).
+  useEffect(() => {
+    sleepControl.setState({ playing });
+    return () => sleepControl.setState({ playing: false });
+  }, [playing]);
   const wake = useCallback(() => {
     setControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);

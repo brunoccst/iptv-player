@@ -72,6 +72,7 @@ export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
+  setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   addListener: ((
     event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress',
     listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void),

@@ -72,6 +72,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-065](#d-065) | 2026-09-26 | Merge translated titles by the TMDB id in provider lists |
 | [D-066](#d-066) | 2026-09-26 | One episode list per series, across its versions |
 | [D-067](#d-067) | 2026-09-26 | Several languages per profile in the language filter |
+| [D-068](#d-068) | 2026-09-26 | TV sleep mode instead of the system screensaver |
 
 ---
 
@@ -1232,4 +1233,18 @@ Decision:
 - On TV, Select toggles a language and the lists reload when the dialog closes.
 
 Alternatives: a repeated query parameter (`language=ENG&language=GER`; the comma list keeps the endpoint's parameter a plain string, like `categoryIds`); an ordered preference list that ranks rather than filters (more to explain; the version picker already lets users choose).
+
+## D-068
+
+**TV sleep mode instead of the system screensaver** — 2026-09-26 (requested by owner)
+
+Problem: with the app left open, the Chromecast's screensaver started after a while. That sends the app to the background, and on a TV with little memory Android closes it (a 160k-title library is large). The next button press then restarted the app from scratch.
+
+Decision:
+- While the app is open on a TV, it keeps the screen on (`FLAG_KEEP_SCREEN_ON`, `TvMedia.setKeepScreenOn`), so the system screensaver does not start and the app stays in the foreground.
+- After **10 minutes** without a button press, the app shows its own sleep screen: black, with a dim clock and the app name that move every minute (no fixed image on the screen). Never while a video plays; a paused video counts as idle. Any button wakes it, and the page, focus and player are exactly as they were.
+- After **3 hours** asleep, the app no longer keeps the screen on, so the TV's own power and screensaver settings apply again (then the system may close the app, as before).
+- Phones keep their usual behaviour (screen timeout; the player keeps the screen on while playing).
+
+Alternatives: only making restarts faster (still a restart, and the saved library has to load again); a wake lock (keeps the CPU on, not needed); keeping the screen on forever (burn-in risk, wastes power).
 
