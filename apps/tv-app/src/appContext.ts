@@ -2,11 +2,12 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { appLog, bindDownloadsToAccount, createAppContext, errorMessage, type BackupStorages, type KeyValueStorage } from '@iptv/shared';
 import { TvMedia } from '../modules/tv-media';
-import { appConfig, providerUserAgent } from './config';
+import { appConfig, providerUserAgent, updateRepo } from './config';
 import { fileStorage } from './dataStorage';
 import { createDownloadsStore } from './downloads/downloadsStore';
 import { createNavStore } from './navigation/navStore';
 import { createPlaybackSettings, PLAYBACK_SETTINGS_KEY } from './playbackSettings';
+import { createUpdater } from './update/updates';
 
 /** Android Keystore-encrypted storage. Session token must not sit in plain files. */
 const secureStorage: KeyValueStorage = {
@@ -50,6 +51,8 @@ export const { stores, api } = appContext;
 /** What the user-data backup reads and writes (D-056). */
 export const backupStorages: BackupStorages = { secure: secureStorage, data: fileStorage, settingsKeys: [PLAYBACK_SETTINGS_KEY] };
 export const navStore = createNavStore();
+/** Self-update from the GitHub release (D-062); off when the build has no `APP_UPDATE_REPO`. */
+export const updater = createUpdater({ repo: updateRepo, storage: fileStorage });
 export const playbackSettings = createPlaybackSettings(fileStorage);
 void playbackSettings.getState().load();
 export const downloadsStore = createDownloadsStore({ api, native: TvMedia });

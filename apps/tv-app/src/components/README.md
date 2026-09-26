@@ -5,7 +5,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | File | Purpose |
 |------|---------|
 | `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. |
-| `AccountMenu.tsx` | Menu under the avatar: other profiles, Manage Profiles, Parental PIN, Sync with phone (TV) or Connect a TV (phone, D-060), Back up data, Playback (when FFmpeg is bundled), Refresh library, Log, Sign out. `confirmSignOut` asks first. |
+| `AccountMenu.tsx` | Menu under the avatar: other profiles, Manage Profiles, Parental PIN, Sync with phone (TV) or Connect a TV (phone, D-060), Back up data, Playback (when FFmpeg is bundled), Refresh library, Check for updates (release builds, D-062), Log, Sign out. `confirmSignOut` asks first. |
 | `PinPad.tsx` | Parental PIN keypad for D-pad and touch, and `usePinGate` (D-054). |
 | `PinSettings.tsx` | Parental PIN flow: set (typed twice), or change/remove after the current PIN. |
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
