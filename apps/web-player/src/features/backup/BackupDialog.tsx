@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BACKUP_FILE_EXTENSION, BackupFailure, backupMessage, exportUserData, importUserData, MIN_BACKUP_PASSWORD } from '@iptv/shared';
 import { appConfig } from '../../config';
-import { storage } from '../../appContext';
+import { backupStorages } from '../../appContext';
 import { Modal } from '../../components/Modal';
 
 const failureText = (error: unknown) =>
@@ -30,7 +30,7 @@ function BackupForm() {
     if (password !== confirm) return setError('The two passwords do not match.');
     setBusy(true);
     try {
-      const text = await exportUserData({ secure: storage }, password);
+      const text = await exportUserData(backupStorages, password);
       const link = document.createElement('a');
       link.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
       link.download = `${appConfig.appSlug}-backup-${new Date().toISOString().slice(0, 10)}${BACKUP_FILE_EXTENSION}`;
@@ -90,7 +90,7 @@ function RestoreForm() {
     if (!file) return setError('Choose a backup file first.');
     setBusy(true);
     try {
-      await importUserData({ secure: storage }, await file.text(), password);
+      await importUserData(backupStorages, await file.text(), password);
       // Start over with the restored data, like opening the app on a new device.
       window.location.reload();
     } catch (e) {

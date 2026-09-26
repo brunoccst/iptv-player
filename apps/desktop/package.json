@@ -1,0 +1,21 @@
+{
+  "name": "@iptv/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop app (Windows, macOS, Linux): the web player in its own window, talking to the IPTV provider directly.",
+  "license": "MIT-0",
+  "author": "IPTV Player contributors",
+  "homepage": "https://github.com/brunoccst/iptv-player",
+  "repository": "github:brunoccst/iptv-player",
+  "main": "main.mjs",
+  "scripts": {
+    "prepare-build": "node scripts/prepare.mjs",
+    "start": "npm run prepare-build && electron .",
+    "dist": "npm run prepare-build && electron-builder --config electron-builder.config.cjs --publish never",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3"
+  }
+}

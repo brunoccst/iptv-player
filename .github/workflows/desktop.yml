@@ -1,0 +1,127 @@
+name: Desktop app installers
+
+# Builds the desktop app (DECISIONS.md#d-071) for Windows, macOS and Linux and publishes the installers to the
+# `desktop` prerelease, with fixed file names. Runs by itself after app changes reach `main`, or by hand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/web-player/**'
+      - 'packages/shared/**'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+      - '!**/*.md'
+      - '!apps/web-player/e2e/**'
+      - '!apps/desktop/e2e/**'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to the desktop prerelease (off: workflow artifacts only)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+
+env:
+  PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The version's PATCH counts the builds on main (scripts/app-version.mjs, D-070).
+          fetch-depth: 0
+      - id: version
+        run: |
+          name="$(node scripts/app-version.mjs apps/desktop/package.json)"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "### Desktop app $name" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+            files: apps/desktop/release/*-setup.exe
+          - os: macos-latest
+            target: --mac
+            files: apps/desktop/release/*.dmg
+          - os: ubuntu-latest
+            target: --linux
+            files: |
+              apps/desktop/release/*.AppImage
+              apps/desktop/release/*.deb
+    env:
+      # The app looks for updates in this repository's desktop release; shown nowhere else.
+      APP_UPDATE_REPO: ${{ github.repository }}
+      APP_BUILD_COMMIT: ${{ github.sha }}
+      # No signing certificates (D-071): Windows SmartScreen and macOS Gatekeeper ask once before the first start.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/desktop/package-lock.json
+      - run: npm ci
+      - name: Web player build
+        run: npx turbo run build --filter=@iptv/web-player
+      - name: Installer
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          npm ci
+          npm test
+          node scripts/prepare.mjs
+          npx electron-builder --config electron-builder.config.cjs --publish never ${{ matrix.target }} \
+            -c.extraMetadata.version=${{ needs.version.outputs.name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ runner.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish to the desktop prerelease
+    needs: [version, build]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.version.outputs.name }}
+        run: |
+          ls -la installers
+          notes="Desktop app ${VERSION}. Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), build ${GITHUB_RUN_NUMBER}. Windows: *-setup.exe, macOS: *.dmg (Intel and Apple silicon), Linux: *.AppImage or *.deb. Not code-signed: Windows asks via SmartScreen (More info → Run anyway), macOS via System Settings → Privacy & Security → Open Anyway."
+          gh release view desktop > /dev/null 2>&1 || gh release create desktop --prerelease --title "Desktop app" --notes "$notes" --target "$GITHUB_SHA"
+          # Installers first, then the notes: the app reads the version from the notes.
+          gh release upload desktop installers/* --clobber
+          gh release edit desktop --title "Desktop app ${VERSION}" --notes "$notes"

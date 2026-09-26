@@ -3,6 +3,19 @@
 Monorepo for an IPTV streaming platform: desktop web player, Android TV app, .NET API, Python processing service.
 The product name is configurable (`APP_NAME` in `.env`). Phase 1 runs locally only; Azure targets are planned.
 
+## Install the apps
+
+No repository or commands needed. The apps talk to your IPTV provider directly; sign in with its address, username and password.
+
+| Device | Download | First start |
+|--------|----------|-------------|
+| Windows | [iptv-player-setup.exe](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player-setup.exe) | SmartScreen: **More info → Run anyway** (the installer is not code-signed). |
+| macOS (Intel and Apple silicon) | [iptv-player.dmg](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.dmg) | Drag the app to Applications. If macOS refuses to open it: **System Settings → Privacy & Security → Open Anyway**. |
+| Linux | [iptv-player.AppImage](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.AppImage) or [iptv-player.deb](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.deb) | AppImage: make it executable (`chmod +x`) and open it. |
+| Android TV / phone | [tv.apk](https://github.com/brunoccst/iptv-player/releases/download/tv-apk/tv.apk) | Allow installing from your browser or Downloader once. |
+
+The apps look for new versions themselves (D-062, D-071). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
+
 ## Legal notes (Germany)
 
 > **Not legal advice.** This is a summary of German law as of September 2026 for people who use or run this app. For a binding answer about your own situation, ask a lawyer (Rechtsanwalt for copyright / IT law).
@@ -85,6 +98,7 @@ flowchart LR
   subgraph Clients
     WEB[apps/web-player<br/>React + Vite]
     TV[apps/tv-app<br/>React Native TV<br/>Android .apk]
+    DESK[apps/desktop<br/>Electron around the web player<br/>Windows, macOS, Linux]
   end
   SHARED[packages/shared<br/>config, API clients, state]
   API[backend<br/>ASP.NET Core .NET 10]
@@ -95,8 +109,9 @@ flowchart LR
 
   WEB --> SHARED
   TV --> SHARED
+  DESK --> WEB
   SHARED -->|HTTP, web and TV 'My server'| API
-  SHARED -.->|TV direct mode, default| IPTV
+  SHARED -.->|TV and desktop direct mode, default| IPTV
   API -->|server-to-server + stream relay| IPTV
   API --> DB
   API -->|enqueue raw VOD/series| Q
@@ -104,7 +119,7 @@ flowchart LR
   API -->|read masters| Q
 ```
 
-The TV app works without a server: by default it talks to the IPTV provider directly and builds the library on the device ([D-038](./documentation/DECISIONS.md#d-038)). The web app always needs the backend.
+The TV and desktop apps work without a server: they talk to the IPTV provider directly and build the library on the device ([D-038](./documentation/DECISIONS.md#d-038), [D-071](./documentation/DECISIONS.md#d-071)). The web app in a browser always needs the backend.
 
 ## Structure
 
@@ -112,6 +127,7 @@ The TV app works without a server: by default it talks to the IPTV provider dire
 |------|-------------|
 | [`apps/web-player`](./apps/web-player) | Desktop browser client. |
 | [`apps/tv-app`](./apps/tv-app) | Android TV client. |
+| [`apps/desktop`](./apps/desktop) | Desktop app (Windows, macOS, Linux): the web player in Electron, no server needed. |
 | [`packages/shared`](./packages/shared) | TypeScript code shared by both clients. |
 | [`backend`](./backend) | C# .NET 10 Web API. |
 | [`services`](./services) | Python background services (title normalizer). |

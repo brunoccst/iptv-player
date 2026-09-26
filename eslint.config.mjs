@@ -21,6 +21,7 @@ export default tseslint.config(
       'backend/**',
       'services/**',
       'tools/**',
+      'apps/desktop/release/**',
     ],
   },
   js.configs.recommended,
@@ -39,8 +40,8 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.jest } },
   },
   {
-    // Expo config plugins are loaded by Node as CommonJS during prebuild.
-    files: ['apps/tv-app/plugins/**/*.js'],
+    // Expo config plugins are loaded by Node as CommonJS during prebuild; the desktop preload and builder config too.
+    files: ['apps/tv-app/plugins/**/*.js', 'apps/desktop/**/*.cjs'],
     languageOptions: { globals: { ...globals.node } },
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
