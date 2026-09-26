@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
@@ -49,9 +49,11 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
             removeClippedSubviews={false}
-            initialNumToRender={8}
-            maxToRenderPerBatch={6}
-            windowSize={5}
+            // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
+            // cards, and focus fell out of the row (to the nav).
+            initialNumToRender={Platform.isTV ? items.length : 8}
+            maxToRenderPerBatch={Platform.isTV ? items.length : 6}
+            windowSize={Platform.isTV ? 21 : 5}
             ListFooterComponent={
               more ? <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} /> : null
             }

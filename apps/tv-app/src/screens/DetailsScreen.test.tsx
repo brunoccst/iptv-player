@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import { navStore } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
@@ -77,5 +78,37 @@ describe('series details: one episode list for all versions (D-066)', () => {
     await fireEvent.press(screen.getByLabelText('GER'));
     await fireEvent.press(screen.getByTestId('episode-ge-1'));
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'ge-1', seriesId: 'ge' } });
+  });
+
+  it('TV: entering an episode from above lands on Play (first in the row), not on the nearest button', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/show', {
+      body: {
+        id: 'show',
+        title: 'Show',
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: null,
+        variants: [variant('en', 'ENG'), variant('ge', 'GER')],
+      },
+    });
+    backend.on('GET', '/api/catalog/series/en', { body: series('en', [{ number: 1, episodes: [episode('en-1', 1, 1)] }]) });
+    backend.on('GET', '/api/catalog/series/ge', { body: series('ge', [{ number: 1, episodes: [episode('ge-1', 1, 1)] }]) });
+    await render(<DetailsScreen section="series" masterId="show" />);
+    await flush();
+
+    const play = screen.getByTestId('episode-en-1');
+    let row = play.parent;
+    while (row && row.props.autoFocus !== true) row = row.parent;
+    expect(row?.props).toMatchObject({ autoFocus: true, trapFocusLeft: true, trapFocusRight: true });
+    // Play comes before the version picker, so it is the row's first focusable item.
+    const ids = within(row!)
+      .getAllByTestId(/^episode-en-1/)
+      .map((node) => node.props.testID);
+    expect(ids[0]).toBe('episode-en-1');
+    expect(ids).toContain('episode-en-1-version');
+    jest.restoreAllMocks();
   });
 });

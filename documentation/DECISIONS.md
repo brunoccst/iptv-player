@@ -1260,3 +1260,5 @@ Decision:
 - Movies/Series also show the "organizing your library" banner, and while it runs an empty grid says that titles appear when it is done, instead of a black page.
 - Cards no longer draw an SVG gradient behind the poster (one per card made scrolling rows stutter); a solid colour takes its place.
 
+Update 2026-09-26 (requested by owner): on TV, Home rows draw all their cards at once (at most ~10), because holding Right outran a list still drawing its last cards and focus fell out of the row to the nav. The details page scrolls the focused part (version, season, an episode) to the middle of the screen, and entering an episode from above or below lands on Play (the row is a focus guide with `autoFocus`; the episode's version picker now follows its buttons).
+

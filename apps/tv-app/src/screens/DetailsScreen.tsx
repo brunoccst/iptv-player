@@ -1,5 +1,17 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import {
   episodeInVersion,
   episodeTarget,
@@ -34,6 +46,22 @@ import { useLibrary, useNav, useProgress } from '../hooks';
 import { colors, fonts, radius, useCompact } from '../theme';
 import { useAsync } from '../useAsync';
 
+/** Space above the panel in the scroll view. */
+const PANEL_TOP = 32;
+
+const CenterFocus = createContext<((view: View | null) => void) | null>(null);
+
+/** A part of the panel that scrolls to the middle of the screen when something in it gets focus (TV). */
+function Centered({ children, style, testID }: { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
+  const center = useContext(CenterFocus);
+  const ref = useRef<View>(null);
+  return (
+    <View ref={ref} style={style} testID={testID} onFocus={center ? () => center(ref.current) : undefined}>
+      {children}
+    </View>
+  );
+}
+
 /** Web `DetailsModal`: a panel over the current page with backdrop, Play/Resume, download, facts, version select, episodes. */
 export function DetailsScreen({ section, masterId }: { section: LibrarySection; masterId: string }) {
   const resource = useLibrary((s) => s.details[`${section}|${masterId}`]);
@@ -45,24 +73,36 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
   }, [section, masterId, revision]);
 
   const close = () => navStore.getState().back();
+  // A focused part (version, season, an episode) scrolls to the middle of the screen, not just into view at the edge.
+  const { height } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const panel = useRef<View>(null);
+  const center = (view: View | null) => {
+    if (!view || !panel.current) return;
+    view.measureLayout(panel.current, (_x, y, _w, h) =>
+      scroll.current?.scrollTo({ y: Math.max(0, PANEL_TOP + y - (height - h) / 2), animated: true }),
+    );
+  };
   return (
     <View style={styles.overlay} testID="details-screen" accessibilityViewIsModal>
       <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel="Close details" />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.panel, { width: Math.min(850, width - 32) }]}>
-          {resource?.data ? (
-            section === 'movies' ? (
-              <MovieDetails master={resource.data} />
+      <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
+        <View ref={panel} style={[styles.panel, { width: Math.min(850, width - 32) }]}>
+          <CenterFocus.Provider value={Platform.isTV ? center : null}>
+            {resource?.data ? (
+              section === 'movies' ? (
+                <MovieDetails master={resource.data} />
+              ) : (
+                <SeriesDetailsView master={resource.data} />
+              )
+            ) : resource?.status === 'error' ? (
+              <View style={styles.padded}>
+                <ErrorText>{errorText(resource.error)}</ErrorText>
+              </View>
             ) : (
-              <SeriesDetailsView master={resource.data} />
-            )
-          ) : resource?.status === 'error' ? (
-            <View style={styles.padded}>
-              <ErrorText>{errorText(resource.error)}</ErrorText>
-            </View>
-          ) : (
-            <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel="Loading" />
-          )}
+              <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel="Loading" />
+            )}
+          </CenterFocus.Provider>
           <View style={styles.close}>
             <IconButton icon="close" label="Close" iconSize={24} onPress={close} testID="details-close" />
           </View>
@@ -231,7 +271,7 @@ function Episodes({
 
   return (
     <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel="Episodes">
-      <View style={styles.episodesHeader}>
+      <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>Episodes</Text>
         {series.seasons.length > 1 ? (
           <Select
@@ -245,7 +285,7 @@ function Episodes({
         ) : (
           <Text style={styles.muted}>{season.name}</Text>
         )}
-      </View>
+      </Centered>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);
         const target = episodeTarget(context(episode), episode);
@@ -257,52 +297,55 @@ function Episodes({
             <DownloadButton target={target} />
             <PlayOnTvButton target={target} testID={`episode-${episode.id}-tv`} />
             <ExternalPlayerButton target={target} testID={`episode-${episode.id}-external`} />
+            {/* After the buttons, so Play is the first thing focused in an episode. */}
+            {listed.versions.length > 1 ? (
+              <Select
+                compact
+                label={`Version of ${episode.title}`}
+                value={episode.seriesId}
+                options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
+                onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
+                testID={`episode-${listed.id}-version`}
+              />
+            ) : null}
           </View>
         );
         return (
-          <FocusRow key={listed.id} style={[styles.episode, compact && styles.episodeCompact]}>
-            {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
-            <Pressable
-              style={[styles.still, compact && styles.stillCompact]}
-              onPress={play}
-              accessibilityLabel={`Play ${episode.title}`}
-              focusable={false}
-            >
-              {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-              {saved && saved.durationSeconds > 0 ? (
-                <View style={styles.stillTrack}>
-                  <View
-                    style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
-                  />
-                </View>
-              ) : null}
-            </Pressable>
-            <View style={styles.episodeText}>
-              <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
-                {episode.title}
-              </Text>
-              <Text style={styles.episodePlot} numberOfLines={2}>
-                {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
-              </Text>
-              {listed.versions.length > 1 ? (
-                <View style={styles.episodeVersion}>
-                  <Select
-                    compact
-                    label={`Version of ${episode.title}`}
-                    value={episode.seriesId}
-                    options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
-                    onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
-                    testID={`episode-${listed.id}-version`}
-                  />
-                </View>
-              ) : master.variants.length > 1 ? (
-                <Text style={styles.episodePlot}>Only in {listed.versions[0]!.label}</Text>
-              ) : null}
-              {/* Phones: buttons under the text, so the title keeps the width. */}
-              {compact ? actions : null}
-            </View>
-            {compact ? null : actions}
-          </FocusRow>
+          // Entering an episode from above or below lands on Play, and the episode moves to the middle of the screen.
+          <Centered key={listed.id}>
+            <FocusRow autoFocus style={[styles.episode, compact && styles.episodeCompact]}>
+              {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
+              <Pressable
+                style={[styles.still, compact && styles.stillCompact]}
+                onPress={play}
+                accessibilityLabel={`Play ${episode.title}`}
+                focusable={false}
+              >
+                {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+                {saved && saved.durationSeconds > 0 ? (
+                  <View style={styles.stillTrack}>
+                    <View
+                      style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
+                    />
+                  </View>
+                ) : null}
+              </Pressable>
+              <View style={styles.episodeText}>
+                <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
+                  {episode.title}
+                </Text>
+                <Text style={styles.episodePlot} numberOfLines={2}>
+                  {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+                </Text>
+                {listed.versions.length === 1 && master.variants.length > 1 ? (
+                  <Text style={styles.episodePlot}>Only in {listed.versions[0]!.label}</Text>
+                ) : null}
+                {/* Phones: buttons under the text, so the title keeps the width. */}
+                {compact ? actions : null}
+              </View>
+              {compact ? null : actions}
+            </FocusRow>
+          </Centered>
         );
       })}
     </View>
@@ -313,7 +356,7 @@ function Episodes({
 function VariantSelect({ master, value }: { master: MasterDetails; value: VariantInfo }) {
   if (master.variants.length < 2) return null;
   return (
-    <View style={styles.variant}>
+    <Centered style={styles.variant}>
       <Text style={styles.variantLabel}>Version / Stream Quality</Text>
       <Select
         label="Version / Stream Quality"
@@ -325,7 +368,7 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
         onChange={(streamId) => stores.library.getState().selectVariant(master.id, streamId)}
         testID="variant-button"
       />
-    </View>
+    </Centered>
   );
 }
 
@@ -400,7 +443,7 @@ function Facts({
 
 const styles = StyleSheet.create({
   overlay: { ...StyleSheet.absoluteFill, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)' },
-  scroll: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 },
+  scroll: { alignItems: 'center', paddingVertical: PANEL_TOP, paddingHorizontal: 16 },
   panel: { overflow: 'hidden', borderRadius: 8, backgroundColor: colors.surface, elevation: 12 },
   close: { position: 'absolute', top: 16, right: 16, zIndex: 3 },
   loading: { padding: 64 },
@@ -449,7 +492,6 @@ const styles = StyleSheet.create({
   episodeText: { flex: 1 },
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
   episodePlot: { color: colors.muted, fontSize: 13.6 },
-  episodeVersion: { flexDirection: 'row', marginTop: 6 },
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   episodeActionsCompact: { marginTop: 8 },
 });
