@@ -5,6 +5,7 @@
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
+- [ ] **Small Windows desktop app with Tauri** (requested 2026-09-26, see D-072): a Windows-only build on the system's WebView2 (Chromium, installed with Windows 10/11) instead of Electron, about 10–20 MB instead of ~270 MB. WebView2 can be started without the CORS check and with the player User-Agent (browser arguments), so the web player works as in the Electron app; storage, phone pairing and the update check move to Rust. macOS and Linux stay on Electron.
 
 ## Agent Suggestions
 
