@@ -14,18 +14,34 @@ export function sha1Hex(text: string): string {
   for (let offset = 0; offset < padded.length; offset += 64) {
     for (let i = 0; i < 16; i++) w[i] = view.getUint32(offset + i * 4);
     for (let i = 16; i < 80; i++) w[i] = rotl(w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!, 1);
-    let [a, b, c, d, e] = h as [number, number, number, number, number];
+    // Plain variables, no array destructuring per round: ids for 100k+ titles are hashed on slow TV CPUs.
+    let a = h[0]!;
+    let b = h[1]!;
+    let c = h[2]!;
+    let d = h[3]!;
+    let e = h[4]!;
     for (let i = 0; i < 80; i++) {
-      const [f, k] =
-        i < 20
-          ? [(b & c) | (~b & d), 0x5a827999]
-          : i < 40
-            ? [b ^ c ^ d, 0x6ed9eba1]
-            : i < 60
-              ? [(b & c) | (b & d) | (c & d), 0x8f1bbcdc]
-              : [b ^ c ^ d, 0xca62c1d6];
+      let f: number;
+      let k: number;
+      if (i < 20) {
+        f = (b & c) | (~b & d);
+        k = 0x5a827999;
+      } else if (i < 40) {
+        f = b ^ c ^ d;
+        k = 0x6ed9eba1;
+      } else if (i < 60) {
+        f = (b & c) | (b & d) | (c & d);
+        k = 0x8f1bbcdc;
+      } else {
+        f = b ^ c ^ d;
+        k = 0xca62c1d6;
+      }
       const next = (rotl(a, 5) + f + e + k + w[i]!) >>> 0;
-      [e, d, c, b, a] = [d, c, rotl(b, 30), a, next];
+      e = d;
+      d = c;
+      c = rotl(b, 30);
+      b = a;
+      a = next;
     }
     h[0] = (h[0]! + a) >>> 0;
     h[1] = (h[1]! + b) >>> 0;

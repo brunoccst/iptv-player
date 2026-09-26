@@ -47,6 +47,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-041](#ki-041) | Limitation | tv-app | Open |
 | [KI-042](#ki-042) | Bug | tv-app (direct mode) | Resolved |
 | [KI-043](#ki-043) | Limitation | tv-app | Open |
+| [KI-044](#ki-044) | Bug | shared (direct mode) | Resolved |
 
 ---
 
@@ -333,3 +334,12 @@ Update 2026-09-26: three hours later the same account played again (movies and e
 The player uses the device's own decoders. On a Pixel phone (Android 16), an episode with Dolby Digital Plus 5.1 audio (E-AC3) failed in `c2.dolby.eac3.decoder` although the device reports support. The player now stops at once with a message naming the format and suggesting another version or an external player (VLC brings its own decoders), instead of retrying the same file on the other server address and as HLS. A lasting fix would bundle a software audio decoder (Media3 FFmpeg extension, several MB larger APK).
 
 Update 2026-09-26 (D-059): FFmpeg audio decoders are bundled. The device's decoders still come first by default; on devices like this Pixel, choose account menu → Playback → FFmpeg first (the audio error message says so).
+
+## KI-044
+
+**TV froze at the end of "grouping titles" with a large library** — logged 2026-09-26, resolved the same day
+
+With 159,801 movies the TV stopped responding at "grouping titles 158,000 of 159,801". Only reading the names yielded to the UI; matching them into titles, building the titles and saving the library ran as one block. Matching also had quadratic parts: lists were copied on every insert, and the fuzzy pass compared every pair of titles sharing a 4-letter prefix with a full LCS each. On a PC with 160,000 synthetic titles this block took 22 s; a TV CPU is many times slower.
+
+Fix: the fuzzy pass only compares titles with the same prefix, year and numbers (a match needs those anyway), sorted by length so hopeless pairs are skipped, with a cheap shared-letters bound before the LCS; lists grow in place; SHA-1 ids without per-round allocations. Matching, building and saving (`packLibraryText`) now pause regularly, and progress runs across all steps as a percentage. Same groups as before (checked on 30,000 titles with typos). On the PC the longest block is now about 0.1 s.
+
