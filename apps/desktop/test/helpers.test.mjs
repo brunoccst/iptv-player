@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { test } from 'node:test';
-import { asPlayer, contentType, isNewer, keyFile, releaseVersion, staticFile, withCors } from '../lib/helpers.mjs';
+import { asPlayer, contentType, isNewer, keyFile, lanAddress, releaseVersion, staticFile, withCors } from '../lib/helpers.mjs';
 
 const root = path.resolve('/app/web');
 
@@ -47,4 +47,18 @@ test('reads the release version and compares versions', () => {
   assert.equal(isNewer('2.0.0', '10.0.0'), false);
   assert.equal(isNewer('1.2.3', '1.2.3'), false);
   assert.equal(isNewer(null, '1.0.0'), false);
+});
+
+test('finds the home network address for the pairing code', () => {
+  const v4 = (address, internal = false) => ({ address, family: 'IPv4', internal });
+  assert.equal(
+    lanAddress({
+      lo: [v4('127.0.0.1', true)],
+      'vEthernet (WSL)': [v4('172.20.64.1')],
+      'Wi-Fi': [{ address: 'fe80::1', family: 'IPv6', internal: false }, v4('192.168.1.23')],
+    }),
+    '192.168.1.23',
+  );
+  assert.equal(lanAddress({ eth0: [v4('169.254.3.4')], docker0: [v4('172.17.0.1')] }), '172.17.0.1');
+  assert.equal(lanAddress({ lo: [v4('127.0.0.1', true)] }), null);
 });

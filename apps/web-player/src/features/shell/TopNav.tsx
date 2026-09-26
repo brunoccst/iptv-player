@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { needsPinToOpen, selectActiveProfile } from '@iptv/shared';
 import { appConfig } from '../../config';
+import { desktop } from '../../desktop';
 import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
 import { BackupDialog } from '../backup/BackupDialog';
+import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 import { avatarColor } from '../profiles/avatar';
 import { usePinGate } from '../profiles/PinDialog';
 import { LanguageSettings } from '../profiles/LanguageSettings';
@@ -164,6 +166,20 @@ export function TopNav() {
                       >
                         <Icon name="backup" size={18} /> Back up &amp; restore
                       </button>
+                      {/* Desktop app only (D-072). */}
+                      {desktop ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="menu__item"
+                          onClick={() => {
+                            toggleMenu(false);
+                            openSyncWithPhone();
+                          }}
+                        >
+                          <Icon name="refresh" size={18} /> Sync with phone
+                        </button>
+                      ) : null}
                     </>
                   )}
                 </>

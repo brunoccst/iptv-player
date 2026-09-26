@@ -54,14 +54,14 @@ export type PairingResult = { ok: true; mode: PairingMode; accountName: string; 
 export function pairingMessage(error: PairingError | 'unreachable' | 'wrong-code'): string {
   switch (error) {
     case 'other-account':
-      return 'The TV is signed in to a different account. Sign out on the TV first, then scan again.';
+      return 'The TV or computer is signed in to a different account. Sign out there first, then scan again.';
     case 'not-signed-in':
       return 'Sign in on the phone first.';
     case 'bad-request':
     case 'wrong-code':
-      return 'This code is no longer valid. Open the QR code on the TV again and scan the new one.';
+      return 'This code is no longer valid. Open the QR code on the TV or computer again and scan the new one.';
     case 'unreachable':
-      return 'Could not reach the TV. Phone and TV must be on the same home network (Wi-Fi).';
+      return 'Could not reach the TV or computer. Both must be on the same home network (Wi-Fi or cable). On a computer, allow the app on private networks if the firewall asks.';
   }
 }
 

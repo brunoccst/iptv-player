@@ -9,12 +9,12 @@ No repository or commands needed. The apps talk to your IPTV provider directly; 
 
 | Device | Download | First start |
 |--------|----------|-------------|
-| Windows | [iptv-player-setup.exe](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player-setup.exe) | SmartScreen: **More info → Run anyway** (the installer is not code-signed). |
+| Windows | [iptv-player-setup.exe](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player-setup.exe) | SmartScreen: **More info → Run anyway** (the installer is not code-signed). The setup asks whether to install for you or for everyone, and in which folder (any drive). |
 | macOS (Intel and Apple silicon) | [iptv-player.dmg](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.dmg) | Drag the app to Applications. If macOS refuses to open it: **System Settings → Privacy & Security → Open Anyway**. |
 | Linux | [iptv-player.AppImage](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.AppImage) or [iptv-player.deb](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.deb) | AppImage: make it executable (`chmod +x`) and open it. |
 | Android TV / phone | [tv.apk](https://github.com/brunoccst/iptv-player/releases/download/tv-apk/tv.apk) | Allow installing from your browser or Downloader once. |
 
-The apps look for new versions themselves (D-062, D-071). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
+The apps look for new versions themselves (D-062, D-071). Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Sync with phone) and scan the code with the phone app → account menu → Connect a TV or computer (D-072). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
 
 ## Legal notes (Germany)
 

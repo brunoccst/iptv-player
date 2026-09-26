@@ -163,14 +163,14 @@ export function LoginScreen() {
 
 const PHONE_CARD_WIDTH = 230;
 
-/** Sign in by scanning this code with the phone app (account menu → Connect a TV), D-060. */
+/** Sign in by scanning this code with the phone app (account menu → Connect a TV or computer), D-060. */
 function PhoneSignIn() {
   const state = usePairingServer();
   return (
     <View style={styles.phoneCard} testID="login-phone">
       <Text style={styles.phoneTitle}>Sign in with your phone</Text>
       <PairingCode state={state} size={170} />
-      <Text style={styles.note}>In the app on your phone: account menu → Connect a TV, then scan this code.</Text>
+      <Text style={styles.note}>In the app on your phone: account menu → Connect a TV or computer, then scan this code.</Text>
     </View>
   );
 }

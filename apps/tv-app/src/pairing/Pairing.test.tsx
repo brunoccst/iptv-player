@@ -90,7 +90,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(nativeState.pairingRunning).toBe(false);
   });
 
-  it('phone account menu → Connect a TV scans the code and signs the TV in, without the playback settings', async () => {
+  it('phone account menu → Connect a TV or computer scans the code and signs the TV in, without the playback settings', async () => {
     const backend = setupApp();
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     const tv = { secure: createMemoryStorage(), data: createMemoryStorage() };
@@ -107,9 +107,9 @@ describe('phone-to-TV pairing (D-060)', () => {
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-group-library'));
-    expect(screen.getByText('Connect a TV')).toBeTruthy();
+    expect(screen.getByText('Connect a TV or computer')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('menu-pairing'));
-    expect(await screen.findByText(/The TV is signed in with your account/)).toBeTruthy();
+    expect(await screen.findByText(/The TV or computer is signed in with your account/)).toBeTruthy();
     expect(JSON.parse(tv.secure.data.get('session')!)).toMatchObject({ token: 'tok', activeProfileId: null });
     expect(JSON.stringify([...tv.secure.data, ...tv.data.data])).not.toContain('audioDecoder');
     // The phone keeps the TV for "Play on TV" (D-061).
@@ -126,7 +126,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(screen.getByTestId('menu-pairing'));
-    expect(await screen.findByText(/not a TV code from this app/)).toBeTruthy();
+    expect(await screen.findByText(/not a code from this app/)).toBeTruthy();
   });
 
   describe('play on TV (D-061)', () => {

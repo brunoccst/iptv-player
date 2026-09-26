@@ -12,7 +12,7 @@ import { QrCode } from './QrCode';
 export const pairingDialog = createStore<{ open: boolean }>(() => ({ open: false }));
 const closeDialog = () => pairingDialog.setState({ open: false });
 
-/** Rendered once at the app root: account menu → Sync with phone (TV) or Connect a TV (phone), D-060. */
+/** Rendered once at the app root: account menu → Sync with phone (TV) or Connect a TV or computer (phone), D-060. */
 export function PairingDialogHost() {
   const open = useAppStore(pairingDialog, (s) => s.open);
   if (!open) return null;
@@ -48,8 +48,8 @@ export function SyncWithPhoneDialog({ onClose }: { onClose(): void }) {
         <View style={styles.panel} testID="sync-with-phone">
           <Text style={styles.title}>Sync with phone</Text>
           <Text style={styles.text}>
-            On your phone, open this app → account menu → Connect a TV, and scan the code. Profiles, My List and watch progress are merged
-            on both devices; playback settings stay on each device.
+            On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Profiles, My List and watch progress
+            are merged on both devices; playback settings stay on each device.
           </Text>
           <PairingCode state={state} size={220} />
           <FocusButton
@@ -65,7 +65,7 @@ export function SyncWithPhoneDialog({ onClose }: { onClose(): void }) {
   );
 }
 
-/** Phone: account menu → Connect a TV. Opens the scanner at once, then shows the outcome. */
+/** Phone: account menu → Connect a TV or computer. Opens the scanner at once, then shows the outcome. */
 export function ConnectTvDialog({ onClose }: { onClose(): void }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export function ConnectTvDialog({ onClose }: { onClose(): void }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="connect-tv">
-          <Text style={styles.title}>Connect a TV</Text>
+          <Text style={styles.title}>Connect a TV or computer</Text>
           {message ? (
             <Text style={styles.text}>{message}</Text>
           ) : error ? (

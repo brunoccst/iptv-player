@@ -99,7 +99,7 @@ export function AccountMenu() {
         // Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it.
         {
           icon: Platform.isTV ? 'phone' : 'tv',
-          label: Platform.isTV ? 'Sync with phone' : 'Connect a TV',
+          label: Platform.isTV ? 'Sync with phone' : 'Connect a TV or computer',
           testID: 'menu-pairing',
           onPress: then(() => pairingDialog.setState({ open: true })),
         },

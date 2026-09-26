@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { downloadsStore, stores, uiStore } from './appContext';
 import { Spinner } from './components/Spinner';
 import { LoginPage } from './features/auth/LoginPage';
+import { SyncWithPhoneHost } from './features/pairing/SyncWithPhone';
 import { ProfilePicker } from './features/profiles/ProfilePicker';
 import { Shell } from './features/shell/Shell';
 import { useSession } from './hooks/stores';
@@ -21,6 +22,15 @@ export function App() {
     if (offline) uiStore.getState().navigate('downloads');
   }, [offline]);
 
+  return (
+    <>
+      <Screen status={status} activeProfileId={activeProfileId} />
+      <SyncWithPhoneHost />
+    </>
+  );
+}
+
+function Screen({ status, activeProfileId }: { status: string; activeProfileId: string | null }) {
   if (status === 'idle' || status === 'restoring') {
     return (
       <div className="center-screen">

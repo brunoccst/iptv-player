@@ -96,7 +96,7 @@ export async function connectToTv(): Promise<string | null> {
   const offer = parsePairingQr(text);
   if (!offer)
     throw new Error(
-      'This is not a TV code from this app. On the TV, open the QR code on the sign-in page or in the account menu → Sync with phone.',
+      'This is not a code from this app. On the TV or computer, open the QR code on the sign-in page or in the account menu → Sync with phone.',
     );
   try {
     const result = await sendPairing(storages, offer);
@@ -104,9 +104,9 @@ export async function connectToTv(): Promise<string | null> {
     if (result.remote) await pairedTv.getState().save({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     return result.mode === 'login'
-      ? 'The TV is signed in with your account. Pick a profile on the TV. Phone and TV now have the same profiles, My List and progress.' +
+      ? 'The TV or computer is signed in with your account. Pick a profile there. Both devices now have the same profiles, My List and progress.' +
           (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '')
-      : 'Phone and TV now have the same profiles, My List and progress.' +
+      : 'Both devices now have the same profiles, My List and progress.' +
           (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '');
   } catch (error) {
     appLog.warn('pairing', errorMessage(error));
