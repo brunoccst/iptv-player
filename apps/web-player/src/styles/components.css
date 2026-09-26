@@ -133,12 +133,18 @@
 .card {
   position: relative;
   flex: 0 0 var(--card-width);
+  /* Every card the same size, whatever the image (D-073): a large cover must not widen its card or grid column. */
+  min-width: 0;
   scroll-snap-align: start;
   border-radius: var(--radius);
   background: var(--color-surface);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+}
+
+.row__track .card {
+  max-width: var(--card-width);
 }
 
 .card:hover,
@@ -160,6 +166,8 @@
 .card__art {
   position: relative;
   aspect-ratio: 2 / 3;
+  /* With aspect-ratio, the default min-height lets a tall image stretch the box. */
+  min-height: 0;
   overflow: hidden;
   border-radius: var(--radius);
   background: linear-gradient(135deg, #2b2b2b, #151515);
@@ -170,6 +178,9 @@
 }
 
 .card__art img {
+  /* Out of the layout: the box has the size, the image fills and crops to it. */
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;

@@ -2,6 +2,7 @@
 // provider directly like the TV app (D-038), so no backend is needed. The page is served from 127.0.0.1 by this
 // process; provider requests get the player User-Agent and CORS headers added here.
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
+import electronUpdater from 'electron-updater';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
@@ -11,6 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { asPlayer, contentType, isNewer, keyFile, lanAddress, releaseVersion, staticFile, withCors } from './lib/helpers.mjs';
 
+const { autoUpdater } = electronUpdater;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const config = (() => {
   try {
@@ -229,33 +231,124 @@ function createWindow() {
   void window.loadURL(appOrigin + '/');
 }
 
-/** Once after start: a newer version in this repository's `desktop` release → offer the download page. */
-async function checkForUpdate() {
-  if (!config.updateRepo) return;
+/**
+ * Updates (D-073). About 15 s after start, and from account menu → Check for updates: the `desktop` release says
+ * which version is newest. On Windows and with the Linux AppImage the app downloads the installer itself (checked
+ * against the SHA-512 in latest.yml) and restarts into the new version: a file the app downloads has no "downloaded
+ * from the internet" mark, so Windows does not ask the SmartScreen question again. macOS (unsigned) and the .deb
+ * open the download page instead.
+ */
+const selfUpdates = () =>
+  app.isPackaged &&
+  Boolean(config.updateRepo) &&
+  (process.platform === 'win32' || (process.platform === 'linux' && !!process.env.APPIMAGE));
+const skippedFile = () => path.join(app.getPath('userData'), 'update-skipped.txt');
+const readSkipped = () => (existsSync(skippedFile()) ? readFileSync(skippedFile(), 'utf8').trim() : '');
+let updating = false;
+
+async function checkForUpdate(manual = false) {
+  if (!config.updateRepo || updating || !window) {
+    if (manual && !config.updateRepo) await message('This build does not check for updates.');
+    return;
+  }
+  updating = true;
+  // An automatic check that fails (offline) stays quiet; a failed install the user asked for does not.
+  let installing = false;
   try {
-    const response = await net.fetch(`https://api.github.com/repos/${config.updateRepo}/releases/tags/${RELEASE_TAG}`, {
-      headers: { Accept: 'application/vnd.github+json' },
-    });
-    if (!response.ok) return;
-    const release = await response.json();
-    const latest = releaseVersion(release.body);
-    const skippedFile = path.join(app.getPath('userData'), 'update-skipped.txt');
-    const skipped = existsSync(skippedFile) ? readFileSync(skippedFile, 'utf8').trim() : '';
-    if (!latest || !isNewer(latest, app.getVersion()) || latest === skipped || !window) return;
+    const latest = selfUpdates() ? await latestFromFeed() : await latestFromRelease();
+    if (!latest || !isNewer(latest.version, app.getVersion())) {
+      if (manual) await message(`You have the newest version (${app.getVersion()}).`);
+      return;
+    }
+    if (!manual && latest.version === readSkipped()) return;
     const { response: choice } = await dialog.showMessageBox(window, {
       type: 'info',
       title: 'App update',
-      message: `Version ${latest} is available (you have ${app.getVersion()}).`,
-      detail: 'The download page opens in your browser. Install the new version over this one; your data stays.',
-      buttons: ['Download', 'Later'],
+      message: `Version ${latest.version} is available (you have ${app.getVersion()}).`,
+      detail: latest.install
+        ? 'The app downloads it and restarts with the new version. Your data stays.'
+        : 'The download page opens in your browser. Install the new version over this one; your data stays.',
+      buttons: [latest.install ? 'Install now' : 'Download', 'Later'],
       defaultId: 0,
       cancelId: 1,
     });
-    if (choice === 0) await shell.openExternal(release.html_url ?? `https://github.com/${config.updateRepo}/releases/tag/${RELEASE_TAG}`);
-    else await writeFile(skippedFile, latest);
+    if (choice !== 0) {
+      await writeFile(skippedFile(), latest.version);
+      return;
+    }
+    installing = true;
+    if (latest.install) await latest.install();
+    else await shell.openExternal(releasePage());
   } catch (error) {
-    console.warn(`Update check failed: ${error?.message ?? error}`);
+    console.warn(`Update failed: ${error?.message ?? error}`);
+    if (manual || installing) {
+      const { response: choice } = await dialog.showMessageBox(window, {
+        type: 'warning',
+        title: 'App update',
+        message: 'The update did not work.',
+        detail: `${error?.message ?? error}\n\nYou can download the new version from the release page instead.`,
+        buttons: ['Open the download page', 'Close'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (choice === 0) await shell.openExternal(releasePage());
+    }
+  } finally {
+    updating = false;
+    window?.setProgressBar(-1);
   }
+}
+
+const releasePage = () => `https://github.com/${config.updateRepo}/releases/tag/${RELEASE_TAG}`;
+const message = (text) => (window ? dialog.showMessageBox(window, { type: 'info', title: 'App update', message: text }) : null);
+
+/** Windows and AppImage: electron-updater reads latest.yml from the release (generic feed, fixed file names). */
+async function latestFromFeed() {
+  // Tests point the app at a local copy of the release.
+  if (process.env.IPTV_DESKTOP_UPDATE_FEED) autoUpdater.setFeedURL({ provider: 'generic', url: process.env.IPTV_DESKTOP_UPDATE_FEED });
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  const result = await autoUpdater.checkForUpdates();
+  const version = result?.updateInfo?.version;
+  if (!version) return null;
+  return {
+    version,
+    async install() {
+      const onProgress = ({ percent }) => window?.setProgressBar(Math.max(0, Math.min(1, percent / 100)));
+      autoUpdater.on('download-progress', onProgress);
+      try {
+        await autoUpdater.downloadUpdate();
+      } finally {
+        autoUpdater.off('download-progress', onProgress);
+      }
+      window?.setProgressBar(-1);
+      const { response: now } = await dialog.showMessageBox(window, {
+        type: 'info',
+        title: 'App update',
+        message: `Version ${version} is ready.`,
+        detail: 'The app closes, installs it in the same folder and opens again.',
+        buttons: ['Restart now', 'When I close the app'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (now === 0) {
+        // Silent: no setup wizard, the same folder; then the new version starts.
+        setImmediate(() => autoUpdater.quitAndInstall(true, true));
+      } else {
+        autoUpdater.autoInstallOnAppQuit = true;
+      }
+    },
+  };
+}
+
+/** macOS and .deb: the version from the release notes ("Desktop app X.Y.Z"). */
+async function latestFromRelease() {
+  const response = await net.fetch(`https://api.github.com/repos/${config.updateRepo}/releases/tags/${RELEASE_TAG}`, {
+    headers: { Accept: 'application/vnd.github+json' },
+  });
+  if (!response.ok) throw new Error(`GitHub answered HTTP ${response.status}`);
+  const version = releaseVersion((await response.json()).body);
+  return version ? { version, install: null } : null;
 }
 
 app.on('second-instance', () => {
@@ -273,6 +366,10 @@ app.whenReady().then(async () => {
   registerPairing();
   createWindow();
   setTimeout(() => void checkForUpdate(), UPDATE_CHECK_DELAY_MS);
+  ipcMain.handle('iptv:check-updates', (event) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    void checkForUpdate(true);
+  });
   app.on('activate', () => {
     if (!window) createWindow();
   });

@@ -11,6 +11,7 @@ const info = ipcRenderer.sendSync('iptv:info');
 contextBridge.exposeInMainWorld('iptvDesktop', {
   version: info.version,
   platform: info.platform,
+  checkForUpdates: () => ipcRenderer.invoke('iptv:check-updates'),
   secure: storage('secure'),
   data: storage('data'),
   // Phone-to-computer pairing (D-072): the main process runs the server, the page decides and answers.

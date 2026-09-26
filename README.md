@@ -1,5 +1,10 @@
 # iptv-player
 
+[![CI](https://github.com/brunoccst/iptv-player/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/ci.yml)
+[![TV app (emulator)](https://github.com/brunoccst/iptv-player/actions/workflows/tv-app.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/tv-app.yml)
+[![TV APK](https://github.com/brunoccst/iptv-player/actions/workflows/tv-apk.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/tv-apk.yml)
+[![Desktop app](https://github.com/brunoccst/iptv-player/actions/workflows/desktop.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/desktop.yml)
+
 Monorepo for an IPTV streaming platform: desktop web player, Android TV app, .NET API, Python processing service.
 The product name is configurable (`APP_NAME` in `.env`). Phase 1 runs locally only; Azure targets are planned.
 
@@ -14,7 +19,7 @@ No repository or commands needed. The apps talk to your IPTV provider directly; 
 | Linux | [iptv-player.AppImage](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.AppImage) or [iptv-player.deb](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.deb) | AppImage: make it executable (`chmod +x`) and open it. |
 | Android TV / phone | [tv.apk](https://github.com/brunoccst/iptv-player/releases/download/tv-apk/tv.apk) | Allow installing from your browser or Downloader once. |
 
-The apps look for new versions themselves (D-062, D-071). Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Sync with phone) and scan the code with the phone app → account menu → Connect a TV or computer (D-072). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
+The apps look for new versions themselves (D-062, D-073); on Windows and with the AppImage the desktop app downloads and installs them, without the SmartScreen question. Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Sync with phone) and scan the code with the phone app → account menu → Connect a TV or computer (D-072). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
 
 ## Legal notes (Germany)
 

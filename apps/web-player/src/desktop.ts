@@ -8,6 +8,8 @@ import type { KeyValueStorage } from '@iptv/shared';
 export interface DesktopBridge {
   version: string;
   platform: string;
+  /** Checks the desktop release; the app's own dialogs take it from there (D-073). */
+  checkForUpdates(): Promise<void>;
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** Phone-to-computer pairing (D-072): a server on the home network while the QR code is shown. */

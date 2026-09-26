@@ -77,6 +77,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-070](#d-070) | 2026-09-26 | App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app |
 | [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
 | [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
+| [D-073](#d-073) | 2026-09-26 | Desktop app: in-app updates, TV-style login, cards of one size |
 
 ---
 
@@ -1312,3 +1313,22 @@ Decision:
 - **Size:** only the English Chromium texts and the strongest installer compression. Linux: installed 284 → 276 MB, AppImage 120 → 93 MB.
 
 Why still ~270 MB installed: Electron brings its own Chromium (about 200 MB, plus ~20 MB of licence notices that must ship with it); the app itself is about 1 MB. Much smaller needs the system's web view instead (Tauri, ~10–20 MB): WebView2 on Windows is Chromium and would behave like now, but macOS (WebKit) and Linux (WebKitGTK) play differently, and without Electron's request hooks the provider's CORS and User-Agent need a small proxy for every stream. Not done without the owner's choice.
+
+## D-073
+
+**Desktop app: in-app updates, TV-style login, cards of one size** — 2026-09-26 (requested by owner)
+
+Decision:
+- **In-app updates.** Free code signing (SignPath Foundation) needs an application and still starts without SmartScreen reputation; paid signing (~$10/month) builds reputation the same way. Windows only asks the SmartScreen question for files marked as downloaded from the internet, and a file the app downloads itself carries no such mark. So the app installs updates itself:
+  - Windows and the Linux AppImage use `electron-updater` with a generic feed on the `desktop` release (`latest.yml`, `latest-linux.yml`, fixed file names).
+  - About 15 s after start, and from account menu → Library & data → **Check for updates (version X)**, the app offers the new version. "Install now" downloads it (progress in the taskbar), checks its SHA-512, and asks "Restart now" or "When I close the app".
+  - The Windows installer then runs silently into the same folder, and the app opens again.
+  - macOS (unsigned apps cannot replace themselves) and the `.deb` still open the download page.
+  - `desktop.yml` uploads the installers first and the feed files after them.
+- **Login like the TV.**
+  - The form has the chips **IPTV provider** / **My server**; "My server" adds the server address.
+  - Beside the form is the **Sign in with your phone** card with the QR code.
+  - In a browser the page shows only the form, since the browser always uses the backend.
+- **Cards of one size.** A card's minimum width was its content's: a long title (one line, never wrapped) widened its card, and the cover grew with it. Cards now have `min-width: 0`, rows cap them at the card width, and the image fills its box without adding size. This applies to the web and desktop apps.
+
+Tested: a 1.0.3 AppImage found 1.0.4 on a local feed, downloaded it, replaced itself and restarted (Linux). The Windows installer's silent update is electron-updater's standard path; not run on a real Windows PC.

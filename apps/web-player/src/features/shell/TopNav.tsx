@@ -180,6 +180,19 @@ export function TopNav() {
                           <Icon name="refresh" size={18} /> Sync with phone
                         </button>
                       ) : null}
+                      {desktop ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="menu__item"
+                          onClick={() => {
+                            toggleMenu(false);
+                            void desktop?.checkForUpdates();
+                          }}
+                        >
+                          <Icon name="refresh" size={18} /> Check for updates (version {desktop.version})
+                        </button>
+                      ) : null}
                     </>
                   )}
                 </>
