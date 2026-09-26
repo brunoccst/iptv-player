@@ -5,7 +5,7 @@ import { HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/sha
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
 import { navStore } from '../appContext';
-import { playback, pressBack, setupApp } from '../../test/utils';
+import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { playbackErrorText, PlayerScreen } from './PlayerScreen';
 
@@ -273,6 +273,67 @@ describe('PlayerScreen', () => {
     await progress(2394, 2400);
     expect(await screen.findByText('Next episode in 6')).toBeTruthy();
     expect(screen.getByText('S01:E02 · Second')).toBeTruthy();
+  });
+
+  it('next-up continues in another version of the series when the playing one lacks the next episode (D-066)', async () => {
+    const backend = setupApp();
+    stubShow(backend);
+    // "Show" has two versions: s1 (episodes 1–2, above) and s2 (German, episodes 1–3).
+    backend.on('GET', '/api/library/series/show', {
+      body: {
+        id: 'show',
+        title: 'Show',
+        year: null,
+        posterUrl: null,
+        rating: null,
+        bestQuality: null,
+        variants: [variant('s1', 'ENG'), variant('s2', 'GER')],
+      },
+    });
+    const ep = (id: string, n: number) => ({
+      id,
+      seasonNumber: 1,
+      episodeNumber: n,
+      title: `Folge ${n}`,
+      plot: null,
+      durationSeconds: 2400,
+      stillUrl: null,
+      containerExtension: 'mkv',
+    });
+    backend.on('GET', '/api/catalog/series/s2', {
+      body: {
+        summary: {
+          id: 's2',
+          name: 'GE - Show',
+          categoryId: null,
+          posterUrl: null,
+          rating: null,
+          plot: null,
+          genre: null,
+          releaseDate: null,
+          lastModifiedAt: null,
+        },
+        cast: null,
+        director: null,
+        backdropUrls: [],
+        trailerYoutubeId: null,
+        seasons: [{ number: 1, name: 'Staffel 1', coverUrl: null, episodes: [ep('g1', 1), ep('g2', 2), ep('g3', 3)] }],
+      },
+    });
+    backend.on('GET', '/api/playback/episode/e2', { body: playback('http://relay/e2.mp4', 'mp4') });
+    const target: PlayTarget = { kind: 'episode', streamId: 'e2', container: 'mp4', title: 'Show', seriesId: 's1', masterId: 'show' };
+    navStore.getState().push({ name: 'player', target });
+    await render(<PlayerScreen target={target} />);
+    for (let i = 0; i < 4; i++) await flush();
+    await ready();
+    await progress(2394, 2400);
+
+    expect(await screen.findByText('S01:E03 · Folge 3')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('play-next'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({
+      name: 'player',
+      target: { streamId: 'g3', seriesId: 's2', masterId: 'show', episodeNumber: 3 },
+    });
   });
 
   it('live channels show LIVE and ignore left/right', async () => {

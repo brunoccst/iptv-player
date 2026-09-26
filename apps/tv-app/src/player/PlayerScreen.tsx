@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavigationBar } from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import {
@@ -31,7 +31,10 @@ import {
   skipAheadLabel,
   skipAheadWindow,
   SKIP_AHEAD_OPTIONS,
+  loadSeriesVersions,
+  mergeSeriesVersions,
   nextEpisode,
+  playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
   tvPlaybackAttempts,
@@ -127,7 +130,20 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const { width } = useWindowDimensions();
   const timelineWidth = useRef(0);
 
-  const series = useAsync(target.seriesId ? `series:${target.seriesId}` : null, () => api.catalog.seriesDetails(target.seriesId!));
+  // The episode lists of all versions of the series, merged (D-066): next-up and the drawer run across versions.
+  const seriesMaster = useLibrary((s) => (target.masterId ? s.details[`series|${target.masterId}`] : undefined));
+  useEffect(() => {
+    if (target.kind === 'episode' && target.masterId) void stores.library.getState().loadDetails('series', target.masterId);
+  }, [target.kind, target.masterId]);
+  const seriesVersions = playerSeriesVersions(target, seriesMaster);
+  const loadedVersions = useAsync(seriesVersions ? `series-versions:${seriesVersions.map((v) => v.seriesId).join(',')}` : null, () =>
+    loadSeriesVersions(api, seriesVersions!),
+  );
+  const mergedSeries = useMemo(
+    () => (loadedVersions.data ? mergeSeriesVersions(loadedVersions.data, target.seriesId) : null),
+    [loadedVersions.data, target.seriesId],
+  );
+  const series = { data: mergedSeries };
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
   const variants = useLibrary((s) =>
     target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? []) : [],
@@ -306,10 +322,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     saveProgress();
     navStore.getState().replaceTop({
       name: 'player',
-      target: episodeTarget(
-        { title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl },
-        next,
-      ),
+      target: episodeTarget({ title: target.title, masterId: target.masterId, seriesId: next.seriesId, posterUrl: target.posterUrl }, next),
     });
   }, [next, target, saveProgress]);
 
@@ -657,7 +670,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             navStore.getState().replaceTop({
               name: 'player',
               target: episodeTarget(
-                { title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl },
+                { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
                 episode,
               ),
             });
