@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { findProgress, formatDuration, type SeriesDetails } from '@iptv/shared';
+import { episodeInVersion, findEpisodeProgress, formatDuration, type MergedEpisode, type MergedSeries } from '@iptv/shared';
 import { uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { Icon } from '../../components/Icon';
@@ -7,18 +7,22 @@ import { useProgress } from '../../hooks/stores';
 import { downloadTarget, episodeTarget } from '../../ui/targets';
 
 interface EpisodeListProps {
-  series: SeriesDetails;
+  /** All versions' episodes, merged (D-066). */
+  series: MergedSeries;
   title: string;
   masterId: string;
-  seriesId: string;
+  /** Versions of the title; with more than one, episodes say which versions have them. */
+  versionCount: number;
   initialSeason?: number;
 }
 
-export function EpisodeList({ series, title, masterId, seriesId, initialSeason }: EpisodeListProps) {
+export function EpisodeList({ series, title, masterId, versionCount, initialSeason }: EpisodeListProps) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
+  // Per-episode version choice (listed episode id → series id), for this visit of the page.
+  const [chosen, setChosen] = useState<Record<string, string>>({});
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
-  const context = { title, masterId, seriesId, posterUrl: series.summary.posterUrl };
+  const context = (episode: MergedEpisode) => ({ title, masterId, seriesId: episode.seriesId, posterUrl: series.summary.posterUrl });
 
   if (!season) return <p className="episodes muted">No episodes available.</p>;
 
@@ -38,11 +42,12 @@ export function EpisodeList({ series, title, masterId, seriesId, initialSeason }
           <span className="muted">{season.name}</span>
         )}
       </div>
-      {season.episodes.map((episode) => {
-        const target = episodeTarget(context, episode);
-        const saved = findProgress(progress, 'episode', episode.id);
+      {season.episodes.map((listed) => {
+        const episode = episodeInVersion(listed, chosen[listed.id]);
+        const target = episodeTarget(context(episode), episode);
+        const saved = findEpisodeProgress(progress, episode);
         return (
-          <div key={episode.id} className="episode">
+          <div key={listed.id} className="episode">
             <span className="episode__number">{episode.episodeNumber ?? '•'}</span>
             <button
               type="button"
@@ -60,6 +65,22 @@ export function EpisodeList({ series, title, masterId, seriesId, initialSeason }
             <div>
               <p className="episode__title">{episode.title}</p>
               <p className="episode__plot">{[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}</p>
+              {listed.versions.length > 1 ? (
+                <select
+                  className="select select--small"
+                  aria-label={`Version of ${episode.title}`}
+                  value={episode.seriesId}
+                  onChange={(e) => setChosen((current) => ({ ...current, [listed.id]: e.target.value }))}
+                >
+                  {listed.versions.map((v) => (
+                    <option key={v.seriesId} value={v.seriesId}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              ) : versionCount > 1 ? (
+                <p className="episode__plot">Only in {listed.versions[0]!.label}</p>
+              ) : null}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button

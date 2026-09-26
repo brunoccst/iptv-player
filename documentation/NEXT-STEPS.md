@@ -18,11 +18,9 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 - **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
 - **URL routing** for deep links (KI-023).
 - **mpegts.js** fallback for TS-only live panels (KI-022).
-- **Series ranking by episode count** (KI-025).
 - **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
 - **Local HTTPS** for LAN traffic (KI-009).
 - **Before any cloud move**: SSRF guard + login rate limit (KI-008), hybrid relay/direct delivery (D-013), Bicep templates, Key Vault–backed Data Protection keys.
-- **Series episode merge**: series variants each have their own episode lists; merge seasons/episodes across variants for a single episode picker.
 - **Manual override**: admin endpoint to split/merge masters, stored as rules the worker applies.
 
 ## Done
@@ -37,6 +35,7 @@ flowchart LR
 ```
 
 - [x] **Several languages per profile** (requested 2026-09-26, D-067): the language filter takes any number of languages; titles with audio or subtitles in one of them show.
+- [x] **One episode list per series** (requested 2026-09-26, D-066): the details page and the player show the episodes of all versions of a series in one list; each episode plays in the chosen version where it has it, and can switch version.
 - [x] **Faster TV emulator CI step** (requested 2026-09-26, D-044): the emulator build keeps Gradle's cache between runs; the APK build went 7:19 → 4:17.
 - [x] **Merge translated titles** (requested 2026-09-26, D-065): titles with the same TMDB id in the provider lists become one title, when their years agree.
 - [x] **Kids profiles: parents choose the categories** (suggested, chosen 2026-09-26, D-064): per Kids profile and section, starting from the name rule.

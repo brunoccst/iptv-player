@@ -1,4 +1,4 @@
-import type { Episode, ProgressDto, SeriesDetails } from '../api/types';
+import type { Episode, ProgressDto } from '../api/types';
 
 /** Seconds skipped by arrow keys (web) and D-pad taps (TV). */
 export const SKIP_SECONDS = 10;
@@ -78,13 +78,16 @@ export function nextUpCountdown(currentTime: number, durationSeconds: number, ha
 }
 
 /** Episodes in watch order: season, then episode number. */
-export function orderedEpisodes(series: SeriesDetails): Episode[] {
+export function orderedEpisodes<E extends Episode>(series: { seasons: { number: number; episodes: E[] }[] }): E[] {
   return [...series.seasons]
     .sort((a, b) => a.number - b.number)
     .flatMap((season) => [...season.episodes].sort((a, b) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)));
 }
 
-export function nextEpisode(series: SeriesDetails, currentEpisodeId: string): Episode | null {
+export function nextEpisode<E extends Episode>(
+  series: { seasons: { number: number; episodes: E[] }[] },
+  currentEpisodeId: string,
+): E | null {
   const episodes = orderedEpisodes(series);
   const index = episodes.findIndex((episode) => episode.id === currentEpisodeId);
   return index >= 0 ? (episodes[index + 1] ?? null) : null;

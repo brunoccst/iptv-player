@@ -28,7 +28,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-022](#ki-022) | Limitation | web-player | Open |
 | [KI-023](#ki-023) | Limitation | web-player | Open |
 | [KI-024](#ki-024) | Limitation | web-player | Open |
-| [KI-025](#ki-025) | Limitation | series | Open |
+| [KI-025](#ki-025) | Limitation | series | Resolved (D-066) |
 | [KI-026](#ki-026) | Limitation | tv-app | Open |
 | [KI-027](#ki-027) | Limitation | tv-app | Resolved |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
@@ -215,6 +215,8 @@ Trailers use the provider's YouTube id via `youtube-nocookie.com`. Needs interne
 **"Best" series version can have fewer episodes** — logged 2026-09-23
 
 Series variants are ranked by title tags (e.g. `1080p` beats an untagged listing), not by episode count. A higher-ranked duplicate can contain only part of the series. Users can switch versions in the details modal. Fix: include episode counts when ranking series variants (needs `get_series_info` per variant during normalization).
+
+Resolved 2026-09-26 (D-066): the details page and the player merge the episode lists of all versions, so an episode missing from the best version plays from another one.
 
 ## KI-026
 

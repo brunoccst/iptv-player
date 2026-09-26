@@ -58,6 +58,9 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Version / Stream Quality').selectOption({ label: 'ENG' });
+  // One episode list for both versions (D-066): the 1080p listing has only the pilot.
+  await expect(dialog.getByLabel(/^Version of .*Pilot/)).toBeVisible();
+  await expect(dialog.getByText('Only in ENG')).toBeVisible();
   await dialog
     .getByRole('button', { name: /^Play .*Pilot/ })
     .first()

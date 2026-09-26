@@ -1,5 +1,14 @@
-import { useEffect } from 'react';
-import { formatDuration, selectVariant, type MasterDetails, type ProgressDto, type VariantInfo } from '@iptv/shared';
+import { useEffect, useMemo } from 'react';
+import {
+  formatDuration,
+  loadSeriesVersions,
+  mergeSeriesVersions,
+  selectVariant,
+  seriesVersionsOf,
+  type MasterDetails,
+  type ProgressDto,
+  type VariantInfo,
+} from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { WatchlistButton } from '../../components/WatchlistButton';
@@ -9,7 +18,7 @@ import { Spinner } from '../../components/Spinner';
 import { useLibrary, useProgress, useUi } from '../../hooks/stores';
 import { useAsync } from '../../hooks/useAsync';
 import { errorText } from '../../ui/errorText';
-import { downloadTarget, movieTarget, progressTarget } from '../../ui/targets';
+import { downloadTarget, episodeTarget, movieTarget, progressTarget } from '../../ui/targets';
 import type { DetailsTarget } from '../../ui/uiStore';
 import { EpisodeList } from './EpisodeList';
 import { VariantSelect } from './VariantSelect';
@@ -120,35 +129,34 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   const variant = useLibrary((s) => selectVariant(s, master));
-  const series = useAsync(variant ? `series:${variant.streamId}` : null, () => api.catalog.seriesDetails(variant!.streamId));
+  // All versions' episode lists, merged into one (D-066); the chosen version plays where it has the episode.
+  const versions = useAsync(variant ? `series-versions:${master.variants.map((v) => v.streamId).join(',')}` : null, () =>
+    loadSeriesVersions(api, seriesVersionsOf(master)),
+  );
+  const merged = useMemo(() => (versions.data ? mergeSeriesVersions(versions.data, variant?.streamId) : null), [versions.data, variant]);
+  const series = { ...versions, data: merged };
   const resume = useMasterProgress(master.id, master.variants, 'episode');
   if (!variant) return <p style={{ padding: 32 }}>No playable versions.</p>;
 
   const firstEpisode = series.data?.seasons[0]?.episodes[0];
   const play = () => {
-    if (resume && resume.seriesId === variant.streamId) uiStore.getState().play(progressTarget(resume));
-    else if (firstEpisode && series.data) {
-      uiStore.getState().play({
-        kind: 'episode',
-        streamId: firstEpisode.id,
-        container: firstEpisode.containerExtension,
-        title: master.title,
-        subtitle: firstEpisode.title,
-        posterUrl: master.posterUrl,
-        masterId: master.id,
-        seriesId: variant.streamId,
-        seasonNumber: firstEpisode.seasonNumber,
-        episodeNumber: firstEpisode.episodeNumber,
-      });
-    }
+    if (resume) uiStore.getState().play(progressTarget(resume));
+    else if (firstEpisode)
+      uiStore
+        .getState()
+        .play(
+          episodeTarget(
+            { title: master.title, masterId: master.id, seriesId: firstEpisode.seriesId, posterUrl: master.posterUrl },
+            firstEpisode,
+          ),
+        );
   };
 
   return (
     <>
       <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
         <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
-          <Icon name="play" />{' '}
-          {resume && resume.seriesId === variant.streamId ? `Resume S${resume.seasonNumber}:E${resume.episodeNumber}` : 'Play'}
+          <Icon name="play" /> {resume ? `Resume S${resume.seasonNumber}:E${resume.episodeNumber}` : 'Play'}
         </button>
         <WatchlistButton section="series" title={master} />
       </DetailsHero>
@@ -192,12 +200,11 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
       ) : null}
       {series.data ? (
         <EpisodeList
-          key={variant.streamId}
           series={series.data}
           title={master.title}
           masterId={master.id}
-          seriesId={variant.streamId}
-          initialSeason={resume?.seriesId === variant.streamId ? (resume.seasonNumber ?? undefined) : undefined}
+          versionCount={master.variants.length}
+          initialSeason={resume?.seasonNumber ?? undefined}
         />
       ) : null}
     </>
