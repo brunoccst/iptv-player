@@ -262,6 +262,40 @@
       "raw": "[4K]",
       "title": "[4K]",
       "note": "only tags: falls back to the raw title"
+    },
+    {
+      "raw": "GE - Jujutsu Kaisen (2020)",
+      "title": "Jujutsu Kaisen",
+      "languages": [
+        "GER"
+      ],
+      "year": 2020,
+      "quality": null,
+      "source": null,
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "IN - Jujutsu Kaisen (2020)",
+      "title": "Jujutsu Kaisen",
+      "languages": [
+        "HIN"
+      ],
+      "year": 2020,
+      "quality": null,
+      "source": null,
+      "audioTag": null,
+      "hdr": false
+    },
+    {
+      "raw": "ALL IN (2020)",
+      "title": "ALL IN",
+      "languages": [],
+      "year": 2020,
+      "quality": null,
+      "source": null,
+      "audioTag": null,
+      "hdr": false
     }
   ],
   "keys": [

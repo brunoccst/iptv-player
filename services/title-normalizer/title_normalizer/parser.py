@@ -65,8 +65,8 @@ class _Tags:
         self.hdr = False
         self.year: int | None = None
 
-    def absorb(self, token: str, allow_short: bool) -> bool:
-        """Records `token` if it is a known tag. Returns False for unknown tokens."""
+    def absorb(self, token: str, allow_short: bool, prefix: bool = False) -> bool:
+        """Records `token` if it is a known tag. Returns False for unknown tokens. `prefix`: a leading group ("GE - ")."""
         word = _fold(token)
         if not word:
             return True
@@ -82,20 +82,22 @@ class _Tags:
             self._add_language(tags.LANGUAGE_LONG[word])
         elif word in tags.LANGUAGE_SHORT and (allow_short or token.isupper()):
             self._add_language(tags.LANGUAGE_SHORT[word])
+        elif prefix and word in tags.LANGUAGE_PREFIX:
+            self._add_language(tags.LANGUAGE_PREFIX[word])
         elif word in tags.IGNORED:
             pass
         else:
             return False
         return True
 
-    def absorb_compound(self, token: str, allow_short: bool) -> bool:
+    def absorb_compound(self, token: str, allow_short: bool, prefix: bool = False) -> bool:
         """Absorbs "ENG-ESP" style tokens only if every part is a known tag. Returns False (and records nothing) otherwise."""
         parts = [part for part in _TOKEN_SPLIT.split(token) if part]
         probe = _Tags()
-        if not parts or not all(probe.absorb(part, allow_short) for part in parts):
+        if not parts or not all(probe.absorb(part, allow_short, prefix) for part in parts):
             return False
         for part in parts:
-            self.absorb(part, allow_short)
+            self.absorb(part, allow_short, prefix)
         return True
 
     def _add_language(self, code: str) -> None:
@@ -159,7 +161,7 @@ def _strip_prefixes(text: str, found: _Tags) -> str:
         body = match.group("body")
         if body != body.upper():
             break
-        if not found.absorb_compound(body, allow_short=True):
+        if not found.absorb_compound(body, allow_short=True, prefix=True):
             break
         text = text[match.end() :]
     return text

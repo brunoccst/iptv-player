@@ -84,6 +84,15 @@
         "Batman Begins (2005)"
       ],
       "groups": 3
+    },
+    {
+      "name": "country-code prefixes merge",
+      "titles": [
+        "GE - Jujutsu Kaisen (2020)",
+        "IN - Jujutsu Kaisen (2020)",
+        "Jujutsu Kaisen (2020)"
+      ],
+      "groups": 1
     }
   ]
 }

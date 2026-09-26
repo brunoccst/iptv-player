@@ -115,6 +115,15 @@ export const LANGUAGE_SHORT: Table = {
   pl: 'POL',
 };
 
+/** Country-style codes providers put in front of titles ("GE - ", "IN - "). Only accepted as a leading prefix group:
+ * as words they are too common ("All In"). */
+export const LANGUAGE_PREFIX: Table = {
+  ge: 'GER',
+  in: 'HIN',
+  uk: 'ENG',
+  us: 'ENG',
+};
+
 export const AUDIO_TAG: Table = { dual: 'DUAL', multi: 'MULTI' };
 
 export const HDR = new Set(['hdr', 'dovi']);
