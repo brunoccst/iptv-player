@@ -5,6 +5,6 @@
 | `ProfilePicker.tsx` | "Who's watching?" grid, add tile (max 5), manage mode, profile editor modal (name, colour, kids, delete). With a parental PIN, opening a regular profile and managing ask for it. |
 | `PinDialog.tsx` | Parental PIN prompt (`PinDialog`, `PinInput`) and `usePinGate`, which runs an action directly or after the PIN (D-054). |
 | `KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-064). |
-| `LanguageSettings.tsx` | Account menu → Language: only titles with audio or subtitles in that language, per profile (D-063). |
+| `LanguageSettings.tsx` | Account menu → Languages: only titles with audio or subtitles in one of the chosen languages, per profile (D-063, D-067). |
 | `PinSettings.tsx` | Account menu → Parental PIN: set (optional), change or remove. |
 | `avatar.ts` | Avatar colour palette; `avatarKey` stores the chosen colour. |

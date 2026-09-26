@@ -122,6 +122,8 @@ public class LibraryEndpointTests : IDisposable
     [InlineData("ITA", "Alpha")]
     [InlineData("GER", "")]
     [InlineData("not-a-code", "Zulu,Alpha")]
+    [InlineData("GER,ita", "Alpha")]
+    [InlineData("eng, ITA", "Zulu,Alpha")]
     public async Task Library_FiltersByAudioOrSubtitleLanguage(string language, string expected)
     {
         var login = await _client.LoginAndAuthorizeAsync();

@@ -103,7 +103,7 @@ export function AccountMenu() {
         />
         <MenuItem
           icon="subtitles"
-          label="Language"
+          label="Languages"
           testID="menu-language"
           onPress={() => {
             close();

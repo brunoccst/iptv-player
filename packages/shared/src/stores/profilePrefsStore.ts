@@ -6,7 +6,9 @@ import type { KeyValueStorage } from './storage';
 export const PROFILE_PREFS_KEY = 'settings.profiles';
 
 export interface ProfilePrefs {
-  /** Only titles with this audio or subtitle language, e.g. `ENG` (D-063). Absent = all languages. */
+  /** Only titles with audio or subtitles in one of these languages, e.g. `['ENG', 'GER']` (D-063, D-067). Empty = all. */
+  languages?: string[] | null;
+  /** The single language of earlier versions; read by `profileLanguages`, replaced by `languages` on the next change. */
   language?: string | null;
   /**
    * Kids profiles: the categories a parent picked per section (D-064). A section that is absent or `null` uses the
@@ -43,6 +45,12 @@ export function createProfilePrefsStore(storage: KeyValueStorage) {
 }
 
 export type ProfilePrefsStore = ReturnType<typeof createProfilePrefsStore>;
+
+/** The profile's chosen languages; also reads the single `language` saved by earlier versions. */
+export function profileLanguages(prefs: ProfilePrefs | undefined): string[] {
+  if (Array.isArray(prefs?.languages)) return prefs.languages;
+  return prefs?.language ? [prefs.language] : [];
+}
 
 /** Languages the title parser recognises (tags.ts), for the language choice. */
 export const LANGUAGE_NAMES: Record<string, string> = {

@@ -36,6 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Several languages per profile** (requested 2026-09-26, D-067): the language filter takes any number of languages; titles with audio or subtitles in one of them show.
 - [x] **Faster TV emulator CI step** (requested 2026-09-26, D-044): the emulator build keeps Gradle's cache between runs; the APK build went 7:19 → 4:17.
 - [x] **Merge translated titles** (requested 2026-09-26, D-065): titles with the same TMDB id in the provider lists become one title, when their years agree.
 - [x] **Kids profiles: parents choose the categories** (suggested, chosen 2026-09-26, D-064): per Kids profile and section, starting from the name rule.
