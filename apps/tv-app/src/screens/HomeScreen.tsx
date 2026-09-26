@@ -59,9 +59,14 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     })),
   ];
 
-  // Rows start over the bottom of the hero, like the web (`margin-bottom: -6vw`).
+  // Rows start over the bottom of the hero, like the web (`margin-bottom: -6vw`). Without a hero (library still loading
+  // on the first start) they start below the nav instead: pulled up, the first row slid under it.
+  const hasHero = featured.length > 0;
   const renderRow = (row: HomeRow, index: number) => (
-    <View key={row.key} style={index === 0 ? [styles.rows, { marginTop: -Math.round(rowGap * 2) }] : styles.rows}>
+    <View
+      key={row.key}
+      style={index === 0 ? [styles.rows, { marginTop: hasHero ? -Math.round(rowGap * 2) : Math.round(rowGap / 2) }] : styles.rows}
+    >
       {row.render()}
     </View>
   );
