@@ -26,6 +26,19 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 - takeScreenshot: 00-home-initial
+# Nav row: Up reaches it; Right walks brand → links → search box → avatar and stays there (never drops into the page).
+- repeat:
+    times: 4
+    commands:
+      - pressKey: Remote Dpad Up
+- repeat:
+    times: 12
+    commands:
+      - pressKey: Remote Dpad Right
+- assertVisible:
+    id: "nav-account"
+    focused: true
+- takeScreenshot: 00-nav-focus
 # Movie rows sit below the fold at 960x540 dp; rows reload once the worker finishes grouping titles.
 - scrollUntilVisible:
     element:

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, TVFocusGuideView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TVFocusGuideView, View } from 'react-native';
 import { avatarColor, selectActiveProfile } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { appConfig } from '../config';
@@ -118,30 +118,69 @@ export function TopNav() {
   );
 }
 
+/**
+ * Search box. On TV the D-pad focuses the box like a button and OK starts typing: a text field that takes D-pad focus
+ * directly let Left/Right slip out of the nav row (Android hands arrow keys to the text cursor, then to the nearest
+ * view anywhere). Phones type in it directly.
+ */
 function SearchBox({ value, width }: { value: string; width: number }) {
+  const tv = Platform.isTV;
+  const input = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
+  const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (editing) input.current?.focus();
+  }, [editing]);
+
+  const field = (
+    <TextInput
+      ref={input}
+      testID="nav-search"
+      accessibilityLabel="Search"
+      style={styles.searchInput}
+      placeholder="Titles, series"
+      placeholderTextColor="#8c8c8c"
+      value={value}
+      // TV: only while typing, so the D-pad never lands in the text field itself.
+      focusable={!tv || editing}
+      onChangeText={(text) => navStore.getState().setSearch(text)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => {
+        setFocused(false);
+        setEditing(false);
+      }}
+      returnKeyType="search"
+      onSubmitEditing={() => navStore.getState().submitSearch()}
+      autoCorrect={false}
+    />
+  );
+  const clear = value ? (
+    <Pressable accessibilityLabel="Clear search" testID="nav-search-clear" onPress={() => navStore.getState().setSearch('')}>
+      <Icon name="close" size={16} />
+    </Pressable>
+  ) : null;
+
+  if (!tv) {
+    return (
+      <View style={[styles.search, { width }, focused && styles.searchFocused]}>
+        {field}
+        {clear}
+      </View>
+    );
+  }
   return (
-    <View style={[styles.search, { width }, focused && styles.searchFocused]}>
-      <TextInput
-        testID="nav-search"
-        accessibilityLabel="Search"
-        style={styles.searchInput}
-        placeholder="Titles, series"
-        placeholderTextColor="#8c8c8c"
-        value={value}
-        onChangeText={(text) => navStore.getState().setSearch(text)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        returnKeyType="search"
-        onSubmitEditing={() => navStore.getState().submitSearch()}
-        autoCorrect={false}
-      />
-      {value ? (
-        <Pressable accessibilityLabel="Clear search" testID="nav-search-clear" onPress={() => navStore.getState().setSearch('')}>
-          <Icon name="close" size={16} />
-        </Pressable>
-      ) : null}
-    </View>
+    <Pressable
+      testID="nav-search-box"
+      accessibilityRole="search"
+      accessibilityLabel={value ? `Search: ${value}` : 'Search'}
+      onPress={() => setEditing(true)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.search, { width }, focused && styles.searchFocused]}
+    >
+      {field}
+      {clear}
+    </Pressable>
   );
 }
 
