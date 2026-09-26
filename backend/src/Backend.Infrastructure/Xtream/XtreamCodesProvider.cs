@@ -299,7 +299,8 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
         item.String("stream_icon"),
         item.Double("rating"),
         item.UnixTime("added"),
-        item.String("container_extension"));
+        item.String("container_extension"),
+        TmdbId(item));
 
     private static SeriesSummary ReadSeriesSummary(JsonElement item, string seriesId) => new(
         seriesId,
@@ -310,7 +311,11 @@ public sealed class XtreamCodesProvider(HttpClient httpClient) : IMediaProvider
         item.String("plot"),
         item.String("genre"),
         item.String("releaseDate") ?? item.String("release_date"),
-        item.UnixTime("last_modified"));
+        item.UnixTime("last_modified"),
+        TmdbId(item));
+
+    /// <summary>Some panels send the TMDB id in their lists (<c>tmdb</c> or <c>tmdb_id</c>); used to merge translated titles (D-065).</summary>
+    private static string? TmdbId(JsonElement item) => item.String("tmdb") ?? item.String("tmdb_id");
 
     /// <summary>Handles <c>episodes</c> as <c>{"1": [...]}</c> or as <c>[[...], [...]]</c> (both occur in the wild).</summary>
     private static Dictionary<int, List<Episode>> ReadEpisodes(JsonElement? episodes)

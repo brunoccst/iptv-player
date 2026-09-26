@@ -54,6 +54,7 @@ const series: SeriesDetails = {
     genre: null,
     releaseDate: null,
     lastModifiedAt: null,
+    tmdbId: null,
   },
   cast: null,
   director: null,

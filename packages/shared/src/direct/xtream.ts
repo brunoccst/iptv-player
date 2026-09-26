@@ -138,6 +138,8 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     rating: num(item, 'rating'),
     addedAt: unixTime(item, 'added'),
     containerExtension: str(item, 'container_extension'),
+    // Some panels send the TMDB id in their lists; used to merge translated titles (D-065).
+    tmdbId: str(item, 'tmdb') ?? str(item, 'tmdb_id'),
   });
 
   const readSeriesSummary = (item: Json, seriesId: string): SeriesSummary => ({
@@ -150,6 +152,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     genre: str(item, 'genre'),
     releaseDate: str(item, 'releaseDate') ?? str(item, 'release_date'),
     lastModifiedAt: unixTime(item, 'last_modified'),
+    tmdbId: str(item, 'tmdb') ?? str(item, 'tmdb_id'),
   });
 
   /** `episodes` is `{"1": [...]}` or `[[...], [...]]` depending on the panel. */

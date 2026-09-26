@@ -7,7 +7,7 @@ flowchart LR
   API[backend] -->|INSERT pending job<br/>raw items JSON| Q[(pipeline.db<br/>normalization_jobs)]
   W[worker] -->|claim oldest pending| Q
   W --> P[parser: clean title, year, tags]
-  P --> M[matching: exact + fuzzy groups]
+  P --> M[matching: exact + fuzzy groups, then same TMDB id]
   M --> B[pipeline: masters + variants]
   B -->|replace library, job = done| DB[(pipeline.db<br/>master_media, media_variants)]
   API -->|/api/library| DB
