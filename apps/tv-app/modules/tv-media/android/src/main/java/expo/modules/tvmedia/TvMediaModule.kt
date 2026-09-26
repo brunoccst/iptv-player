@@ -212,9 +212,10 @@ class TvMediaModule : Module() {
       AppUpdater.openInstallSettings(context)
     }
 
-    Function("installUpdate") { path: String ->
-      AppUpdater.install(context, path)
-    }
+    /** Opens the Android installer on top of the app's screen (D-070). */
+    AsyncFunction("installUpdate") { path: String ->
+      AppUpdater.install(context, appContext.currentActivity, path)
+    }.runOnQueue(Queues.MAIN)
 
     /** Sign-out and account change (DECISIONS.md#d-050). */
     Function("removeAllDownloads") {

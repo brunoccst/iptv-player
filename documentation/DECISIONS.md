@@ -74,6 +74,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-067](#d-067) | 2026-09-26 | Several languages per profile in the language filter |
 | [D-068](#d-068) | 2026-09-26 | TV sleep mode instead of the system screensaver |
 | [D-069](#d-069) | 2026-09-26 | TV navigation: Left/Right stay in their row; Home centres the focused row |
+| [D-070](#d-070) | 2026-09-26 | App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app |
 
 ---
 
@@ -1159,7 +1160,7 @@ Alternatives: Google Cast (needs a registered receiver app and Google's cast fra
 **Self-update from the GitHub release (TV/phone)** — 2026-09-26 (requested by owner: the app is only installed from this repository, not a store)
 
 Decision:
-- About 15 s after start the app reads this repository's `tv-apk` release from the GitHub API (no login; 60 requests per hour per address is plenty). The version is the `version N` in the release notes, which is the Android version code (`APP_ANDROID_VERSION_CODE`, D-052). When it is newer than the installed one, a dialog offers "Update now" or "Later". "Later" stops the automatic prompt for that version; account menu → **Check for updates** always shows it.
+- About 15 s after start the app reads this repository's `tv-apk` release from the GitHub API (no login; 60 requests per hour per address is plenty). The version is the `version N` in the release notes, which is the Android version code (`APP_ANDROID_VERSION_CODE`, D-052; the readable MAJOR.MINOR.PATCH is D-070). When it is newer than the installed one, a dialog offers "Update now" or "Later". "Later" stops the automatic prompt for that version; account menu → **Check for updates** always shows it.
 - "Update now" downloads `tv.apk` into the app cache with a progress bar and checks the SHA-256 GitHub publishes for the file. Before installing, the app checks the downloaded APK itself: same package, newer version code, and the same signing key as the installed app. Then it opens the Android installer (`FileProvider` + `ACTION_VIEW`), where the user confirms. Data stays, as with any update.
 - Android 8+ asks once for permission to install apps from this app ("Install unknown apps"); the dialog opens that setting.
 - An APK signed with another key (the one-time switch from the debug key to the release key, D-052) cannot be installed over the app; the dialog says so and explains back up → uninstall → install → restore instead of letting the installer fail.
@@ -1262,3 +1263,20 @@ Decision:
 
 Update 2026-09-26 (requested by owner): on TV, Home rows draw all their cards at once (at most ~10), because holding Right outran a list still drawing its last cards and focus fell out of the row to the nav. The details page scrolls the focused part (version, season, an episode) to the middle of the screen, and entering an episode from above or below lands on Play (the row is a focus guide with `autoFocus`; the episode's version picker now follows its buttons).
 
+## D-070
+
+**App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app** — 2026-09-26 (requested by owner)
+
+Versions: until now the TV/phone app was only numbered by its build (the `tv-apk.yml` run number, D-052).
+
+Decision:
+- The app has a Semantic Versioning version, MAJOR.MINOR.PATCH (Android's version name), starting at 1.0.0. MAJOR.MINOR are set by hand in `apps/tv-app/package.json` (write `X.Y.0`): raise MAJOR for changes that need something from the user (e.g. a reinstall or a new sign-in), MINOR for new features. PATCH counts the builds on `main` since then, computed by `scripts/app-version.mjs` from the git history (the first build of 1.1 is 1.1.0). No manual step per pull request, so merges never conflict on it.
+- The build number stays as Android's version code (the run number): Android and the self-update compare it.
+- The release notes start with "TV app X.Y.Z" and keep "version N" (the build number), which apps before this change read. The release title shows the version too.
+- About shows "1.2.3 (build 57)"; the update dialog says "Version 1.2.4 is available (you have 1.2.3)". Builds from before have no version name and show as "build 55".
+
+Update installer (bug: after "Update now" and the download the dialog said Android would ask to confirm, but no installer appeared until the app was force-closed and the update downloaded again):
+- The installer was started from the application context as a new task. Android then looks for an existing task of the installer, such as the one left from the previous update (whose "Open" button also started the app inside it), and may only bring that forward: nothing visible happens. After a force close no such task is left, so the second try worked.
+- Now the installer is started from the app's own screen, in the app's task, on the main thread; only without a screen does it fall back to a new task. The dialog also offers "Open the installer again", which reuses the downloaded file, and says so when Android refuses to open it.
+
+Limits: not reproduced on a device in CI (the emulator flows do not install updates); the fix follows how Android places activities in tasks.

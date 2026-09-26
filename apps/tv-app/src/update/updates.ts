@@ -7,7 +7,10 @@ import { TvMedia } from '../../modules/tv-media';
  * release for a newer build, downloads the APK and hands it to the Android installer (the user confirms there).
  */
 export interface Release {
+  /** The build number: Android's version code, which decides what is newer (D-052). */
   versionCode: number;
+  /** The version people read, MAJOR.MINOR.PATCH (D-070); null for releases from before it existed. */
+  versionName: string | null;
   apkUrl: string;
   /** Hex SHA-256 GitHub reports for the file, when it does. */
   sha256: string | null;
@@ -20,7 +23,8 @@ export type UpdateStatus =
   | { phase: 'current' }
   | { phase: 'available'; release: Release }
   | { phase: 'downloading'; release: Release; progress: number | null }
-  | { phase: 'installing'; release: Release }
+  /** `path`: the checked APK, so the installer can be opened again without a new download. */
+  | { phase: 'installing'; release: Release; path: string }
   /** The user must allow this app to install apps first (Android 8+). */
   | { phase: 'permission'; release: Release }
   | { phase: 'failed'; release: Release | null; message: string };
@@ -29,7 +33,10 @@ export const RELEASE_TAG = 'tv-apk';
 const APK_NAME = 'tv.apk';
 const SKIPPED_KEY = 'update.skipped';
 
-/** The GitHub release JSON → what the app needs. `null` when it has no APK or no version in its notes. */
+/**
+ * The GitHub release JSON → what the app needs. `null` when it has no APK or no version in its notes. The notes say
+ * "TV app 1.2.3" and "version N" (the build number); older apps only read the latter, so it stays (D-070).
+ */
 export function releaseFrom(json: unknown): Release | null {
   const release = json as {
     body?: string | null;
@@ -40,9 +47,11 @@ export function releaseFrom(json: unknown): Release | null {
   const version = /\bversion (\d+)\b/.exec(release?.body ?? '')?.[1];
   const asset = release?.assets?.find((a) => a.name === APK_NAME && a.browser_download_url && (a.state ?? 'uploaded') === 'uploaded');
   if (!version || !asset) return null;
+  const versionName = /\bTV app (\d+\.\d+\.\d+)\b/.exec(release?.body ?? '')?.[1] ?? null;
   const sha256 = /^sha256:([0-9a-f]{64})$/i.exec(asset.digest ?? '')?.[1] ?? null;
   return {
     versionCode: Number(version),
+    versionName,
     apkUrl: asset.browser_download_url!,
     sha256,
     publishedAt: release?.updated_at ?? release?.published_at ?? null,
@@ -117,8 +126,8 @@ export function createUpdater({
       const verdict = TvMedia.checkUpdate(path);
       appLog.info('update', `downloaded version ${release.versionCode}: ${verdict}`);
       if (verdict === 'ok') {
-        set({ phase: 'installing', release });
-        TvMedia.installUpdate(path);
+        set({ phase: 'installing', release, path });
+        await openInstaller(path);
       } else set({ phase: 'failed', release, message: verdictMessage(verdict) });
     } catch (error) {
       appLog.warn('update', `download failed: ${errorMessage(error)}`);
@@ -126,6 +135,26 @@ export function createUpdater({
     } finally {
       subscription.remove();
     }
+  }
+
+  /** The Android installer, on top of the app (D-070). */
+  async function openInstaller(path: string): Promise<void> {
+    try {
+      await TvMedia.installUpdate(path);
+      appLog.info('update', 'installer opened');
+    } catch (error) {
+      appLog.warn('update', `could not open the installer: ${errorMessage(error)}`);
+      const status = store.getState().status;
+      if (status.phase === 'installing') {
+        set({ phase: 'failed', release: status.release, message: 'Android did not open its installer. Try again.' });
+      }
+    }
+  }
+
+  /** "Open the installer again": the installer did not show up or was closed; the download is reused. */
+  async function reopenInstaller(): Promise<void> {
+    const status = store.getState().status;
+    if (status.phase === 'installing') await openInstaller(status.path);
   }
 
   /** "Later": no automatic prompt for this version again (the menu still offers it). */
@@ -138,7 +167,7 @@ export function createUpdater({
   const dismiss = () => store.setState({ prompt: false });
   const open = () => store.setState({ prompt: true });
 
-  return { store, check, install, later, dismiss, open };
+  return { store, check, install, reopenInstaller, later, dismiss, open };
 }
 
 export type Updater = ReturnType<typeof createUpdater>;
@@ -155,4 +184,20 @@ function verdictMessage(verdict: string): string {
     default:
       return 'The downloaded file is not an update of this app.';
   }
+}
+
+type Version = { versionCode: number; versionName: string | null };
+
+/** MAJOR.MINOR.PATCH, or null for versions from before version names (D-070). */
+const nameOf = (version: Version) =>
+  version.versionName && /^\d+\.\d+\.\d+$/.test(version.versionName) && version.versionName !== '0.0.0' ? version.versionName : null;
+
+/** Short, for sentences: "1.2.3", or "build 57" for versions from before version names. */
+export const shortVersion = (version: Version) => nameOf(version) ?? `build ${version.versionCode}`;
+
+/** Full, for About: "1.2.3 (build 57)", or "build 57". */
+export function versionLabel(version: Version | null): string {
+  if (!version) return 'unknown';
+  const name = nameOf(version);
+  return name ? `${name} (build ${version.versionCode})` : `build ${version.versionCode}`;
 }
