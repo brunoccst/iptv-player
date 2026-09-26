@@ -1,4 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert, type AlertButton } from 'react-native';
+import { nativeState } from '../../test/tvMediaMock';
 import { App } from '../App';
 import { navStore, stores } from '../appContext';
 import { profile } from '../../test/utils';
@@ -61,5 +63,20 @@ describe('account menu groups', () => {
     }
     await fireEvent.press(screen.getByTestId('menu-switch-profile'));
     expect(stores.session.getState().activeProfileId).toBeNull();
+  });
+
+  it('App → Close the app asks first, then closes it like "Force stop"', async () => {
+    setupApp();
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-app'));
+    await fireEvent.press(screen.getByTestId('menu-close-app'));
+    expect(nativeState.calls).not.toContain('close-app');
+    const buttons = alert.mock.calls[0]![2] as AlertButton[];
+    await act(async () => buttons.find((button) => button.text === 'Close the app')!.onPress!());
+    expect(nativeState.calls).toContain('close-app');
+    alert.mockRestore();
   });
 });

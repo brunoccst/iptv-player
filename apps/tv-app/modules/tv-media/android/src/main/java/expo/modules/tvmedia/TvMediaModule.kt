@@ -3,6 +3,9 @@ package expo.modules.tvmedia
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
 import android.view.WindowManager
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
@@ -172,6 +175,16 @@ class TvMediaModule : Module() {
       val window = appContext.currentActivity?.window ?: return@AsyncFunction
       if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
       else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }.runOnQueue(Queues.MAIN)
+
+    /**
+     * Account menu → Close the app: like "Force stop" in the system settings. Removes the app from the recent apps and
+     * ends its process (downloads in progress stop too), so the next start is a fresh one.
+     */
+    AsyncFunction("closeApp") {
+      appContext.currentActivity?.finishAndRemoveTask()
+      // A moment for the task to go away first, then end the process.
+      Handler(Looper.getMainLooper()).postDelayed({ Process.killProcess(Process.myPid()) }, 300)
     }.runOnQueue(Queues.MAIN)
 
     /** Self-update (DECISIONS.md#d-062): installed version code and name. */
