@@ -6,13 +6,13 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 |------|---------|
 | `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. Left/right stay in the nav row (no jump to the page at the ends); up/down leave it. |
 | `AboutDialog.tsx` | Account menu → About: installed version (the release build number), commit and date it was built from, connection, FFmpeg audio, Android version; Check for updates. |
-| `AccountMenu.tsx` | Menu under the avatar: other profiles, three groups and Sign out. A group opens in place under its name with a back arrow (Back also returns): **Profiles** (Manage Profiles, Parental PIN, Languages, D-063/D-067), **Library & devices** (Refresh library, Sync with phone on TV or Connect a TV on phones (D-060), Back up data, Playback when FFmpeg is bundled), **App** (Check for updates in release builds (D-062), About, Log). `confirmSignOut` asks first. |
+| `AccountMenu.tsx` | Menu under the avatar: other profiles, three groups and Sign out. A group opens in place under its name with a back arrow (Back also returns): **Profiles** (Manage Profiles, Parental PIN, Languages, D-063/D-067), **Library & devices** (Refresh library, Sync with phone on TV or Connect a TV on phones (D-060), Back up data, Playback when FFmpeg is bundled), **App** (Check for updates in release builds (D-062), About, Log). `confirmSignOut` asks first. Kids profiles only get the other profiles and Switch profile. |
 | `PinPad.tsx` | Parental PIN keypad for D-pad and touch, and `usePinGate` (D-054). |
 | `PinSettings.tsx` | Parental PIN flow: set (typed twice), or change/remove after the current PIN. |
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
 | `Field.tsx` | Labelled text field (login, backup); `onSubmit` + `inputRef` let Enter move to the next field. |
 | `KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-064). |
-| `LanguageSettings.tsx` | Account menu → Languages: only titles with audio or subtitles in one of the chosen languages, per profile (D-063, D-067). |
+| `LanguageSettings.tsx` | Account menu → Languages: only titles with audio or subtitles in one of the chosen languages, per profile (D-063, D-067). Also opened from the profile editor for a given profile. |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus turns it white with a glow and grows it. |
 | `focus.ts` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable`. |
@@ -25,7 +25,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end, built like a card so it lines up in landscape rows too (D-043). |
 | `Select.tsx` | Web `.select`: box with the current value; opens an option list. |
 | `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume. |
-| `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). |
+| `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). Hidden on Kids profiles. |
 | `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |
 | `ProgressRing.tsx` | SVG progress circle. |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` mapping. |

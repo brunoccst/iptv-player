@@ -8,9 +8,12 @@ import { useProfilePrefs, useSession } from '../../hooks/stores';
  * Account menu → Languages (D-063, D-067): only titles with audio or subtitles in one of the chosen languages, for the
  * active profile. No language ticked = all languages. Applied when the dialog closes (every list reloads).
  */
-export function LanguageSettings({ onClose }: { onClose(): void }) {
-  const profileId = useSession((s) => s.activeProfileId);
-  const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+export function LanguageSettings({ onClose, profile }: { onClose(): void; profile?: { id: string; name: string } }) {
+  // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
+  const activeId = useSession((s) => s.activeProfileId);
+  const activeName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+  const profileId = profile?.id ?? activeId;
+  const profileName = profile?.name ?? activeName;
   const saved = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
   const [chosen, setChosen] = useState(saved);
   const toggle = (code: string) =>

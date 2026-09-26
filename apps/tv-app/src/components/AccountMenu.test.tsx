@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { App } from '../App';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
+import { profile } from '../../test/utils';
 import { pressBack, setupApp } from '../../test/utils';
 
 async function flush() {
@@ -40,5 +41,25 @@ describe('account menu groups', () => {
     await act(async () => pressBack());
     expect(navStore.getState().menuOpen).toBe(false);
     expect(screen.queryByTestId('account-menu')).toBeNull();
+  });
+
+  it('Kids profiles only switch profile: no settings, sync, backup, updates, log or sign-out', async () => {
+    setupApp();
+    await render(<App />);
+    await flush();
+    const kid = { id: 'kid', name: 'Mia', avatarKey: null, isKids: true };
+    await act(async () => {
+      stores.session.setState({ profiles: [profile, kid] });
+      stores.session.getState().selectProfile('kid');
+    });
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    expect(screen.getByTestId('menu-profile-p1')).toBeTruthy();
+    expect(screen.getByTestId('menu-switch-profile')).toBeTruthy();
+    for (const id of ['menu-group-profiles', 'menu-group-library', 'menu-group-app', 'menu-sign-out']) {
+      expect(screen.queryByTestId(id)).toBeNull();
+    }
+    await fireEvent.press(screen.getByTestId('menu-switch-profile'));
+    expect(stores.session.getState().activeProfileId).toBeNull();
   });
 });

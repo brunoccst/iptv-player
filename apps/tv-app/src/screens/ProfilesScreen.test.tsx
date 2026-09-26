@@ -63,6 +63,15 @@ describe('Kids categories (TV, D-064)', () => {
 
     expect(stores.profilePrefs.getState().prefs.kid?.kidsCategories).toEqual({ movies: ['m2', 'm1'] });
     expect(screen.queryByTestId('kids-categories')).toBeNull();
+
+    // Languages for that profile too: its own menu has no settings.
+    await fireEvent.press(screen.getByTestId('profile-languages'));
+    expect(screen.getByText('Languages for Mia')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('language-GER'));
+    await fireEvent.press(screen.getByTestId('language-close'));
+    await flush();
+    expect(stores.profilePrefs.getState().prefs.kid).toMatchObject({ languages: ['GER'] });
+    expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();
   });
 });
 

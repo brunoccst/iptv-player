@@ -12,9 +12,12 @@ import { FocusButton } from './FocusButton';
  * while a filter is on. Select toggles a language; "All languages" clears the choice. The choice is applied once, when
  * the dialog closes: applying it reloads every list, so doing that on each toggle would stall the TV.
  */
-export function LanguageSettings({ onClose }: { onClose(): void }) {
-  const profileId = useSession((s) => s.activeProfileId);
-  const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+export function LanguageSettings({ onClose, profile }: { onClose(): void; profile?: { id: string; name: string } }) {
+  // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
+  const activeId = useSession((s) => s.activeProfileId);
+  const activeName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+  const profileId = profile?.id ?? activeId;
+  const profileName = profile?.name ?? activeName;
   const saved = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
   const [chosen, setChosen] = useState(saved);
   const toggle = (code: string) =>

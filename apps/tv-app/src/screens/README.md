@@ -5,7 +5,7 @@ Each screen mirrors the web page with the same name ([D-041](../../../../documen
 | File | Screen |
 |------|--------|
 | `LoginScreen.tsx` | Web sign-in panel plus the connection choice ("IPTV provider" = direct, "My server" + address), "Restore from backup" (D-056), and on TVs a QR code to sign in from the phone app (D-060). |
-| `ProfilesScreen.tsx` | "Who's watching?"; Manage Profiles adds, edits (name, colour, Kids) and deletes profiles. |
+| `ProfilesScreen.tsx` | "Who's watching?"; Manage Profiles adds, edits (name, colour, Kids) and deletes profiles. The editor also opens Choose categories (Kids) and Choose languages. |
 | `HomeScreen.tsx` | Hero, Continue Watching, Live TV, Series and category rows. The library notice floats at the bottom, over the rows. |
 | `titles.tsx` | `MasterCardItem`, `TitleRow` (Home rows: first 10 titles; the title and the "See all" arrow card open Movies/Series on that category, D-043) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads; optional "Sort by" select, D-049). |
 | `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
