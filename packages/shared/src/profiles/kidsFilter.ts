@@ -16,11 +16,15 @@ const NOTHING = '__kids-none__';
 
 /**
  * Wraps an API client so that, while `isKids()` is true, categories, live channels, the guide, library lists (and
- * search) and raw movie/series lists only contain kids categories. `reset()` forgets cached category ids (account change).
+ * search) and raw movie/series lists only contain kids categories. `chosen(section)` returns the categories a parent
+ * picked for the active Kids profile (D-064); `null` falls back to the name rule. `reset()` forgets cached category ids
+ * (account change).
  */
-export function withKidsFilter(api: ApiClient, isKids: () => boolean) {
+export function withKidsFilter(api: ApiClient, isKids: () => boolean, chosen: (section: CatalogSection) => string[] | null = () => null) {
   const cache = new Map<CatalogSection, Promise<string[]>>();
   const allowedIds = (section: CatalogSection) => {
+    const picked = chosen(section);
+    if (picked) return Promise.resolve(picked);
     let ids = cache.get(section);
     if (!ids) {
       ids = api.catalog.categories(section).then((list) => list.filter((c) => isKidsCategory(c.name)).map((c) => c.id));
@@ -43,7 +47,9 @@ export function withKidsFilter(api: ApiClient, isKids: () => boolean) {
       ...api.catalog,
       categories: async (section, signal) => {
         const list = await api.catalog.categories(section, signal);
-        return isKids() ? list.filter((c) => isKidsCategory(c.name)) : list;
+        if (!isKids()) return list;
+        const picked = chosen(section);
+        return picked ? list.filter((c) => picked.includes(c.id)) : list.filter((c) => isKidsCategory(c.name));
       },
       liveChannels: async (categoryId, signal) => {
         const list = await api.catalog.liveChannels(categoryId, signal);

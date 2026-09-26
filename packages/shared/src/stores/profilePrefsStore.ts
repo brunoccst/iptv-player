@@ -1,4 +1,5 @@
 import { createStore } from 'zustand/vanilla';
+import type { CatalogSection } from '../api/types';
 import type { KeyValueStorage } from './storage';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
@@ -7,6 +8,11 @@ export const PROFILE_PREFS_KEY = 'settings.profiles';
 export interface ProfilePrefs {
   /** Only titles with this audio or subtitle language, e.g. `ENG` (D-063). Absent = all languages. */
   language?: string | null;
+  /**
+   * Kids profiles: the categories a parent picked per section (D-064). A section that is absent or `null` uses the
+   * name rule (D-053); an empty list shows nothing of that section.
+   */
+  kidsCategories?: Partial<Record<CatalogSection, string[] | null>> | null;
 }
 
 export interface ProfilePrefsState {

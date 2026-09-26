@@ -9,8 +9,6 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 
 ## Agent Suggestions
 
-- **Allowed categories per Kids profile**: let parents pick the categories a Kids profile may see, instead of the name-based rule (KI-039).
-
 - **Direct mode + server sync**: let a direct-mode device also push progress/profiles to a backend when one is configured (after Step 8).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
 - **Guide reminders**: notify (web) / banner (TV) when a chosen programme starts.
@@ -40,6 +38,7 @@ flowchart LR
 ```
 
 - [x] **Merge translated titles** (requested 2026-09-26, D-065): titles with the same TMDB id in the provider lists become one title, when their years agree.
+- [x] **Kids profiles: parents choose the categories** (suggested, chosen 2026-09-26, D-064): per Kids profile and section, starting from the name rule.
 - [x] **Language filter** (requested 2026-09-26, D-063): account menu → Language per profile; titles with that audio or subtitle language (from the names) only.
 - [x] **Self-update** (requested 2026-09-26, D-062): the app checks the GitHub `tv-apk` release, offers newer versions, downloads and verifies the APK and opens the Android installer; account menu → Check for updates.
 - [x] **Live TV: transparent guide overlay** (requested 2026-09-25, PR #18, D-058): see-through list of the category's channels with now/next over the playing video; ↑ on TV, swipe up or the Guide button on phones; Select switches channel; closes after 6 s or with Back.

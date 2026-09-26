@@ -115,4 +115,23 @@ describe('Kids profile in the app context', () => {
     await stores.library.getState().loadPage('movies');
     expect(backend.calls.at(-1)?.url.searchParams.get('categoryIds')).toBe('m2');
   });
+
+  it('uses the categories a parent picked; untouched sections keep the name rule (D-064)', async () => {
+    const raw = fakeApi();
+    const picked: Record<string, string[] | null> = { movies: ['m1'], live: [], series: null };
+    const { api } = withKidsFilter(
+      raw as unknown as ApiClient,
+      () => true,
+      (section) => picked[section] ?? null,
+    );
+
+    expect((await api.catalog.categories('movies')).map((c) => c.id)).toEqual(['m1']);
+    expect((await api.catalog.movies(null)).map((m) => m.id)).toEqual(['a']);
+    await api.library.list('movies');
+    expect(raw.library.list).toHaveBeenLastCalledWith('movies', { categoryIds: ['m1'] }, undefined);
+    // An empty choice shows nothing of that section.
+    expect(await api.catalog.liveChannels(null)).toEqual([]);
+    await api.epg.grid({});
+    expect(raw.epg.grid).toHaveBeenLastCalledWith({ categoryIds: ['__kids-none__'] }, undefined);
+  });
 });
