@@ -1363,6 +1363,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2485,7 +2492,8 @@
           "isHdr",
           "containerExtension",
           "categoryId",
-          "rawTitle"
+          "rawTitle",
+          "subtitleLanguages"
         ],
         "type": "object",
         "properties": {
@@ -2536,6 +2544,12 @@
           },
           "rawTitle": {
             "type": "string"
+          },
+          "subtitleLanguages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

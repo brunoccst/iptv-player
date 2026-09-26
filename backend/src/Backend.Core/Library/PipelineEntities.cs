@@ -61,6 +61,9 @@ public sealed class MediaVariant
     /// <summary>JSON array of language codes, e.g. <c>["ENG","ESP"]</c>.</summary>
     public string AudioLanguages { get; set; } = "[]";
 
+    /// <summary>JSON array of subtitle language codes from the name ("SUB ITA", "VOSTFR"); <c>MULTI</c> = several (D-063).</summary>
+    public string SubtitleLanguages { get; set; } = "[]";
+
     public string? AudioTag { get; set; }
     public bool IsHdr { get; set; }
     public int QualityScore { get; set; }

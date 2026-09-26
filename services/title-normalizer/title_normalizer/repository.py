@@ -99,8 +99,8 @@ def complete(connection: sqlite3.Connection, job: Job, masters: list[Master], no
             """
             INSERT INTO media_variants (account_id, media_kind, stream_id, master_id, raw_title, label, quality, source,
                                         audio_languages, audio_tag, is_hdr, quality_score, category_id, poster_url,
-                                        rating, container_extension)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                        rating, container_extension, subtitle_languages)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
@@ -119,6 +119,7 @@ def complete(connection: sqlite3.Connection, job: Job, masters: list[Master], no
                     v.poster_url,
                     v.rating,
                     v.container_extension,
+                    json.dumps(list(v.subtitle_languages)),
                 )
                 for m in masters
                 for v in m.variants

@@ -11,6 +11,7 @@ export * from './stores/epgStore';
 export * from './stores/libraryStore';
 export * from './stores/playerStore';
 export * from './stores/progressStore';
+export * from './stores/profilePrefsStore';
 export * from './stores/watchlistStore';
 export * from './stores/downloadsOwner';
 export * from './stores/pinStore';

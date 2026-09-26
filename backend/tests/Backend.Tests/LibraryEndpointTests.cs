@@ -112,8 +112,24 @@ public class LibraryEndpointTests : IDisposable
         Assert.NotNull(details);
         Assert.Equal(["2", "3"], details.Variants.Select(v => v.StreamId));
         Assert.Equal(["ENG", "ESP"], details.Variants[0].AudioLanguages);
+        Assert.Empty(details.Variants[0].SubtitleLanguages);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/api/library/movies/other-zulu")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/api/library/series/zulu")).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("eng", "Zulu")]
+    [InlineData("ITA", "Alpha")]
+    [InlineData("GER", "")]
+    [InlineData("not-a-code", "Zulu,Alpha")]
+    public async Task Library_FiltersByAudioOrSubtitleLanguage(string language, string expected)
+    {
+        var login = await _client.LoginAndAuthorizeAsync();
+        await SeedAsync(login.Account.Id.ToString());
+
+        var page = await _client.GetFromJsonAsync<LibraryPage>($"/api/library/movies?language={language}", ApiClientExtensions.Json);
+
+        Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries), page!.Items.Select(i => i.Title));
     }
 
     [Fact]
@@ -146,7 +162,7 @@ public class LibraryEndpointTests : IDisposable
         await using var scope = _factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PipelineDbContext>();
 
-        MediaVariant Variant(string streamId, string masterId, int score, string category, string audio) => new()
+        MediaVariant Variant(string streamId, string masterId, int score, string category, string audio, string subtitles = "[]") => new()
         {
             AccountId = accountId,
             MediaKind = LibraryKind.Movie,
@@ -157,6 +173,7 @@ public class LibraryEndpointTests : IDisposable
             QualityScore = score,
             CategoryId = category,
             AudioLanguages = audio,
+            SubtitleLanguages = subtitles,
         };
 
         db.MasterMedia.AddRange(
@@ -181,7 +198,7 @@ public class LibraryEndpointTests : IDisposable
                 NormalizedKey = "alpha",
                 VariantCount = 1,
                 AddedAt = 100,
-                Variants = [Variant("1", idPrefix + "alpha", 50, "hd", "[]")],
+                Variants = [Variant("1", idPrefix + "alpha", 50, "hd", "[]", "[\"ITA\"]")],
             });
         await db.SaveChangesAsync();
     }

@@ -19,6 +19,7 @@ const variant = (streamId: string) => ({
   containerExtension: 'mp4',
   categoryId: null,
   rawTitle: streamId,
+  subtitleLanguages: [],
 });
 
 const details: MasterDetails = {

@@ -24,6 +24,8 @@ export interface LibraryListQuery {
   order?: SortOrder;
   /** Only titles in these categories (Kids profiles, D-053). An empty list is not sent: callers handle "nothing allowed". */
   categoryIds?: string[] | null;
+  /** Only titles with a version in this audio or subtitle language, e.g. `ENG` (D-063). */
+  language?: string | null;
 }
 
 /** `from` is an ISO timestamp; the backend defaults it to the current half hour. */

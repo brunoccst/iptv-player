@@ -6,7 +6,7 @@ describe('library codec', () => {
   const masters = buildMasters('acc', 'movie', [
     { id: 1, name: 'Big Movie (2020) 4K', posterUrl: 'http://img.tv/p/a.jpg', rating: 7.5, containerExtension: 'mkv', categoryId: '3' },
     { id: 2, name: 'Big Movie 2020 1080p', posterUrl: 'http://img.tv/p/b.jpg', rating: 8, containerExtension: 'mp4' },
-    { id: 3, name: 'Other', posterUrl: null },
+    { id: 3, name: 'Other SUB ITA', posterUrl: null },
   ]);
 
   it('round-trips masters and is smaller than plain JSON', () => {

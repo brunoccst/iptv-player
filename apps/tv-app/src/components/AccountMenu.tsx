@@ -7,6 +7,7 @@ import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
 import { BackupDialog } from './BackupDialog';
+import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
@@ -31,6 +32,7 @@ export function AccountMenu() {
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [playback, setPlayback] = useState(false);
+  const [language, setLanguage] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -41,6 +43,7 @@ export function AccountMenu() {
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
       {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
+      {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -96,6 +99,15 @@ export function AccountMenu() {
           onPress={() => {
             close();
             pairingDialog.setState({ open: true });
+          }}
+        />
+        <MenuItem
+          icon="subtitles"
+          label="Language"
+          testID="menu-language"
+          onPress={() => {
+            close();
+            setLanguage(true);
           }}
         />
         <MenuItem

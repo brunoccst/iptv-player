@@ -93,6 +93,12 @@ const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const ME_TIMEOUT_MS = 10_000;
 const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.parse(iso) / 1000) || null : null);
 
+/** Upper-case three-letter code, or null for "all languages" (same rule as the backend, D-063). */
+const languageCode = (language: string | null | undefined) => {
+  const code = language?.trim().toUpperCase() ?? '';
+  return /^[A-Z]{3}$/.test(code) ? code : null;
+};
+
 /** Same order as the backend (D-049): missing values last, then title, year and id. */
 const defaultOrder = (sort: LibrarySort): SortOrder => (sort === 'title' ? 'asc' : 'desc');
 const sortValue = (master: Master, sort: LibrarySort) => (sort === 'added' ? master.addedAt : master.releaseKey);
@@ -710,9 +716,15 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const scope = allowed
           ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
           : inCategory;
-        const matches = search
-          ? scope.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
+        const language = languageCode(query.language);
+        const inLanguage = language
+          ? scope.filter((master) =>
+              master.variants.some((v) => v.audioLanguages.includes(language) || v.subtitleLanguages.includes(language)),
+            )
           : scope;
+        const matches = search
+          ? inLanguage.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
+          : inLanguage;
         const offset = Math.max(0, query.offset ?? 0);
         return {
           total: matches.length,
@@ -736,6 +748,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             containerExtension: variant.containerExtension,
             categoryId: variant.categoryId,
             rawTitle: variant.rawTitle,
+            subtitleLanguages: variant.subtitleLanguages,
           }));
         const { variantCount: _count, ...card } = toCard(master);
         return { ...card, variants };

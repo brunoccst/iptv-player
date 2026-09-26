@@ -18,6 +18,7 @@ interface ParseCase {
   languages?: string[];
   audioTag?: string | null;
   hdr?: boolean;
+  subtitles?: string[];
 }
 
 const parser = load('parser') as { parse: ParseCase[]; keys: { title: string; key: string }[] };
@@ -33,6 +34,7 @@ describe('parseTitle (shared cases)', () => {
       languages: parsed.audioLanguages,
       audioTag: parsed.audioTag,
       hdr: parsed.isHdr,
+      subtitles: parsed.subtitleLanguages,
     };
     const fields = Object.keys(actual).filter((field) => field in testCase) as (keyof typeof actual)[];
     expect(Object.fromEntries(fields.map((field) => [field, actual[field]]))).toEqual(

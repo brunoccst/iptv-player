@@ -25,6 +25,13 @@ public sealed class LibraryService(PipelineDbContext db)
             masters = masters.Where(m => m.Variants.Any(v => v.CategoryId != null && allowed.Contains(v.CategoryId)));
         }
 
+        if (LanguageCode(query.Language) is { } language)
+        {
+            // Audio or subtitles in that language, from the version names (D-063). Stored as JSON arrays: ["ENG","ESP"].
+            var quoted = $"\"{language}\"";
+            masters = masters.Where(m => m.Variants.Any(v => v.AudioLanguages.Contains(quoted) || v.SubtitleLanguages.Contains(quoted)));
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var pattern = $"%{query.Search.Trim().ToLowerInvariant()}%";
@@ -53,6 +60,10 @@ public sealed class LibraryService(PipelineDbContext db)
 
         return new LibraryPage(total, items, sorts);
     }
+
+    /// <summary>Upper-case three-letter code (<c>ENG</c>), or null for "all languages" and anything that is not a code.</summary>
+    public static string? LanguageCode(string? language) =>
+        language?.Trim().ToUpperInvariant() is { Length: 3 } code && code.All(char.IsAsciiLetterUpper) ? code : null;
 
     /// <summary>Dates default to newest first, titles to A–Z.</summary>
     public static SortOrder DefaultOrder(LibrarySort sort) => sort == LibrarySort.Title ? SortOrder.Asc : SortOrder.Desc;
@@ -89,7 +100,7 @@ public sealed class LibraryService(PipelineDbContext db)
             .OrderByDescending(v => v.QualityScore).ThenBy(v => v.Label, StringComparer.Ordinal)
             .Select(v => new VariantInfo(
                 v.StreamId, v.Label, v.Quality, v.Source, JsonSerializer.Deserialize<string[]>(v.AudioLanguages) ?? [],
-                v.AudioTag, v.IsHdr, v.ContainerExtension, v.CategoryId, v.RawTitle))
+                v.AudioTag, v.IsHdr, v.ContainerExtension, v.CategoryId, v.RawTitle, ParseLanguages(v.SubtitleLanguages)))
             .ToList();
 
         return new MasterDetails(master.Id, master.Title, master.Year, master.PosterUrl, master.Rating, master.BestQuality, variants);
@@ -117,10 +128,25 @@ public sealed class LibraryService(PipelineDbContext db)
         return statuses;
     }
 
+    private static string[] ParseLanguages(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(json) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
     private static DateTimeOffset? FromUnix(long? seconds) => seconds is { } value ? DateTimeOffset.FromUnixTimeSeconds(value) : null;
 }
 
-/// <summary><c>CategoryIds</c>, when set, keeps only titles with a version in one of those categories (Kids profiles, D-053).</summary>
+/// <summary>
+/// <c>CategoryIds</c>, when set, keeps only titles with a version in one of those categories (Kids profiles, D-053).
+/// <c>Language</c> (e.g. <c>ENG</c>) keeps only titles with a version that has that audio or subtitle language (D-063).
+/// </summary>
 public sealed record LibraryQuery(
     string? CategoryId,
     string? Search,
@@ -128,7 +154,8 @@ public sealed record LibraryQuery(
     int Limit = 100,
     LibrarySort Sort = LibrarySort.Added,
     SortOrder? Order = null,
-    IReadOnlyList<string>? CategoryIds = null);
+    IReadOnlyList<string>? CategoryIds = null,
+    string? Language = null);
 
 /// <summary><c>Sorts</c> lists the orders this library has data for; <c>title</c> is always there.</summary>
 public sealed record LibraryPage(int Total, IReadOnlyList<MasterCard> Items, IReadOnlyList<LibrarySort> Sorts);
@@ -149,7 +176,8 @@ public sealed record VariantInfo(
     bool IsHdr,
     string? ContainerExtension,
     string? CategoryId,
-    string RawTitle);
+    string RawTitle,
+    IReadOnlyList<string> SubtitleLanguages);
 
 public sealed record LibraryStatus(
     string MediaKind,

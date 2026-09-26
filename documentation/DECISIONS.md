@@ -66,6 +66,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-059](#d-059) | 2026-09-26 | Bundled FFmpeg audio decoders (switchable) |
 | [D-060](#d-060) | 2026-09-26 | Sign in and sync a TV by scanning a QR code with the phone app |
 | [D-061](#d-061) | 2026-09-26 | Play on TV: start a title on the paired TV from the phone app |
+| [D-063](#d-063) | 2026-09-26 | Language filter per profile (audio or subtitles from the names) |
 
 ---
 
@@ -1142,4 +1143,17 @@ Decision:
 Limits: the TV app must be open (Android does not keep it listening in the background) and both devices on the same network. If the TV gets a new address from the router, pair again (account menu → Sync with phone). No other remote controls (pause, seek) yet.
 
 Alternatives: Google Cast (needs a registered receiver app and Google's cast framework on both sides, and the Chromecast would still need this app for the provider streams); finding the TV by network discovery (mDNS/NSD) instead of the saved address: more native code, left for when addresses change in practice.
+
+## D-063
+
+**Language filter per profile (audio or subtitles from the names)** — 2026-09-26 (requested by owner)
+
+Decision:
+- Account menu → **Language** (TV/phone and web) sets a language per profile, on this device: libraries, Home rows, category pages and search then only show titles with a version that has that audio **or** subtitle language. "All languages" turns it off. The choice is kept in `settings.profiles` (new per-profile preferences store) and is part of the TV/phone backup.
+- Providers do not list tracks per title, so languages come from the names, as for the version labels (D-017): audio from tags like "EN - ", "[GER]"; subtitles from a language next to a subtitle word ("SUB ITA", "ENG-SUB", "[ENG SUB]") and from "VOSTFR" (French), "VOSE" (Spanish), "Legendado" (Portuguese), "Multi-Sub" (`MULTI`, several unnamed). A language next to a subtitle word no longer counts as audio. Same rules in the Python normalizer and the TypeScript port (shared cases).
+- Titles whose names carry no language at all are hidden while a filter is on; that is what the filter asks for.
+- Server mode: `media_variants.subtitle_languages` (migration `AddSubtitleLanguages`, default `[]`), `VariantInfo.subtitleLanguages`, and `GET /api/library/{kind}?language=ENG`. Direct mode filters the on-device library the same way. The saved direct-mode library keeps its format: subtitles are an optional last field, so existing libraries load and pick subtitles up at the next refresh.
+- Live TV is not filtered (channels rarely have language tags in a usable form).
+
+Alternatives: reading tracks per title with `get_vod_info` (one request per title, not possible for lists of 100,000+); the category name as a language hint (useful for some providers, needs category names in the server-mode pipeline; possible follow-up).
 

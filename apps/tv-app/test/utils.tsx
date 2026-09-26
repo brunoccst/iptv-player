@@ -45,6 +45,7 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   stores.pin.setState({ status: 'none', lockedUntil: null });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
   playbackSettings.setState({ audioDecoder: 'device' });
+  stores.profilePrefs.setState({ prefs: {} });
   pairingDialog.setState({ open: false });
   pairedTv.setState({ tv: null });
   void SecureStore.deleteItemAsync('remote.tv');
@@ -68,6 +69,7 @@ export const variant = (streamId: string, label: string, container = 'mkv') => (
   containerExtension: container,
   categoryId: null,
   rawTitle: label,
+  subtitleLanguages: [],
 });
 
 export const playback = (url: string, container = 'mkv') => ({ url, container, isLive: false, deliveryMode: 'relay' });
