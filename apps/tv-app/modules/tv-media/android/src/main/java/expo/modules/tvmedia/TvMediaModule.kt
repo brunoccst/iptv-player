@@ -32,7 +32,7 @@ class TvMediaModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("TvMedia")
-    Events("onDownloadsChanged", "onPairingRequest")
+    Events("onDownloadsChanged", "onPairingRequest", "onUpdateProgress")
 
     OnCreate {
       DownloadCenter.init(context)
@@ -132,6 +132,35 @@ class TvMediaModule : Module() {
         activity.startActivity(intent)
         "opened"
       }
+    }
+
+    /** Self-update (DECISIONS.md#d-062): installed version code and name. */
+    Function("installedVersion") {
+      AppUpdater.installedVersion(context)
+    }
+
+    /** Downloads the update APK (progress in `onUpdateProgress`), checks its SHA-256; resolves with the file path. */
+    AsyncFunction("downloadUpdate") { url: String, sha256: String? ->
+      AppUpdater.download(context, url, sha256) { done, total ->
+        sendEvent("onUpdateProgress", mapOf("bytes" to done.toDouble(), "total" to total.toDouble()))
+      }
+    }
+
+    /** "ok", "not-newer", "other-app" or "other-key" (different signing key: Android would refuse it). */
+    Function("checkUpdate") { path: String ->
+      AppUpdater.check(context, path)
+    }
+
+    Function("canInstallUpdates") {
+      AppUpdater.canInstall(context)
+    }
+
+    Function("openInstallSettings") {
+      AppUpdater.openInstallSettings(context)
+    }
+
+    Function("installUpdate") { path: String ->
+      AppUpdater.install(context, path)
     }
 
     /** Sign-out and account change (DECISIONS.md#d-050). */

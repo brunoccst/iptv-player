@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
-import { navStore, signOut, stores } from '../appContext';
-import { appConfig } from '../config';
+import { navStore, signOut, stores, updater } from '../appContext';
+import { appConfig, updateRepo } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
@@ -128,6 +128,19 @@ export function AccountMenu() {
             void stores.library.getState().sync();
           }}
         />
+        {/* Builds from the GitHub release can update themselves (D-062). */}
+        {updateRepo ? (
+          <MenuItem
+            icon="download"
+            label="Check for updates"
+            testID="menu-update"
+            onPress={() => {
+              close();
+              updater.open();
+              void updater.check();
+            }}
+          />
+        ) : null}
         <MenuItem icon="info" label="Log" testID="menu-log" onPress={() => navStore.getState().goSection('log')} />
         <MenuItem
           icon="logout"

@@ -3,6 +3,8 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <!-- Self-update (D-062): hand a newer APK from the GitHub release to the system installer; the user confirms. -->
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
   <!-- External players (D-057): Android 11+ only lists apps the manifest declares interest in. -->
   <queries>
@@ -17,6 +19,16 @@
   </queries>
 
   <application>
+    <!-- Self-update (D-062): lets the system installer read the downloaded APK from the app cache. -->
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.tvmedia.updates"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/tvmedia_update_paths" />
+    </provider>
     <!-- Media3 DownloadService: keeps downloads running while the app is in the background. -->
     <service
       android:name="expo.modules.tvmedia.TvDownloadService"
