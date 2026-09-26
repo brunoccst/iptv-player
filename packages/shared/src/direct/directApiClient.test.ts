@@ -126,6 +126,12 @@ describe('createDirectApiClient', () => {
     expect((await api.library.list('movies', { categoryIds: ['11', 'x'] })).items.map((card) => card.title)).toEqual(['Big Test Movie']);
     expect((await api.library.list('movies', { categoryIds: ['x'] })).total).toBe(0);
     expect((await api.library.list('movies', { categoryId: '11' })).items.map((card) => card.title)).toEqual(['Big Test Movie']);
+    // Language filter (D-063): audio from "EN - …", subtitles from "SUB ITA"; unknown codes mean "all".
+    expect(await titles({ language: 'ENG' })).toEqual(['Big Test Movie']);
+    expect(await titles({ language: 'ita' })).toEqual(['Another Film']);
+    expect(await titles({ language: 'GER' })).toEqual([]);
+    expect(await titles({ language: null })).toHaveLength(2);
+    expect(await titles({ language: 'not-a-code' })).toHaveLength(2);
     expect((await api.library.list('series')).items[0]).toMatchObject({ title: 'Test Series', year: 2021 });
 
     const details = await api.library.get('movies', page.items[1]!.id);

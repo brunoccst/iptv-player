@@ -34,6 +34,38 @@ describe('Profiles (TV)', () => {
   });
 });
 
+describe('Kids categories (TV, D-064)', () => {
+  it('a parent picks the categories of a Kids profile, starting from the automatic choice', async () => {
+    const backend = setupApp();
+    const kid = { id: 'kid', name: 'Mia', avatarKey: null, isKids: true };
+    backend.on('GET', '/api/catalog/movies/categories', {
+      body: [
+        { id: 'm1', name: 'Action', kind: 'movie' },
+        { id: 'm2', name: 'Kids Movies', kind: 'movie' },
+      ],
+    });
+    await render(<App />);
+    await flush();
+    await act(async () => {
+      stores.session.setState({ profiles: [profile, kid] });
+      stores.session.getState().selectProfile(null);
+    });
+    await fireEvent.press(screen.getByLabelText('Manage Profiles'));
+    await fireEvent.press(screen.getByLabelText('Mia'));
+    await fireEvent.press(screen.getByTestId('profile-categories'));
+    await flush();
+
+    expect(screen.getByTestId('kids-category-Kids Movies')).toBeChecked();
+    expect(screen.getByTestId('kids-category-Action')).not.toBeChecked();
+    await fireEvent.press(screen.getByTestId('kids-category-Action'));
+    await fireEvent.press(screen.getByTestId('kids-categories-save'));
+    await flush();
+
+    expect(stores.profilePrefs.getState().prefs.kid?.kidsCategories).toEqual({ movies: ['m2', 'm1'] });
+    expect(screen.queryByTestId('kids-categories')).toBeNull();
+  });
+});
+
 describe('Parental PIN (TV, D-054)', () => {
   const typePin = async (pin: string) => {
     for (const digit of pin) await fireEvent.press(screen.getByTestId(`pin-key-${digit}`));

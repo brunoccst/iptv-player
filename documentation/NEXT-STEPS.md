@@ -4,14 +4,10 @@
 
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
-- [ ] **Language filter** (requested 2026-09-26): an option to show only titles with audio or subtitles in a chosen language. Note: providers do not list audio or subtitle tracks per title; the app only knows the languages in the names ("EN - ", "[MULTI]", D-017). Subtitles are only known once a stream is opened, so the filter needs a way to learn them (e.g. from `get_vod_info`, where the provider sends it) or has to work on audio from names only.
 - [ ] **Faster TV emulator CI step** (requested 2026-09-26): speed up `TV app (Android TV emulator) / Build APK + Maestro on Android TV emulator`, only where the gain is worth it; keep the workflow readable (see D-044 for what was already done).
-- [ ] **Evaluate self-update** (requested 2026-09-26): the app is only installed from this GitHub repository, not a store. Check whether it can look for a newer `tv-apk` release, ask the user, download the APK and hand it to the Android installer (install permission for this app, same signing key as the installed app, D-052).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
-
-- **Allowed categories per Kids profile**: let parents pick the categories a Kids profile may see, instead of the name-based rule (KI-039).
 
 - **Direct mode + server sync**: let a direct-mode device also push progress/profiles to a backend when one is configured (after Step 8).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
@@ -42,6 +38,9 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Kids profiles: parents choose the categories** (suggested, chosen 2026-09-26, D-064): per Kids profile and section, starting from the name rule.
+- [x] **Language filter** (requested 2026-09-26, D-063): account menu → Language per profile; titles with that audio or subtitle language (from the names) only.
+- [x] **Self-update** (requested 2026-09-26, D-062): the app checks the GitHub `tv-apk` release, offers newer versions, downloads and verifies the APK and opens the Android installer; account menu → Check for updates.
 - [x] **Live TV: transparent guide overlay** (requested 2026-09-25, PR #18, D-058): see-through list of the category's channels with now/next over the playing video; ↑ on TV, swipe up or the Guide button on phones; Select switches channel; closes after 6 s or with Back.
 - [x] **External player for movies and episodes** (requested 2026-09-25, PR #18, D-057): "Open in another player" on movie details and on each episode; hands the stream to VLC, MX Player, Just Player and others with the provider User-Agent; the app chooser when no default player is set.
 - [x] **Export and import user data** (requested 2026-09-25, D-056): password-protected backup file with sign-in, server settings, profiles, PIN, progress and My List; restore from the login screen.

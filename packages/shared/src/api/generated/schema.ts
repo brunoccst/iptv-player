@@ -657,6 +657,7 @@ export interface components {
             rawTitle: string;
             source: null | string;
             streamId: string;
+            subtitleLanguages: string[];
         };
         WatchlistDto: {
             /** Format: date-time */
@@ -1296,6 +1297,7 @@ export interface operations {
             query?: {
                 categoryId?: string;
                 categoryIds?: string;
+                language?: string;
                 limit?: number;
                 offset?: number;
                 order?: string;

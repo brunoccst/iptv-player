@@ -49,6 +49,8 @@ jobs:
       PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
       # Read by modules/tv-media/android/build.gradle; pushes always bundle it (D-059).
       IPTV_FFMPEG_AUDIO: ${{ github.event_name == 'push' || inputs.ffmpeg_audio }}
+      # The app looks for updates in this repository's tv-apk release (D-062).
+      APP_UPDATE_REPO: ${{ github.repository }}
     steps:
       - name: Check address
         run: |
@@ -120,5 +122,6 @@ jobs:
           signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
           notes="Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}, FFmpeg audio: ${IPTV_FFMPEG_AUDIO}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
-          gh release edit tv-apk --notes "$notes"
+          # APK first, then the notes: apps read the version from the notes (self-update, D-062).
           gh release upload tv-apk tv.apk --clobber
+          gh release edit tv-apk --notes "$notes"

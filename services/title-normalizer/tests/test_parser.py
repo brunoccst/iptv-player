@@ -12,6 +12,7 @@ FIELDS = {
     "languages": "audio_languages",
     "audioTag": "audio_tag",
     "hdr": "is_hdr",
+    "subtitles": "subtitle_languages",
 }
 
 
@@ -20,7 +21,7 @@ def test_parse_title(case):
     parsed = parse_title(case["raw"])
 
     actual = {field: getattr(parsed, attribute) for field, attribute in FIELDS.items() if field in case}
-    expected = {field: tuple(case[field]) if field == "languages" else case[field] for field in FIELDS if field in case}
+    expected = {field: tuple(case[field]) if field in ("languages", "subtitles") else case[field] for field in FIELDS if field in case}
     assert actual == expected
 
 

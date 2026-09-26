@@ -10,6 +10,7 @@ import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
+import { createProfilePrefsStore, type ProfilePrefsStore } from './stores/profilePrefsStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
@@ -31,6 +32,8 @@ export interface AppContext {
     pin: PinStore;
     /** Present when direct mode is enabled (native apps). */
     connection?: ConnectionStore;
+    /** Per-profile preferences on this device, e.g. the language filter (D-063). */
+    profilePrefs: ProfilePrefsStore;
   };
   /** Re-reads the saved login, connection and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
@@ -67,8 +70,26 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const providerApi = directApi && connection ? createHybridApiClient({ server: serverApi, connection, direct: directApi }) : serverApi;
 
   // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
-  const kids = withKidsFilter(providerApi, () => selectActiveProfile(session.getState())?.isKids === true);
-  const api = kids.api;
+  // Per-profile preferences on this device: the language filter (D-063) and a Kids profile's categories (D-064).
+  const profilePrefs = createProfilePrefsStore(direct?.dataStorage ?? storage);
+  void profilePrefs.getState().load();
+  const activePrefs = () => {
+    const profileId = session.getState().activeProfileId;
+    return profileId ? profilePrefs.getState().prefs[profileId] : undefined;
+  };
+  const kids = withKidsFilter(
+    providerApi,
+    () => selectActiveProfile(session.getState())?.isKids === true,
+    (section) => activePrefs()?.kidsCategories?.[section] ?? null,
+  );
+  const activeLanguage = () => activePrefs()?.language || null;
+  const api: ApiClient = {
+    ...kids.api,
+    library: {
+      ...kids.api.library,
+      list: (section, query = {}, signal) => kids.api.library.list(section, { language: activeLanguage(), ...query }, signal),
+    },
+  };
 
   const session = createSessionStore({ api, storage });
   const catalog = createCatalogStore({ api });
@@ -78,6 +99,20 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const progress = createProgressStore({ api });
   const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
+
+  // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
+  const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null]);
+  let current = filters();
+  const filtersChanged = () => {
+    const next = filters();
+    if (next === current) return;
+    current = next;
+    catalog.getState().reset();
+    epg.getState().reset();
+    library.getState().reset();
+  };
+  profilePrefs.subscribe(filtersChanged);
+  session.subscribe(filtersChanged);
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
@@ -121,5 +156,5 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     }
   };
 
-  return { config, api, reload, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection } };
+  return { config, api, reload, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection, profilePrefs } };
 }

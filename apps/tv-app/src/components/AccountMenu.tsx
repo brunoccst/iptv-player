@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
-import { navStore, signOut, stores } from '../appContext';
-import { appConfig } from '../config';
+import { navStore, signOut, stores, updater } from '../appContext';
+import { appConfig, updateRepo } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
 import { BackupDialog } from './BackupDialog';
+import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
@@ -31,6 +32,7 @@ export function AccountMenu() {
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [playback, setPlayback] = useState(false);
+  const [language, setLanguage] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -41,6 +43,7 @@ export function AccountMenu() {
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
       {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
+      {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -99,6 +102,15 @@ export function AccountMenu() {
           }}
         />
         <MenuItem
+          icon="subtitles"
+          label="Language"
+          testID="menu-language"
+          onPress={() => {
+            close();
+            setLanguage(true);
+          }}
+        />
+        <MenuItem
           icon="backup"
           label="Back up data"
           testID="menu-backup"
@@ -128,6 +140,19 @@ export function AccountMenu() {
             void stores.library.getState().sync();
           }}
         />
+        {/* Builds from the GitHub release can update themselves (D-062). */}
+        {updateRepo ? (
+          <MenuItem
+            icon="download"
+            label="Check for updates"
+            testID="menu-update"
+            onPress={() => {
+              close();
+              updater.open();
+              void updater.check();
+            }}
+          />
+        ) : null}
         <MenuItem icon="info" label="Log" testID="menu-log" onPress={() => navStore.getState().goSection('log')} />
         <MenuItem
           icon="logout"

@@ -6,6 +6,7 @@ import { confirmSignOut } from '../components/AccountMenu';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Icon } from '../components/Icon';
+import { KidsCategories } from '../components/KidsCategories';
 import { usePinGate } from '../components/PinPad';
 import { usePin, useSession } from '../hooks';
 import { colors, fonts, radius } from '../theme';
@@ -132,6 +133,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   const [name, setName] = useState(profile?.name ?? '');
   const [isKids, setIsKids] = useState(profile?.isKids ?? false);
   const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
+  const [categories, setCategories] = useState(false);
   const session = stores.session.getState();
   const close = () => {
     session.clearError();
@@ -188,6 +190,16 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             <View style={[styles.box, isKids && styles.boxChecked]}>{isKids ? <Icon name="check" size={16} color="#000" /> : null}</View>
             <Text style={styles.checkLabel}>Kids profile</Text>
           </Pressable>
+          {/* Parents pick what a saved Kids profile may see (D-064); new profiles can do so after the first save. */}
+          {isKids && profile ? (
+            <FocusButton
+              label="Choose categories"
+              icon="pencil"
+              variant="ghost"
+              onPress={() => setCategories(true)}
+              testID="profile-categories"
+            />
+          ) : null}
           {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
           <View style={styles.editorActions}>
             <FocusButton label="Save" variant="primary" disabled={busy || !name.trim()} onPress={() => void save()} testID="profile-save" />
@@ -198,6 +210,9 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           </View>
         </View>
       </ScrollView>
+      {categories && profile ? (
+        <KidsCategories profileId={profile.id} name={name.trim() || profile.name} onClose={() => setCategories(false)} />
+      ) : null}
     </Modal>
   );
 }

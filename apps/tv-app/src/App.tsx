@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
-import { downloadsStore, navStore, stores } from './appContext';
+import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
@@ -20,8 +20,11 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
 import { pairedTv, useRemoteServer } from './pairing/remote';
+import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
+
+const UPDATE_CHECK_DELAY_MS = 15_000;
 
 /** Gate: restore session → login → profile picker → shell. */
 export function App() {
@@ -40,7 +43,12 @@ export function App() {
     void stores.session.getState().restore();
     if (!Platform.isTV) void pairedTv.getState().load();
     downloadsStore.getState().init();
-    return () => downloadsStore.getState().dispose();
+    // Looks for a newer APK once the app has settled (D-062).
+    const updateTimer = setTimeout(() => void updater.check(true), UPDATE_CHECK_DELAY_MS);
+    return () => {
+      clearTimeout(updateTimer);
+      downloadsStore.getState().dispose();
+    };
   }, []);
 
   useEffect(() => {
@@ -63,6 +71,7 @@ export function App() {
         )}
       </View>
       <PairingDialogHost />
+      <UpdateDialog />
     </View>
   );
 }

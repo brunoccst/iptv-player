@@ -64,3 +64,6 @@ export interface TvPlayerViewRef {
 
 /** `opened`: a default player took the stream; `chooser`: the system app chooser was shown; `none`: no player app. */
 export type ExternalPlayerResult = 'opened' | 'chooser' | 'none';
+
+/** What Android would say about a downloaded update (D-062): `other-key` means a different signing key. */
+export type UpdateCheck = 'ok' | 'not-newer' | 'other-app' | 'other-key';
