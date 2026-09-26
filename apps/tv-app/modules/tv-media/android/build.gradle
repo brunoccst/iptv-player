@@ -26,6 +26,9 @@ dependencies {
   implementation "androidx.media3:media3-database:${media3Version}"
   implementation "androidx.media3:media3-datasource:${media3Version}"
 
+  // QR code scanner for phone-to-TV pairing (D-060): Google's scanner from Play services, no camera permission.
+  implementation 'com.google.android.gms:play-services-code-scanner:16.1.0'
+
   // Software audio decoders from FFmpeg (Dolby Digital/Plus, DTS, TrueHD, …) for devices whose own decoder fails
   // (KI-043, D-059). Jellyfin's prebuilt Media3 extension, same Media3 version. To turn it off, build with
   // `-PiptvFfmpegAudio=false` or the env var IPTV_FFMPEG_AUDIO=0; the player code needs no change (it only uses the

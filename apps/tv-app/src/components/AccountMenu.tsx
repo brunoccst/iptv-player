@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
 import { navStore, signOut, stores } from '../appContext';
 import { appConfig } from '../config';
@@ -11,6 +11,7 @@ import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
+import { pairingDialog } from '../pairing/PairingDialogs';
 
 /** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
 export function confirmSignOut() {
@@ -32,6 +33,7 @@ export function AccountMenu() {
   const [playback, setPlayback] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
+
   // PIN prompts and the backup dialog outlive the menu: it closes before they open.
   const overlays = (
     <>
@@ -84,6 +86,16 @@ export function AccountMenu() {
           onPress={() => {
             close();
             setPinSettings(true);
+          }}
+        />
+        {/* Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it. */}
+        <MenuItem
+          icon={Platform.isTV ? 'phone' : 'tv'}
+          label={Platform.isTV ? 'Sync with phone' : 'Connect a TV'}
+          testID="menu-pairing"
+          onPress={() => {
+            close();
+            pairingDialog.setState({ open: true });
           }}
         />
         <MenuItem

@@ -4,6 +4,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { createFakeBackend, type FakeBackend } from '../../../packages/shared/src/testing/fakeBackend';
 import { downloadsStore, navStore, playbackSettings, stores } from '../src/appContext';
 import { connectionStore } from '../src/hooks';
+import { pairingDialog } from '../src/pairing/PairingDialogs';
 import { nativeState, playerState } from './tvMediaMock';
 
 export const profile = { id: 'p1', name: 'Alex', avatarKey: null, isKids: false };
@@ -43,6 +44,7 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   stores.pin.setState({ status: 'none', lockedUntil: null });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
   playbackSettings.setState({ audioDecoder: 'device' });
+  pairingDialog.setState({ open: false });
   stores.session.setState(
     options.signedIn === false
       ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }
