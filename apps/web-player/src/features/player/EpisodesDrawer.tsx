@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { episodeLabel, type Episode, type SeriesDetails } from '@iptv/shared';
+import { episodeLabel, type MergedEpisode, type MergedSeries } from '@iptv/shared';
 
 interface EpisodesDrawerProps {
-  series: SeriesDetails;
+  /** All versions' episodes (D-066). */
+  series: MergedSeries;
   currentEpisodeId: string;
-  onPlay(episode: Episode): void;
+  onPlay(episode: MergedEpisode): void;
 }
 
 /** In-player episode picker. */

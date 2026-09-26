@@ -1,5 +1,5 @@
 import Hls from 'hls.js';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   NEXT_UP_COUNTDOWN_SECONDS,
   SKIP_SECONDS,
@@ -12,7 +12,10 @@ import {
   skipAheadLabel,
   skipAheadWindow,
   SKIP_AHEAD_OPTIONS,
+  loadSeriesVersions,
+  mergeSeriesVersions,
   nextEpisode,
+  playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
   type VariantInfo,
@@ -63,8 +66,20 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
   const isLive = target.kind === 'live';
 
-  // Series context for the episodes drawer and next-up.
-  const series = useAsync(target.seriesId ? `series:${target.seriesId}` : null, () => api.catalog.seriesDetails(target.seriesId!));
+  // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066).
+  const seriesMaster = useLibrary((s) => (target.masterId ? s.details[`series|${target.masterId}`] : undefined));
+  useEffect(() => {
+    if (target.kind === 'episode' && target.masterId) void stores.library.getState().loadDetails('series', target.masterId);
+  }, [target.kind, target.masterId]);
+  const seriesVersions = playerSeriesVersions(target, seriesMaster);
+  const loadedVersions = useAsync(seriesVersions ? `series-versions:${seriesVersions.map((v) => v.seriesId).join(',')}` : null, () =>
+    loadSeriesVersions(api, seriesVersions!),
+  );
+  const mergedSeries = useMemo(
+    () => (loadedVersions.data ? mergeSeriesVersions(loadedVersions.data, target.seriesId) : null),
+    [loadedVersions.data, target.seriesId],
+  );
+  const series = { data: mergedSeries };
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
 
   // Versions of a movie master for the in-player selector.
@@ -187,7 +202,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     uiStore
       .getState()
       .replacePlayback(
-        episodeTarget({ title: target.title, masterId: target.masterId, seriesId: target.seriesId, posterUrl: target.posterUrl }, next),
+        episodeTarget({ title: target.title, masterId: target.masterId, seriesId: next.seriesId, posterUrl: target.posterUrl }, next),
       );
   }, [next, series.data, target, saveProgress]);
 
@@ -490,7 +505,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               .getState()
               .replacePlayback(
                 episodeTarget(
-                  { title: target.title, masterId: target.masterId, seriesId: target.seriesId!, posterUrl: target.posterUrl },
+                  { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
                   episode,
                 ),
               );

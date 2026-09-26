@@ -70,6 +70,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-063](#d-063) | 2026-09-26 | Language filter per profile (audio or subtitles from the names) |
 | [D-064](#d-064) | 2026-09-26 | Parents choose a Kids profile's categories |
 | [D-065](#d-065) | 2026-09-26 | Merge translated titles by the TMDB id in provider lists |
+| [D-066](#d-066) | 2026-09-26 | One episode list per series, across its versions |
 
 ---
 
@@ -1199,4 +1200,20 @@ Decision:
 - Not all panels send ids in their lists. The direct-mode log line "N items downloaded … M with a TMDB id" shows whether a provider does; with none, titles group by name as before (KI-014).
 
 Alternatives: `get_vod_info`/`get_series_info` per title (has the id more often, but one request per title, not possible for 100,000+ titles); looking titles up on TMDB itself (needs an API key and a network call per title; possible follow-up for providers without ids).
+
+## D-066
+
+**One episode list per series, across its versions** — 2026-09-26 (requested by owner; KI-025)
+
+A series title can have several versions ("EN - Show 4K", "GE - Show"). Each is its own series at the provider with its own seasons and episodes, and they are often incomplete in different ways. Before, the details page showed only the chosen version's episodes.
+
+Decision:
+- The details page (TV/phone and web) loads the episode lists of all versions (three requests at a time; a version that fails is left out) and merges them by season and episode number into one list. Episodes without a number cannot be matched and stay separate; so do two episodes with the same number in one version.
+- Each episode plays in the version chosen at the top ("Version / Stream Quality") when that version has it, otherwise in the best version that does. An episode in several versions has its own version picker; one in a single version says "Only in GER". Text and pictures come from whichever version has them.
+- The player loads the same merged list for next-up and its episode list, preferring the version that is playing: after the last episode of one version it continues with the next episode from another. "Resume" and progress bars use saved progress from any version.
+- Done in the clients (`playback/seriesVersions.ts` in shared), so server and direct mode behave the same; no backend or schema change.
+
+Limits: episodes line up by their numbers only. A provider that numbers a season differently in two versions (specials in season 0 in one, at the end of season 1 in the other; one long season split in two) produces a list that does not line up; the version picker per episode is the way around it. Opening a series costs one provider request per version.
+
+Alternatives: merging during library processing (would need `get_series_info` for every series version up front, too many requests for large lists); ranking versions by episode count (KI-025; still hides episodes that only exist in lower-ranked versions).
 

@@ -1,17 +1,22 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
+  episodeInVersion,
   episodeTarget,
-  findProgress,
+  findEpisodeProgress,
   fluid,
   formatDuration,
+  loadSeriesVersions,
+  mergeSeriesVersions,
   movieTarget,
   progressTarget,
   selectVariant,
+  seriesVersionsOf,
   type LibrarySection,
   type MasterDetails,
+  type MergedEpisode,
+  type MergedSeries,
   type ProgressDto,
-  type SeriesDetails,
   type VariantInfo,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
@@ -134,16 +139,21 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   const variant = useLibrary((s) => selectVariant(s, master));
-  const series = useAsync(variant ? `series:${variant.streamId}` : null, () => api.catalog.seriesDetails(variant!.streamId));
+  // All versions' episode lists, merged into one (D-066); the chosen version plays where it has the episode.
+  const versions = useAsync(variant ? `series-versions:${master.variants.map((v) => v.streamId).join(',')}` : null, () =>
+    loadSeriesVersions(api, seriesVersionsOf(master)),
+  );
+  const merged = useMemo(() => (versions.data ? mergeSeriesVersions(versions.data, variant?.streamId) : null), [versions.data, variant]);
+  const series = { ...versions, data: merged };
   const resume = useMasterProgress(master, 'episode');
   if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
 
   const first = series.data?.seasons[0]?.episodes[0];
-  const canResume = resume?.seriesId === variant.streamId;
+  const canResume = !!resume;
   const playTarget = canResume
     ? progressTarget(resume!)
     : first
-      ? episodeTarget({ title: master.title, masterId: master.id, seriesId: variant.streamId, posterUrl: master.posterUrl }, first)
+      ? episodeTarget({ title: master.title, masterId: master.id, seriesId: first.seriesId, posterUrl: master.posterUrl }, first)
       : null;
   const play = () => {
     if (playTarget) navStore.getState().push({ name: 'player', target: playTarget });
@@ -190,15 +200,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           <ErrorText>{errorText(series.error)}</ErrorText>
         </View>
       ) : null}
-      {series.data ? (
-        <Episodes
-          key={variant.streamId}
-          series={series.data}
-          master={master}
-          seriesId={variant.streamId}
-          initialSeason={canResume ? resume!.seasonNumber : null}
-        />
-      ) : null}
+      {series.data ? <Episodes series={series.data} master={master} initialSeason={canResume ? resume!.seasonNumber : null} /> : null}
     </>
   );
 }
@@ -206,20 +208,25 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
 function Episodes({
   series,
   master,
-  seriesId,
   initialSeason,
 }: {
-  series: SeriesDetails;
+  series: MergedSeries;
   master: MasterDetails;
-  seriesId: string;
   initialSeason: number | null | undefined;
 }) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
+  // Per-episode version choice (first episode id → series id), for this visit of the page.
+  const [chosen, setChosen] = useState<Record<string, string>>({});
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
   const compact = useCompact();
   if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
-  const context = { title: master.title, masterId: master.id, seriesId, posterUrl: series.summary.posterUrl ?? master.posterUrl };
+  const context = (episode: MergedEpisode) => ({
+    title: master.title,
+    masterId: master.id,
+    seriesId: episode.seriesId,
+    posterUrl: series.summary.posterUrl ?? master.posterUrl,
+  });
 
   return (
     <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel="Episodes">
@@ -238,9 +245,10 @@ function Episodes({
           <Text style={styles.muted}>{season.name}</Text>
         )}
       </View>
-      {season.episodes.map((episode) => {
-        const target = episodeTarget(context, episode);
-        const saved = findProgress(progress, 'episode', episode.id);
+      {season.episodes.map((listed) => {
+        const episode = episodeInVersion(listed, chosen[listed.id]);
+        const target = episodeTarget(context(episode), episode);
+        const saved = findEpisodeProgress(progress, episode);
         const play = () => navStore.getState().push({ name: 'player', target });
         const actions = (
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
@@ -251,7 +259,7 @@ function Episodes({
           </View>
         );
         return (
-          <View key={episode.id} style={[styles.episode, compact && styles.episodeCompact]}>
+          <View key={listed.id} style={[styles.episode, compact && styles.episodeCompact]}>
             {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
             <Pressable
               style={[styles.still, compact && styles.stillCompact]}
@@ -275,6 +283,20 @@ function Episodes({
               <Text style={styles.episodePlot} numberOfLines={2}>
                 {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
               </Text>
+              {listed.versions.length > 1 ? (
+                <View style={styles.episodeVersion}>
+                  <Select
+                    compact
+                    label={`Version of ${episode.title}`}
+                    value={episode.seriesId}
+                    options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
+                    onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
+                    testID={`episode-${listed.id}-version`}
+                  />
+                </View>
+              ) : master.variants.length > 1 ? (
+                <Text style={styles.episodePlot}>Only in {listed.versions[0]!.label}</Text>
+              ) : null}
               {/* Phones: buttons under the text, so the title keeps the width. */}
               {compact ? actions : null}
             </View>
@@ -426,6 +448,7 @@ const styles = StyleSheet.create({
   episodeText: { flex: 1 },
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
   episodePlot: { color: colors.muted, fontSize: 13.6 },
+  episodeVersion: { flexDirection: 'row', marginTop: 6 },
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   episodeActionsCompact: { marginTop: 8 },
 });

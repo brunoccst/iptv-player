@@ -11,7 +11,7 @@ Each screen mirrors the web page with the same name ([D-041](../../../../documen
 | `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
 | `BrowseScreen.tsx` | Movies or Series: category chips, sort (default: recently added) + grid. `Chip` is the web `.chip`. |
 | `SearchScreen.tsx` | "Results for …" from the nav search box: Movies and Series grids, matching live channels. Searches once typing pauses (`searchDelay.ts`: about twice the user's gap between keys, 0.4–1.2 s; at least 2 letters) or on Enter. |
-| `DetailsScreen.tsx` | Web details panel over the current page: backdrop, Play/Resume, download, facts, cast, version select, episodes. |
+| `DetailsScreen.tsx` | Web details panel over the current page: backdrop, Play/Resume, download, facts, cast, version select, episodes of all versions with a version picker per episode (D-066). |
 | `LiveScreen.tsx` | Web guide: categories, Earlier / Now / Later, programme details, 3-hour channel × time grid. TV: focus describes, Select plays. Phone: tap selects, "Watch live" plays. [D-032](../../../../documentation/DECISIONS.md#d-032). |
 | `MyListScreen.tsx` | My List: saved titles as a grid, newest first (D-055). Home also shows a My List row (first 10 + arrow card). |
 | `DownloadsScreen.tsx` | My Downloads: progress bar, round Play / Pause / Resume / Delete buttons. |

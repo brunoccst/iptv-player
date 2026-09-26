@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
-import { episodeLabel, type Episode, type SeriesDetails, type VariantInfo } from '@iptv/shared';
+import { episodeLabel, type MergedEpisode, type MergedSeries, type VariantInfo } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
@@ -11,10 +11,11 @@ interface QuickDrawerProps {
   tracks: PlayerTrack[];
   variants: VariantInfo[];
   currentStreamId: string;
-  series: SeriesDetails | null;
+  /** All versions' episodes (D-066). */
+  series: MergedSeries | null;
   onTrack(type: 'audio' | 'text', groupIndex: number, trackIndex: number): void;
   onVariant(variant: VariantInfo): void;
-  onEpisode(episode: Episode): void;
+  onEpisode(episode: MergedEpisode): void;
 }
 
 /** Up/Down in the player: Audio, Subtitles, Versions, Episodes. Focus is trapped inside; Back closes. */

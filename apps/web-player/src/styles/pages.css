@@ -404,6 +404,15 @@
   min-height: 40px;
 }
 
+/* Per-episode version choice (D-066). */
+.select--small {
+  width: auto;
+  min-height: 32px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 1.3rem;
+}
+
 .episode {
   display: grid;
   grid-template-columns: 32px 140px 1fr auto;
