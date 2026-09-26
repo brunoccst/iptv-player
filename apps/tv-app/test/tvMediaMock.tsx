@@ -33,6 +33,11 @@ export const nativeState = {
       this.remoteListeners.forEach((listener) => listener({ id, body }));
     });
   },
+  /** Self-update (D-062). */
+  versionCode: 31,
+  canInstall: true,
+  updateVerdict: 'ok' as 'ok' | 'not-newer' | 'other-app' | 'other-key',
+  updateListeners: new Set<(event: { bytes: number; total: number }) => void>(),
   /** Delivers a request to the running pairing server, like a phone on the network would. */
   pairingRequest(body: string): Promise<{ status: number; body: string }> {
     const id = `req-${this.pairingReplies.size + 1}-${Date.now()}`;
@@ -56,6 +61,10 @@ export const nativeState = {
     this.scanResult = null;
     this.remoteRunning = false;
     this.remoteListeners.clear();
+    this.versionCode = 31;
+    this.canInstall = true;
+    this.updateVerdict = 'ok';
+    this.updateListeners.clear();
   },
 };
 
@@ -63,19 +72,25 @@ export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
-  addListener: ((event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest', listener: Listener | PairingListener) => {
+  addListener: ((
+    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress',
+    listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void),
+  ) => {
     const set = (
       event === 'onPairingRequest'
         ? nativeState.pairingListeners
         : event === 'onRemoteRequest'
           ? nativeState.remoteListeners
-          : nativeState.listeners
+          : event === 'onUpdateProgress'
+            ? nativeState.updateListeners
+            : nativeState.listeners
     ) as Set<typeof listener>;
     set.add(listener);
     return { remove: () => set.delete(listener) };
   }) as {
     (event: 'onDownloadsChanged', listener: Listener): { remove(): void };
     (event: 'onPairingRequest' | 'onRemoteRequest', listener: PairingListener): { remove(): void };
+    (event: 'onUpdateProgress', listener: (event: { bytes: number; total: number }) => void): { remove(): void };
   },
   startPairing: () => {
     nativeState.pairingRunning = true;
@@ -104,6 +119,16 @@ export const TvMedia = {
   },
   randomKey: () => btoa(String.fromCharCode(...Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)))),
   deviceName: () => 'Living room TV',
+  installedVersion: () => ({ versionCode: nativeState.versionCode, versionName: '0.0.0' }),
+  downloadUpdate: async (url: string, sha256: string | null) => {
+    nativeState.calls.push(`update-download:${url}:${sha256}`);
+    nativeState.updateListeners.forEach((listener) => listener({ bytes: 50, total: 100 }));
+    return '/cache/updates/update.apk';
+  },
+  checkUpdate: () => nativeState.updateVerdict,
+  canInstallUpdates: () => nativeState.canInstall,
+  openInstallSettings: () => void nativeState.calls.push('update-settings'),
+  installUpdate: (path: string) => void nativeState.calls.push(`update-install:${path}`),
   startDownload: (id: string, uri: string, isHls: boolean, metadata: string) => {
     nativeState.calls.push(`start:${id}:${uri}:${isHls}`);
     nativeState.downloads.push({ id, state: 'queued', percent: 0, bytesDownloaded: 0, metadata, failureReason: 0 });

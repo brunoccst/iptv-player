@@ -59,5 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     APP_PROVIDER_USER_AGENT: process.env.BACKEND_PROVIDER_USER_AGENT?.trim() ?? '',
     // Optional: '1' logs every remote event (used by the emulator CI build).
     APP_TV_DEBUG_REMOTE: process.env.APP_TV_DEBUG_REMOTE ?? '',
+    // Optional: "owner/repo" whose tv-apk release the app checks for updates (tv-apk.yml sets it; D-062).
+    APP_UPDATE_REPO: process.env.APP_UPDATE_REPO?.trim() ?? '',
   },
 });
