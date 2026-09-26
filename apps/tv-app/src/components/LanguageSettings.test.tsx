@@ -24,11 +24,16 @@ describe('account menu → Languages (D-063, D-067)', () => {
     await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-language'));
     expect(screen.getByText('Languages for Alex')).toBeTruthy();
+    const requestsBefore = backend.calls.length;
     await fireEvent.press(screen.getByTestId('language-GER'));
     await fireEvent.press(screen.getByTestId('language-POR'));
     await fireEvent.press(screen.getByTestId('language-ENG'));
     await fireEvent.press(screen.getByTestId('language-POR'));
     expect(screen.getByText('✓ German')).toBeTruthy();
+    // Toggling only ticks: nothing is saved or reloaded until the dialog closes (a reload per toggle stalled the TV).
+    await flush();
+    expect(backend.calls.length).toBe(requestsBefore);
+    expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();
     await fireEvent.press(screen.getByTestId('language-close'));
     await flush();
 

@@ -93,6 +93,26 @@ const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const ME_TIMEOUT_MS = 10_000;
 const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.parse(iso) / 1000) || null : null);
 
+/**
+ * Titles with audio or subtitles in one of `languages` (D-063, D-067). Home and the grids ask for many lists at once
+ * after a language change; the result is kept per list and language choice, so they share one pass over the titles.
+ */
+const languageScopes = new WeakMap<Master[], Map<string, Master[]>>();
+function inLanguages(scope: Master[], languages: string[]): Master[] {
+  if (languages.length === 0) return scope;
+  const key = languages.join(',');
+  let byKey = languageScopes.get(scope);
+  if (!byKey) languageScopes.set(scope, (byKey = new Map()));
+  let result = byKey.get(key);
+  if (!result) {
+    result = scope.filter((master) =>
+      master.variants.some((v) => languages.some((code) => v.audioLanguages.includes(code) || v.subtitleLanguages.includes(code))),
+    );
+    byKey.set(key, result);
+  }
+  return result;
+}
+
 /** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (same rule as the backend, D-063, D-067). */
 const languageCodes = (languages: string | null | undefined) => [
   ...new Set(
@@ -721,12 +741,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const scope = allowed
           ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
           : inCategory;
-        const languages = languageCodes(query.language);
-        const inLanguage = languages.length
-          ? scope.filter((master) =>
-              master.variants.some((v) => languages.some((code) => v.audioLanguages.includes(code) || v.subtitleLanguages.includes(code))),
-            )
-          : scope;
+        const inLanguage = inLanguages(scope, languageCodes(query.language));
         const matches = search
           ? inLanguage.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
           : inLanguage;

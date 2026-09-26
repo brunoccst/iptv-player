@@ -1,5 +1,5 @@
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRef } from 'react';
+import { useState } from 'react';
 import { LANGUAGE_NAMES, profileLanguages, selectActiveProfile } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { useProfilePrefs, useSession } from '../hooks';
@@ -9,23 +9,24 @@ import { FocusButton } from './FocusButton';
 /**
  * Account menu → Languages (D-063, D-067): only titles with audio or subtitles in one of the chosen languages, for the
  * active profile. Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
- * while a filter is on. Select toggles a language; "All languages" clears the choice.
+ * while a filter is on. Select toggles a language; "All languages" clears the choice. The choice is applied once, when
+ * the dialog closes: applying it reloads every list, so doing that on each toggle would stall the TV.
  */
 export function LanguageSettings({ onClose }: { onClose(): void }) {
   const profileId = useSession((s) => s.activeProfileId);
   const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
-  const chosen = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
-  const changed = useRef(false);
-  const save = async (languages: string[]) => {
-    if (!profileId) return;
-    changed.current = true;
-    await stores.profilePrefs.getState().update(profileId, { languages, language: null });
-  };
-  const toggle = (code: string) => save(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
+  const saved = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
+  const [chosen, setChosen] = useState(saved);
+  const toggle = (code: string) =>
+    setChosen((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code]));
   const close = () => {
-    // Rows and grids reload with the new filter.
-    if (changed.current) navStore.getState().bumpLibrary();
     onClose();
+    if (!profileId || chosen.join(',') === saved.join(',')) return;
+    void stores.profilePrefs
+      .getState()
+      .update(profileId, { languages: chosen, language: null })
+      // Rows and grids reload with the new filter.
+      .then(() => navStore.getState().bumpLibrary());
   };
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
@@ -41,7 +42,7 @@ export function LanguageSettings({ onClose }: { onClose(): void }) {
               variant={chosen.length === 0 ? 'primary' : 'ghost'}
               hasTVPreferredFocus={chosen.length === 0}
               testID="language-all"
-              onPress={() => void save([])}
+              onPress={() => setChosen([])}
             />
             {Object.entries(LANGUAGE_NAMES).map(([code, label]) => {
               const on = chosen.includes(code);
@@ -52,7 +53,7 @@ export function LanguageSettings({ onClose }: { onClose(): void }) {
                   variant={on ? 'primary' : 'ghost'}
                   hasTVPreferredFocus={on && code === chosen[0]}
                   testID={`language-${code}`}
-                  onPress={() => void toggle(code)}
+                  onPress={() => toggle(code)}
                 />
               );
             })}
