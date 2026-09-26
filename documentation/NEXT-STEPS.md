@@ -4,6 +4,9 @@
 
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
+- [ ] **Language filter** (requested 2026-09-26): an option to show only titles with audio or subtitles in a chosen language. Note: providers do not list audio or subtitle tracks per title; the app only knows the languages in the names ("EN - ", "[MULTI]", D-017). Subtitles are only known once a stream is opened, so the filter needs a way to learn them (e.g. from `get_vod_info`, where the provider sends it) or has to work on audio from names only.
+- [ ] **Faster TV emulator CI step** (requested 2026-09-26): speed up `TV app (Android TV emulator) / Build APK + Maestro on Android TV emulator`, only where the gain is worth it; keep the workflow readable (see D-044 for what was already done).
+- [ ] **Evaluate self-update** (requested 2026-09-26): the app is only installed from this GitHub repository, not a store. Check whether it can look for a newer `tv-apk` release, ask the user, download the APK and hand it to the Android installer (install permission for this app, same signing key as the installed app, D-052).
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 
 ## Agent Suggestions
