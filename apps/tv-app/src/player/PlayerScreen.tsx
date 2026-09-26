@@ -43,7 +43,7 @@ import {
   type VariantInfo,
 } from '@iptv/shared';
 import { TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
-import { api, downloadsStore, navStore, stores } from '../appContext';
+import { api, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
 import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -136,6 +136,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
     let cancelled = false;
+    // Read when the title starts: a changed setting applies to the next title, not mid-stream (D-059).
+    const audioDecoder = playbackSettings.getState().audioDecoder;
     const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
     const startPositionMs = (target.startAt ?? resumePosition(saved)) * 1000;
     const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
@@ -148,7 +150,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     }
     const useDownload = download?.state === 'completed' && access.allowed;
     if (useDownload && attempt === 0) {
-      setSource({ offlineId: download.id, startPositionMs });
+      setSource({ offlineId: download.id, startPositionMs, audioDecoder });
       return;
     }
     const plan = tvPlaybackAttempts(target.kind, target.container);
@@ -164,7 +166,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         if (cancelled) return;
         alternates.current = [...(info.alternateUrls ?? [])];
         appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode}, User-Agent ${providerUserAgent})`);
-        setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs });
+        setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs, audioDecoder });
       },
       (error) => {
         if (cancelled) return;

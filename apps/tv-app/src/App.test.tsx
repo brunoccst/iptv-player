@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert, Platform, StatusBar, type AlertButton } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import { BACKUP_FORMAT, createMemoryStorage, exportUserData } from '@iptv/shared';
-import { navStore, stores } from './appContext';
-import { nativeState } from '../test/tvMediaMock';
+import { navStore, playbackSettings, stores } from './appContext';
+import { nativeState, playerState } from '../test/tvMediaMock';
 import { account, playback, pressBack, profile, setupApp, variant } from '../test/utils';
 import { App } from './App';
 
@@ -257,6 +257,31 @@ describe('App (TV)', () => {
     await flush();
     expect(screen.getByTestId('status-bar-space')).toHaveStyle({ height: 0 });
     isTV.mockRestore();
+  });
+
+  it('Playback lets the user choose which audio decoders come first; the player gets the choice (D-059)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/playback/live/7', { body: playback('http://relay/7.m3u8', 'm3u8') });
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    expect(screen.queryByTestId('menu-playback')).toBeNull(); // no FFmpeg in this build
+    await fireEvent.press(screen.getByTestId('nav-account'));
+
+    nativeState.ffmpegAudio = true;
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(await screen.findByTestId('menu-playback'));
+    await fireEvent.press(await screen.findByTestId('audio-decoder-ffmpeg'));
+    await flush();
+    expect(playbackSettings.getState().audioDecoder).toBe('ffmpeg');
+    await fireEvent.press(screen.getByTestId('playback-settings-close'));
+
+    await act(async () =>
+      navStore.getState().push({ name: 'player', target: { kind: 'live', streamId: '7', container: 'm3u8', title: 'News' } }),
+    );
+    await flush();
+    expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/7.m3u8', audioDecoder: 'ffmpeg' });
   });
 
   it('signs out from the account menu after confirming', async () => {

@@ -6,6 +6,7 @@ import { appConfig, providerUserAgent } from './config';
 import { fileStorage } from './dataStorage';
 import { createDownloadsStore } from './downloads/downloadsStore';
 import { createNavStore } from './navigation/navStore';
+import { createPlaybackSettings } from './playbackSettings';
 
 /** Android Keystore-encrypted storage. Session token must not sit in plain files. */
 const secureStorage: KeyValueStorage = {
@@ -49,6 +50,8 @@ export const { stores, api } = appContext;
 /** What the user-data backup reads and writes (D-056). */
 export const backupStorages: BackupStorages = { secure: secureStorage, data: fileStorage };
 export const navStore = createNavStore();
+export const playbackSettings = createPlaybackSettings(fileStorage);
+void playbackSettings.getState().load();
 export const downloadsStore = createDownloadsStore({ api, native: TvMedia });
 /** Downloads belong to the signed-in account; `signOut` removes them first (D-050). */
 export const { signOut } = bindDownloadsToAccount({

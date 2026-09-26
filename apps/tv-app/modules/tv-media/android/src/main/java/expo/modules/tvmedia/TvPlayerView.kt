@@ -33,6 +33,8 @@ class PlayerSource : Record {
   @Field var offlineId: String? = null
   @Field var isHls: Boolean = false
   @Field var startPositionMs: Double = 0.0
+  /** "auto" (phones FFmpeg first, TVs device first), "device" or "ffmpeg": the user's choice (D-059). */
+  @Field var audioDecoder: String? = null
 }
 
 /**
@@ -95,7 +97,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     (context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
 
   fun load(source: PlayerSource?) {
-    val key = source?.let { "${it.offlineId}|${it.uri}" }
+    val key = source?.let { "${it.offlineId}|${it.uri}|${it.audioDecoder}" }
     if (key == loadedKey) return
     loadedKey = key
     releasePlayer()
@@ -106,9 +108,13 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     // FFmpeg audio (when bundled, D-059): phones decode with it first, because some phone Dolby decoders claim
     // support and then fail mid-stream (KI-043); TVs keep their own decoders first so Dolby can still go to a
     // soundbar/receiver, and use FFmpeg only for formats they cannot handle. Without the extension this is a no-op.
-    val extensionMode =
-      if (isTelevision()) DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
-      else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+    val extensionMode = when (source.audioDecoder) {
+      "device" -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+      "ffmpeg" -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+      else ->
+        if (isTelevision()) DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+        else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+    }
     val renderers = DefaultRenderersFactory(context)
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(extensionMode)
