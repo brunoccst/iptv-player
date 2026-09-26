@@ -42,7 +42,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-036](#ki-036) | Limitation | tv-app (direct mode) | Open |
 | [KI-037](#ki-037) | Limitation | tv-app | Open |
 | [KI-038](#ki-038) | Limitation | web-player, tv-app | Open |
-| [KI-039](#ki-039) | Limitation | shared, clients | Open |
+| [KI-039](#ki-039) | Limitation | shared, clients | Mitigated (D-054, D-064) |
 | [KI-040](#ki-040) | Limitation | tv-app, web-player | Open |
 | [KI-041](#ki-041) | Limitation | tv-app | Open |
 | [KI-042](#ki-042) | Bug | tv-app (direct mode) | Resolved |
@@ -306,6 +306,8 @@ The 30-day online check, the subscription check and sign-out deletion (D-050) ar
 Providers send no age ratings, so Kids profiles show only categories whose names look like children's content (D-053). A kids title in a general category ("Movies 2024") is hidden, and an unsuitable title inside a "Kids" category is shown. Any profile can pick another profile or untick "Kids profile" without a PIN, so this is a convenience filter, not a lock.
 
 Update 2026-09-25 (D-054): an optional parental PIN now locks leaving a Kids profile and managing profiles. The PIN is per device, and the name-based filter is unchanged.
+
+Update 2026-09-26 (D-064): parents can pick a Kids profile's categories per section. Titles are still allowed or hidden by category, so an unsuitable title inside an allowed category remains visible.
 
 ## KI-040
 

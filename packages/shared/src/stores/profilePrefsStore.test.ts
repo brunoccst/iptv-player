@@ -46,4 +46,34 @@ describe('profile preferences', () => {
     await stores.library.getState().loadPage('movies');
     expect(lastLanguage()).toBeNull();
   });
+
+  it("a Kids profile's picked categories apply at once; cached lists are dropped (D-064)", async () => {
+    const backend = createFakeBackend();
+    const kid = { ...profile('kid'), isKids: true };
+    backend.on('GET', '/api/auth/me', { body: account });
+    backend.on('GET', '/api/profiles', { body: [kid] });
+    backend.on('GET', '/api/catalog/movies/categories', {
+      body: [
+        { id: 'm1', name: 'Action', kind: 'movie' },
+        { id: 'm2', name: 'Kids', kind: 'movie' },
+      ],
+    });
+    backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
+    const storage = createMemoryStorage({
+      [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [kid], activeProfileId: 'kid' }),
+    });
+    const { stores } = createAppContext({
+      config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+      storage,
+      fetch: backend.fetch,
+    });
+    await stores.session.getState().restore();
+
+    expect((await stores.catalog.getState().loadCategories('movies'))?.map((c) => c.id)).toEqual(['m2']);
+    await stores.profilePrefs.getState().update('kid', { kidsCategories: { movies: ['m1', 'm2'] } });
+    expect(stores.catalog.getState().categories).toEqual({});
+    expect((await stores.catalog.getState().loadCategories('movies'))?.map((c) => c.id)).toEqual(['m1', 'm2']);
+    await stores.library.getState().loadPage('movies');
+    expect(backend.calls.at(-1)?.url.searchParams.get('categoryIds')).toBe('m1,m2');
+  });
 });

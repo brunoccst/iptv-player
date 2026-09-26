@@ -6,6 +6,7 @@ import { Modal } from '../../components/Modal';
 import { usePin, useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { AVATAR_COLORS, avatarColor } from './avatar';
+import { KidsCategories } from './KidsCategories';
 import { usePinGate } from './PinDialog';
 
 const MAX_PROFILES = 5;
@@ -75,6 +76,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   const [name, setName] = useState(profile?.name ?? '');
   const [isKids, setIsKids] = useState(profile?.isKids ?? false);
   const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
+  const [categories, setCategories] = useState(false);
   const session = stores.session.getState();
 
   const save = async () => {
@@ -141,6 +143,12 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
         <label className="checkbox">
           <input type="checkbox" checked={isKids} onChange={(e) => setIsKids(e.target.checked)} /> Kids profile
         </label>
+        {/* Parents pick what a saved Kids profile may see (D-064). */}
+        {isKids && profile ? (
+          <button type="button" className="button button--ghost" onClick={() => setCategories(true)}>
+            <Icon name="pencil" size={18} /> Choose categories
+          </button>
+        ) : null}
         {error ? (
           <p className="error-text" role="alert">
             {errorText(error)}
@@ -157,6 +165,9 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           ) : null}
         </div>
       </form>
+      {categories && profile ? (
+        <KidsCategories profileId={profile.id} name={name.trim() || profile.name} onClose={() => setCategories(false)} />
+      ) : null}
     </Modal>
   );
 }

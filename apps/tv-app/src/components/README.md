@@ -10,6 +10,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `PinSettings.tsx` | Parental PIN flow: set (typed twice), or change/remove after the current PIN. |
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
 | `Field.tsx` | Labelled text field (login, backup); `onSubmit` + `inputRef` let Enter move to the next field. |
+| `KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-064). |
 | `LanguageSettings.tsx` | Account menu → Language: only titles with audio or subtitles in that language, per profile (D-063). |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus shows a white outline. |

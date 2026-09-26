@@ -70,14 +70,19 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const providerApi = directApi && connection ? createHybridApiClient({ server: serverApi, connection, direct: directApi }) : serverApi;
 
   // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
-  const kids = withKidsFilter(providerApi, () => selectActiveProfile(session.getState())?.isKids === true);
-  // Per-profile preferences on this device; the language choice filters every library list (D-063).
+  // Per-profile preferences on this device: the language filter (D-063) and a Kids profile's categories (D-064).
   const profilePrefs = createProfilePrefsStore(direct?.dataStorage ?? storage);
   void profilePrefs.getState().load();
-  const activeLanguage = () => {
+  const activePrefs = () => {
     const profileId = session.getState().activeProfileId;
-    return (profileId && profilePrefs.getState().prefs[profileId]?.language) || null;
+    return profileId ? profilePrefs.getState().prefs[profileId] : undefined;
   };
+  const kids = withKidsFilter(
+    providerApi,
+    () => selectActiveProfile(session.getState())?.isKids === true,
+    (section) => activePrefs()?.kidsCategories?.[section] ?? null,
+  );
+  const activeLanguage = () => activePrefs()?.language || null;
   const api: ApiClient = {
     ...kids.api,
     library: {
@@ -95,16 +100,19 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
 
-  // Another language (a new choice, or another profile's) means other titles: drop cached lists.
-  let language = activeLanguage();
-  const languageChanged = () => {
-    const next = activeLanguage();
-    if (next === language) return;
-    language = next;
+  // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
+  const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null]);
+  let current = filters();
+  const filtersChanged = () => {
+    const next = filters();
+    if (next === current) return;
+    current = next;
+    catalog.getState().reset();
+    epg.getState().reset();
     library.getState().reset();
   };
-  profilePrefs.subscribe(languageChanged);
-  session.subscribe(languageChanged);
+  profilePrefs.subscribe(filtersChanged);
+  session.subscribe(filtersChanged);
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
