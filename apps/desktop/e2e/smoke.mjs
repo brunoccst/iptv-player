@@ -26,6 +26,9 @@ let app = await launch();
 try {
   let page = await app.firstWindow();
   page.on('console', (message) => message.type() === 'error' && console.log(`[page] ${message.text()}`));
+  // The window opens empty and then loads the app from 127.0.0.1.
+  await page.waitForURL(/^http:\/\/127\.0\.0\.1:\d+\//);
+  await page.waitForLoadState();
   assert.equal(await page.evaluate(() => typeof window.iptvDesktop?.secure?.getItem), 'function');
   await expect(page.getByText('Your password stays on this computer')).toBeVisible({ timeout: 30_000 });
 
