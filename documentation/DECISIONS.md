@@ -833,6 +833,7 @@ Decision: a shared ring buffer (`appLog`, 600 lines) records provider requests, 
 
 Why not a crash/analytics service: it needs an account, sends data off the device by default and would still miss the provider-side causes this log records.
 
+Update 2026-09-26 (requested by owner: clean the log after some time): lines older than 3 days are dropped when the app starts and while it logs, besides the 600-line cap.
 
 ## D-040
 
