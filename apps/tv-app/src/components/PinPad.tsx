@@ -4,6 +4,7 @@ import { PIN_LENGTH, type PinResult } from '@iptv/shared';
 import { stores } from '../appContext';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
+import { focus } from './focus';
 
 export const pinMessage = (result: PinResult) =>
   result === 'locked' ? 'Too many wrong tries. Try again in a minute.' : result === 'wrong' ? 'Wrong PIN.' : null;
@@ -71,11 +72,11 @@ function Key({ value, first, onPress }: { value: (typeof KEYS)[number]; first: b
       style={[styles.key, focused && styles.keyFocused]}
     >
       {value === 'back' ? (
-        <Icon name="back" size={22} color={colors.text} />
+        <Icon name="back" size={22} color={focused ? focus.onSolid : colors.text} />
       ) : value === 'cancel' ? (
-        <Icon name="close" size={22} color={colors.text} />
+        <Icon name="close" size={22} color={focused ? focus.onSolid : colors.text} />
       ) : (
-        <Text style={styles.keyText}>{value}</Text>
+        <Text style={[styles.keyText, focused && { color: focus.onSolid }]}>{value}</Text>
       )}
     </Pressable>
   );
@@ -130,6 +131,6 @@ const styles = StyleSheet.create({
     borderRadius: radius,
     backgroundColor: colors.raised,
   },
-  keyFocused: { borderColor: colors.strong, borderWidth: 2 },
+  keyFocused: { borderColor: focus.solid, backgroundColor: focus.solid, ...focus.glow },
   keyText: { color: colors.strong, fontSize: 22, fontWeight: '700' },
 });

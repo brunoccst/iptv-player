@@ -7,6 +7,7 @@ import { useNav, useSession } from '../hooks';
 import { currentSection, type Section } from '../navigation/navStore';
 import { colors, fonts, radius, useCompact, useNavHeight, useSizes } from '../theme';
 import { Gradient } from './Gradient';
+import { focus } from './focus';
 import { Icon } from './Icon';
 
 const LINKS: { section: Section; label: string }[] = [
@@ -58,6 +59,7 @@ export function TopNav() {
       <NavPressable
         label="Account menu"
         testID="nav-account"
+        plain
         selected={menuOpen}
         onPress={() => navStore.getState().setMenuOpen(!menuOpen)}
       >
@@ -147,12 +149,15 @@ function NavPressable({
   label,
   testID,
   selected,
+  plain,
   onPress,
   children,
 }: {
   label: string;
   testID: string;
   selected?: boolean;
+  /** No pill (the avatar shows focus itself). */
+  plain?: boolean;
   onPress(): void;
   children(focused: boolean): React.ReactNode;
 }) {
@@ -166,7 +171,7 @@ function NavPressable({
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={[styles.pressable, focused && styles.pressableFocused]}
+      style={[styles.pressable, plain ? styles.pressablePlain : focused && styles.pressableFocused]}
     >
       {children(focused)}
     </Pressable>
@@ -188,9 +193,12 @@ const styles = StyleSheet.create({
   solid: { backgroundColor: colors.bg },
   brand: { color: colors.accent, fontWeight: '900', letterSpacing: -0.5 },
   links: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
-  pressable: { borderWidth: 2, borderColor: 'transparent', borderRadius: radius + 2, paddingHorizontal: 2 },
-  pressableFocused: { borderColor: colors.strong },
-  link: { color: colors.text, fontSize: 14.4, paddingVertical: 4 },
+  // The pill reaches into the gap between links, so the text stays where it was.
+  pressable: { borderRadius: focus.pill, paddingHorizontal: 10, marginHorizontal: -10 },
+  pressablePlain: { paddingHorizontal: 0, marginHorizontal: 0 },
+  // Focused: a translucent pill behind the link (the avatar grows and glows instead).
+  pressableFocused: { backgroundColor: focus.fill },
+  link: { color: colors.text, fontSize: 14.4, paddingVertical: 6 },
   linkActive: { color: colors.strong, fontWeight: '700' },
   linkFocused: { color: colors.strong },
   right: { flexDirection: 'row', alignItems: 'center', gap: 12, marginLeft: 'auto' },
@@ -201,11 +209,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 6,
     backgroundColor: 'rgba(0,0,0,0.75)',
   },
-  searchFocused: { borderColor: colors.strong, borderWidth: 2 },
+  searchFocused: { borderColor: focus.ring, backgroundColor: 'rgba(40,40,40,0.9)', ...focus.glow },
   searchInput: { flex: 1, color: colors.strong, fontSize: fonts.body, paddingVertical: 4 },
   avatar: { width: 34, height: 34, borderRadius: radius, alignItems: 'center', justifyContent: 'center' },
-  avatarFocused: { transform: [{ scale: 1.1 }] },
+  avatarFocused: { transform: [{ scale: 1.12 }], ...focus.glow },
   avatarText: { color: colors.strong, fontWeight: '700', fontSize: fonts.body },
 });

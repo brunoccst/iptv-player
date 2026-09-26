@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { isKidsCategory, type CatalogSection, type MediaCategory } from '@iptv/shared';
 import { api, stores } from '../appContext';
-import { colors, fonts, radius } from '../theme';
+import { colors, fonts } from '../theme';
 import { Chip } from './ChipBar';
 import { ErrorText } from './Feedback';
 import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
+import { focus } from './focus';
 
 const SECTIONS: { section: CatalogSection; label: string }[] = [
   { section: 'movies', label: 'Movies' },
@@ -140,8 +141,8 @@ const styles = StyleSheet.create({
   hint: { color: colors.muted, fontSize: fonts.small },
   list: { flexGrow: 0, flexShrink: 1 },
   listContent: { gap: 2 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 8, borderRadius: radius },
-  rowFocused: { backgroundColor: colors.raised },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 8, borderRadius: 8 },
+  rowFocused: { backgroundColor: focus.fill },
   rowText: { color: colors.text, fontSize: fonts.small, flexShrink: 1 },
   box: {
     width: 20,
