@@ -34,16 +34,30 @@ export interface Logger {
   persist(storage: KeyValueStorage, key?: string): Promise<void>;
 }
 
+/** Lines older than this are dropped (at start-up and while logging), so the log only covers recent days. */
+export const LOG_MAX_AGE_MS = 3 * 24 * 3600_000;
+
 /** Share sheets and chat apps cut long texts; this keeps the newest part well below that. */
 export const SHARE_MAX_CHARS = 15_000;
 
-export function createLogger({ limit = 600, now = () => new Date() }: { limit?: number; now?: () => Date } = {}): Logger {
+export function createLogger({
+  limit = 600,
+  maxAgeMs = LOG_MAX_AGE_MS,
+  now = () => new Date(),
+}: { limit?: number; maxAgeMs?: number; now?: () => Date } = {}): Logger {
   let items: LogEntry[] = [];
   let save: (() => void) | null = null;
 
+  /** Newest `limit` lines of the last `maxAgeMs`. ISO timestamps compare as text. */
+  const trim = (entries: LogEntry[]) => {
+    const oldest = new Date(now().getTime() - maxAgeMs).toISOString();
+    const first = entries.findIndex((entry) => entry.at >= oldest);
+    return (first < 0 ? [] : entries.slice(first)).slice(-limit);
+  };
+
   const add = (level: LogLevel, area: string, message: string) => {
     items.push({ at: now().toISOString(), level, area, message: redact(message) });
-    if (items.length > limit) items = items.slice(-limit);
+    if (items.length > limit || items[0]!.at < new Date(now().getTime() - maxAgeMs).toISOString()) items = trim(items);
     save?.();
   };
   const line = (entry: LogEntry) => `${entry.at} ${entry.level.toUpperCase().padEnd(5)} [${entry.area}] ${entry.message}`;
@@ -81,11 +95,11 @@ export function createLogger({ limit = 600, now = () => new Date() }: { limit?: 
       try {
         const previous = JSON.parse((await storage.getItem(key)) ?? '[]') as LogEntry[];
         if (Array.isArray(previous) && previous.length > 0) {
-          items = [
+          items = trim([
             ...previous,
             { at: now().toISOString(), level: 'info' as const, area: 'app', message: '--- app started ---' },
             ...items,
-          ].slice(-limit);
+          ]);
         }
       } catch {
         // A broken log file is not worth failing over.

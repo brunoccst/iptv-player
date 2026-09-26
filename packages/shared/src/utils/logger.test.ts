@@ -42,6 +42,26 @@ describe('createLogger', () => {
     vi.useRealTimers();
   });
 
+  it('drops lines older than the age limit, at start-up and while logging', async () => {
+    let time = new Date('2026-09-20T12:00:00Z');
+    const now = () => time;
+    const storage = createMemoryStorage();
+    const first = createLogger({ now, maxAgeMs: 3 * 24 * 3600_000 });
+    first.info('app', 'old');
+    await storage.setItem('diagnostics.log', JSON.stringify(first.entries()));
+
+    time = new Date('2026-09-22T12:00:00Z');
+    first.info('app', 'recent');
+    expect(first.entries().map((entry) => entry.message)).toEqual(['old', 'recent']);
+    time = new Date('2026-09-24T12:00:01Z');
+    first.info('app', 'now');
+    expect(first.entries().map((entry) => entry.message)).toEqual(['recent', 'now']);
+
+    const second = createLogger({ now, maxAgeMs: 3 * 24 * 3600_000 });
+    await second.persist(storage);
+    expect(second.entries().map((entry) => entry.message)).toEqual(['--- app started ---']);
+  });
+
   it('shares the newest lines within a size limit and folds repeats (share targets cut long texts)', () => {
     const log = createLogger({ limit: 1000 });
     for (let i = 0; i < 50; i++) log.info('provider', `get_short_epg: HTTP 200, 19 chars in ${100 + i} ms`);
