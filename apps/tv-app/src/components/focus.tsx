@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Pressable } from 'react-native';
+import { forwardRef, useEffect, useRef, type ComponentProps } from 'react';
+import { Animated, Platform, Pressable, type View } from 'react-native';
 
 /**
  * D-pad focus look, shared by all focusable items: instead of a hard white box, the focused item grows smoothly
@@ -20,8 +20,19 @@ export const focus = {
   pill: 999,
 } as const;
 
-/** Pressable that accepts animated styles (the focus scale). */
-export const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
+
+/**
+ * Pressable that accepts animated styles (the focus scale). `hasTVPreferredFocus` only applies on TV: an animated
+ * component sends it again on re-renders, and on a phone that pulled focus away from the search field when the
+ * keyboard opened (the Home hero's Play button re-rendered for the smaller screen).
+ */
+export const AnimatedPressable = forwardRef<View, ComponentProps<typeof AnimatedPressableBase>>(function AnimatedPressable(
+  { hasTVPreferredFocus, ...props },
+  ref,
+) {
+  return <AnimatedPressableBase ref={ref} {...props} hasTVPreferredFocus={Platform.isTV ? hasTVPreferredFocus : undefined} />;
+});
 
 /** Scale that springs to `to` while focused and back to 1 on blur (runs on the native thread). */
 export function useFocusScale(focused: boolean, to = 1.06): Animated.Value {
