@@ -22,7 +22,14 @@ export const appContext = createAppContext({
 TvMedia.setUserAgent(providerUserAgent);
 
 // Diagnostics log (Log screen → Share): kept across restarts; uncaught JS errors are recorded before the app dies.
-void appLog.persist(fileStorage).then(() => appLog.info('app', `${appConfig.appName} started on Android ${Platform.Version}`));
+void appLog
+  .persist(fileStorage)
+  .then(() =>
+    appLog.info(
+      'app',
+      `${appConfig.appName} started on Android ${Platform.Version}, FFmpeg audio ${TvMedia.ffmpegAudioAvailable() ? 'bundled' : 'not bundled'}`,
+    ),
+  );
 const errorUtils = (
   globalThis as {
     ErrorUtils?: {

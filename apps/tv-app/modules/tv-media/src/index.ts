@@ -12,6 +12,8 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   /** HTTP User-Agent for playback and downloads (persisted natively). */
   setUserAgent(userAgent: string): void;
   listDownloads(): NativeDownload[];
+  /** True when the FFmpeg audio decoders are bundled in this build (D-059). */
+  ffmpegAudioAvailable(): boolean;
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;
