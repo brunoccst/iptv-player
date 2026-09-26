@@ -34,6 +34,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Close the app** (requested 2026-09-26): account menu → App → Close the app (TV/phone) asks, then ends the app like "Force stop" in the system settings.
 - [x] **TV navigation and Home polish** (requested 2026-09-26, D-069): Left/Right never leave a row ("See all" included), Home centres the focused row, pages show a spinner at once, Movies/Series explain an empty page while the library is organized, smoother scrolling.
 - [x] **TV sleep mode** (requested 2026-09-26, D-068): the app keeps the screen on and shows its own sleep screen after 10 idle minutes, so the system screensaver no longer sends it to the background (where it was closed and restarted); after 3 hours asleep the TV's own settings apply.
 - [x] **Kids profiles: only what makes sense for kids** (requested 2026-09-26, D-053): their account menu only switches profile (no settings, backup, updates, log or sign-out) and they have no "Open in another player"; parents set languages and categories in the profile editor.

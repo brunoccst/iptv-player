@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
 import { navStore, signOut, stores, updater } from '../appContext';
 import { appConfig, updateRepo } from '../config';
@@ -21,6 +21,14 @@ export function confirmSignOut() {
   Alert.alert('Sign out?', 'You will need your provider login to sign in again. Downloads on this device are deleted.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+  ]);
+}
+
+/** Asks first, then closes the app like "Force stop" in the system settings: the next start is a fresh one. */
+export function confirmCloseApp() {
+  Alert.alert('Close the app?', 'The app closes completely, like "Force stop" in the settings. Downloads in progress stop.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Close the app', style: 'destructive', onPress: () => void TvMedia.closeApp().catch(() => BackHandler.exitApp()) },
   ]);
 }
 
@@ -123,6 +131,7 @@ export function AccountMenu() {
           : []),
         { icon: 'info', label: 'About', testID: 'menu-about', onPress: then(() => setAbout(true)) },
         { icon: 'info', label: 'Log', testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
+        { icon: 'close', label: 'Close the app', testID: 'menu-close-app', onPress: then(confirmCloseApp) },
       ],
     },
   ];
