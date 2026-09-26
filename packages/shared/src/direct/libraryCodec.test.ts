@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildMasters } from './normalizer/pipeline';
-import { packLibrary, unpackLibrary } from './libraryCodec';
+import { packLibrary, packLibraryText, unpackLibrary } from './libraryCodec';
 
 describe('library codec', () => {
   const masters = buildMasters('acc', 'movie', [
@@ -15,6 +15,14 @@ describe('library codec', () => {
     const restored = unpackLibrary(JSON.parse(JSON.stringify(packed)));
     expect(restored).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters });
     expect(JSON.stringify(packed).length).toBeLessThan(JSON.stringify(masters).length * 0.6);
+  });
+
+  it('the chunked text is the same data as the packed object', async () => {
+    let pauses = 0;
+    const text = await packLibraryText('2026-09-24T00:00:00Z', masters, async () => void pauses++, 1);
+    expect(pauses).toBe(masters.length);
+    expect(JSON.parse(text)).toEqual(packLibrary('2026-09-24T00:00:00Z', masters));
+    expect(unpackLibrary(JSON.parse(text))).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters });
   });
 
   it('ignores files in the old format', () => {

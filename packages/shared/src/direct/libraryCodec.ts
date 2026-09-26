@@ -42,6 +42,31 @@ export interface PackedLibrary {
 }
 
 export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
+  const { packMaster, prefixes } = packer();
+  return { format: LIBRARY_FORMAT, builtAt, prefixes, masters: masters.map(packMaster) };
+}
+
+/**
+ * `JSON.stringify(packLibrary(…))`, built in chunks with `pause()` between them: 160,000 titles are ~30 MB of JSON,
+ * which blocked a TV for seconds in one piece. Same data; `prefixes` comes last because it is complete only then.
+ */
+export async function packLibraryText(builtAt: string, masters: Master[], pause: () => Promise<void>, chunkSize = 2000): Promise<string> {
+  const { packMaster, prefixes } = packer();
+  const chunks: string[] = [];
+  for (let start = 0; start < masters.length; start += chunkSize) {
+    chunks.push(
+      masters
+        .slice(start, start + chunkSize)
+        .map((master) => JSON.stringify(packMaster(master)))
+        .join(','),
+    );
+    await pause();
+  }
+  const head = `{"format":${LIBRARY_FORMAT},"builtAt":${JSON.stringify(builtAt)},"masters":[`;
+  return `${head}${chunks.join(',')}],"prefixes":${JSON.stringify(prefixes)}}`;
+}
+
+function packer() {
   const prefixes: string[] = [];
   const prefixIndex = new Map<string, number>();
   const poster = (url: string | null): [number, string | null] => {
@@ -74,21 +99,17 @@ export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
       v.containerExtension,
     ];
   };
-  return {
-    format: LIBRARY_FORMAT,
-    builtAt,
-    prefixes,
-    masters: masters.map((m) => [
-      m.id,
-      m.title,
-      m.normalizedKey,
-      m.year,
-      m.bestQuality,
-      m.variants.map(packVariant),
-      m.addedAt,
-      m.releaseKey,
-    ]),
-  };
+  const packMaster = (m: Master): PackedMaster => [
+    m.id,
+    m.title,
+    m.normalizedKey,
+    m.year,
+    m.bestQuality,
+    m.variants.map(packVariant),
+    m.addedAt,
+    m.releaseKey,
+  ];
+  return { packMaster, prefixes };
 }
 
 /** `null` for anything that is not the current format (older files are rebuilt, not migrated). */
