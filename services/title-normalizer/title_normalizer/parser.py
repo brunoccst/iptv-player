@@ -28,6 +28,42 @@ _PHRASES = [
     (re.compile(r"\bdd[p+]?[257]\.[01]\b", re.I), "ac3"),
 ]
 
+# Subtitles (D-063): "SUB ITA", "ENG SUB", "Legendado", "VOSTFR", "Multi-Sub". A language next to a subtitle word is a
+# subtitle language, not an audio one; the whole phrase then counts as a plain "sub" tag.
+_SUB_WORD = r"(?:subs?|subbed|subtitled|subtitles|leg|legendado|legendas)"
+_LANG_WORD = "|".join(
+    [r"pt[-_]?br"] + sorted((re.escape(code) for code in {**tags.LANGUAGE_LONG, **tags.LANGUAGE_SHORT}), key=len, reverse=True)
+)
+_SUB_AFTER = re.compile(rf"\b{_SUB_WORD}[\s\-_.:/|]*({_LANG_WORD})\b", re.I)
+_SUB_BEFORE = re.compile(rf"\b({_LANG_WORD})[\s\-_./|]*{_SUB_WORD}\b", re.I)
+_SUB_ONLY = [
+    (re.compile(r"\bvostfr\b", re.I), "FRE"),
+    (re.compile(r"\bvose\b", re.I), "ESP"),
+    (re.compile(r"\blegendado\b", re.I), "POR"),
+    (re.compile(r"\bmulti[-_. ]?subs?\b", re.I), "MULTI"),
+]
+
+
+def _subtitle_code(word: str) -> str:
+    word = word.lower().replace("-", "").replace("_", "")
+    return "POR" if word == "ptbr" else tags.LANGUAGE_LONG.get(word) or tags.LANGUAGE_SHORT[word]
+
+
+def _extract_subtitles(text: str) -> tuple[str, list[str]]:
+    found: list[str] = []
+
+    def keep(code: str) -> str:
+        if code not in found:
+            found.append(code)
+        return " sub "
+
+    for pattern in (_SUB_AFTER, _SUB_BEFORE):
+        text = pattern.sub(lambda match: keep(_subtitle_code(match.group(1))), text)
+    for pattern, code in _SUB_ONLY:
+        text = pattern.sub(lambda _match, code=code: keep(code), text)
+    return text, found
+
+
 _PREFIX = re.compile(r"^\s*[\[(|]?\s*(?P<body>[A-Za-z0-9+]{2,6}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*")
 _BRACKET = re.compile(r"\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}")
 _TOKEN_SPLIT = re.compile(r"[\s,/_+|\-–.]+")
@@ -46,6 +82,7 @@ class ParsedTitle:
     audio_languages: tuple[str, ...]
     audio_tag: str | None
     is_hdr: bool
+    subtitle_languages: tuple[str, ...] = ()
 
     @property
     def compact_key(self) -> str:
@@ -107,7 +144,7 @@ class _Tags:
 
 def parse_title(raw: str) -> ParsedTitle:
     found = _Tags()
-    text = raw
+    text, subtitles = _extract_subtitles(raw)
     for pattern, replacement in _PHRASES:
         text = pattern.sub(replacement, text)
 
@@ -132,6 +169,7 @@ def parse_title(raw: str) -> ParsedTitle:
         audio_languages=tuple(found.languages),
         audio_tag=found.audio_tag,
         is_hdr=found.hdr,
+        subtitle_languages=tuple(subtitles),
     )
 
 

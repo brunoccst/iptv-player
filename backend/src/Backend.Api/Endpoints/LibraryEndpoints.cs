@@ -23,11 +23,12 @@ public static class LibraryEndpoints
 
         group.MapGet("/{kind}", async Task<Results<Ok<LibraryPage>, NotFound>> (
             string kind, string? categoryId, string? search, int? offset, int? limit, string? sort, string? order, string? categoryIds,
-            HttpContext context, LibraryService library, CancellationToken ct) =>
+            string? language, HttpContext context, LibraryService library, CancellationToken ct) =>
             ToMediaKind(kind) is { } mediaKind
                 ? TypedResults.Ok(await library.ListAsync(context.User.GetAccountId(), mediaKind,
                     new LibraryQuery(categoryId, search, offset ?? 0, limit ?? 100,
-                        Parse(sort, LibrarySort.Added), order is null ? null : Parse(order, SortOrder.Asc), CategoryList.Parse(categoryIds)), ct))
+                        Parse(sort, LibrarySort.Added), order is null ? null : Parse(order, SortOrder.Asc), CategoryList.Parse(categoryIds),
+                        language), ct))
                 : TypedResults.NotFound()).WithName("listLibrary");
 
         group.MapGet("/{kind}/{masterId}", async Task<Results<Ok<MasterDetails>, NotFound>> (

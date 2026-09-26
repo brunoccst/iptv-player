@@ -41,6 +41,7 @@ CREATE TABLE "media_variants" (
     "quality" TEXT NULL,
     "source" TEXT NULL,
     "audio_languages" TEXT NOT NULL,
+    "subtitle_languages" TEXT NOT NULL DEFAULT '[]',
     "audio_tag" TEXT NULL,
     "is_hdr" INTEGER NOT NULL,
     "quality_score" INTEGER NOT NULL,

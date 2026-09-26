@@ -21,6 +21,8 @@ type PackedVariant = [
   posterRest: string | null,
   rating: number | null,
   containerExtension: string | null,
+  /** Only when there are any (D-063); files saved before it have 14 fields. */
+  subtitleLanguages?: string[],
 ];
 
 type PackedMaster = [
@@ -82,7 +84,7 @@ function packer() {
   };
   const packVariant = (v: Variant): PackedVariant => {
     const [posterPrefix, posterRest] = poster(v.posterUrl);
-    return [
+    const packed: PackedVariant = [
       v.streamId,
       v.rawTitle,
       v.label,
@@ -98,6 +100,8 @@ function packer() {
       v.rating,
       v.containerExtension,
     ];
+    if (v.subtitleLanguages.length) packed.push(v.subtitleLanguages);
+    return packed;
   };
   const packMaster = (m: Master): PackedMaster => [
     m.id,
@@ -132,6 +136,7 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
       posterUrl: p[11] === null ? null : `${prefixes[p[10]] ?? ''}${p[11]}`,
       rating: p[12],
       containerExtension: p[13],
+      subtitleLanguages: p[14] ?? [],
     }));
     const ratings = variants.flatMap((variant) => (variant.rating === null ? [] : [variant.rating]));
     return {

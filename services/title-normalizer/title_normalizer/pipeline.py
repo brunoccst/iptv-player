@@ -28,6 +28,7 @@ class Variant:
     container_extension: str | None
     added_at: int | None
     release_key: int | None
+    subtitle_languages: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -144,6 +145,7 @@ def _build_variant(item: dict[str, Any], title: ParsedTitle) -> Variant:
         container_extension=container,
         added_at=int(added_at) if isinstance(added_at, (int, float)) and added_at > 0 else None,
         release_key=release_key(_optional_str(item.get("releaseDate")), None),
+        subtitle_languages=title.subtitle_languages,
     )
 
 

@@ -30,6 +30,8 @@ export interface Variant {
   posterUrl: string | null;
   rating: number | null;
   containerExtension: string | null;
+  /** From the name ("SUB ITA", "VOSTFR"); `MULTI` = several (D-063). */
+  subtitleLanguages: string[];
 }
 
 export interface Master {
@@ -195,6 +197,7 @@ function buildVariant(item: NormalizerItem, title: ParsedTitle): Variant {
     posterUrl: optional(item.posterUrl),
     rating: typeof item.rating === 'number' ? item.rating : null,
     containerExtension: container,
+    subtitleLanguages: title.subtitleLanguages,
   };
 }
 

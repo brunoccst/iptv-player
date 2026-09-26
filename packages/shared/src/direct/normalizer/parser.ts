@@ -11,6 +11,8 @@ export interface ParsedTitle {
   audioLanguages: string[];
   audioTag: string | null;
   isHdr: boolean;
+  /** From "SUB ITA", "ENG SUB", "Legendado", "VOSTFR", "Multi-Sub" (D-063); `MULTI` = several, unnamed. */
+  subtitleLanguages: string[];
 }
 
 const MIN_YEAR = 1900;
@@ -33,6 +35,42 @@ const PHRASES: [RegExp, string][] = [
   [/\bh\.?26([45])\b/gi, 'x26$1'],
   [/\bdd[p+]?[257]\.[01]\b/gi, 'ac3'],
 ];
+
+// Subtitles (D-063): a language next to a subtitle word is a subtitle language, not an audio one; the whole phrase then
+// counts as a plain "sub" tag.
+const SUB_WORD = '(?:subs?|subbed|subtitled|subtitles|leg|legendado|legendas)';
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const LANG_WORD = [
+  'pt[-_]?br',
+  ...Object.keys({ ...tags.LANGUAGE_LONG, ...tags.LANGUAGE_SHORT })
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegex),
+].join('|');
+const SUB_AFTER = new RegExp(`\\b${SUB_WORD}[\\s\\-_.:/|]*(${LANG_WORD})\\b`, 'gi');
+const SUB_BEFORE = new RegExp(`\\b(${LANG_WORD})[\\s\\-_./|]*${SUB_WORD}\\b`, 'gi');
+const SUB_ONLY: [RegExp, string][] = [
+  [/\bvostfr\b/gi, 'FRE'],
+  [/\bvose\b/gi, 'ESP'],
+  [/\blegendado\b/gi, 'POR'],
+  [/\bmulti[-_. ]?subs?\b/gi, 'MULTI'],
+];
+
+function subtitleCode(word: string): string {
+  const folded = word.toLowerCase().replace(/[-_]/g, '');
+  return folded === 'ptbr' ? 'POR' : (tags.LANGUAGE_LONG[folded] ?? tags.LANGUAGE_SHORT[folded]!);
+}
+
+function extractSubtitles(raw: string): { text: string; languages: string[] } {
+  const found: string[] = [];
+  const keep = (code: string) => {
+    if (!found.includes(code)) found.push(code);
+    return ' sub ';
+  };
+  let text = raw;
+  for (const pattern of [SUB_AFTER, SUB_BEFORE]) text = text.replace(pattern, (_match, word: string) => keep(subtitleCode(word)));
+  for (const [pattern, code] of SUB_ONLY) text = text.replace(pattern, () => keep(code));
+  return { text, languages: found };
+}
 
 const PREFIX = /^\s*[[(|]?\s*(?<body>[A-Za-z0-9+]{2,6}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
@@ -121,7 +159,8 @@ export const numberTokens = (title: ParsedTitle) => new Set(words(title.key).fil
 
 export function parseTitle(raw: string): ParsedTitle {
   const found = new Tags();
-  let text = raw;
+  const subtitles = extractSubtitles(raw);
+  let text = subtitles.text;
   for (const [pattern, replacement] of PHRASES) text = text.replace(pattern, replacement);
 
   text = stripPrefixes(text, found);
@@ -145,6 +184,7 @@ export function parseTitle(raw: string): ParsedTitle {
     audioLanguages: found.languages,
     audioTag: found.audioTag,
     isHdr: found.hdr,
+    subtitleLanguages: subtitles.languages,
   };
 }
 

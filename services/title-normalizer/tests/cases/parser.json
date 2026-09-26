@@ -296,6 +296,69 @@
       "source": null,
       "audioTag": null,
       "hdr": false
+    },
+    {
+      "raw": "The Matrix (1999) SUB ITA",
+      "title": "The Matrix",
+      "year": 1999,
+      "languages": [],
+      "subtitles": [
+        "ITA"
+      ]
+    },
+    {
+      "raw": "Film (2020) ENG-SUB 1080p",
+      "title": "Film",
+      "quality": "1080p",
+      "languages": [],
+      "subtitles": [
+        "ENG"
+      ]
+    },
+    {
+      "raw": "EN - Movie (2020) [ENG SUB]",
+      "title": "Movie",
+      "languages": [
+        "ENG"
+      ],
+      "subtitles": [
+        "ENG"
+      ]
+    },
+    {
+      "raw": "Amelie (2001) VOSTFR",
+      "title": "Amelie",
+      "languages": [],
+      "subtitles": [
+        "FRE"
+      ]
+    },
+    {
+      "raw": "O Filme (2020) Legendado",
+      "title": "O Filme",
+      "subtitles": [
+        "POR"
+      ]
+    },
+    {
+      "raw": "Movie (2020) SUB PT-BR",
+      "title": "Movie",
+      "languages": [],
+      "subtitles": [
+        "POR"
+      ]
+    },
+    {
+      "raw": "Jujutsu Kaisen [Multi Sub] (2020)",
+      "title": "Jujutsu Kaisen",
+      "subtitles": [
+        "MULTI"
+      ]
+    },
+    {
+      "raw": "Sub Zero (2020)",
+      "title": "Sub Zero",
+      "subtitles": []
     }
   ],
   "keys": [

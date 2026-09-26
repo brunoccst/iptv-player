@@ -34,6 +34,8 @@ public sealed class PipelineDbContext(DbContextOptions<PipelineDbContext> option
             variant.ToTable("media_variants");
             variant.HasKey(v => new { v.AccountId, v.MediaKind, v.StreamId });
             variant.HasIndex(v => new { v.AccountId, v.MediaKind, v.CategoryId });
+            // Rows written before subtitles were parsed (D-063) read as "none".
+            variant.Property(v => v.SubtitleLanguages).HasDefaultValue("[]");
         });
 
         foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(type => type.GetProperties()))
