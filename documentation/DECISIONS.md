@@ -68,6 +68,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-061](#d-061) | 2026-09-26 | Play on TV: start a title on the paired TV from the phone app |
 | [D-062](#d-062) | 2026-09-26 | Self-update from the GitHub release (TV/phone) |
 | [D-063](#d-063) | 2026-09-26 | Language filter per profile (audio or subtitles from the names) |
+| [D-064](#d-064) | 2026-09-26 | Parents choose a Kids profile's categories |
 
 ---
 
@@ -1173,4 +1174,16 @@ Decision:
 - Live TV is not filtered (channels rarely have language tags in a usable form).
 
 Alternatives: reading tracks per title with `get_vod_info` (one request per title, not possible for lists of 100,000+); the category name as a language hint (useful for some providers, needs category names in the server-mode pipeline; possible follow-up).
+
+## D-064
+
+**Parents choose a Kids profile's categories** — 2026-09-26 (chosen by owner from the suggestions; KI-039)
+
+Decision:
+- In the profile editor (profile picker → Manage Profiles, behind the parental PIN when one is set, D-054), a saved Kids profile has **Choose categories**. It lists the provider's categories for Movies, Series and Live TV with checkboxes, starting from the automatic choice (names, D-053). Only checked categories are shown to that profile; "Automatic" puts a section back on the name rule.
+- The choice is kept per profile on this device (`settings.profiles`, the store from D-063; part of the TV/phone backup). A section left untouched keeps the name rule; an empty choice shows nothing of that section.
+- `withKidsFilter` takes the chosen ids instead of the name rule for those sections; everything else (library lists and search, raw lists, channels, the guide) works as before. Changing the choice drops cached lists at once.
+- TV/phone and web.
+
+Alternatives: picking titles one by one (thousands of titles, and new ones would need picking too); storing the choice on the server (most users run without one).
 
