@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts, radius } from '../theme';
+import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { Icon, type IconName } from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'accent' | 'ghost';
@@ -21,7 +22,7 @@ interface FocusButtonProps {
 
 const TEXT: Record<Variant, string> = { primary: '#000', secondary: colors.strong, accent: colors.strong, ghost: colors.text };
 
-/** Web-style button (`.button`) that the D-pad can focus: focus shows the web's white outline. */
+/** Web-style button (`.button`) that the D-pad can focus: focus grows it smoothly and lights it up (white with a glow). */
 export function FocusButton({
   label,
   onPress,
@@ -35,9 +36,11 @@ export function FocusButton({
   onFocus,
 }: FocusButtonProps) {
   const [focused, setFocused] = useState(false);
-  const textColor = TEXT[variant];
+  const scale = useFocusScale(focused, 1.06);
+  // Focused: every variant turns white with dark text, the primary one (already white) gets the glow.
+  const textColor = focused ? focus.onSolid : TEXT[variant];
   return (
-    <Pressable
+    <AnimatedPressable
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -50,21 +53,17 @@ export function FocusButton({
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[styles.outline, focused && styles.outlineFocused, style]}
+      style={[styles.base, styles[variant], focused && styles.focused, disabled && styles.disabled, { transform: [{ scale }] }, style]}
     >
-      <View style={[styles.base, styles[variant], disabled && styles.disabled]}>
-        {typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon}
-        <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-    </Pressable>
+      {typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon}
+      <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
+        {label}
+      </Text>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  outline: { borderWidth: 2, borderColor: 'transparent', borderRadius: radius + 3, padding: 2, margin: -4 },
-  outlineFocused: { borderColor: colors.strong },
   base: {
     minHeight: 40,
     paddingHorizontal: 20,
@@ -79,6 +78,7 @@ const styles = StyleSheet.create({
   secondary: { backgroundColor: colors.secondaryButton },
   accent: { backgroundColor: colors.accent },
   ghost: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.muted },
+  focused: { backgroundColor: focus.solid, borderColor: focus.solid, ...focus.glow },
   disabled: { opacity: 0.5 },
   label: { fontSize: fonts.body, fontWeight: '700' },
 });

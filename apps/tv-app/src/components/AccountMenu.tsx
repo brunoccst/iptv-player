@@ -14,6 +14,7 @@ import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
 import { pairingDialog } from '../pairing/PairingDialogs';
+import { focus } from './focus';
 
 /** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
 export function confirmSignOut() {
@@ -262,8 +263,17 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: 'rgba(0,0,0,0.92)',
   },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16 },
-  itemFocused: { backgroundColor: colors.raised },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 6,
+    borderRadius: 8,
+  },
+  // Focused: a rounded translucent highlight inside the menu.
+  itemFocused: { backgroundColor: focus.fill },
   itemText: { color: colors.text, fontSize: 14.4 },
   header: { borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: 4 },
   headerText: { color: colors.strong, fontWeight: '700' },

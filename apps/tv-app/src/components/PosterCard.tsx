@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
+import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { Gradient } from './Gradient';
 
 export interface PosterCardProps {
@@ -20,7 +21,7 @@ export interface PosterCardProps {
   onFocus?(): void;
 }
 
-/** Web `.card`: art (2:3 or 16:9) + title/subtitle on the surface colour; focus scales it up with an outline. */
+/** Web `.card`: art (2:3 or 16:9) + title/subtitle on the surface colour; focus grows it smoothly with a soft light ring and glow. */
 export function PosterCard({
   title,
   posterUrl,
@@ -38,9 +39,10 @@ export function PosterCard({
   const [failed, setFailed] = useState(false);
   const { cardWidth } = useSizes();
   const cardSize = width ?? cardWidth;
+  const scale = useFocusScale(focused, 1.08);
 
   return (
-    <Pressable
+    <AnimatedPressable
       testID={`card-${title}`}
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -51,7 +53,7 @@ export function PosterCard({
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[styles.card, { width: cardSize }, focused && styles.focused]}
+      style={[styles.card, { width: cardSize }, focused && styles.focused, { transform: [{ scale }] }]}
     >
       <View style={[styles.art, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>
         <Gradient
@@ -93,13 +95,13 @@ export function PosterCard({
           </Text>
         ) : null}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: radius, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
-  focused: { transform: [{ scale: 1.08 }], zIndex: 2, borderColor: colors.strong, elevation: 8 },
+  card: { borderRadius: radius + 2, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
+  focused: { zIndex: 2, borderColor: focus.ring, ...focus.glow },
   art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1f1f1f' },
   fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },
   badge: {

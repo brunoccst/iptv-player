@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
+import { focus } from './focus';
 
 export interface SelectOption {
   value: string;
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   full: { alignSelf: 'stretch' },
   // Sized to its text, and allowed to shrink so a label beside it stays visible on narrow phones.
   compact: { alignSelf: 'flex-start', flexShrink: 1, minHeight: 40, paddingVertical: 8 },
-  focused: { borderColor: colors.strong, borderWidth: 2 },
+  focused: { borderColor: focus.ring, borderWidth: 2, ...focus.glow },
   value: { flex: 1, color: colors.strong, fontSize: fonts.body },
   valueCompact: { flex: 0, flexShrink: 1 },
   scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 16 },
@@ -118,8 +119,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   title: { color: colors.muted, fontSize: fonts.small, paddingHorizontal: 16, paddingVertical: 8 },
-  option: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 16 },
-  optionFocused: { backgroundColor: colors.raised },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  optionFocused: { backgroundColor: focus.fill },
   check: { width: 18 },
   optionText: { color: colors.text, fontSize: fonts.body },
   optionSelected: { color: colors.strong, fontWeight: '700' },

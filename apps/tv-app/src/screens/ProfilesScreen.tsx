@@ -10,6 +10,7 @@ import { KidsCategories } from '../components/KidsCategories';
 import { usePinGate } from '../components/PinPad';
 import { usePin, useSession } from '../hooks';
 import { colors, fonts, radius } from '../theme';
+import { focus } from '../components/focus';
 
 export { avatarColor };
 
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
   tile: { alignItems: 'center', gap: 10 },
   avatar: { borderRadius: radius, borderWidth: 3, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
   avatarAdd: { borderColor: colors.muted, backgroundColor: 'transparent' },
-  avatarFocused: { borderColor: colors.strong },
+  avatarFocused: { borderColor: focus.ring, ...focus.glow },
   initial: { color: colors.strong, fontWeight: '700' },
   name: { color: colors.muted, fontSize: fonts.body },
   nameFocused: { color: colors.strong },

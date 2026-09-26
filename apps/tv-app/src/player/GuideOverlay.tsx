@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   rowCurrent: { backgroundColor: 'rgba(255,255,255,0.08)' },
-  rowFocused: { borderColor: colors.strong, backgroundColor: 'rgba(255,255,255,0.16)' },
+  rowFocused: { borderColor: 'transparent', backgroundColor: 'rgba(255,255,255,0.2)' },
   logo: { width: 56, height: 40, alignItems: 'center', justifyContent: 'center' },
   number: { color: colors.muted, fontSize: fonts.body, fontWeight: '700' },
   info: { flex: 1, gap: 2 },

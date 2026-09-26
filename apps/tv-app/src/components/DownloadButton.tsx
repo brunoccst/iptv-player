@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { downloadIdFor, type PlayTarget } from '@iptv/shared';
 import { downloadsStore } from '../appContext';
 import { downloadTargetFrom, selectDownload } from '../downloads/downloadsStore';
 import { useDownloads } from '../hooks';
 import { colors } from '../theme';
+import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { Icon } from './Icon';
 import { ProgressRing } from './ProgressRing';
 
 /** Web `.download-button`: round button with a progress ring. Select toggles start / pause / resume. */
 export function DownloadButton({ target }: { target: PlayTarget }) {
   const [focused, setFocused] = useState(false);
+  const scale = useFocusScale(focused, 1.12);
   const record = useDownloads((s) => (target.kind === 'live' ? null : selectDownload(s, target.kind, target.streamId)));
   const error = useDownloads((s) =>
     record ? null : (s.errors[downloadIdFor(target.kind as 'movie' | 'episode', target.streamId)] ?? null),
@@ -41,7 +43,7 @@ export function DownloadButton({ target }: { target: PlayTarget }) {
   };
 
   return (
-    <Pressable
+    <AnimatedPressable
       testID="download-button"
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${target.title}`}
@@ -50,7 +52,7 @@ export function DownloadButton({ target }: { target: PlayTarget }) {
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={[styles.button, focused && styles.focused]}
+      style={[styles.button, focused && styles.focused, { transform: [{ scale }] }]}
     >
       {active ? (
         <View style={StyleSheet.absoluteFill}>
@@ -62,7 +64,7 @@ export function DownloadButton({ target }: { target: PlayTarget }) {
         size={active ? 16 : 20}
         color={state === 'completed' ? colors.success : failed ? colors.warning : colors.strong}
       />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -77,5 +79,5 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  focused: { borderColor: colors.strong, transform: [{ scale: 1.1 }] },
+  focused: { borderColor: focus.ring, ...focus.glow },
 });

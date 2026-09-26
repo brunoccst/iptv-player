@@ -14,7 +14,8 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-064). |
 | `LanguageSettings.tsx` | Account menu → Languages: only titles with audio or subtitles in one of the chosen languages, per profile (D-063, D-067). |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
-| `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus shows a white outline. |
+| `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus turns it white with a glow and grows it. |
+| `focus.ts` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable`. |
 | `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
 | `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |

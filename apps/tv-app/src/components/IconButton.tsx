@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { colors } from '../theme';
+import { Animated, Pressable, StyleSheet } from 'react-native';
+import { focus, useFocusScale } from './focus';
 import { Icon, type IconName } from './Icon';
 
-/** Web `.icon-button`: round, translucent, white ring; focus makes the ring solid white. */
+/** Web `.icon-button`: round, translucent, white ring; focus fills it white (dark icon), grows it and adds a glow. */
 export function IconButton({
   icon,
   label,
@@ -28,6 +28,7 @@ export function IconButton({
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const scale = useFocusScale(focused, 1.12);
   return (
     <Pressable
       testID={testID}
@@ -39,16 +40,17 @@ export function IconButton({
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
     >
-      <View
+      <Animated.View
         style={[
           styles.button,
           { width: size, height: size, borderRadius: size / 2 },
           plain && styles.plain,
           focused && (plain ? styles.plainFocused : styles.focused),
+          { transform: [{ scale }] },
         ]}
       >
-        <Icon name={icon} size={iconSize} />
-      </View>
+        <Icon name={icon} size={iconSize} color={focused && !plain ? focus.onSolid : undefined} />
+      </Animated.View>
     </Pressable>
   );
 }
@@ -61,7 +63,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.5)',
     backgroundColor: 'rgba(42,42,42,0.6)',
   },
-  focused: { borderColor: colors.strong, transform: [{ scale: 1.1 }] },
+  focused: { borderColor: focus.solid, backgroundColor: focus.solid, ...focus.glow },
   plain: { borderColor: 'transparent', backgroundColor: 'transparent' },
-  plainFocused: { borderColor: colors.strong, backgroundColor: 'rgba(255,255,255,0.15)' },
+  plainFocused: { backgroundColor: focus.fill },
 });

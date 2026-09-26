@@ -1,6 +1,7 @@
 import { useState, type Ref } from 'react';
 import { StyleSheet, Text, TextInput, View, type ReturnKeyTypeOptions } from 'react-native';
 import { colors, fonts, radius } from '../theme';
+import { focus } from './focus';
 
 /**
  * Labelled text field; selecting it opens the on-screen keyboard. `onSubmit` runs on the keyboard's Enter key and keeps
@@ -75,5 +76,5 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   inputCompact: { minHeight: 40, paddingVertical: 8 },
-  inputFocused: { borderColor: colors.strong },
+  inputFocused: { borderColor: focus.ring, ...focus.glow },
 });

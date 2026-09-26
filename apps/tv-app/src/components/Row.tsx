@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { Icon } from './Icon';
+import { focus } from './focus';
 
 interface RowProps<T> {
   title: string;
@@ -113,19 +114,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    borderRadius: radius,
-    marginHorizontal: -4,
-    paddingHorizontal: 2,
+    borderRadius: 999,
+    marginHorizontal: -10,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
   },
-  linkFocused: { borderColor: colors.strong },
-  linkTextFocused: { color: colors.strong, textDecorationLine: 'underline' },
+  // Focused: a translucent pill behind the row title.
+  linkFocused: { backgroundColor: focus.fill },
+  linkTextFocused: { color: colors.strong },
   content: { paddingVertical: 8 },
   empty: { color: colors.muted },
   spinner: { alignSelf: 'flex-start', marginVertical: 24 },
-  moreCard: { borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
-  moreFocused: { transform: [{ scale: 1.08 }], borderColor: colors.strong },
+  moreCard: { borderRadius: radius + 2, borderWidth: 2, borderColor: 'transparent' },
+  moreFocused: { transform: [{ scale: 1.08 }], borderColor: focus.ring, ...focus.glow },
   moreArt: {
     width: '100%',
     borderRadius: radius,

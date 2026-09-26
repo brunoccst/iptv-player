@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { colors } from '../theme';
 import { Icon } from './Icon';
+import { focus } from './focus';
 
 export interface ChipItem {
   key: string;
@@ -144,7 +145,7 @@ export function Chip({
       onBlur={() => setFocused(false)}
       style={[styles.chip, active && styles.chipActive, focused && styles.chipFocused]}
     >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+      <Text style={[styles.chipText, (active || focused) && styles.chipTextActive]}>{label}</Text>
     </Pressable>
   );
 }
@@ -156,7 +157,8 @@ const styles = StyleSheet.create({
   chips: { gap: 8 },
   chip: { paddingVertical: 6, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 999 },
   chipActive: { borderColor: colors.strong, backgroundColor: colors.strong },
-  chipFocused: { borderColor: colors.strong, borderWidth: 2, paddingVertical: 5, paddingHorizontal: 13 },
+  // Focused: filled white with dark text and a glow, like a focused button.
+  chipFocused: { borderColor: focus.solid, backgroundColor: focus.solid, ...focus.glow },
   chipText: { color: colors.text, fontSize: 14 },
   chipTextActive: { color: '#000' },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, backgroundColor: colors.raised },

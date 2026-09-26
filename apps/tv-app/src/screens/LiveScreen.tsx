@@ -23,6 +23,7 @@ import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { useCatalog } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
+import { focus } from '../components/focus';
 
 /** Same 3-hour window as the web guide. The backend caches now −3 h … +48 h (DECISIONS.md#d-031). */
 const HOURS = 3;
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
   liveCompact: { flexDirection: 'column', gap: 12 },
   category: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
   categoryActive: { backgroundColor: colors.raised },
-  categoryFocused: { borderColor: colors.strong },
+  categoryFocused: { borderColor: 'transparent', backgroundColor: focus.fill },
   categoryText: { color: colors.text, fontSize: fonts.body },
   categoryTextActive: { color: colors.strong, fontWeight: '700' },
   page: { flex: 1, minWidth: 0 },
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   programmeTime: { color: colors.muted, fontSize: fonts.tiny },
   gap: { justifyContent: 'center', paddingHorizontal: 10 },
   gapText: { color: colors.muted, fontSize: 12.8 },
-  focused: { borderColor: colors.strong, backgroundColor: colors.raised },
+  focused: { borderColor: focus.ring, backgroundColor: '#4a4a4a', ...focus.glow },
   nowLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.accent },
   more: { alignSelf: 'flex-start', marginTop: 16 },
 });
