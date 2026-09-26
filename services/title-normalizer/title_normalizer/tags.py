@@ -114,6 +114,15 @@ LANGUAGE_SHORT = {
     "pl": "POL",
 }
 
+# Country-style codes providers put in front of titles ("GE - ", "IN - "). Only accepted as a leading prefix group:
+# as words they are too common ("All In").
+LANGUAGE_PREFIX = {
+    "ge": "GER",
+    "in": "HIN",
+    "uk": "ENG",
+    "us": "ENG",
+}
+
 AUDIO_TAG = {"dual": "DUAL", "multi": "MULTI"}
 
 HDR = {"hdr", "dovi"}

@@ -69,8 +69,8 @@ class Tags {
   audioTag: string | null = null;
   hdr = false;
 
-  /** Records `token` if it is a known tag. False for unknown tokens. */
-  absorb(token: string, allowShort: boolean): boolean {
+  /** Records `token` if it is a known tag. False for unknown tokens. `prefix`: a leading group ("GE - "). */
+  absorb(token: string, allowShort: boolean, prefix = false): boolean {
     const word = fold(token);
     if (!word) return true;
     if (tags.has(tags.QUALITY, word)) this.quality = bestQuality(this.quality, tags.QUALITY[word]!);
@@ -79,16 +79,17 @@ class Tags {
     else if (tags.has(tags.AUDIO_TAG, word)) this.audioTag ??= tags.AUDIO_TAG[word]!;
     else if (tags.has(tags.LANGUAGE_LONG, word)) this.addLanguage(tags.LANGUAGE_LONG[word]!);
     else if (tags.has(tags.LANGUAGE_SHORT, word) && (allowShort || isUpper(token))) this.addLanguage(tags.LANGUAGE_SHORT[word]!);
+    else if (prefix && tags.has(tags.LANGUAGE_PREFIX, word)) this.addLanguage(tags.LANGUAGE_PREFIX[word]!);
     else if (!tags.IGNORED.has(word)) return false;
     return true;
   }
 
   /** Absorbs "ENG-ESP" style tokens only if every part is a known tag; records nothing otherwise. */
-  absorbCompound(token: string, allowShort: boolean): boolean {
+  absorbCompound(token: string, allowShort: boolean, prefix = false): boolean {
     const parts = splitTokens(token);
     const probe = new Tags();
-    if (parts.length === 0 || !parts.every((part) => probe.absorb(part, allowShort))) return false;
-    for (const part of parts) this.absorb(part, allowShort);
+    if (parts.length === 0 || !parts.every((part) => probe.absorb(part, allowShort, prefix))) return false;
+    for (const part of parts) this.absorb(part, allowShort, prefix);
     return true;
   }
 
@@ -151,7 +152,7 @@ export function parseTitle(raw: string): ParsedTitle {
 function stripPrefixes(text: string, found: Tags): string {
   for (let match = PREFIX.exec(text); match; match = PREFIX.exec(text)) {
     const body = match.groups!.body!;
-    if (body !== body.toUpperCase() || !found.absorbCompound(body, true)) break;
+    if (body !== body.toUpperCase() || !found.absorbCompound(body, true, true)) break;
     text = text.slice(match[0].length);
   }
   return text;
