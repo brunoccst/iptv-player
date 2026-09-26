@@ -40,6 +40,15 @@ class TvMediaModule : Module() {
       DownloadCenter.setUserAgent(context, userAgent)
     }
 
+    /** Whether the FFmpeg audio extension is bundled and its native library loads (D-059). */
+    Function("ffmpegAudioAvailable") {
+      try {
+        Class.forName("androidx.media3.decoder.ffmpeg.FfmpegLibrary").getMethod("isAvailable").invoke(null) as Boolean
+      } catch (_: Throwable) {
+        false
+      }
+    }
+
     Function("listDownloads") {
       DownloadCenter.list()
     }

@@ -5,7 +5,9 @@ import { navStore, signOut, stores } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
+import { TvMedia } from '../../modules/tv-media';
 import { BackupDialog } from './BackupDialog';
+import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
@@ -27,6 +29,7 @@ export function AccountMenu() {
   const { gate, dialog } = usePinGate();
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
+  const [playback, setPlayback] = useState(false);
   const sizes = useSizes();
   const navH = useNavHeight();
   // PIN prompts and the backup dialog outlive the menu: it closes before they open.
@@ -35,6 +38,7 @@ export function AccountMenu() {
       {dialog}
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
       {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
+      {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -91,6 +95,18 @@ export function AccountMenu() {
             setBackup(true);
           }}
         />
+        {/* Only builds with the FFmpeg audio decoders have something to choose (D-059). */}
+        {TvMedia.ffmpegAudioAvailable() ? (
+          <MenuItem
+            icon="subtitles"
+            label="Playback"
+            testID="menu-playback"
+            onPress={() => {
+              close();
+              setPlayback(true);
+            }}
+          />
+        ) : null}
         <MenuItem
           icon="refresh"
           label="Refresh library"

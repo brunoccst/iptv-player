@@ -1,8 +1,9 @@
 import { offlineAccess, useAppStore } from '@iptv/shared';
 import type { CatalogState, ConnectionState, LibraryState, PinState, ProgressState, SessionState, WatchlistState } from '@iptv/shared';
-import { downloadsStore, navStore, stores } from './appContext';
+import { downloadsStore, navStore, playbackSettings, stores } from './appContext';
 import type { DownloadsState } from './downloads/downloadsStore';
 import type { NavState } from './navigation/navStore';
+import type { PlaybackSettingsState } from './playbackSettings';
 
 export const useSession = <T>(selector: (state: SessionState) => T) => useAppStore(stores.session, selector);
 /** The TV context always enables direct mode, so `connection` exists. */
@@ -15,6 +16,7 @@ export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAp
 export const useWatchlist = <T>(selector: (state: WatchlistState) => T) => useAppStore(stores.watchlist, selector);
 export const usePin = <T>(selector: (state: PinState) => T) => useAppStore(stores.pin, selector);
 export const useNav = <T>(selector: (state: NavState) => T) => useAppStore(navStore, selector);
+export const usePlaybackSettings = <T>(selector: (state: PlaybackSettingsState) => T) => useAppStore(playbackSettings, selector);
 
 /** Whether downloads may play (subscription active, online within 30 days). D-050. */
 export function useOfflineAccess() {

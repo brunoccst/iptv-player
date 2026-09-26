@@ -11,6 +11,7 @@ android {
   defaultConfig {
     versionCode 1
     versionName '0.1.0'
+    consumerProguardFiles 'consumer-rules.pro'
   }
 }
 
@@ -24,4 +25,13 @@ dependencies {
   implementation "androidx.media3:media3-ui:${media3Version}"
   implementation "androidx.media3:media3-database:${media3Version}"
   implementation "androidx.media3:media3-datasource:${media3Version}"
+
+  // Software audio decoders from FFmpeg (Dolby Digital/Plus, DTS, TrueHD, …) for devices whose own decoder fails
+  // (KI-043, D-059). Jellyfin's prebuilt Media3 extension, same Media3 version. To turn it off, build with
+  // `-PiptvFfmpegAudio=false` or the env var IPTV_FFMPEG_AUDIO=0; the player code needs no change (it only uses the
+  // extension when the classes are present). To remove it for good, delete these lines.
+  def ffmpegSetting = (findProperty('iptvFfmpegAudio') ?: System.getenv('IPTV_FFMPEG_AUDIO') ?: 'true').toString()
+  if (!(ffmpegSetting in ['false', '0'])) {
+    implementation "org.jellyfin.media3:media3-ffmpeg-decoder:${media3Version}+1"
+  }
 }

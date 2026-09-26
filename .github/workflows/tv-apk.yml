@@ -24,6 +24,10 @@ on:
         description: 'Publish to the tv-apk prerelease (off: size report + workflow artifact only)'
         type: boolean
         default: true
+      ffmpeg_audio:
+        description: 'Bundle the FFmpeg audio decoders (Dolby Digital/Plus, DTS; D-059)'
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -43,6 +47,8 @@ jobs:
       APP_ANDROID_VERSION_CODE: ${{ github.run_number }}
       # Pushes always publish; manual runs follow the `publish` input.
       PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+      # Read by modules/tv-media/android/build.gradle; pushes always bundle it (D-059).
+      IPTV_FFMPEG_AUDIO: ${{ github.event_name == 'push' || inputs.ffmpeg_audio }}
     steps:
       - name: Check address
         run: |
@@ -112,7 +118,7 @@ jobs:
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
           signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
-          notes="Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}. My server prefill: ${APP_API_BASE_URL:-none}"
+          notes="Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}, FFmpeg audio: ${IPTV_FFMPEG_AUDIO}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           gh release edit tv-apk --notes "$notes"
           gh release upload tv-apk tv.apk --clobber

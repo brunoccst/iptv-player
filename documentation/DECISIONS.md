@@ -63,6 +63,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-056](#d-056) | 2026-09-25 | Password-protected backup and restore of user data |
 | [D-057](#d-057) | 2026-09-25 | Open movies and episodes in an external player (TV/phone) |
 | [D-058](#d-058) | 2026-09-25 | Live TV: see-through guide over the playing channel (TV/phone) |
+| [D-059](#d-059) | 2026-09-26 | Bundled FFmpeg audio decoders (switchable) |
 
 ---
 
@@ -1064,6 +1065,8 @@ Decision:
 
 Alternatives: an unencrypted file (holds the provider password, rejected); syncing through the backend (most users run without one).
 
+Update 2026-09-26 (requested by owner): device-wide app settings are included too. An app lists their keys in `BackupStorages.settingsKeys`; the TV/phone app lists its playback settings (audio decoder choice, D-059). Older backup files without them still restore; the device then keeps its current choice.
+
 ## D-057
 
 **Open movies and episodes in an external player (TV/phone)** — 2026-09-25 (requested in PR #18)
@@ -1091,4 +1094,17 @@ Decision:
 - Web: not part of this change.
 
 Alternative: a full-screen guide (the Live TV page) stops being "over" the video, which the request wanted to avoid.
+
+## D-059
+
+**Bundled FFmpeg audio decoders (switchable)** — 2026-09-26 (requested by owner after KI-043)
+
+Decision:
+- The TV/phone player bundles software audio decoders from FFmpeg (Dolby Digital, Dolby Digital Plus, DTS, TrueHD and more) through Jellyfin's prebuilt Media3 extension `org.jellyfin.media3:media3-ffmpeg-decoder` (same Media3 version, 1.9.0). No native build in this repository.
+- The device's own decoders come first on every device (owner's choice), so Dolby audio can still reach a soundbar or receiver; FFmpeg decodes the formats the device cannot. Because some decoders claim support and then fail mid-stream (a Pixel with Dolby Digital Plus, KI-043), the user can switch to "FFmpeg first"; the audio error message points there.
+- It is one switch: `modules/tv-media/android/build.gradle` adds the dependency unless the Gradle property `iptvFfmpegAudio=false` or the env var `IPTV_FFMPEG_AUDIO=0/false` is set. The player code works either way. `tv-apk.yml` has a `ffmpeg_audio` input (manual runs) so an APK without it can be built for comparison or as a second variant; pushes to `main` bundle it. The log's start line says whether it is bundled.
+- Users can choose in the account menu → **Playback** (shown only when FFmpeg is bundled): Device decoders first (default) or FFmpeg first. The choice is saved on the device and applies to the next title. It is part of the data backup (D-056), so a reinstall or a restore keeps it.
+- To remove it for good: delete those lines in `build.gradle` (and optionally the `ffmpeg_audio` input).
+
+Open: the APK size cost is measured before deciding whether to keep it, ship two variants, or offer it as a separate download.
 

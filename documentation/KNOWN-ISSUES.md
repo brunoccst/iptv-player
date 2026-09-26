@@ -332,3 +332,4 @@ Update 2026-09-26: three hours later the same account played again (movies and e
 
 The player uses the device's own decoders. On a Pixel phone (Android 16), an episode with Dolby Digital Plus 5.1 audio (E-AC3) failed in `c2.dolby.eac3.decoder` although the device reports support. The player now stops at once with a message naming the format and suggesting another version or an external player (VLC brings its own decoders), instead of retrying the same file on the other server address and as HLS. A lasting fix would bundle a software audio decoder (Media3 FFmpeg extension, several MB larger APK).
 
+Update 2026-09-26 (D-059): FFmpeg audio decoders are bundled. The device's decoders still come first by default; on devices like this Pixel, choose account menu → Playback → FFmpeg first (the audio error message says so).

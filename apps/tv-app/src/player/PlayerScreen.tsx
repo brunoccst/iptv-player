@@ -42,8 +42,8 @@ import {
   type SeekDirection,
   type VariantInfo,
 } from '@iptv/shared';
-import { TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
-import { api, downloadsStore, navStore, stores } from '../appContext';
+import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
+import { api, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
 import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -64,7 +64,7 @@ const PROGRESS_SAVE_MS = 10_000;
  * Error text for the last failed attempt. HTTP 401/403 from the stream server means the provider refused this stream
  * although the login works: usually the account's connection limit, or the provider blocking the stream for a while.
  */
-export function playbackErrorText(message: string, detail?: string | null, code = ''): string {
+export function playbackErrorText(message: string, detail?: string | null, code = '', ffmpegAudio = false): string {
   const text = detail ? `${message} (${detail})` : message;
   const all = `${message} ${detail ?? ''}`;
   if (/HTTP 40[13]\b/.test(all))
@@ -73,7 +73,11 @@ export function playbackErrorText(message: string, detail?: string | null, code 
     const audio = /MediaCodecAudioRenderer/.test(all);
     const mime = /\b(audio|video)\/([\w.-]+)/.exec(all.replace(/video\/x-matroska/g, ''))?.[2];
     const format = mime ? (CODEC_NAMES[mime] ?? mime.toUpperCase()) : null;
-    return `This device could not decode the ${audio ? 'audio' : 'video'} of this title${format ? ` (${format})` : ''}. Try another version, or open it in another player such as VLC, which brings its own decoders.`;
+    const tip =
+      audio && ffmpegAudio
+        ? 'Try Playback → FFmpeg first in the account menu, another version, or another player such as VLC.'
+        : 'Try another version, or open it in another player such as VLC, which brings its own decoders.';
+    return `This device could not decode the ${audio ? 'audio' : 'video'} of this title${format ? ` (${format})` : ''}. ${tip}`;
   }
   if (code.startsWith('ERROR_CODE_PARSING'))
     return 'The provider did not send a playable video for this title (it may be broken on their side). Try another version, or open it in another player.';
@@ -136,6 +140,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
     let cancelled = false;
+    // Read when the title starts: a changed setting applies to the next title, not mid-stream (D-059).
+    const audioDecoder = playbackSettings.getState().audioDecoder;
     const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
     const startPositionMs = (target.startAt ?? resumePosition(saved)) * 1000;
     const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
@@ -148,7 +154,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     }
     const useDownload = download?.state === 'completed' && access.allowed;
     if (useDownload && attempt === 0) {
-      setSource({ offlineId: download.id, startPositionMs });
+      setSource({ offlineId: download.id, startPositionMs, audioDecoder });
       return;
     }
     const plan = tvPlaybackAttempts(target.kind, target.container);
@@ -164,7 +170,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         if (cancelled) return;
         alternates.current = [...(info.alternateUrls ?? [])];
         appLog.info('player', `attempt ${attempt + 1}: ${step.engine} ${info.url} (${info.deliveryMode}, User-Agent ${providerUserAgent})`);
-        setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs });
+        setSource({ uri: info.url, isHls: step.engine === 'hls', startPositionMs, audioDecoder });
       },
       (error) => {
         if (cancelled) return;
@@ -410,7 +416,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
           // Decoding errors: the other server and the HLS copy carry the same audio/video, so retrying only costs time.
           if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
-            setError(playbackErrorText(message, detail, code));
+            setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
             return;
           }
           // The stream server's other address only helps with network and HTTP errors.
@@ -424,7 +430,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
             setReady(false);
             setAttempt((a) => a + 1);
-          } else setError(playbackErrorText(message, detail, code));
+          } else setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
         }}
       />
 

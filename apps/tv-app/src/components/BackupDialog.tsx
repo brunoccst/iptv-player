@@ -11,7 +11,7 @@ import {
   importUserData,
   MIN_BACKUP_PASSWORD,
 } from '@iptv/shared';
-import { appContext, backupStorages } from '../appContext';
+import { appContext, backupStorages, playbackSettings } from '../appContext';
 import { appConfig } from '../config';
 import { colors, fonts } from '../theme';
 import { ErrorText } from './Feedback';
@@ -71,7 +71,7 @@ export function BackupDialog({ mode, onClose }: { mode: 'backup' | 'restore'; on
     run(async () => {
       if (!file) return;
       await importUserData(backupStorages, await file.text(), password);
-      await appContext.reload();
+      await Promise.all([appContext.reload(), playbackSettings.getState().load()]);
       onClose();
     });
 
@@ -90,8 +90,8 @@ export function BackupDialog({ mode, onClose }: { mode: 'backup' | 'restore'; on
             ) : mode === 'backup' ? (
               <>
                 <Text style={styles.text}>
-                  Saves your sign-in, server settings, profiles, parental PIN, watch progress and My List to a file encrypted with a
-                  password. Restore it after reinstalling the app or on another device.
+                  Saves your sign-in, server settings, profiles, parental PIN, watch progress, My List and playback settings to a file
+                  encrypted with a password. Restore it after reinstalling the app or on another device.
                 </Text>
                 <Field
                   label={`Password (at least ${MIN_BACKUP_PASSWORD} characters)`}

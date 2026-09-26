@@ -18,7 +18,12 @@ export interface PlayerSource {
   offlineId?: string | null;
   isHls?: boolean;
   startPositionMs?: number;
+  /** Which audio decoders the player tries first (D-059). */
+  audioDecoder?: AudioDecoderChoice;
 }
+
+/** `device` (default): the device's decoders first, FFmpeg for the rest; `ffmpeg`: FFmpeg first. */
+export type AudioDecoderChoice = 'device' | 'ffmpeg';
 
 export interface PlayerStatusEvent {
   state: 'idle' | 'buffering' | 'ready' | 'ended';

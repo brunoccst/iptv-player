@@ -31,6 +31,8 @@ class PlayerSource : Record {
   @Field var offlineId: String? = null
   @Field var isHls: Boolean = false
   @Field var startPositionMs: Double = 0.0
+  /** "device" (default) or "ffmpeg": which audio decoders come first, the user's choice (D-059). */
+  @Field var audioDecoder: String? = null
 }
 
 /**
@@ -90,7 +92,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
   }
 
   fun load(source: PlayerSource?) {
-    val key = source?.let { "${it.offlineId}|${it.uri}" }
+    val key = source?.let { "${it.offlineId}|${it.uri}|${it.audioDecoder}" }
     if (key == loadedKey) return
     loadedKey = key
     releasePlayer()
@@ -98,7 +100,15 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
 
     DownloadCenter.init(context)
     // Decoder fallback: if the preferred (often hardware) decoder fails to init, try the next one.
-    val renderers = DefaultRenderersFactory(context).setEnableDecoderFallback(true)
+    // FFmpeg audio (when bundled, D-059): by default the device's own decoders come first and FFmpeg only covers formats
+    // they cannot play; the user can choose "FFmpeg first" (Playback settings) for devices whose decoder claims support
+    // and then fails mid-stream (KI-043). Without the extension this is a no-op.
+    val extensionMode =
+      if (source.audioDecoder == "ffmpeg") DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+      else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+    val renderers = DefaultRenderersFactory(context)
+      .setEnableDecoderFallback(true)
+      .setExtensionRendererMode(extensionMode)
     val exoPlayer = ExoPlayer.Builder(context, renderers)
       .setMediaSourceFactory(DefaultMediaSourceFactory(DownloadCenter.httpDataSourceFactory))
       .build()

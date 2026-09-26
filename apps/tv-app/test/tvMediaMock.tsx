@@ -12,6 +12,7 @@ export const nativeState = {
   listeners: new Set<Listener>(),
   calls: [] as string[],
   externalPlayerResult: 'chooser' as ExternalPlayerResult,
+  ffmpegAudio: false,
   emit() {
     this.listeners.forEach((listener) => listener({ downloads: [...this.downloads] }));
   },
@@ -19,12 +20,14 @@ export const nativeState = {
     this.downloads = [];
     this.calls = [];
     this.externalPlayerResult = 'chooser';
+    this.ffmpegAudio = false;
   },
 };
 
 export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
+  ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
   addListener: (_event: 'onDownloadsChanged', listener: Listener) => {
     nativeState.listeners.add(listener);
     return { remove: () => nativeState.listeners.delete(listener) };

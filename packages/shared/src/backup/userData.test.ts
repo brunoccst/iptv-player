@@ -50,6 +50,17 @@ describe('user-data backup (D-056)', () => {
     expect([...fresh.data.data.keys()].some((key) => key.startsWith('direct.library'))).toBe(false);
   });
 
+  it('includes the app settings it is told about, from the data storage', async () => {
+    const old = device();
+    await old.data.setItem('settings.playback', '{"audioDecoder":"ffmpeg"}');
+    await old.data.setItem('settings.other', 'not listed, stays out');
+    const text = await exportUserData({ ...old, settingsKeys: ['settings.playback'] }, 'correct horse');
+    const fresh = { secure: createMemoryStorage(), data: createMemoryStorage() };
+    await importUserData(fresh, text, 'correct horse');
+    expect(fresh.data.data.get('settings.playback')).toBe('{"audioDecoder":"ffmpeg"}');
+    expect(fresh.data.data.has('settings.other')).toBe(false);
+  });
+
   it('refuses short passwords, empty devices, wrong passwords and foreign files', async () => {
     await expect(exportUserData(device(), 'short')).rejects.toMatchObject({ reason: 'short-password' });
     await expect(exportUserData({ secure: createMemoryStorage() }, 'long enough')).rejects.toMatchObject({ reason: 'no-data' });

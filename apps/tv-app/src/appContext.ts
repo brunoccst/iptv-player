@@ -6,6 +6,7 @@ import { appConfig, providerUserAgent } from './config';
 import { fileStorage } from './dataStorage';
 import { createDownloadsStore } from './downloads/downloadsStore';
 import { createNavStore } from './navigation/navStore';
+import { createPlaybackSettings, PLAYBACK_SETTINGS_KEY } from './playbackSettings';
 
 /** Android Keystore-encrypted storage. Session token must not sit in plain files. */
 const secureStorage: KeyValueStorage = {
@@ -22,7 +23,14 @@ export const appContext = createAppContext({
 TvMedia.setUserAgent(providerUserAgent);
 
 // Diagnostics log (Log screen → Share): kept across restarts; uncaught JS errors are recorded before the app dies.
-void appLog.persist(fileStorage).then(() => appLog.info('app', `${appConfig.appName} started on Android ${Platform.Version}`));
+void appLog
+  .persist(fileStorage)
+  .then(() =>
+    appLog.info(
+      'app',
+      `${appConfig.appName} started on Android ${Platform.Version}, FFmpeg audio ${TvMedia.ffmpegAudioAvailable() ? 'bundled' : 'not bundled'}`,
+    ),
+  );
 const errorUtils = (
   globalThis as {
     ErrorUtils?: {
@@ -40,8 +48,10 @@ if (errorUtils) {
 }
 export const { stores, api } = appContext;
 /** What the user-data backup reads and writes (D-056). */
-export const backupStorages: BackupStorages = { secure: secureStorage, data: fileStorage };
+export const backupStorages: BackupStorages = { secure: secureStorage, data: fileStorage, settingsKeys: [PLAYBACK_SETTINGS_KEY] };
 export const navStore = createNavStore();
+export const playbackSettings = createPlaybackSettings(fileStorage);
+void playbackSettings.getState().load();
 export const downloadsStore = createDownloadsStore({ api, native: TvMedia });
 /** Downloads belong to the signed-in account; `signOut` removes them first (D-050). */
 export const { signOut } = bindDownloadsToAccount({
