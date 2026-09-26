@@ -6,8 +6,11 @@ import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
 
 const CHOICES: { value: AudioDecoderChoice; label: string; hint: string }[] = [
-  { value: 'auto', label: 'Automatic', hint: 'Phones: FFmpeg first. TVs: the device first, so Dolby can reach a soundbar.' },
-  { value: 'device', label: 'Device decoders first', hint: 'FFmpeg only for formats the device cannot play.' },
+  {
+    value: 'device',
+    label: 'Device decoders first',
+    hint: 'Recommended. FFmpeg only for formats the device cannot play; Dolby can still reach a soundbar.',
+  },
   { value: 'ffmpeg', label: 'FFmpeg first', hint: 'Software decoding; try this when a title has no sound or stops with an audio error.' },
 ];
 

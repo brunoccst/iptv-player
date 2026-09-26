@@ -10,7 +10,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `PinSettings.tsx` | Parental PIN flow: set (typed twice), or change/remove after the current PIN. |
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
 | `Field.tsx` | Labelled text field (login, backup). |
-| `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Automatic / Device first / FFmpeg first), D-059. |
+| `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus shows a white outline. |
 | `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |

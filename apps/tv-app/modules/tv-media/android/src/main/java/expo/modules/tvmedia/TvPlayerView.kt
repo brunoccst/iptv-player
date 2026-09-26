@@ -1,8 +1,6 @@
 package expo.modules.tvmedia
 
-import android.app.UiModeManager
 import android.content.Context
-import android.content.res.Configuration
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.C
@@ -33,7 +31,7 @@ class PlayerSource : Record {
   @Field var offlineId: String? = null
   @Field var isHls: Boolean = false
   @Field var startPositionMs: Double = 0.0
-  /** "auto" (phones FFmpeg first, TVs device first), "device" or "ffmpeg": the user's choice (D-059). */
+  /** "device" (default) or "ffmpeg": which audio decoders come first, the user's choice (D-059). */
   @Field var audioDecoder: String? = null
 }
 
@@ -93,9 +91,6 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     addView(playerView)
   }
 
-  private fun isTelevision(): Boolean =
-    (context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
-
   fun load(source: PlayerSource?) {
     val key = source?.let { "${it.offlineId}|${it.uri}|${it.audioDecoder}" }
     if (key == loadedKey) return
@@ -105,16 +100,12 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
 
     DownloadCenter.init(context)
     // Decoder fallback: if the preferred (often hardware) decoder fails to init, try the next one.
-    // FFmpeg audio (when bundled, D-059): phones decode with it first, because some phone Dolby decoders claim
-    // support and then fail mid-stream (KI-043); TVs keep their own decoders first so Dolby can still go to a
-    // soundbar/receiver, and use FFmpeg only for formats they cannot handle. Without the extension this is a no-op.
-    val extensionMode = when (source.audioDecoder) {
-      "device" -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
-      "ffmpeg" -> DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-      else ->
-        if (isTelevision()) DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
-        else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-    }
+    // FFmpeg audio (when bundled, D-059): by default the device's own decoders come first and FFmpeg only covers formats
+    // they cannot play; the user can choose "FFmpeg first" (Playback settings) for devices whose decoder claims support
+    // and then fails mid-stream (KI-043). Without the extension this is a no-op.
+    val extensionMode =
+      if (source.audioDecoder == "ffmpeg") DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+      else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
     val renderers = DefaultRenderersFactory(context)
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(extensionMode)

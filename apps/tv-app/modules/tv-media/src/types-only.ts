@@ -22,8 +22,8 @@ export interface PlayerSource {
   audioDecoder?: AudioDecoderChoice;
 }
 
-/** `auto`: FFmpeg first on phones, the device's decoders first on TVs. */
-export type AudioDecoderChoice = 'auto' | 'device' | 'ffmpeg';
+/** `device` (default): the device's decoders first, FFmpeg for the rest; `ffmpeg`: FFmpeg first. */
+export type AudioDecoderChoice = 'device' | 'ffmpeg';
 
 export interface PlayerStatusEvent {
   state: 'idle' | 'buffering' | 'ready' | 'ended';

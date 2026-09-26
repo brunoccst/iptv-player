@@ -42,7 +42,7 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   void SecureStore.deleteItemAsync(pinStorageKey(account.id));
   stores.pin.setState({ status: 'none', lockedUntil: null });
   navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
-  playbackSettings.setState({ audioDecoder: 'auto' });
+  playbackSettings.setState({ audioDecoder: 'device' });
   stores.session.setState(
     options.signedIn === false
       ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }

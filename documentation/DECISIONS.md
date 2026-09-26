@@ -1099,9 +1099,9 @@ Alternative: a full-screen guide (the Live TV page) stops being "over" the video
 
 Decision:
 - The TV/phone player bundles software audio decoders from FFmpeg (Dolby Digital, Dolby Digital Plus, DTS, TrueHD and more) through Jellyfin's prebuilt Media3 extension `org.jellyfin.media3:media3-ffmpeg-decoder` (same Media3 version, 1.9.0). No native build in this repository.
-- Phones decode audio with FFmpeg first, because some phone Dolby decoders claim support and then fail mid-stream (KI-043). TVs keep their own decoders first, so Dolby audio can still reach a soundbar or receiver, and use FFmpeg only for formats they cannot decode.
+- The device's own decoders come first on every device (owner's choice), so Dolby audio can still reach a soundbar or receiver; FFmpeg decodes the formats the device cannot. Because some decoders claim support and then fail mid-stream (a Pixel with Dolby Digital Plus, KI-043), the user can switch to "FFmpeg first"; the audio error message points there.
 - It is one switch: `modules/tv-media/android/build.gradle` adds the dependency unless the Gradle property `iptvFfmpegAudio=false` or the env var `IPTV_FFMPEG_AUDIO=0/false` is set. The player code works either way. `tv-apk.yml` has a `ffmpeg_audio` input (manual runs) so an APK without it can be built for comparison or as a second variant; pushes to `main` bundle it. The log's start line says whether it is bundled.
-- Users can choose in the account menu → **Playback** (shown only when FFmpeg is bundled): Automatic (the rule above), Device decoders first, or FFmpeg first. The choice is saved on the device (not in backups, it depends on the hardware) and applies to the next title.
+- Users can choose in the account menu → **Playback** (shown only when FFmpeg is bundled): Device decoders first (default) or FFmpeg first. The choice is saved on the device (not in backups, it depends on the hardware) and applies to the next title.
 - To remove it for good: delete those lines in `build.gradle` (and optionally the `ffmpeg_audio` input).
 
 Open: the APK size cost is measured before deciding whether to keep it, ship two variants, or offer it as a separate download.

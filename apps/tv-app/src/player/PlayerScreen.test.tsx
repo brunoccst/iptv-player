@@ -61,6 +61,7 @@ describe('PlayerScreen', () => {
     expect(playbackErrorText('Source error', detail, 'ERROR_CODE_DECODING_FAILED')).toMatch(
       /^This device could not decode the audio of this title \(Dolby Digital Plus\)/,
     );
+    expect(playbackErrorText('Source error', detail, 'ERROR_CODE_DECODING_FAILED', true)).toContain('Try Playback → FFmpeg first');
     expect(playbackErrorText('Source error', 'n0: None of the available extractors', 'ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED')).toMatch(
       /^The provider did not send a playable video/,
     );
