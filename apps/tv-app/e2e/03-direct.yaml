@@ -13,17 +13,12 @@ appId: ${APP_ID}
     id: "login-server"
 # The emulator reaches the runner's localhost at 10.0.2.2; only the fake panel runs, no backend.
 - inputText: "http://10.0.2.2:8091"
+# Enter moves to the next field (and opens the keyboard there); on the password it signs in.
 - pressKey: Enter
-- tapOn:
-    id: "login-username"
 - inputText: "demo"
 - pressKey: Enter
-- tapOn:
-    id: "login-password"
 - inputText: "demo"
 - pressKey: Enter
-- tapOn:
-    id: "login-submit"
 - extendedWaitUntil:
     visible:
       id: "home-screen"

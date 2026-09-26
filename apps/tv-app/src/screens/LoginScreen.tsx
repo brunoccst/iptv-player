@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fluid, type ConnectionMode } from '@iptv/shared';
-import { Dimensions, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -32,6 +32,10 @@ export function LoginScreen() {
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
   const short = Dimensions.get('screen').height < 600;
   const sizes = useSizes();
+  // Enter on the keyboard moves to the next field; on the password it signs in.
+  const serverRef = useRef<TextInput>(null);
+  const usernameRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     void connectionStore.getState().load();
@@ -92,6 +96,8 @@ export function LoginScreen() {
                 testID="login-backend"
                 placeholder="http://192.168.1.10:5080"
                 compact={short}
+                returnKeyType="next"
+                onSubmit={() => serverRef.current?.focus()}
               />
             ) : null}
             <Field
@@ -102,9 +108,33 @@ export function LoginScreen() {
               autoFocus
               placeholder="http://provider.example:8080"
               compact={short}
+              inputRef={serverRef}
+              returnKeyType="next"
+              onSubmit={() => usernameRef.current?.focus()}
             />
-            <Field label="Username" value={username} onChange={setUsername} testID="login-username" compact={short} />
-            <Field label="Password" value={password} onChange={setPassword} testID="login-password" secure compact={short} />
+            <Field
+              label="Username"
+              value={username}
+              onChange={setUsername}
+              testID="login-username"
+              compact={short}
+              inputRef={usernameRef}
+              returnKeyType="next"
+              onSubmit={() => passwordRef.current?.focus()}
+            />
+            <Field
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              testID="login-password"
+              secure
+              compact={short}
+              inputRef={passwordRef}
+              returnKeyType="go"
+              onSubmit={() => {
+                if (!busy && !(mode === 'server' && !backendUrl.trim())) void submit();
+              }}
+            />
             {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
             <FocusButton
               label={busy ? 'Signing in…' : 'Sign In'}

@@ -39,6 +39,20 @@ describe('LoginScreen (TV)', () => {
     expect(JSON.parse((await SecureStore.getItemAsync('connection'))!)).toEqual({ mode: 'direct', serverUrl: '' });
   });
 
+  it('Enter on the password field signs in', async () => {
+    setupApp({ signedIn: false });
+    await SecureStore.deleteItemAsync('connection');
+    connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });
+    globalThis.fetch = createFakePanel().fetch;
+
+    await render(<App />);
+    await flush();
+    await fillLogin();
+    await fireEvent(screen.getByTestId('login-password'), 'submitEditing');
+    await flush();
+    expect(await screen.findByTestId('home-screen')).toBeTruthy();
+  });
+
   it('goes through the backend when "My server" is chosen', async () => {
     const backend = setupApp({ signedIn: false });
     connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });

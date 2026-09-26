@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel } from '@iptv/shared';
 import { api, navStore } from '../appContext';
@@ -6,9 +6,9 @@ import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
 import { MasterCardItem, useGridColumns } from './titles';
+import { searchDelay, SEARCH_MIN_LENGTH } from './searchDelay';
 import { usePagedLibrary } from './usePagedLibrary';
 
-const DEBOUNCE_MS = 300;
 const PAGE = 100;
 /** Search results read best alphabetically. */
 const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
@@ -17,18 +17,36 @@ const MAX_CHANNELS = 30;
 /** Same as the web search page ("Results for …": Movies and Series grids), plus matching live channels. Text comes from the top nav. */
 export function SearchScreen() {
   const search = useNav((s) => s.search);
-  const [query, setQuery] = useState(search.trim());
+  const submits = useNav((s) => s.searchSubmits);
+  // Starts empty: the first letter opens this page, and searching for it alone froze typing on big libraries.
+  const [query, setQuery] = useState('');
   const sizes = useSizes();
   const navH = useNavHeight();
+  const typing = useRef({ last: 0, gaps: [] as number[] });
 
+  // Waits until typing pauses, adapted to how fast the user types (searchDelay.ts).
   useEffect(() => {
-    const timer = setTimeout(() => setQuery(search.trim()), DEBOUNCE_MS);
+    const now = Date.now();
+    const state = typing.current;
+    if (state.last) state.gaps = [...state.gaps, now - state.last].slice(-8);
+    state.last = now;
+    const text = search.trim();
+    const timer = setTimeout(() => setQuery(text.length >= SEARCH_MIN_LENGTH ? text : ''), searchDelay(state.gaps));
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Enter on the keyboard: search now.
+  const firstSubmit = useRef(submits);
+  useEffect(() => {
+    if (submits !== firstSubmit.current && search.trim()) setQuery(search.trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the Enter key triggers this
+  }, [submits]);
+
   return (
     <ScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
-      <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>{`Results for “${query}”`}</Text>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
+        {query ? `Results for “${query}”` : search.trim().length < SEARCH_MIN_LENGTH ? 'Keep typing…' : 'Searching…'}
+      </Text>
       {query ? (
         <>
           <SearchGrid key={`m-${query}`} section="movies" query={query} title="Movies" />

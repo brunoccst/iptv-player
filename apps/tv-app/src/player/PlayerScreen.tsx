@@ -437,8 +437,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {/* Phones: full screen video; the navigation bar comes back when the player closes. */}
       {Platform.isTV ? null : <NavigationBar hidden />}
 
-      {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028. */}
-      {!drawer && !guide && !focusablesVisible && !error ? (
+      {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028.
+          On TV it steps aside while Skip ahead / Next episode buttons need the focus; phones keep it, so a tap on the video
+          still shows the controls and the timeline while those buttons are up. */}
+      {!drawer && !guide && !(Platform.isTV && focusablesVisible) && !error ? (
         <Pressable
           testID="player-focus"
           accessibilityLabel="Player"
@@ -603,6 +605,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   onPress={() => {
                     setSkipOpen(false);
                     seekTo(timeRef.current + seconds);
+                    // Show where it landed.
+                    wake();
                   }}
                 />
               ))}

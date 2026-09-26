@@ -60,7 +60,8 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
 
 const Separator = () => <View style={{ width: 8 }} />;
 
-/** Card-sized arrow after the last title: opens the category page. */
+/** Card-sized arrow after the last title: opens the category page. Same parts as a card (art, then a title line), so
+ * it lines up with landscape (live) cards too. */
 function MoreCard({ title, landscape, onPress, testID }: { title: string; landscape?: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   const { cardWidth } = useSizes();
@@ -75,11 +76,13 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
       style={[styles.moreCard, { width: cardWidth, marginLeft: 8 }, focused && styles.moreFocused]}
     >
       <View style={[styles.moreArt, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>
-        <View style={[styles.moreCircle, focused && styles.moreCircleFocused]}>
-          <Icon name="chevronRight" size={32} color={focused ? colors.bg : colors.strong} />
+        <View style={[styles.moreCircle, landscape && styles.moreCircleSmall, focused && styles.moreCircleFocused]}>
+          <Icon name="chevronRight" size={landscape ? 22 : 32} color={focused ? colors.bg : colors.strong} />
         </View>
-        <Text style={styles.moreText}>See all</Text>
       </View>
+      <Text style={styles.moreText} numberOfLines={1}>
+        See all
+      </Text>
     </Pressable>
   );
 }
@@ -140,6 +143,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  moreCircleSmall: { width: 40, height: 40, borderRadius: 20 },
   moreCircleFocused: { backgroundColor: colors.strong },
-  moreText: { color: colors.strong, fontSize: 14.4, fontWeight: '700' },
+  // Same spacing and size as a card's title line (PosterCard `meta` + `title`).
+  moreText: { color: colors.strong, fontSize: 13.6, fontWeight: '700', paddingTop: 8, paddingHorizontal: 4, paddingBottom: 4 },
 });

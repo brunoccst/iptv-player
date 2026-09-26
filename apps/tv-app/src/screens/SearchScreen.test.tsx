@@ -40,6 +40,24 @@ describe('Search and Log pages (TV)', () => {
     expect(screen.getByTestId('row-series-search')).toHaveTextContent(/No titles found/);
   });
 
+  it('waits for a second letter, and Enter searches without waiting', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies', { body: { total: 0, items: [] } });
+    backend.on('GET', '/api/library/series', { body: { total: 0, items: [] } });
+    backend.on('GET', '/api/catalog/live/channels', { body: [] });
+    await render(<App />);
+    await flush();
+    await fireEvent.changeText(screen.getByTestId('nav-search'), 'n');
+    await flush(1500);
+    expect(screen.getByText('Keep typing…')).toBeTruthy();
+    expect(backend.calls.some((call) => call.url.searchParams.has('search'))).toBe(false);
+
+    await fireEvent.changeText(screen.getByTestId('nav-search'), 'ne');
+    await fireEvent(screen.getByTestId('nav-search'), 'submitEditing');
+    await flush();
+    expect(screen.getByText('Results for “ne”')).toBeTruthy();
+  });
+
   it('shares the log with credentials masked', async () => {
     setupApp();
     const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
