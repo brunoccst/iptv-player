@@ -1,9 +1,8 @@
-import { useEffect, useMemo, type ReactElement } from 'react';
-import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   watchlistCard,
-  describeLibraryProgress,
   liveTarget,
   movieTarget,
   pageKey,
@@ -14,11 +13,13 @@ import {
 import { api, navStore, stores } from '../appContext';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
+import { RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { useCatalog, useLibrary, useProgress, useSession, useWatchlist } from '../hooks';
-import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
+import { useCatalog, useLibrary, useProgress, useWatchlist } from '../hooks';
+import { colors, useNavHeight, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
+import { LibraryBanner } from '../components/LibraryBanner';
 import { MasterCardItem, TitleRow } from './titles';
 
 /** Movies the hero picks its featured title from. */
@@ -34,6 +35,15 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
   const seriesCategories = useCatalog((s) => s.categories.series?.data ?? []);
   const { rowGap } = useSizes();
+  const { height: screenHeight } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  // Where each row sits in the page, so a focused row can be scrolled to the middle of the screen (TV).
+  const rowLayouts = useRef(new Map<string, { y: number; height: number }>());
+  const centerRow = (key: string) => {
+    const layout = rowLayouts.current.get(key);
+    if (!layout) return;
+    scroll.current?.scrollTo({ y: Math.max(0, layout.y - (screenHeight - layout.height) / 2), animated: true });
+  };
 
   useEffect(() => {
     const { library, catalog } = stores;
@@ -66,8 +76,9 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     <View
       key={row.key}
       style={index === 0 ? [styles.rows, { marginTop: hasHero ? -Math.round(rowGap * 2) : Math.round(rowGap / 2) }] : styles.rows}
+      onLayout={(event) => rowLayouts.current.set(row.key, event.nativeEvent.layout)}
     >
-      {row.render()}
+      <RowFocus.Provider value={Platform.isTV ? () => centerRow(row.key) : null}>{row.render()}</RowFocus.Provider>
     </View>
   );
   const onScroll = (y: number) => navStore.getState().setScrolled(y > 10);
@@ -80,6 +91,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     return (
       <View style={styles.screen}>
         <ScrollView
+          ref={scroll}
           style={styles.screen}
           testID="home-screen"
           scrollEventThrottle={100}
@@ -113,38 +125,6 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
         onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
       />
       {banner}
-    </View>
-  );
-}
-
-/** Web `.banner`: offline notice or "organizing your library" with per-kind progress (direct mode). */
-function LibraryBanner({ processing }: { processing: boolean }) {
-  const offline = useSession((s) => s.offline);
-  const progress = describeLibraryProgress(useLibrary((s) => s.status.data));
-  const { gutter } = useSizes();
-  if (!offline && !processing) return null;
-  return (
-    <View
-      style={[styles.banner, { left: gutter, right: gutter }]}
-      testID="library-processing"
-      accessibilityRole="alert"
-      pointerEvents="none"
-    >
-      {offline ? (
-        <Text style={styles.bannerText}>You're offline. Downloaded titles are available in My Downloads.</Text>
-      ) : (
-        <>
-          <View style={styles.bannerLine}>
-            <ActivityIndicator size="small" color={colors.accent} />
-            <Text style={styles.bannerText}>Organizing your library: grouping duplicate titles and versions…</Text>
-          </View>
-          {progress.map((line) => (
-            <Text key={line} style={styles.bannerDetail}>
-              {line}
-            </Text>
-          ))}
-        </>
-      )}
     </View>
   );
 }
@@ -307,20 +287,4 @@ const styles = StyleSheet.create({
   heroPlot: { color: colors.text, marginBottom: 20, ...shadow },
   heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   // Above everything on the page (rows, focused cards), not focusable.
-  banner: {
-    position: 'absolute',
-    bottom: 16,
-    zIndex: 50,
-    elevation: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: radius,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: 'rgba(20,20,20,0.95)',
-    gap: 4,
-  },
-  bannerLine: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bannerText: { color: colors.text, fontSize: 14.4, flexShrink: 1 },
-  bannerDetail: { color: colors.muted, fontSize: fonts.small, marginLeft: 32 },
 });

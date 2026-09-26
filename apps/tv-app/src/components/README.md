@@ -22,10 +22,12 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `PlayOnTvButton.tsx` | Phones with a paired TV: round TV button next to Play that starts the title on the TV (D-061). |
 | `PosterCard.tsx` | Web `.card`: 2:3 or 16:9 art, badge, progress bar, title + subtitle; focus scales it up. `testID="card-<title>"`. |
 | `ChipBar.tsx` | Category chips on one scrollable line; "Show all" wraps them across the width, "Show less" (or picking one) returns to the line with the chosen chip in view (D-047). Also exports `Chip`. |
-| `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end, built like a card so it lines up in landscape rows too (D-043). |
+| `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end, built like a card so it lines up in landscape rows too (D-043). Its cards sit in a `FocusRow` (D-069). |
 | `Select.tsx` | Web `.select`: box with the current value; opens an option list. |
 | `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume. |
 | `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). Hidden on Kids profiles. |
 | `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |
 | `ProgressRing.tsx` | SVG progress circle. |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` mapping. |
+| `FocusRow.tsx` | `FocusRow`: a horizontal group whose Left/Right stay inside on TV (D-069); `RowFocus` lets Home centre the row of the focused card. |
+| `LibraryBanner.tsx` | Offline notice or "organizing your library" with per-kind progress, at the bottom of Home and Movies/Series. |

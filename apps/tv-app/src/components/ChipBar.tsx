@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent }
 import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { FocusRow } from './FocusRow';
 
 export interface ChipItem {
   key: string;
@@ -60,7 +61,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   ));
 
   return (
-    <View style={styles.bar} testID={testID}>
+    <FocusRow style={styles.bar} testID={testID}>
       {expanded ? (
         <View style={[styles.line, styles.wrap]} accessibilityLabel={label}>
           {items}
@@ -93,7 +94,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
           }}
         />
       ) : null}
-    </View>
+    </FocusRow>
   );
 }
 
