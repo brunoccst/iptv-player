@@ -28,6 +28,7 @@ export function TopNav() {
   const view = useUi((s) => s.view);
   const search = useUi((s) => s.search);
   const profile = useSession(selectActiveProfile);
+  const kids = profile?.isKids === true;
   const profiles = useSession((s) => s.profiles);
   const [solid, setSolid] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -94,7 +95,7 @@ export function TopNav() {
           </button>
           {menuOpen ? (
             <div className="menu__list" role="menu" onMouseLeave={() => toggleMenu(false)}>
-              {group ? (
+              {group && !kids ? (
                 <>
                   {/* The group's name with a back arrow: back to the main list. */}
                   <button
@@ -191,7 +192,19 @@ export function TopNav() {
                         {p.name}
                       </button>
                     ))}
-                  {GROUPS.map((name) => (
+                  {/* Kids profiles only switch profile: no settings, backup, refresh or sign-out. Parents set a Kids
+                      profile's categories and languages in the profile editor (behind the PIN when one is set). */}
+                  {kids ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="menu__item"
+                      onClick={() => stores.session.getState().selectProfile(null)}
+                    >
+                      <Icon name="pencil" size={18} /> Switch profile
+                    </button>
+                  ) : null}
+                  {(kids ? [] : GROUPS).map((name) => (
                     <button key={name} type="button" role="menuitem" className="menu__item" onClick={() => setGroup(name)}>
                       <Icon name={name === 'Profiles' ? 'pencil' : 'refresh'} size={18} /> {name}
                       <span className="menu__chevron" aria-hidden>
@@ -199,19 +212,21 @@ export function TopNav() {
                       </span>
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="menu__item"
-                    onClick={() => {
-                      // Downloads belong to this account and are deleted on sign-out (D-050).
-                      const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
-                      if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
-                      void signOut();
-                    }}
-                  >
-                    <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
-                  </button>
+                  {kids ? null : (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="menu__item"
+                      onClick={() => {
+                        // Downloads belong to this account and are deleted on sign-out (D-050).
+                        const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
+                        if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
+                        void signOut();
+                      }}
+                    >
+                      <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
+                    </button>
+                  )}
                 </>
               )}
             </div>

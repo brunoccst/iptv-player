@@ -126,7 +126,10 @@ export function AccountMenu() {
       ],
     },
   ];
-  const openGroup = groups.find((group) => group.name === groupName);
+  // Kids profiles only switch profile: no settings, sync, backup, updates, log or sign-out. Parents change a Kids
+  // profile's categories and languages in the profile editor (behind the parental PIN when one is set).
+  const kids = profile?.isKids === true;
+  const openGroup = kids ? undefined : groups.find((group) => group.name === groupName);
 
   return (
     <>
@@ -168,7 +171,16 @@ export function AccountMenu() {
                 )}
               />
             ))}
-            {groups.map((group, index) => (
+            {kids ? (
+              <MenuItem
+                icon="pencil"
+                label="Switch profile"
+                testID="menu-switch-profile"
+                first={others.length === 0}
+                onPress={then(() => stores.session.getState().selectProfile(null))}
+              />
+            ) : null}
+            {(kids ? [] : groups).map((group, index) => (
               <MenuItem
                 key={group.testID}
                 icon={group.icon}
@@ -179,7 +191,9 @@ export function AccountMenu() {
                 onPress={() => navStore.getState().setMenuGroup(group.name)}
               />
             ))}
-            <MenuItem icon="logout" label={`Sign out of ${appConfig.appName}`} testID="menu-sign-out" onPress={then(confirmSignOut)} />
+            {kids ? null : (
+              <MenuItem icon="logout" label={`Sign out of ${appConfig.appName}`} testID="menu-sign-out" onPress={then(confirmSignOut)} />
+            )}
           </>
         )}
       </View>

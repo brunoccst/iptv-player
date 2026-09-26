@@ -7,6 +7,7 @@ import { usePin, useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { AVATAR_COLORS, avatarColor } from './avatar';
 import { KidsCategories } from './KidsCategories';
+import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinDialog';
 
 const MAX_PROFILES = 5;
@@ -77,6 +78,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   const [isKids, setIsKids] = useState(profile?.isKids ?? false);
   const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
   const [categories, setCategories] = useState(false);
+  const [languages, setLanguages] = useState(false);
   const session = stores.session.getState();
 
   const save = async () => {
@@ -149,6 +151,12 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             <Icon name="pencil" size={18} /> Choose categories
           </button>
         ) : null}
+        {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
+        {profile ? (
+          <button type="button" className="button button--ghost" onClick={() => setLanguages(true)}>
+            <Icon name="subtitles" size={18} /> Choose languages
+          </button>
+        ) : null}
         {error ? (
           <p className="error-text" role="alert">
             {errorText(error)}
@@ -165,6 +173,9 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           ) : null}
         </div>
       </form>
+      {languages && profile ? (
+        <LanguageSettings profile={{ id: profile.id, name: name.trim() || profile.name }} onClose={() => setLanguages(false)} />
+      ) : null}
       {categories && profile ? (
         <KidsCategories profileId={profile.id} name={name.trim() || profile.name} onClose={() => setCategories(false)} />
       ) : null}

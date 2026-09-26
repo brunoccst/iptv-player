@@ -1035,6 +1035,7 @@ Decision:
 
 Not done (see KI-039): a PIN to leave a Kids profile or edit it; per-profile choice of allowed categories.
 
+Update 2026-09-26 (requested by owner): a Kids profile's account menu only offers the other profiles and **Switch profile**. Settings, languages, Parental PIN, sync with phone, backup, refresh library, updates, the log, About and sign-out are gone there, and so is "Open in another player" (that app is outside the Kids limits). Parents set a Kids profile's categories and languages in the profile editor (Manage Profiles → the profile, behind the parental PIN when one is set), which now also has **Choose languages**.
 
 ## D-054
 

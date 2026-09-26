@@ -7,6 +7,7 @@ import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { Icon } from '../components/Icon';
 import { KidsCategories } from '../components/KidsCategories';
+import { LanguageSettings } from '../components/LanguageSettings';
 import { usePinGate } from '../components/PinPad';
 import { usePin, useSession } from '../hooks';
 import { colors, fonts, radius } from '../theme';
@@ -135,6 +136,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   const [isKids, setIsKids] = useState(profile?.isKids ?? false);
   const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
   const [categories, setCategories] = useState(false);
+  const [languages, setLanguages] = useState(false);
   const session = stores.session.getState();
   const close = () => {
     session.clearError();
@@ -201,6 +203,16 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
               testID="profile-categories"
             />
           ) : null}
+          {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
+          {profile ? (
+            <FocusButton
+              label="Choose languages"
+              icon="subtitles"
+              variant="ghost"
+              onPress={() => setLanguages(true)}
+              testID="profile-languages"
+            />
+          ) : null}
           {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
           <View style={styles.editorActions}>
             <FocusButton label="Save" variant="primary" disabled={busy || !name.trim()} onPress={() => void save()} testID="profile-save" />
@@ -211,6 +223,9 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           </View>
         </View>
       </ScrollView>
+      {languages && profile ? (
+        <LanguageSettings profile={{ id: profile.id, name: name.trim() || profile.name }} onClose={() => setLanguages(false)} />
+      ) : null}
       {categories && profile ? (
         <KidsCategories profileId={profile.id} name={name.trim() || profile.name} onClose={() => setCategories(false)} />
       ) : null}
