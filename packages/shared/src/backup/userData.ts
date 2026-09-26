@@ -23,6 +23,8 @@ export interface BackupStorages {
   secure: KeyValueStorage;
   /** Direct-mode profiles, progress and My List (native apps; the web has none). */
   data?: KeyValueStorage;
+  /** App settings kept in `data` for the whole device, not per account (e.g. the TV app's playback settings). */
+  settingsKeys?: string[];
 }
 
 interface BackupFile {
@@ -123,6 +125,7 @@ async function collect(storages: BackupStorages): Promise<BackupContents> {
       await read(storages.data, progressKey(id), data);
       await read(storages.data, watchlistKey(id), data);
     }
+    for (const key of storages.settingsKeys ?? []) await read(storages.data, key, data);
   }
   return { secure, data };
 }

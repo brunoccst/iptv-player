@@ -332,7 +332,8 @@ describe('App (TV)', () => {
       connection: JSON.stringify({ mode: 'server', serverUrl: 'http://api.test' }),
     });
     const backup = new File(Paths.document, 'old-device.iptvbackup');
-    backup.write(await exportUserData({ secure: old }, 'correct horse'));
+    const oldData = createMemoryStorage({ 'settings.playback': JSON.stringify({ audioDecoder: 'ffmpeg' }) });
+    backup.write(await exportUserData({ secure: old, data: oldData, settingsKeys: ['settings.playback'] }, 'correct horse'));
     jest.mocked(File.pickFileAsync).mockResolvedValueOnce({ canceled: false, result: backup } as never);
 
     await render(<App />);
@@ -347,5 +348,6 @@ describe('App (TV)', () => {
     await fireEvent.press(screen.getByTestId('restore-submit'));
     expect(await screen.findByTestId('home-screen', {}, { timeout: 10_000 })).toBeTruthy();
     expect(stores.session.getState()).toMatchObject({ status: 'authenticated', token: 'restored' });
+    expect(playbackSettings.getState().audioDecoder).toBe('ffmpeg');
   });
 });

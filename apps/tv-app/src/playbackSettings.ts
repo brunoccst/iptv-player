@@ -10,14 +10,14 @@ export interface PlaybackSettingsState {
   setAudioDecoder(choice: AudioDecoderChoice): Promise<void>;
 }
 
-/** Device settings for the player (D-059). Kept on this device only, not in backups: they depend on its hardware. */
+/** Settings for the player (D-059). Included in backups (D-056), so a reinstall keeps the choice. */
 export function createPlaybackSettings(storage: KeyValueStorage) {
   return createStore<PlaybackSettingsState>()((set) => ({
     audioDecoder: 'device',
     async load() {
       try {
         const saved = JSON.parse((await storage.getItem(PLAYBACK_SETTINGS_KEY)) ?? 'null') as { audioDecoder?: string } | null;
-        if (saved?.audioDecoder === 'ffmpeg') set({ audioDecoder: 'ffmpeg' });
+        set({ audioDecoder: saved?.audioDecoder === 'ffmpeg' ? 'ffmpeg' : 'device' });
       } catch (error) {
         appLog.warn('settings', `playback settings unreadable: ${errorMessage(error)}`);
       }
