@@ -35,6 +35,7 @@ export const nativeState = {
   },
   /** Self-update (D-062). */
   versionCode: 31,
+  versionName: '1.0.0' as string | null,
   canInstall: true,
   updateVerdict: 'ok' as 'ok' | 'not-newer' | 'other-app' | 'other-key',
   updateListeners: new Set<(event: { bytes: number; total: number }) => void>(),
@@ -62,6 +63,7 @@ export const nativeState = {
     this.remoteRunning = false;
     this.remoteListeners.clear();
     this.versionCode = 31;
+    this.versionName = '1.0.0';
     this.canInstall = true;
     this.updateVerdict = 'ok';
     this.updateListeners.clear();
@@ -121,7 +123,7 @@ export const TvMedia = {
   },
   randomKey: () => btoa(String.fromCharCode(...Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)))),
   deviceName: () => 'Living room TV',
-  installedVersion: () => ({ versionCode: nativeState.versionCode, versionName: '0.0.0' }),
+  installedVersion: () => ({ versionCode: nativeState.versionCode, versionName: nativeState.versionName }),
   downloadUpdate: async (url: string, sha256: string | null) => {
     nativeState.calls.push(`update-download:${url}:${sha256}`);
     nativeState.updateListeners.forEach((listener) => listener({ bytes: 50, total: 100 }));
@@ -130,7 +132,7 @@ export const TvMedia = {
   checkUpdate: () => nativeState.updateVerdict,
   canInstallUpdates: () => nativeState.canInstall,
   openInstallSettings: () => void nativeState.calls.push('update-settings'),
-  installUpdate: (path: string) => void nativeState.calls.push(`update-install:${path}`),
+  installUpdate: async (path: string) => void nativeState.calls.push(`update-install:${path}`),
   startDownload: (id: string, uri: string, isHls: boolean, metadata: string) => {
     nativeState.calls.push(`start:${id}:${uri}:${isHls}`);
     nativeState.downloads.push({ id, state: 'queued', percent: 0, bytesDownloaded: 0, metadata, failureReason: 0 });

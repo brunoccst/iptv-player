@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { version as packageVersion } from './package.json';
 
 // Root .env is the single config source; .env.local overrides it. See DECISIONS.md#d-003.
 const repoRoot = path.resolve(__dirname, '../..');
@@ -18,7 +19,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: requireEnv('APP_NAME'),
   slug: requireEnv('APP_SLUG'),
-  version: '0.0.0',
+  // MAJOR.MINOR.PATCH (D-070): tv-apk.yml computes it with scripts/app-version.mjs; local builds use package.json.
+  version: process.env.APP_VERSION_NAME?.trim() || packageVersion,
   orientation: 'landscape',
   userInterfaceStyle: 'dark',
   backgroundColor: '#141414',

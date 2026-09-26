@@ -2,13 +2,14 @@ import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
 import { useAppStore } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { updater } from '../appContext';
+import { shortVersion } from './updates';
 import { ErrorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts } from '../theme';
 
 const installedVersion = () => {
   try {
-    return TvMedia.installedVersion().versionCode;
+    return TvMedia.installedVersion();
   } catch {
     return null;
   }
@@ -35,7 +36,7 @@ export function UpdateDialog() {
     case 'current':
       body = (
         <>
-          <Text style={styles.text}>No update available: you have the newest version{current ? ` (${current})` : ''}.</Text>
+          <Text style={styles.text}>No update available: you have the newest version{current ? `, ${shortVersion(current)}` : ''}.</Text>
           <FocusButton label="OK" variant="primary" hasTVPreferredFocus onPress={close} testID="update-close" />
         </>
       );
@@ -44,8 +45,8 @@ export function UpdateDialog() {
       body = (
         <>
           <Text style={styles.text}>
-            Version {status.release.versionCode} is available{current ? ` (you have ${current})` : ''}. The app downloads it and Android
-            asks you to confirm the installation. Your data stays.
+            Version {shortVersion(status.release)} is available{current ? ` (you have ${shortVersion(current)})` : ''}. The app downloads it
+            and Android asks you to confirm the installation. Your data stays.
           </Text>
           <FocusButton
             label="Update now"
@@ -62,7 +63,7 @@ export function UpdateDialog() {
       body = (
         <>
           <Text style={styles.text}>
-            Downloading version {status.release.versionCode}…{status.progress !== null ? ` ${Math.floor(status.progress * 100)}%` : ''}
+            Downloading version {shortVersion(status.release)}…{status.progress !== null ? ` ${Math.floor(status.progress * 100)}%` : ''}
           </Text>
           <View style={styles.track}>
             <View style={[styles.value, { width: `${Math.round((status.progress ?? 0) * 100)}%` }]} />
@@ -73,7 +74,10 @@ export function UpdateDialog() {
     case 'installing':
       body = (
         <>
-          <Text style={styles.text}>Android asks you to confirm the installation. The app restarts with the new version.</Text>
+          <Text style={styles.text}>
+            Android asks you to confirm the installation. The app restarts with the new version. No installer on the screen? Open it again.
+          </Text>
+          <FocusButton label="Open the installer again" onPress={() => void updater.reopenInstaller()} testID="update-reopen" />
           <FocusButton label="Close" variant="ghost" hasTVPreferredFocus onPress={close} testID="update-close" />
         </>
       );

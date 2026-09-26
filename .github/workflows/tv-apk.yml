@@ -61,6 +61,9 @@ jobs:
           fi
 
       - uses: actions/checkout@v4
+        with:
+          # The version's PATCH counts the builds on main (scripts/app-version.mjs, D-070).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -72,6 +75,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - run: npm ci
+
+      # MAJOR.MINOR.PATCH for people (D-070); the version code above stays the build number Android compares.
+      - name: Version
+        run: |
+          name="$(node scripts/app-version.mjs)"
+          echo "APP_VERSION_NAME=$name" >> "$GITHUB_ENV"
+          echo "### Version $name (build $APP_ANDROID_VERSION_CODE)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prebuild Android project
         working-directory: apps/tv-app
@@ -122,8 +132,9 @@ jobs:
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk tv.apk
           signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
-          notes="Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}, FFmpeg audio: ${IPTV_FFMPEG_AUDIO}. My server prefill: ${APP_API_BASE_URL:-none}"
+          # "version N" (the build number) stays: apps before D-070 only read that.
+          notes="TV app ${APP_VERSION_NAME}. Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}, FFmpeg audio: ${IPTV_FFMPEG_AUDIO}. My server prefill: ${APP_API_BASE_URL:-none}"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           # APK first, then the notes: apps read the version from the notes (self-update, D-062).
           gh release upload tv-apk tv.apk --clobber
-          gh release edit tv-apk --notes "$notes"
+          gh release edit tv-apk --title "TV APK ${APP_VERSION_NAME}" --notes "$notes"

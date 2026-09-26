@@ -20,7 +20,7 @@ describe('account menu → About', () => {
     await fireEvent.press(screen.getByTestId('menu-about'));
 
     expect(within(screen.getByTestId('about-dialog')).getByText('Test TV')).toBeTruthy();
-    expect(screen.getByTestId('about-version')).toHaveTextContent('57');
+    expect(screen.getByTestId('about-version')).toHaveTextContent('1.0.0 (build 57)');
     // Local and test builds have no commit.
     expect(screen.getByTestId('about-built')).toHaveTextContent('a local build');
     expect(screen.getByTestId('about-connection')).toHaveTextContent(/My server|Directly/);

@@ -50,7 +50,8 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   checkUpdate(path: string): UpdateCheck;
   canInstallUpdates(): boolean;
   openInstallSettings(): void;
-  installUpdate(path: string): void;
+  /** Opens the Android installer on top of the app (D-070). */
+  installUpdate(path: string): Promise<void>;
   /** Phone: scans a QR code with Google's code scanner; null when cancelled. */
   scanQrCode(): Promise<string | null>;
 }

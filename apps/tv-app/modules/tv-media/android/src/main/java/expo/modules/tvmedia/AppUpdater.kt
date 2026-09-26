@@ -1,5 +1,6 @@
 package expo.modules.tvmedia
 
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -104,13 +105,18 @@ object AppUpdater {
     }
   }
 
-  /** Opens the system installer for the downloaded APK; Android asks the user to confirm. */
-  fun install(context: Context, path: String) {
+  /**
+   * Opens the system installer for the downloaded APK; Android asks the user to confirm. Started from the app's own
+   * screen, in its task: started as a new task from the application, Android could bring forward the installer's task
+   * left from the previous update instead, and nothing appeared until the app was force-closed (D-070).
+   */
+  fun install(context: Context, activity: Activity?, path: String) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.tvmedia.updates", File(path))
     val intent = Intent(Intent.ACTION_VIEW)
       .setDataAndType(uri, "application/vnd.android.package-archive")
-      .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-    context.startActivity(intent)
+      .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    if (activity != null && !activity.isFinishing) activity.startActivity(intent)
+    else context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
   }
 
   private fun packageInfo(pm: PackageManager, name: String, flags: Int = 0): PackageInfo =

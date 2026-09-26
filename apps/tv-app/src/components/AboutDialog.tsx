@@ -3,6 +3,7 @@ import { TvMedia } from '../../modules/tv-media';
 import { stores, updater } from '../appContext';
 import { appConfig, buildInfo, updateRepo } from '../config';
 import { colors, fonts } from '../theme';
+import { versionLabel } from '../update/updates';
 import { FocusButton } from './FocusButton';
 
 const installedVersion = () => {
@@ -22,14 +23,14 @@ const ffmpegAudio = () => {
 };
 
 /**
- * Account menu → About: the installed version (the release's build number, as in "Check for updates"), the commit and
+ * Account menu → About: the installed version (MAJOR.MINOR.PATCH and the build number, D-070), the commit and
  * date it was built from, how the app connects, and whether the FFmpeg audio decoders are included.
  */
 export function AboutDialog({ onClose }: { onClose(): void }) {
   const version = installedVersion();
   const connection = stores.connection?.getState();
   const rows: [string, string][] = [
-    ['Version', version ? String(version.versionCode) : 'unknown'],
+    ['Version', versionLabel(version)],
     ['Built from', buildInfo.commit ? buildInfo.commit.slice(0, 7) : 'a local build'],
     ...(buildInfo.date ? ([['Built on', new Date(buildInfo.date).toLocaleString()]] as [string, string][]) : []),
     ['Connection', connection?.mode === 'server' ? `My server (${connection.serverUrl})` : 'Directly to the IPTV provider'],
