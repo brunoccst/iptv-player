@@ -64,6 +64,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-057](#d-057) | 2026-09-25 | Open movies and episodes in an external player (TV/phone) |
 | [D-058](#d-058) | 2026-09-25 | Live TV: see-through guide over the playing channel (TV/phone) |
 | [D-059](#d-059) | 2026-09-26 | Bundled FFmpeg audio decoders (switchable) |
+| [D-060](#d-060) | 2026-09-26 | Sign in and sync a TV by scanning a QR code with the phone app |
 
 ---
 
@@ -1107,4 +1108,21 @@ Decision:
 - To remove it for good: delete those lines in `build.gradle` (and optionally the `ffmpeg_audio` input).
 
 Open: the APK size cost is measured before deciding whether to keep it, ship two variants, or offer it as a separate download.
+
+## D-060
+
+**Sign in and sync a TV by scanning a QR code with the phone app** — 2026-09-26 (requested by owner)
+
+Decision:
+- The TV's sign-in page shows a QR code next to the form ("Sign in with your phone"); signed in, the TV's account menu has **Sync with phone** with the same code. On the phone app, account menu → **Connect a TV** opens the scanner.
+- Scanning signs a signed-out TV in with the phone's account (sign-in, connection choice, provider login, parental PIN) and opens the TV's profile picker. A TV signed in to the same account is synced. A TV signed in to another account refuses with a message (sign out on the TV first).
+- Both ways the profiles, watch progress and My List of the two devices are merged, and both devices end up with the same lists: profiles match by id, else by name (each device creates a profile named after the login on first sign-in), and the phone's profile ids are kept; per title the most recent progress wins; My List is the union (earliest "added" date). A title removed on only one device comes back, since removals are not recorded. In "My server" mode these live on the server already, so only the sign-in moves.
+- Device settings stay on each device: the audio decoder choice (D-059) is never sent. A PIN set on the phone is copied to a synced TV only when the TV has none.
+- Transport, no server needed: while the code is on screen the TV runs a small HTTP server on the home network (random port, `PairingServer.kt`). The code holds the TV's address, port and a one-time 32-byte key from `SecureRandom`. The phone sends its data encrypted with that key (XChaCha20-Poly1305, like the backup, D-056) and the TV answers with the merged data encrypted the same way, so plain HTTP on the LAN reveals nothing. Requests with another key are ignored; the server stops after one successful pairing or when the code closes.
+- The phone scans with Google's code scanner from Play services (`play-services-code-scanner`): no camera permission, and the scanner UI is downloaded by Play services, so the APK barely grows.
+- Protocol and merge live in `packages/shared/src/pairing/` (tested with two in-memory devices); the app side is `apps/tv-app/src/pairing/`.
+
+Limits: phone and TV must be on the same network, and the phone needs Google Play services. The web app is not part of this change.
+
+Alternatives: the TV scanning the phone (TVs have no camera); a relay service on the internet (the provider login would pass through a third party); typing a short code on the TV (still needs a way for the devices to find each other).
 

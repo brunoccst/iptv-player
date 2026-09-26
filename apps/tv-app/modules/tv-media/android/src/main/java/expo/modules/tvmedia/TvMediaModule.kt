@@ -8,6 +8,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import expo.modules.kotlin.Promise
+import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
@@ -23,9 +28,11 @@ class TvMediaModule : Module() {
     sendEvent("onDownloadsChanged", mapOf("downloads" to DownloadCenter.list()))
   }
 
+  private val pairing = PairingServer { id, body -> sendEvent("onPairingRequest", mapOf("id" to id, "body" to body)) }
+
   override fun definition() = ModuleDefinition {
     Name("TvMedia")
-    Events("onDownloadsChanged")
+    Events("onDownloadsChanged", "onPairingRequest")
 
     OnCreate {
       DownloadCenter.init(context)
@@ -34,6 +41,33 @@ class TvMediaModule : Module() {
 
     OnDestroy {
       DownloadCenter.removeListener(downloadsListener)
+      pairing.stop()
+    }
+
+    /** Phone-to-TV pairing, TV side (DECISIONS.md#d-060): starts the one-time server; returns host, port and key. */
+    Function("startPairing") {
+      pairing.start()
+    }
+
+    Function("respondPairing") { id: String, status: Int, body: String ->
+      pairing.respond(id, status, body)
+    }
+
+    Function("stopPairing") {
+      pairing.stop()
+    }
+
+    /**
+     * Phone side: Google's code scanner (Play services) reads the TV's QR code. No camera permission, and the scanner
+     * UI is downloaded by Play services, so the APK stays small. Resolves null when the user backs out.
+     */
+    AsyncFunction("scanQrCode") { promise: Promise ->
+      val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
+      val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+      GmsBarcodeScanning.getClient(activity, options).startScan()
+        .addOnSuccessListener { promise.resolve(it.rawValue) }
+        .addOnCanceledListener { promise.resolve(null) }
+        .addOnFailureListener { promise.reject(CodedException("ERR_SCANNER", it.message ?: "Scanner not available", it)) }
     }
 
     Function("setUserAgent") { userAgent: String ->

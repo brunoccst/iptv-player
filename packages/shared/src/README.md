@@ -9,10 +9,11 @@
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |
 | `backup/` | `exportUserData` / `importUserData`: password-encrypted backup file of the saved sign-in, settings, PIN, profiles, progress and My List, plus app settings an app lists in `settingsKeys` (D-056). `AppContext.reload()` applies a restored backup. |
+| `pairing/` | Phone-to-TV pairing (D-060): QR text, encrypted request/answer, `acceptPairing` (TV), `sendPairing` (phone), `mergeMedia` (profiles, progress, My List). |
 | `direct/` | Direct mode (no backend): Xtream client and the TypeScript title normalizer (D-038). |
 | `epg/` | Pure guide-grid helpers: slots, row layout (clip, gaps), now line, current programme. |
 | `playback/` | Pure playback rules shared by web and TV (resume, intro, next episode, source attempts). |
-| `utils/` | Formatting helpers, diagnostics logger. |
+| `utils/` | Formatting helpers, diagnostics logger, byte/text helpers for backup and pairing (`bytes.ts`, internal). |
 | `profiles/` | `kidsFilter.ts`: `isKidsCategory` and `withKidsFilter`, which wraps the API client so Kids profiles only get kids categories, channels, guide rows and titles (D-053). |
 | `design/` | Design tokens (colours, fluid sizes like CSS `clamp()`), icon paths and avatar colours shared by the web and TV apps (D-041). |
 | `testing/` | Test-only fake backend. Not exported. |

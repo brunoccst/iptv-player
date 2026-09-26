@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fluid, type ConnectionMode } from '@iptv/shared';
-import { Dimensions, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Dimensions, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -10,7 +10,9 @@ import { BackupDialog } from '../components/BackupDialog';
 import { Chip } from '../components/ChipBar';
 import { Field } from '../components/Field';
 import { connectionStore, useConnection, useSession } from '../hooks';
-import { colors, radius, useSizes } from '../theme';
+import { usePairingServer } from '../pairing/pairing';
+import { PairingCode } from '../pairing/PairingDialogs';
+import { colors, fonts, radius, useSizes } from '../theme';
 
 /**
  * Xtream login. "IPTV provider" (default) talks to the provider directly; "My server" goes through a backend (D-038).
@@ -32,6 +34,9 @@ export function LoginScreen() {
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
   const short = Dimensions.get('screen').height < 600;
   const sizes = useSizes();
+  // TVs also offer sign-in by scanning a code with the phone app (D-060); phones are the ones that scan.
+  const phoneCard = Platform.isTV;
+  const available = width - 32 - (phoneCard ? PHONE_CARD_WIDTH + 16 : 0);
 
   useEffect(() => {
     void connectionStore.getState().load();
@@ -65,60 +70,77 @@ export function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={[styles.brand, { left: sizes.gutter, fontSize: fluid(width, 26, 3, 38) }]}>{appConfig.appName}</Text>
         {/* Short landscape screens (TVs are ~540 dp tall): two columns so every field fits without scrolling. */}
-        <View
-          style={[
-            styles.panel,
-            short && styles.panelShort,
-            {
-              width: short ? Math.min(760, width - 32) : Math.min(440, width - 32),
-              paddingHorizontal: short ? 32 : fluid(width, 20, 5, 60),
-            },
-          ]}
-        >
-          <View style={short ? styles.column : styles.stack}>
-            <Text style={[styles.heading, short && styles.headingShort]}>Sign In</Text>
-            <View style={styles.modes} accessibilityRole="radiogroup">
-              <Chip label="IPTV provider" active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
-              <Chip label="My server" active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
+        <View style={[styles.cards, { marginTop: short ? 48 : 72 }]}>
+          <View
+            style={[
+              styles.panel,
+              short && styles.panelShort,
+              {
+                width: short ? Math.min(760, available) : Math.min(440, available),
+                paddingHorizontal: short ? 32 : fluid(width, 20, 5, 60),
+              },
+            ]}
+          >
+            <View style={short ? styles.column : styles.stack}>
+              <Text style={[styles.heading, short && styles.headingShort]}>Sign In</Text>
+              <View style={styles.modes} accessibilityRole="radiogroup">
+                <Chip label="IPTV provider" active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
+                <Chip label="My server" active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
+              </View>
+              {short ? note : null}
             </View>
-            {short ? note : null}
-          </View>
-          <View style={short ? styles.column : styles.stack}>
-            {mode === 'server' ? (
+            <View style={short ? styles.column : styles.stack}>
+              {mode === 'server' ? (
+                <Field
+                  label="My server address"
+                  value={backendUrl}
+                  onChange={setBackendUrl}
+                  testID="login-backend"
+                  placeholder="http://192.168.1.10:5080"
+                  compact={short}
+                />
+              ) : null}
               <Field
-                label="My server address"
-                value={backendUrl}
-                onChange={setBackendUrl}
-                testID="login-backend"
-                placeholder="http://192.168.1.10:5080"
+                label="Server URL"
+                value={serverUrl}
+                onChange={setServerUrl}
+                testID="login-server"
+                autoFocus
+                placeholder="http://provider.example:8080"
                 compact={short}
               />
-            ) : null}
-            <Field
-              label="Server URL"
-              value={serverUrl}
-              onChange={setServerUrl}
-              testID="login-server"
-              autoFocus
-              placeholder="http://provider.example:8080"
-              compact={short}
-            />
-            <Field label="Username" value={username} onChange={setUsername} testID="login-username" compact={short} />
-            <Field label="Password" value={password} onChange={setPassword} testID="login-password" secure compact={short} />
-            {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
-            <FocusButton
-              label={busy ? 'Signing in…' : 'Sign In'}
-              variant="accent"
-              onPress={() => void submit()}
-              disabled={busy || (mode === 'server' && !backendUrl.trim())}
-              testID="login-submit"
-            />
-            <FocusButton label="Restore from backup" variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
-            {short ? null : note}
+              <Field label="Username" value={username} onChange={setUsername} testID="login-username" compact={short} />
+              <Field label="Password" value={password} onChange={setPassword} testID="login-password" secure compact={short} />
+              {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
+              <FocusButton
+                label={busy ? 'Signing in…' : 'Sign In'}
+                variant="accent"
+                onPress={() => void submit()}
+                disabled={busy || (mode === 'server' && !backendUrl.trim())}
+                testID="login-submit"
+              />
+              <FocusButton label="Restore from backup" variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
+              {short ? null : note}
+            </View>
           </View>
+          {phoneCard ? <PhoneSignIn /> : null}
         </View>
       </ScrollView>
       {restore ? <BackupDialog mode="restore" onClose={() => setRestore(false)} /> : null}
+    </View>
+  );
+}
+
+const PHONE_CARD_WIDTH = 230;
+
+/** Sign in by scanning this code with the phone app (account menu → Connect a TV), D-060. */
+function PhoneSignIn() {
+  const state = usePairingServer();
+  return (
+    <View style={styles.phoneCard} testID="login-phone">
+      <Text style={styles.phoneTitle}>Sign in with your phone</Text>
+      <PairingCode state={state} size={170} />
+      <Text style={styles.note}>In the app on your phone: account menu → Connect a TV, then scan this code.</Text>
     </View>
   );
 }
@@ -127,8 +149,19 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   scroll: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 16 },
   brand: { position: 'absolute', top: 24, color: colors.accent, fontWeight: '900', letterSpacing: -0.5 },
-  panel: { marginTop: 72, paddingVertical: 48, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: radius, gap: 16 },
-  panelShort: { marginTop: 48, paddingVertical: 24, flexDirection: 'row', gap: 32 },
+  cards: { flexDirection: 'row', alignItems: 'stretch', gap: 16 },
+  panel: { paddingVertical: 48, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: radius, gap: 16 },
+  panelShort: { paddingVertical: 24, flexDirection: 'row', gap: 32 },
+  phoneCard: {
+    width: PHONE_CARD_WIDTH,
+    padding: 20,
+    gap: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: radius,
+  },
+  phoneTitle: { color: colors.strong, fontSize: fonts.body, fontWeight: '700', textAlign: 'center' },
   stack: { gap: 16 },
   column: { flex: 1, gap: 10 },
   heading: { color: colors.strong, fontSize: 32, fontWeight: '700', marginBottom: 8 },
