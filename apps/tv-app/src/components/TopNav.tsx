@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, TVFocusGuideView, View } from 'react-native';
 import { avatarColor, selectActiveProfile } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { appConfig } from '../config';
@@ -98,8 +98,12 @@ export function TopNav() {
     );
   }
 
+  // Left/right stay in the nav row: at the brand or the avatar they stop instead of jumping to the page below.
+  // Up/down leave the row as before.
   return (
-    <View
+    <TVFocusGuideView
+      trapFocusLeft
+      trapFocusRight
       style={[styles.nav, { height, paddingHorizontal: sizes.gutter, gap: sizes.navGap }, solid && styles.solid]}
       accessibilityRole="header"
       testID="top-nav"
@@ -108,7 +112,7 @@ export function TopNav() {
       {brand}
       <View style={[styles.links, { gap: sizes.navLinkGap }]}>{links}</View>
       {right}
-    </View>
+    </TVFocusGuideView>
   );
 }
 

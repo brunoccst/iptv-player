@@ -4,7 +4,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 
 | File | Purpose |
 |------|---------|
-| `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. |
+| `TopNav.tsx` | Web top nav: brand, Home / Series / Movies / Live TV / My Downloads, search box, account avatar. Transparent over the Home hero until it scrolls. Left/right stay in the nav row (no jump to the page at the ends); up/down leave it. |
 | `AboutDialog.tsx` | Account menu → About: installed version (the release build number), commit and date it was built from, connection, FFmpeg audio, Android version; Check for updates. |
 | `AccountMenu.tsx` | Menu under the avatar: other profiles, Manage Profiles, Parental PIN, Languages (D-063, D-067), Sync with phone (TV) or Connect a TV (phone, D-060), Back up data, Playback (when FFmpeg is bundled), Refresh library, Check for updates (release builds, D-062), Log, About, Sign out. `confirmSignOut` asks first. |
 | `PinPad.tsx` | Parental PIN keypad for D-pad and touch, and `usePinGate` (D-054). |
