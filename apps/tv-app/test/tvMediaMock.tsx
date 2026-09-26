@@ -22,6 +22,17 @@ export const nativeState = {
   pairingListeners: new Set<PairingListener>(),
   pairingReplies: new Map<string, (reply: { status: number; body: string }) => void>(),
   scanResult: null as string | null,
+  /** Remote play (D-061): the TV's remote server. */
+  remoteRunning: false,
+  remoteListeners: new Set<PairingListener>(),
+  /** Delivers a request to the running remote server, like a paired phone would. */
+  remoteRequest(body: string): Promise<{ status: number; body: string }> {
+    const id = `remote-${this.pairingReplies.size + 1}-${Date.now()}`;
+    return new Promise((resolve) => {
+      this.pairingReplies.set(id, resolve);
+      this.remoteListeners.forEach((listener) => listener({ id, body }));
+    });
+  },
   /** Self-update (D-062). */
   versionCode: 31,
   canInstall: true,
@@ -48,6 +59,8 @@ export const nativeState = {
     this.pairingListeners.clear();
     this.pairingReplies.clear();
     this.scanResult = null;
+    this.remoteRunning = false;
+    this.remoteListeners.clear();
     this.versionCode = 31;
     this.canInstall = true;
     this.updateVerdict = 'ok';
@@ -60,21 +73,23 @@ export const TvMedia = {
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
   addListener: ((
-    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onUpdateProgress',
+    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress',
     listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void),
   ) => {
     const set = (
       event === 'onPairingRequest'
         ? nativeState.pairingListeners
-        : event === 'onUpdateProgress'
-          ? nativeState.updateListeners
-          : nativeState.listeners
+        : event === 'onRemoteRequest'
+          ? nativeState.remoteListeners
+          : event === 'onUpdateProgress'
+            ? nativeState.updateListeners
+            : nativeState.listeners
     ) as Set<typeof listener>;
     set.add(listener);
     return { remove: () => set.delete(listener) };
   }) as {
     (event: 'onDownloadsChanged', listener: Listener): { remove(): void };
-    (event: 'onPairingRequest', listener: PairingListener): { remove(): void };
+    (event: 'onPairingRequest' | 'onRemoteRequest', listener: PairingListener): { remove(): void };
     (event: 'onUpdateProgress', listener: (event: { bytes: number; total: number }) => void): { remove(): void };
   },
   startPairing: () => {
@@ -91,6 +106,19 @@ export const TvMedia = {
     nativeState.calls.push('pairing-stop');
   },
   scanQrCode: async () => nativeState.scanResult,
+  startRemote: (ports: number[]) => {
+    nativeState.remoteRunning = true;
+    return { host: nativeState.pairingHost, port: ports[0]! };
+  },
+  respondRemote: (id: string, status: number, body: string) => {
+    nativeState.pairingReplies.get(id)?.({ status, body });
+    nativeState.pairingReplies.delete(id);
+  },
+  stopRemote: () => {
+    nativeState.remoteRunning = false;
+  },
+  randomKey: () => btoa(String.fromCharCode(...Array.from({ length: 32 }, () => Math.floor(Math.random() * 256)))),
+  deviceName: () => 'Living room TV',
   installedVersion: () => ({ versionCode: nativeState.versionCode, versionName: '0.0.0' }),
   downloadUpdate: async (url: string, sha256: string | null) => {
     nativeState.calls.push(`update-download:${url}:${sha256}`);

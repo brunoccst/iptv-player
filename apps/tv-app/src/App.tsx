@@ -19,6 +19,7 @@ import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
+import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
@@ -35,9 +36,12 @@ export function App() {
   // the header. The player (and TVs) stay full screen.
   const fullScreen = Platform.isTV || (playing && status === 'authenticated' && !!activeProfileId);
   const topInset = fullScreen ? 0 : (SystemBars.currentHeight ?? 0);
+  // TVs play what a paired phone sends (D-061).
+  useRemoteServer(Platform.isTV && status === 'authenticated');
 
   useEffect(() => {
     void stores.session.getState().restore();
+    if (!Platform.isTV) void pairedTv.getState().load();
     downloadsStore.getState().init();
     // Looks for a newer APK once the app has settled (D-062).
     const updateTimer = setTimeout(() => void updater.check(true), UPDATE_CHECK_DELAY_MS);

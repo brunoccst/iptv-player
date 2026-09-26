@@ -28,11 +28,12 @@ class TvMediaModule : Module() {
     sendEvent("onDownloadsChanged", mapOf("downloads" to DownloadCenter.list()))
   }
 
-  private val pairing = PairingServer { id, body -> sendEvent("onPairingRequest", mapOf("id" to id, "body" to body)) }
+  private val pairing = PairingServer("/pair") { id, body -> sendEvent("onPairingRequest", mapOf("id" to id, "body" to body)) }
+  private val remote = PairingServer("/remote") { id, body -> sendEvent("onRemoteRequest", mapOf("id" to id, "body" to body)) }
 
   override fun definition() = ModuleDefinition {
     Name("TvMedia")
-    Events("onDownloadsChanged", "onPairingRequest", "onUpdateProgress")
+    Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress")
 
     OnCreate {
       DownloadCenter.init(context)
@@ -42,6 +43,7 @@ class TvMediaModule : Module() {
     OnDestroy {
       DownloadCenter.removeListener(downloadsListener)
       pairing.stop()
+      remote.stop()
     }
 
     /** Phone-to-TV pairing, TV side (DECISIONS.md#d-060): starts the one-time server; returns host, port and key. */
@@ -55,6 +57,33 @@ class TvMediaModule : Module() {
 
     Function("stopPairing") {
       pairing.stop()
+    }
+
+    /**
+     * Remote play, TV side (DECISIONS.md#d-061): a server that stays up while the app runs, on the first free port of
+     * `ports` (a fixed range, so paired phones find it again). Returns host and port.
+     */
+    Function("startRemote") { ports: List<Int> ->
+      remote.start(ports) - "key"
+    }
+
+    Function("respondRemote") { id: String, status: Int, body: String ->
+      remote.respond(id, status, body)
+    }
+
+    Function("stopRemote") {
+      remote.stop()
+    }
+
+    /** 32 random bytes (SecureRandom), base64: keys for remote play. */
+    Function("randomKey") {
+      PairingServer.randomKey()
+    }
+
+    /** The name the user gave the device (Settings), else its model. Shown on the phone ("Playing on …"). */
+    Function("deviceName") {
+      android.provider.Settings.Global.getString(context.contentResolver, "device_name")
+        ?: android.os.Build.MODEL
     }
 
     /**

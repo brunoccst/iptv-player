@@ -17,6 +17,7 @@ import {
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton } from '../components/DownloadButton';
 import { ExternalPlayerButton } from '../components/ExternalPlayerButton';
+import { PlayOnTvButton } from '../components/PlayOnTvButton';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -106,6 +107,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           }
         />
         <DownloadButton target={target} />
+        <PlayOnTvButton target={{ ...target, startAt: canResume ? resume!.positionSeconds : undefined }} testID="details-play-on-tv" />
         <ExternalPlayerButton target={target} testID="details-external" />
         <WatchlistButton section="movies" title={master} />
       </DetailsHero>
@@ -138,13 +140,13 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
 
   const first = series.data?.seasons[0]?.episodes[0];
   const canResume = resume?.seriesId === variant.streamId;
+  const playTarget = canResume
+    ? progressTarget(resume!)
+    : first
+      ? episodeTarget({ title: master.title, masterId: master.id, seriesId: variant.streamId, posterUrl: master.posterUrl }, first)
+      : null;
   const play = () => {
-    if (canResume) navStore.getState().push({ name: 'player', target: progressTarget(resume!) });
-    else if (first)
-      navStore.getState().push({
-        name: 'player',
-        target: episodeTarget({ title: master.title, masterId: master.id, seriesId: variant.streamId, posterUrl: master.posterUrl }, first),
-      });
+    if (playTarget) navStore.getState().push({ name: 'player', target: playTarget });
   };
 
   return (
@@ -159,6 +161,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           onPress={play}
           testID="details-play"
         />
+        <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
         <WatchlistButton section="series" title={master} />
       </DetailsHero>
       <Body
@@ -243,6 +246,7 @@ function Episodes({
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
             <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
             <DownloadButton target={target} />
+            <PlayOnTvButton target={target} testID={`episode-${episode.id}-tv`} />
             <ExternalPlayerButton target={target} testID={`episode-${episode.id}-external`} />
           </View>
         );

@@ -8,6 +8,8 @@ type TvMediaEvents = {
   onDownloadsChanged(event: { downloads: NativeDownload[] }): void;
   /** Phone-to-TV pairing: a request reached the TV's pairing server; answer with `respondPairing` (D-060). */
   onPairingRequest(event: { id: string; body: string }): void;
+  /** Remote play: a paired phone sent a command; answer with `respondRemote` (D-061). */
+  onRemoteRequest(event: { id: string; body: string }): void;
   /** Self-update download progress (D-062). `total` is -1 when unknown. */
   onUpdateProgress(event: { bytes: number; total: number }): void;
 };
@@ -30,6 +32,14 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   startPairing(): { host: string | null; port: number; key: string };
   respondPairing(id: string, status: number, body: string): void;
   stopPairing(): void;
+  /** TV: starts the remote-play server on the first free port of `ports` (D-061). */
+  startRemote(ports: number[]): { host: string | null; port: number };
+  respondRemote(id: string, status: number, body: string): void;
+  stopRemote(): void;
+  /** 32 random bytes (SecureRandom), base64. */
+  randomKey(): string;
+  /** The device's name from Settings, else its model. */
+  deviceName(): string;
   /** Self-update (D-062). */
   installedVersion(): { versionCode: number; versionName: string | null };
   downloadUpdate(url: string, sha256: string | null): Promise<string>;
