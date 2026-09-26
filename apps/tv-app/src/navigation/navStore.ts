@@ -15,6 +15,8 @@ export interface NavState {
   libraryRevision: number;
   /** Search box text in the top nav (web: `uiStore.search`). */
   search: string;
+  /** Bumped when the search box's Enter key is pressed: search now, without waiting for typing to pause. */
+  searchSubmits: number;
   /** Category chip on Movies/Series, or the Live TV category (`null` = All), like the web `uiStore.categoryId`. */
   categoryId: string | null;
   /** Home scrolled: the nav gets a solid background (web `.nav--solid`). */
@@ -28,6 +30,7 @@ export interface NavState {
   setCategory(categoryId: string | null): void;
   /** Typing switches to the Search page; clearing it goes back Home (web behaviour). */
   setSearch(search: string): void;
+  submitSearch(): void;
   setScrolled(scrolled: boolean): void;
   setMenuOpen(open: boolean): void;
   push(route: Route): void;
@@ -43,6 +46,7 @@ export function createNavStore() {
     stack: [{ name: 'section', section: 'home' }],
     libraryRevision: 0,
     search: '',
+    searchSubmits: 0,
     categoryId: null,
     scrolled: false,
     menuOpen: false,
@@ -63,6 +67,7 @@ export function createNavStore() {
       if (search.trim()) set({ search, stack: section === 'search' ? get().stack : [{ name: 'section', section: 'search' }] });
       else set({ search, stack: section === 'search' ? [{ name: 'section', section: 'home' }] : get().stack });
     },
+    submitSearch: () => set({ searchSubmits: get().searchSubmits + 1 }),
     setScrolled: (scrolled) => {
       if (get().scrolled !== scrolled) set({ scrolled });
     },

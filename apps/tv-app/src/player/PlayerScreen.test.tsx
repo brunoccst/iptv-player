@@ -29,6 +29,58 @@ async function ready() {
   await act(async () => playerState.props?.onStatus?.({ nativeEvent: { state: 'ready', isPlaying: true } } as never));
 }
 
+/** Series "Show" with two 40-minute episodes. */
+function stubShow(backend: ReturnType<typeof setupApp>) {
+  backend.on('GET', '/api/catalog/series/s1', {
+    body: {
+      summary: {
+        id: 's1',
+        name: 'Show',
+        categoryId: null,
+        posterUrl: null,
+        rating: null,
+        plot: null,
+        genre: null,
+        releaseDate: null,
+        lastModifiedAt: null,
+      },
+      cast: null,
+      director: null,
+      backdropUrls: [],
+      trailerYoutubeId: null,
+      seasons: [
+        {
+          number: 1,
+          name: 'Season 1',
+          coverUrl: null,
+          episodes: [
+            {
+              id: 'e1',
+              seasonNumber: 1,
+              episodeNumber: 1,
+              title: 'Pilot',
+              plot: null,
+              durationSeconds: 2400,
+              stillUrl: null,
+              containerExtension: 'mp4',
+            },
+            {
+              id: 'e2',
+              seasonNumber: 1,
+              episodeNumber: 2,
+              title: 'Second',
+              plot: null,
+              durationSeconds: 2400,
+              stillUrl: null,
+              containerExtension: 'mp4',
+            },
+          ],
+        },
+      ],
+    },
+  });
+}
+
 describe('PlayerScreen', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
@@ -191,54 +243,7 @@ describe('PlayerScreen', () => {
   it('episodes: Skip ahead opens 30 s … 3 min, cancels on re-press or Back; next-up offers the next episode', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
-    backend.on('GET', '/api/catalog/series/s1', {
-      body: {
-        summary: {
-          id: 's1',
-          name: 'Show',
-          categoryId: null,
-          posterUrl: null,
-          rating: null,
-          plot: null,
-          genre: null,
-          releaseDate: null,
-          lastModifiedAt: null,
-        },
-        cast: null,
-        director: null,
-        backdropUrls: [],
-        trailerYoutubeId: null,
-        seasons: [
-          {
-            number: 1,
-            name: 'Season 1',
-            coverUrl: null,
-            episodes: [
-              {
-                id: 'e1',
-                seasonNumber: 1,
-                episodeNumber: 1,
-                title: 'Pilot',
-                plot: null,
-                durationSeconds: 2400,
-                stillUrl: null,
-                containerExtension: 'mp4',
-              },
-              {
-                id: 'e2',
-                seasonNumber: 1,
-                episodeNumber: 2,
-                title: 'Second',
-                plot: null,
-                durationSeconds: 2400,
-                stillUrl: null,
-                containerExtension: 'mp4',
-              },
-            ],
-          },
-        ],
-      },
-    });
+    stubShow(backend);
     await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
     await flush();
     await flush();
@@ -256,10 +261,13 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('skip-ahead-30')).toBeNull();
     expect(screen.getByTestId('skip-ahead')).toBeTruthy();
     expect(playerState.seeks).toEqual([]);
-    // Choosing an option seeks from the current position.
+    // Choosing an option seeks from the current position and shows the controls with the timeline.
+    await act(async () => jest.advanceTimersByTime(5000));
+    expect(screen.queryByTestId('player-controls')).toBeNull();
     await fireEvent.press(screen.getByTestId('skip-ahead'));
     await fireEvent.press(screen.getByLabelText('Skip ahead 1 minute'));
     expect(playerState.seeks).toEqual([90_000]);
+    expect(screen.getByTestId('player-timeline')).toBeTruthy();
     expect(screen.queryByTestId('skip-ahead-60')).toBeNull();
 
     await progress(2394, 2400);
@@ -395,6 +403,21 @@ describe('PlayerScreen', () => {
       expect(lock).toHaveBeenCalledWith(ScreenOrientation.OrientationLock.LANDSCAPE);
       await view.unmount();
       expect(unlock).toHaveBeenCalled();
+    });
+
+    it('a tap still shows the controls while Skip ahead is on screen', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+      stubShow(backend);
+      await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
+      await flush();
+      await ready();
+      await progress(30, 2400);
+      await act(async () => jest.advanceTimersByTime(5000));
+      expect(screen.getByTestId('skip-ahead')).toBeTruthy();
+      expect(screen.queryByTestId('player-controls')).toBeNull();
+      await act(async () => fireEvent.press(screen.getByTestId('player-focus'), { nativeEvent: { locationX: 10 } }));
+      expect(screen.getByTestId('player-timeline')).toBeTruthy();
     });
 
     it('a tap toggles the controls; a double tap on the right/left third seeks ±10 s', async () => {

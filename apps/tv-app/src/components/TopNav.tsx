@@ -127,6 +127,7 @@ function SearchBox({ value, width }: { value: string; width: number }) {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         returnKeyType="search"
+        onSubmitEditing={() => navStore.getState().submitSearch()}
         autoCorrect={false}
       />
       {value ? (

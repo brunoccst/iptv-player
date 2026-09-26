@@ -15,18 +15,12 @@ appId: ${APP_ID}
     id: "login-server"
 # Provider address as the backend sees it (same machine).
 - inputText: "http://localhost:8091"
-# Enter closes the TV keyboard; hideKeyboard sends Back, which exits the app if the keyboard already closed.
+# Enter moves to the next field (and opens the keyboard there); on the password it signs in.
 - pressKey: Enter
-- tapOn:
-    id: "login-username"
 - inputText: "demo"
 - pressKey: Enter
-- tapOn:
-    id: "login-password"
 - inputText: "demo"
 - pressKey: Enter
-- tapOn:
-    id: "login-submit"
 - extendedWaitUntil:
     visible:
       id: "home-screen"

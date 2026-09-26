@@ -45,7 +45,6 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   // Phones: virtualized rows (only rows near the screen stay mounted) keep fast scrolling smooth.
   type HomeRow = { key: string; render(): ReactElement };
   const rows: HomeRow[] = [
-    { key: 'banner', render: () => <LibraryBanner processing={processing} /> },
     { key: 'continue', render: () => <ContinueWatchingRow /> },
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
@@ -68,39 +67,48 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   );
   const onScroll = (y: number) => navStore.getState().setScrolled(y > 10);
 
+  // The library notice floats at the bottom, over the rows: under the see-through top nav it was hard to read.
+  const banner = <LibraryBanner processing={processing} />;
+
   // TV: plain ScrollView. The D-pad and swipes never moved the FlatList on the Android TV emulator.
   if (Platform.isTV) {
     return (
-      <ScrollView
-        style={styles.screen}
-        testID="home-screen"
-        scrollEventThrottle={100}
-        onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
-      >
-        <Hero candidates={featured} />
-        {rows.map(renderRow)}
-        <View style={styles.bottom} />
-      </ScrollView>
+      <View style={styles.screen}>
+        <ScrollView
+          style={styles.screen}
+          testID="home-screen"
+          scrollEventThrottle={100}
+          onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+        >
+          <Hero candidates={featured} />
+          {rows.map(renderRow)}
+          <View style={styles.bottom} />
+        </ScrollView>
+        {banner}
+      </View>
     );
   }
 
   return (
-    <FlatList
-      style={styles.screen}
-      testID="home-screen"
-      data={rows}
-      keyExtractor={(row) => row.key}
-      ListHeaderComponent={<Hero candidates={featured} />}
-      renderItem={({ item, index }) => renderRow(item, index)}
-      ListFooterComponent={<View style={styles.bottom} />}
-      // FlatList detaches off-screen children on Android by default; keep them attached (nested horizontal rows).
-      removeClippedSubviews={false}
-      initialNumToRender={6}
-      maxToRenderPerBatch={2}
-      windowSize={5}
-      scrollEventThrottle={100}
-      onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
-    />
+    <View style={styles.screen}>
+      <FlatList
+        style={styles.screen}
+        testID="home-screen"
+        data={rows}
+        keyExtractor={(row) => row.key}
+        ListHeaderComponent={<Hero candidates={featured} />}
+        renderItem={({ item, index }) => renderRow(item, index)}
+        ListFooterComponent={<View style={styles.bottom} />}
+        // FlatList detaches off-screen children on Android by default; keep them attached (nested horizontal rows).
+        removeClippedSubviews={false}
+        initialNumToRender={6}
+        maxToRenderPerBatch={2}
+        windowSize={5}
+        scrollEventThrottle={100}
+        onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+      />
+      {banner}
+    </View>
   );
 }
 
@@ -111,7 +119,12 @@ function LibraryBanner({ processing }: { processing: boolean }) {
   const { gutter } = useSizes();
   if (!offline && !processing) return null;
   return (
-    <View style={[styles.banner, { marginHorizontal: gutter }]} testID="library-processing" accessibilityRole="alert">
+    <View
+      style={[styles.banner, { left: gutter, right: gutter }]}
+      testID="library-processing"
+      accessibilityRole="alert"
+      pointerEvents="none"
+    >
       {offline ? (
         <Text style={styles.bannerText}>You're offline. Downloaded titles are available in My Downloads.</Text>
       ) : (
@@ -288,7 +301,20 @@ const styles = StyleSheet.create({
   heroTitle: { color: colors.strong, fontWeight: '900', lineHeight: undefined, marginBottom: 12, ...shadow },
   heroPlot: { color: colors.text, marginBottom: 20, ...shadow },
   heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  banner: { marginBottom: 16, paddingVertical: 12, paddingHorizontal: 16, borderRadius: radius, backgroundColor: colors.raised, gap: 4 },
+  // Above everything on the page (rows, focused cards), not focusable.
+  banner: {
+    position: 'absolute',
+    bottom: 16,
+    zIndex: 50,
+    elevation: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: 'rgba(20,20,20,0.95)',
+    gap: 4,
+  },
   bannerLine: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   bannerText: { color: colors.text, fontSize: 14.4, flexShrink: 1 },
   bannerDetail: { color: colors.muted, fontSize: fonts.small, marginLeft: 32 },
