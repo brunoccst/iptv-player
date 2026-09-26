@@ -61,5 +61,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     APP_TV_DEBUG_REMOTE: process.env.APP_TV_DEBUG_REMOTE ?? '',
     // Optional: "owner/repo" whose tv-apk release the app checks for updates (tv-apk.yml sets it; D-062).
     APP_UPDATE_REPO: process.env.APP_UPDATE_REPO?.trim() ?? '',
+    // Optional: shown under account menu → About. tv-apk.yml sets the commit it builds; the date is the build's.
+    APP_BUILD_COMMIT: process.env.APP_BUILD_COMMIT?.trim() ?? '',
+    APP_BUILD_DATE: process.env.APP_BUILD_COMMIT ? new Date().toISOString() : '',
   },
 });
