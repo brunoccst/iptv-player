@@ -45,7 +45,8 @@ Bugs, external limitations, technical debt and risks.
 | [KI-039](#ki-039) | Limitation | shared, clients | Open |
 | [KI-040](#ki-040) | Limitation | tv-app, web-player | Open |
 | [KI-041](#ki-041) | Limitation | tv-app | Open |
-| [KI-042](#ki-042) | Bug | tv-app (direct mode) | Open |
+| [KI-042](#ki-042) | Bug | tv-app (direct mode) | Resolved |
+| [KI-043](#ki-043) | Limitation | tv-app | Open |
 
 ---
 
@@ -322,4 +323,12 @@ Titles opened in another player (D-057) do not save progress, so Continue Watchi
 **Some providers refuse streams with HTTP 401 while the login works** — logged 2026-09-25
 
 Reported on a phone in direct mode: every movie and episode failed with `HTTP 401 Unauthorized` from the provider's stream server (file and HLS, both stream addresses), while login and catalog requests succeeded and the account showed 0 of 1 connections in use. Not reproduced with the fake panel. Likely causes on the provider side: a connection still counted for another app or device, or a temporary block after many requests in a short time (full library download, bursts of guide requests; one guide request got HTTP 503). The player now explains a 401/403 in plain words and the log records the User-Agent of each attempt; guide requests to the provider run 2 at a time instead of 4. Next step: compare with the same title in another player (D-057).
+
+Update 2026-09-26: three hours later the same account played again (movies and episodes, same app version and User-Agent), so the 401s were a temporary block on the provider's side, most likely after the burst of requests. Guide requests stay at 2 in parallel.
+
+## KI-043
+
+**Some audio formats fail on some devices' hardware decoders** — logged 2026-09-26
+
+The player uses the device's own decoders. On a Pixel phone (Android 16), an episode with Dolby Digital Plus 5.1 audio (E-AC3) failed in `c2.dolby.eac3.decoder` although the device reports support. The player now stops at once with a message naming the format and suggesting another version or an external player (VLC brings its own decoders), instead of retrying the same file on the other server address and as HLS. A lasting fix would bundle a software audio decoder (Media3 FFmpeg extension, several MB larger APK).
 

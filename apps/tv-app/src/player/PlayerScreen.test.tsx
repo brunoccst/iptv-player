@@ -55,6 +55,28 @@ describe('PlayerScreen', () => {
     expect(playbackErrorText('Source error', 'HTTP 404 Not Found from panel')).toBe('Source error (HTTP 404 Not Found from panel)');
   });
 
+  it('names the codec the device could not decode, and stops instead of retrying the same file', async () => {
+    const detail =
+      'MediaCodecAudioRenderer error, index=1, format=Format(2, null, video/x-matroska, audio/eac3, null, -1, en), format_supported=YES (v: Decoder failed: c2.dolby.eac3.decoder.eac3)';
+    expect(playbackErrorText('Source error', detail, 'ERROR_CODE_DECODING_FAILED')).toMatch(
+      /^This device could not decode the audio of this title \(Dolby Digital Plus\)/,
+    );
+    expect(playbackErrorText('Source error', 'n0: None of the available extractors', 'ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED')).toMatch(
+      /^The provider did not send a playable video/,
+    );
+
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://relay/55.${url.searchParams.get('container')}`) }));
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await act(async () =>
+      playerState.props?.onError?.({ nativeEvent: { message: 'Source error', code: 'ERROR_CODE_DECODING_FAILED', detail } } as never),
+    );
+    await flush();
+    expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv' });
+    expect(await screen.findByText(/could not decode the audio of this title \(Dolby Digital Plus\)/)).toBeTruthy();
+  });
+
   it('keeps the controls and clock up while loading; hides them 4 s after playback starts', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

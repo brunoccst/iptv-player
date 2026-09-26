@@ -64,12 +64,32 @@ const PROGRESS_SAVE_MS = 10_000;
  * Error text for the last failed attempt. HTTP 401/403 from the stream server means the provider refused this stream
  * although the login works: usually the account's connection limit, or the provider blocking the stream for a while.
  */
-export function playbackErrorText(message: string, detail?: string | null): string {
+export function playbackErrorText(message: string, detail?: string | null, code = ''): string {
   const text = detail ? `${message} (${detail})` : message;
-  if (/HTTP 40[13]\b/.test(detail ?? '') || /HTTP 40[13]\b/.test(message))
+  const all = `${message} ${detail ?? ''}`;
+  if (/HTTP 40[13]\b/.test(all))
     return `Your IPTV provider refused this stream. Another device or app may be using the account's connections, or the provider is blocking streams for now. Try again later, or open it in another player. (${detail ?? message})`;
+  if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
+    const audio = /MediaCodecAudioRenderer/.test(all);
+    const mime = /\b(audio|video)\/([\w.-]+)/.exec(all.replace(/video\/x-matroska/g, ''))?.[2];
+    const format = mime ? (CODEC_NAMES[mime] ?? mime.toUpperCase()) : null;
+    return `This device could not decode the ${audio ? 'audio' : 'video'} of this title${format ? ` (${format})` : ''}. Try another version, or open it in another player such as VLC, which brings its own decoders.`;
+  }
+  if (code.startsWith('ERROR_CODE_PARSING'))
+    return 'The provider did not send a playable video for this title (it may be broken on their side). Try another version, or open it in another player.';
   return text;
 }
+
+const CODEC_NAMES: Record<string, string> = {
+  eac3: 'Dolby Digital Plus',
+  'eac3-joc': 'Dolby Atmos',
+  ac3: 'Dolby Digital',
+  'vnd.dts': 'DTS',
+  'vnd.dts.hd': 'DTS-HD',
+  'true-hd': 'Dolby TrueHD',
+  hevc: 'HEVC',
+  av01: 'AV1',
+};
 const CONTROLS_HIDE_MS = 4000;
 /** Two taps on the left/right third within this time seek ∓10 s (phones). */
 const DOUBLE_TAP_MS = 300;
@@ -388,7 +408,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         onError={(e) => {
           const { message, code, detail } = e.nativeEvent;
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
-          const alternate = source?.offlineId ? undefined : alternates.current.shift();
+          // Decoding errors: the other server and the HLS copy carry the same audio/video, so retrying only costs time.
+          if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
+            setError(playbackErrorText(message, detail, code));
+            return;
+          }
+          // The stream server's other address only helps with network and HTTP errors.
+          const alternate = source?.offlineId || !code.startsWith('ERROR_CODE_IO') ? undefined : alternates.current.shift();
           if (alternate) {
             appLog.info('player', `attempt ${attempt + 1}: retrying on the stream server ${alternate}`);
             setSource({ ...source, uri: alternate });
@@ -398,7 +424,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
             setReady(false);
             setAttempt((a) => a + 1);
-          } else setError(playbackErrorText(message, detail));
+          } else setError(playbackErrorText(message, detail, code));
         }}
       />
 
