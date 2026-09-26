@@ -10,7 +10,7 @@ import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
-import { createProfilePrefsStore, type ProfilePrefsStore } from './stores/profilePrefsStore';
+import { createProfilePrefsStore, profileLanguages, type ProfilePrefsStore } from './stores/profilePrefsStore';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
@@ -82,7 +82,8 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     () => selectActiveProfile(session.getState())?.isKids === true,
     (section) => activePrefs()?.kidsCategories?.[section] ?? null,
   );
-  const activeLanguage = () => activePrefs()?.language || null;
+  // One or more languages (D-067), sent as a comma-separated list: `ENG,GER`.
+  const activeLanguage = () => profileLanguages(activePrefs()).join(',') || null;
   const api: ApiClient = {
     ...kids.api,
     library: {

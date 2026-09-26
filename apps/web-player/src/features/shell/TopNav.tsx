@@ -130,7 +130,7 @@ export function TopNav() {
                   setLanguage(true);
                 }}
               >
-                <Icon name="subtitles" size={18} /> Language
+                <Icon name="subtitles" size={18} /> Languages
               </button>
               <button
                 type="button"

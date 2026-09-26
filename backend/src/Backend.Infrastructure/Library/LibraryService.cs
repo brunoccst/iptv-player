@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Text.Json;
 using Backend.Core.Library;
 using Backend.Infrastructure.Pipeline;
@@ -25,11 +26,11 @@ public sealed class LibraryService(PipelineDbContext db)
             masters = masters.Where(m => m.Variants.Any(v => v.CategoryId != null && allowed.Contains(v.CategoryId)));
         }
 
-        if (LanguageCode(query.Language) is { } language)
+        if (LanguageCodes(query.Language) is { Count: > 0 } languages)
         {
-            // Audio or subtitles in that language, from the version names (D-063). Stored as JSON arrays: ["ENG","ESP"].
-            var quoted = $"\"{language}\"";
-            masters = masters.Where(m => m.Variants.Any(v => v.AudioLanguages.Contains(quoted) || v.SubtitleLanguages.Contains(quoted)));
+            // Audio or subtitles in one of those languages, from the version names (D-063, D-067).
+            var inLanguage = InLanguage(languages);
+            masters = masters.Where(m => m.Variants.AsQueryable().Any(inLanguage));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -64,6 +65,30 @@ public sealed class LibraryService(PipelineDbContext db)
     /// <summary>Upper-case three-letter code (<c>ENG</c>), or null for "all languages" and anything that is not a code.</summary>
     public static string? LanguageCode(string? language) =>
         language?.Trim().ToUpperInvariant() is { Length: 3 } code && code.All(char.IsAsciiLetterUpper) ? code : null;
+
+    /// <summary>The codes in a comma-separated list (<c>ENG,GER</c>); empty means all languages.</summary>
+    public static IReadOnlyList<string> LanguageCodes(string? languages) =>
+        (languages ?? "").Split(',').Select(LanguageCode).OfType<string>().Distinct().ToList();
+
+    /// <summary>
+    /// <c>v =&gt; v.AudioLanguages.Contains("\"ENG\"") || v.SubtitleLanguages.Contains("\"ENG\"") || …</c> for each code.
+    /// Both columns hold JSON arrays such as <c>["ENG","ESP"]</c>.
+    /// </summary>
+    private static Expression<Func<MediaVariant, bool>> InLanguage(IReadOnlyList<string> codes)
+    {
+        var variant = Expression.Parameter(typeof(MediaVariant), "v");
+        var contains = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+        Expression body = Expression.Constant(false);
+        foreach (var code in codes)
+        {
+            var quoted = Expression.Constant($"\"{code}\"");
+            body = Expression.OrElse(body, Expression.OrElse(
+                Expression.Call(Expression.Property(variant, nameof(MediaVariant.AudioLanguages)), contains, quoted),
+                Expression.Call(Expression.Property(variant, nameof(MediaVariant.SubtitleLanguages)), contains, quoted)));
+        }
+
+        return Expression.Lambda<Func<MediaVariant, bool>>(body, variant);
+    }
 
     /// <summary>Dates default to newest first, titles to A–Z.</summary>
     public static SortOrder DefaultOrder(LibrarySort sort) => sort == LibrarySort.Title ? SortOrder.Asc : SortOrder.Desc;
@@ -145,7 +170,8 @@ public sealed class LibraryService(PipelineDbContext db)
 
 /// <summary>
 /// <c>CategoryIds</c>, when set, keeps only titles with a version in one of those categories (Kids profiles, D-053).
-/// <c>Language</c> (e.g. <c>ENG</c>) keeps only titles with a version that has that audio or subtitle language (D-063).
+/// <c>Language</c> (e.g. <c>ENG</c>, or <c>ENG,GER</c>) keeps only titles with a version that has one of those audio or
+/// subtitle languages (D-063, D-067).
 /// </summary>
 public sealed record LibraryQuery(
     string? CategoryId,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createAppContext } from '../appContext';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
-import { PROFILE_PREFS_KEY, createProfilePrefsStore } from './profilePrefsStore';
+import { PROFILE_PREFS_KEY, createProfilePrefsStore, profileLanguages } from './profilePrefsStore';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
 
@@ -9,11 +9,18 @@ describe('profile preferences', () => {
   it('are saved per profile and survive a restart', async () => {
     const storage = createMemoryStorage();
     const prefs = createProfilePrefsStore(storage);
-    await prefs.getState().update('p1', { language: 'GER' });
+    await prefs.getState().update('p1', { languages: ['GER', 'ENG'] });
     const again = createProfilePrefsStore(storage);
     await again.getState().load();
-    expect(again.getState().prefs).toEqual({ p1: { language: 'GER' } });
-    expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual({ p1: { language: 'GER' } });
+    expect(again.getState().prefs).toEqual({ p1: { languages: ['GER', 'ENG'] } });
+    expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual({ p1: { languages: ['GER', 'ENG'] } });
+  });
+
+  it('several languages per profile; the single language of earlier versions still counts (D-067)', () => {
+    expect(profileLanguages(undefined)).toEqual([]);
+    expect(profileLanguages({ language: 'GER' })).toEqual(['GER']);
+    expect(profileLanguages({ language: 'GER', languages: ['ENG', 'POR'] })).toEqual(['ENG', 'POR']);
+    expect(profileLanguages({ language: 'GER', languages: [] })).toEqual([]);
   });
 
   it("the active profile's language filters library lists; changing it drops cached pages (D-063)", async () => {
@@ -36,10 +43,10 @@ describe('profile preferences', () => {
     await stores.library.getState().loadPage('movies');
     expect(lastLanguage()).toBeNull();
 
-    await stores.profilePrefs.getState().update('p1', { language: 'ENG' });
+    await stores.profilePrefs.getState().update('p1', { languages: ['ENG', 'GER'] });
     expect(stores.library.getState().pages).toEqual({});
     await stores.library.getState().loadPage('movies');
-    expect(lastLanguage()).toBe('ENG');
+    expect(lastLanguage()).toBe('ENG,GER');
 
     stores.session.getState().selectProfile('p2');
     expect(stores.library.getState().pages).toEqual({});

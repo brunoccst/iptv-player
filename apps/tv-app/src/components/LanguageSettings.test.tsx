@@ -9,8 +9,8 @@ async function flush() {
   });
 }
 
-describe('account menu → Language (D-063)', () => {
-  it('filters the library for the active profile and remembers the choice', async () => {
+describe('account menu → Languages (D-063, D-067)', () => {
+  it('filters the library by one or more languages for the active profile and remembers the choice', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
     backend.on('GET', '/api/library/series', { body: { total: 0, items: [], sorts: ['title'] } });
@@ -22,11 +22,25 @@ describe('account menu → Language (D-063)', () => {
 
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-language'));
+    expect(screen.getByText('Languages for Alex')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('language-GER'));
+    await fireEvent.press(screen.getByTestId('language-POR'));
+    await fireEvent.press(screen.getByTestId('language-ENG'));
+    await fireEvent.press(screen.getByTestId('language-POR'));
+    expect(screen.getByText('✓ German')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('language-close'));
     await flush();
 
-    expect(stores.profilePrefs.getState().prefs.p1).toEqual({ language: 'GER' });
-    expect(languages().at(-1)).toBe('GER');
+    expect(stores.profilePrefs.getState().prefs.p1).toMatchObject({ languages: ['GER', 'ENG'] });
+    expect(languages().at(-1)).toBe('GER,ENG');
     expect(screen.queryByTestId('language-settings')).toBeNull();
+
+    // "All languages" clears the choice.
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-language'));
+    await fireEvent.press(screen.getByTestId('language-all'));
+    await fireEvent.press(screen.getByTestId('language-close'));
+    await flush();
+    expect(languages().at(-1)).toBeNull();
   });
 });

@@ -71,6 +71,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-064](#d-064) | 2026-09-26 | Parents choose a Kids profile's categories |
 | [D-065](#d-065) | 2026-09-26 | Merge translated titles by the TMDB id in provider lists |
 | [D-066](#d-066) | 2026-09-26 | One episode list per series, across its versions |
+| [D-067](#d-067) | 2026-09-26 | Several languages per profile in the language filter |
 
 ---
 
@@ -1170,7 +1171,7 @@ Alternatives: a store (not wanted); a separate updater app such as Obtainium (on
 
 **Language filter per profile (audio or subtitles from the names)** — 2026-09-26 (requested by owner)
 
-Decision:
+Decision (several languages since D-067):
 - Account menu → **Language** (TV/phone and web) sets a language per profile, on this device: libraries, Home rows, category pages and search then only show titles with a version that has that audio **or** subtitle language. "All languages" turns it off. The choice is kept in `settings.profiles` (new per-profile preferences store) and is part of the TV/phone backup.
 - Providers do not list tracks per title, so languages come from the names, as for the version labels (D-017): audio from tags like "EN - ", "[GER]"; subtitles from a language next to a subtitle word ("SUB ITA", "ENG-SUB", "[ENG SUB]") and from "VOSTFR" (French), "VOSE" (Spanish), "Legendado" (Portuguese), "Multi-Sub" (`MULTI`, several unnamed). A language next to a subtitle word no longer counts as audio. Same rules in the Python normalizer and the TypeScript port (shared cases).
 - Titles whose names carry no language at all are hidden while a filter is on; that is what the filter asks for.
@@ -1218,4 +1219,16 @@ Decision:
 Limits: episodes line up by their numbers only. A provider that numbers a season differently in two versions (specials in season 0 in one, at the end of season 1 in the other; one long season split in two) produces a list that does not line up; the version picker per episode is the way around it. Opening a series costs one provider request per version.
 
 Alternatives: merging during library processing (would need `get_series_info` for every series version up front, too many requests for large lists); ranking versions by episode count (KI-025; still hides episodes that only exist in lower-ranked versions).
+
+## D-067
+
+**Several languages per profile in the language filter** — 2026-09-26 (requested by owner; extends D-063)
+
+Decision:
+- Account menu → **Languages** takes any number of languages per profile: titles show when a version has audio or subtitles in **one** of them. None ticked (or "All languages") turns the filter off. The dialog names the profile ("Languages for Alex"); each profile keeps its own choice on this device (`settings.profiles`, as before, part of the TV/phone backup).
+- Saved as `languages: ['ENG', 'GER']`. A single `language` saved by the earlier version still counts until the profile's languages are changed.
+- `GET /api/library/{kind}?language=` takes a comma-separated list (`ENG,GER`); a single code works as before. Direct mode filters the same way.
+- On TV, Select toggles a language and the lists reload when the dialog closes.
+
+Alternatives: a repeated query parameter (`language=ENG&language=GER`; the comma list keeps the endpoint's parameter a plain string, like `categoryIds`); an ordered preference list that ranks rather than filters (more to explain; the version picker already lets users choose).
 

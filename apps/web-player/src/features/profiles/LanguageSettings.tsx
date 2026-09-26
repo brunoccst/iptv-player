@@ -1,36 +1,48 @@
-import { LANGUAGE_NAMES } from '@iptv/shared';
+import { useRef } from 'react';
+import { LANGUAGE_NAMES, profileLanguages, selectActiveProfile } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Modal } from '../../components/Modal';
 import { useProfilePrefs, useSession } from '../../hooks/stores';
 
-/** Account menu → Language (D-063): only titles with audio or subtitles in this language, for the active profile. */
+/**
+ * Account menu → Languages (D-063, D-067): only titles with audio or subtitles in one of the chosen languages, for the
+ * active profile. No language ticked = all languages.
+ */
 export function LanguageSettings({ onClose }: { onClose(): void }) {
   const profileId = useSession((s) => s.activeProfileId);
-  const current = useProfilePrefs((s) => (profileId ? (s.prefs[profileId]?.language ?? '') : ''));
-  const choose = async (code: string) => {
+  const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+  const chosen = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
+  const changed = useRef(false);
+  const save = async (languages: string[]) => {
     if (!profileId) return;
-    await stores.profilePrefs.getState().update(profileId, { language: code || null });
-    uiStore.getState().bumpLibrary();
+    changed.current = true;
+    await stores.profilePrefs.getState().update(profileId, { languages, language: null });
+  };
+  const toggle = (code: string) => save(chosen.includes(code) ? chosen.filter((c) => c !== code) : [...chosen, code]);
+  const close = () => {
+    if (changed.current) uiStore.getState().bumpLibrary();
     onClose();
   };
+  const title = profileName ? `Languages for ${profileName}` : 'Languages';
   return (
-    <Modal label="Language" onClose={onClose}>
+    <Modal label={title} onClose={close}>
       <div className="profile-editor" style={{ display: 'grid', gap: 12 }}>
-        <h2 style={{ margin: 0 }}>Language</h2>
+        <h2 style={{ margin: 0 }}>{title}</h2>
         <p className="muted" style={{ margin: 0 }}>
-          Show only titles with audio or subtitles in this language, as the provider names them. Applies to this profile.
+          Show only titles with audio or subtitles in one of these languages, as the provider names them. Each profile has its own choice;
+          none ticked shows all languages.
         </p>
-        <div className="field">
-          <label htmlFor="language">Language</label>
-          <select id="language" className="input" value={current} onChange={(event) => void choose(event.target.value)}>
-            <option value="">All languages</option>
-            {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-              <option key={code} value={code}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label className="checkbox">
+          <input type="checkbox" checked={chosen.length === 0} onChange={() => void save([])} /> All languages
+        </label>
+        {Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
+          <label key={code} className="checkbox">
+            <input type="checkbox" checked={chosen.includes(code)} onChange={() => void toggle(code)} /> {name}
+          </label>
+        ))}
+        <button type="button" className="button" onClick={close}>
+          Done
+        </button>
       </div>
     </Modal>
   );
