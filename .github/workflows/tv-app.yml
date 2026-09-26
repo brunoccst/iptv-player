@@ -58,7 +58,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      # Caches Gradle's downloads and build cache between runs (written by main; D-044).
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false # TEMP: measurement on this branch
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -85,12 +88,14 @@ jobs:
       # Only the emulator's ABI: native code compiles once instead of three times. The ARM APK for real TVs is tv-apk.yml.
       - name: Build release APK
         working-directory: apps/tv-app/android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=x86
+        run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=x86
 
       - name: Keep APK, drop build output
         run: |
           cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/app-release.apk"
-          rm -rf apps/tv-app/android/app/build apps/tv-app/android/.gradle ~/.gradle/caches
+          # ~/.gradle/caches stays: the Gradle action saves it at the end of the job for the next run.
+          rm -rf apps/tv-app/android/app/build apps/tv-app/android/.gradle
+          du -sh ~/.gradle/caches || true
           find node_modules apps/tv-app/modules -path '*/android/build' -type d -prune -exec rm -rf {} +
           df -h /
 
