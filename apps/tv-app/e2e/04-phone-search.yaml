@@ -4,6 +4,10 @@ appId: ${APP_ID}
 ---
 - launchApp:
     clearState: true
+# A freshly booted emulator sometimes shows "Pixel Launcher isn't responding" over the app.
+- tapOn:
+    text: "Wait"
+    optional: true
 - extendedWaitUntil:
     visible:
       id: "login-server"
