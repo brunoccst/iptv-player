@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
+import type { IconName } from '@iptv/shared';
+import { Icon } from './Icon';
 import { t } from '@iptv/shared';
 
 export interface CardMenuAction {
@@ -7,6 +9,8 @@ export interface CardMenuAction {
   onSelect(): void;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
+  /** Shown after the text (the episode menu, D-086). */
+  icon?: IconName;
 }
 
 /** The items the keyboard moves between. */
@@ -116,7 +120,8 @@ export function CardMenu({
             action.onSelect();
           }}
         >
-          {action.label}
+          <span>{action.label}</span>
+          {action.icon ? <Icon name={action.icon} size={18} /> : null}
         </button>
       ))}
       <button type="button" role="menuitem" className="card-menu__item card-menu__item--cancel" onClick={onClose}>

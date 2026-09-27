@@ -66,7 +66,7 @@ describe('Kids categories (TV, D-064)', () => {
 
     // Languages for that profile too: its own menu has no settings.
     await fireEvent.press(screen.getByTestId('profile-languages'));
-    expect(screen.getByText('Languages for Mia')).toBeTruthy();
+    expect(screen.getByText('Content language filter for Mia')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('language-GER'));
     await fireEvent.press(screen.getByTestId('language-close'));
     await flush();

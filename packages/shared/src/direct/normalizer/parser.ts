@@ -155,7 +155,9 @@ export function normalizeKey(title: string): string {
 
 export const compactKey = (title: ParsedTitle) => title.key.replaceAll(' ', '');
 
-export const numberTokens = (title: ParsedTitle) => new Set(words(title.key).filter((token) => /^\d+$/.test(token)));
+/** Every number in the key, also inside words ("EP197", "Part2"): episodes, scenes and sequels stay apart. */
+export const numberTokens = (title: ParsedTitle) =>
+  new Set((title.key.match(/\d+/g) ?? []).map((digits) => digits.replace(/^0+(?=\d)/, '')));
 
 export function parseTitle(raw: string): ParsedTitle {
   const found = new Tags();
@@ -217,12 +219,30 @@ function stripBrackets(text: string, found: Tags): { text: string; year: number 
   return { text: result, year };
 }
 
-/** Cuts at the first year or strong tag after the first token. Everything after is the tag zone. */
+/** Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Wild Planet TS Rio"). */
+const isShortWord = (word: string) => word.length <= 3 && /^\p{L}+$/u.test(word);
+
+function onlyTags(tokens: string[]): boolean {
+  const probe = new Tags();
+  return tokens.every((token) => token.split(TOKEN_SPLIT).every((part) => parseYear(part) !== null || probe.absorb(part, false)));
+}
+
+/**
+ * Cuts at the first year or strong tag after the first token. Everything after is the tag zone. A short strong tag
+ * ("TS", "CAM", "NF") only cuts when nothing but tags follows it, so it can be part of a name.
+ */
 function splitTagZone(tokens: string[], found: Tags): { tokens: string[]; year: number | null } {
   for (let index = 1; index < tokens.length; index++) {
     const token = tokens[index]!;
     const year = parseYear(strip(token, EDGE_PUNCTUATION));
-    if (year === null && !token.split(TOKEN_SPLIT).some((part) => tags.STRONG.has(fold(part)))) continue;
+    if (year === null) {
+      const strong = token
+        .split(TOKEN_SPLIT)
+        .map(fold)
+        .filter((word) => tags.STRONG.has(word));
+      if (strong.length === 0) continue;
+      if (strong.every(isShortWord) && !onlyTags(tokens.slice(index + 1))) continue;
+    }
     for (const tagToken of tokens.slice(index)) {
       for (const part of tagToken.split(TOKEN_SPLIT)) if (parseYear(part) === null) found.absorb(part, false);
     }

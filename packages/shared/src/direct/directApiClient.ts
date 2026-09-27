@@ -99,15 +99,21 @@ const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.p
  * after a language change; the result is kept per list and language choice, so they share one pass over the titles.
  */
 const languageScopes = new WeakMap<Master[], Map<string, Master[]>>();
-function inLanguages(scope: Master[], languages: string[]): Master[] {
+function inLanguages(scope: Master[], languages: string[], categoryIds: string[] | null | undefined): Master[] {
   if (languages.length === 0) return scope;
-  const key = languages.join(',');
+  // A version without a language in its name passes in a category named in a chosen language, or in none (D-086).
+  const hinted = new Set(categoryIds ?? []);
+  const key = `${languages.join(',')}|${[...hinted].sort().join(',')}`;
   let byKey = languageScopes.get(scope);
   if (!byKey) languageScopes.set(scope, (byKey = new Map()));
   let result = byKey.get(key);
   if (!result) {
     result = scope.filter((master) =>
-      master.variants.some((v) => languages.some((code) => v.audioLanguages.includes(code) || v.subtitleLanguages.includes(code))),
+      master.variants.some(
+        (v) =>
+          languages.some((code) => v.audioLanguages.includes(code) || v.subtitleLanguages.includes(code)) ||
+          (v.audioLanguages.length === 0 && v.subtitleLanguages.length === 0 && v.categoryId !== null && hinted.has(v.categoryId)),
+      ),
     );
     byKey.set(key, result);
   }
@@ -744,7 +750,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const scope = allowed
           ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
           : inCategory;
-        const inLanguage = inLanguages(scope, languageCodes(query.language));
+        const inLanguage = inLanguages(scope, languageCodes(query.language), query.languageCategoryIds);
         const matches = search
           ? inLanguage.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
           : inLanguage;

@@ -90,6 +90,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-083](#d-083) | 2026-09-27 | Episode rows: Play, "…" and the version; the other options in the episode's menu |
 | [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
 | [D-085](#d-085) | 2026-09-27 | Web and desktop: category chips on one line with Show all; row titles take the mouse |
+| [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
 
 ---
 
@@ -1516,4 +1517,20 @@ Decision:
 - **Row titles**: a row's card track has 28 px of room above and below for the hovered card's growth and glow (D-078, D-079); that room lay over the row's title and took the mouse. The title now sits above the track (`position: relative; z-index: 1`); a hovered card still draws over it.
 
 Limits: Live TV on the web keeps its category list at the side.
+
+## D-086
+
+**Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish** — 2026-09-27 (requested by owner)
+
+Context: with a profile's language filter on German, a provider's "VOD | DOCUMENTARIES FHD" category showed only a few of its titles. Titles like "DOCS - WILD PLANET EP197" carry no language in their names, so the filter hid them (D-063); the few that showed passed only because "DE" in "RIO DE JANEIRO" was read as German. The same name lost its end: "TS" (a "telesync" release tag) cut it, and "…EP197" and "…EP196" were merged as two versions of one title.
+
+Decision:
+- **Category hint.** A version whose name has no language takes its category's: "SRS | EN - ACTION" is English, "SRS | DEUTSCH" German, "SRS | ITALY" Italian (language names, capital two-letter codes, and country names; not "IN", "US" and the like, which are common words). A version in a category whose name has no language either ("VOD | DOCUMENTARIES FHD", "SRS | MULTI-LANG - NETFLIX") passes whatever the filter. The app reads the category names (`profiles/contentLanguages.ts`) and sends the passing category ids with the list (`languageCategoryIds`); the on-device library and the server (`GET /api/library/{kind}?languageCategoryIds=`) apply them the same way. Live TV stays unfiltered.
+- **Name.** The profile setting is now **Content language filter** (account menu → Profiles, and the profile editor), apart from the app language (D-084). Its text explains the category rule.
+- **Short tags in names.** A short strong tag ("TS", "TC", "CAM", "WEB", "NF"…) only ends the title when nothing but tags follows it ("The Heist TS x264"); in the middle of a name ("…WILD PLANET TS RIO DE JANEIRO…") it is part of the name, and so is the "DE" after it. Longer tags ("1080p", "WEBRip", "BluRay") and years still end it. Same rule in the Python normalizer and the TypeScript port (shared cases).
+- **Numbers inside words keep titles apart.** "EP197" and "EP196", "Scene 3" and "Scene 4" are different titles; leading zeros do not count ("Part 02" = "Part 2").
+- **Rebuild.** The on-device library records the rules version it was built with (`NORMALIZER_RULES`); one built with older rules keeps showing and is rebuilt in the background once. Server libraries regroup at their next scheduled refresh.
+- **Desktop polish (web and desktop).** Sync with phone is a compact, centred card with room around its content; drop-down selects draw their own chevron with room on the right; the episode "…" menu shows the row buttons' icons after each item's text (TV and phone too).
+
+Limits: a category name in a language the hint does not know stays "no language" (its titles show under any filter).
 

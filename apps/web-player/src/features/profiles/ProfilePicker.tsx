@@ -154,7 +154,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
         {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
         {profile ? (
           <button type="button" className="button button--ghost" onClick={() => setLanguages(true)}>
-            <Icon name="subtitles" size={18} /> {t('Choose languages')}
+            <Icon name="subtitles" size={18} /> {t('Content language filter')}
           </button>
         ) : null}
         {error ? (

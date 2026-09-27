@@ -139,22 +139,22 @@ describe('watched titles (D-081)', () => {
   });
 
   it('episode menu (D-083): watched first, then what the device and profile allow', () => {
-    expect(episodeMenuItems({ watched: false })).toEqual([{ id: 'watched', label: 'Mark as watched' }]);
+    expect(episodeMenuItems({ watched: false })).toEqual([{ id: 'watched', label: 'Mark as watched', icon: 'check' }]);
     expect(episodeMenuItems({ watched: true, download: { status: 'none' }, tvName: 'Living room', externalPlayer: 'app' })).toEqual([
-      { id: 'unwatched', label: 'Mark as not watched' },
-      { id: 'download', label: 'Download' },
-      { id: 'play-on-tv', label: 'Play on Living room' },
-      { id: 'external', label: 'Open in another player' },
+      { id: 'unwatched', label: 'Mark as not watched', icon: 'close' },
+      { id: 'download', label: 'Download', icon: 'download' },
+      { id: 'play-on-tv', label: 'Play on Living room', icon: 'tv' },
+      { id: 'external', label: 'Open in another player', icon: 'external' },
     ]);
     const download = (status: 'downloading' | 'paused' | 'failed' | 'completed') =>
       episodeMenuItems({ watched: false, download: { status, percent: 41.6 }, externalPlayer: 'vlc' }).slice(1);
     expect(download('downloading')).toEqual([
-      { id: 'download', label: 'Pause download (42 %)' },
-      { id: 'external', label: 'Open in VLC' },
+      { id: 'download', label: 'Pause download (42 %)', icon: 'pause' },
+      { id: 'external', label: 'Open in VLC', icon: 'external' },
     ]);
-    expect(download('paused')[0]).toEqual({ id: 'download', label: 'Resume download (42 %)' });
-    expect(download('failed')[0]).toEqual({ id: 'download', label: 'Download failed · Retry' });
-    expect(download('completed')[0]).toEqual({ id: 'download', label: 'Downloaded', disabled: true });
+    expect(download('paused')[0]).toEqual({ id: 'download', label: 'Resume download (42 %)', icon: 'download' });
+    expect(download('failed')[0]).toEqual({ id: 'download', label: 'Download failed · Retry', icon: 'alert' });
+    expect(download('completed')[0]).toEqual({ id: 'download', label: 'Downloaded', icon: 'check', disabled: true });
   });
 
   describe('episodes and whole series (D-082)', () => {

@@ -87,7 +87,7 @@ export function AccountMenu() {
           onPress: then(() => stores.session.getState().selectProfile(null)),
         },
         { icon: 'lock', label: t('Parental PIN'), testID: 'menu-pin', onPress: then(() => setPinSettings(true)) },
-        { icon: 'subtitles', label: t('Languages'), testID: 'menu-language', onPress: then(() => setLanguage(true)) },
+        { icon: 'subtitles', label: t('Content language filter'), testID: 'menu-language', onPress: then(() => setLanguage(true)) },
       ],
     },
     {
