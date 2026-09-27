@@ -48,10 +48,12 @@ export interface AppContextOptions {
   fetch?: typeof fetch;
   /** Native apps: talk to the provider directly unless the user picks "My server". See DECISIONS.md#d-038. */
   direct?: { dataStorage: KeyValueStorage; userAgent?: string };
+  /** The device's preferred languages, for the app's language on a first start (D-084). Default: the browser's. */
+  deviceLanguages?: () => readonly string[];
 }
 
 /** Wires API client and stores together. Each app creates exactly one context at startup. */
-export function createAppContext({ config, storage, fetch, direct }: AppContextOptions): AppContext {
+export function createAppContext({ config, storage, fetch, direct, deviceLanguages }: AppContextOptions): AppContext {
   const connection = direct ? createConnectionStore({ storage, defaultServerUrl: config.apiBaseUrl }) : undefined;
   const http = createHttpClient({
     baseUrl: connection ? () => connection.getState().serverUrl : config.apiBaseUrl,
@@ -103,7 +105,7 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const progress = createProgressStore({ api });
   const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
-  const uiLanguage = createUiLanguage({ storage: direct?.dataStorage ?? storage, session, profilePrefs });
+  const uiLanguage = createUiLanguage({ storage: direct?.dataStorage ?? storage, session, profilePrefs, deviceLanguages });
   void uiLanguage.load();
 
   // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
