@@ -47,7 +47,10 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
             renderItem={({ item, index }) => render(item, index)}
             ItemSeparatorComponent={Separator}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
+            // TV: room above and below for the focused card (it grows 8 % and glows); the scroll view clips its content,
+            // and the ring and glow were cut off at the top and bottom. The negative margin keeps the page layout.
+            style={Platform.isTV ? styles.tvTrack : undefined}
+            contentContainerStyle={[styles.content, Platform.isTV && styles.tvContent, { paddingHorizontal: sizes.gutter }]}
             removeClippedSubviews={false}
             // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
             // cards, and focus fell out of the row (to the nav).
@@ -63,6 +66,9 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
     </View>
   );
 }
+
+/** Space above and below a TV row's cards for the focused card's growth (8 %) and glow. */
+const TV_FOCUS_ROOM = 32;
 
 const Separator = () => <View style={{ width: 8 }} />;
 
@@ -136,6 +142,8 @@ const styles = StyleSheet.create({
   linkFocused: { backgroundColor: focus.fill },
   linkTextFocused: { color: colors.strong },
   content: { paddingVertical: 8 },
+  tvContent: { paddingVertical: TV_FOCUS_ROOM },
+  tvTrack: { marginVertical: 8 - TV_FOCUS_ROOM },
   empty: { color: colors.muted },
   spinner: { alignSelf: 'flex-start', marginVertical: 24 },
   // Like a card (PosterCard): the whole card has the background and fills the row's height, so it lines up with cards

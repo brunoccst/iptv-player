@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Alert, Platform, StatusBar, type AlertButton } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import { BACKUP_FORMAT, createMemoryStorage, exportUserData } from '@iptv/shared';
@@ -91,6 +91,55 @@ describe('App (TV)', () => {
     pressBack();
     await flush();
     expect(screen.getByTestId('row-mylist')).toBeTruthy();
+  });
+
+  it('Continue Watching: holding OK opens the card menu; Remove clears the unfinished episodes of the series (D-078)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    const entry = (itemId: string, positionSeconds: number, updatedAt: string) => ({
+      kind: 'episode',
+      itemId,
+      masterId: null,
+      seriesId: 's1',
+      seasonNumber: 1,
+      episodeNumber: Number(itemId.slice(1)),
+      title: 'Show',
+      posterUrl: null,
+      containerExtension: 'mp4',
+      positionSeconds,
+      durationSeconds: 2400,
+      updatedAt,
+    });
+    backend.on('GET', '/api/profiles/p1/progress', {
+      body: [entry('e1', 2395, '2026-09-01T00:00:00Z'), entry('e2', 600, '2026-09-02T00:00:00Z'), entry('e3', 900, '2026-09-03T00:00:00Z')],
+    });
+    backend.on('DELETE', '/api/profiles/p1/progress/episode/e2', { status: 204 });
+    backend.on('DELETE', '/api/profiles/p1/progress/episode/e3', { status: 204 });
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await flush();
+    expect(screen.getByTestId('row-continue')).toBeTruthy();
+
+    await fireEvent(screen.getByTestId('card-Show'), 'longPress');
+    expect(screen.getByTestId('card-menu')).toBeTruthy();
+    expect(within(screen.getByTestId('card-menu')).getByText('S1:E3')).toBeTruthy();
+    // Cancel closes it and keeps the row.
+    await fireEvent.press(screen.getByTestId('card-menu-cancel'));
+    expect(screen.queryByTestId('card-menu')).toBeNull();
+
+    await fireEvent(screen.getByTestId('card-Show'), 'longPress');
+    await fireEvent.press(screen.getByTestId('card-menu-remove'));
+    await flush();
+    expect(screen.queryByTestId('card-menu')).toBeNull();
+    expect(screen.queryByTestId('row-continue')).toBeNull();
+    // Only the unfinished episodes: e1 (finished) keeps its watched mark.
+    expect(
+      backend.calls
+        .filter((c) => c.method === 'DELETE')
+        .map((c) => c.url.pathname)
+        .sort(),
+    ).toEqual(['/api/profiles/p1/progress/episode/e2', '/api/profiles/p1/progress/episode/e3']);
   });
 
   it('opens a movie in another player app with the provider User-Agent (D-057)', async () => {

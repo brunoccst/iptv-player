@@ -18,6 +18,8 @@ export interface PosterCardProps {
   /** Top-right corner actions (e.g. download button). */
   actions?: ReactNode;
   onPress(): void;
+  /** Holding OK on TV (a long touch on phones), e.g. the card's options menu (D-078). */
+  onLongPress?(): void;
   onFocus?(): void;
 }
 
@@ -33,6 +35,7 @@ export function PosterCard({
   hasTVPreferredFocus,
   actions,
   onPress,
+  onLongPress,
   onFocus,
 }: PosterCardProps) {
   const [focused, setFocused] = useState(false);
@@ -49,6 +52,7 @@ export function PosterCard({
       accessibilityLabel={title}
       hasTVPreferredFocus={hasTVPreferredFocus}
       onPress={onPress}
+      onLongPress={onLongPress}
       onFocus={() => {
         setFocused(true);
         rowFocus?.();

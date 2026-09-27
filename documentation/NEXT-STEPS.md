@@ -36,6 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Card menu, focus clipping** (requested 2026-09-27, D-078): hold OK on a Continue Watching card → "Remove from Continue Watching" / Cancel; the focused card's ring and glow are no longer cut at the top and bottom of TV rows.
 - [x] **Player: previous / next episode, from the beginning** (requested 2026-09-27, D-077): episodes get previous/next buttons around −10 s / +10 s; movies and episodes get "from the beginning". TV/phone app.
 - [x] **Skip ahead options on TV** (requested 2026-09-27, D-075): moving between 30 s … 3 min (and Play Now / Cancel) with ←/→ no longer skips ±10 s; the chosen option skips its full amount.
 - [x] **TV focus fixes** (requested 2026-09-27, D-075): focus stays in the details panel; ↓ in the player walks the on-screen buttons (↑ opens audio/subtitles); holding Right reaches "See all"; the "See all" card is filled like other cards.

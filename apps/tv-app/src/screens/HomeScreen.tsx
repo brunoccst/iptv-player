@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
+  continueWatchingEntries,
   watchlistCard,
   liveTarget,
   movieTarget,
@@ -9,8 +10,11 @@ import {
   progressTarget,
   selectVariant,
   type MasterCard,
+  type ProgressDto,
+  type ProgressKind,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
+import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
 import { RowFocus } from '../components/FocusRow';
@@ -129,25 +133,52 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   );
 }
 
+const NO_PROGRESS: ProgressDto[] = [];
+
 function ContinueWatchingRow() {
-  const resume = useProgress((s) => continueWatching(s.items.data ?? []));
+  const items = useProgress((s) => s.items.data) ?? NO_PROGRESS;
+  const resume = continueWatching(items);
+  // Holding OK on a card opens its options (D-078).
+  const [menuFor, setMenuFor] = useState<ProgressDto | null>(null);
   if (resume.length === 0) return null;
+  const subtitleOf = (p: ProgressDto) =>
+    p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null;
   return (
-    <Row
-      title="Continue Watching"
-      items={resume}
-      keyOf={(p) => `${p.kind}-${p.itemId}`}
-      testID="row-continue"
-      render={(p) => (
-        <PosterCard
-          title={p.title}
-          posterUrl={p.posterUrl}
-          progress={p.positionSeconds / p.durationSeconds}
-          subtitle={p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null}
-          onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
+    <>
+      <Row
+        title="Continue Watching"
+        items={resume}
+        keyOf={(p) => `${p.kind}-${p.itemId}`}
+        testID="row-continue"
+        render={(p) => (
+          <PosterCard
+            title={p.title}
+            posterUrl={p.posterUrl}
+            progress={p.positionSeconds / p.durationSeconds}
+            subtitle={subtitleOf(p)}
+            onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
+            onLongPress={() => setMenuFor(p)}
+          />
+        )}
+      />
+      {menuFor ? (
+        <CardMenu
+          title={menuFor.title}
+          subtitle={subtitleOf(menuFor)}
+          onClose={() => setMenuFor(null)}
+          actions={[
+            {
+              label: 'Remove from Continue Watching',
+              testID: 'card-menu-remove',
+              onPress: () => {
+                for (const entry of continueWatchingEntries(items, menuFor))
+                  void stores.progress.getState().remove(entry.kind as ProgressKind, entry.itemId);
+              },
+            },
+          ]}
         />
-      )}
-    />
+      ) : null}
+    </>
   );
 }
 

@@ -45,6 +45,19 @@ export function continueWatching(items: ProgressDto[], limit = 20): ProgressDto[
   return result.slice(0, limit);
 }
 
+/**
+ * What to delete so a Continue Watching entry leaves the row: for a series, every unfinished episode of it (else an
+ * older unfinished episode would take its place); for a movie, its own progress. Finished episodes stay, so they keep
+ * showing as watched.
+ */
+export function continueWatchingEntries(items: ProgressDto[], entry: ProgressDto): ProgressDto[] {
+  const sameTitle = (item: ProgressDto) =>
+    entry.kind === 'episode' && entry.seriesId
+      ? item.kind === 'episode' && item.seriesId === entry.seriesId
+      : item.kind === entry.kind && item.itemId === entry.itemId;
+  return items.filter((item) => sameTitle(item) && !isCompleted(item.positionSeconds, item.durationSeconds));
+}
+
 export function clampTime(seconds: number, durationSeconds: number): number {
   const max = Number.isFinite(durationSeconds) && durationSeconds > 0 ? durationSeconds : Number.POSITIVE_INFINITY;
   return Math.min(Math.max(0, seconds), max);

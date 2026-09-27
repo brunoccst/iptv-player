@@ -81,6 +81,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-074](#d-074) | 2026-09-27 | Log what the provider sent when a stream is not a video |
 | [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all" |
 | [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
+| [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
 
 ---
 
@@ -1377,4 +1378,15 @@ Decision:
 - Code: `previousEpisode` next to `nextEpisode` (`packages/shared/src/playback/rules.ts`); icons `restart`, `previous`, `next`.
 
 Limits: the web and desktop player do not have these buttons yet.
+
+## D-078
+
+**Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card** — 2026-09-27 (requested by owner)
+
+Decision:
+- **Card menu.** Holding OK on a Continue Watching card (a long touch on phones; `Pressable.onLongPress`, about 0.5 s) opens a small menu with the title: "Remove from Continue Watching", then "Cancel". Back closes it too. `CardMenu` takes a list of actions, so other rows can add their own later.
+- **What "remove" deletes.** For a series, every unfinished episode's progress (else an older unfinished episode would take the card's place); finished episodes keep their progress, so they still show as watched. For a movie, its progress. `continueWatchingEntries` in `packages/shared/src/playback/rules.ts`. Works on both connections (`DELETE …/progress/{kind}/{id}` on the backend, local storage in direct mode).
+- **Focused card clipped (TV).** A row's horizontal scroll view clips its content, and it had only 8 dp above and below the cards. The focused card grows 8 % (about 10 dp at each edge) and glows (about 16 dp), so its ring and glow were cut at the top and bottom. TV rows now have 32 dp above and below, with a negative margin of the same extra amount, so the page layout does not move.
+
+Ideas for the menu later: "Mark as watched", "Play from the beginning", "Go to series / details", "Add to My List", "Download", "Choose another version"; on My List: "Remove from My List"; on Live TV: "Add to favourites".
 
