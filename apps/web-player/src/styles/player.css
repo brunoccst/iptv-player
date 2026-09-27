@@ -387,3 +387,102 @@
   position: absolute;
   left: 0;
 }
+
+/* Guide over the playing channel (D-058, D-081): see-through list on the left, the video keeps playing. */
+.guide-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+.guide-panel__list {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(560px, max(320px, 50vw), 100vw);
+  overflow-y: auto;
+  padding: 24px 12px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.guide-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+.guide-panel__header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.guide-panel__row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.guide-panel__row:hover,
+.guide-panel__row:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.guide-panel__row--current {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.guide-panel__logo {
+  display: grid;
+  flex: 0 0 56px;
+  place-items: center;
+  height: 40px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.guide-panel__logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.guide-panel__info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.guide-panel__info > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-panel__playing {
+  color: var(--color-accent);
+  font-weight: 400;
+}
+
+.guide-panel__track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.guide-panel__track > span {
+  display: block;
+  height: 3px;
+  background: var(--color-accent);
+}

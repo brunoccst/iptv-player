@@ -136,6 +136,21 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await expect(page.locator('.player__live')).toBeVisible();
   await expect(page.locator('.player__subtitle')).toContainText(title);
   await expectPlaying(page, 1);
+
+  // Guide over the playing channel (D-058 on TV, D-081 here): G or the Guide button; a click switches channel.
+  const playing = (await page.locator('.player__title').textContent())!;
+  await page.keyboard.press('g');
+  const panel = page.getByRole('complementary', { name: 'Guide' });
+  await expect(panel.getByRole('button', { name: /, playing$/ })).toContainText(playing);
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await page.getByRole('button', { name: 'Guide', exact: true }).click();
+  const other = panel.getByRole('button').filter({ hasNotText: playing }).first();
+  const otherName = (await other.locator('strong').textContent())!.trim();
+  await other.click();
+  await expect(panel).toBeHidden();
+  await expect(page.locator('.player__title')).toHaveText(otherName.replace(/^\d+\s+/, ''));
+  await expectPlaying(page, 1);
 });
 
 test('downloads are encrypted in-app and play offline, even after reload', async ({ page, context }) => {

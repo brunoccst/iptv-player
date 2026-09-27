@@ -1,6 +1,7 @@
 import Hls from 'hls.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  liveTarget,
   appLog,
   describeProbe,
   probeHint,
@@ -36,6 +37,7 @@ import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
 import { EpisodesDrawer } from './EpisodesDrawer';
+import { GuidePanel } from './GuidePanel';
 import { FrameGrabber } from './frameGrabber';
 import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
@@ -64,7 +66,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [muted, setMuted] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
-  const [panel, setPanel] = useState<'tracks' | 'episodes' | null>(null);
+  const [panel, setPanel] = useState<'tracks' | 'episodes' | 'guide' | null>(null);
   // "Skip ahead" options (30 s … 3 min) open under the button; the button or Escape closes them.
   const [skipOpen, setSkipOpen] = useState(false);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -285,6 +287,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           case 'f':
             toggleFullscreen();
             return true;
+          // Live: the guide over the channel (↑ on TV; here ↑/↓ are the volume).
+          case 'g':
+            if (!isLive) return false;
+            setPanel(panel === 'guide' ? null : 'guide');
+            return true;
           case 'Escape':
             if (skipOpen) setSkipOpen(false);
             else if (panel) setPanel(null);
@@ -460,6 +467,17 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               </span>
             ) : null}
             <span className="spacer" />
+            {isLive ? (
+              <button
+                type="button"
+                className="player__control"
+                onClick={() => setPanel(panel === 'guide' ? null : 'guide')}
+                aria-label="Guide"
+                title="Guide (G)"
+              >
+                <Icon name="guide" size={28} />
+              </button>
+            ) : null}
             {series.data ? (
               <button
                 type="button"
@@ -559,6 +577,17 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       ) : null}
       {panel === 'episodes' && series.data && target.seriesId ? (
         <EpisodesDrawer series={series.data} currentEpisodeId={target.streamId} onPlay={playEpisode} />
+      ) : null}
+      {panel === 'guide' && isLive ? (
+        <GuidePanel
+          channelId={target.streamId}
+          categoryId={target.categoryId ?? null}
+          onClose={() => setPanel(null)}
+          onSelect={(channel, programme) => {
+            setPanel(null);
+            if (channel.id !== target.streamId) uiStore.getState().replacePlayback(liveTarget(channel, programme?.title));
+          }}
+        />
       ) : null}
     </div>
   );
