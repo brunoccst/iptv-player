@@ -28,8 +28,9 @@ public sealed class LibraryService(PipelineDbContext db)
 
         if (LanguageCodes(query.Language) is { Count: > 0 } languages)
         {
-            // Audio or subtitles in one of those languages, from the version names (D-063, D-067).
-            var inLanguage = InLanguage(languages);
+            // Audio or subtitles in one of those languages, from the version names (D-063, D-067); a version without a
+            // language in its name also passes in one of the hinted categories (named in a chosen language, or in none), D-086.
+            var inLanguage = InLanguage(languages, query.LanguageCategoryIds);
             masters = masters.Where(m => m.Variants.AsQueryable().Any(inLanguage));
         }
 
@@ -74,17 +75,31 @@ public sealed class LibraryService(PipelineDbContext db)
     /// <c>v =&gt; v.AudioLanguages.Contains("\"ENG\"") || v.SubtitleLanguages.Contains("\"ENG\"") || …</c> for each code.
     /// Both columns hold JSON arrays such as <c>["ENG","ESP"]</c>.
     /// </summary>
-    private static Expression<Func<MediaVariant, bool>> InLanguage(IReadOnlyList<string> codes)
+    private static Expression<Func<MediaVariant, bool>> InLanguage(IReadOnlyList<string> codes, IReadOnlyList<string>? hintedCategories)
     {
         var variant = Expression.Parameter(typeof(MediaVariant), "v");
         var contains = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+        var audio = Expression.Property(variant, nameof(MediaVariant.AudioLanguages));
+        var subtitles = Expression.Property(variant, nameof(MediaVariant.SubtitleLanguages));
         Expression body = Expression.Constant(false);
         foreach (var code in codes)
         {
             var quoted = Expression.Constant($"\"{code}\"");
             body = Expression.OrElse(body, Expression.OrElse(
-                Expression.Call(Expression.Property(variant, nameof(MediaVariant.AudioLanguages)), contains, quoted),
-                Expression.Call(Expression.Property(variant, nameof(MediaVariant.SubtitleLanguages)), contains, quoted)));
+                Expression.Call(audio, contains, quoted),
+                Expression.Call(subtitles, contains, quoted)));
+        }
+
+        if (hintedCategories is { Count: > 0 })
+        {
+            var noLanguage = Expression.AndAlso(
+                Expression.Equal(audio, Expression.Constant("[]")),
+                Expression.Equal(subtitles, Expression.Constant("[]")));
+            var inCategory = Expression.Call(
+                Expression.Constant(hintedCategories.ToList()),
+                typeof(List<string>).GetMethod(nameof(List<string>.Contains), [typeof(string)])!,
+                Expression.Property(variant, nameof(MediaVariant.CategoryId)));
+            body = Expression.OrElse(body, Expression.AndAlso(noLanguage, inCategory));
         }
 
         return Expression.Lambda<Func<MediaVariant, bool>>(body, variant);
@@ -171,7 +186,8 @@ public sealed class LibraryService(PipelineDbContext db)
 /// <summary>
 /// <c>CategoryIds</c>, when set, keeps only titles with a version in one of those categories (Kids profiles, D-053).
 /// <c>Language</c> (e.g. <c>ENG</c>, or <c>ENG,GER</c>) keeps only titles with a version that has one of those audio or
-/// subtitle languages (D-063, D-067).
+/// subtitle languages (D-063, D-067). <c>LanguageCategoryIds</c>: with <c>Language</c>, a version whose name has no
+/// language also passes when it is in one of these categories (D-086).
 /// </summary>
 public sealed record LibraryQuery(
     string? CategoryId,
@@ -181,7 +197,8 @@ public sealed record LibraryQuery(
     LibrarySort Sort = LibrarySort.Added,
     SortOrder? Order = null,
     IReadOnlyList<string>? CategoryIds = null,
-    string? Language = null);
+    string? Language = null,
+    IReadOnlyList<string>? LanguageCategoryIds = null);
 
 /// <summary><c>Sorts</c> lists the orders this library has data for; <c>title</c> is always there.</summary>
 public sealed record LibraryPage(int Total, IReadOnlyList<MasterCard> Items, IReadOnlyList<LibrarySort> Sorts);

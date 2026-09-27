@@ -12,6 +12,8 @@ interface FocusButtonProps {
   /** Same variants as the web `.button--*` classes. */
   variant?: Variant;
   icon?: IconName | ReactNode;
+  /** The icon after the label (menus, D-086); before it by default. */
+  iconAfter?: boolean;
   hasTVPreferredFocus?: boolean;
   disabled?: boolean;
   testID?: string;
@@ -28,6 +30,7 @@ export function FocusButton({
   onPress,
   variant = 'secondary',
   icon,
+  iconAfter,
   hasTVPreferredFocus,
   disabled,
   testID,
@@ -39,6 +42,7 @@ export function FocusButton({
   const scale = useFocusScale(focused, 1.06);
   // Focused: every variant turns white with dark text, the primary one (already white) gets the glow.
   const textColor = focused ? focus.onSolid : TEXT[variant];
+  const iconNode = typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon;
   return (
     <AnimatedPressable
       testID={testID}
@@ -55,10 +59,11 @@ export function FocusButton({
       onBlur={() => setFocused(false)}
       style={[styles.base, styles[variant], focused && styles.focused, disabled && styles.disabled, { transform: [{ scale }] }, style]}
     >
-      {typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon}
+      {iconAfter ? null : iconNode}
       <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>
         {label}
       </Text>
+      {iconAfter ? iconNode : null}
     </AnimatedPressable>
   );
 }

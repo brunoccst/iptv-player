@@ -134,6 +134,23 @@ public class LibraryEndpointTests : IDisposable
         Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries), page!.Items.Select(i => i.Title));
     }
 
+    [Theory]
+    [InlineData("GER", "hd", "Zulu")]
+    [InlineData("GER", "4k", "")]
+    [InlineData("GER", "", "")]
+    [InlineData("ITA", "hd", "Zulu,Alpha")]
+    public async Task Library_LanguageFilter_LetsTitlesWithoutALanguageThroughInHintedCategories(
+        string language, string categories, string expected)
+    {
+        var login = await _client.LoginAndAuthorizeAsync();
+        await SeedAsync(login.Account.Id.ToString());
+
+        var page = await _client.GetFromJsonAsync<LibraryPage>(
+            $"/api/library/movies?language={language}&languageCategoryIds={categories}", ApiClientExtensions.Json);
+
+        Assert.Equal(expected.Split(',', StringSplitOptions.RemoveEmptyEntries), page!.Items.Select(i => i.Title));
+    }
+
     [Fact]
     public async Task Sync_Returns202()
     {

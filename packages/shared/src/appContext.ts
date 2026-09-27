@@ -4,6 +4,8 @@ import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import { createHybridApiClient } from './direct/hybridApiClient';
 import { withKidsFilter } from './profiles/kidsFilter';
+import { languageCategoryIds } from './profiles/contentLanguages';
+import type { LibrarySection, MediaCategory } from './api/types';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
 import { createConnectionStore, type ConnectionStore } from './stores/connectionStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
@@ -89,11 +91,28 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
   );
   // One or more languages (D-067), sent as a comma-separated list: `ENG,GER`.
   const activeLanguage = () => profileLanguages(activePrefs()).join(',') || null;
+  // The filter's category hint (D-086): which categories let titles without a language of their own through.
+  const categoryNames = new Map<LibrarySection, Promise<MediaCategory[]>>();
+  const categoriesOf = (section: LibrarySection) => {
+    let list = categoryNames.get(section);
+    if (!list) {
+      list = providerApi.catalog.categories(section);
+      list.catch(() => categoryNames.delete(section));
+      categoryNames.set(section, list);
+    }
+    return list;
+  };
   const api: ApiClient = {
     ...kids.api,
     library: {
       ...kids.api.library,
-      list: (section, query = {}, signal) => kids.api.library.list(section, { language: activeLanguage(), ...query }, signal),
+      list: async (section, query = {}, signal) => {
+        const language = query.language !== undefined ? query.language : activeLanguage();
+        if (!language || query.languageCategoryIds) return kids.api.library.list(section, { ...query, language }, signal);
+        const categories = await categoriesOf(section).catch(() => []);
+        const languageCategories = languageCategoryIds(categories, language.split(','));
+        return kids.api.library.list(section, { ...query, language, languageCategoryIds: languageCategories }, signal);
+      },
     },
   };
 
@@ -127,7 +146,10 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
     const accountChanged = Boolean(previous.account?.id) && state.account?.id !== previous.account?.id;
     // Switching between a Kids and a regular profile changes what may be shown: drop everything cached.
     const kidsChanged = (selectActiveProfile(state)?.isKids === true) !== (selectActiveProfile(previous)?.isKids === true);
-    if (accountChanged) kids.reset();
+    if (accountChanged) {
+      kids.reset();
+      categoryNames.clear();
+    }
     if (accountChanged || kidsChanged) {
       catalog.getState().reset();
       epg.getState().reset();
@@ -149,6 +171,7 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
     await connection?.getState().reload();
     directApi?.reloadCredentials();
     kids.reset();
+    categoryNames.clear();
     catalog.getState().reset();
     epg.getState().reset();
     library.getState().reset();

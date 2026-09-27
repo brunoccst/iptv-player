@@ -56,11 +56,9 @@ export function SyncWithPhone({ onClose }: { onClose(): void }) {
   const title = t('Sync with phone');
   return (
     <Modal label={title} onClose={onClose}>
-      <div style={{ display: 'grid', gap: 12, maxWidth: 420 }}>
-        <h2 style={{ margin: 0 }}>{title}</h2>
-        <p className="muted" style={{ margin: 0 }}>
-          {`${howTo()} ${t('Profiles, My List and watch progress end up the same on both devices.')}`}
-        </p>
+      <div className="sync-phone">
+        <h2>{title}</h2>
+        <p className="muted">{`${howTo()} ${t('Profiles, My List and watch progress end up the same on both devices.')}`}</p>
         <PairingCode state={state} />
         <button type="button" className={state.phase === 'done' ? 'button button--accent' : 'button button--ghost'} onClick={onClose}>
           {state.phase === 'done' ? t('Done') : t('Close')}

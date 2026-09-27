@@ -38,6 +38,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Content language filter fixes** (requested 2026-09-27, D-086): the filter takes a title's language from its category's name when the title's own name has none, and shows titles in categories without a language; renamed "Content language filter"; "TS"/"DE" inside names no longer cut them or count as tags; episodes like "EP197"/"EP196" stay apart; Sync with phone centred, select arrows with room, icons in the episode menu.
 - [x] **App in four languages** (requested 2026-09-27, D-084): English (source and default), Brazilian Portuguese, German and Serbo-Croatian (Bosnia, Latin script); chosen per profile in the account menu → App → App language, or on the sign-in page; a first start follows the device's language; CI checks that every text is translated.
 - [x] **Tidy episode rows** (requested 2026-09-27, D-083): each episode shows Play, "…" and its version; "…" (or hold OK, a long touch, a right-click) opens Mark as (not) watched, Download, Play on TV and Open in another player. No per-episode check button any more; the watchlist stays per title.
 - [x] **Watched series and episodes** (requested 2026-09-27, D-082): mark each episode watched or not (check button, or the episode's menu); "Mark series as watched" on series cards marks every episode; the "Watched" tag shows on fully watched series covers and next to the series title.

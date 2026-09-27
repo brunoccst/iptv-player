@@ -189,6 +189,7 @@ function EpisodeMenu({
       actions={episodeMenuItems({ watched, download: download?.menu, externalPlayer: vlc ? 'vlc' : null }).map((item) => ({
         label: item.label,
         disabled: item.disabled,
+        icon: item.icon,
         onSelect: run[item.id],
       }))}
     />
