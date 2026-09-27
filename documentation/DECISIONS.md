@@ -1350,6 +1350,7 @@ Decision:
 - Code: `packages/shared/src/playback/probe.ts` (`probeStream`, `describeProbe`, `probeHint`, `probeMessage`), used in `PlayerScreen`.
 
 Limits: one extra small request per failed attempt. On an account with one connection, the check itself counts briefly as a connection. The web player does not use it yet.
+
 ## D-075
 
 **TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all"** — 2026-09-27 (requested by owner)
