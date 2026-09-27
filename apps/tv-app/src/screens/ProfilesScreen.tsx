@@ -206,7 +206,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
           {profile ? (
             <FocusButton
-              label={t('Choose languages')}
+              label={t('Content language filter')}
               icon="subtitles"
               variant="ghost"
               onPress={() => setLanguages(true)}

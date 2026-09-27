@@ -93,6 +93,24 @@
         "Jujutsu Kaisen (2020)"
       ],
       "groups": 1
+    },
+    {
+      "name": "episode and scene numbers inside words keep titles apart",
+      "titles": [
+        "XXX - HOOKUPHOTSHOT NATALIA QUEEN EP197",
+        "XXX - HOOKUPHOTSHOT NATALIA QUEEN EP196",
+        "Studio Scene 3 Anna",
+        "Studio Scene 4 Anna"
+      ],
+      "groups": 4
+    },
+    {
+      "name": "leading zeros do not split a title",
+      "titles": [
+        "Show Part 02 (2020)",
+        "Show Part 2 (2020) 1080p"
+      ],
+      "groups": 1
     }
   ]
 }

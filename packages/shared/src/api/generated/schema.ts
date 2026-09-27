@@ -1300,6 +1300,7 @@ export interface operations {
                 categoryId?: string;
                 categoryIds?: string;
                 language?: string;
+                languageCategoryIds?: string;
                 limit?: number;
                 offset?: number;
                 order?: string;

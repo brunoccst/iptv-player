@@ -5,6 +5,11 @@ import type { Master, Variant } from './normalizer/pipeline';
  * table, and master poster/rating derived on load. A 125k-title catalog was ~85 MB as plain JSON; this is about a third.
  */
 export const LIBRARY_FORMAT = 3;
+/**
+ * Version of the grouping and title rules the library was built with. A library from older rules still shows, but
+ * counts as out of date, so it is rebuilt in the background (D-086: short tags in names, episode numbers).
+ */
+export const NORMALIZER_RULES = 2;
 
 type PackedVariant = [
   streamId: string,
@@ -38,6 +43,7 @@ type PackedMaster = [
 
 export interface PackedLibrary {
   format: typeof LIBRARY_FORMAT;
+  rules?: number;
   builtAt: string;
   prefixes: string[];
   masters: PackedMaster[];
@@ -45,7 +51,7 @@ export interface PackedLibrary {
 
 export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
   const { packMaster, prefixes } = packer();
-  return { format: LIBRARY_FORMAT, builtAt, prefixes, masters: masters.map(packMaster) };
+  return { format: LIBRARY_FORMAT, rules: NORMALIZER_RULES, builtAt, prefixes, masters: masters.map(packMaster) };
 }
 
 /**
@@ -64,7 +70,7 @@ export async function packLibraryText(builtAt: string, masters: Master[], pause:
     );
     await pause();
   }
-  const head = `{"format":${LIBRARY_FORMAT},"builtAt":${JSON.stringify(builtAt)},"masters":[`;
+  const head = `{"format":${LIBRARY_FORMAT},"rules":${NORMALIZER_RULES},"builtAt":${JSON.stringify(builtAt)},"masters":[`;
   return `${head}${chunks.join(',')}],"prefixes":${JSON.stringify(prefixes)}}`;
 }
 
@@ -152,5 +158,6 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
       variants,
     };
   });
-  return { builtAt: packed.builtAt, masters };
+  // Built with older rules: shown until the background rebuild replaces it.
+  return { builtAt: packed.rules === NORMALIZER_RULES ? packed.builtAt : new Date(0).toISOString(), masters };
 }

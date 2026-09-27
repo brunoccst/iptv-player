@@ -90,7 +90,8 @@ class ParsedTitle:
 
     @property
     def number_tokens(self) -> frozenset[str]:
-        return frozenset(token for token in self.key.split() if token.isdigit())
+        """Every number in the key, also inside words ("EP197", "Part2"): episodes, scenes and sequels stay apart."""
+        return frozenset(digits.lstrip("0") or "0" for digits in re.findall(r"\d+", self.key))
 
 
 class _Tags:
@@ -227,14 +228,33 @@ def _strip_brackets(text: str, found: _Tags) -> tuple[str, int | None]:
     return _BRACKET.sub(replace, text), year
 
 
+def _is_short_word(word: str) -> bool:
+    """Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Luana TS Cassia")."""
+    return len(word) <= 3 and word.isalpha()
+
+
+def _only_tags(tokens: list[str]) -> bool:
+    probe = _Tags()
+    return all(
+        parse_year(part) is not None or probe.absorb(part, allow_short=False) for token in tokens for part in _TOKEN_SPLIT.split(token)
+    )
+
+
 def _split_tag_zone(tokens: list[str], found: _Tags) -> tuple[list[str], int | None]:
-    """Cuts at the first year or strong tag after the first token. Everything after is the tag zone."""
+    """Cuts at the first year or strong tag after the first token. Everything after is the tag zone.
+
+    A short strong tag ("TS", "CAM", "NF") only cuts when nothing but tags follows it, so it can be part of a name.
+    """
     for index, token in enumerate(tokens):
         if index == 0:
             continue
         year = parse_year(token.strip(_EDGE_PUNCTUATION))
-        if year is None and not any(_fold(part) in tags.STRONG for part in _TOKEN_SPLIT.split(token)):
-            continue
+        if year is None:
+            strong = [_fold(part) for part in _TOKEN_SPLIT.split(token) if _fold(part) in tags.STRONG]
+            if not strong:
+                continue
+            if all(_is_short_word(word) for word in strong) and not _only_tags(tokens[index + 1 :]):
+                continue
         for tag_token in tokens[index:]:
             for part in _TOKEN_SPLIT.split(tag_token):
                 if parse_year(part) is None:

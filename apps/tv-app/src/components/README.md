@@ -13,7 +13,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `BackupDialog.tsx` | Back up data (password twice → system folder picker → `.iptvbackup` file) and Restore from backup (file picker → password → `appContext.reload()`), D-056. |
 | `Field.tsx` | Labelled text field (login, backup); `onSubmit` + `inputRef` let Enter move to the next field. |
 | `KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-064). |
-| `LanguageSettings.tsx` | Account menu → Languages: only titles with audio or subtitles in one of the chosen languages, per profile (D-063, D-067). Also opened from the profile editor for a given profile. |
+| `LanguageSettings.tsx` | Account menu → Profiles → Content language filter: only titles with audio or subtitles in one of the chosen languages (from the title's name, else its category's name; titles in a category without a language always show), per profile (D-063, D-067, D-086). Also opened from the profile editor for a given profile. |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus turns it white with a glow and grows it. |
 | `focus.tsx` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable` (its `hasTVPreferredFocus` only applies on TV). |

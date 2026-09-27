@@ -149,7 +149,7 @@ export function TopNav() {
                           setLanguage(true);
                         }}
                       >
-                        <Icon name="subtitles" size={18} /> {t('Languages')}
+                        <Icon name="subtitles" size={18} /> {t('Content language filter')}
                       </button>
                     </>
                   ) : group === 'Library & devices' ? (

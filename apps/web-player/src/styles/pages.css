@@ -96,6 +96,33 @@
   color: var(--color-warning);
 }
 
+/* Sync with phone (desktop app, D-072): a compact card, everything centred with room around it (D-086). */
+.modal__panel:has(.sync-phone) {
+  width: min(480px, 100%);
+}
+
+.sync-phone {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  padding: 40px 32px 32px;
+  text-align: center;
+}
+
+.sync-phone h2,
+.sync-phone p {
+  margin: 0;
+}
+
+/* Clear of the close button in the corner. */
+.sync-phone h2 {
+  padding: 0 40px;
+}
+
+.sync-phone .button {
+  width: 100%;
+}
+
 .profile-editor {
   display: grid;
   gap: 16px;
@@ -424,7 +451,9 @@
   width: auto;
   min-height: 32px;
   margin-top: 6px;
-  padding: 4px 10px;
+  padding: 4px 34px 4px 10px;
+  background-position: right 10px center;
+  background-size: 16px;
   font-size: 1.3rem;
 }
 
