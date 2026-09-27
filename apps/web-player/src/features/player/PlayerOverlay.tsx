@@ -26,9 +26,11 @@ import {
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
-  pickSubtitle,
-  rememberSubtitle,
-  subtitleChoiceFor,
+  chooseVersion,
+  pickTrack,
+  playbackChoices,
+  rememberPlayback,
+  usesPlaybackChoices,
   type VariantInfo,
   t,
 } from '@iptv/shared';
@@ -47,7 +49,7 @@ import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
-import { activeSubtitle, showSubtitle, subtitleTracks } from './subtitles';
+import { activeSubtitle, audioTracks, showSubtitle, subtitleTracks } from './tracks';
 
 const PROGRESS_SAVE_MS = 10_000;
 const IDLE_MS = 3000;
@@ -169,25 +171,41 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         void video.play().catch(() => setPlaying(false));
         engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
         engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
-        // Subtitles picked in this series come back on its next episodes (D-087), once its tracks are known.
-        const choice = subtitleChoiceFor(stores, target);
-        if (!choice) return;
-        const applySubtitles = () => {
-          const tracks = subtitleTracks(engine.hls, video);
-          if (controller.signal.aborted || tracks.length === 0) return;
-          stopWatching();
-          const pick = pickSubtitle(tracks, choice);
-          if (pick !== null && pick !== activeSubtitle(engine.hls, video)) showSubtitle(engine.hls, video, pick);
+        // The profile's subtitles and audio track (D-087), selected once their tracks are known.
+        if (!usesPlaybackChoices(target)) return;
+        const choices = playbackChoices(stores);
+        const pending = { subtitles: Boolean(choices.subtitles), audio: Boolean(choices.audio) };
+        const applyChoices = () => {
+          if (controller.signal.aborted) return;
+          const hls = engine.hls;
+          const subtitles = subtitleTracks(hls, video);
+          if (pending.subtitles && subtitles.length > 0) {
+            pending.subtitles = false;
+            const pick = pickTrack(subtitles, choices.subtitles);
+            if (pick !== null && pick !== activeSubtitle(hls, video)) showSubtitle(hls, video, pick);
+          }
+          const audio = audioTracks(hls);
+          if (pending.audio && hls && audio.length > 0) {
+            pending.audio = false;
+            const pick = pickTrack(audio, choices.audio);
+            if (pick !== null && pick >= 0 && pick !== hls.audioTrack) hls.audioTrack = pick;
+          }
+          if (!pending.subtitles && !pending.audio) stopWatching();
           setTracksVersion((v) => v + 1);
         };
         const stopWatching = () => {
-          engine.hls?.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, applySubtitles);
-          video.textTracks.removeEventListener('addtrack', applySubtitles);
+          engine.hls?.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
+          engine.hls?.off(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
+          video.textTracks.removeEventListener('addtrack', applyChoices);
         };
-        engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, applySubtitles);
-        if (!engine.hls) video.textTracks.addEventListener('addtrack', applySubtitles);
+        engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
+        engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
+        if (!engine.hls) {
+          pending.audio = false;
+          video.textTracks.addEventListener('addtrack', applyChoices);
+        }
         controller.signal.addEventListener('abort', stopWatching);
-        applySubtitles();
+        applyChoices();
       },
       (loadError: unknown) => {
         if (controller.signal.aborted) return;
@@ -266,7 +284,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const switchVariant = (variant: VariantInfo) => {
     const video = videoRef.current;
     saveProgress();
-    stores.library.getState().selectVariant(target.masterId!, variant.streamId);
+    chooseVersion(stores, target.masterId!, variant);
     uiStore.getState().replacePlayback({
       ...target,
       streamId: variant.streamId,
@@ -596,7 +614,12 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           variants={variants}
           currentStreamId={target.streamId}
           onVariant={switchVariant}
-          onSubtitle={(choice) => rememberSubtitle(stores, target, choice)}
+          onSubtitle={(choice) => {
+            if (usesPlaybackChoices(target)) rememberPlayback(stores, { subtitles: choice });
+          }}
+          onAudio={(choice) => {
+            if (usesPlaybackChoices(target)) rememberPlayback(stores, { audio: choice });
+          }}
           onChange={() => setTracksVersion((v) => v + 1)}
         />
       ) : null}

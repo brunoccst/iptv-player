@@ -1,7 +1,7 @@
 import type Hls from 'hls.js';
-import type { SubtitleChoice, VariantInfo } from '@iptv/shared';
+import type { SubtitleChoice, TrackChoice, VariantInfo } from '@iptv/shared';
 import { t } from '@iptv/shared';
-import { activeSubtitle, choiceOf, showSubtitle, subtitleTracks } from './subtitles';
+import { activeSubtitle, audioTracks, choiceOf, showSubtitle, subtitleTracks } from './tracks';
 
 interface TracksMenuProps {
   hls: Hls | null;
@@ -9,14 +9,15 @@ interface TracksMenuProps {
   variants: VariantInfo[];
   currentStreamId: string;
   onVariant(variant: VariantInfo): void;
-  /** A pick in the list, kept for the series' next episodes (D-087). */
+  /** Picks kept as what every movie and series starts with (D-087). */
   onSubtitle(choice: SubtitleChoice): void;
+  onAudio(choice: TrackChoice): void;
   onChange(): void;
 }
 
 /** Audio, subtitles and "Version / Stream Quality" choices. */
-export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, onSubtitle, onChange }: TracksMenuProps) {
-  const audio = hls?.audioTracks ?? [];
+export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, onSubtitle, onAudio, onChange }: TracksMenuProps) {
+  const audio = audioTracks(hls);
   const subtitleOptions = subtitleTracks(hls, video);
   const current = activeSubtitle(hls, video);
 
@@ -35,15 +36,16 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
         ) : (
           audio.map((track, index) => (
             <button
-              key={track.id}
+              key={`${track.label}-${index}`}
               type="button"
               className={`tracks__option${hls?.audioTrack === index ? ' tracks__option--active' : ''}`}
               onClick={() => {
                 if (hls) hls.audioTrack = index;
+                onAudio(track);
                 onChange();
               }}
             >
-              {track.name || track.lang || t('Track {number}', { number: index + 1 })}
+              {track.label}
             </button>
           ))
         )}

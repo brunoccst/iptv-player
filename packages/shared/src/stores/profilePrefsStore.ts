@@ -2,7 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import type { CatalogSection } from '../api/types';
 import type { KeyValueStorage } from './storage';
 import { t } from '../i18n/i18n';
-import type { SubtitleChoice } from '../playback/subtitleChoice';
+import type { PlaybackChoices } from '../playback/playbackChoices';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
@@ -21,8 +21,8 @@ export interface ProfilePrefs {
   watchedSeries?: string[] | null;
   /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
   appLanguage?: string | null;
-  /** The subtitles picked per series (master id), used again on its next episodes (D-087). */
-  subtitles?: Record<string, SubtitleChoice> | null;
+  /** The subtitles, audio track and version last picked: what every movie and series starts with (D-087). */
+  playback?: PlaybackChoices | null;
 }
 
 export interface ProfilePrefsState {

@@ -1,8 +1,8 @@
 import type Hls from 'hls.js';
-import { t, type SubtitleChoice, type SubtitleTrackInfo } from '@iptv/shared';
+import { t, type SubtitleChoice, type TrackInfo } from '@iptv/shared';
 
-/** The subtitle tracks of the playing stream: hls.js's, else the video element's own. */
-export function subtitleTracks(hls: Hls | null, video: HTMLVideoElement | null): SubtitleTrackInfo[] {
+/** The subtitle tracks of the playing stream: hls.js's, else the video element's own. Audio: `audioTracks`. */
+export function subtitleTracks(hls: Hls | null, video: HTMLVideoElement | null): TrackInfo[] {
   if (hls) {
     return hls.subtitleTracks.map((track) => ({
       language: track.lang ?? null,
@@ -30,8 +30,16 @@ export function showSubtitle(hls: Hls | null, video: HTMLVideoElement | null, in
   }
 }
 
-/** What to keep for the series (D-087) when the viewer picks `index`. */
-export function choiceOf(tracks: SubtitleTrackInfo[], index: number): SubtitleChoice {
+/** What to keep (D-087) when the viewer picks subtitles `index`. */
+export function choiceOf(tracks: TrackInfo[], index: number): SubtitleChoice {
   const track = tracks[index];
   return track ? { language: track.language, label: track.label } : { off: true };
+}
+
+/** The audio tracks hls.js lists (a plain file plays its default audio). */
+export function audioTracks(hls: Hls | null): TrackInfo[] {
+  return (hls?.audioTracks ?? []).map((track, index) => ({
+    language: track.lang ?? null,
+    label: track.name || track.lang || t('Track {number}', { number: index + 1 }),
+  }));
 }

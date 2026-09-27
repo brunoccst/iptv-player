@@ -8,11 +8,11 @@ Vanilla Zustand stores (`zustand/vanilla`). Created by `createAppContext()`; rea
 | `connectionStore.ts` | `mode` (`direct` / `server`), `serverUrl`, `loaded` | `load`, `setConnection` (persisted; native apps only, D-038) |
 | `catalogStore.ts` | `categories[section]`, `liveChannels[categoryId or *]` | `loadCategories`, `loadLiveChannels`, `reset` |
 | `epgStore.ts` | `grids[key]` (one guide page: category + window + offset) | `loadGrid`, `watchGrid` (polls while `refreshing`), `refresh`, `reset` |
-| `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `invalidate`, `reset` |
+| `libraryStore.ts` | `pages[key]`, `details[key]`, `status`, `selectedVariants`, `preferredVersion`, `syncing` | `loadPage`, `loadDetails`, `refreshStatus`, `sync`, `selectVariant`, `setPreferredVersion`, `invalidate`, `reset` |
 | `playerStore.ts` | `request`, `playback`, `status`, `error` | `open`, `close` |
 | `progressStore.ts` | `profileId`, `items`, `saveError` | `load`, `save` (optimistic), `remove` |
 | `watchlistStore.ts` | `profileId`, `items`, `saveError` | `load`, `toggle` (optimistic, undone on error); `isOnWatchlist`, `watchlistCard` ("My List", D-055) |
-| `profilePrefsStore.ts` | `prefs[profileId]`, `loaded` | `load`, `update`; per-profile preferences on this device (`settings.profiles`): the language filter (D-063) and a Kids profile's categories (D-064). `LANGUAGE_NAMES`; `watchedSeries`: fully watched series for the cover tag (D-082); `subtitles`: the subtitles picked per series (D-087) |
+| `profilePrefsStore.ts` | `prefs[profileId]`, `loaded` | `load`, `update`; per-profile preferences on this device (`settings.profiles`): the language filter (D-063) and a Kids profile's categories (D-064). `LANGUAGE_NAMES`; `watchedSeries`: fully watched series for the cover tag (D-082); `playback`: the subtitles, audio and version choices (D-087) |
 | `pinStore.ts` | `status` (`none`/`set`), `lockedUntil` | `verify`, `setPin`, `removePin`; `needsPinToOpen`, `needsPinToManage` (optional parental PIN, D-054) |
 | `downloadsOwner.ts` | – | `bindDownloadsToAccount`: deletes downloads on `signOut()` and when another account signs in (D-050) |
 | `resource.ts` | `Resource<T>` = `{ data, status, error, updatedAt }` | `createResourceLoader` (cache, in-flight sharing, reset-safe) |
@@ -31,6 +31,6 @@ stateDiagram-v2
   authenticated --> anonymous: logout() / any 401
 ```
 
-Selectors: `selectActiveProfile`, `selectVariant` (chosen or best variant), `isLibraryProcessing`, `describeLibraryProgress` (one line per kind: waiting, downloading, grouping N of M, ready), `findProgress`.
+Selectors: `selectActiveProfile`, `selectVariant` (chosen, else the profile's version choice (D-087), else best variant), `isLibraryProcessing`, `describeLibraryProgress` (one line per kind: waiting, downloading, grouping N of M, ready), `findProgress`.
 
 The progress store reloads whenever the active profile changes (wired in `appContext.ts`).
