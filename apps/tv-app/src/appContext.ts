@@ -1,9 +1,10 @@
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import {
   appLog,
   bindDownloadsToAccount,
   createAppContext,
+  defaultDeviceLanguages,
   errorMessage,
   PROFILE_PREFS_KEY,
   type BackupStorages,
@@ -24,10 +25,17 @@ const secureStorage: KeyValueStorage = {
   removeItem: (key) => SecureStore.deleteItemAsync(key),
 };
 
+/** The phone's or TV's language (Android settings), for the app's language on a first start (D-084). */
+function deviceLanguages(): string[] {
+  const locale = (I18nManager.getConstants?.() as { localeIdentifier?: string } | undefined)?.localeIdentifier;
+  return [locale?.replace('_', '-'), ...defaultDeviceLanguages()].filter((tag): tag is string => !!tag);
+}
+
 export const appContext = createAppContext({
   config: appConfig,
   storage: secureStorage,
   direct: { dataStorage: fileStorage, userAgent: providerUserAgent },
+  deviceLanguages,
 });
 TvMedia.setUserAgent(providerUserAgent);
 

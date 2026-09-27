@@ -19,6 +19,34 @@ export const UI_LANGUAGES = [
 ] as const;
 
 export type UiLanguage = (typeof UI_LANGUAGES)[number]['id'];
+
+/**
+ * The app language for the device's preferred languages (BCP 47 tags like `pt-BR`, `de_AT`, `hr`), first match wins:
+ * any Portuguese → Brazilian Portuguese, any German → German, Bosnian, Croatian, Serbian, Montenegrin or
+ * Serbo-Croatian → Serbo-Croatian, English → English. Null when none of them is there (the app stays English).
+ */
+export function matchUiLanguage(tags: readonly (string | null | undefined)[]): UiLanguage | null {
+  for (const tag of tags) {
+    const base = (tag ?? '').toLowerCase().split(/[-_]/)[0];
+    if (base === 'pt') return 'pt-BR';
+    if (base === 'de') return 'de';
+    if (['bs', 'hr', 'sr', 'sh', 'cnr'].includes(base ?? '')) return 'sh-BA';
+    if (base === 'en') return 'en';
+  }
+  return null;
+}
+
+/** The browser's (or JavaScript engine's) preferred languages. */
+export function defaultDeviceLanguages(): string[] {
+  const nav = (globalThis as { navigator?: { languages?: readonly string[]; language?: string } }).navigator;
+  if (nav?.languages?.length) return [...nav.languages];
+  if (nav?.language) return [nav.language];
+  try {
+    return [Intl.DateTimeFormat().resolvedOptions().locale];
+  } catch {
+    return [];
+  }
+}
 export const DEFAULT_UI_LANGUAGE: UiLanguage = 'en';
 
 export const isUiLanguage = (value: unknown): value is UiLanguage => UI_LANGUAGES.some((language) => language.id === value);

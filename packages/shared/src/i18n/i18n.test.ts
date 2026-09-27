@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createAppContext } from '../appContext';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { createMemoryStorage } from '../stores/storage';
-import { i18nStore, intlLocale, pluralForm, setUiLanguage, t, tn } from './i18n';
+import { i18nStore, intlLocale, matchUiLanguage, pluralForm, setUiLanguage, t, tn } from './i18n';
 import { UI_LANGUAGE_KEY } from './uiLanguage';
 
 afterEach(() => setUiLanguage('en'));
@@ -60,6 +60,37 @@ describe('t and tn (D-084)', () => {
 });
 
 describe('choosing the language (D-084)', () => {
+  it("the device's language on a first start, when the app has it", () => {
+    expect(matchUiLanguage(['pt-PT'])).toBe('pt-BR');
+    expect(matchUiLanguage(['de_AT'])).toBe('de');
+    expect(matchUiLanguage(['fr-FR', 'hr-HR'])).toBe('sh-BA');
+    expect(matchUiLanguage(['sr_RS_#Latn'])).toBe('sh-BA');
+    expect(matchUiLanguage(['bs'])).toBe('sh-BA');
+    expect(matchUiLanguage(['en-US', 'de-DE'])).toBe('en');
+    expect(matchUiLanguage(['fr-FR', 'it'])).toBeNull();
+    expect(matchUiLanguage([undefined, ''])).toBeNull();
+  });
+
+  it('a first start follows the device, a saved choice wins over it', async () => {
+    const config = { apiBaseUrl: 'http://api.test', appName: 'Test', appSlug: 'test' };
+    const fresh = createAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['de-DE'] });
+    await fresh.uiLanguage.load();
+    expect(i18nStore.getState().language).toBe('de');
+
+    const other = createAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['fr-FR'] });
+    await other.uiLanguage.load();
+    expect(i18nStore.getState().language).toBe('de');
+    setUiLanguage('en');
+    await other.uiLanguage.load();
+    expect(i18nStore.getState().language).toBe('en');
+
+    const storage = createMemoryStorage();
+    storage.setItem(UI_LANGUAGE_KEY, 'sh-BA');
+    const chosen = createAppContext({ config, storage, deviceLanguages: () => ['pt-BR'] });
+    await chosen.uiLanguage.load();
+    expect(i18nStore.getState().language).toBe('sh-BA');
+  });
+
   it("each profile keeps its language; the device's last choice is the start and the fallback", async () => {
     const backend = createFakeBackend();
     backend.on('POST', '/api/auth/login', {
