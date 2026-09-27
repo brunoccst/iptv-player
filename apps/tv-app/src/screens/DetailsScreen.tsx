@@ -442,7 +442,13 @@ function EpisodeMenu({
       title={episode.title}
       subtitle={episodeLabel(episode)}
       onClose={onClose}
-      actions={items.map((item) => ({ label: item.label, disabled: item.disabled, testID: `card-menu-${item.id}`, onPress: run[item.id] }))}
+      actions={items.map((item) => ({
+        label: item.label,
+        disabled: item.disabled,
+        icon: item.icon,
+        testID: `card-menu-${item.id}`,
+        onPress: run[item.id],
+      }))}
     />
   );
 }

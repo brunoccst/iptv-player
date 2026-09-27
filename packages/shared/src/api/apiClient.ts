@@ -26,6 +26,11 @@ export interface LibraryListQuery {
   categoryIds?: string[] | null;
   /** Only titles with a version in one of these audio or subtitle languages, e.g. `ENG` or `ENG,GER` (D-063, D-067). */
   language?: string | null;
+  /**
+   * With `language`: a version whose name has no language passes when it is in one of these categories (named in a
+   * chosen language, or in none), D-086.
+   */
+  languageCategoryIds?: string[] | null;
 }
 
 /** `from` is an ISO timestamp; the backend defaults it to the current half hour. */
@@ -116,7 +121,14 @@ export function createApiClient(http: HttpClient) {
       sync: () => http.request<OperationResult<'syncLibrary', 202>>('POST', '/api/library/sync'),
       status: (signal?: AbortSignal) => get<OperationResult<'getLibraryStatus'>>('/api/library/status', undefined, signal),
       list: (section: LibrarySection, query: LibraryListQuery = {}, signal?: AbortSignal) =>
-        get<OperationResult<'listLibrary'>>(`/api/library/${section}`, withCategoryIds(query), signal),
+        get<OperationResult<'listLibrary'>>(
+          `/api/library/${section}`,
+          withCategoryIds({
+            ...query,
+            languageCategoryIds: query.languageCategoryIds ? query.languageCategoryIds.join(',') : undefined,
+          }),
+          signal,
+        ),
       get: (section: LibrarySection, masterId: string, signal?: AbortSignal) =>
         get<OperationResult<'getLibraryItem'>>(`/api/library/${section}/${segment(masterId)}`, undefined, signal),
     },

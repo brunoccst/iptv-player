@@ -25,6 +25,11 @@ describe('library codec', () => {
     expect(unpackLibrary(JSON.parse(text))).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters });
   });
 
+  it('a library built with older title rules still shows, but counts as out of date (D-086)', () => {
+    const { rules: _rules, ...older } = packLibrary('2026-09-24T00:00:00Z', masters);
+    expect(unpackLibrary(JSON.parse(JSON.stringify(older)))).toEqual({ builtAt: new Date(0).toISOString(), masters });
+  });
+
   it('ignores files in the old format', () => {
     expect(unpackLibrary({ builtAt: 'x', masters })).toBeNull();
     expect(unpackLibrary(null)).toBeNull();

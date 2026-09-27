@@ -9,7 +9,7 @@ async function flush() {
   });
 }
 
-describe('account menu → Languages (D-063, D-067)', () => {
+describe('account menu → Content language filter (D-063, D-067, D-086)', () => {
   it('filters the library by one or more languages for the active profile and remembers the choice', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
@@ -23,7 +23,7 @@ describe('account menu → Languages (D-063, D-067)', () => {
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-language'));
-    expect(screen.getByText('Languages for Alex')).toBeTruthy();
+    expect(screen.getByText('Content language filter for Alex')).toBeTruthy();
     const requestsBefore = backend.calls.length;
     await fireEvent.press(screen.getByTestId('language-GER'));
     await fireEvent.press(screen.getByTestId('language-POR'));

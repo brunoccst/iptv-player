@@ -7,7 +7,7 @@ import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
 
 /**
- * Account menu → Languages (D-063, D-067): only titles with audio or subtitles in one of the chosen languages, for the
+ * Account menu → Content language filter (D-063, D-067, D-086): only titles with audio or subtitles in one of the chosen languages, for the
  * active profile. Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
  * while a filter is on. Select toggles a language; "All languages" clears the choice. The choice is applied once, when
  * the dialog closes: applying it reloads every list, so doing that on each toggle would stall the TV.
@@ -35,10 +35,12 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="language-settings">
-          <Text style={styles.title}>{profileName ? t('Languages for {name}', { name: profileName }) : t('Languages')}</Text>
+          <Text style={styles.title}>
+            {profileName ? t('Content language filter for {name}', { name: profileName }) : t('Content language filter')}
+          </Text>
           <Text style={styles.text}>
             {t(
-              'Show only titles with audio or subtitles in one of these languages, as the provider names them. Each profile has its own choice.',
+              'Show only titles in one of these languages: from the title\'s name ("EN - …", "SUB ITA"), else from its category\'s name. Titles in a category without a language are always shown. Each profile has its own choice.',
             )}
           </Text>
           <ScrollView contentContainerStyle={styles.list}>

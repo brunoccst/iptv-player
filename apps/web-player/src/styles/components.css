@@ -286,7 +286,8 @@
 .grid__toolbar .select {
   width: auto;
   min-height: 36px;
-  padding: 6px 10px;
+  padding: 6px 38px 6px 10px;
+  background-position: right 12px center;
 }
 
 /* Download button */
@@ -464,6 +465,10 @@
 }
 
 .card-menu__item {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 16px;
   border: 0;
   background: none;

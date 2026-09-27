@@ -89,6 +89,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-082](#d-082) | 2026-09-27 | Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series |
 | [D-083](#d-083) | 2026-09-27 | Episode rows: Play, "…" and the version; the other options in the episode's menu |
 | [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
+| [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
 
 ---
 
@@ -1503,4 +1504,20 @@ Decision:
 - **Kept complete by CI**: `npm run lint:i18n` finds every `t`/`tn` text in the apps and the shared package and fails when a catalog misses one, has an unused one, uses an unknown `{placeholder}` or lacks a plural form; `t` must get a string literal and must not run when a module loads. `npm run i18n:sync` adds new texts to the catalogs. The pull request template asks for it.
 
 Limits: the translations were written with the code, not by native speakers of each language; wording fixes are changes to the catalogs only. The Maestro and Playwright flows run in English.
+
+## D-086
+
+**Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish** — 2026-09-27 (requested by owner)
+
+Context: with a profile's language filter on German, a provider's "VOD | ADULT FHD" category showed 2 of its 1,527 titles. Titles like "XXX - HOOKUPHOTSHOT NATALIA QUEEN EP197" carry no language in their names, so the filter hid them (D-063); the two that showed passed only because "DE" in "CASSIA DE CARVALHO" was read as German. The same name lost its end: "TS" (a "telesync" release tag) cut it, and "…EP197" and "…EP196" were merged as two versions of one title.
+
+Decision:
+- **Category hint.** A version whose name has no language takes its category's: "SRS | EN - ACTION" is English, "SRS | DEUTSCH" German, "SRS | ITALY" Italian (language names, capital two-letter codes, and country names; not "IN", "US" and the like, which are common words). A version in a category whose name has no language either ("VOD | ADULT FHD", "SRS | MULTI-LANG - NETFLIX") passes whatever the filter. The app reads the category names (`profiles/contentLanguages.ts`) and sends the passing category ids with the list (`languageCategoryIds`); the on-device library and the server (`GET /api/library/{kind}?languageCategoryIds=`) apply them the same way. Live TV stays unfiltered.
+- **Name.** The profile setting is now **Content language filter** (account menu → Profiles, and the profile editor), apart from the app language (D-084). Its text explains the category rule.
+- **Short tags in names.** A short strong tag ("TS", "TC", "CAM", "WEB", "NF"…) only ends the title when nothing but tags follows it ("The Heist TS x264"); in the middle of a name ("…AZEVEDO TS CASSIA DE CARVALHO…") it is part of the name, and so is the "DE" after it. Longer tags ("1080p", "WEBRip", "BluRay") and years still end it. Same rule in the Python normalizer and the TypeScript port (shared cases).
+- **Numbers inside words keep titles apart.** "EP197" and "EP196", "Scene 3" and "Scene 4" are different titles; leading zeros do not count ("Part 02" = "Part 2").
+- **Rebuild.** The on-device library records the rules version it was built with (`NORMALIZER_RULES`); one built with older rules keeps showing and is rebuilt in the background once. Server libraries regroup at their next scheduled refresh.
+- **Desktop polish (web and desktop).** Sync with phone is a compact, centred card with room around its content; drop-down selects draw their own chevron with room on the right; the episode "…" menu shows the row buttons' icons after each item's text (TV and phone too).
+
+Limits: a category name in a language the hint does not know stays "no language" (its titles show under any filter).
 

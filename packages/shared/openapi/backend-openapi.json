@@ -1370,6 +1370,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "languageCategoryIds",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

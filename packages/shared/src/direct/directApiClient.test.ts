@@ -134,6 +134,10 @@ describe('createDirectApiClient', () => {
     expect(await titles({ language: 'ENG, ITA' })).toHaveLength(2);
     expect(await titles({ language: null })).toHaveLength(2);
     expect(await titles({ language: 'not-a-code' })).toHaveLength(2);
+    // Category hint (D-086): a version without a language in its name passes in a hinted category.
+    expect(await titles({ language: 'GER', languageCategoryIds: ['10'] })).toEqual(['Big Test Movie']);
+    expect(await titles({ language: 'GER', languageCategoryIds: ['11'] })).toEqual([]);
+    expect(await titles({ language: 'ita', languageCategoryIds: ['10'] })).toEqual(['Another Film', 'Big Test Movie']);
     expect((await api.library.list('series')).items[0]).toMatchObject({ title: 'Test Series', year: 2021 });
 
     const details = await api.library.get('movies', page.items[1]!.id);

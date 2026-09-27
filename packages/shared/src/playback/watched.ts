@@ -8,6 +8,7 @@ import { selectVariant } from '../stores/libraryStore';
 import type { ProgressState, ProgressStore } from '../stores/progressStore';
 import { continueWatchingEntries, isCompleted } from './rules';
 import { t } from '../i18n/i18n';
+import type { IconName } from '../design/icons';
 
 /**
  * Watched titles (D-081): the "Watched" tag on covers and in details, and the card menu's "Mark as watched". One set of
@@ -129,6 +130,8 @@ export type EpisodeMenuItemId = 'watched' | 'unwatched' | 'download' | 'play-on-
 export interface EpisodeMenuItem {
   id: EpisodeMenuItemId;
   label: string;
+  /** The icon the row's button had, shown after the text (D-086). */
+  icon: IconName;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
 }
@@ -146,7 +149,9 @@ export function episodeMenuItems(episode: {
   externalPlayer?: 'app' | 'vlc' | null;
 }): EpisodeMenuItem[] {
   const items: EpisodeMenuItem[] = [
-    episode.watched ? { id: 'unwatched', label: t('Mark as not watched') } : { id: 'watched', label: t('Mark as watched') },
+    episode.watched
+      ? { id: 'unwatched', label: t('Mark as not watched'), icon: 'close' }
+      : { id: 'watched', label: t('Mark as watched'), icon: 'check' },
   ];
   const download = episode.download;
   if (download) {
@@ -158,11 +163,18 @@ export function episodeMenuItems(episode: {
       failed: () => t('Download failed · Retry'),
       completed: () => t('Downloaded'),
     }[download.status]();
-    items.push({ id: 'download', label, ...(download.status === 'completed' ? { disabled: true } : {}) });
+    const icon = ({ none: 'download', downloading: 'pause', paused: 'download', failed: 'alert', completed: 'check' } as const)[
+      download.status
+    ];
+    items.push({ id: 'download', label, icon, ...(download.status === 'completed' ? { disabled: true } : {}) });
   }
-  if (episode.tvName) items.push({ id: 'play-on-tv', label: t('Play on {tv}', { tv: episode.tvName }) });
+  if (episode.tvName) items.push({ id: 'play-on-tv', label: t('Play on {tv}', { tv: episode.tvName }), icon: 'tv' });
   if (episode.externalPlayer)
-    items.push({ id: 'external', label: episode.externalPlayer === 'vlc' ? t('Open in VLC') : t('Open in another player') });
+    items.push({
+      id: 'external',
+      label: episode.externalPlayer === 'vlc' ? t('Open in VLC') : t('Open in another player'),
+      icon: 'external',
+    });
   return items;
 }
 

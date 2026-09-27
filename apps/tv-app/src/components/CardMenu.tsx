@@ -1,6 +1,7 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
+import type { IconName } from './Icon';
 import { t } from '@iptv/shared';
 
 export interface CardMenuAction {
@@ -9,6 +10,8 @@ export interface CardMenuAction {
   testID?: string;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
+  /** Shown after the text (the episode menu, D-086). */
+  icon?: IconName;
 }
 
 /**
@@ -42,6 +45,8 @@ export function CardMenu({
               hasTVPreferredFocus={index === actions.findIndex((entry) => !entry.disabled)}
               testID={action.testID}
               disabled={action.disabled}
+              icon={action.icon}
+              iconAfter
               onPress={() => {
                 onClose();
                 action.onPress();
