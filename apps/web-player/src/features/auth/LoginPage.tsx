@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { createConnectionStore, createMemoryStorage, useAppStore, type ConnectionMode } from '@iptv/shared';
+import { createConnectionStore, createMemoryStorage, useAppStore, type ConnectionMode, t } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { stores } from '../../appContext';
 import { desktop } from '../../desktop';
+import { AppLanguageSelect } from '../shell/AppLanguageDialog';
 import { useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { BackupDialog } from '../backup/BackupDialog';
@@ -50,10 +51,11 @@ export function LoginPage() {
     <main className="login">
       <h1 className="login__brand">{appConfig.appName}</h1>
       <div className="login__cards">
-        <form className="login__panel" onSubmit={(event) => void submit(event)} aria-label="Sign in">
-          <h2>Sign In</h2>
+        <form className="login__panel" onSubmit={(event) => void submit(event)} aria-label={t('Sign in')}>
+          <h2>{t('Sign In')}</h2>
+          <AppLanguageSelect id="login-language" />
           {desktop ? (
-            <div className="login__modes" role="radiogroup" aria-label="Connect to">
+            <div className="login__modes" role="radiogroup" aria-label={t('Connect to')}>
               <button
                 type="button"
                 role="radio"
@@ -61,7 +63,7 @@ export function LoginPage() {
                 className={mode === 'direct' ? 'chip chip--active' : 'chip'}
                 onClick={() => setMode('direct')}
               >
-                IPTV provider
+                {t('IPTV provider')}
               </button>
               <button
                 type="button"
@@ -70,13 +72,13 @@ export function LoginPage() {
                 className={mode === 'server' ? 'chip chip--active' : 'chip'}
                 onClick={() => setMode('server')}
               >
-                My server
+                {t('My server')}
               </button>
             </div>
           ) : null}
           {needsBackend ? (
             <div className="field">
-              <label htmlFor="backend-url">My server address</label>
+              <label htmlFor="backend-url">{t('My server address')}</label>
               <input
                 id="backend-url"
                 className="input"
@@ -90,7 +92,7 @@ export function LoginPage() {
             </div>
           ) : null}
           <div className="field">
-            <label htmlFor="server-url">Server URL</label>
+            <label htmlFor="server-url">{t('Server URL')}</label>
             <input
               id="server-url"
               className="input"
@@ -104,7 +106,7 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="username">{t('Username')}</label>
             <input
               id="username"
               className="input"
@@ -115,7 +117,7 @@ export function LoginPage() {
             />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <label htmlFor="password">{t('Password')}</label>
             <input
               id="password"
               className="input"
@@ -132,17 +134,17 @@ export function LoginPage() {
             </p>
           ) : null}
           <button type="submit" className="button button--accent" disabled={busy || (needsBackend && !backendUrl.trim())}>
-            {busy ? 'Signing in…' : 'Sign In'}
+            {busy ? t('Signing in…') : t('Sign In')}
           </button>
           <button type="button" className="button button--ghost" onClick={() => setRestore(true)}>
-            Restore from a backup
+            {t('Restore from a backup')}
           </button>
           <p className="muted login__note">
             {desktop && mode === 'direct'
-              ? 'The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.'
+              ? t('The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.')
               : desktop
-                ? 'Your IPTV password is sent once to your own backend, stored encrypted there, and never kept on this computer.'
-                : 'Your IPTV password is sent once to your own backend, stored encrypted there, and never kept in this browser.'}
+                ? t('Your IPTV password is sent once to your own backend, stored encrypted there, and never kept on this computer.')
+                : t('Your IPTV password is sent once to your own backend, stored encrypted there, and never kept in this browser.')}
           </p>
         </form>
         {desktop ? <PhoneSignIn /> : null}
@@ -156,10 +158,10 @@ export function LoginPage() {
 function PhoneSignIn() {
   const state = usePairingServer();
   return (
-    <section className="login__phone" aria-label="Sign in with your phone" data-testid="login-phone">
-      <h3>Sign in with your phone</h3>
+    <section className="login__phone" aria-label={t('Sign in with your phone')} data-testid="login-phone">
+      <h3>{t('Sign in with your phone')}</h3>
       <PairingCode state={state} size={180} />
-      <p className="muted login__note">In the app on your phone: account menu → Connect a TV or computer, then scan this code.</p>
+      <p className="muted login__note">{t('In the app on your phone: account menu → Connect a TV or computer, then scan this code.')}</p>
     </section>
   );
 }

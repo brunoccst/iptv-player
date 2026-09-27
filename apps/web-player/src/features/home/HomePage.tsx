@@ -9,6 +9,7 @@ import {
   type LibrarySection,
   type MediaCategory,
   type ProgressDto,
+  t,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, type MenuPosition } from '../../components/CardMenu';
@@ -45,12 +46,17 @@ export function HomePage({ banner }: { banner: ReactNode }) {
         <ContinueWatchingRow />
         <MyListRow />
         <LiveRow />
-        <LibraryRow key={`all-series-${revision}`} section="series" title="Series" />
+        <LibraryRow key={`all-series-${revision}`} section="series" title={t('Series')} />
         {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
           <LibraryRow key={`m-${category.id}-${revision}`} section="movies" category={category} title={category.name} />
         ))}
         {seriesCategories.slice(0, SERIES_ROWS).map((category) => (
-          <LibraryRow key={`s-${category.id}-${revision}`} section="series" category={category} title={`Series: ${category.name}`} />
+          <LibraryRow
+            key={`s-${category.id}-${revision}`}
+            section="series"
+            category={category}
+            title={t('Series: {name}', { name: category.name })}
+          />
         ))}
       </div>
     </div>
@@ -68,7 +74,7 @@ function ContinueWatchingRow() {
   const subtitleOf = (item: ProgressDto) =>
     item.kind === 'episode' && item.seasonNumber != null ? `S${item.seasonNumber}:E${item.episodeNumber ?? '?'}` : null;
   return (
-    <Row title="Continue Watching">
+    <Row title={t('Continue Watching')}>
       {items.map((item) => (
         <PosterCard
           key={`${item.kind}-${item.itemId}`}
@@ -108,7 +114,7 @@ function MyListRow() {
   const items = useWatchlist((s) => s.items.data ?? []);
   if (items.length === 0) return null;
   return (
-    <Row title="My List" onTitleClick={() => uiStore.getState().navigate('mylist')}>
+    <Row title={t('My List')} onTitleClick={() => uiStore.getState().navigate('mylist')}>
       {items.slice(0, ROW_SIZE).map((item) => (
         <MasterCard key={`${item.section}-${item.masterId}`} section={item.section} item={watchlistCard(item)} />
       ))}
@@ -131,14 +137,18 @@ function LiveRow() {
   };
 
   return (
-    <Row title={categories?.[0] ? `Live TV: ${categories[0].name}` : 'Live TV'} onVisible={load} empty="No channels.">
+    <Row
+      title={categories?.[0] ? t('Live TV: {name}', { name: categories[0].name }) : t('Live TV')}
+      onVisible={load}
+      empty={t('No channels.')}
+    >
       {channels.slice(0, ROW_SIZE).map((channel) => (
         <PosterCard
           key={channel.id}
           landscape
           title={channel.name}
           posterUrl={channel.logoUrl}
-          badge="LIVE"
+          badge={t('LIVE')}
           onSelect={() =>
             uiStore
               .getState()
@@ -162,7 +172,7 @@ function LibraryRow({ section, category, title }: { section: LibrarySection; cat
       onTitleClick={() => uiStore.getState().openCategory(section, category?.id ?? null)}
       onNearEnd={page.loadMore}
       loadingMore={page.loadingMore}
-      empty={page.error ? 'Could not load this row.' : ' '}
+      empty={page.error ? t('Could not load this row.') : ' '}
     >
       {page.items.map((item) => (
         <MasterCard key={item.id} section={section} item={item} />

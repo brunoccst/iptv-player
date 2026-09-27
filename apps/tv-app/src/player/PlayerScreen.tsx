@@ -49,6 +49,7 @@ import {
   type PlayTarget,
   type SeekDirection,
   type VariantInfo,
+  t,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
@@ -74,22 +75,32 @@ const PROGRESS_SAVE_MS = 10_000;
  * although the login works: usually the account's connection limit, or the provider blocking the stream for a while.
  */
 export function playbackErrorText(message: string, detail?: string | null, code = '', ffmpegAudio = false): string {
+  if (code === 'OFFLINE_MISSING') return t('Download not found on this device.');
   const text = detail ? `${message} (${detail})` : message;
   const all = `${message} ${detail ?? ''}`;
   if (/HTTP 40[13]\b/.test(all))
-    return `Your IPTV provider refused this stream. Another device or app may be using the account's connections, or the provider is blocking streams for now. Try again later, or open it in another player. (${detail ?? message})`;
+    return `${t("Your IPTV provider refused this stream. Another device or app may be using the account's connections, or the provider is blocking streams for now. Try again later, or open it in another player.")} (${detail ?? message})`;
   if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
     const audio = /MediaCodecAudioRenderer/.test(all);
     const mime = /\b(audio|video)\/([\w.-]+)/.exec(all.replace(/video\/x-matroska/g, ''))?.[2];
     const format = mime ? (CODEC_NAMES[mime] ?? mime.toUpperCase()) : null;
     const tip =
       audio && ffmpegAudio
-        ? 'Try Playback → FFmpeg first in the account menu, another version, or another player such as VLC.'
-        : 'Try another version, or open it in another player such as VLC, which brings its own decoders.';
-    return `This device could not decode the ${audio ? 'audio' : 'video'} of this title${format ? ` (${format})` : ''}. ${tip}`;
+        ? t('Try Playback → FFmpeg first in the account menu, another version, or another player such as VLC.')
+        : t('Try another version, or open it in another player such as VLC, which brings its own decoders.');
+    const problem = audio
+      ? format
+        ? t('This device could not decode the audio of this title ({format}).', { format })
+        : t('This device could not decode the audio of this title.')
+      : format
+        ? t('This device could not decode the video of this title ({format}).', { format })
+        : t('This device could not decode the video of this title.');
+    return `${problem} ${tip}`;
   }
   if (code.startsWith('ERROR_CODE_PARSING'))
-    return 'The provider did not send a playable video for this title (it may be broken on their side). Try another version, or open it in another player.';
+    return t(
+      'The provider did not send a playable video for this title (it may be broken on their side). Try another version, or open it in another player.',
+    );
   return text;
 }
 
@@ -191,7 +202,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     const step = plan[useDownload ? attempt - 1 : attempt];
     if (!step) {
       appLog.error('player', `no playable source left for ${target.kind} ${target.streamId}`);
-      setError('This stream could not be played. The provider may be offline.');
+      setError(t('This stream could not be played. The provider may be offline.'));
       return;
     }
     alternates.current = [];
@@ -516,18 +527,18 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {!drawer && !guide && !(Platform.isTV && focusablesVisible) && !tvButtons && !error ? (
         <Pressable
           testID="player-focus"
-          accessibilityLabel="Player"
+          accessibilityLabel={t('Player')}
           hasTVPreferredFocus
           style={StyleSheet.absoluteFill}
           onPress={onScreenTap}
         />
       ) : null}
 
-      {!ready && !error ? <Loading label="Loading stream" /> : null}
+      {!ready && !error ? <Loading label={t('Loading stream')} /> : null}
       {error ? (
         <View style={styles.center}>
           <ErrorText>{error}</ErrorText>
-          <FocusButton label="Go back" variant="primary" hasTVPreferredFocus onPress={() => navStore.getState().back()} />
+          <FocusButton label={t('Go back')} variant="primary" hasTVPreferredFocus onPress={() => navStore.getState().back()} />
         </View>
       ) : null}
 
@@ -548,7 +559,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           <View style={[styles.top, { paddingHorizontal: sizes.gutter }]}>
             <IconButton
               icon="back"
-              label="Back"
+              label={t('Back')}
               testID="player-back"
               plain
               focusable={!Platform.isTV || buttons}
@@ -562,17 +573,17 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               </Text>
               {target.subtitle || source?.offlineId ? (
                 <Text style={styles.subtitle} numberOfLines={1}>
-                  {[target.subtitle, source?.offlineId ? 'Downloaded' : null].filter(Boolean).join(' · ')}
+                  {[target.subtitle, source?.offlineId ? t('Downloaded') : null].filter(Boolean).join(' · ')}
                 </Text>
               ) : null}
             </View>
-            {isLive ? <Text style={styles.live}>LIVE</Text> : null}
+            {isLive ? <Text style={styles.live}>{t('LIVE')}</Text> : null}
           </View>
           <View style={[styles.bottom, { paddingHorizontal: sizes.gutter }]}>
             {isLive ? null : (
               <View
                 style={styles.timeline}
-                accessibilityLabel="Seek"
+                accessibilityLabel={t('Seek')}
                 testID="player-timeline"
                 {...timelinePan.panHandlers}
                 onLayout={(event) => {
@@ -594,7 +605,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             <View style={styles.controls}>
               <IconButton
                 icon={paused ? 'play' : 'pause'}
-                label={paused ? 'Play' : 'Pause'}
+                label={paused ? t('Play') : t('Pause')}
                 plain
                 focusable={!Platform.isTV || buttons}
                 size={44}
@@ -607,7 +618,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 <>
                   <IconButton
                     icon="restart"
-                    label="Play from the beginning"
+                    label={t('Play from the beginning')}
                     plain
                     focusable={!Platform.isTV || buttons}
                     size={44}
@@ -618,7 +629,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   {previous ? (
                     <IconButton
                       icon="previous"
-                      label={`Previous episode: ${episodeLabel(previous)}`}
+                      label={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
                       plain
                       focusable={!Platform.isTV || buttons}
                       size={44}
@@ -629,7 +640,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   ) : null}
                   <IconButton
                     icon="rewind10"
-                    label={`Back ${SKIP_SECONDS} seconds`}
+                    label={t('Back {seconds} seconds', { seconds: SKIP_SECONDS })}
                     plain
                     focusable={!Platform.isTV || buttons}
                     size={44}
@@ -638,7 +649,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   />
                   <IconButton
                     icon="forward10"
-                    label={`Forward ${SKIP_SECONDS} seconds`}
+                    label={t('Forward {seconds} seconds', { seconds: SKIP_SECONDS })}
                     plain
                     focusable={!Platform.isTV || buttons}
                     size={44}
@@ -648,7 +659,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   {next ? (
                     <IconButton
                       icon="next"
-                      label={`Next episode: ${episodeLabel(next)}`}
+                      label={t('Next episode: {episode}', { episode: episodeLabel(next) })}
                       plain
                       focusable={!Platform.isTV || buttons}
                       size={44}
@@ -666,7 +677,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               {isLive ? (
                 <IconButton
                   icon="guide"
-                  label="Guide"
+                  label={t('Guide')}
                   plain
                   focusable={!Platform.isTV || buttons}
                   size={44}
@@ -681,7 +692,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               {series.data ? (
                 <IconButton
                   icon="episodes"
-                  label="Episodes"
+                  label={t('Episodes')}
                   plain
                   focusable={!Platform.isTV || buttons}
                   size={44}
@@ -695,7 +706,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               ) : null}
               <IconButton
                 icon="subtitles"
-                label="Audio and subtitles"
+                label={t('Audio and subtitles')}
                 plain
                 focusable={!Platform.isTV || buttons}
                 size={44}
@@ -714,7 +725,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {showSkipAhead ? (
         <View style={[styles.corner, { right: sizes.gutter }]} testID="skip-ahead-panel">
           {skipOpen ? (
-            <View style={styles.skipOptions} accessibilityLabel="Skip ahead by">
+            <View style={styles.skipOptions} accessibilityLabel={t('Skip ahead by')}>
               {SKIP_AHEAD_OPTIONS.map((seconds, index) => (
                 <FocusButton
                   key={seconds}
@@ -733,9 +744,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             </View>
           ) : null}
           <FocusButton
-            label="Skip ahead"
+            label={t('Skip ahead')}
             icon={skipOpen ? 'close' : 'forward10'}
-            accessibilityLabel={skipOpen ? 'Close skip options' : 'Skip ahead: choose how far'}
+            accessibilityLabel={skipOpen ? t('Close skip options') : t('Skip ahead: choose how far')}
             hasTVPreferredFocus={!skipOpen}
             onPress={() => setSkipOpen((open) => !open)}
             testID="skip-ahead"
@@ -745,13 +756,15 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
       {countdown !== null && next ? (
         <View style={[styles.nextUp, { right: sizes.gutter }]} testID="next-up">
-          <Text style={styles.nextLabel}>Next episode in {Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)}</Text>
+          <Text style={styles.nextLabel}>
+            {t('Next episode in {seconds}', { seconds: Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS) })}
+          </Text>
           <Text style={styles.nextTitle}>
             {episodeLabel(next)} · {next.title}
           </Text>
           <View style={styles.row}>
-            <FocusButton label="Play Now" variant="primary" hasTVPreferredFocus onPress={playNext} testID="play-next" />
-            <FocusButton label="Cancel" onPress={() => setNextDismissed(true)} />
+            <FocusButton label={t('Play Now')} variant="primary" hasTVPreferredFocus onPress={playNext} testID="play-next" />
+            <FocusButton label={t('Cancel')} onPress={() => setNextDismissed(true)} />
           </View>
         </View>
       ) : null}

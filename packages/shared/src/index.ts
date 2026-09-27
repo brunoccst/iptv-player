@@ -29,6 +29,8 @@ export { createDirectApiClient, type DirectApiClient, type DirectApiClientOption
 export { createHybridApiClient } from './direct/hybridApiClient';
 export { normalizeServerUrl } from './direct/xtream';
 export * from './appContext';
+export * from './i18n/i18n';
+export * from './i18n/uiLanguage';
 export * from './backup/userData';
 export * from './utils/format';
 export * from './utils/logger';

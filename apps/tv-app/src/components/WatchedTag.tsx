@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { WATCHED_LABEL } from '@iptv/shared';
+import { watchedLabel } from '@iptv/shared';
 import { colors } from '../theme';
 import { Icon } from './Icon';
 
@@ -9,9 +9,9 @@ import { Icon } from './Icon';
  */
 export function WatchedTag({ style, testID }: { style?: StyleProp<ViewStyle>; testID?: string }) {
   return (
-    <View style={[styles.tag, style]} testID={testID} accessibilityLabel={WATCHED_LABEL}>
+    <View style={[styles.tag, style]} testID={testID} accessibilityLabel={watchedLabel()}>
       <Icon name="check" size={12} color={colors.bg} />
-      <Text style={styles.text}>{WATCHED_LABEL}</Text>
+      <Text style={styles.text}>{watchedLabel()}</Text>
     </View>
   );
 }

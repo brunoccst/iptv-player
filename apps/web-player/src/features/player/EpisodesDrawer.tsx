@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { episodeLabel, type MergedEpisode, type MergedSeries } from '@iptv/shared';
+import { episodeLabel, type MergedEpisode, type MergedSeries, t } from '@iptv/shared';
 
 interface EpisodesDrawerProps {
   /** All versions' episodes (D-066). */
@@ -15,12 +15,12 @@ export function EpisodesDrawer({ series, currentEpisodeId, onPlay }: EpisodesDra
   const season = series.seasons.find((s) => s.number === seasonNumber);
 
   return (
-    <aside className="drawer" aria-label="Episodes">
+    <aside className="drawer" aria-label={t('Episodes')}>
       <h2>{series.summary.name}</h2>
       {series.seasons.length > 1 ? (
         <select
           className="select"
-          aria-label="Season"
+          aria-label={t('Season')}
           value={seasonNumber}
           onChange={(e) => setSeasonNumber(Number(e.target.value))}
           style={{ marginBottom: 16 }}

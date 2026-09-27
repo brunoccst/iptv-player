@@ -15,6 +15,7 @@ import { createProgressStore, type ProgressStore } from './stores/progressStore'
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
+import { createUiLanguage, type UiLanguageControl } from './i18n/uiLanguage';
 
 export interface AppContext {
   config: AppConfig;
@@ -35,6 +36,8 @@ export interface AppContext {
     /** Per-profile preferences on this device, e.g. the language filter (D-063). */
     profilePrefs: ProfilePrefsStore;
   };
+  /** The language of the app's own words (D-084): per profile, the device's last choice before one is open. */
+  uiLanguage: UiLanguageControl;
   /** Re-reads the saved login, connection and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
 }
@@ -100,6 +103,8 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
   const progress = createProgressStore({ api });
   const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
+  const uiLanguage = createUiLanguage({ storage: direct?.dataStorage ?? storage, session, profilePrefs });
+  void uiLanguage.load();
 
   // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
   const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null]);
@@ -157,5 +162,11 @@ export function createAppContext({ config, storage, fetch, direct }: AppContextO
     }
   };
 
-  return { config, api, reload, stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection, profilePrefs } };
+  return {
+    config,
+    api,
+    reload,
+    uiLanguage,
+    stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection, profilePrefs },
+  };
 }

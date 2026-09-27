@@ -4,7 +4,8 @@
 |------|---------|
 | `index.ts` | Public exports. Import only from `@iptv/shared`. |
 | `appContext.ts` | `createAppContext()`: builds HTTP client, API client and all stores, wires 401 → sign-out and cache resets (also when switching between a Kids and a regular profile). With `direct` (native apps) the API client is hybrid: direct by default, server when chosen (D-038). |
-| `react.ts` | React hooks: `useAppStore(store, selector)`, `useNow`, `useEpgGuide` (paged guide + polling). |
+| `react.ts` | React hooks: `useAppStore(store, selector)`, `useUiLanguage`, `useNow`, `useEpgGuide` (paged guide + polling). |
+| `i18n/` | The app's texts in English, Brazilian Portuguese, German and Serbo-Croatian: `t`, `tn`, the catalogs and the language per profile (D-084). |
 | `config/` | App config from env values. |
 | `api/` | HTTP client, typed API client, generated + friendly types. |
 | `stores/` | Zustand stores and storage abstraction. |

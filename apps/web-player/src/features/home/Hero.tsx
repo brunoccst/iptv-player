@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { selectVariant, type MasterCard } from '@iptv/shared';
+import { selectVariant, type MasterCard, t } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { useLibrary, useUi } from '../../hooks/stores';
@@ -37,13 +37,13 @@ export function Hero({ candidates }: { candidates: MasterCard[] }) {
   const backdrop = meta.data?.backdropUrls[0] ?? featured.posterUrl;
 
   return (
-    <section className="hero" aria-label="Featured">
+    <section className="hero" aria-label={t('Featured')}>
       <div className="hero__media">
         {backdrop ? <img src={backdrop} alt="" /> : null}
         {trailer ? (
           <iframe
             className={showTrailer ? 'hero__trailer--visible' : undefined}
-            title={`${featured.title} trailer`}
+            title={t('{title} trailer', { title: featured.title })}
             src={
               showTrailer
                 ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(trailer)}&modestbranding=1&playsinline=1`
@@ -65,14 +65,14 @@ export function Hero({ candidates }: { candidates: MasterCard[] }) {
             disabled={!details || !variant}
             onClick={() => details && variant && uiStore.getState().play(movieTarget(details, variant))}
           >
-            <Icon name="play" /> Play
+            <Icon name="play" /> {t('Play')}
           </button>
           <button
             type="button"
             className="button button--secondary"
             onClick={() => uiStore.getState().openDetails({ section: 'movies', masterId: featured.id })}
           >
-            <Icon name="info" /> More Info
+            <Icon name="info" /> {t('More Info')}
           </button>
         </div>
       </div>

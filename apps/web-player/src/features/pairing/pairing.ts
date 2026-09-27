@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { acceptPairing, appLog, errorMessage, pairingMessage, pairingQrText } from '@iptv/shared';
+import { acceptPairing, appLog, errorMessage, pairingMessage, pairingQrText, t } from '@iptv/shared';
 import { appContext, backupStorages } from '../../appContext';
 import { desktop } from '../../desktop';
 
@@ -69,7 +69,7 @@ export function usePairingServer(): PairingServerState {
           } catch (error) {
             void pairing.respond(id, 500, '');
             appLog.warn('pairing', errorMessage(error));
-            setState({ phase: 'ready', qr, error: 'Something went wrong. Scan the code again.' });
+            setState({ phase: 'ready', qr, error: t('Something went wrong. Scan the code again.') });
           }
         })();
       });

@@ -1,4 +1,5 @@
 import type { Episode, ProgressDto } from '../api/types';
+import { t, tn } from '../i18n/i18n';
 
 /** Seconds skipped by arrow keys (web) and D-pad taps (TV). */
 export const SKIP_SECONDS = 10;
@@ -77,11 +78,14 @@ export function skipAheadWindow(kind: 'live' | 'movie' | 'episode', durationSeco
 export const isInSkipAheadWindow = (window: SkipAheadWindow | null, time: number) => !!window && time >= window.start && time < window.end;
 
 /** "30 s", "1 min", "2 min" … for the option buttons. */
-export const skipAheadLabel = (seconds: number) => (seconds < 60 ? `${seconds} s` : `${seconds / 60} min`);
+export const skipAheadLabel = (seconds: number) =>
+  seconds < 60 ? t('{seconds} s', { seconds }) : t('{minutes} min', { minutes: seconds / 60 });
 
 /** Spoken label: "Skip ahead 30 seconds", "Skip ahead 1 minute". */
 export const skipAheadDescription = (seconds: number) =>
-  seconds < 60 ? `Skip ahead ${seconds} seconds` : `Skip ahead ${seconds / 60} minute${seconds === 60 ? '' : 's'}`;
+  seconds < 60
+    ? tn('Skip ahead {count} second', 'Skip ahead {count} seconds', seconds)
+    : tn('Skip ahead {count} minute', 'Skip ahead {count} minutes', seconds / 60);
 
 /** Seconds left on the next-up countdown, or null when the overlay should be hidden. */
 export function nextUpCountdown(currentTime: number, durationSeconds: number, hasNext: boolean): number | null {

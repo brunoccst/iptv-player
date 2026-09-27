@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { AVATAR_COLORS, avatarColor, fluid, needsPinToManage, needsPinToOpen, type ProfileDto } from '@iptv/shared';
+import { AVATAR_COLORS, avatarColor, fluid, needsPinToManage, needsPinToOpen, type ProfileDto, t } from '@iptv/shared';
 import { stores } from '../appContext';
 import { confirmSignOut } from '../components/AccountMenu';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -30,20 +30,20 @@ export function ProfilesScreen() {
   const tile = fluid(width, 90, 10, 150);
 
   const manage = (action: () => void) =>
-    gate(needsPinToManage(pinStatus) && !unlocked, 'Enter the parental PIN to manage profiles', () => {
+    gate(needsPinToManage(pinStatus) && !unlocked, t('Enter the parental PIN to manage profiles'), () => {
       setUnlocked(true);
       action();
     });
   const select = (profile: ProfileDto) =>
     managing
       ? setEditing(profile)
-      : gate(needsPinToOpen(pinStatus, null, profile), `Enter the parental PIN to open ${profile.name}`, () =>
+      : gate(needsPinToOpen(pinStatus, null, profile), t('Enter the parental PIN to open {name}', { name: profile.name }), () =>
           stores.session.getState().selectProfile(profile.id),
         );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.center}>
-      <Text style={[styles.heading, { fontSize: fluid(width, 29, 4, 54) }]}>{managing ? 'Manage Profiles' : "Who's watching?"}</Text>
+      <Text style={[styles.heading, { fontSize: fluid(width, 29, 4, 54) }]}>{managing ? t('Manage Profiles') : t("Who's watching?")}</Text>
       <View style={[styles.grid, { gap: fluid(width, 12, 2, 28) }]}>
         {profiles.map((profile, index) => (
           <ProfileTile
@@ -63,12 +63,12 @@ export function ProfilesScreen() {
       </View>
       <View style={styles.actions}>
         <FocusButton
-          label={managing ? 'Done' : 'Manage Profiles'}
+          label={managing ? t('Done') : t('Manage Profiles')}
           variant="ghost"
           onPress={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
           testID="profiles-manage"
         />
-        <FocusButton label="Sign out" variant="ghost" onPress={confirmSignOut} testID="profiles-sign-out" />
+        <FocusButton label={t('Sign out')} variant="ghost" onPress={confirmSignOut} testID="profiles-sign-out" />
       </View>
       {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
       {dialog}
@@ -123,7 +123,7 @@ function ProfileTile({
         )}
       </View>
       <Text style={[styles.name, focused && styles.nameFocused]}>{name}</Text>
-      {isKids ? <Text style={styles.kids}>Kids</Text> : null}
+      {isKids ? <Text style={styles.kids}>{t('Kids')}</Text> : null}
     </Pressable>
   );
 }
@@ -155,13 +155,13 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <ScrollView style={styles.scrim} contentContainerStyle={styles.scrimContent}>
-        <View style={styles.editor} accessibilityLabel={profile ? 'Edit profile' : 'Add profile'}>
-          <Text style={styles.editorTitle}>{profile ? 'Edit Profile' : 'Add Profile'}</Text>
+        <View style={styles.editor} accessibilityLabel={profile ? t('Edit profile') : t('Add profile')}>
+          <Text style={styles.editorTitle}>{profile ? t('Edit Profile') : t('Add Profile')}</Text>
           <View style={styles.field}>
-            <Text style={styles.label}>Name</Text>
+            <Text style={styles.label}>{t('Name')}</Text>
             <TextInput
               testID="profile-name"
-              accessibilityLabel="Name"
+              accessibilityLabel={t('Name')}
               value={name}
               onChangeText={setName}
               maxLength={50}
@@ -170,13 +170,13 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
               placeholderTextColor={colors.muted}
             />
           </View>
-          <Text style={styles.label}>Colour</Text>
+          <Text style={styles.label}>{t('Colour')}</Text>
           <View style={styles.swatches}>
             {AVATAR_COLORS.map((option) => (
               <Pressable
                 key={option}
                 accessibilityRole="radio"
-                accessibilityLabel={`Colour ${option}`}
+                accessibilityLabel={t('Colour {option}', { option })}
                 accessibilityState={{ checked: option === color }}
                 onPress={() => setColor(option)}
                 style={[styles.swatch, { backgroundColor: option }, option === color && styles.swatchSelected]}
@@ -186,17 +186,17 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isKids }}
-            accessibilityLabel="Kids profile"
+            accessibilityLabel={t('Kids profile')}
             onPress={() => setIsKids(!isKids)}
             style={styles.checkbox}
           >
             <View style={[styles.box, isKids && styles.boxChecked]}>{isKids ? <Icon name="check" size={16} color="#000" /> : null}</View>
-            <Text style={styles.checkLabel}>Kids profile</Text>
+            <Text style={styles.checkLabel}>{t('Kids profile')}</Text>
           </Pressable>
           {/* Parents pick what a saved Kids profile may see (D-064); new profiles can do so after the first save. */}
           {isKids && profile ? (
             <FocusButton
-              label="Choose categories"
+              label={t('Choose categories')}
               icon="pencil"
               variant="ghost"
               onPress={() => setCategories(true)}
@@ -206,7 +206,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
           {profile ? (
             <FocusButton
-              label="Choose languages"
+              label={t('Choose languages')}
               icon="subtitles"
               variant="ghost"
               onPress={() => setLanguages(true)}
@@ -215,11 +215,17 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           ) : null}
           {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
           <View style={styles.editorActions}>
-            <FocusButton label="Save" variant="primary" disabled={busy || !name.trim()} onPress={() => void save()} testID="profile-save" />
+            <FocusButton
+              label={t('Save')}
+              variant="primary"
+              disabled={busy || !name.trim()}
+              onPress={() => void save()}
+              testID="profile-save"
+            />
             {profile ? (
-              <FocusButton label="Delete Profile" icon="trash" variant="ghost" disabled={busy} onPress={() => void remove()} />
+              <FocusButton label={t('Delete Profile')} icon="trash" variant="ghost" disabled={busy} onPress={() => void remove()} />
             ) : null}
-            <FocusButton label="Cancel" variant="ghost" onPress={close} />
+            <FocusButton label={t('Cancel')} variant="ghost" onPress={close} />
           </View>
         </View>
       </ScrollView>

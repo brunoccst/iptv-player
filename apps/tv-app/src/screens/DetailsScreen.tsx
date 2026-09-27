@@ -41,6 +41,8 @@ import {
   type MergedSeries,
   type ProgressDto,
   type VariantInfo,
+  t,
+  tn,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton, useDownload } from '../components/DownloadButton';
@@ -99,7 +101,7 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
   return (
     // TV: the D-pad stays in the panel; the page behind it is never reached (D-075).
     <FocusTrap style={styles.overlay} testID="details-screen">
-      <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel="Close details" />
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel={t('Close details')} />
       <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
         <View ref={panel} style={[styles.panel, { width: Math.min(850, width - 32) }]}>
           <CenterFocus.Provider value={Platform.isTV ? center : null}>
@@ -114,11 +116,11 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
                 <ErrorText>{errorText(resource.error)}</ErrorText>
               </View>
             ) : (
-              <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel="Loading" />
+              <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel={t('Loading')} />
             )}
           </CenterFocus.Provider>
           <View style={styles.close}>
-            <IconButton icon="close" label="Close" iconSize={24} onPress={close} testID="details-close" />
+            <IconButton icon="close" label={t('Close')} iconSize={24} onPress={close} testID="details-close" />
           </View>
         </View>
       </ScrollView>
@@ -149,7 +151,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       stores.library.getState().selectVariant(master.id, resume.itemId);
   }, [resume?.itemId, master]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
+  if (!variant) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
   const target = movieTarget(master, variant);
   const canResume = resume?.itemId === variant.streamId;
   const duration = meta.data?.durationSeconds ?? null;
@@ -162,7 +164,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
         watched={watched}
       >
         <FocusButton
-          label={canResume ? 'Resume' : 'Play'}
+          label={canResume ? t('Resume') : t('Play')}
           icon="play"
           variant="primary"
           hasTVPreferredFocus
@@ -180,16 +182,16 @@ function MovieDetails({ master }: { master: MasterDetails }) {
         main={
           <>
             <Facts year={master.year} rating={meta.data?.summary.rating ?? master.rating} quality={variant.quality} runtime={duration} />
-            <Text style={styles.text}>{meta.data?.plot ?? (meta.loading ? '' : 'No description.')}</Text>
+            <Text style={styles.text}>{meta.data?.plot ?? (meta.loading ? '' : t('No description.'))}</Text>
             <VariantSelect master={master} value={variant} />
           </>
         }
         side={
           <>
-            <Fact label="Cast" value={meta.data?.cast} />
-            <Fact label="Genres" value={meta.data?.genre} />
-            <Fact label="Director" value={meta.data?.director} />
-            <Fact label="Source" value={variant.rawTitle} />
+            <Fact label={t('Cast')} value={meta.data?.cast} />
+            <Fact label={t('Genres')} value={meta.data?.genre} />
+            <Fact label={t('Director')} value={meta.data?.director} />
+            <Fact label={t('Source')} value={variant.rawTitle} />
           </>
         }
       />
@@ -213,7 +215,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   useEffect(() => {
     if (merged && progressLoaded) void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
   }, [merged, progressLoaded, allWatched, master.id]);
-  if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
+  if (!variant) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
   const first = series.data?.seasons[0]?.episodes[0];
   const canResume = !!resume;
@@ -230,7 +232,11 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
     <>
       <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title} watched={allWatched}>
         <FocusButton
-          label={canResume ? `Resume S${resume!.seasonNumber}:E${resume!.episodeNumber}` : 'Play'}
+          label={
+            canResume
+              ? t('Resume S{seasonNumber}:E{episodeNumber}', { seasonNumber: resume!.seasonNumber, episodeNumber: resume!.episodeNumber })
+              : t('Play')
+          }
           icon="play"
           variant="primary"
           hasTVPreferredFocus
@@ -248,7 +254,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
               year={master.year}
               rating={master.rating}
               quality={variant.quality}
-              extra={series.data ? `${series.data.seasons.length} Season${series.data.seasons.length === 1 ? '' : 's'}` : null}
+              extra={series.data ? tn('{count} Season', '{count} Seasons', series.data.seasons.length) : null}
             />
             <Text style={styles.text}>{series.data?.summary.plot ?? ''}</Text>
             <VariantSelect master={master} value={variant} />
@@ -256,8 +262,8 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
         }
         side={
           <>
-            <Fact label="Cast" value={series.data?.cast} />
-            <Fact label="Genres" value={series.data?.summary.genre} />
+            <Fact label={t('Cast')} value={series.data?.cast} />
+            <Fact label={t('Genres')} value={series.data?.summary.genre} />
           </>
         }
       />
@@ -289,7 +295,7 @@ function Episodes({
   const compact = useCompact();
   // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
-  if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
+  if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
   const context = (episode: MergedEpisode) => ({
     title: master.title,
     masterId: master.id,
@@ -298,13 +304,13 @@ function Episodes({
   });
 
   return (
-    <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel="Episodes">
+    <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel={t('Episodes')}>
       <Centered style={styles.episodesHeader}>
-        <Text style={styles.episodesTitle}>Episodes</Text>
+        <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
         {series.seasons.length > 1 ? (
           <Select
             compact
-            label="Season"
+            label={t('Season')}
             value={String(season.number)}
             options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
             onChange={(value) => setSeasonNumber(Number(value))}
@@ -323,7 +329,7 @@ function Episodes({
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
             <IconButton
               icon="play"
-              label={`Play ${episode.title}`}
+              label={t('Play {title}', { title: episode.title })}
               onPress={play}
               onLongPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}`}
@@ -331,7 +337,7 @@ function Episodes({
             {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
             <IconButton
               icon="more"
-              label={`More options for ${episode.title}`}
+              label={t('More options for {title}', { title: episode.title })}
               onPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}-more`}
             />
@@ -339,7 +345,7 @@ function Episodes({
             {listed.versions.length > 1 ? (
               <Select
                 compact
-                label={`Version of ${episode.title}`}
+                label={t('Version of {title}', { title: episode.title })}
                 value={episode.seriesId}
                 options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
                 onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
@@ -356,7 +362,7 @@ function Episodes({
               <Pressable
                 style={[styles.still, compact && styles.stillCompact]}
                 onPress={play}
-                accessibilityLabel={`Play ${episode.title}`}
+                accessibilityLabel={t('Play {title}', { title: episode.title })}
                 focusable={false}
               >
                 {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
@@ -378,7 +384,7 @@ function Episodes({
                   {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
                 </Text>
                 {listed.versions.length === 1 && master.variants.length > 1 ? (
-                  <Text style={styles.episodePlot}>Only in {listed.versions[0]!.label}</Text>
+                  <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
                 ) : null}
                 {/* Phones: buttons under the text, so the title keeps the width. */}
                 {compact ? actions : null}
@@ -446,13 +452,13 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
   if (master.variants.length < 2) return null;
   return (
     <Centered style={styles.variant}>
-      <Text style={styles.variantLabel}>Version / Stream Quality</Text>
+      <Text style={styles.variantLabel}>{t('Version / Stream Quality')}</Text>
       <Select
-        label="Version / Stream Quality"
+        label={t('Version / Stream Quality')}
         value={value.streamId}
         options={master.variants.map((variant, index) => ({
           value: variant.streamId,
-          label: `${variant.label}${index === 0 ? ' (best)' : ''}`,
+          label: `${variant.label}${index === 0 ? ` (${t('best')})` : ''}`,
         }))}
         onChange={(streamId) => stores.library.getState().selectVariant(master.id, streamId)}
         testID="variant-button"
@@ -533,7 +539,7 @@ function Facts({
 }) {
   return (
     <View style={styles.facts}>
-      {rating != null ? <Text style={styles.rating}>{Math.round(rating * 10)}% rating</Text> : null}
+      {rating != null ? <Text style={styles.rating}>{t('{percent}% rating', { percent: Math.round(rating * 10) })}</Text> : null}
       {year ? <Text style={styles.fact}>{year}</Text> : null}
       {runtime ? <Text style={styles.fact}>{formatDuration(runtime)}</Text> : null}
       {extra ? <Text style={styles.fact}>{extra}</Text> : null}

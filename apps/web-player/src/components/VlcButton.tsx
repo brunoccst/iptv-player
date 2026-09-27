@@ -1,4 +1,4 @@
-import { appLog, errorMessage, selectActiveProfile, tvPlaybackAttempts, type PlayTarget } from '@iptv/shared';
+import { appLog, errorMessage, selectActiveProfile, tvPlaybackAttempts, type PlayTarget, t } from '@iptv/shared';
 import { api, stores } from '../appContext';
 import { desktop } from '../desktop';
 import { useSession } from '../hooks/stores';
@@ -13,7 +13,13 @@ export function VlcButton({ target }: { target: PlayTarget }) {
   if (!vlc) return null;
   const name = target.kind === 'episode' && target.subtitle ? target.subtitle : target.title;
   return (
-    <button type="button" className="icon-button" aria-label={`Open ${name} in VLC`} title="Open in VLC" onClick={() => vlc(target)}>
+    <button
+      type="button"
+      className="icon-button"
+      aria-label={t('Open {name} in VLC', { name })}
+      title={t('Open in VLC')}
+      onClick={() => vlc(target)}
+    >
       <Icon name="external" />
     </button>
   );
@@ -32,17 +38,17 @@ export function useVlc() {
 /** Returns a message for the user when it did not work. */
 export async function openInVlc(target: PlayTarget): Promise<string | null> {
   if (!desktop) return null;
-  if (stores.session.getState().offline) return 'VLC needs a connection. Downloads only play in this app, because they are encrypted.';
+  if (stores.session.getState().offline) return t('VLC needs a connection. Downloads only play in this app, because they are encrypted.');
   const [step] = tvPlaybackAttempts(target.kind, target.container);
-  if (!step) return 'This title cannot be played.';
+  if (!step) return t('This title cannot be played.');
   try {
     const { url } = await api.playback.get(target.kind, target.streamId, step.container);
     const title = target.kind === 'episode' && target.subtitle ? `${target.title} · ${target.subtitle}` : target.title;
     const result = await desktop.openInVlc(url, title);
     appLog.info('player', `VLC (${result}): ${target.kind} ${target.streamId}`);
-    return result === 'none' ? 'VLC is not installed. Install it from videolan.org and try again.' : null;
+    return result === 'none' ? t('VLC is not installed. Install it from videolan.org and try again.') : null;
   } catch (error) {
     appLog.warn('player', `VLC failed: ${errorMessage(error)}`);
-    return 'The stream could not be opened in VLC.';
+    return t('The stream could not be opened in VLC.');
   }
 }

@@ -1,5 +1,6 @@
 import type Hls from 'hls.js';
 import type { VariantInfo } from '@iptv/shared';
+import { t } from '@iptv/shared';
 
 interface TracksMenuProps {
   hls: Hls | null;
@@ -27,14 +28,16 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
   };
 
   const activeSubtitle = hls ? hls.subtitleTrack : nativeText.findIndex((track) => track.mode === 'showing');
-  const subtitleOptions = hls ? subtitles.map((t) => t.name || t.lang || `Track ${t.id}`) : nativeText.map((t) => t.label || t.language);
+  const subtitleOptions = hls
+    ? subtitles.map((track) => track.name || track.lang || t('Track {number}', { number: track.id }))
+    : nativeText.map((track) => track.label || track.language);
 
   return (
-    <div className="tracks" role="dialog" aria-label="Audio, subtitles and version">
+    <div className="tracks" role="dialog" aria-label={t('Audio, subtitles and version')}>
       <div>
-        <h3>Audio</h3>
+        <h3>{t('Audio')}</h3>
         {audio.length === 0 ? (
-          <p className="muted">Default</p>
+          <p className="muted">{t('Default')}</p>
         ) : (
           audio.map((track, index) => (
             <button
@@ -46,19 +49,19 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
                 onChange();
               }}
             >
-              {track.name || track.lang || `Track ${index + 1}`}
+              {track.name || track.lang || t('Track {number}', { number: index + 1 })}
             </button>
           ))
         )}
       </div>
       <div>
-        <h3>Subtitles</h3>
+        <h3>{t('Subtitles')}</h3>
         <button
           type="button"
           className={`tracks__option${activeSubtitle < 0 ? ' tracks__option--active' : ''}`}
           onClick={() => setSubtitle(-1)}
         >
-          Off
+          {t('Off')}
         </button>
         {subtitleOptions.map((name, index) => (
           <button
@@ -73,7 +76,7 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
       </div>
       {variants.length > 1 ? (
         <div>
-          <h3>Version / Stream Quality</h3>
+          <h3>{t('Version / Stream Quality')}</h3>
           {variants.map((variant) => (
             <button
               key={variant.streamId}

@@ -4,6 +4,7 @@ import { colors, radius, useSizes } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
 import { FocusRow, useRowFocus } from './FocusRow';
+import { t } from '@iptv/shared';
 
 interface RowProps<T> {
   title: string;
@@ -34,7 +35,11 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
       </View>
       {items.length === 0 ? (
         loading ? (
-          <ActivityIndicator style={[styles.spinner, { marginLeft: sizes.gutter }]} color={colors.accent} accessibilityLabel="Loading" />
+          <ActivityIndicator
+            style={[styles.spinner, { marginLeft: sizes.gutter }]}
+            color={colors.accent}
+            accessibilityLabel={t('Loading')}
+          />
         ) : (
           <Text style={[styles.empty, { marginHorizontal: sizes.gutter }]}>{empty ?? ' '}</Text>
         )
@@ -82,7 +87,7 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
     <Pressable
       testID={testID}
       accessibilityRole="link"
-      accessibilityLabel={`See all: ${title}`}
+      accessibilityLabel={t('See all: {title}', { title })}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
@@ -97,7 +102,7 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
         </View>
       </View>
       <Text style={styles.moreText} numberOfLines={1}>
-        See all
+        {t('See all')}
       </Text>
     </Pressable>
   );
@@ -110,7 +115,7 @@ function TitleLink({ title, fontSize, onPress, testID }: { title: string; fontSi
     <Pressable
       testID={testID}
       accessibilityRole="link"
-      accessibilityLabel={`Open ${title}`}
+      accessibilityLabel={t('Open {title}', { title })}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);

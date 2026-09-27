@@ -1,11 +1,14 @@
-import { formatOfflineDate } from '@iptv/shared';
+import { formatOfflineDate, t, intlLocale } from '@iptv/shared';
 import { downloadsStore, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { useDownloads, useOfflineAccess } from '../../hooks/stores';
 import { downloadProgress, posterPath, type DownloadRecord } from '../../offline/types';
 import { playTargetFromDownload } from '../../ui/targets';
 
-const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
+const formatBytes = (bytes: number) =>
+  bytes >= 1e9
+    ? `${(bytes / 1e9).toLocaleString(intlLocale(), { maximumFractionDigits: 1 })} GB`
+    : `${Math.round(bytes / 1e6).toLocaleString(intlLocale())} MB`;
 
 /**
  * "My Downloads": encrypted in-app copies. Playable offline; never exposed as files. Play is hidden while downloads
@@ -19,20 +22,27 @@ export function DownloadsPage() {
 
   return (
     <div className="page">
-      <h1 className="page__title">My Downloads</h1>
-      {!supported ? <p className="muted">This browser does not support offline downloads.</p> : null}
+      <h1 className="page__title">{t('My Downloads')}</h1>
+      {!supported ? <p className="muted">{t('This browser does not support offline downloads.')}</p> : null}
       {estimate ? (
         <p className="muted">
-          Using {formatBytes(estimate.usage)} of {formatBytes(estimate.quota)} available to this app.
+          {t('Using {used} of {available} available to this app.', {
+            used: formatBytes(estimate.usage),
+            available: formatBytes(estimate.quota),
+          })}
         </p>
       ) : null}
-      {supported && records.length === 0 ? <p className="muted">Movies and episodes you download appear here.</p> : null}
+      {supported && records.length === 0 ? <p className="muted">{t('Movies and episodes you download appear here.')}</p> : null}
       {records.length > 0 && !access.allowed ? (
         <p className="error-text" role="status">
           {access.message}
         </p>
       ) : records.length > 0 && access.allowed && access.recheckBy ? (
-        <p className="muted">Downloads play offline until {formatOfflineDate(access.recheckBy)}; opening the app online extends this.</p>
+        <p className="muted">
+          {t('Downloads play offline until {offlineDate}; opening the app online extends this.', {
+            offlineDate: formatOfflineDate(access.recheckBy),
+          })}
+        </p>
       ) : null}
       <div className="downloads__list">
         {records.map((record) => (
@@ -83,22 +93,37 @@ function DownloadItem({ record, playable }: { record: DownloadRecord; playable: 
             <button
               type="button"
               className="icon-button"
-              aria-label={`Play ${record.title}`}
+              aria-label={t('Play {title}', { title: record.title })}
               onClick={() => uiStore.getState().play(playTargetFromDownload(record))}
             >
               <Icon name="play" size={20} />
             </button>
           ) : null
         ) : record.status === 'downloading' || record.status === 'queued' ? (
-          <button type="button" className="icon-button" aria-label={`Pause ${record.title}`} onClick={() => void pause(record.id)}>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={t('Pause {title}', { title: record.title })}
+            onClick={() => void pause(record.id)}
+          >
             <Icon name="pause" size={20} />
           </button>
         ) : (
-          <button type="button" className="icon-button" aria-label={`Resume ${record.title}`} onClick={() => void resume(record.id)}>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={t('Resume {title}', { title: record.title })}
+            onClick={() => void resume(record.id)}
+          >
             <Icon name="download" size={20} />
           </button>
         )}
-        <button type="button" className="icon-button" aria-label={`Delete ${record.title}`} onClick={() => void remove(record.id)}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label={t('Delete {title}', { title: record.title })}
+          onClick={() => void remove(record.id)}
+        >
           <Icon name="trash" size={20} />
         </button>
       </div>

@@ -24,6 +24,7 @@ import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
+import { t, useUiLanguage } from '@iptv/shared';
 
 const UPDATE_CHECK_DELAY_MS = 15_000;
 
@@ -32,6 +33,7 @@ export function App() {
   const status = useSession((s) => s.status);
   const activeProfileId = useSession((s) => s.activeProfileId);
   const offline = useSession((s) => s.offline);
+  const language = useUiLanguage();
   const playing = useNav((s) => currentRoute(s).name === 'player');
   // Phones show the status bar and start the app below it, so rounded corners and the camera cut-out do not cover
   // the header. The player (and TVs) stay full screen.
@@ -57,7 +59,8 @@ export function App() {
   }, [offline]);
 
   return (
-    <View style={styles.root}>
+    // The whole app redraws in a newly chosen language (D-084).
+    <View style={styles.root} key={language}>
       <StatusBar hidden={fullScreen} style="light" />
       <View style={{ height: topInset }} testID="status-bar-space" />
       <View style={styles.app}>
@@ -105,7 +108,7 @@ function useShownSection(section: Section): Section {
 
 function PageLoading() {
   return (
-    <View style={styles.pageLoading} accessibilityLabel="Loading page" testID="page-loading">
+    <View style={styles.pageLoading} accessibilityLabel={t('Loading page')} testID="page-loading">
       <ActivityIndicator size="large" color={colors.accent} />
     </View>
   );
@@ -114,7 +117,7 @@ function PageLoading() {
 /** First screen while the saved session loads: same icon as the native launch screen, so start-up looks like one step. */
 function Starting() {
   return (
-    <View style={styles.starting} accessibilityLabel="Starting">
+    <View style={styles.starting} accessibilityLabel={t('Starting')}>
       <Image source={splashIcon} style={styles.logo} resizeMode="contain" />
       <ActivityIndicator color={colors.accent} />
     </View>

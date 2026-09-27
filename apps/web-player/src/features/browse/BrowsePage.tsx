@@ -7,6 +7,7 @@ import {
   type LibrarySection,
   type LibrarySort,
   type LibrarySortChoice,
+  t,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
@@ -29,9 +30,9 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
 
   return (
     <div className="page">
-      <h1 className="page__title">{section === 'movies' ? 'Movies' : 'Series'}</h1>
+      <h1 className="page__title">{section === 'movies' ? t('Movies') : t('Series')}</h1>
       {banner}
-      <div className="chips" role="tablist" aria-label="Categories">
+      <div className="chips" role="tablist" aria-label={t('Categories')}>
         <button
           type="button"
           role="tab"
@@ -39,7 +40,7 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
           className={`chip${categoryId === null ? ' chip--active' : ''}`}
           onClick={() => setCategoryId(null)}
         >
-          All
+          {t('All')}
         </button>
         {categories.map((category) => (
           <button
@@ -111,7 +112,7 @@ export function PagedGrid({
     return (
       <>
         {toolbar}
-        {page.done ? <p className="muted">No titles found.</p> : <Spinner />}
+        {page.done ? <p className="muted">{t('No titles found.')}</p> : <Spinner />}
       </>
     );
 
@@ -125,13 +126,13 @@ export function PagedGrid({
       </div>
       {page.loadingMore ? (
         <div className="grid__more">
-          <Spinner label="Loading more" />
+          <Spinner label={t('Loading more')} />
         </div>
       ) : page.hasMore ? (
         <div className="grid__more" ref={sentinel}>
           {autoLoad ? null : (
             <button type="button" className="button button--secondary" onClick={page.loadMore}>
-              Load more
+              {t('Load more')}
             </button>
           )}
         </div>
@@ -153,7 +154,7 @@ function SortSelect({
   const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
   return (
     <div className="grid__toolbar">
-      <label htmlFor="library-sort">Sort by</label>
+      <label htmlFor="library-sort">{t('Sort by')}</label>
       <select
         id="library-sort"
         className="select"

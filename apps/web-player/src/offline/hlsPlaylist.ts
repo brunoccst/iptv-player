@@ -1,4 +1,4 @@
-/** HLS helpers for offline downloads: pick a rendition, list every resource, build a local playlist. */
+import { t } from '@iptv/shared'; /** HLS helpers for offline downloads: pick a rendition, list every resource, build a local playlist. */
 
 export interface Variant {
   url: string;
@@ -32,7 +32,7 @@ export interface OfflinePlaylist {
 
 export class LivePlaylistError extends Error {
   constructor() {
-    super('Live streams cannot be downloaded.');
+    super(t('Live streams cannot be downloaded.'));
     this.name = 'LivePlaylistError';
   }
 }

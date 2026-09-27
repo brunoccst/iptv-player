@@ -7,7 +7,7 @@ Not an npm workspace: it has its own `package-lock.json`, so other pipelines do 
 | Path | Purpose |
 |------|---------|
 | `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, the pairing server for phone sync (D-072), one window, in-app updates (electron-updater on Windows and AppImage, the download page elsewhere, D-073). |
-| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `pairing`, `openInVlc`: VLC with the provider User-Agent, D-081), read by `apps/web-player/src/desktop.ts`. |
+| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `pairing`, `openInVlc`: VLC with the provider User-Agent, D-081; `setTexts`: the update dialogs in the app's language, D-084), read by `apps/web-player/src/desktop.ts`. |
 | `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version, home network address, where VLC is and its arguments (D-081). |
 | `scripts/prepare.mjs` | Writes `build-config.json` (name, User-Agent, update repository) from the root `.env` and CI variables; copies the icon. |
 | `electron-builder.config.cjs` | Installers: NSIS setup wizard with folder choice (Windows), DMG (macOS universal), AppImage and deb (Linux), with fixed file names; English Chromium texts only, maximum compression (D-072). |

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { createStore } from 'zustand/vanilla';
-import { useAppStore } from '@iptv/shared';
+import { useAppStore, t } from '@iptv/shared';
 import { ErrorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts } from '../theme';
@@ -25,14 +25,18 @@ export function PairingCode({ state, size }: { state: PairingServerState; size: 
     case 'starting':
       return <ActivityIndicator color={colors.accent} style={{ height: size }} />;
     case 'offline':
-      return <Text style={styles.text}>This TV is not connected to a network, so a phone cannot reach it.</Text>;
+      return <Text style={styles.text}>{t('This TV is not connected to a network, so a phone cannot reach it.')}</Text>;
     case 'done':
-      return <Text style={styles.text}>{state.mode === 'login' ? `Signed in as ${state.accountName}.` : 'Synced with the phone.'}</Text>;
+      return (
+        <Text style={styles.text}>
+          {state.mode === 'login' ? t('Signed in as {accountName}.', { accountName: state.accountName }) : t('Synced with the phone.')}
+        </Text>
+      );
     default:
       return (
         <View style={styles.code}>
           <QrCode text={state.qr} size={size} testID="pairing-qr" />
-          {state.phase === 'working' ? <Text style={styles.hint}>Connecting…</Text> : null}
+          {state.phase === 'working' ? <Text style={styles.hint}>{t('Connecting…')}</Text> : null}
           {state.phase === 'ready' && state.error ? <ErrorText>{state.error}</ErrorText> : null}
         </View>
       );
@@ -46,14 +50,15 @@ export function SyncWithPhoneDialog({ onClose }: { onClose(): void }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="sync-with-phone">
-          <Text style={styles.title}>Sync with phone</Text>
+          <Text style={styles.title}>{t('Sync with phone')}</Text>
           <Text style={styles.text}>
-            On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Profiles, My List and watch progress
-            are merged on both devices; playback settings stay on each device.
+            {t(
+              'On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Profiles, My List and watch progress are merged on both devices; playback settings stay on each device.',
+            )}
           </Text>
           <PairingCode state={state} size={220} />
           <FocusButton
-            label={state.phase === 'done' ? 'Done' : 'Close'}
+            label={state.phase === 'done' ? t('Done') : t('Close')}
             variant={state.phase === 'done' ? 'primary' : 'ghost'}
             hasTVPreferredFocus
             onPress={onClose}
@@ -86,19 +91,21 @@ export function ConnectTvDialog({ onClose }: { onClose(): void }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="connect-tv">
-          <Text style={styles.title}>Connect a TV or computer</Text>
+          <Text style={styles.title}>{t('Connect a TV or computer')}</Text>
           {message ? (
             <Text style={styles.text}>{message}</Text>
           ) : error ? (
             <ErrorText>{error}</ErrorText>
           ) : (
             <>
-              <Text style={styles.text}>Scan the QR code on the TV: on its sign-in page, or in its account menu → Sync with phone.</Text>
+              <Text style={styles.text}>
+                {t('Scan the QR code on the TV: on its sign-in page, or in its account menu → Sync with phone.')}
+              </Text>
               <ActivityIndicator color={colors.accent} />
             </>
           )}
           <FocusButton
-            label={message ? 'Done' : 'Close'}
+            label={message ? t('Done') : t('Close')}
             variant={message ? 'primary' : 'ghost'}
             onPress={onClose}
             testID="connect-tv-close"

@@ -1,4 +1,4 @@
-import { appLog, errorMessage, tvPlaybackAttempts, type PlayTarget } from '@iptv/shared';
+import { appLog, errorMessage, tvPlaybackAttempts, type PlayTarget, t } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { api, stores } from '../appContext';
 import { providerUserAgent } from '../config';
@@ -9,9 +9,9 @@ import { providerUserAgent } from '../config';
  */
 export async function openInExternalPlayer(target: PlayTarget): Promise<string | null> {
   if (stores.session.getState().offline)
-    return 'External players need a connection. Downloads only play in this app, because they are encrypted.';
+    return t('External players need a connection. Downloads only play in this app, because they are encrypted.');
   const [step] = tvPlaybackAttempts(target.kind, target.container);
-  if (!step) return 'This title cannot be played.';
+  if (!step) return t('This title cannot be played.');
   try {
     const info = await api.playback.get(target.kind, target.streamId, step.container);
     const hls = step.engine === 'hls' || info.url.includes('.m3u8');
@@ -20,9 +20,9 @@ export async function openInExternalPlayer(target: PlayTarget): Promise<string |
       'User-Agent': providerUserAgent,
     });
     appLog.info('player', `external player (${result}): ${target.kind} ${target.streamId}`);
-    return result === 'none' ? 'No video player app is installed. Install one (e.g. VLC) and try again.' : null;
+    return result === 'none' ? t('No video player app is installed. Install one (e.g. VLC) and try again.') : null;
   } catch (error) {
     appLog.warn('player', `external player failed: ${errorMessage(error)}`);
-    return 'The stream could not be opened in another app.';
+    return t('The stream could not be opened in another app.');
   }
 }

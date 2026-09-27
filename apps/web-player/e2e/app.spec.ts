@@ -344,3 +344,22 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   await page.keyboard.press('Escape');
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 });
+
+test('app language (D-084): the whole app switches, and the choice stays after a reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'App' }).click();
+  await page.getByRole('menuitem', { name: 'App language' }).click();
+  await page.getByRole('dialog', { name: 'App language' }).getByLabel('Deutsch').click();
+  const nav = page.getByRole('navigation', { name: 'Hauptmenü' });
+  await expect(nav.getByRole('button', { name: 'Startseite' })).toBeVisible();
+  await expect(nav.getByRole('button', { name: 'Meine Liste' })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole('navigation', { name: 'Hauptmenü' }).getByRole('button', { name: 'Filme' })).toBeVisible();
+  // Titles keep the provider's names.
+  await expect(page.getByRole('button', { name: 'Big Test Movie' }).first()).toBeVisible();
+  // The menu names it in English too, so it can be found in any language.
+  await page.getByRole('button', { name: 'Kontomenü' }).click();
+  await page.getByRole('menuitem', { name: 'App', exact: true }).click();
+  await expect(page.getByRole('menuitem', { name: 'App-Sprache · App language' })).toBeVisible();
+});

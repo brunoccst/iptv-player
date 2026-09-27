@@ -144,3 +144,22 @@ export function vlcArguments(url, userAgent, title) {
     parsed.href,
   ];
 }
+
+/**
+ * The main process's own texts (update dialogs) in the app's language (D-084): the page sends the translations,
+ * keyed by the English text; a missing one stays English. `{name}` placeholders are filled from `params`.
+ */
+export function fillText(texts, source, params = {}) {
+  const text = typeof texts?.[source] === 'string' && texts[source] ? texts[source] : source;
+  return text.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match));
+}
+
+/** Only string pairs, and not too many, from the page. */
+export function cleanTexts(value) {
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key, text]) => typeof key === 'string' && typeof text === 'string' && key.length < 500 && text.length < 1000)
+      .slice(0, 100),
+  );
+}

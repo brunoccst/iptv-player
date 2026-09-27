@@ -1,4 +1,4 @@
-/**
+import { t } from '../i18n/i18n'; /**
  * What the provider actually sends for a stream the player could not read (D-074). The player only says "not a video";
  * the first bytes of the answer usually say why: an error page ("max connections reached", "file not found"), a
  * redirect to a blocked page, or an empty answer. Used for the diagnostics log and a clearer error message.
@@ -91,15 +91,17 @@ export function probeHint(probe: StreamProbe): ProbeHint {
 export function probeMessage(hint: ProbeHint): string | null {
   switch (hint) {
     case 'connections':
-      return 'Your IPTV provider says all connections of the account are in use. Stop playback on the other device, wait a minute and try again.';
+      return t(
+        'Your IPTV provider says all connections of the account are in use. Stop playback on the other device, wait a minute and try again.',
+      );
     case 'expired':
-      return 'Your IPTV provider says the subscription has expired or the account is blocked.';
+      return t('Your IPTV provider says the subscription has expired or the account is blocked.');
     case 'not-found':
-      return 'Your IPTV provider does not have the video file for this title (it is missing on their side). Try another version.';
+      return t('Your IPTV provider does not have the video file for this title (it is missing on their side). Try another version.');
     case 'refused':
-      return 'Your IPTV provider refused this stream. Try again later, or another version.';
+      return t('Your IPTV provider refused this stream. Try again later, or another version.');
     case 'empty':
-      return 'Your IPTV provider sent an empty answer instead of the video (it is broken on their side). Try another version.';
+      return t('Your IPTV provider sent an empty answer instead of the video (it is broken on their side). Try another version.');
     default:
       return null;
   }

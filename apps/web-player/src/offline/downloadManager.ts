@@ -1,5 +1,5 @@
 import type { ApiClient } from '@iptv/shared';
-import { isBrowserNativeContainer, mimeTypeForContainer } from '@iptv/shared';
+import { isBrowserNativeContainer, mimeTypeForContainer, t } from '@iptv/shared';
 import { encryptChunk, generateChunkKey } from './chunkCrypto';
 import type { ChunkStore } from './chunkStore';
 import { isMasterPlaylist, pickBestVariant, prepareOfflinePlaylist } from './hlsPlaylist';
@@ -180,14 +180,16 @@ export class DownloadManager {
   private async downloadFile(record: DownloadRecord, key: CryptoKey, signal: AbortSignal): Promise<DownloadRecord> {
     const container = record.container ?? 'mp4';
     if (!isBrowserNativeContainer(container)) {
-      throw new OfflineUnsupportedError(`${container.toUpperCase()} files cannot play in a browser. Download it on the TV app instead.`);
+      throw new OfflineUnsupportedError(
+        t('{container} files cannot play in a browser. Download it on the TV app instead.', { container: container.toUpperCase() }),
+      );
     }
     const playback = await this.deps.api.playback.get(record.kind, record.streamId, container);
     record = { ...record, format: 'file', mimeType: mimeTypeForContainer(container) };
 
     const first = await this.fetchOk(playback.url, signal, `bytes=0-${CHUNK_SIZE - 1}`);
     const total = Number(/\/(\d+)$/.exec(first.headers.get('Content-Range') ?? '')?.[1] ?? first.headers.get('Content-Length') ?? 0);
-    if (!total) throw new Error('Unknown file size.');
+    if (!total) throw new Error(t('Unknown file size.'));
     record = { ...record, totalBytes: total, totalParts: Math.ceil(total / CHUNK_SIZE) };
     await this.saveProgress(record, signal);
 
@@ -232,7 +234,7 @@ export class DownloadManager {
 
   private async fetchOk(url: string, signal: AbortSignal, range?: string): Promise<Response> {
     const response = await this.fetchImpl(url, { signal, headers: range ? { Range: range } : undefined });
-    if (!response.ok) throw new Error(`Download failed: HTTP ${response.status}`);
+    if (!response.ok) throw new Error(t('Download failed: HTTP {status}', { status: response.status }));
     return response;
   }
 

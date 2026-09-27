@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { isLibraryProcessing } from '@iptv/shared';
+import { isLibraryProcessing, t } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
@@ -37,23 +37,23 @@ export function LibraryBanner() {
   if (offline) {
     return (
       <div className="banner" role="status">
-        <Icon name="offline" /> You're offline. Downloaded titles are available in My Downloads.
+        <Icon name="offline" /> {t("You're offline. Downloaded titles are available in My Downloads.")}
       </div>
     );
   }
   if (processing) {
     return (
       <div className="banner" role="status">
-        <Spinner small /> Organizing your library: grouping duplicate titles and versions…
+        <Spinner small /> {t('Organizing your library: grouping duplicate titles and versions…')}
       </div>
     );
   }
   if (statuses && empty) {
     return (
       <div className="banner" role="status">
-        Your library is empty. Is the title normalizer worker running?
+        {t('Your library is empty. Is the title normalizer worker running?')}
         <button type="button" className="button button--secondary" onClick={() => void stores.library.getState().sync()}>
-          Refresh library
+          {t('Refresh library')}
         </button>
       </div>
     );

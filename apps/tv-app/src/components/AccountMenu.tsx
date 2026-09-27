@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Alert, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { avatarColor, needsPinToOpen, selectActiveProfile } from '@iptv/shared';
+import { avatarColor, needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { navStore, signOut, stores, updater } from '../appContext';
 import { appConfig, updateRepo } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
 import { AboutDialog } from './AboutDialog';
+import { AppLanguageDialog } from './AppLanguageDialog';
 import { BackupDialog } from './BackupDialog';
 import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
@@ -18,17 +19,17 @@ import { focus } from './focus';
 
 /** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
 export function confirmSignOut() {
-  Alert.alert('Sign out?', 'You will need your provider login to sign in again. Downloads on this device are deleted.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+  Alert.alert(t('Sign out?'), t('You will need your provider login to sign in again. Downloads on this device are deleted.'), [
+    { text: t('Cancel'), style: 'cancel' },
+    { text: t('Sign out'), style: 'destructive', onPress: () => void signOut() },
   ]);
 }
 
 /** Asks first, then closes the app like "Force stop" in the system settings: the next start is a fresh one. */
 export function confirmCloseApp() {
-  Alert.alert('Close the app?', 'The app closes completely, like "Force stop" in the settings. Downloads in progress stop.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Close the app', style: 'destructive', onPress: () => void TvMedia.closeApp().catch(() => BackHandler.exitApp()) },
+  Alert.alert(t('Close the app?'), t('The app closes completely, like "Force stop" in the settings. Downloads in progress stop.'), [
+    { text: t('Cancel'), style: 'cancel' },
+    { text: t('Close the app'), style: 'destructive', onPress: () => void TvMedia.closeApp().catch(() => BackHandler.exitApp()) },
   ]);
 }
 
@@ -45,6 +46,8 @@ export function AccountMenu() {
   const [playback, setPlayback] = useState(false);
   const [language, setLanguage] = useState(false);
   const [about, setAbout] = useState(false);
+  const [appLanguage, setAppLanguage] = useState(false);
+  const uiLanguage = useUiLanguage();
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -57,6 +60,7 @@ export function AccountMenu() {
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
+      {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -71,47 +75,50 @@ export function AccountMenu() {
   // The menu shows other profiles, groups and Sign out; a group opens in place with its name and a back arrow.
   const groups: MenuGroup[] = [
     {
-      name: 'Profiles',
+      id: 'profiles',
+      name: t('Profiles'),
       icon: 'pencil',
       testID: 'menu-group-profiles',
       items: [
         {
           icon: 'pencil',
-          label: 'Manage Profiles',
+          label: t('Manage Profiles'),
           testID: 'menu-profiles',
           onPress: then(() => stores.session.getState().selectProfile(null)),
         },
-        { icon: 'lock', label: 'Parental PIN', testID: 'menu-pin', onPress: then(() => setPinSettings(true)) },
-        { icon: 'subtitles', label: 'Languages', testID: 'menu-language', onPress: then(() => setLanguage(true)) },
+        { icon: 'lock', label: t('Parental PIN'), testID: 'menu-pin', onPress: then(() => setPinSettings(true)) },
+        { icon: 'subtitles', label: t('Languages'), testID: 'menu-language', onPress: then(() => setLanguage(true)) },
       ],
     },
     {
-      name: 'Library & devices',
+      id: 'library',
+      name: t('Library & devices'),
       icon: 'refresh',
       testID: 'menu-group-library',
       items: [
         {
           icon: 'refresh',
-          label: 'Refresh library',
+          label: t('Refresh library'),
           testID: 'menu-refresh',
           onPress: then(() => void stores.library.getState().sync()),
         },
         // Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it.
         {
           icon: Platform.isTV ? 'phone' : 'tv',
-          label: Platform.isTV ? 'Sync with phone' : 'Connect a TV or computer',
+          label: Platform.isTV ? t('Sync with phone') : t('Connect a TV or computer'),
           testID: 'menu-pairing',
           onPress: then(() => pairingDialog.setState({ open: true })),
         },
-        { icon: 'backup', label: 'Back up data', testID: 'menu-backup', onPress: then(() => setBackup(true)) },
+        { icon: 'backup', label: t('Back up data'), testID: 'menu-backup', onPress: then(() => setBackup(true)) },
         // Only builds with the FFmpeg audio decoders have something to choose (D-059).
         ...(TvMedia.ffmpegAudioAvailable()
-          ? [{ icon: 'subtitles' as const, label: 'Playback', testID: 'menu-playback', onPress: then(() => setPlayback(true)) }]
+          ? [{ icon: 'subtitles' as const, label: t('Playback'), testID: 'menu-playback', onPress: then(() => setPlayback(true)) }]
           : []),
       ],
     },
     {
-      name: 'App',
+      id: 'app',
+      name: t('App'),
       icon: 'info',
       testID: 'menu-group-app',
       items: [
@@ -120,7 +127,7 @@ export function AccountMenu() {
           ? [
               {
                 icon: 'download' as const,
-                label: 'Check for updates',
+                label: t('Check for updates'),
                 testID: 'menu-update',
                 onPress: then(() => {
                   updater.open();
@@ -129,21 +136,28 @@ export function AccountMenu() {
               },
             ]
           : []),
-        { icon: 'info', label: 'About', testID: 'menu-about', onPress: then(() => setAbout(true)) },
-        { icon: 'info', label: 'Log', testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
-        { icon: 'close', label: 'Close the app', testID: 'menu-close-app', onPress: then(confirmCloseApp) },
+        // Also in English, so it can be found in a language one cannot read (D-084).
+        {
+          icon: 'globe',
+          label: uiLanguage === 'en' ? t('App language') : `${t('App language')} · App language`,
+          testID: 'menu-app-language',
+          onPress: then(() => setAppLanguage(true)),
+        },
+        { icon: 'info', label: t('About'), testID: 'menu-about', onPress: then(() => setAbout(true)) },
+        { icon: 'info', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
+        { icon: 'close', label: t('Close the app'), testID: 'menu-close-app', onPress: then(confirmCloseApp) },
       ],
     },
   ];
   // Kids profiles only switch profile: no settings, sync, backup, updates, log or sign-out. Parents change a Kids
   // profile's categories and languages in the profile editor (behind the parental PIN when one is set).
   const kids = profile?.isKids === true;
-  const openGroup = kids ? undefined : groups.find((group) => group.name === groupName);
+  const openGroup = kids ? undefined : groups.find((group) => group.id === groupName);
 
   return (
     <>
       {overlays}
-      <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close menu" focusable={false} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel={t('Close menu')} focusable={false} />
       <View style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]} accessibilityRole="menu" testID="account-menu">
         {openGroup ? (
           <>
@@ -152,7 +166,7 @@ export function AccountMenu() {
               key={`back-${openGroup.name}`}
               icon="back"
               label={openGroup.name}
-              accessibilityLabel={`Back from ${openGroup.name}`}
+              accessibilityLabel={t('Back from {name}', { name: openGroup.name })}
               header
               first
               testID="menu-back"
@@ -173,7 +187,7 @@ export function AccountMenu() {
                 avatar={avatarColor(p)}
                 onPress={then(() =>
                   // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
-                  gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                  gate(needsPinToOpen(pinStatus, profile, p), t('Enter the parental PIN to open {name}', { name: p.name }), () => {
                     stores.session.getState().selectProfile(p.id);
                     navStore.getState().goSection('home');
                   }),
@@ -183,7 +197,7 @@ export function AccountMenu() {
             {kids ? (
               <MenuItem
                 icon="pencil"
-                label="Switch profile"
+                label={t('Switch profile')}
                 testID="menu-switch-profile"
                 first={others.length === 0}
                 onPress={then(() => stores.session.getState().selectProfile(null))}
@@ -197,11 +211,16 @@ export function AccountMenu() {
                 testID={group.testID}
                 first={others.length === 0 && index === 0}
                 opens
-                onPress={() => navStore.getState().setMenuGroup(group.name)}
+                onPress={() => navStore.getState().setMenuGroup(group.id)}
               />
             ))}
             {kids ? null : (
-              <MenuItem icon="logout" label={`Sign out of ${appConfig.appName}`} testID="menu-sign-out" onPress={then(confirmSignOut)} />
+              <MenuItem
+                icon="logout"
+                label={t('Sign out of {appName}', { appName: appConfig.appName })}
+                testID="menu-sign-out"
+                onPress={then(confirmSignOut)}
+              />
             )}
           </>
         )}
@@ -218,6 +237,8 @@ interface MenuEntry {
 }
 
 interface MenuGroup {
+  /** Kept in the nav store while the group is open. */
+  id: string;
   name: string;
   icon: IconName;
   testID: string;

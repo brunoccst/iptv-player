@@ -88,6 +88,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-081](#d-081) | 2026-09-27 | "Watched" tag and card menu options in every app; guide over the channel and Open in VLC on web/desktop |
 | [D-082](#d-082) | 2026-09-27 | Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series |
 | [D-083](#d-083) | 2026-09-27 | Episode rows: Play, "…" and the version; the other options in the episode's menu |
+| [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
 
 ---
 
@@ -1486,3 +1487,20 @@ Decision:
 - Code: `episodeMenuItems` in `packages/shared/src/playback/watched.ts` decides the items and their words; the apps pass what the device can do (`useDownload`, `usePlayOnTv`, `useExternalPlayer` on TV/phone; `useDownload`, `useVlc` on web). Movies keep their buttons in the details header, which has the room.
 
 Limits: a download's progress is no longer drawn in the episode row; it shows in the menu item and on the Downloads page.
+
+## D-084
+
+**The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia)** — 2026-09-27 (requested by owner)
+
+Context: every text was English. The owner asked for English as the source and default, with Brazilian Portuguese, German and Serbo-Croatian for Bosnia.
+
+Decision:
+- **One set of texts for every app**, in `packages/shared/src/i18n`: the English text is the key (`t('Mark as watched')`, `t('Play {title} on {tv}', { title, tv })`, `tn('{count} Season', '{count} Seasons', n)`), so the code reads as before and a missing translation shows English. One catalog per language (`catalogs/pt-BR.json`, `de.json`, `sh-BA.json`), with plural forms where a number decides the word (Serbo-Croatian has three: 1 sezona, 3 sezone, 5 sezona). The plural rules are in the code, not `Intl.PluralRules`, which not every TV's JavaScript engine has.
+- **Serbo-Croatian as written in Bosnia and Herzegovina**: Latin script, ijekavian ("sljedeća", "dječiji"). Dates and numbers use `bs-Latn-BA`. The other languages use `pt-BR`, `de-DE` and, for English, `en-GB` (day before month, 24-hour clock, as before).
+- **Per profile, with a device default**: Account menu → App → App language (TV, phone, web, desktop) keeps the choice for the open profile (`ProfilePrefs.appLanguage`, so it is in backups) and as the device's language for the sign-in page and the profile picker, which also have the choice. English until anything is chosen. The menu item also says "App language" in English, so someone who opened the app in a language they cannot read can find it.
+- A change redraws the whole app (its root is keyed on the language), so no screen keeps old words; what was typed on the sign-in page is lost, so the choice sits at the top of it.
+- **Not translated**: titles, categories, channel names, guide texts and other provider data; season names the provider sends; the diagnostics log (it goes to support); the server's own messages; the "Open with" chooser on Android (Android's own, in the device language). The desktop app's update dialogs (main process) get their texts from the page (`setTexts`).
+- **Kept complete by CI**: `npm run lint:i18n` finds every `t`/`tn` text in the apps and the shared package and fails when a catalog misses one, has an unused one, uses an unknown `{placeholder}` or lacks a plural form; `t` must get a string literal and must not run when a module loads. `npm run i18n:sync` adds new texts to the catalogs. The pull request template asks for it.
+
+Limits: the translations were written with the code, not by native speakers of each language; wording fixes are changes to the catalogs only. The Maestro and Playwright flows run in English.
+

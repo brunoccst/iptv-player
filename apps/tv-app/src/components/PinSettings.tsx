@@ -5,6 +5,7 @@ import { usePin } from '../hooks';
 import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
 import { pinMessage, PinPad } from './PinPad';
+import { t } from '@iptv/shared';
 
 type Step = 'current' | 'choose' | 'new' | 'confirm' | 'done';
 
@@ -20,7 +21,7 @@ export function PinSettings({ onClose }: { onClose(): void }) {
     return (
       <PinPad
         key="current"
-        title="Enter the current parental PIN"
+        title={t('Enter the current parental PIN')}
         onClose={onClose}
         submit={async (pin) => {
           const result = await stores.pin.getState().verify(pin);
@@ -35,7 +36,7 @@ export function PinSettings({ onClose }: { onClose(): void }) {
     return (
       <PinPad
         key="new"
-        title={hasPin ? 'Choose a new PIN' : 'Choose a 4-digit parental PIN'}
+        title={hasPin ? t('Choose a new PIN') : t('Choose a 4-digit parental PIN')}
         onClose={onClose}
         submit={async (pin) => {
           setNext(pin);
@@ -48,16 +49,16 @@ export function PinSettings({ onClose }: { onClose(): void }) {
     return (
       <PinPad
         key="confirm"
-        title="Enter the new PIN again"
+        title={t('Enter the new PIN again')}
         onClose={onClose}
         submit={async (pin) => {
           if (pin !== next) {
             setStep('new');
-            return 'The PINs did not match. Start again.';
+            return t('The PINs did not match. Start again.');
           }
           const result = await stores.pin.getState().setPin(pin, current);
           if (result !== 'ok') return pinMessage(result);
-          setMessage(hasPin ? 'PIN changed.' : 'PIN set. Leaving a Kids profile and managing profiles now ask for it.');
+          setMessage(hasPin ? t('PIN changed.') : t('PIN set. Leaving a Kids profile and managing profiles now ask for it.'));
           setStep('done');
           return null;
         }}
@@ -68,27 +69,33 @@ export function PinSettings({ onClose }: { onClose(): void }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="pin-settings">
-          <Text style={styles.title}>Parental PIN</Text>
+          <Text style={styles.title}>{t('Parental PIN')}</Text>
           {step === 'done' ? (
             <>
               <Text style={styles.text}>{message}</Text>
-              <FocusButton label="Close" variant="primary" hasTVPreferredFocus onPress={onClose} />
+              <FocusButton label={t('Close')} variant="primary" hasTVPreferredFocus onPress={onClose} />
             </>
           ) : (
             <>
-              <Text style={styles.text}>Signing out also removes the PIN.</Text>
-              <FocusButton label="Change PIN" variant="primary" hasTVPreferredFocus testID="pin-change" onPress={() => setStep('new')} />
+              <Text style={styles.text}>{t('Signing out also removes the PIN.')}</Text>
               <FocusButton
-                label="Remove PIN"
+                label={t('Change PIN')}
+                variant="primary"
+                hasTVPreferredFocus
+                testID="pin-change"
+                onPress={() => setStep('new')}
+              />
+              <FocusButton
+                label={t('Remove PIN')}
                 variant="ghost"
                 testID="pin-remove"
                 onPress={async () => {
                   const result = await stores.pin.getState().removePin(current);
-                  setMessage(result === 'ok' ? 'PIN removed. Profiles are no longer locked.' : (pinMessage(result) ?? ''));
+                  setMessage(result === 'ok' ? t('PIN removed. Profiles are no longer locked.') : (pinMessage(result) ?? ''));
                   setStep('done');
                 }}
               />
-              <FocusButton label="Cancel" variant="ghost" onPress={onClose} />
+              <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
             </>
           )}
         </View>

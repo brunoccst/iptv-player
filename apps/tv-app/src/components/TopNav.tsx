@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TVFocusGuideView, View } from 'react-native';
-import { avatarColor, selectActiveProfile } from '@iptv/shared';
+import { avatarColor, selectActiveProfile, t } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { appConfig } from '../config';
 import { useNav, useSession } from '../hooks';
@@ -10,13 +10,13 @@ import { Gradient } from './Gradient';
 import { focus } from './focus';
 import { Icon } from './Icon';
 
-const LINKS: { section: Section; label: string }[] = [
-  { section: 'home', label: 'Home' },
-  { section: 'series', label: 'Series' },
-  { section: 'movies', label: 'Movies' },
-  { section: 'live', label: 'Live TV' },
-  { section: 'mylist', label: 'My List' },
-  { section: 'downloads', label: 'My Downloads' },
+const LINKS: { section: Section; label: () => string }[] = [
+  { section: 'home', label: () => t('Home') },
+  { section: 'series', label: () => t('Series') },
+  { section: 'movies', label: () => t('Movies') },
+  { section: 'live', label: () => t('Live TV') },
+  { section: 'mylist', label: () => t('My List') },
+  { section: 'downloads', label: () => t('My Downloads') },
 ];
 
 /**
@@ -43,13 +43,13 @@ export function TopNav() {
   const links = LINKS.map((link) => (
     <NavPressable
       key={link.section}
-      label={link.label}
+      label={link.label()}
       testID={`nav-${link.section}`}
       selected={section === link.section}
       onPress={() => navStore.getState().goSection(link.section)}
     >
       {(focused) => (
-        <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label}</Text>
+        <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label()}</Text>
       )}
     </NavPressable>
   ));
@@ -57,7 +57,7 @@ export function TopNav() {
     <View style={styles.right}>
       <SearchBox value={search} width={compact ? 130 : sizes.search} />
       <NavPressable
-        label="Account menu"
+        label={t('Account menu')}
         testID="nav-account"
         plain
         selected={menuOpen}
@@ -136,9 +136,9 @@ function SearchBox({ value, width }: { value: string; width: number }) {
     <TextInput
       ref={input}
       testID="nav-search"
-      accessibilityLabel="Search"
+      accessibilityLabel={t('Search')}
       style={styles.searchInput}
-      placeholder="Titles, series"
+      placeholder={t('Titles, series')}
       placeholderTextColor="#8c8c8c"
       value={value}
       // TV: only while typing, so the D-pad never lands in the text field itself.
@@ -155,7 +155,7 @@ function SearchBox({ value, width }: { value: string; width: number }) {
     />
   );
   const clear = value ? (
-    <Pressable accessibilityLabel="Clear search" testID="nav-search-clear" onPress={() => navStore.getState().setSearch('')}>
+    <Pressable accessibilityLabel={t('Clear search')} testID="nav-search-clear" onPress={() => navStore.getState().setSearch('')}>
       <Icon name="close" size={16} />
     </Pressable>
   ) : null;
@@ -172,7 +172,7 @@ function SearchBox({ value, width }: { value: string; width: number }) {
     <Pressable
       testID="nav-search-box"
       accessibilityRole="search"
-      accessibilityLabel={value ? `Search: ${value}` : 'Search'}
+      accessibilityLabel={value ? t('Search: {value}', { value }) : t('Search')}
       onPress={() => setEditing(true)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}

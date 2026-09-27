@@ -1,5 +1,5 @@
 import Hls, { type HlsConfig } from 'hls.js';
-import { isBrowserNativeContainer, webPlaybackAttempts, type ApiClient, type PlaybackKind } from '@iptv/shared';
+import { isBrowserNativeContainer, webPlaybackAttempts, type ApiClient, type PlaybackKind, t } from '@iptv/shared';
 import { offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
 
 export interface EngineSource {
@@ -77,8 +77,11 @@ export class PlaybackEngine {
     const unsupported = source.kind !== 'live' && !!source.container && !isBrowserNativeContainer(source.container);
     throw new PlaybackUnavailableError(
       unsupported
-        ? `This version is only available as ${container}, which web browsers can't play. Pick another version or watch it on the TV app.`
-        : `This stream couldn't be played. The provider may be offline. (${failures.join('; ')})`,
+        ? t(
+            "This version is only available as {container}, which web browsers can't play. Pick another version or watch it on the TV app.",
+            { container },
+          )
+        : `${t("This stream couldn't be played. The provider may be offline.")} (${failures.join('; ')})`,
       unsupported,
     );
   }

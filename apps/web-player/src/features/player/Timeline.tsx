@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { formatClock } from '@iptv/shared';
+import { formatClock, t } from '@iptv/shared';
 import type { FrameGrabber } from './frameGrabber';
 
 interface TimelineProps {
@@ -66,11 +66,11 @@ export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPrevie
       className="timeline"
       role="slider"
       tabIndex={0}
-      aria-label="Seek"
+      aria-label={t('Seek')}
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       aria-valuenow={Math.round(shown)}
-      aria-valuetext={`${formatClock(shown)} of ${formatClock(duration)}`}
+      aria-valuetext={t('{position} of {duration}', { position: formatClock(shown), duration: formatClock(duration) })}
       onPointerMove={onPointerMove}
       onPointerLeave={() => dragTime === null && setHover(null)}
       onPointerDown={onPointerDown}

@@ -16,6 +16,8 @@ import {
   type EpgChannelRow,
   type EpgListing,
   type LiveChannel,
+  t,
+  intlLocale,
 } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
@@ -98,21 +100,21 @@ export function LiveScreen() {
       }}
       scrollEventThrottle={200}
     >
-      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Live TV</Text>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Live TV')}</Text>
       <View style={[styles.live, compact && styles.liveCompact]}>
         {compact ? (
           // Phones (portrait): the same expandable chips as Movies/Series.
           <ChipBar
-            label="Channel categories"
+            label={t('Channel categories')}
             testID="live-chips"
             chips={[
-              { key: 'all', label: 'All channels', active: categoryId === null, onPress: () => chooseCategory(null) },
+              { key: 'all', label: t('All channels'), active: categoryId === null, onPress: () => chooseCategory(null) },
               ...categories.map((c) => ({ key: c.id, label: c.name, active: categoryId === c.id, onPress: () => chooseCategory(c.id) })),
             ]}
           />
         ) : (
-          <ScrollView style={styles.categories} accessibilityLabel="Channel categories">
-            <CategoryItem label="All channels" active={categoryId === null} onPress={() => chooseCategory(null)} />
+          <ScrollView style={styles.categories} accessibilityLabel={t('Channel categories')}>
+            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} />
             {categories.map((c) => (
               <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
             ))}
@@ -122,27 +124,27 @@ export function LiveScreen() {
         <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
           <View style={styles.toolbar}>
             <FocusButton
-              label="◀ Earlier"
+              label={`◀ ${t('Earlier')}`}
               variant="ghost"
               disabled={from - STEP_MS < nowSlot - MIN_BACK_MS}
               onPress={() => setFrom(from - STEP_MS)}
             />
-            <FocusButton label="Now" variant="secondary" disabled={from === nowSlot} onPress={() => setFrom(nowSlot)} />
+            <FocusButton label={t('Now')} variant="secondary" disabled={from === nowSlot} onPress={() => setFrom(nowSlot)} />
             <FocusButton
-              label="Later ▶"
+              label={`${t('Later')} ▶`}
               variant="ghost"
               disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS}
               onPress={() => setFrom(from + STEP_MS)}
               testID="guide-later"
             />
             <Text style={styles.day}>
-              {new Date(from).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+              {new Date(from).toLocaleDateString(intlLocale(), { weekday: 'long', month: 'short', day: 'numeric' })}
             </Text>
           </View>
 
-          {guide.status === 'refreshing' ? <Text style={styles.banner}>Downloading the TV guide…</Text> : null}
+          {guide.status === 'refreshing' ? <Text style={styles.banner}>{t('Downloading the TV guide…')}</Text> : null}
           {guide.status === 'unavailable' ? (
-            <Text style={styles.banner}>Your provider has no full TV guide. Showing what is available per channel.</Text>
+            <Text style={styles.banner}>{t('Your provider has no full TV guide. Showing what is available per channel.')}</Text>
           ) : null}
           {guide.error ? <ErrorText>{errorText(guide.error)}</ErrorText> : null}
 
@@ -177,7 +179,7 @@ export function LiveScreen() {
           ) : null}
           {moreChannels ? (
             <FocusButton
-              label={`More channels (${guide.rows.length} of ${guide.totalChannels})`}
+              label={t('More channels ({count} of {totalChannels})', { count: guide.rows.length, totalChannels: guide.totalChannels })}
               variant="secondary"
               disabled={guide.loading}
               style={styles.more}
@@ -248,7 +250,7 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
       <GuideCellButton
         style={[styles.channel, compact && styles.channelCompact]}
         testID={`guide-channel-${channel.id}`}
-        label={`Watch ${channel.name}`}
+        label={t('Watch {name}', { name: channel.name })}
         onPress={() => play(channel, programmeAt(programmes, now))}
         onFocus={() => Platform.isTV && onSelect({ channel, programme: programmeAt(programmes, now) })}
       >
@@ -272,7 +274,7 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
               <View key={`gap-${cell.startMs}`} style={[styles.gap, { width: cellWidth }]}>
                 {programmes.length === 0 ? (
                   <Text style={styles.gapText} numberOfLines={1}>
-                    No guide information
+                    {t('No guide information')}
                   </Text>
                 ) : null}
               </View>
@@ -348,7 +350,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const { channel, programme } = selection;
   const onNow = programme ? Date.parse(programme.start) <= now && now < Date.parse(programme.end) : false;
   return (
-    <View style={styles.details} testID="guide-info" accessibilityLabel="Programme details">
+    <View style={styles.details} testID="guide-info" accessibilityLabel={t('Programme details')}>
       <View style={styles.detailsText}>
         <Text style={styles.detailsTitle} numberOfLines={1}>
           {programme?.title ?? channel.name}
@@ -356,7 +358,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
         <Text style={styles.muted} numberOfLines={1}>
           {channel.name}
           {programme ? ` · ${formatProgrammeTime(programme)}` : ''}
-          {onNow ? ' · On now' : ''}
+          {onNow ? ` · ${t('On now')}` : ''}
         </Text>
         {programme && onNow ? (
           <View style={styles.detailsBar}>
@@ -372,11 +374,11 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
       {Platform.isTV ? null : (
         <View style={styles.detailsActions}>
           <FocusButton
-            label={onNow ? 'Watch live' : 'Watch channel'}
+            label={onNow ? t('Watch live') : t('Watch channel')}
             variant="primary"
             onPress={() => play(channel, onNow ? programme : null)}
           />
-          <FocusButton label="Close" variant="ghost" onPress={onClose} />
+          <FocusButton label={t('Close')} variant="ghost" onPress={onClose} />
         </View>
       )}
     </View>

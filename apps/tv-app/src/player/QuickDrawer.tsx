@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
-import { episodeLabel, type MergedEpisode, type MergedSeries, type VariantInfo } from '@iptv/shared';
+import { episodeLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
@@ -21,53 +21,57 @@ interface QuickDrawerProps {
 /** Up/Down in the player: Audio, Subtitles, Versions, Episodes. Focus is trapped inside; Back closes. */
 export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack, onVariant, onEpisode }: QuickDrawerProps) {
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'audio', label: 'Audio' },
-    { id: 'subtitles', label: 'Subtitles' },
-    ...(variants.length > 1 ? [{ id: 'versions' as const, label: 'Versions' }] : []),
-    ...(series ? [{ id: 'episodes' as const, label: 'Episodes' }] : []),
+    { id: 'audio', label: t('Audio') },
+    { id: 'subtitles', label: t('Subtitles') },
+    ...(variants.length > 1 ? [{ id: 'versions' as const, label: t('Versions') }] : []),
+    ...(series ? [{ id: 'episodes' as const, label: t('Episodes') }] : []),
   ];
   const [tab, setTab] = useState<Tab>('audio');
-  const audio = tracks.filter((t) => t.type === 'audio');
-  const text = tracks.filter((t) => t.type === 'text');
+  const audio = tracks.filter((track) => track.type === 'audio');
+  const text = tracks.filter((track) => track.type === 'text');
 
   return (
     <TVFocusGuideView style={styles.drawer} trapFocusUp trapFocusDown trapFocusLeft trapFocusRight testID="quick-drawer">
       <View style={styles.tabs}>
-        {tabs.map((t, index) => (
+        {tabs.map((entry, index) => (
           <FocusButton
-            key={t.id}
-            label={t.label}
+            key={entry.id}
+            label={entry.label}
             hasTVPreferredFocus={index === 0}
-            variant={tab === t.id ? 'primary' : 'ghost'}
-            onPress={() => setTab(t.id)}
-            onFocus={() => setTab(t.id)}
+            variant={tab === entry.id ? 'primary' : 'ghost'}
+            onPress={() => setTab(entry.id)}
+            onFocus={() => setTab(entry.id)}
           />
         ))}
       </View>
       <ScrollView contentContainerStyle={styles.options}>
         {tab === 'audio' ? (
           audio.length === 0 ? (
-            <Text style={styles.muted}>Default audio</Text>
+            <Text style={styles.muted}>{t('Default audio')}</Text>
           ) : (
-            audio.map((t) => (
+            audio.map((track) => (
               <FocusButton
-                key={`${t.groupIndex}-${t.trackIndex}`}
-                label={`${t.selected ? '✓ ' : ''}${t.label}`}
+                key={`${track.groupIndex}-${track.trackIndex}`}
+                label={`${track.selected ? '✓ ' : ''}${track.label}`}
                 variant="ghost"
-                onPress={() => onTrack('audio', t.groupIndex, t.trackIndex)}
+                onPress={() => onTrack('audio', track.groupIndex, track.trackIndex)}
               />
             ))
           )
         ) : null}
         {tab === 'subtitles' ? (
           <>
-            <FocusButton label={`${text.some((t) => t.selected) ? '' : '✓ '}Off`} variant="ghost" onPress={() => onTrack('text', -1, 0)} />
-            {text.map((t) => (
+            <FocusButton
+              label={`${text.some((track) => track.selected) ? '' : '✓ '}${t('Off')}`}
+              variant="ghost"
+              onPress={() => onTrack('text', -1, 0)}
+            />
+            {text.map((track) => (
               <FocusButton
-                key={`${t.groupIndex}-${t.trackIndex}`}
-                label={`${t.selected ? '✓ ' : ''}${t.label}`}
+                key={`${track.groupIndex}-${track.trackIndex}`}
+                label={`${track.selected ? '✓ ' : ''}${track.label}`}
                 variant="ghost"
-                onPress={() => onTrack('text', t.groupIndex, t.trackIndex)}
+                onPress={() => onTrack('text', track.groupIndex, track.trackIndex)}
               />
             ))}
           </>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isKidsCategory, type CatalogSection, type MediaCategory } from '@iptv/shared';
+import { isKidsCategory, type CatalogSection, type MediaCategory, t } from '@iptv/shared';
 import { api, stores } from '../appContext';
 import { colors, fonts } from '../theme';
 import { Chip } from './ChipBar';
@@ -9,10 +9,10 @@ import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
 import { focus } from './focus';
 
-const SECTIONS: { section: CatalogSection; label: string }[] = [
-  { section: 'movies', label: 'Movies' },
-  { section: 'series', label: 'Series' },
-  { section: 'live', label: 'Live TV' },
+const SECTIONS: { section: CatalogSection; label: () => string }[] = [
+  { section: 'movies', label: () => t('Movies') },
+  { section: 'series', label: () => t('Series') },
+  { section: 'live', label: () => t('Live TV') },
 ];
 
 type Picks = Partial<Record<CatalogSection, string[] | null>>;
@@ -35,7 +35,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
     api.catalog
       .categories(section)
       .then((list) => setLists((current) => ({ ...current, [section]: list })))
-      .catch(() => setError('The categories could not be loaded.'));
+      .catch(() => setError(t('The categories could not be loaded.')));
   }, [section, lists]);
 
   const automatic = (list: MediaCategory[]) => list.filter((c) => isKidsCategory(c.name)).map((c) => c.id);
@@ -53,12 +53,12 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="kids-categories">
-          <Text style={styles.title}>Categories for {name}</Text>
+          <Text style={styles.title}>{t('Categories for {name}', { name })}</Text>
           <View style={styles.sections}>
             {SECTIONS.map((s) => (
               <Chip
                 key={s.section}
-                label={s.label}
+                label={s.label()}
                 active={section === s.section}
                 onPress={() => setSection(s.section)}
                 testID={`kids-section-${s.section}`}
@@ -66,13 +66,13 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             ))}
           </View>
           <Text style={styles.hint}>
-            {picks[section] ? 'Chosen by you.' : 'Automatic: categories whose names say they are for kids.'} Only checked categories are
-            shown.
+            {picks[section] ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
+            {t('Only checked categories are shown.')}
           </Text>
           {error ? <ErrorText>{error}</ErrorText> : null}
           {categories ? (
             <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-              {categories.length === 0 ? <Text style={styles.hint}>No categories.</Text> : null}
+              {categories.length === 0 ? <Text style={styles.hint}>{t('No categories.')}</Text> : null}
               {categories.map((category) => (
                 <CategoryRow
                   key={category.id}
@@ -86,15 +86,15 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             <ActivityIndicator color={colors.accent} />
           )}
           <View style={styles.actions}>
-            <FocusButton label="Save" variant="primary" onPress={() => void save()} testID="kids-categories-save" />
+            <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="kids-categories-save" />
             <FocusButton
-              label="Automatic"
+              label={t('Automatic')}
               variant="ghost"
               disabled={!picks[section]}
               onPress={() => setPicks({ ...picks, [section]: null })}
               testID="kids-categories-automatic"
             />
-            <FocusButton label="Cancel" variant="ghost" onPress={onClose} />
+            <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
           </View>
         </View>
       </View>

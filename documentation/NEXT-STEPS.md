@@ -38,6 +38,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **App in four languages** (requested 2026-09-27, D-084): English (source and default), Brazilian Portuguese, German and Serbo-Croatian (Bosnia, Latin script); chosen per profile in the account menu → App → App language, or on the sign-in page; CI checks that every text is translated.
 - [x] **Tidy episode rows** (requested 2026-09-27, D-083): each episode shows Play, "…" and its version; "…" (or hold OK, a long touch, a right-click) opens Mark as (not) watched, Download, Play on TV and Open in another player. No per-episode check button any more; the watchlist stays per title.
 - [x] **Watched series and episodes** (requested 2026-09-27, D-082): mark each episode watched or not (check button, or the episode's menu); "Mark series as watched" on series cards marks every episode; the "Watched" tag shows on fully watched series covers and next to the series title.
 - [x] **Watched tag, card menu options, the last two parity gaps** (requested 2026-09-27, D-081): a "Watched" tag at the bottom right of watched covers and in details; the card menu (hold OK, long touch, right-click) offers Go to details and Mark as (not) watched on every title card, plus Remove on Continue Watching; web/desktop get the guide over the playing channel (Guide button or G) and, in the desktop app, Open in VLC.

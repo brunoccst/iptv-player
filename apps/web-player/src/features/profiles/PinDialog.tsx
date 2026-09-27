@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
-import { PIN_LENGTH, type PinResult } from '@iptv/shared';
+import { PIN_LENGTH, type PinResult, t } from '@iptv/shared';
 import { stores } from '../../appContext';
 import { Modal } from '../../components/Modal';
 
 export const pinMessage = (result: PinResult) =>
-  result === 'locked' ? 'Too many wrong tries. Try again in a minute.' : result === 'wrong' ? 'Wrong PIN.' : null;
+  result === 'locked' ? t('Too many wrong tries. Try again in a minute.') : result === 'wrong' ? t('Wrong PIN.') : null;
 
 /** Asks for the parental PIN (D-054). `onSuccess` runs once `submit` accepts it. */
 export function PinDialog({
@@ -35,14 +35,14 @@ export function PinDialog({
         }}
       >
         <h2 style={{ margin: 0 }}>{title}</h2>
-        <PinInput id="pin" label="Parental PIN" value={pin} onChange={setPin} autoFocus />
+        <PinInput id="pin" label={t('Parental PIN')} value={pin} onChange={setPin} autoFocus />
         {error ? (
           <p className="error-text" role="alert">
             {error}
           </p>
         ) : null}
         <button type="submit" className="button button--primary" disabled={pin.length !== PIN_LENGTH}>
-          OK
+          {t('OK')}
         </button>
       </form>
     </Modal>

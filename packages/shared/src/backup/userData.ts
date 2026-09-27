@@ -7,6 +7,7 @@ import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import type { KeyValueStorage } from '../stores/storage';
 import { asciiJson, fromAscii, fromBase64, parseJson, randomBytes, toBase64, utf8 } from '../utils/bytes';
+import { t } from '../i18n/i18n';
 
 /**
  * User-data backup (D-056): the device's settings and per-profile data in one password-protected file, so a reinstall
@@ -56,15 +57,15 @@ export class BackupFailure extends Error {
 export function backupMessage(reason: BackupError): string {
   switch (reason) {
     case 'no-data':
-      return 'There is nothing to back up yet. Sign in first.';
+      return t('There is nothing to back up yet. Sign in first.');
     case 'short-password':
-      return `The password must have at least ${MIN_BACKUP_PASSWORD} characters.`;
+      return t('The password must have at least {count} characters.', { count: MIN_BACKUP_PASSWORD });
     case 'not-a-backup':
-      return 'This file is not a backup from this app.';
+      return t('This file is not a backup from this app.');
     case 'wrong-password':
-      return 'Wrong password, or the file is damaged.';
+      return t('Wrong password, or the file is damaged.');
     case 'newer-version':
-      return 'This backup was made by a newer version of the app. Update the app first.';
+      return t('This backup was made by a newer version of the app. Update the app first.');
   }
 }
 

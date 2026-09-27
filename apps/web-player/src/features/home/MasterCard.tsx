@@ -7,6 +7,7 @@ import {
   setSeriesWatched,
   type LibrarySection,
   type MasterCard as MasterCardData,
+  tn,
 } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { CardMenu, type MenuPosition } from '../../components/CardMenu';
@@ -19,7 +20,7 @@ import { useProfilePrefs, useProgress } from '../../hooks/stores';
  * Memoized: loading the next grid page then renders only the new cards, not the thousands already shown.
  */
 export const MasterCard = memo(function MasterCard({ section, item }: { section: LibrarySection; item: MasterCardData }) {
-  const versions = item.variantCount > 1 ? `${item.variantCount} versions` : null;
+  const versions = item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null;
   const movieWatched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
   const profileId = useProgress((s) => s.profileId);
   const seriesWatched = useProfilePrefs((s) => section === 'series' && isSeriesWatched(s.prefs, profileId, item.id));

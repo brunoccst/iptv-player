@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { formatOfflineDate } from '@iptv/shared';
+import { formatOfflineDate, t, intlLocale } from '@iptv/shared';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { downloadsStore, navStore } from '../appContext';
 import { IconButton } from '../components/IconButton';
@@ -7,7 +7,10 @@ import type { TvDownload } from '../downloads/downloadsStore';
 import { useDownloads, useOfflineAccess } from '../hooks';
 import { colors, fonts, radius, useSizes, useNavHeight } from '../theme';
 
-const formatBytes = (bytes: number) => (bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`);
+const formatBytes = (bytes: number) =>
+  bytes >= 1e9
+    ? `${(bytes / 1e9).toLocaleString(intlLocale(), { maximumFractionDigits: 1 })} GB`
+    : `${Math.round(bytes / 1e6).toLocaleString(intlLocale())} MB`;
 
 /**
  * Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons.
@@ -30,13 +33,15 @@ export function DownloadsScreen() {
       testID="downloads-screen"
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
     >
-      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>My Downloads</Text>
-      {records.length === 0 ? <Text style={styles.muted}>Movies and episodes you download appear here.</Text> : null}
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('My Downloads')}</Text>
+      {records.length === 0 ? <Text style={styles.muted}>{t('Movies and episodes you download appear here.')}</Text> : null}
       {records.length > 0 ? (
         <Text testID="downloads-access" style={access.allowed ? styles.muted : styles.error}>
           {access.allowed
             ? access.recheckBy
-              ? `Downloads play offline until ${formatOfflineDate(access.recheckBy)}; opening the app online extends this.`
+              ? t('Downloads play offline until {offlineDate}; opening the app online extends this.', {
+                  offlineDate: formatOfflineDate(access.recheckBy),
+                })
               : null
             : access.message}
         </Text>
@@ -80,18 +85,23 @@ function DownloadItem({ record, first, playable }: { record: TvDownload; first: 
           playable ? (
             <IconButton
               icon="play"
-              label={`Play ${title}`}
+              label={t('Play {title}', { title })}
               hasTVPreferredFocus={first}
               testID={`download-play-${record.id}`}
               onPress={() => navStore.getState().push({ name: 'player', target: record.target })}
             />
           ) : null
         ) : record.state === 'downloading' || record.state === 'queued' ? (
-          <IconButton icon="pause" label={`Pause ${title}`} hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
+          <IconButton icon="pause" label={t('Pause {title}', { title })} hasTVPreferredFocus={first} onPress={() => pause(record.id)} />
         ) : (
-          <IconButton icon="download" label={`Resume ${title}`} hasTVPreferredFocus={first} onPress={() => resume(record.id)} />
+          <IconButton
+            icon="download"
+            label={t('Resume {title}', { title })}
+            hasTVPreferredFocus={first}
+            onPress={() => resume(record.id)}
+          />
         )}
-        <IconButton icon="trash" label={`Delete ${title}`} onPress={() => remove(record.id)} />
+        <IconButton icon="trash" label={t('Delete {title}', { title })} onPress={() => remove(record.id)} />
       </View>
     </View>
   );

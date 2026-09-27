@@ -9,6 +9,7 @@ import {
   useNow,
   type EpgListing,
   type LiveChannel,
+  t,
 } from '@iptv/shared';
 import { stores } from '../../appContext';
 import { useCatalog } from '../../hooks/stores';
@@ -39,14 +40,18 @@ export function GuidePanel({
 
   return (
     <div className="guide-panel" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="guide-panel__list" aria-label="Guide">
+      <aside className="guide-panel__list" aria-label={t('Guide')}>
         <div className="guide-panel__header">
-          <h2>{category ?? 'All channels'}</h2>
+          <h2>{category ?? t('All channels')}</h2>
           <span className="muted">{formatGuideTime(now)}</span>
         </div>
         {guide.rows.length === 0 ? (
           <p className="muted">
-            {guide.loading ? 'Loading the guide…' : guide.error ? 'The guide could not be loaded.' : 'No channels in this category.'}
+            {guide.loading
+              ? t('Loading the guide…')
+              : guide.error
+                ? t('The guide could not be loaded.')
+                : t('No channels in this category.')}
           </p>
         ) : (
           guide.rows.map(({ channel, programmes }) => {
@@ -59,7 +64,9 @@ export function GuidePanel({
                 type="button"
                 className={`guide-panel__row${current ? ' guide-panel__row--current' : ''}`}
                 aria-current={current ? 'true' : undefined}
-                aria-label={`${channel.name}${onNow ? `, now: ${onNow.title}` : ''}${current ? ', playing' : ''}`}
+                aria-label={[channel.name, onNow ? t('now: {title}', { title: onNow.title }) : null, current ? t('playing') : null]
+                  .filter(Boolean)
+                  .join(', ')}
                 onClick={() => onSelect(channel, onNow)}
                 // The playing channel has the focus first, so the keyboard starts there.
                 ref={current ? (element) => element?.focus({ preventScroll: false }) : undefined}
@@ -71,7 +78,7 @@ export function GuidePanel({
                   <strong>
                     {channel.number ? `${channel.number}  ` : ''}
                     {channel.name}
-                    {current ? <span className="guide-panel__playing"> ● Playing</span> : null}
+                    {current ? <span className="guide-panel__playing"> ● {t('Playing')}</span> : null}
                   </strong>
                   {onNow ? (
                     <>
@@ -83,11 +90,11 @@ export function GuidePanel({
                       </span>
                     </>
                   ) : (
-                    <span className="muted">No guide information</span>
+                    <span className="muted">{t('No guide information')}</span>
                   )}
                   {next ? (
                     <span className="muted">
-                      Next {formatGuideTime(Date.parse(next.start))} · {next.title}
+                      {t('Next {guideTime} · {title}', { guideTime: formatGuideTime(Date.parse(next.start)), title: next.title })}
                     </span>
                   ) : null}
                 </span>

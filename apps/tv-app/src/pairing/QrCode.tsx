@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import qrcode from 'qrcode-generator';
 import { View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
+import { t } from '@iptv/shared';
 
 /** Black-on-white QR code with the standard quiet zone, drawn as one SVG path. */
 export function QrCode({ text, size, testID }: { text: string; size: number; testID?: string }) {
@@ -17,7 +18,7 @@ export function QrCode({ text, size, testID }: { text: string; size: number; tes
     return { path: d, count: modules + 8 };
   }, [text]);
   return (
-    <View testID={testID} accessibilityLabel="QR code" accessibilityRole="image">
+    <View testID={testID} accessibilityLabel={t('QR code')} accessibilityRole="image">
       <Svg width={size} height={size} viewBox={`0 0 ${count} ${count}`}>
         <Rect width={count} height={count} fill="#fff" />
         <Path d={path} fill="#000" />

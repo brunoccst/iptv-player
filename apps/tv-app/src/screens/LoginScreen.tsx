@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { fluid, type ConnectionMode } from '@iptv/shared';
+import { fluid, type ConnectionMode, t, useUiLanguage } from '@iptv/shared';
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
+import { Select } from '../components/Select';
+import { chooseUiLanguage, uiLanguageOptions } from '../components/AppLanguageDialog';
 import { Gradient } from '../components/Gradient';
 import { BackupDialog } from '../components/BackupDialog';
 import { Chip } from '../components/ChipBar';
@@ -29,6 +31,7 @@ export function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [restore, setRestore] = useState(false);
+  const language = useUiLanguage();
   const { width } = useWindowDimensions();
   // TV screens are only ~540 dp tall: two columns so every field fits. Uses the physical screen, not the window:
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
@@ -53,8 +56,8 @@ export function LoginScreen() {
   const note = (
     <Text style={styles.note}>
       {mode === 'direct'
-        ? 'The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.'
-        : 'Your IPTV password is sent once to your own backend, stored encrypted there, and never kept on this device.'}
+        ? t('The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.')
+        : t('Your IPTV password is sent once to your own backend, stored encrypted there, and never kept on this device.')}
     </Text>
   );
 
@@ -86,17 +89,26 @@ export function LoginScreen() {
             ]}
           >
             <View style={short ? styles.column : styles.stack}>
-              <Text style={[styles.heading, short && styles.headingShort]}>Sign In</Text>
+              <Text style={[styles.heading, short && styles.headingShort]}>{t('Sign In')}</Text>
               <View style={styles.modes} accessibilityRole="radiogroup">
-                <Chip label="IPTV provider" active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
-                <Chip label="My server" active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
+                <Chip label={t('IPTV provider')} active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
+                <Chip label={t('My server')} active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
               </View>
+              {/* The app's language (D-084), before anything else is typed: choosing it draws the page again. */}
+              <Select
+                compact
+                label={t('App language')}
+                value={language}
+                options={uiLanguageOptions()}
+                onChange={chooseUiLanguage}
+                testID="login-language"
+              />
               {short ? note : null}
             </View>
             <View style={short ? styles.column : styles.stack}>
               {mode === 'server' ? (
                 <Field
-                  label="My server address"
+                  label={t('My server address')}
                   value={backendUrl}
                   onChange={setBackendUrl}
                   testID="login-backend"
@@ -107,7 +119,7 @@ export function LoginScreen() {
                 />
               ) : null}
               <Field
-                label="Server URL"
+                label={t('Server URL')}
                 value={serverUrl}
                 onChange={setServerUrl}
                 testID="login-server"
@@ -119,7 +131,7 @@ export function LoginScreen() {
                 onSubmit={() => usernameRef.current?.focus()}
               />
               <Field
-                label="Username"
+                label={t('Username')}
                 value={username}
                 onChange={setUsername}
                 testID="login-username"
@@ -129,7 +141,7 @@ export function LoginScreen() {
                 onSubmit={() => passwordRef.current?.focus()}
               />
               <Field
-                label="Password"
+                label={t('Password')}
                 value={password}
                 onChange={setPassword}
                 testID="login-password"
@@ -143,13 +155,13 @@ export function LoginScreen() {
               />
               {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
               <FocusButton
-                label={busy ? 'Signing in…' : 'Sign In'}
+                label={busy ? t('Signing in…') : t('Sign In')}
                 variant="accent"
                 onPress={() => void submit()}
                 disabled={busy || (mode === 'server' && !backendUrl.trim())}
                 testID="login-submit"
               />
-              <FocusButton label="Restore from backup" variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
+              <FocusButton label={t('Restore from backup')} variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
               {short ? null : note}
             </View>
           </View>
@@ -168,9 +180,9 @@ function PhoneSignIn() {
   const state = usePairingServer();
   return (
     <View style={styles.phoneCard} testID="login-phone">
-      <Text style={styles.phoneTitle}>Sign in with your phone</Text>
+      <Text style={styles.phoneTitle}>{t('Sign in with your phone')}</Text>
       <PairingCode state={state} size={170} />
-      <Text style={styles.note}>In the app on your phone: account menu → Connect a TV or computer, then scan this code.</Text>
+      <Text style={styles.note}>{t('In the app on your phone: account menu → Connect a TV or computer, then scan this code.')}</Text>
     </View>
   );
 }

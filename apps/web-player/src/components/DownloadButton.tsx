@@ -1,4 +1,4 @@
-import type { DownloadMenuState } from '@iptv/shared';
+import { t, type DownloadMenuState } from '@iptv/shared';
 import { downloadsStore } from '../appContext';
 import { useDownloads } from '../hooks/stores';
 import { selectDownload } from '../offline/downloadsStore';
@@ -17,14 +17,14 @@ export function useDownload(target: DownloadTarget) {
 
   const label =
     status === 'completed'
-      ? `Downloaded: ${target.title}`
+      ? t('Downloaded: {title}', { title: target.title })
       : status === 'downloading' || status === 'queued'
-        ? `Pause download (${Math.round(progress * 100)}%)`
+        ? t('Pause download ({percent}%)', { percent: Math.round(progress * 100) })
         : status === 'paused'
-          ? `Resume download (${Math.round(progress * 100)}%)`
+          ? t('Resume download ({percent}%)', { percent: Math.round(progress * 100) })
           : status === 'error'
-            ? `Download failed: ${record?.error ?? ''}. Retry`
-            : `Download ${target.title} for offline`;
+            ? t('Download failed: {error}. Retry', { error: record?.error ?? '' })
+            : t('Download {title} for offline', { title: target.title });
   /** For the episode menu (D-083). */
   const menu: DownloadMenuState = {
     status:

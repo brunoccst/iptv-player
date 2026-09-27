@@ -7,6 +7,7 @@ import type { LibraryStore } from '../stores/libraryStore';
 import { selectVariant } from '../stores/libraryStore';
 import type { ProgressState, ProgressStore } from '../stores/progressStore';
 import { continueWatchingEntries, isCompleted } from './rules';
+import { t } from '../i18n/i18n';
 
 /**
  * Watched titles (D-081): the "Watched" tag on covers and in details, and the card menu's "Mark as watched". One set of
@@ -95,21 +96,24 @@ export interface CardMenuItem {
 export function cardMenuItems(
   card: { kind: 'continue'; entry: ProgressDto } | { kind: 'movie'; watched: boolean } | { kind: 'series'; watched: boolean },
 ): CardMenuItem[] {
-  const details: CardMenuItem = { id: 'details', label: 'Go to details' };
+  const details: CardMenuItem = { id: 'details', label: t('Go to details') };
   switch (card.kind) {
     case 'continue':
       return [
         // An episode started without its series title (from search or the guide) has no details page to go to.
         ...(card.entry.masterId ? [details] : []),
-        { id: 'watched', label: card.entry.kind === 'episode' ? 'Mark episode as watched' : 'Mark as watched' },
-        { id: 'remove', label: 'Remove from Continue Watching' },
+        { id: 'watched', label: card.entry.kind === 'episode' ? t('Mark episode as watched') : t('Mark as watched') },
+        { id: 'remove', label: t('Remove from Continue Watching') },
       ];
     case 'movie':
-      return [details, card.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' }];
+      return [
+        details,
+        card.watched ? { id: 'unwatched', label: t('Mark as not watched') } : { id: 'watched', label: t('Mark as watched') },
+      ];
     case 'series':
       return [
         details,
-        card.watched ? { id: 'unwatched', label: 'Mark series as not watched' } : { id: 'watched', label: 'Mark series as watched' },
+        card.watched ? { id: 'unwatched', label: t('Mark series as not watched') } : { id: 'watched', label: t('Mark series as watched') },
       ];
   }
 }
@@ -142,28 +146,28 @@ export function episodeMenuItems(episode: {
   externalPlayer?: 'app' | 'vlc' | null;
 }): EpisodeMenuItem[] {
   const items: EpisodeMenuItem[] = [
-    episode.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' },
+    episode.watched ? { id: 'unwatched', label: t('Mark as not watched') } : { id: 'watched', label: t('Mark as watched') },
   ];
   const download = episode.download;
   if (download) {
     const percent = Math.round(download.percent ?? 0);
     const label = {
-      none: 'Download',
-      downloading: `Pause download (${percent} %)`,
-      paused: `Resume download (${percent} %)`,
-      failed: 'Download failed · Retry',
-      completed: 'Downloaded',
-    }[download.status];
+      none: () => t('Download'),
+      downloading: () => t('Pause download ({percent} %)', { percent }),
+      paused: () => t('Resume download ({percent} %)', { percent }),
+      failed: () => t('Download failed · Retry'),
+      completed: () => t('Downloaded'),
+    }[download.status]();
     items.push({ id: 'download', label, ...(download.status === 'completed' ? { disabled: true } : {}) });
   }
-  if (episode.tvName) items.push({ id: 'play-on-tv', label: `Play on ${episode.tvName}` });
+  if (episode.tvName) items.push({ id: 'play-on-tv', label: t('Play on {tv}', { tv: episode.tvName }) });
   if (episode.externalPlayer)
-    items.push({ id: 'external', label: episode.externalPlayer === 'vlc' ? 'Open in VLC' : 'Open in another player' });
+    items.push({ id: 'external', label: episode.externalPlayer === 'vlc' ? t('Open in VLC') : t('Open in another player') });
   return items;
 }
 
 /** The tag's text (bottom right of a cover, next to the title in details). */
-export const WATCHED_LABEL = 'Watched';
+export const watchedLabel = () => t('Watched');
 
 // Episodes and whole series (D-082).
 

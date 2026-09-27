@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import { appLog } from '@iptv/shared';
+import { appLog, t } from '@iptv/shared';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { FocusButton } from '../components/FocusButton';
@@ -34,12 +34,12 @@ export function LogScreen() {
       testID="log-screen"
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
     >
-      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>Log</Text>
-      <Text style={styles.hint}>Share this with support when something goes wrong. Usernames and passwords are hidden.</Text>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Log')}</Text>
+      <Text style={styles.hint}>{t('Share this with support when something goes wrong. Usernames and passwords are hidden.')}</Text>
       <View style={styles.actions}>
-        <FocusButton label="Share log" variant="primary" hasTVPreferredFocus onPress={share} testID="log-share" />
+        <FocusButton label={t('Share log')} variant="primary" hasTVPreferredFocus onPress={share} testID="log-share" />
         <FocusButton
-          label="Clear log"
+          label={t('Clear log')}
           variant="ghost"
           onPress={() => {
             appLog.clear();
@@ -56,7 +56,7 @@ export function LogScreen() {
           {`${entry.at.slice(11, 19)} [${entry.area}] ${entry.message}`}
         </Text>
       ))}
-      {entries.length === 0 ? <Text style={styles.hint}>Nothing logged yet.</Text> : null}
+      {entries.length === 0 ? <Text style={styles.hint}>{t('Nothing logged yet.')}</Text> : null}
     </ScrollView>
   );
 }

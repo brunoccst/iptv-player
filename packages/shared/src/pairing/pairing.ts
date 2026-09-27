@@ -7,6 +7,7 @@ import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
 import { seal, unseal } from './sealed';
 import type { RemoteOffer } from './remote';
+import { t } from '../i18n/i18n';
 
 /**
  * Phone-to-TV pairing (D-060). The TV shows a QR code with its address on the home network and a one-time key. The
@@ -54,14 +55,16 @@ export type PairingResult = { ok: true; mode: PairingMode; accountName: string; 
 export function pairingMessage(error: PairingError | 'unreachable' | 'wrong-code'): string {
   switch (error) {
     case 'other-account':
-      return 'The TV or computer is signed in to a different account. Sign out there first, then scan again.';
+      return t('The TV or computer is signed in to a different account. Sign out there first, then scan again.');
     case 'not-signed-in':
-      return 'Sign in on the phone first.';
+      return t('Sign in on the phone first.');
     case 'bad-request':
     case 'wrong-code':
-      return 'This code is no longer valid. Open the QR code on the TV or computer again and scan the new one.';
+      return t('This code is no longer valid. Open the QR code on the TV or computer again and scan the new one.');
     case 'unreachable':
-      return 'Could not reach the TV or computer. Both must be on the same home network (Wi-Fi or cable). On a computer, allow the app on private networks if the firewall asks.';
+      return t(
+        'Could not reach the TV or computer. Both must be on the same home network (Wi-Fi or cable). On a computer, allow the app on private networks if the firewall asks.',
+      );
   }
 }
 
@@ -217,7 +220,7 @@ export async function acceptPairing(
       await storages.secure.setItem(pinKey, secure[pinKey]);
   }
 
-  const accountName = phoneSession.account?.username ?? 'your account';
+  const accountName = phoneSession.account?.username ?? t('your account');
   const { remote } = options;
   return reply({ ok: true, mode, data: entries, remote }, { ok: true, mode, accountName, remote });
 }
@@ -268,7 +271,7 @@ export async function sendPairing(
     const updated = { ...session, profiles: profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids })) };
     await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
   }
-  return { ok: true, mode: reply.mode, accountName: session.account?.username ?? 'your account', remote: reply.remote };
+  return { ok: true, mode: reply.mode, accountName: session.account?.username ?? t('your account'), remote: reply.remote };
 }
 
 export class PairingFailure extends Error {
