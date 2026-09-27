@@ -229,7 +229,7 @@ def _strip_brackets(text: str, found: _Tags) -> tuple[str, int | None]:
 
 
 def _is_short_word(word: str) -> bool:
-    """Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Luana TS Cassia")."""
+    """Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Wild Planet TS Rio")."""
     return len(word) <= 3 and word.isalpha()
 
 

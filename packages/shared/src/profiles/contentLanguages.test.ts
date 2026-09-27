@@ -9,7 +9,7 @@ describe('content language filter: category hint (D-086)', () => {
     expect(categoryLanguages('SRS | ITALY')).toEqual(['ITA']);
     expect(categoryLanguages('SRS | ARABIC [KIDS]')).toEqual(['ARA']);
     expect(categoryLanguages('VOD | PORTUGAL')).toEqual(['POR']);
-    expect(categoryLanguages('VOD | ADULT FHD')).toEqual([]);
+    expect(categoryLanguages('VOD | DOCUMENTARIES FHD')).toEqual([]);
     expect(categoryLanguages('SRS | MULTI-LANG - NETFLIX')).toEqual([]);
     expect(categoryLanguages('Action & Adventure')).toEqual([]);
     expect(categoryLanguages('VOD | NOW IN CINEMAS')).toEqual([]);
@@ -19,7 +19,7 @@ describe('content language filter: category hint (D-086)', () => {
     const categories = [
       { id: '1', name: 'SRS | EN - ACTION' },
       { id: '2', name: 'SRS | DEUTSCH' },
-      { id: '3', name: 'VOD | ADULT FHD' },
+      { id: '3', name: 'VOD | DOCUMENTARIES FHD' },
       { id: '4', name: 'SRS | TURKISH' },
     ];
     expect(languageCategoryIds(categories, ['GER'])).toEqual(['2', '3']);
@@ -40,7 +40,7 @@ describe('library lists send the category hint with the content language filter 
       body: [
         { id: '1', name: 'VOD | EN - ACTION' },
         { id: '2', name: 'VOD | DEUTSCH' },
-        { id: '3', name: 'VOD | ADULT FHD' },
+        { id: '3', name: 'VOD | DOCUMENTARIES FHD' },
       ],
     });
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });

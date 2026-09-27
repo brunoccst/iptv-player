@@ -4,7 +4,7 @@ import * as tags from '../direct/normalizer/tags';
 /**
  * The content language filter's category hint (D-086). Many titles carry no language in their names; their category
  * often does ("SRS | EN - ACTION", "SRS | DEUTSCH"). A title without a language of its own counts as its category's
- * language; in a category whose name has no language either ("VOD | ADULT FHD"), it is shown whatever the filter.
+ * language; in a category whose name has no language either ("VOD | DOCUMENTARIES FHD"), it is shown whatever the filter.
  */
 
 /** Countries providers name categories after, when the language name is not there. */

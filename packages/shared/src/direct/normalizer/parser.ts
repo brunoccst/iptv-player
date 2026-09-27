@@ -219,7 +219,7 @@ function stripBrackets(text: string, found: Tags): { text: string; year: number 
   return { text: result, year };
 }
 
-/** Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Luana TS Cassia"). */
+/** Tags like "TS", "CAM", "WEB", "NF" are also initials and name parts ("Wild Planet TS Rio"). */
 const isShortWord = (word: string) => word.length <= 3 && /^\p{L}+$/u.test(word);
 
 function onlyTags(tokens: string[]): boolean {
