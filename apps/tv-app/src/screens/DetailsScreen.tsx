@@ -17,7 +17,13 @@ import {
   episodeInVersion,
   episodeTarget,
   findEpisodeProgress,
+  allEpisodesWatched,
+  cardMenuItems,
+  episodeLabel,
+  isEpisodeWatched,
   isMovieWatched,
+  noteSeriesWatched,
+  setEpisodeWatched,
   isWatched,
   fluid,
   formatDuration,
@@ -49,6 +55,7 @@ import { useLibrary, useNav, useProgress } from '../hooks';
 import { colors, fonts, radius, useCompact } from '../theme';
 import { useAsync } from '../useAsync';
 import { WatchedTag } from '../components/WatchedTag';
+import { CardMenu } from '../components/CardMenu';
 
 /** Space above the panel in the scroll view. */
 const PANEL_TOP = 32;
@@ -197,6 +204,13 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   const merged = useMemo(() => (versions.data ? mergeSeriesVersions(versions.data, variant?.streamId) : null), [versions.data, variant]);
   const series = { ...versions, data: merged };
   const resume = useMasterProgress(master, 'episode');
+  // Every episode finished: the tag next to the title, and the note behind the tag on the series cover (D-082). Only
+  // once the progress list has loaded, so a slow start never clears the note.
+  const progressLoaded = useProgress((s) => s.items.status === 'success');
+  const allWatched = useProgress((s) => !!merged && allEpisodesWatched(s, merged));
+  useEffect(() => {
+    if (merged && progressLoaded) void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
+  }, [merged, progressLoaded, allWatched, master.id]);
   if (!variant) return <Text style={[styles.text, styles.padded]}>No playable versions.</Text>;
 
   const first = series.data?.seasons[0]?.episodes[0];
@@ -212,7 +226,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
 
   return (
     <>
-      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
+      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title} watched={allWatched}>
         <FocusButton
           label={canResume ? `Resume S${resume!.seasonNumber}:E${resume!.episodeNumber}` : 'Play'}
           icon="play"
@@ -271,6 +285,8 @@ function Episodes({
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
   const compact = useCompact();
+  // Holding OK on an episode's Play button: Mark as (not) watched (D-082).
+  const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
   if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
   const context = (episode: MergedEpisode) => ({
     title: master.title,
@@ -300,11 +316,25 @@ function Episodes({
         const episode = episodeInVersion(listed, chosen[listed.id]);
         const target = episodeTarget(context(episode), episode);
         const saved = findEpisodeProgress(progress, episode);
+        const watched = isWatched(saved);
         const play = () => navStore.getState().push({ name: 'player', target });
+        const toggleWatched = () => void setEpisodeWatched(stores.progress, episode, context(episode), !watched);
         const actions = (
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
-            <IconButton icon="play" label={`Play ${episode.title}`} onPress={play} testID={`episode-${episode.id}`} />
+            <IconButton
+              icon="play"
+              label={`Play ${episode.title}`}
+              onPress={play}
+              onLongPress={() => setMenuFor(episode)}
+              testID={`episode-${episode.id}`}
+            />
             <DownloadButton target={target} />
+            <IconButton
+              icon="check"
+              label={watched ? `Mark ${episode.title} as not watched` : `Mark ${episode.title} as watched`}
+              onPress={toggleWatched}
+              testID={`episode-${episode.id}-mark`}
+            />
             <PlayOnTvButton target={target} testID={`episode-${episode.id}-tv`} />
             <ExternalPlayerButton target={target} testID={`episode-${episode.id}-external`} />
             {/* After the buttons, so Play is the first thing focused in an episode. */}
@@ -360,6 +390,18 @@ function Episodes({
           </Centered>
         );
       })}
+      {menuFor ? (
+        <CardMenu
+          title={menuFor.title}
+          subtitle={episodeLabel(menuFor)}
+          onClose={() => setMenuFor(null)}
+          actions={cardMenuItems({ kind: 'episode', watched: isEpisodeWatched(progress, menuFor) }).map((entry) => ({
+            label: entry.label,
+            testID: `card-menu-${entry.id}`,
+            onPress: () => void setEpisodeWatched(stores.progress, menuFor, context(menuFor), entry.id === 'watched'),
+          }))}
+        />
+      ) : null}
     </View>
   );
 }

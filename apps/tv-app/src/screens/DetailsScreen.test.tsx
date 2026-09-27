@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Platform } from 'react-native';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
 
@@ -117,5 +117,63 @@ describe('series details: one episode list for all versions (D-066)', () => {
     expect(ids[0]).toBe('episode-en-1');
     expect(ids).toContain('episode-en-1-version');
     jest.restoreAllMocks();
+  });
+});
+
+describe('watched episodes and series (D-082)', () => {
+  it('marks episodes with the check button or by holding OK; every episode watched tags the series', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/show', {
+      body: {
+        id: 'show',
+        title: 'Show',
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: null,
+        variants: [variant('en', 'ENG'), variant('ge', 'GER')],
+      },
+    });
+    backend.on('GET', '/api/catalog/series/en', {
+      body: series('en', [{ number: 1, episodes: [episode('en-1', 1, 1), episode('en-3', 1, 3)] }]),
+    });
+    backend.on('GET', '/api/catalog/series/ge', {
+      body: series('ge', [{ number: 1, episodes: [episode('ge-1', 1, 1), episode('ge-2', 1, 2), episode('ge-3', 1, 3)] }]),
+    });
+    for (const id of ['en-1', 'ge-1', 'ge-2', 'en-3', 'ge-3']) {
+      backend.on('PUT', `/api/profiles/p1/progress/episode/${id}`, ({ body }) => ({
+        body: { kind: 'episode', itemId: id, updatedAt: '2026-09-27T00:00:00Z', ...(body as object) },
+      }));
+      backend.on('DELETE', `/api/profiles/p1/progress/episode/${id}`, { status: 204 });
+    }
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await render(<DetailsScreen section="series" masterId="show" />);
+    await flush();
+    const puts = () => backend.calls.filter((c) => c.method === 'PUT').map((c) => c.url.pathname.split('/').pop());
+
+    await fireEvent.press(screen.getByTestId('episode-en-1-mark'));
+    await flush();
+    expect(puts()).toEqual(['en-1']);
+    expect(backend.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ masterId: 'show', seriesId: 'en', episodeNumber: 1 });
+    expect(screen.getByTestId('episode-en-1-watched')).toBeTruthy();
+    expect(screen.queryByTestId('details-watched')).toBeNull();
+
+    // Holding OK on an episode's Play button opens its menu.
+    await fireEvent(screen.getByTestId('episode-ge-2'), 'longPress');
+    expect(within(screen.getByTestId('card-menu')).getByText('Mark as watched')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('card-menu-watched'));
+    await fireEvent.press(screen.getByTestId('episode-en-3-mark'));
+    await flush();
+    expect(puts()).toEqual(['en-1', 'ge-2', 'en-3']);
+    // Every episode watched: the tag next to the title, and the note behind the series cover's tag.
+    expect(screen.getByTestId('details-watched')).toBeTruthy();
+    expect(stores.profilePrefs.getState().prefs.p1?.watchedSeries).toEqual(['show']);
+
+    await fireEvent.press(screen.getByTestId('episode-en-1-mark'));
+    await flush();
+    expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname.split('/').pop())).toEqual(['en-1']);
+    expect(screen.queryByTestId('episode-en-1-watched')).toBeNull();
+    expect(screen.queryByTestId('details-watched')).toBeNull();
+    expect(stores.profilePrefs.getState().prefs.p1?.watchedSeries).toEqual([]);
   });
 });
