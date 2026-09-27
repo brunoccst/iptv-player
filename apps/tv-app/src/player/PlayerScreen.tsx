@@ -38,6 +38,7 @@ import {
   loadSeriesVersions,
   mergeSeriesVersions,
   nextEpisode,
+  previousEpisode,
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
@@ -127,8 +128,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [controls, setControls] = useState(true);
   const [drawer, setDrawer] = useState(false);
   const [guide, setGuide] = useState(false);
-  // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, ±10 s, episodes, audio and subtitles), which the
-  // D-pad then walks through; Back or a few seconds without keys return to the video (D-075).
+  // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, from the beginning, previous episode, ±10 s, next
+  // episode, episodes, audio and subtitles), which the D-pad then walks through; Back or a few seconds without keys
+  // return to the video (D-075, D-077).
   const [buttons, setButtons] = useState(false);
   const tvButtons = Platform.isTV && buttons;
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
@@ -156,6 +158,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   );
   const series = { data: mergedSeries };
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
+  const previous = series.data && target.kind === 'episode' ? previousEpisode(series.data, target.streamId) : null;
   const variants = useLibrary((s) =>
     target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? []) : [],
   );
@@ -353,14 +356,23 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   ).current;
   const timelineLeft = useRef(0);
 
+  // Another episode of this series (next up, previous/next buttons, the episode drawer) replaces this player.
+  const playEpisode = useCallback(
+    (episode: NonNullable<typeof next>) => {
+      saveProgress();
+      navStore.getState().replaceTop({
+        name: 'player',
+        target: episodeTarget(
+          { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
+          episode,
+        ),
+      });
+    },
+    [target, saveProgress],
+  );
   const playNext = useCallback(() => {
-    if (!next || !target.seriesId) return;
-    saveProgress();
-    navStore.getState().replaceTop({
-      name: 'player',
-      target: episodeTarget({ title: target.title, masterId: target.masterId, seriesId: next.seriesId, posterUrl: target.posterUrl }, next),
-    });
-  }, [next, target, saveProgress]);
+    if (next && target.seriesId) playEpisode(next);
+  }, [next, target.seriesId, playEpisode]);
 
   // "Skip ahead": early in an episode; opens into 30 s … 3 min. Stays up while its options are open.
   const skipWindow = skipAheadWindow(target.kind, duration);
@@ -594,6 +606,28 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               {isLive ? null : (
                 <>
                   <IconButton
+                    icon="restart"
+                    label="Play from the beginning"
+                    plain
+                    focusable={!Platform.isTV || buttons}
+                    size={44}
+                    iconSize={28}
+                    testID="player-restart"
+                    onPress={() => seekTo(0)}
+                  />
+                  {previous ? (
+                    <IconButton
+                      icon="previous"
+                      label={`Previous episode: ${episodeLabel(previous)}`}
+                      plain
+                      focusable={!Platform.isTV || buttons}
+                      size={44}
+                      iconSize={28}
+                      testID="player-previous"
+                      onPress={() => playEpisode(previous)}
+                    />
+                  ) : null}
+                  <IconButton
                     icon="rewind10"
                     label={`Back ${SKIP_SECONDS} seconds`}
                     plain
@@ -611,6 +645,18 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     iconSize={28}
                     onPress={() => seekTo(timeRef.current + SKIP_SECONDS)}
                   />
+                  {next ? (
+                    <IconButton
+                      icon="next"
+                      label={`Next episode: ${episodeLabel(next)}`}
+                      plain
+                      focusable={!Platform.isTV || buttons}
+                      size={44}
+                      iconSize={28}
+                      testID="player-next"
+                      onPress={() => playEpisode(next)}
+                    />
+                  ) : null}
                   <Text style={styles.time} testID="player-time">
                     {formatClock(time)} / {formatClock(duration)}
                   </Text>
@@ -727,14 +773,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           }}
           onEpisode={(episode) => {
             setDrawer(false);
-            saveProgress();
-            navStore.getState().replaceTop({
-              name: 'player',
-              target: episodeTarget(
-                { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
-                episode,
-              ),
-            });
+            playEpisode(episode);
           }}
         />
       ) : null}

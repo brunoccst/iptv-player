@@ -36,6 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Player: previous / next episode, from the beginning** (requested 2026-09-27, D-077): episodes get previous/next buttons around −10 s / +10 s; movies and episodes get "from the beginning". TV/phone app.
 - [x] **Skip ahead options on TV** (requested 2026-09-27, D-075): moving between 30 s … 3 min (and Play Now / Cancel) with ←/→ no longer skips ±10 s; the chosen option skips its full amount.
 - [x] **TV focus fixes** (requested 2026-09-27, D-075): focus stays in the details panel; ↓ in the player walks the on-screen buttons (↑ opens audio/subtitles); holding Right reaches "See all"; the "See all" card is filled like other cards.
 - [x] **Provider answer in the log** (requested 2026-09-27, D-074): when a stream is not a video, the log shows what the provider sent (status, type, start of the text, credentials masked); "max connections", "not found", "expired" get a clear message.

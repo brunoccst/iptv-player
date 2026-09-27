@@ -11,6 +11,7 @@ import {
   episodeLabel,
   isCompleted,
   nextEpisode,
+  previousEpisode,
   nextUpCountdown,
   resumePosition,
 } from './rules';
@@ -110,10 +111,14 @@ describe('playback rules', () => {
     expect(clampTime(150, Number.NaN)).toBe(150);
   });
 
-  it('next episode crosses seasons in order', () => {
+  it('next and previous episode cross seasons in order', () => {
     expect(nextEpisode(series, 's1e1')?.id).toBe('s1e2');
     expect(nextEpisode(series, 's1e2')?.id).toBe('s2e1');
     expect(nextEpisode(series, 's2e1')).toBeNull();
+    expect(previousEpisode(series, 's2e1')?.id).toBe('s1e2');
+    expect(previousEpisode(series, 's1e2')?.id).toBe('s1e1');
+    expect(previousEpisode(series, 's1e1')).toBeNull();
+    expect(previousEpisode(series, 'unknown')).toBeNull();
     expect(episodeLabel(episode('x', 1, 2))).toBe('S01:E02');
   });
 

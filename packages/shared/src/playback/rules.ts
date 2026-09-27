@@ -93,6 +93,16 @@ export function nextEpisode<E extends Episode>(
   return index >= 0 ? (episodes[index + 1] ?? null) : null;
 }
 
+/** The episode before this one in watch order (across seasons), for the player's "Previous episode" button. */
+export function previousEpisode<E extends Episode>(
+  series: { seasons: { number: number; episodes: E[] }[] },
+  currentEpisodeId: string,
+): E | null {
+  const episodes = orderedEpisodes(series);
+  const index = episodes.findIndex((episode) => episode.id === currentEpisodeId);
+  return index > 0 ? (episodes[index - 1] ?? null) : null;
+}
+
 export function episodeLabel(episode: Pick<Episode, 'seasonNumber' | 'episodeNumber'>): string {
   const pad = (value: number) => String(value).padStart(2, '0');
   return episode.episodeNumber == null ? `S${pad(episode.seasonNumber)}` : `S${pad(episode.seasonNumber)}:E${pad(episode.episodeNumber)}`;

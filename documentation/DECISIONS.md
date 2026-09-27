@@ -80,6 +80,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-073](#d-073) | 2026-09-26 | Desktop in-app updates, TV-style login, cards of one size; phone search focus |
 | [D-074](#d-074) | 2026-09-27 | Log what the provider sent when a stream is not a video |
 | [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all" |
+| [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
 
 ---
 
@@ -1364,3 +1365,16 @@ Decision:
 - **Rows of buttons in the player** (added 2026-09-27): while Skip ahead's options (30 s … 3 min) or next-up's Play Now / Cancel are on screen, ←/→ only move between them. Before, each step also sought ±10 s, so a chosen option seemed to skip only 10 s. The single Skip ahead button still leaves ←/→ seeking.
 
 Tests: unit tests for the trap, the player buttons and the row's scrolling. The emulator flow checks ↑ drawer, ↓ buttons (play/pause focused, Right moves on, Up reaches Back, Back returns), and that Down ×8 in the details panel never focuses the page. Holding a key cannot be scripted in Maestro, and the fake panel has no row with "See all" (≤ 10 titles), so hold-Right is covered by the unit test and the reasoning above.
+
+## D-077
+
+**Player: previous / next episode and "from the beginning" buttons** — 2026-09-27 (requested by owner)
+
+Decision:
+- The TV/phone player's bottom row reads: play/pause, **from the beginning**, **previous episode**, −10 s, +10 s, **next episode**, time. On TV, ↓ reaches them like the other buttons (D-075).
+- "From the beginning" seeks to 0:00; movies and episodes have it, live channels do not.
+- Previous / next follow the watch order of the merged episode list (season, then episode, across versions of the series, D-066), the same as next-up. The first episode has no previous button and the last has no next one. Switching saves the progress of the current episode, like the episode drawer.
+- Code: `previousEpisode` next to `nextEpisode` (`packages/shared/src/playback/rules.ts`); icons `restart`, `previous`, `next`.
+
+Limits: the web and desktop player do not have these buttons yet.
+
