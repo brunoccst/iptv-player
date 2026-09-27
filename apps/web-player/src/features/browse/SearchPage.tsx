@@ -4,6 +4,7 @@ import { api, uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
 import { useUi } from '../../hooks/stores';
 import { PagedGrid } from './BrowsePage';
+import { t } from '@iptv/shared';
 
 const DEBOUNCE_MS = 300;
 const MAX_CHANNELS = 30;
@@ -22,15 +23,15 @@ export function SearchPage() {
 
   return (
     <div className="page">
-      <h1 className="page__title">Results for “{query}”</h1>
+      <h1 className="page__title">{t('Results for “{query}”', { query })}</h1>
       {query ? (
         <>
           <h2 className="row__title" style={{ margin: '0 0 12px' }}>
-            Movies
+            {t('Movies')}
           </h2>
           <PagedGrid key={`m-${query}`} section="movies" search={query} sort={BY_TITLE} />
           <h2 className="row__title" style={{ margin: '32px 0 12px' }}>
-            Series
+            {t('Series')}
           </h2>
           <PagedGrid key={`s-${query}`} section="series" search={query} sort={BY_TITLE} />
           <ChannelResults key={`c-${query}`} query={query} />
@@ -59,7 +60,7 @@ function ChannelResults({ query }: { query: string }) {
   return (
     <>
       <h2 className="row__title" style={{ margin: '32px 0 12px' }}>
-        Live TV
+        {t('Live TV')}
       </h2>
       <div className="grid">
         {channels.map((channel) => (
@@ -68,7 +69,7 @@ function ChannelResults({ query }: { query: string }) {
             landscape
             title={channel.name}
             posterUrl={channel.logoUrl}
-            badge="LIVE"
+            badge={t('LIVE')}
             onSelect={() =>
               uiStore
                 .getState()

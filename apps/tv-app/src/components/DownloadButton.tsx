@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { downloadIdFor, type DownloadMenuState, type PlayTarget } from '@iptv/shared';
+import { downloadIdFor, type DownloadMenuState, type PlayTarget, t } from '@iptv/shared';
 import { downloadsStore } from '../appContext';
 import { downloadTargetFrom, selectDownload } from '../downloads/downloadsStore';
 import { useDownloads } from '../hooks';
@@ -24,14 +24,14 @@ export function useDownload(target: PlayTarget) {
   const percent = Math.round((record?.progress ?? 0) * 100);
   const label =
     state === 'completed'
-      ? 'Downloaded'
+      ? t('Downloaded')
       : state === 'downloading' || state === 'queued'
-        ? `Downloading ${percent}%`
+        ? t('Downloading {percent}%', { percent })
         : state === 'paused'
-          ? `Paused ${percent}%`
+          ? t('Paused {percent}%', { percent })
           : failed
-            ? 'Download failed · Retry'
-            : 'Download';
+            ? t('Download failed · Retry')
+            : t('Download');
   /** For the episode menu (D-083). */
   const menu: DownloadMenuState = {
     status:

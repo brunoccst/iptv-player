@@ -1,5 +1,6 @@
 import type { PlayTarget } from '../playback/targets';
 import { seal, unseal } from './sealed';
+import { t } from '../i18n/i18n';
 
 /**
  * Remote play (D-061): after pairing (D-060), the phone app can start a title on the TV. While the TV app runs it
@@ -40,18 +41,18 @@ export type RemoteCommand = { type: 'play'; accountId: string; target: PlayTarge
 export type RemoteError = 'other-account' | 'no-profile' | 'bad-request';
 type RemoteReply = { ok: true } | { ok: false; error: RemoteError };
 
-export function remoteMessage(error: RemoteError | 'unreachable' | 'unknown-phone', tvName = 'the TV'): string {
+export function remoteMessage(error: RemoteError | 'unreachable' | 'unknown-phone', tvName = t('the TV')): string {
   switch (error) {
     case 'unreachable':
-      return `Could not reach ${tvName}. Open the app on the TV; phone and TV must be on the same home network (Wi-Fi).`;
+      return t('Could not reach {tv}. Open the app on the TV; phone and TV must be on the same home network (Wi-Fi).', { tv: tvName });
     case 'unknown-phone':
-      return `${tvName} does not know this phone any more. Pair again: on the TV, account menu → Sync with phone.`;
+      return t('{tv} does not know this phone any more. Pair again: on the TV, account menu → Sync with phone.', { tv: tvName });
     case 'other-account':
-      return `${tvName} is signed in to a different account.`;
+      return t('{tv} is signed in to a different account.', { tv: tvName });
     case 'no-profile':
-      return `Choose who is watching on ${tvName} first.`;
+      return t('Choose who is watching on {tv} first.', { tv: tvName });
     case 'bad-request':
-      return 'Something went wrong. Try again.';
+      return t('Something went wrong. Try again.');
   }
 }
 

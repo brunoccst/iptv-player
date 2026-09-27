@@ -10,6 +10,7 @@ import {
   exportUserData,
   importUserData,
   MIN_BACKUP_PASSWORD,
+  t,
 } from '@iptv/shared';
 import { appContext, backupStorages, playbackSettings } from '../appContext';
 import { appConfig } from '../config';
@@ -24,7 +25,7 @@ const cancelled = (error: unknown) => /cancel/i.test(`${(error as { code?: strin
 const failureText = (error: unknown) => {
   if (error instanceof BackupFailure) return backupMessage(error.reason);
   appLog.warn('backup', errorMessage(error));
-  return 'The file could not be read or saved. On a TV, a file manager app may be needed to pick folders and files.';
+  return t('The file could not be read or saved. On a TV, a file manager app may be needed to pick folders and files.');
 };
 
 /**
@@ -58,7 +59,7 @@ export function BackupDialog({ mode, onClose }: { mode: 'backup' | 'restore'; on
       const folder = await Directory.pickDirectoryAsync();
       const name = `${appConfig.appSlug}-backup-${new Date().toISOString().slice(0, 10)}${BACKUP_FILE_EXTENSION}`;
       folder.createFile(name, 'application/octet-stream').write(text);
-      setDone(`Saved ${name}. Keep it private; the password is needed to restore it.`);
+      setDone(t('Saved {name}. Keep it private; the password is needed to restore it.', { name }));
     });
 
   const pick = () =>
@@ -81,58 +82,59 @@ export function BackupDialog({ mode, onClose }: { mode: 'backup' | 'restore'; on
       <View style={styles.scrim}>
         <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
           <View style={styles.panel} testID="backup-dialog">
-            <Text style={styles.title}>{mode === 'backup' ? 'Back up data' : 'Restore from backup'}</Text>
+            <Text style={styles.title}>{mode === 'backup' ? t('Back up data') : t('Restore from backup')}</Text>
             {done ? (
               <>
                 <Text style={styles.text}>{done}</Text>
-                <FocusButton label="Close" variant="primary" hasTVPreferredFocus onPress={onClose} />
+                <FocusButton label={t('Close')} variant="primary" hasTVPreferredFocus onPress={onClose} />
               </>
             ) : mode === 'backup' ? (
               <>
                 <Text style={styles.text}>
-                  Saves your sign-in, server settings, profiles, parental PIN, watch progress, My List and playback settings to a file
-                  encrypted with a password. Restore it after reinstalling the app or on another device.
+                  {t(
+                    'Saves your sign-in, server settings, profiles, parental PIN, watch progress, My List and playback settings to a file encrypted with a password. Restore it after reinstalling the app or on another device.',
+                  )}
                 </Text>
                 <Field
-                  label={`Password (at least ${MIN_BACKUP_PASSWORD} characters)`}
+                  label={t('Password (at least {count} characters)', { count: MIN_BACKUP_PASSWORD })}
                   value={password}
                   onChange={setPassword}
                   secure
                   autoFocus
                   testID="backup-password"
                 />
-                <Field label="Repeat the password" value={confirm} onChange={setConfirm} secure testID="backup-confirm" />
-                {mismatch ? <ErrorText>The two passwords do not match.</ErrorText> : null}
+                <Field label={t('Repeat the password')} value={confirm} onChange={setConfirm} secure testID="backup-confirm" />
+                {mismatch ? <ErrorText>{t('The two passwords do not match.')}</ErrorText> : null}
                 {error ? <ErrorText>{error}</ErrorText> : null}
                 <FocusButton
-                  label={busy ? 'Encrypting…' : 'Choose folder and save'}
+                  label={busy ? t('Encrypting…') : t('Choose folder and save')}
                   variant="primary"
                   disabled={busy || mismatch || !confirm}
                   testID="backup-save"
                   onPress={() => void backup()}
                 />
-                <FocusButton label="Cancel" variant="ghost" onPress={onClose} />
+                <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
               </>
             ) : (
               <>
-                <Text style={styles.text}>Replaces the sign-in and settings on this device with the ones in the file.</Text>
+                <Text style={styles.text}>{t('Replaces the sign-in and settings on this device with the ones in the file.')}</Text>
                 <FocusButton
-                  label={file ? `File: ${file.name}` : 'Choose backup file'}
+                  label={file ? t('File: {name}', { name: file.name }) : t('Choose backup file')}
                   variant="ghost"
                   hasTVPreferredFocus
                   testID="restore-pick"
                   onPress={() => void pick()}
                 />
-                <Field label="Backup password" value={password} onChange={setPassword} secure testID="restore-password" />
+                <Field label={t('Backup password')} value={password} onChange={setPassword} secure testID="restore-password" />
                 {error ? <ErrorText>{error}</ErrorText> : null}
                 <FocusButton
-                  label={busy ? 'Restoring…' : 'Restore'}
+                  label={busy ? t('Restoring…') : t('Restore')}
                   variant="primary"
                   disabled={busy || !file || !password}
                   testID="restore-submit"
                   onPress={() => void restore()}
                 />
-                <FocusButton label="Cancel" variant="ghost" onPress={onClose} />
+                <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
               </>
             )}
           </View>

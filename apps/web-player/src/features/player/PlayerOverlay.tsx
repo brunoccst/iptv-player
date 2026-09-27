@@ -27,6 +27,7 @@ import {
   nextUpCountdown,
   resumePosition,
   type VariantInfo,
+  t,
 } from '@iptv/shared';
 import { api, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
@@ -373,7 +374,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
       <div className="player__overlay">
         <div className="player__top">
-          <button type="button" className="player__control" onClick={close} aria-label="Back">
+          <button type="button" className="player__control" onClick={close} aria-label={t('Back')}>
             <Icon name="back" size={32} />
           </button>
           <div className="player__heading">
@@ -381,11 +382,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             {target.subtitle ? (
               <p className="player__subtitle">
                 {target.subtitle}
-                {source?.offline ? ' · Downloaded' : ''}
+                {source?.offline ? ` · ${t('Downloaded')}` : ''}
               </p>
             ) : null}
           </div>
-          {isLive ? <span className="player__live">LIVE</span> : null}
+          {isLive ? <span className="player__live">{t('LIVE')}</span> : null}
         </div>
 
         <div className="player__bottom">
@@ -393,7 +394,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             <Timeline currentTime={time} duration={duration} bufferedEnd={buffered} onSeek={seekTo} getPreview={getPreview} />
           ) : null}
           <div className="player__controls">
-            <button type="button" className="player__control" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+            <button type="button" className="player__control" onClick={togglePlay} aria-label={playing ? t('Pause') : t('Play')}>
               <Icon name={playing ? 'pause' : 'play'} size={36} />
             </button>
             {!isLive ? (
@@ -402,8 +403,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                   type="button"
                   className="player__control"
                   onClick={() => seekTo(0)}
-                  aria-label="Play from the beginning"
-                  title="Play from the beginning"
+                  aria-label={t('Play from the beginning')}
+                  title={t('Play from the beginning')}
                 >
                   <Icon name="restart" size={30} />
                 </button>
@@ -412,16 +413,16 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                     type="button"
                     className="player__control"
                     onClick={() => playEpisode(previous)}
-                    aria-label={`Previous episode: ${episodeLabel(previous)}`}
-                    title={`Previous episode: ${episodeLabel(previous)}`}
+                    aria-label={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
+                    title={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
                   >
                     <Icon name="previous" size={30} />
                   </button>
                 ) : null}
-                <button type="button" className="player__control" onClick={() => skip(-SKIP_SECONDS)} aria-label="Back 10 seconds">
+                <button type="button" className="player__control" onClick={() => skip(-SKIP_SECONDS)} aria-label={t('Back 10 seconds')}>
                   <Icon name="rewind10" size={32} />
                 </button>
-                <button type="button" className="player__control" onClick={() => skip(SKIP_SECONDS)} aria-label="Forward 10 seconds">
+                <button type="button" className="player__control" onClick={() => skip(SKIP_SECONDS)} aria-label={t('Forward 10 seconds')}>
                   <Icon name="forward10" size={32} />
                 </button>
                 {next ? (
@@ -429,8 +430,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                     type="button"
                     className="player__control"
                     onClick={() => playEpisode(next)}
-                    aria-label={`Next episode: ${episodeLabel(next)}`}
-                    title={`Next episode: ${episodeLabel(next)}`}
+                    aria-label={t('Next episode: {episode}', { episode: episodeLabel(next) })}
+                    title={t('Next episode: {episode}', { episode: episodeLabel(next) })}
                   >
                     <Icon name="next" size={30} />
                   </button>
@@ -441,7 +442,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               type="button"
               className="player__control"
               onClick={() => videoRef.current && (videoRef.current.muted = !muted)}
-              aria-label={muted ? 'Unmute' : 'Mute'}
+              aria-label={muted ? t('Unmute') : t('Mute')}
             >
               <Icon name={muted || volume === 0 ? 'mute' : 'volume'} size={28} />
             </button>
@@ -452,7 +453,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               max={1}
               step={0.05}
               value={muted ? 0 : volume}
-              aria-label="Volume"
+              aria-label={t('Volume')}
               onChange={(e) => {
                 const video = videoRef.current;
                 if (video) {
@@ -472,8 +473,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                 type="button"
                 className="player__control"
                 onClick={() => setPanel(panel === 'guide' ? null : 'guide')}
-                aria-label="Guide"
-                title="Guide (G)"
+                aria-label={t('Guide')}
+                title={t('Guide (G)')}
               >
                 <Icon name="guide" size={28} />
               </button>
@@ -483,7 +484,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                 type="button"
                 className="player__control"
                 onClick={() => setPanel(panel === 'episodes' ? null : 'episodes')}
-                aria-label="Episodes"
+                aria-label={t('Episodes')}
               >
                 <Icon name="episodes" size={28} />
               </button>
@@ -492,7 +493,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               type="button"
               className="player__control"
               onClick={() => setPanel(panel === 'tracks' ? null : 'tracks')}
-              aria-label="Audio, subtitles and version"
+              aria-label={t('Audio, subtitles and version')}
             >
               <Icon name="subtitles" size={28} />
             </button>
@@ -500,7 +501,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
               type="button"
               className="player__control"
               onClick={toggleFullscreen}
-              aria-label={fullscreen ? 'Exit full screen' : 'Full screen'}
+              aria-label={fullscreen ? t('Exit full screen') : t('Full screen')}
             >
               <Icon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} size={30} />
             </button>
@@ -510,7 +511,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
       {status === 'loading' ? (
         <div className="player__center">
-          <Spinner label="Loading stream" />
+          <Spinner label={t('Loading stream')} />
         </div>
       ) : null}
       {status === 'error' ? (
@@ -518,7 +519,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           <div className="player__message" role="alert">
             <p>{error}</p>
             <button type="button" className="button button--primary" onClick={close}>
-              Go back
+              {t('Go back')}
             </button>
           </div>
         </div>
@@ -527,7 +528,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       {status === 'ready' && (skipOpen || isInSkipAheadWindow(skipWindow, time)) ? (
         <div className="player__skip-ahead">
           {skipOpen ? (
-            <div className="player__skip-options" role="group" aria-label="Skip ahead by">
+            <div className="player__skip-options" role="group" aria-label={t('Skip ahead by')}>
               {SKIP_AHEAD_OPTIONS.map((seconds) => (
                 <button
                   key={seconds}
@@ -548,10 +549,10 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             type="button"
             className="player__skip-button"
             aria-expanded={skipOpen}
-            aria-label={skipOpen ? 'Close skip options' : 'Skip ahead: choose how far'}
+            aria-label={skipOpen ? t('Close skip options') : t('Skip ahead: choose how far')}
             onClick={() => setSkipOpen(!skipOpen)}
           >
-            <Icon name={skipOpen ? 'close' : 'forward10'} size={20} /> Skip ahead
+            <Icon name={skipOpen ? 'close' : 'forward10'} size={20} /> {t('Skip ahead')}
           </button>
         </div>
       ) : null}

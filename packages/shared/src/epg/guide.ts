@@ -1,4 +1,5 @@
 import type { EpgListing } from '../api/types';
+import { intlLocale } from '../i18n/i18n';
 
 /** Guide column width. Matches the backend's default window alignment. */
 export const EPG_SLOT_MINUTES = 30;
@@ -22,7 +23,7 @@ export function floorToSlot(ms: number): number {
 /** Start time of every slot in [from, to). */
 export function guideSlots(fromMs: number, toMs: number): number[] {
   const slots: number[] = [];
-  for (let t = floorToSlot(fromMs); t < toMs; t += EPG_SLOT_MS) slots.push(t);
+  for (let slot = floorToSlot(fromMs); slot < toMs; slot += EPG_SLOT_MS) slots.push(slot);
   return slots;
 }
 
@@ -80,7 +81,7 @@ export function programmeProgress(programme: EpgListing, nowMs: number): number 
 
 /** "14:30" style label in the viewer's locale and time zone. */
 export function formatGuideTime(ms: number, locale?: string): string {
-  return new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  return new Date(ms).toLocaleTimeString(locale ?? intlLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 /** "14:30 – 15:00". */

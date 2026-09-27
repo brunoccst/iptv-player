@@ -5,6 +5,7 @@ import { appConfig, buildInfo, updateRepo } from '../config';
 import { colors, fonts } from '../theme';
 import { versionLabel } from '../update/updates';
 import { FocusButton } from './FocusButton';
+import { t, intlLocale } from '@iptv/shared';
 
 const installedVersion = () => {
   try {
@@ -30,11 +31,14 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
   const version = installedVersion();
   const connection = stores.connection?.getState();
   const rows: [string, string][] = [
-    ['Version', versionLabel(version)],
-    ['Built from', buildInfo.commit ? buildInfo.commit.slice(0, 7) : 'a local build'],
-    ...(buildInfo.date ? ([['Built on', new Date(buildInfo.date).toLocaleString()]] as [string, string][]) : []),
-    ['Connection', connection?.mode === 'server' ? `My server (${connection.serverUrl})` : 'Directly to the IPTV provider'],
-    ['Dolby / DTS audio (FFmpeg)', ffmpegAudio() ? 'included' : 'not included'],
+    [t('Version'), versionLabel(version)],
+    [t('Built from'), buildInfo.commit ? buildInfo.commit.slice(0, 7) : t('a local build')],
+    ...(buildInfo.date ? ([[t('Built on'), new Date(buildInfo.date).toLocaleString(intlLocale())]] as [string, string][]) : []),
+    [
+      t('Connection'),
+      connection?.mode === 'server' ? t('My server ({address})', { address: connection.serverUrl }) : t('Directly to the IPTV provider'),
+    ],
+    [t('Dolby / DTS audio (FFmpeg)'), ffmpegAudio() ? t('included') : t('not included')],
     ['Android', String(Platform.Version)],
   ];
   return (
@@ -52,7 +56,7 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
           ))}
           {updateRepo ? (
             <FocusButton
-              label="Check for updates"
+              label={t('Check for updates')}
               variant="primary"
               hasTVPreferredFocus
               testID="about-update"
@@ -63,7 +67,7 @@ export function AboutDialog({ onClose }: { onClose(): void }) {
               }}
             />
           ) : null}
-          <FocusButton label="Close" variant="ghost" hasTVPreferredFocus={!updateRepo} onPress={onClose} testID="about-close" />
+          <FocusButton label={t('Close')} variant="ghost" hasTVPreferredFocus={!updateRepo} onPress={onClose} testID="about-close" />
         </View>
       </View>
     </Modal>

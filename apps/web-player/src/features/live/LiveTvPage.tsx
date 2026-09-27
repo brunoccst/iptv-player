@@ -14,6 +14,7 @@ import {
   useNow,
   type EpgListing,
   type LiveChannel,
+  t,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
@@ -66,15 +67,15 @@ export function LiveTvPage() {
 
   return (
     <div className="page">
-      <h1 className="page__title">Live TV</h1>
+      <h1 className="page__title">{t('Live TV')}</h1>
       <div className="live">
-        <nav className="live__categories" aria-label="Channel categories">
+        <nav className="live__categories" aria-label={t('Channel categories')}>
           <button
             type="button"
             className={`live__category${categoryId === null ? ' live__category--active' : ''}`}
             onClick={() => chooseCategory(null)}
           >
-            All channels
+            {t('All channels')}
           </button>
           {categories.map((category) => (
             <button
@@ -96,10 +97,10 @@ export function LiveTvPage() {
               disabled={from - STEP_MS < nowSlot - MIN_BACK_MS}
               onClick={() => setFrom(from - STEP_MS)}
             >
-              ◀ Earlier
+              ◀ {t('Earlier')}
             </button>
             <button type="button" className="button button--secondary" disabled={from === nowSlot} onClick={() => setFrom(nowSlot)}>
-              Now
+              {t('Now')}
             </button>
             <button
               type="button"
@@ -107,7 +108,7 @@ export function LiveTvPage() {
               disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS}
               onClick={() => setFrom(from + STEP_MS)}
             >
-              Later ▶
+              {t('Later')} ▶
             </button>
             <span className="muted guide-toolbar__day">
               {new Date(from).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -116,12 +117,12 @@ export function LiveTvPage() {
 
           {guide.status === 'refreshing' ? (
             <p className="banner" role="status">
-              <Spinner small /> Downloading the TV guide…
+              <Spinner small /> {t('Downloading the TV guide…')}
             </p>
           ) : null}
           {guide.status === 'unavailable' ? (
             <p className="banner" role="status">
-              Your provider has no full TV guide. Showing what is available per channel.
+              {t('Your provider has no full TV guide. Showing what is available per channel.')}
             </p>
           ) : null}
           {guide.error ? (
@@ -145,7 +146,7 @@ export function LiveTvPage() {
               disabled={guide.loading}
               onClick={() => setPages(pages + 1)}
             >
-              More channels ({guide.rows.length} of {guide.totalChannels})
+              {t('More channels ({count} of {totalChannels})', { count: guide.rows.length, totalChannels: guide.totalChannels })}
             </button>
           ) : null}
         </div>
@@ -169,7 +170,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
   const pct = (fraction: number) => `${(fraction * 100).toFixed(4)}%`;
 
   return (
-    <div className="guide" role="region" aria-label="TV guide">
+    <div className="guide" role="region" aria-label={t('TV guide')}>
       <div className="guide__row guide__row--header">
         <span className="guide__corner" aria-hidden="true" />
         <div className="guide__timeline" aria-hidden="true">
@@ -188,7 +189,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
               type="button"
               className="guide__channel"
               onClick={() => play(channel, programmeAt(programmes, now))}
-              aria-label={`Watch ${channel.name}`}
+              aria-label={t('Watch {name}', { name: channel.name })}
             >
               {channel.logoUrl ? <img src={channel.logoUrl} alt="" loading="lazy" /> : <span className="guide__logo" />}
               <span className="guide__channel-name">
@@ -202,7 +203,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
                 if (!cell.programme) {
                   return (
                     <span key={`gap-${cell.startMs}`} className="guide__gap" style={style}>
-                      {programmes.length ? '' : 'No guide information'}
+                      {programmes.length ? '' : t('No guide information')}
                     </span>
                   );
                 }
@@ -240,12 +241,12 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const { channel, programme } = selection;
   const onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
   return (
-    <section className="guide-details" aria-label="Programme details">
+    <section className="guide-details" aria-label={t('Programme details')}>
       <div>
         <h2 className="guide-details__title">{programme.title}</h2>
         <p className="muted">
           {channel.name} · {formatProgrammeTime(programme)}
-          {onNow ? ' · On now' : ''}
+          {onNow ? ` · ${t('On now')}` : ''}
         </p>
         {onNow ? (
           <div className="guide-details__bar" aria-hidden="true">
@@ -256,10 +257,10 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
       </div>
       <div className="guide-details__actions">
         <button type="button" className="button button--primary" onClick={() => play(channel, onNow ? programme : null)}>
-          {onNow ? 'Watch live' : 'Watch channel'}
+          {onNow ? t('Watch live') : t('Watch channel')}
         </button>
         <button type="button" className="button button--ghost" onClick={onClose}>
-          Close
+          {t('Close')}
         </button>
       </div>
     </section>

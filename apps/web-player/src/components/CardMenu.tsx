@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
+import { t } from '@iptv/shared';
 
 export interface CardMenuAction {
   label: string;
@@ -94,7 +95,7 @@ export function CardMenu({
       ref={menu}
       className="card-menu"
       role="menu"
-      aria-label={`Options for ${title}`}
+      aria-label={t('Options for {title}', { title })}
       style={{ left: place.x, top: place.y }}
       onKeyDown={moveFocus}
       onContextMenu={(event) => event.preventDefault()}
@@ -119,7 +120,7 @@ export function CardMenu({
         </button>
       ))}
       <button type="button" role="menuitem" className="card-menu__item card-menu__item--cancel" onClick={onClose}>
-        Cancel
+        {t('Cancel')}
       </button>
     </div>,
     document.body,

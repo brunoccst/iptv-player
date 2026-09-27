@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { appLog } from '@iptv/shared';
+import { appLog, t } from '@iptv/shared';
 import { stores } from '../../appContext';
 import { Modal } from '../../components/Modal';
 import { appConfig } from '../../config';
@@ -41,16 +41,16 @@ export function LogDialog({ onClose }: { onClose(): void }) {
   };
 
   return (
-    <Modal label="Log" onClose={onClose}>
+    <Modal label={t('Log')} onClose={onClose}>
       <div className="log" data-testid="log-dialog">
-        <h2>Log</h2>
-        <p className="muted">Send this to support when something goes wrong. Usernames and passwords are hidden.</p>
+        <h2>{t('Log')}</h2>
+        <p className="muted">{t('Send this to support when something goes wrong. Usernames and passwords are hidden.')}</p>
         <div className="log__actions">
           <button type="button" className="button button--accent" onClick={save}>
-            Save log
+            {t('Save log')}
           </button>
           <button type="button" className="button" onClick={() => void copy()}>
-            {copied ? 'Copied' : 'Copy log'}
+            {copied ? t('Copied') : t('Copy log')}
           </button>
           <button
             type="button"
@@ -60,12 +60,12 @@ export function LogDialog({ onClose }: { onClose(): void }) {
               refresh((n) => n + 1);
             }}
           >
-            Clear log
+            {t('Clear log')}
           </button>
         </div>
         <pre className="log__lines">
           {entries.length === 0
-            ? 'Nothing logged yet.'
+            ? t('Nothing logged yet.')
             : entries
                 .slice(-PREVIEW_LINES)
                 .map(

@@ -12,6 +12,7 @@ import {
   type MergedEpisode,
   type MergedSeries,
   type PlayTarget,
+  t,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
@@ -44,14 +45,19 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
   // Stable, so the open menu keeps its focus while a download's progress redraws the list.
   const closeMenu = useCallback(() => setMenu(null), []);
 
-  if (!season) return <p className="episodes muted">No episodes available.</p>;
+  if (!season) return <p className="episodes muted">{t('No episodes available.')}</p>;
 
   return (
-    <section className="episodes" aria-label="Episodes">
+    <section className="episodes" aria-label={t('Episodes')}>
       <div className="episodes__header">
-        <h3>Episodes</h3>
+        <h3>{t('Episodes')}</h3>
         {series.seasons.length > 1 ? (
-          <select className="select" aria-label="Season" value={season.number} onChange={(e) => setSeasonNumber(Number(e.target.value))}>
+          <select
+            className="select"
+            aria-label={t('Season')}
+            value={season.number}
+            onChange={(e) => setSeasonNumber(Number(e.target.value))}
+          >
             {series.seasons.map((s) => (
               <option key={s.number} value={s.number}>
                 {s.name}
@@ -80,7 +86,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
               type="button"
               className="episode__still"
               onClick={() => uiStore.getState().play(target)}
-              aria-label={`Play ${episode.title}`}
+              aria-label={t('Play {title}', { title: episode.title })}
             >
               {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : null}
               {isWatched(saved) ? (
@@ -97,7 +103,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
               {listed.versions.length > 1 ? (
                 <select
                   className="select select--small"
-                  aria-label={`Version of ${episode.title}`}
+                  aria-label={t('Version of {title}', { title: episode.title })}
                   value={episode.seriesId}
                   onChange={(e) => setChosen((current) => ({ ...current, [listed.id]: e.target.value }))}
                 >
@@ -108,7 +114,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                   ))}
                 </select>
               ) : versionCount > 1 ? (
-                <p className="episode__plot">Only in {listed.versions[0]!.label}</p>
+                <p className="episode__plot">{t('Only in {label}', { label: listed.versions[0]!.label })}</p>
               ) : null}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -116,7 +122,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                 type="button"
                 className="icon-button"
                 onClick={() => uiStore.getState().play(target)}
-                aria-label={`Play ${episode.title}`}
+                aria-label={t('Play {title}', { title: episode.title })}
               >
                 <Icon name="play" size={20} />
               </button>
@@ -124,9 +130,9 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
               <button
                 type="button"
                 className="icon-button"
-                aria-label={`More options for ${episode.title}`}
+                aria-label={t('More options for {title}', { title: episode.title })}
                 aria-haspopup="menu"
-                title="More options"
+                title={t('More options')}
                 onClick={(event) => setMenu({ episode, position: menuBelow(event.currentTarget) })}
               >
                 <Icon name="more" size={20} />

@@ -1,5 +1,5 @@
 import { Alert } from 'react-native';
-import { selectActiveProfile, type PlayTarget } from '@iptv/shared';
+import { selectActiveProfile, type PlayTarget, t } from '@iptv/shared';
 import { useSession } from '../hooks';
 import { openInExternalPlayer } from '../player/externalPlayer';
 import { IconButton } from './IconButton';
@@ -10,10 +10,10 @@ export function useExternalPlayer(target: PlayTarget) {
   if (kids) return null;
   const name = target.kind === 'episode' && target.subtitle ? target.subtitle : target.title;
   return {
-    label: `Open ${name} in another player`,
+    label: t('Open {title} in another player', { title: name }),
     open: () =>
       void openInExternalPlayer(target).then((message) => {
-        if (message) Alert.alert('Open in another player', message);
+        if (message) Alert.alert(t('Open in another player'), message);
       }),
   };
 }

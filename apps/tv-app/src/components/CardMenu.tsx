@@ -1,6 +1,7 @@
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
+import { t } from '@iptv/shared';
 
 export interface CardMenuAction {
   label: string;
@@ -48,7 +49,7 @@ export function CardMenu({
             />
           ))}
           <FocusButton
-            label="Cancel"
+            label={t('Cancel')}
             variant="ghost"
             hasTVPreferredFocus={actions.every((entry) => entry.disabled)}
             onPress={onClose}

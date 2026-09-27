@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel } from '@iptv/shared';
+import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel, t } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
@@ -45,12 +45,12 @@ export function SearchScreen() {
   return (
     <ScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
-        {query ? `Results for “${query}”` : search.trim().length < SEARCH_MIN_LENGTH ? 'Keep typing…' : 'Searching…'}
+        {query ? t('Results for “{query}”', { query }) : search.trim().length < SEARCH_MIN_LENGTH ? t('Keep typing…') : t('Searching…')}
       </Text>
       {query ? (
         <>
-          <SearchGrid key={`m-${query}`} section="movies" query={query} title="Movies" />
-          <SearchGrid key={`s-${query}`} section="series" query={query} title="Series" />
+          <SearchGrid key={`m-${query}`} section="movies" query={query} title={t('Movies')} />
+          <SearchGrid key={`s-${query}`} section="series" query={query} title={t('Series')} />
           <ChannelResults key={`c-${query}`} query={query} />
         </>
       ) : null}
@@ -72,10 +72,10 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
         <ActivityIndicator
           color={colors.accent}
           style={{ marginLeft: sizes.gutter, alignSelf: 'flex-start' }}
-          accessibilityLabel="Loading"
+          accessibilityLabel={t('Loading')}
         />
       ) : page.items.length === 0 ? (
-        <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>No titles found.</Text>
+        <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>{t('No titles found.')}</Text>
       ) : (
         lines.map((line) => (
           <View key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
@@ -85,10 +85,10 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
           </View>
         ))
       )}
-      {page.loadingMore ? <ActivityIndicator color={colors.accent} accessibilityLabel="Loading more" /> : null}
+      {page.loadingMore ? <ActivityIndicator color={colors.accent} accessibilityLabel={t('Loading more')} /> : null}
       {page.hasMore && !page.loadingMore ? (
         <Text style={[styles.more, { marginHorizontal: sizes.gutter }]} onPress={page.loadMore} accessibilityRole="button">
-          More results
+          {t('More results')}
         </Text>
       ) : null}
     </View>
@@ -114,7 +114,7 @@ function ChannelResults({ query }: { query: string }) {
   if (!channels?.length) return null;
   return (
     <View style={styles.section} testID="row-live-search">
-      <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>Live TV</Text>
+      <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{t('Live TV')}</Text>
       <View style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
         {channels.map((channel) => (
           <PosterCard
@@ -122,7 +122,7 @@ function ChannelResults({ query }: { query: string }) {
             landscape
             title={channel.name}
             posterUrl={channel.logoUrl}
-            badge="LIVE"
+            badge={t('LIVE')}
             onPress={() =>
               navStore.getState().push({
                 name: 'player',

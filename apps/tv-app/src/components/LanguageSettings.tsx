@@ -1,6 +1,6 @@
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
-import { LANGUAGE_NAMES, profileLanguages, selectActiveProfile } from '@iptv/shared';
+import { languageNames, profileLanguages, selectActiveProfile, t } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { useProfilePrefs, useSession } from '../hooks';
 import { colors, fonts } from '../theme';
@@ -35,19 +35,21 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="language-settings">
-          <Text style={styles.title}>{profileName ? `Languages for ${profileName}` : 'Languages'}</Text>
+          <Text style={styles.title}>{profileName ? t('Languages for {name}', { name: profileName }) : t('Languages')}</Text>
           <Text style={styles.text}>
-            Show only titles with audio or subtitles in one of these languages, as the provider names them. Each profile has its own choice.
+            {t(
+              'Show only titles with audio or subtitles in one of these languages, as the provider names them. Each profile has its own choice.',
+            )}
           </Text>
           <ScrollView contentContainerStyle={styles.list}>
             <FocusButton
-              label={`${chosen.length === 0 ? '✓ ' : ''}All languages`}
+              label={`${chosen.length === 0 ? '✓ ' : ''}${t('All languages')}`}
               variant={chosen.length === 0 ? 'primary' : 'ghost'}
               hasTVPreferredFocus={chosen.length === 0}
               testID="language-all"
               onPress={() => setChosen([])}
             />
-            {Object.entries(LANGUAGE_NAMES).map(([code, label]) => {
+            {Object.entries(languageNames()).map(([code, label]) => {
               const on = chosen.includes(code);
               return (
                 <FocusButton
@@ -61,7 +63,7 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
               );
             })}
           </ScrollView>
-          <FocusButton label="Done" variant="ghost" onPress={close} testID="language-close" />
+          <FocusButton label={t('Done')} variant="ghost" onPress={close} testID="language-close" />
         </View>
       </View>
     </Modal>

@@ -1,6 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import type { CatalogSection } from '../api/types';
 import type { KeyValueStorage } from './storage';
+import { t } from '../i18n/i18n';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
@@ -17,6 +18,8 @@ export interface ProfilePrefs {
   kidsCategories?: Partial<Record<CatalogSection, string[] | null>> | null;
   /** Series titles (master ids) with every episode watched: the tag on their covers (D-082). */
   watchedSeries?: string[] | null;
+  /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
+  appLanguage?: string | null;
 }
 
 export interface ProfilePrefsState {
@@ -73,3 +76,23 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   KOR: 'Korean',
   CHI: 'Chinese',
 };
+
+/** The language names in the app's language (D-084), for the language choice. */
+export const languageNames = (): Record<string, string> => ({
+  ENG: t('English'),
+  ESP: t('Spanish'),
+  LAT: t('Spanish (Latin America)'),
+  POR: t('Portuguese'),
+  FRE: t('French'),
+  GER: t('German'),
+  ITA: t('Italian'),
+  DUT: t('Dutch'),
+  POL: t('Polish'),
+  RUS: t('Russian'),
+  TUR: t('Turkish'),
+  ARA: t('Arabic'),
+  HIN: t('Hindi'),
+  JPN: t('Japanese'),
+  KOR: t('Korean'),
+  CHI: t('Chinese'),
+});

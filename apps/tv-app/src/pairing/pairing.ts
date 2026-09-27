@@ -9,6 +9,7 @@ import {
   PairingFailure,
   sendPairing,
   type PairingResult,
+  t,
 } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { appContext, backupStorages } from '../appContext';
@@ -74,7 +75,7 @@ export function usePairingServer(): PairingServerState {
         } catch (error) {
           TvMedia.respondPairing(id, 500, '');
           appLog.warn('pairing', errorMessage(error));
-          setState({ phase: 'ready', qr, error: 'Something went wrong. Scan the code again.' });
+          setState({ phase: 'ready', qr, error: t('Something went wrong. Scan the code again.') });
         }
       })();
     });
@@ -96,20 +97,24 @@ export async function connectToTv(): Promise<string | null> {
   const offer = parsePairingQr(text);
   if (!offer)
     throw new Error(
-      'This is not a code from this app. On the TV or computer, open the QR code on the sign-in page or in the account menu → Sync with phone.',
+      t(
+        'This is not a code from this app. On the TV or computer, open the QR code on the sign-in page or in the account menu → Sync with phone.',
+      ),
     );
   try {
     const result = await sendPairing(storages, offer);
     appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} a TV`);
     if (result.remote) await pairedTv.getState().save({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
-    return result.mode === 'login'
-      ? 'The TV or computer is signed in with your account. Pick a profile there. Both devices now have the same profiles, My List and progress.' +
-          (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '')
-      : 'Both devices now have the same profiles, My List and progress.' +
-          (result.remote ? ' Use "Play on TV" on a title to start it on the TV.' : '');
+    const done =
+      result.mode === 'login'
+        ? t(
+            'The TV or computer is signed in with your account. Pick a profile there. Both devices now have the same profiles, My List and progress.',
+          )
+        : t('Both devices now have the same profiles, My List and progress.');
+    return result.remote ? `${done} ${t('Use "Play on TV" on a title to start it on the TV.')}` : done;
   } catch (error) {
     appLog.warn('pairing', errorMessage(error));
-    throw error instanceof PairingFailure ? error : new Error('Something went wrong. Try again.');
+    throw error instanceof PairingFailure ? error : new Error(t('Something went wrong. Try again.'));
   }
 }

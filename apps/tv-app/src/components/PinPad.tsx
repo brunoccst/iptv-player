@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { PIN_LENGTH, type PinResult } from '@iptv/shared';
+import { PIN_LENGTH, type PinResult, t } from '@iptv/shared';
 import { stores } from '../appContext';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
 
 export const pinMessage = (result: PinResult) =>
-  result === 'locked' ? 'Too many wrong tries. Try again in a minute.' : result === 'wrong' ? 'Wrong PIN.' : null;
+  result === 'locked' ? t('Too many wrong tries. Try again in a minute.') : result === 'wrong' ? t('Wrong PIN.') : null;
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'back', '0', 'cancel'] as const;
 
@@ -40,7 +40,7 @@ export function PinPad({ title, submit, onClose }: { title: string; submit(pin: 
       <View style={styles.scrim}>
         <View style={styles.panel} accessibilityLabel={title} testID="pin-pad">
           <Text style={styles.title}>{title}</Text>
-          <View style={styles.dots} accessibilityLabel={`${pin.length} of ${PIN_LENGTH} digits`}>
+          <View style={styles.dots} accessibilityLabel={t('{count} of {total} digits', { count: pin.length, total: PIN_LENGTH })}>
             {Array.from({ length: PIN_LENGTH }, (_, i) => (
               <View key={i} style={[styles.dot, i < pin.length && styles.dotFilled]} />
             ))}
@@ -59,7 +59,7 @@ export function PinPad({ title, submit, onClose }: { title: string; submit(pin: 
 
 function Key({ value, first, onPress }: { value: (typeof KEYS)[number]; first: boolean; onPress(): void }) {
   const [focused, setFocused] = useState(false);
-  const label = value === 'back' ? 'Delete digit' : value === 'cancel' ? 'Cancel' : value;
+  const label = value === 'back' ? t('Delete digit') : value === 'cancel' ? t('Cancel') : value;
   return (
     <Pressable
       testID={`pin-key-${value}`}

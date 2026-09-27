@@ -12,6 +12,7 @@ import type {
   VariantInfo,
 } from '../api/types';
 import { createResourceLoader, emptyResource, toApiError, type LoadOptions, type Resource } from './resource';
+import { t } from '../i18n/i18n';
 
 /** Deduplicated library (master cards + variants) and the user's "Version / Stream Quality" choices. */
 export interface LibraryState {
@@ -53,12 +54,48 @@ export const DEFAULT_LIBRARY_SORT: LibrarySortChoice = { sort: 'added', order: '
  * (missing values tie), so the menu then shows "Name A–Z".
  */
 export const LIBRARY_SORT_OPTIONS: (LibrarySortChoice & { label: string })[] = [
-  { sort: 'added', order: 'desc', label: 'Recently added' },
-  { sort: 'added', order: 'asc', label: 'Oldest added' },
-  { sort: 'title', order: 'asc', label: 'Name A–Z' },
-  { sort: 'title', order: 'desc', label: 'Name Z–A' },
-  { sort: 'released', order: 'desc', label: 'Newest release' },
-  { sort: 'released', order: 'asc', label: 'Oldest release' },
+  {
+    sort: 'added',
+    order: 'desc',
+    get label() {
+      return t('Recently added');
+    },
+  },
+  {
+    sort: 'added',
+    order: 'asc',
+    get label() {
+      return t('Oldest added');
+    },
+  },
+  {
+    sort: 'title',
+    order: 'asc',
+    get label() {
+      return t('Name A–Z');
+    },
+  },
+  {
+    sort: 'title',
+    order: 'desc',
+    get label() {
+      return t('Name Z–A');
+    },
+  },
+  {
+    sort: 'released',
+    order: 'desc',
+    get label() {
+      return t('Newest release');
+    },
+  },
+  {
+    sort: 'released',
+    order: 'asc',
+    get label() {
+      return t('Oldest release');
+    },
+  },
 ];
 
 export const sortChoiceKey = (choice: LibrarySortChoice) => `${choice.sort}-${choice.order}`;
@@ -170,21 +207,27 @@ export function describeLibraryProgress(statuses: LibraryStatus[] | null): strin
   if (!isLibraryProcessing(statuses)) return [];
   return (statuses ?? []).map((status) => {
     const { stage, parsedCount } = status as LibraryStatusProgress;
-    const label = status.mediaKind === 'series' ? 'Series' : 'Movies';
+    const label = status.mediaKind === 'series' ? t('Series') : t('Movies');
     const total = status.itemCount ?? 0;
     switch (status.jobStatus) {
       case 'pending':
-        return `${label}: waiting to start…`;
+        return t('{section}: waiting to start…', { section: label });
       case 'processing':
-        if (stage === 'downloading') return `${label}: downloading the list from your provider…`;
+        if (stage === 'downloading') return t('{section}: downloading the list from your provider…', { section: label });
         // Direct mode: `parsedCount` runs to `itemCount` over all grouping steps, so a percentage reads right.
         if (stage === 'grouping' && total > 0)
-          return `${label}: grouping ${count(total)} titles, ${Math.floor((100 * (parsedCount ?? 0)) / total)}%…`;
-        return total > 0 ? `${label}: grouping ${count(total)} titles…` : `${label}: grouping titles…`;
+          return t('{section}: grouping {count} titles, {percent}%…', {
+            section: label,
+            count: count(total),
+            percent: Math.floor((100 * (parsedCount ?? 0)) / total),
+          });
+        return total > 0
+          ? t('{section}: grouping {count} titles…', { section: label, count: count(total) })
+          : t('{section}: grouping titles…', { section: label });
       case 'failed':
-        return `${label}: failed${status.error ? ` (${status.error})` : ''}`;
+        return `${t('{section}: failed', { section: label })}${status.error ? ` (${status.error})` : ''}`;
       default:
-        return `${label}: ${count(status.masterCount)} titles ready`;
+        return t('{section}: {count} titles ready', { section: label, count: count(status.masterCount) });
     }
   });
 }

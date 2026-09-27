@@ -1,5 +1,6 @@
 import Svg, { Circle } from 'react-native-svg';
 import { colors } from '../theme';
+import { t } from '@iptv/shared';
 
 /** Circular download progress (0..1). */
 export function ProgressRing({ value, size = 32, stroke = 3 }: { value: number; size?: number; stroke?: number }) {
@@ -11,7 +12,7 @@ export function ProgressRing({ value, size = 32, stroke = 3 }: { value: number; 
       width={size}
       height={size}
       style={{ transform: [{ rotate: '-90deg' }] }}
-      accessibilityLabel={`${Math.round(clamped * 100)} percent`}
+      accessibilityLabel={t('{percent} percent', { percent: Math.round(clamped * 100) })}
     >
       <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.25)" strokeWidth={stroke} fill="none" />
       <Circle

@@ -1,4 +1,5 @@
 import type { AccountDto } from '../api/types';
+import { intlLocale, t } from '../i18n/i18n';
 
 /** Downloads play offline for this long after the app last reached the provider (or server). See DECISIONS.md#d-050. */
 export const OFFLINE_RECHECK_DAYS = 30;
@@ -22,7 +23,7 @@ export function offlineAccess(
     return {
       allowed: false,
       reason: 'subscription-expired',
-      message: 'Your IPTV subscription has expired. Downloads play again once it is renewed and the app is online.',
+      message: t('Your IPTV subscription has expired. Downloads play again once it is renewed and the app is online.'),
     };
   const confirmed = lastOnlineAt ? Date.parse(lastOnlineAt) : NaN;
   if (Number.isNaN(confirmed)) return { allowed: true, recheckBy: null };
@@ -32,11 +33,11 @@ export function offlineAccess(
     return {
       allowed: false,
       reason: 'recheck-needed',
-      message: `Connect to the internet to keep watching downloads (needed every ${OFFLINE_RECHECK_DAYS} days).`,
+      message: t('Connect to the internet to keep watching downloads (needed every {count} days).', { count: OFFLINE_RECHECK_DAYS }),
     };
   return { allowed: true, recheckBy };
 }
 
-/** "25 Oct 2026" in German time (the app's users are in Germany). */
+/** "25 Oct 2026" in the app's language, German time (the app's users are in Germany). */
 export const formatOfflineDate = (date: Date) =>
-  date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Berlin' });
+  date.toLocaleDateString(intlLocale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Berlin' });

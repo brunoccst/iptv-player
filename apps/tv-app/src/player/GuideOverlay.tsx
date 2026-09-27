@@ -21,6 +21,7 @@ import {
   type EpgChannelRow,
   type EpgListing,
   type LiveChannel,
+  t,
 } from '@iptv/shared';
 import { stores } from '../appContext';
 import { useCatalog } from '../hooks';
@@ -65,7 +66,7 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
 
   return (
     <View style={StyleSheet.absoluteFill} testID="guide-overlay">
-      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} focusable={false} accessibilityLabel="Close guide" />
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} focusable={false} accessibilityLabel={t('Close guide')} />
       <TVFocusGuideView
         style={[styles.panel, { width: Math.min(560, Math.max(320, width * 0.5)) }]}
         trapFocusUp
@@ -75,15 +76,15 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
       >
         <View style={styles.header}>
           <Text style={styles.heading} numberOfLines={1}>
-            {category ?? 'All channels'}
+            {category ?? t('All channels')}
           </Text>
           <Text style={styles.clock}>{formatGuideTime(now)}</Text>
         </View>
         {guide.rows.length === 0 ? (
           guide.loading ? (
-            <ActivityIndicator color={colors.accent} style={styles.loading} accessibilityLabel="Loading guide" />
+            <ActivityIndicator color={colors.accent} style={styles.loading} accessibilityLabel={t('Loading guide')} />
           ) : (
-            <Text style={styles.muted}>{guide.error ? 'The guide could not be loaded.' : 'No channels in this category.'}</Text>
+            <Text style={styles.muted}>{guide.error ? t('The guide could not be loaded.') : t('No channels in this category.')}</Text>
           )
         ) : (
           <ScrollView contentContainerStyle={styles.list} onScrollBeginDrag={poke}>
@@ -125,7 +126,9 @@ function GuideRow({
     <Pressable
       testID={`guide-channel-${channel.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`${channel.name}${onNow ? `, now: ${onNow.title}` : ''}${current ? ', playing' : ''}`}
+      accessibilityLabel={[channel.name, onNow ? t('now: {title}', { title: onNow.title }) : null, current ? t('playing') : null]
+        .filter(Boolean)
+        .join(', ')}
       accessibilityState={{ selected: current }}
       hasTVPreferredFocus={current}
       onFocus={() => {
@@ -147,7 +150,7 @@ function GuideRow({
         <Text style={styles.channel} numberOfLines={1}>
           {channel.number ? `${channel.number}  ` : ''}
           {channel.name}
-          {current ? <Text style={styles.playing}> ● Playing</Text> : null}
+          {current ? <Text style={styles.playing}> ● {t('Playing')}</Text> : null}
         </Text>
         {onNow ? (
           <>
@@ -159,11 +162,11 @@ function GuideRow({
             </View>
           </>
         ) : (
-          <Text style={styles.muted}>No guide information</Text>
+          <Text style={styles.muted}>{t('No guide information')}</Text>
         )}
         {next ? (
           <Text style={styles.next} numberOfLines={1}>
-            Next {formatGuideTime(Date.parse(next.start))} · {next.title}
+            {t('Next {guideTime} · {title}', { guideTime: formatGuideTime(Date.parse(next.start)), title: next.title })}
           </Text>
         ) : null}
       </View>

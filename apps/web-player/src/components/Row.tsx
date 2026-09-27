@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { Spinner } from './Spinner';
+import { t } from '@iptv/shared';
 
 interface RowProps {
   title: string;
@@ -58,7 +59,7 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
     <section className="row" ref={root} aria-label={title}>
       <h2 className="row__title">
         {onTitleClick ? (
-          <button type="button" className="row__link" onClick={onTitleClick} aria-label={`Open ${title}`}>
+          <button type="button" className="row__link" onClick={onTitleClick} aria-label={t('Open {title}', { title })}>
             {title} <Icon name="chevronRight" size={18} />
           </button>
         ) : (
@@ -67,7 +68,12 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
       </h2>
       {hasChildren ? (
         <div className="row__viewport">
-          <button type="button" className="row__arrow row__arrow--left" onClick={() => scroll(-1)} aria-label={`Scroll ${title} left`}>
+          <button
+            type="button"
+            className="row__arrow row__arrow--left"
+            onClick={() => scroll(-1)}
+            aria-label={t('Scroll {title} left', { title })}
+          >
             <Icon name="chevronLeft" size={36} />
           </button>
           <div
@@ -81,11 +87,16 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
             {children}
             {loadingMore ? (
               <div className="row__more">
-                <Spinner small label="Loading more" />
+                <Spinner small label={t('Loading more')} />
               </div>
             ) : null}
           </div>
-          <button type="button" className="row__arrow row__arrow--right" onClick={() => scroll(1)} aria-label={`Scroll ${title} right`}>
+          <button
+            type="button"
+            className="row__arrow row__arrow--right"
+            onClick={() => scroll(1)}
+            aria-label={t('Scroll {title} right', { title })}
+          >
             <Icon name="chevronRight" size={36} />
           </button>
         </div>

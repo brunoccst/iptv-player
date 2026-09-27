@@ -29,6 +29,7 @@ import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
 import { buildMastersInChunks, tmdbId, type Master } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
+import { t } from '../i18n/i18n';
 
 /** `ApiClient` that runs on the device and talks to the provider directly (D-038). Same results as the backend endpoints. */
 export interface DirectApiClientOptions {
@@ -238,10 +239,11 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   const toProfileDto = ({ id, name, avatarKey, isKids }: StoredProfile): ProfileDto => ({ id, name, avatarKey, isKids });
   const validateProfile = (request: ProfileRequest, existing: StoredProfile[], excludeId: string | null) => {
     const name = request.name?.trim() ?? '';
-    if (name.length === 0 || name.length > MAX_PROFILE_NAME) throw validation(`Name must be 1-${MAX_PROFILE_NAME} characters.`);
+    if (name.length === 0 || name.length > MAX_PROFILE_NAME)
+      throw validation(t('Name must be 1-{max} characters.', { max: MAX_PROFILE_NAME }));
     if ((request.avatarKey?.length ?? 0) > 64) throw validation('Avatar key must be at most 64 characters.');
     if (existing.some((profile) => profile.id !== excludeId && profile.name.toLowerCase() === name.toLowerCase()))
-      throw validation(`A profile named '${name}' already exists.`);
+      throw validation(t("A profile named '{name}' already exists.", { name }));
     return name;
   };
   const ownedProfile = async (profileId: string) => {
@@ -491,7 +493,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
     auth: {
       async login(request: LoginRequest) {
-        if (!request.username?.trim() || !request.password) throw validation('Username and password are required.');
+        if (!request.username?.trim() || !request.password) throw validation(t('Username and password are required.'));
         const serverUrl = normalizeServerUrl(request.serverUrl ?? '');
         const username = request.username.trim();
         const client = createXtreamClient(
@@ -568,7 +570,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async create(request: ProfileRequest) {
         const { stored } = await session();
         const profiles = await loadProfiles(stored.account.id);
-        if (profiles.length >= MAX_PROFILES) throw validation(`An account can have at most ${MAX_PROFILES} profiles.`);
+        if (profiles.length >= MAX_PROFILES) throw validation(t('An account can have at most {count} profiles.', { count: MAX_PROFILES }));
         const name = validateProfile(request, profiles, null);
         const profile: StoredProfile = {
           id: newId(),
@@ -602,7 +604,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const { stored } = await session();
         const profiles = await loadProfiles(stored.account.id);
         if (!profiles.some((profile) => profile.id === profileId)) throw notFound();
-        if (profiles.length === 1) throw validation('The last profile cannot be deleted.');
+        if (profiles.length === 1) throw validation(t('The last profile cannot be deleted.'));
         await writeJson(
           options.dataStorage,
           profilesKey(stored.account.id),
@@ -663,7 +665,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         await ownedProfile(profileId);
         const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
         const existing = items.find((item) => item.section === section && item.masterId === masterId);
-        if (!existing && items.length >= MAX_WATCHLIST) throw validation(`My List holds at most ${MAX_WATCHLIST} titles.`);
+        if (!existing && items.length >= MAX_WATCHLIST)
+          throw validation(t('My List holds at most {count} titles.', { count: MAX_WATCHLIST }));
         const saved: WatchlistDto = {
           section,
           masterId,

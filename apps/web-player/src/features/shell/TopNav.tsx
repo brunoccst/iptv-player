@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { needsPinToOpen, selectActiveProfile } from '@iptv/shared';
+import { needsPinToOpen, selectActiveProfile, t } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
 import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
@@ -15,19 +15,21 @@ import { usePinGate } from '../profiles/PinDialog';
 import { LanguageSettings } from '../profiles/LanguageSettings';
 import { PinSettings } from '../profiles/PinSettings';
 
-const LINKS: { view: View; label: string }[] = [
-  { view: 'home', label: 'Home' },
-  { view: 'series', label: 'Series' },
-  { view: 'movies', label: 'Movies' },
-  { view: 'live', label: 'Live TV' },
-  { view: 'mylist', label: 'My List' },
-  { view: 'downloads', label: 'My Downloads' },
+const LINKS: { view: View; label: () => string }[] = [
+  { view: 'home', label: () => t('Home') },
+  { view: 'series', label: () => t('Series') },
+  { view: 'movies', label: () => t('Movies') },
+  { view: 'live', label: () => t('Live TV') },
+  { view: 'mylist', label: () => t('My List') },
+  { view: 'downloads', label: () => t('My Downloads') },
 ];
 
 /** Account menu groups; each opens in place with its name and a back arrow. */
 /** The TV app's groups (D-079): Profiles, Library & devices, App. */
 const GROUPS = ['Profiles', 'Library & devices', 'App'] as const;
 type MenuGroup = (typeof GROUPS)[number];
+const groupName = (group: MenuGroup) =>
+  group === 'Profiles' ? t('Profiles') : group === 'Library & devices' ? t('Library & devices') : t('App');
 
 export function TopNav() {
   const view = useUi((s) => s.view);
@@ -63,7 +65,7 @@ export function TopNav() {
       <button type="button" className="nav__brand" onClick={() => ui.navigate('home')}>
         {appConfig.appName}
       </button>
-      <nav aria-label="Main">
+      <nav aria-label={t('Main')}>
         <ul className="nav__links">
           {LINKS.map((link) => (
             <li key={link.view}>
@@ -73,7 +75,7 @@ export function TopNav() {
                 aria-current={view === link.view ? 'page' : undefined}
                 onClick={() => ui.navigate(link.view)}
               >
-                {link.label}
+                {link.label()}
               </button>
             </li>
           ))}
@@ -83,8 +85,8 @@ export function TopNav() {
         <input
           className="nav__search"
           type="search"
-          placeholder="Titles, series"
-          aria-label="Search"
+          placeholder={t('Titles, series')}
+          aria-label={t('Search')}
           value={search}
           onChange={(e) => ui.setSearch(e.target.value)}
         />
@@ -95,7 +97,7 @@ export function TopNav() {
             style={{ background: profile ? avatarColor(profile) : '#555' }}
             aria-haspopup="menu"
             aria-expanded={menuOpen}
-            aria-label="Account menu"
+            aria-label={t('Account menu')}
             onClick={() => toggleMenu(!menuOpen)}
           >
             {profile?.name.charAt(0).toUpperCase()}
@@ -109,10 +111,10 @@ export function TopNav() {
                     type="button"
                     role="menuitem"
                     className="menu__item menu__item--header"
-                    aria-label={`Back from ${group}`}
+                    aria-label={t('Back from {group}', { group: groupName(group) })}
                     onClick={() => setGroup(null)}
                   >
-                    <Icon name="back" size={18} /> {group}
+                    <Icon name="back" size={18} /> {groupName(group)}
                   </button>
                   {group === 'Profiles' ? (
                     <>
@@ -122,7 +124,7 @@ export function TopNav() {
                         className="menu__item"
                         onClick={() => stores.session.getState().selectProfile(null)}
                       >
-                        <Icon name="pencil" size={18} /> Manage Profiles
+                        <Icon name="pencil" size={18} /> {t('Manage Profiles')}
                       </button>
                       <button
                         type="button"
@@ -133,7 +135,7 @@ export function TopNav() {
                           setPinSettings(true);
                         }}
                       >
-                        <Icon name="lock" size={18} /> Parental PIN
+                        <Icon name="lock" size={18} /> {t('Parental PIN')}
                       </button>
                       <button
                         type="button"
@@ -144,7 +146,7 @@ export function TopNav() {
                           setLanguage(true);
                         }}
                       >
-                        <Icon name="subtitles" size={18} /> Languages
+                        <Icon name="subtitles" size={18} /> {t('Languages')}
                       </button>
                     </>
                   ) : group === 'Library & devices' ? (
@@ -158,7 +160,7 @@ export function TopNav() {
                           void stores.library.getState().sync();
                         }}
                       >
-                        <Icon name="refresh" size={18} /> Refresh library
+                        <Icon name="refresh" size={18} /> {t('Refresh library')}
                       </button>
                       {/* Desktop app only (D-072). */}
                       {desktop ? (
@@ -171,7 +173,7 @@ export function TopNav() {
                             openSyncWithPhone();
                           }}
                         >
-                          <Icon name="phone" size={18} /> Sync with phone
+                          <Icon name="phone" size={18} /> {t('Sync with phone')}
                         </button>
                       ) : null}
                       <button
@@ -183,7 +185,7 @@ export function TopNav() {
                           setBackup(true);
                         }}
                       >
-                        <Icon name="backup" size={18} /> Back up &amp; restore
+                        <Icon name="backup" size={18} /> {t('Back up & restore')}
                       </button>
                     </>
                   ) : (
@@ -198,7 +200,7 @@ export function TopNav() {
                             void desktop?.checkForUpdates();
                           }}
                         >
-                          <Icon name="download" size={18} /> Check for updates
+                          <Icon name="download" size={18} /> {t('Check for updates')}
                         </button>
                       ) : null}
                       <button
@@ -210,7 +212,7 @@ export function TopNav() {
                           setAbout(true);
                         }}
                       >
-                        <Icon name="info" size={18} /> About
+                        <Icon name="info" size={18} /> {t('About')}
                       </button>
                       <button
                         type="button"
@@ -221,7 +223,7 @@ export function TopNav() {
                           setLog(true);
                         }}
                       >
-                        <Icon name="info" size={18} /> Log
+                        <Icon name="info" size={18} /> {t('Log')}
                       </button>
                     </>
                   )}
@@ -239,7 +241,7 @@ export function TopNav() {
                         onClick={() => {
                           toggleMenu(false);
                           // Leaving a Kids profile for a regular one needs the parental PIN when one is set (D-054).
-                          gate(needsPinToOpen(pinStatus, profile, p), `Enter the parental PIN to open ${p.name}`, () => {
+                          gate(needsPinToOpen(pinStatus, profile, p), t('Enter the parental PIN to open {name}', { name: p.name }), () => {
                             stores.session.getState().selectProfile(p.id);
                             ui.navigate('home');
                           });
@@ -260,12 +262,12 @@ export function TopNav() {
                       className="menu__item"
                       onClick={() => stores.session.getState().selectProfile(null)}
                     >
-                      <Icon name="pencil" size={18} /> Switch profile
+                      <Icon name="pencil" size={18} /> {t('Switch profile')}
                     </button>
                   ) : null}
                   {(kids ? [] : GROUPS).map((name) => (
                     <button key={name} type="button" role="menuitem" className="menu__item" onClick={() => setGroup(name)}>
-                      <Icon name={name === 'Profiles' ? 'pencil' : name === 'App' ? 'info' : 'refresh'} size={18} /> {name}
+                      <Icon name={name === 'Profiles' ? 'pencil' : name === 'App' ? 'info' : 'refresh'} size={18} /> {groupName(name)}
                       <span className="menu__chevron" aria-hidden>
                         <Icon name="chevronRight" size={18} />
                       </span>
@@ -279,11 +281,11 @@ export function TopNav() {
                       onClick={() => {
                         // Downloads belong to this account and are deleted on sign-out (D-050).
                         const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
-                        if (hasDownloads && !window.confirm('Signing out deletes the downloads on this device. Sign out?')) return;
+                        if (hasDownloads && !window.confirm(t('Signing out deletes the downloads on this device. Sign out?'))) return;
                         void signOut();
                       }}
                     >
-                      <Icon name="logout" size={18} /> Sign out of {appConfig.appName}
+                      <Icon name="logout" size={18} /> {t('Sign out of {appName}', { appName: appConfig.appName })}
                     </button>
                   )}
                 </>

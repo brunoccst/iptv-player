@@ -24,6 +24,7 @@ import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
+import { t } from '@iptv/shared';
 
 const UPDATE_CHECK_DELAY_MS = 15_000;
 
@@ -105,7 +106,7 @@ function useShownSection(section: Section): Section {
 
 function PageLoading() {
   return (
-    <View style={styles.pageLoading} accessibilityLabel="Loading page" testID="page-loading">
+    <View style={styles.pageLoading} accessibilityLabel={t('Loading page')} testID="page-loading">
       <ActivityIndicator size="large" color={colors.accent} />
     </View>
   );
@@ -114,7 +115,7 @@ function PageLoading() {
 /** First screen while the saved session loads: same icon as the native launch screen, so start-up looks like one step. */
 function Starting() {
   return (
-    <View style={styles.starting} accessibilityLabel="Starting">
+    <View style={styles.starting} accessibilityLabel={t('Starting')}>
       <Image source={splashIcon} style={styles.logo} resizeMode="contain" />
       <ActivityIndicator color={colors.accent} />
     </View>

@@ -1,5 +1,5 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { describeLibraryProgress } from '@iptv/shared';
+import { describeLibraryProgress, t } from '@iptv/shared';
 import { useLibrary, useSession } from '../hooks';
 import { colors, fonts, radius, useSizes } from '../theme';
 
@@ -20,12 +20,12 @@ export function LibraryBanner({ processing }: { processing: boolean }) {
       pointerEvents="none"
     >
       {offline ? (
-        <Text style={styles.bannerText}>You're offline. Downloaded titles are available in My Downloads.</Text>
+        <Text style={styles.bannerText}>{t("You're offline. Downloaded titles are available in My Downloads.")}</Text>
       ) : (
         <>
           <View style={styles.bannerLine}>
             <ActivityIndicator size="small" color={colors.accent} />
-            <Text style={styles.bannerText}>Organizing your library: grouping duplicate titles and versions…</Text>
+            <Text style={styles.bannerText}>{t('Organizing your library: grouping duplicate titles and versions…')}</Text>
           </View>
           {progress.map((line) => (
             <Text key={line} style={styles.bannerDetail}>

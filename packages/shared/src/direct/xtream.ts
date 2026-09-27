@@ -15,6 +15,7 @@ import type {
 import { appLog } from '../utils/logger';
 import { decodeMaybeBase64 } from './base64Text';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
+import { t } from '../i18n/i18n';
 
 /** Direct-mode port of backend XtreamCodesProvider (D-011, D-038). Same DTOs, so screens do not notice the difference. */
 export interface XtreamCredentials {
@@ -44,16 +45,16 @@ const KNOWN_ENDPOINT_FILES = ['player_api.php', 'get.php', 'xmltv.php', 'panel_a
 
 export function normalizeServerUrl(serverUrl: string): string {
   let text = serverUrl.trim();
-  if (!text) throw new ApiError(400, 'validation_failed', 'Server URL is required.');
+  if (!text) throw new ApiError(400, 'validation_failed', t('Server URL is required.'));
   if (!text.includes('://')) text = `http://${text}`;
   let url: URL;
   try {
     url = new URL(text);
   } catch {
-    throw new ApiError(400, 'validation_failed', 'Server URL must be an http(s) address.');
+    throw new ApiError(400, 'validation_failed', t('Server URL must be an http(s) address.'));
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:')
-    throw new ApiError(400, 'validation_failed', 'Server URL must be an http(s) address.');
+    throw new ApiError(400, 'validation_failed', t('Server URL must be an http(s) address.'));
   let path = url.pathname.replace(/\/+$/, '');
   const last = path.slice(path.lastIndexOf('/') + 1);
   if (KNOWN_ENDPOINT_FILES.includes(last.toLowerCase())) path = path.slice(0, path.lastIndexOf('/'));
@@ -103,8 +104,13 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     } catch (error) {
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
       const failure = timedOut
-        ? unavailable(`No answer from ${host()} after ${Math.round(timeoutMs / 1000)} s.`)
-        : unavailable(`Could not connect to ${host()} (${error instanceof Error ? error.message : 'network error'}).`);
+        ? unavailable(t('No answer from {host} after {seconds} s.', { host: host(), seconds: Math.round(timeoutMs / 1000) }))
+        : unavailable(
+            t('Could not connect to {host} ({error}).', {
+              host: host(),
+              error: error instanceof Error ? error.message : t('network error'),
+            }),
+          );
       appLog.error('provider', `${operation}: ${failure.message}`);
       throw failure;
     } finally {
@@ -188,10 +194,10 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       const userInfo = prop(root, 'user_info');
       const serverInfo = prop(root, 'server_info');
       if (!isObject(userInfo) || !bool(userInfo, 'auth'))
-        throw new ApiError(401, 'invalid_provider_credentials', 'Invalid username or password.');
+        throw new ApiError(401, 'invalid_provider_credentials', t('Invalid username or password.'));
       const status = str(userInfo, 'status') ?? 'Unknown';
       if (status.toLowerCase() !== 'active')
-        throw new ApiError(401, 'invalid_provider_credentials', `Provider account status is '${status}'.`);
+        throw new ApiError(401, 'invalid_provider_credentials', t("Provider account status is '{status}'.", { status }));
       const info: XtreamAccountInfo = {
         status,
         expiresAt: unixTime(userInfo, 'exp_date'),
@@ -280,7 +286,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
           const meta = seasonMeta.get(number);
           return {
             number,
-            name: str(meta, 'name') ?? `Season ${number}`,
+            name: str(meta, 'name') ?? t('Season {number}', { number }),
             coverUrl: str(meta, 'cover_big') ?? str(meta, 'cover'),
             episodes: episodes.get(number) ?? [],
           };

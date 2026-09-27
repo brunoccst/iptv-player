@@ -11,6 +11,7 @@ import {
   type PairedTv,
   type PlayTarget,
   type RemoteOffer,
+  t,
 } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { backupStorages, navStore, stores } from '../appContext';
@@ -123,14 +124,14 @@ export function useRemoteServer(enabled: boolean) {
 export async function playOnTv(target: PlayTarget): Promise<string> {
   const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
-  if (!tv || !accountId) throw new Error('Connect a TV first: account menu → Connect a TV or computer.');
+  if (!tv || !accountId) throw new Error(t('Connect a TV first: account menu → Connect a TV or computer.'));
   try {
     const { port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
     if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
     appLog.info('remote', `sent ${target.kind} ${target.streamId} to the TV`);
-    return `Playing on ${tv.tvName}.`;
+    return t('Playing on {tv}.', { tv: tv.tvName });
   } catch (error) {
     appLog.warn('remote', errorMessage(error));
-    throw error instanceof RemoteFailure ? error : new Error('Something went wrong. Try again.');
+    throw error instanceof RemoteFailure ? error : new Error(t('Something went wrong. Try again.'));
   }
 }

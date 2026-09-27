@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { isKidsCategory, type CatalogSection, type MediaCategory } from '@iptv/shared';
+import { isKidsCategory, type CatalogSection, type MediaCategory, t } from '@iptv/shared';
 import { api, stores } from '../../appContext';
 import { Modal } from '../../components/Modal';
 
-const SECTIONS: { section: CatalogSection; label: string }[] = [
-  { section: 'movies', label: 'Movies' },
-  { section: 'series', label: 'Series' },
-  { section: 'live', label: 'Live TV' },
+const SECTIONS: { section: CatalogSection; label: () => string }[] = [
+  { section: 'movies', label: () => t('Movies') },
+  { section: 'series', label: () => t('Series') },
+  { section: 'live', label: () => t('Live TV') },
 ];
 
 /** Profile editor → Choose categories (D-064): what a Kids profile may see, per section; starts from the automatic choice. */
@@ -22,7 +22,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
     api.catalog
       .categories(section)
       .then((list) => setLists((current) => ({ ...current, [section]: list })))
-      .catch(() => setError('The categories could not be loaded.'));
+      .catch(() => setError(t('The categories could not be loaded.')));
   }, [section, lists]);
 
   const picked = (list: MediaCategory[]) => picks[section] ?? list.filter((c) => isKidsCategory(c.name)).map((c) => c.id);
@@ -32,9 +32,9 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
   };
 
   return (
-    <Modal label={`Categories for ${name}`} onClose={onClose}>
+    <Modal label={t('Categories for {name}', { name })} onClose={onClose}>
       <div className="profile-editor" style={{ display: 'grid', gap: 12 }}>
-        <h2 style={{ margin: 0 }}>Categories for {name}</h2>
+        <h2 style={{ margin: 0 }}>{t('Categories for {name}', { name })}</h2>
         <div className="chips" role="tablist">
           {SECTIONS.map((s) => (
             <button
@@ -45,13 +45,13 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
               className={`chip${section === s.section ? ' chip--active' : ''}`}
               onClick={() => setSection(s.section)}
             >
-              {s.label}
+              {s.label()}
             </button>
           ))}
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          {picks[section] ? 'Chosen by you.' : 'Automatic: categories whose names say they are for kids.'} Only checked categories are
-          shown.
+          {picks[section] ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
+          {t('Only checked categories are shown.')}
         </p>
         {error ? (
           <p className="error-text" role="alert">
@@ -72,7 +72,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             className="button button--primary"
             onClick={() => void stores.profilePrefs.getState().update(profileId, { kidsCategories: picks }).then(onClose)}
           >
-            Save
+            {t('Save')}
           </button>
           <button
             type="button"
@@ -80,7 +80,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             disabled={!picks[section]}
             onClick={() => setPicks({ ...picks, [section]: null })}
           >
-            Automatic
+            {t('Automatic')}
           </button>
         </div>
       </div>

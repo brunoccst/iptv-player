@@ -4,6 +4,7 @@ import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
 import { FocusRow } from './FocusRow';
+import { t } from '@iptv/shared';
 
 export interface ChipItem {
   key: string;
@@ -101,12 +102,12 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
 /** "Show all ⌄" / "Show less ⌃": stays in the same place in both modes. */
 function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
-  const text = expanded ? 'Show less' : 'Show all';
+  const text = expanded ? t('Show less') : t('Show all');
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={expanded ? 'Show fewer categories' : 'Show all categories'}
+      accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
       onPress={onPress}
       onFocus={() => setFocused(true)}

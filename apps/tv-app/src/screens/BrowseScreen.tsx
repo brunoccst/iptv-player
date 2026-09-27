@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { DEFAULT_LIBRARY_SORT, sortChoiceKey, type LibrarySection } from '@iptv/shared';
+import { DEFAULT_LIBRARY_SORT, sortChoiceKey, type LibrarySection, t } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
 import { useCatalog, useLibrary, useNav } from '../hooks';
@@ -22,14 +22,14 @@ export function BrowseScreen({ section, processing = false }: { section: Library
 
   const header = (
     <View style={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter }}>
-      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{section === 'movies' ? 'Movies' : 'Series'}</Text>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{section === 'movies' ? t('Movies') : t('Series')}</Text>
       <ChipBar
-        label="Categories"
+        label={t('Categories')}
         testID="chips"
         chips={[
           {
             key: 'all',
-            label: 'All',
+            label: t('All'),
             active: categoryId === null,
             testID: 'chip-all',
             onPress: () => navStore.getState().setCategory(null),
@@ -57,7 +57,7 @@ export function BrowseScreen({ section, processing = false }: { section: Library
         header={header}
         testID={`browse-${section}`}
         // First start: the library is still being organized, so the page is empty for now; the banner shows progress.
-        emptyText={processing ? 'Your library is being organized. Titles appear here as soon as it is done.' : undefined}
+        emptyText={processing ? t('Your library is being organized. Titles appear here as soon as it is done.') : undefined}
       />
       <LibraryBanner processing={processing} />
     </View>

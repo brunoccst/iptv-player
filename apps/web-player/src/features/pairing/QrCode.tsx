@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import qrcode from 'qrcode-generator';
+import { t } from '@iptv/shared';
 
 /** Black-on-white QR code with the standard quiet zone, drawn as one SVG path (same drawing as the TV app). */
 export function QrCode({ text, size }: { text: string; size: number }) {
@@ -20,7 +21,7 @@ export function QrCode({ text, size }: { text: string; size: number }) {
       height={size}
       viewBox={`0 0 ${count} ${count}`}
       role="img"
-      aria-label="QR code"
+      aria-label={t('QR code')}
       data-testid="pairing-qr"
       data-text={text}
     >

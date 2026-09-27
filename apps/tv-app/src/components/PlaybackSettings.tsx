@@ -4,14 +4,19 @@ import { playbackSettings } from '../appContext';
 import { usePlaybackSettings } from '../hooks';
 import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
+import { t } from '@iptv/shared';
 
-const CHOICES: { value: AudioDecoderChoice; label: string; hint: string }[] = [
+const choices = (): { value: AudioDecoderChoice; label: string; hint: string }[] => [
   {
     value: 'device',
-    label: 'Device decoders first',
-    hint: 'Recommended. FFmpeg only for formats the device cannot play; Dolby can still reach a soundbar.',
+    label: t('Device decoders first'),
+    hint: t('Recommended. FFmpeg only for formats the device cannot play; Dolby can still reach a soundbar.'),
   },
-  { value: 'ffmpeg', label: 'FFmpeg first', hint: 'Software decoding; try this when a title has no sound or stops with an audio error.' },
+  {
+    value: 'ffmpeg',
+    label: t('FFmpeg first'),
+    hint: t('Software decoding; try this when a title has no sound or stops with an audio error.'),
+  },
 ];
 
 /** Account menu → Playback: which audio decoders the player tries first (D-059). Applies to the next title. */
@@ -21,9 +26,9 @@ export function PlaybackSettings({ onClose }: { onClose(): void }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="playback-settings">
-          <Text style={styles.title}>Audio decoder</Text>
-          <Text style={styles.text}>Applies to the next title you start.</Text>
-          {CHOICES.map((choice) => (
+          <Text style={styles.title}>{t('Audio decoder')}</Text>
+          <Text style={styles.text}>{t('Applies to the next title you start.')}</Text>
+          {choices().map((choice) => (
             <View key={choice.value} style={styles.choice}>
               <FocusButton
                 label={`${current === choice.value ? '✓ ' : ''}${choice.label}`}
@@ -35,7 +40,7 @@ export function PlaybackSettings({ onClose }: { onClose(): void }) {
               <Text style={styles.hint}>{choice.hint}</Text>
             </View>
           ))}
-          <FocusButton label="Close" variant="ghost" onPress={onClose} testID="playback-settings-close" />
+          <FocusButton label={t('Close')} variant="ghost" onPress={onClose} testID="playback-settings-close" />
         </View>
       </View>
     </Modal>

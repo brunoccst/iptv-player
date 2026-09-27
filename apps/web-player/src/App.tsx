@@ -6,6 +6,7 @@ import { SyncWithPhoneHost } from './features/pairing/SyncWithPhone';
 import { ProfilePicker } from './features/profiles/ProfilePicker';
 import { Shell } from './features/shell/Shell';
 import { useSession } from './hooks/stores';
+import { t } from '@iptv/shared';
 
 /** Gate: restore session → login → profile picker → app shell. */
 export function App() {
@@ -34,7 +35,7 @@ function Screen({ status, activeProfileId }: { status: string; activeProfileId: 
   if (status === 'idle' || status === 'restoring') {
     return (
       <div className="center-screen">
-        <Spinner label="Starting" />
+        <Spinner label={t('Starting')} />
       </div>
     );
   }

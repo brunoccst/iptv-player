@@ -23,6 +23,8 @@ import {
   type LibrarySortChoice,
   type MasterCard,
   type MediaCategory,
+  t,
+  tn,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
@@ -70,7 +72,11 @@ export function MasterCardItem({
         hasTVPreferredFocus={hasTVPreferredFocus}
         badge={item.bestQuality === '4K' ? '4K' : null}
         watched={watched}
-        subtitle={[item.year, item.variantCount > 1 ? `${item.variantCount} versions` : null].filter(Boolean).join(' · ') || null}
+        subtitle={
+          [item.year, item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null]
+            .filter(Boolean)
+            .join(' · ') || null
+        }
         onPress={openDetails}
         onLongPress={() => setMenu(true)}
       />
@@ -105,7 +111,7 @@ export function TitleRow({ section, category, title }: { section: LibrarySection
       keyOf={(item) => item.id}
       testID={`row-${section}-${category?.id ?? 'all'}`}
       loading={page.loadingFirst}
-      empty={page.error ? 'Could not load this row.' : ' '}
+      empty={page.error ? t('Could not load this row.') : ' '}
       onTitlePress={open}
       more={page.hasMore ? { onPress: open } : undefined}
       render={(item) => <MasterCardItem section={section} item={item} />}
@@ -160,13 +166,13 @@ export function TitleGrid({
   }, [items, columns]);
 
   const empty = page.loadingFirst ? (
-    <ActivityIndicator size="large" color={colors.accent} style={styles.first} accessibilityLabel="Loading" />
+    <ActivityIndicator size="large" color={colors.accent} style={styles.first} accessibilityLabel={t('Loading')} />
   ) : page.error ? (
     <View style={{ marginHorizontal: gutter }}>
       <ErrorText>{errorText(page.error)}</ErrorText>
     </View>
   ) : (
-    <Text style={[styles.muted, { marginHorizontal: gutter }]}>{emptyText ?? 'No titles found.'}</Text>
+    <Text style={[styles.muted, { marginHorizontal: gutter }]}>{emptyText ?? t('No titles found.')}</Text>
   );
 
   return (
@@ -206,7 +212,7 @@ export function TitleGrid({
       scrollEventThrottle={100}
       ListFooterComponent={
         page.loadingMore ? (
-          <ActivityIndicator style={styles.more} size="large" color={colors.accent} accessibilityLabel="Loading more" />
+          <ActivityIndicator style={styles.more} size="large" color={colors.accent} accessibilityLabel={t('Loading more')} />
         ) : (
           <View style={styles.bottom} />
         )
@@ -233,10 +239,10 @@ function SortBar({
   const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
   return (
     <View style={[styles.sortBar, { paddingHorizontal: gutter }]}>
-      <Text style={[styles.muted, styles.noShrink]}>Sort by</Text>
+      <Text style={[styles.muted, styles.noShrink]}>{t('Sort by')}</Text>
       <Select
         compact
-        label="Sort by"
+        label={t('Sort by')}
         testID="sort"
         value={sorts.includes(value.sort) ? sortChoiceKey(value) : 'title-asc'}
         options={options.map((option) => ({ value: sortChoiceKey(option), label: option.label }))}

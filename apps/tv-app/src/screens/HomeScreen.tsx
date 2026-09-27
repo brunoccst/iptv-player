@@ -13,6 +13,7 @@ import {
   selectVariant,
   type MasterCard,
   type ProgressDto,
+  t,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
@@ -63,14 +64,14 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     { key: 'continue', render: () => <ContinueWatchingRow /> },
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
-    { key: 'series', render: () => <TitleRow section="series" title="Series" /> },
+    { key: 'series', render: () => <TitleRow section="series" title={t('Series')} /> },
     ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
       key: `m-${category.id}`,
       render: () => <TitleRow section="movies" category={category} title={category.name} />,
     })),
     ...seriesCategories.slice(0, SERIES_ROWS).map((category) => ({
       key: `s-${category.id}`,
-      render: () => <TitleRow section="series" category={category} title={`Series: ${category.name}`} />,
+      render: () => <TitleRow section="series" category={category} title={t('Series: {name}', { name: category.name })} />,
     })),
   ];
 
@@ -147,7 +148,7 @@ function ContinueWatchingRow() {
   return (
     <>
       <Row
-        title="Continue Watching"
+        title={t('Continue Watching')}
         items={resume}
         keyOf={(p) => `${p.kind}-${p.itemId}`}
         testID="row-continue"
@@ -194,7 +195,7 @@ function MyListRow() {
   const open = () => navStore.getState().goSection('mylist');
   return (
     <Row
-      title="My List"
+      title={t('My List')}
       items={items.slice(0, 10)}
       keyOf={(item) => `${item.section}-${item.masterId}`}
       testID="row-mylist"
@@ -221,10 +222,10 @@ function LiveRow() {
 
   return (
     <Row
-      title={categories[0] ? `Live TV: ${categories[0].name}` : 'Live TV'}
+      title={categories[0] ? t('Live TV: {name}', { name: categories[0].name }) : t('Live TV')}
       items={channels.slice(0, LIVE_ROW_SIZE)}
       keyOf={(c) => c.id}
-      empty="No channels."
+      empty={t('No channels.')}
       testID="row-live"
       more={
         channels.length > LIVE_ROW_SIZE ? { landscape: true, onPress: () => navStore.getState().openCategory('live', first) } : undefined
@@ -234,7 +235,7 @@ function LiveRow() {
           landscape
           title={c.name}
           posterUrl={c.logoUrl}
-          badge="LIVE"
+          badge={t('LIVE')}
           onPress={() => navStore.getState().push({ name: 'player', target: liveTarget(c) })}
         />
       )}
@@ -264,7 +265,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
   const heroHeight = Math.max(420, Math.min(height * 0.8, width * 0.5625));
   const backdrop = meta.data?.backdropUrls[0] ?? featured.posterUrl;
   return (
-    <View style={[styles.hero, { height: heroHeight }]} accessibilityLabel="Featured">
+    <View style={[styles.hero, { height: heroHeight }]} accessibilityLabel={t('Featured')}>
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
       <Gradient
         angle={77}
@@ -290,7 +291,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
         ) : null}
         <View style={styles.heroActions}>
           <FocusButton
-            label="Play"
+            label={t('Play')}
             icon="play"
             variant="primary"
             hasTVPreferredFocus
@@ -299,7 +300,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             onPress={() => details && variant && navStore.getState().push({ name: 'player', target: movieTarget(details, variant) })}
           />
           <FocusButton
-            label="More Info"
+            label={t('More Info')}
             icon="info"
             variant="secondary"
             testID="hero-info"

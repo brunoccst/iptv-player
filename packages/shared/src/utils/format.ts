@@ -1,10 +1,10 @@
-/** "1h 32m", "45m", "0m". For runtime labels on cards and details. */
+import { t } from '../i18n/i18n'; /** "1h 32m", "45m", "0m". For runtime labels on cards and details. */
 export function formatDuration(totalSeconds: number | null | undefined): string {
   if (totalSeconds == null || !Number.isFinite(totalSeconds) || totalSeconds < 0) return '';
   const minutes = Math.round(totalSeconds / 60);
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  return hours > 0 ? `${hours}h ${rest}m` : `${rest}m`;
+  return hours > 0 ? t('{hours}h {minutes}m', { hours, minutes: rest }) : t('{minutes}m', { minutes: rest });
 }
 
 /** "1:02:03" or "2:03". For player timelines. */

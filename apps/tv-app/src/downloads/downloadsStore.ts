@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { downloadIdFor, toApiError, tvPlaybackAttempts, type ApiClient, type PlayTarget } from '@iptv/shared';
+import { downloadIdFor, toApiError, tvPlaybackAttempts, type ApiClient, type PlayTarget, t } from '@iptv/shared';
 import type { NativeDownload, NativeDownloadState } from '../../modules/tv-media';
 
 type TvMediaApi = typeof import('../../modules/tv-media').TvMedia;
@@ -59,7 +59,7 @@ async function resolveDownloadSource(api: ApiClient, target: DownloadTarget, fet
     await probe?.body?.cancel?.().catch(() => undefined);
     if (probe?.ok) return { url: playback.url, isHls: attempt.engine === 'hls' };
   }
-  throw new Error('This title is not available from the provider right now.');
+  throw new Error(t('This title is not available from the provider right now.'));
 }
 
 export function createDownloadsStore({

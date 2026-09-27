@@ -1,4 +1,4 @@
-import { isOnWatchlist, type LibrarySection, type MasterCard } from '@iptv/shared';
+import { isOnWatchlist, type LibrarySection, type MasterCard, t } from '@iptv/shared';
 import { stores } from '../appContext';
 import { useWatchlist } from '../hooks/stores';
 import { Icon } from './Icon';
@@ -17,8 +17,8 @@ export function WatchlistButton({
       type="button"
       className="icon-button"
       aria-pressed={saved}
-      aria-label={saved ? `Remove ${title.title} from My List` : `Add ${title.title} to My List`}
-      title={saved ? 'Remove from My List' : 'Add to My List'}
+      aria-label={saved ? t('Remove {title} from My List', { title: title.title }) : t('Add {title} to My List', { title: title.title })}
+      title={saved ? t('Remove from My List') : t('Add to My List')}
       onClick={() => void stores.watchlist.getState().toggle(section, title)}
     >
       <Icon name={saved ? 'check' : 'plus'} size={20} />

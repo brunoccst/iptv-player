@@ -11,6 +11,8 @@ import {
   type MasterDetails,
   type ProgressDto,
   type VariantInfo,
+  t,
+  tn,
 } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
@@ -40,7 +42,7 @@ export function DetailsModal({ target }: { target: DetailsTarget }) {
   }, [target.section, target.masterId, revision]);
 
   return (
-    <Modal label={resource?.data?.title ?? 'Details'} onClose={close}>
+    <Modal label={resource?.data?.title ?? t('Details')} onClose={close}>
       {resource?.data ? (
         target.section === 'movies' ? (
           <MovieDetails master={resource.data} />
@@ -82,7 +84,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       stores.library.getState().selectVariant(master.id, resume.itemId);
   }, [resume?.itemId, master]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!variant) return <p style={{ padding: 32 }}>No playable versions.</p>;
+  if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
 
   const play = () => {
     const resumeHere = resume && resume.itemId === variant.streamId ? resume : null;
@@ -97,7 +99,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
     <>
       <DetailsHero backdrop={backdrop} title={master.title} watched={watched}>
         <button type="button" className="button button--primary" onClick={play}>
-          <Icon name="play" /> {resume && resume.itemId === variant.streamId ? 'Resume' : 'Play'}
+          <Icon name="play" /> {resume && resume.itemId === variant.streamId ? t('Resume') : t('Play')}
         </button>
         <DownloadButton target={downloadTarget(movieTarget(master, variant), duration)} />
         <WatchlistButton section="movies" title={master} />
@@ -106,27 +108,27 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       <div className="details__body">
         <div>
           <Facts year={master.year} rating={meta.data?.summary.rating ?? master.rating} quality={variant.quality} runtime={duration} />
-          <p>{meta.data?.plot ?? (meta.loading ? '' : 'No description.')}</p>
+          <p>{meta.data?.plot ?? (meta.loading ? '' : t('No description.'))}</p>
           <VariantSelect variants={master.variants} value={variant.streamId} onChange={choose} />
         </div>
         <div className="details__side">
           {meta.data?.cast ? (
             <p>
-              Cast: <strong>{meta.data.cast}</strong>
+              {t('Cast:')} <strong>{meta.data.cast}</strong>
             </p>
           ) : null}
           {meta.data?.genre ? (
             <p>
-              Genres: <strong>{meta.data.genre}</strong>
+              {t('Genres:')} <strong>{meta.data.genre}</strong>
             </p>
           ) : null}
           {meta.data?.director ? (
             <p>
-              Director: <strong>{meta.data.director}</strong>
+              {t('Director:')} <strong>{meta.data.director}</strong>
             </p>
           ) : null}
           <p>
-            Source: <strong>{variant.rawTitle}</strong>
+            {t('Source:')} <strong>{variant.rawTitle}</strong>
           </p>
         </div>
       </div>
@@ -150,7 +152,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   useEffect(() => {
     if (merged && progressLoaded) void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
   }, [merged, progressLoaded, allWatched, master.id]);
-  if (!variant) return <p style={{ padding: 32 }}>No playable versions.</p>;
+  if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
 
   const firstEpisode = series.data?.seasons[0]?.episodes[0];
   const play = () => {
@@ -170,7 +172,10 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
     <>
       <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title} watched={allWatched}>
         <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
-          <Icon name="play" /> {resume ? `Resume S${resume.seasonNumber}:E${resume.episodeNumber}` : 'Play'}
+          <Icon name="play" />{' '}
+          {resume
+            ? t('Resume S{seasonNumber}:E{episodeNumber}', { seasonNumber: resume.seasonNumber, episodeNumber: resume.episodeNumber })
+            : t('Play')}
         </button>
         <WatchlistButton section="series" title={master} />
       </DetailsHero>
@@ -180,7 +185,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
             year={master.year}
             rating={master.rating}
             quality={variant.quality}
-            extra={series.data ? `${series.data.seasons.length} Season${series.data.seasons.length === 1 ? '' : 's'}` : null}
+            extra={series.data ? tn('{count} Season', '{count} Seasons', series.data.seasons.length) : null}
           />
           <p>{series.data?.summary.plot ?? ''}</p>
           <VariantSelect
@@ -192,12 +197,12 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
         <div className="details__side">
           {series.data?.cast ? (
             <p>
-              Cast: <strong>{series.data.cast}</strong>
+              {t('Cast:')} <strong>{series.data.cast}</strong>
             </p>
           ) : null}
           {series.data?.summary.genre ? (
             <p>
-              Genres: <strong>{series.data.summary.genre}</strong>
+              {t('Genres:')} <strong>{series.data.summary.genre}</strong>
             </p>
           ) : null}
         </div>
@@ -264,7 +269,7 @@ function Facts({
 }) {
   return (
     <div className="details__facts">
-      {rating != null ? <span className="details__rating">{Math.round(rating * 10)}% rating</span> : null}
+      {rating != null ? <span className="details__rating">{t('{percent}% rating', { percent: Math.round(rating * 10) })}</span> : null}
       {year ? <span>{year}</span> : null}
       {runtime ? <span>{formatDuration(runtime)}</span> : null}
       {extra ? <span>{extra}</span> : null}

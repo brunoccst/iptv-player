@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { needsPinToManage, needsPinToOpen, type ProfileDto } from '@iptv/shared';
+import { needsPinToManage, needsPinToOpen, type ProfileDto, t } from '@iptv/shared';
 import { stores } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
@@ -22,7 +22,7 @@ export function ProfilePicker() {
   const [unlocked, setUnlocked] = useState(false);
   const { gate, dialog } = usePinGate();
   const manage = (action: () => void) =>
-    gate(needsPinToManage(pinStatus) && !unlocked, 'Enter the parental PIN to manage profiles', () => {
+    gate(needsPinToManage(pinStatus) && !unlocked, t('Enter the parental PIN to manage profiles'), () => {
       setUnlocked(true);
       action();
     });
@@ -30,14 +30,14 @@ export function ProfilePicker() {
   const select = (profile: ProfileDto) =>
     managing
       ? setEditing(profile)
-      : gate(needsPinToOpen(pinStatus, null, profile), `Enter the parental PIN to open ${profile.name}`, () =>
+      : gate(needsPinToOpen(pinStatus, null, profile), t('Enter the parental PIN to open {name}', { name: profile.name }), () =>
           stores.session.getState().selectProfile(profile.id),
         );
 
   return (
     <main className="center-screen profiles">
       <div>
-        <h1>{managing ? 'Manage Profiles' : "Who's watching?"}</h1>
+        <h1>{managing ? t('Manage Profiles') : t("Who's watching?")}</h1>
         <div className="profiles__grid">
           {profiles.map((profile) => (
             <button key={profile.id} type="button" className="profile-tile" onClick={() => select(profile)}>
@@ -45,7 +45,7 @@ export function ProfilePicker() {
                 {managing ? <Icon name="pencil" size={40} /> : profile.name.charAt(0).toUpperCase()}
               </span>
               <span>{profile.name}</span>
-              {profile.isKids ? <span className="profile-tile__kids">Kids</span> : null}
+              {profile.isKids ? <span className="profile-tile__kids">{t('Kids')}</span> : null}
             </button>
           ))}
           {profiles.length < MAX_PROFILES ? (
@@ -53,7 +53,7 @@ export function ProfilePicker() {
               <span className="profile-tile__avatar profile-tile__avatar--add">
                 <Icon name="plus" size={48} />
               </span>
-              <span>Add Profile</span>
+              <span>{t('Add Profile')}</span>
             </button>
           ) : null}
         </div>
@@ -62,7 +62,7 @@ export function ProfilePicker() {
           className="button button--ghost"
           onClick={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
         >
-          {managing ? 'Done' : 'Manage Profiles'}
+          {managing ? t('Done') : t('Manage Profiles')}
         </button>
       </div>
       {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
@@ -93,7 +93,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
 
   return (
     <Modal
-      label={profile ? 'Edit profile' : 'Add profile'}
+      label={profile ? t('Edit profile') : t('Add profile')}
       onClose={() => {
         session.clearError();
         onClose();
@@ -106,9 +106,9 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           void save();
         }}
       >
-        <h2 style={{ margin: 0 }}>{profile ? 'Edit Profile' : 'Add Profile'}</h2>
+        <h2 style={{ margin: 0 }}>{profile ? t('Edit Profile') : t('Add Profile')}</h2>
         <div className="field">
-          <label htmlFor="profile-name">Name</label>
+          <label htmlFor="profile-name">{t('Name')}</label>
           <input
             id="profile-name"
             className="input"
@@ -121,14 +121,14 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
         </div>
         <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="muted" style={{ fontSize: '0.875rem', marginBottom: 6 }}>
-            Colour
+            {t('Colour')}
           </legend>
           <div style={{ display: 'flex', gap: 8 }}>
             {AVATAR_COLORS.map((option) => (
               <button
                 key={option}
                 type="button"
-                aria-label={`Colour ${option}`}
+                aria-label={t('Colour {option}', { option })}
                 aria-pressed={option === color}
                 onClick={() => setColor(option)}
                 style={{
@@ -143,18 +143,18 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           </div>
         </fieldset>
         <label className="checkbox">
-          <input type="checkbox" checked={isKids} onChange={(e) => setIsKids(e.target.checked)} /> Kids profile
+          <input type="checkbox" checked={isKids} onChange={(e) => setIsKids(e.target.checked)} /> {t('Kids profile')}
         </label>
         {/* Parents pick what a saved Kids profile may see (D-064). */}
         {isKids && profile ? (
           <button type="button" className="button button--ghost" onClick={() => setCategories(true)}>
-            <Icon name="pencil" size={18} /> Choose categories
+            <Icon name="pencil" size={18} /> {t('Choose categories')}
           </button>
         ) : null}
         {/* Also here, so parents can set a Kids profile's languages: its own menu has no settings. */}
         {profile ? (
           <button type="button" className="button button--ghost" onClick={() => setLanguages(true)}>
-            <Icon name="subtitles" size={18} /> Choose languages
+            <Icon name="subtitles" size={18} /> {t('Choose languages')}
           </button>
         ) : null}
         {error ? (
@@ -164,11 +164,11 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
         ) : null}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button type="submit" className="button button--primary" disabled={busy || !name.trim()}>
-            Save
+            {t('Save')}
           </button>
           {profile ? (
             <button type="button" className="button button--ghost" onClick={() => void remove()} disabled={busy}>
-              <Icon name="trash" size={18} /> Delete Profile
+              <Icon name="trash" size={18} /> {t('Delete Profile')}
             </button>
           ) : null}
         </div>

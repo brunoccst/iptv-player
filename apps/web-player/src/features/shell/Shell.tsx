@@ -10,6 +10,7 @@ import { HomePage } from '../home/HomePage';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { LibraryBanner } from './LibraryBanner';
 import { TopNav } from './TopNav';
+import { t } from '@iptv/shared';
 
 // hls.js is large: load the player only when something plays.
 const PlayerOverlay = lazy(() => import('../player/PlayerOverlay').then((module) => ({ default: module.PlayerOverlay })));
@@ -37,7 +38,7 @@ export function Shell() {
           fallback={
             <div className="player">
               <div className="player__center">
-                <Spinner label="Loading player" />
+                <Spinner label={t('Loading player')} />
               </div>
             </div>
           }

@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { appLog, errorMessage, type KeyValueStorage } from '@iptv/shared';
+import { appLog, errorMessage, type KeyValueStorage, t } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 
 /**
@@ -107,7 +107,7 @@ export function createUpdater({
       appLog.warn('update', `check failed: ${errorMessage(error)}`);
       // A failed automatic check stays quiet.
       set(
-        automatic ? { phase: 'idle' } : { phase: 'failed', release: null, message: 'Could not check for updates. Try again later.' },
+        automatic ? { phase: 'idle' } : { phase: 'failed', release: null, message: t('Could not check for updates. Try again later.') },
         !automatic,
       );
     }
@@ -131,7 +131,7 @@ export function createUpdater({
       } else set({ phase: 'failed', release, message: verdictMessage(verdict) });
     } catch (error) {
       appLog.warn('update', `download failed: ${errorMessage(error)}`);
-      set({ phase: 'failed', release, message: 'The download failed. Check the connection and try again.' });
+      set({ phase: 'failed', release, message: t('The download failed. Check the connection and try again.') });
     } finally {
       subscription.remove();
     }
@@ -146,7 +146,7 @@ export function createUpdater({
       appLog.warn('update', `could not open the installer: ${errorMessage(error)}`);
       const status = store.getState().status;
       if (status.phase === 'installing') {
-        set({ phase: 'failed', release: status.release, message: 'Android did not open its installer. Try again.' });
+        set({ phase: 'failed', release: status.release, message: t('Android did not open its installer. Try again.') });
       }
     }
   }
@@ -175,14 +175,13 @@ export type Updater = ReturnType<typeof createUpdater>;
 function verdictMessage(verdict: string): string {
   switch (verdict) {
     case 'other-key':
-      return (
-        'This version is signed with a different key than the installed app, so Android cannot install it over it. ' +
-        'Back up your data (account menu → Back up data), uninstall the app, install the new version, then restore the backup.'
+      return t(
+        'This version is signed with a different key than the installed app, so Android cannot install it over it. Back up your data (account menu → Back up data), uninstall the app, install the new version, then restore the backup.',
       );
     case 'not-newer':
-      return 'The new version is still being published. Try again in a few minutes.';
+      return t('The new version is still being published. Try again in a few minutes.');
     default:
-      return 'The downloaded file is not an update of this app.';
+      return t('The downloaded file is not an update of this app.');
   }
 }
 
@@ -193,11 +192,12 @@ const nameOf = (version: Version) =>
   version.versionName && /^\d+\.\d+\.\d+$/.test(version.versionName) && version.versionName !== '0.0.0' ? version.versionName : null;
 
 /** Short, for sentences: "1.2.3", or "build 57" for versions from before version names. */
-export const shortVersion = (version: Version) => nameOf(version) ?? `build ${version.versionCode}`;
+export const shortVersion = (version: Version) => nameOf(version) ?? t('build {number}', { number: version.versionCode });
 
 /** Full, for About: "1.2.3 (build 57)", or "build 57". */
 export function versionLabel(version: Version | null): string {
-  if (!version) return 'unknown';
+  if (!version) return t('unknown');
   const name = nameOf(version);
-  return name ? `${name} (build ${version.versionCode})` : `build ${version.versionCode}`;
+  const build = t('build {number}', { number: version.versionCode });
+  return name ? `${name} (${build})` : build;
 }
