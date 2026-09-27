@@ -14,6 +14,7 @@ import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { WatchlistButton } from '../../components/WatchlistButton';
 import { WatchedTag } from '../../components/WatchedTag';
+import { VlcButton } from '../../components/VlcButton';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
@@ -98,6 +99,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
         </button>
         <DownloadButton target={downloadTarget(movieTarget(master, variant), duration)} />
         <WatchlistButton section="movies" title={master} />
+        <VlcButton target={movieTarget(master, variant)} />
       </DetailsHero>
       <div className="details__body">
         <div>

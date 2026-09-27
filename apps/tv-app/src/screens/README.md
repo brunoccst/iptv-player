@@ -7,7 +7,7 @@ Each screen mirrors the web page with the same name ([D-041](../../../../documen
 | `LoginScreen.tsx` | Web sign-in panel plus the connection choice ("IPTV provider" = direct, "My server" + address), "Restore from backup" (D-056), and on TVs a QR code to sign in from the phone app (D-060). |
 | `ProfilesScreen.tsx` | "Who's watching?"; Manage Profiles adds, edits (name, colour, Kids) and deletes profiles. The editor also opens Choose categories (Kids) and Choose languages. |
 | `HomeScreen.tsx` | Hero, Continue Watching, Live TV, Series and category rows. The library notice floats at the bottom, over the rows. |
-| `titles.tsx` | `MasterCardItem`, `TitleRow` (Home rows: first 10 titles; the title and the "See all" arrow card open Movies/Series on that category, D-043) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads; optional "Sort by" select, D-049). |
+| `titles.tsx` | `MasterCardItem` ("Watched" tag on finished movies; hold OK: Go to details, Mark as (not) watched, D-081), `TitleRow` (Home rows: first 10 titles; the title and the "See all" arrow card open Movies/Series on that category, D-043) and `TitleGrid` (web grid, 100 per page, spinner while the next page loads; optional "Sort by" select, D-049). |
 | `usePagedLibrary.ts` | Page-by-page library loading for rows and grids (`loadMore`, `loadingMore`). |
 | `BrowseScreen.tsx` | Movies or Series: category chips, sort (default: recently added) + grid. `Chip` is the web `.chip`. |
 | `SearchScreen.tsx` | "Results for …" from the nav search box: Movies and Series grids, matching live channels. Searches once typing pauses (`searchDelay.ts`: about twice the user's gap between keys, 0.4–1.2 s; at least 2 letters) or on Enter. |

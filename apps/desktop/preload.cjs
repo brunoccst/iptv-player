@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   version: info.version,
   platform: info.platform,
   checkForUpdates: () => ipcRenderer.invoke('iptv:check-updates'),
+  // "Open in VLC" (D-081): 'vlc' when VLC started, 'none' when it is not installed.
+  openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
   secure: storage('secure'),
   data: storage('data'),
   // Phone-to-computer pairing (D-072): the main process runs the server, the page decides and answers.

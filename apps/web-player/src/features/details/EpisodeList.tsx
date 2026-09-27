@@ -4,6 +4,7 @@ import { uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { Icon } from '../../components/Icon';
 import { WatchedTag } from '../../components/WatchedTag';
+import { VlcButton } from '../../components/VlcButton';
 import { useProgress } from '../../hooks/stores';
 import { downloadTarget, episodeTarget } from '../../ui/targets';
 
@@ -95,6 +96,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                 <Icon name="play" size={20} />
               </button>
               <DownloadButton target={downloadTarget(target, episode.durationSeconds)} />
+              <VlcButton target={target} />
             </div>
           </div>
         );
