@@ -4,7 +4,12 @@ import { createPortal } from 'react-dom';
 export interface CardMenuAction {
   label: string;
   onSelect(): void;
+  /** Shown but not selectable (an episode already downloaded). */
+  disabled?: boolean;
 }
+
+/** The items the keyboard moves between. */
+const ITEMS = '[role="menuitem"]:not(:disabled)';
 
 /** Where a card's menu opens: the pointer for a right-click, the card's corner for the keyboard (D-078, D-079). */
 export interface MenuPosition {
@@ -46,7 +51,7 @@ export function CardMenu({
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    menu.current?.querySelector<HTMLButtonElement>(ITEMS)?.focus();
     const onPointer = (event: MouseEvent) => {
       if (!menu.current?.contains(event.target as Node)) onClose();
     };
@@ -77,7 +82,7 @@ export function CardMenu({
   const moveFocus = (event: ReactKeyboardEvent) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Tab') return;
     event.preventDefault();
-    const items = [...(menu.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+    const items = [...(menu.current?.querySelectorAll<HTMLButtonElement>(ITEMS) ?? [])];
     const index = items.indexOf(document.activeElement as HTMLButtonElement);
     const step = event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey) ? -1 : 1;
     items[(index + step + items.length) % items.length]?.focus();
@@ -104,6 +109,7 @@ export function CardMenu({
           type="button"
           role="menuitem"
           className="card-menu__item"
+          disabled={action.disabled}
           onClick={() => {
             onClose();
             action.onSelect();
@@ -125,4 +131,10 @@ export function menuPosition(event: { clientX: number; clientY: number; currentT
   if (event.clientX || event.clientY) return { x: event.clientX, y: event.clientY };
   const box = event.currentTarget.getBoundingClientRect();
   return { x: box.left + 12, y: box.top + 12 };
+}
+
+/** Position for a menu opened by a button (an episode's "…", D-083): under the button, its right edges lined up. */
+export function menuBelow(button: Element): MenuPosition {
+  const box = button.getBoundingClientRect();
+  return { x: box.right - 200, y: box.bottom + 4 };
 }

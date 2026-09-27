@@ -6,6 +6,8 @@ export interface CardMenuAction {
   label: string;
   onPress(): void;
   testID?: string;
+  /** Shown but not selectable (an episode already downloaded). */
+  disabled?: boolean;
 }
 
 /**
@@ -36,8 +38,9 @@ export function CardMenu({
               key={action.label}
               label={action.label}
               variant="primary"
-              hasTVPreferredFocus={index === 0}
+              hasTVPreferredFocus={index === actions.findIndex((entry) => !entry.disabled)}
               testID={action.testID}
+              disabled={action.disabled}
               onPress={() => {
                 onClose();
                 action.onPress();
@@ -47,7 +50,7 @@ export function CardMenu({
           <FocusButton
             label="Cancel"
             variant="ghost"
-            hasTVPreferredFocus={actions.length === 0}
+            hasTVPreferredFocus={actions.every((entry) => entry.disabled)}
             onPress={onClose}
             testID="card-menu-cancel"
           />

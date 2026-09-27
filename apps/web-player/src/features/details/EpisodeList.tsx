@@ -1,22 +1,24 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
-  cardMenuItems,
   episodeLabel,
+  episodeMenuItems,
   isEpisodeWatched,
   setEpisodeWatched,
   episodeInVersion,
   findEpisodeProgress,
   formatDuration,
   isWatched,
+  type EpisodeMenuItemId,
   type MergedEpisode,
   type MergedSeries,
+  type PlayTarget,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
-import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
-import { DownloadButton } from '../../components/DownloadButton';
+import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
+import { useDownload } from '../../components/DownloadButton';
 import { Icon } from '../../components/Icon';
 import { WatchedTag } from '../../components/WatchedTag';
-import { VlcButton } from '../../components/VlcButton';
+import { useVlc } from '../../components/VlcButton';
 import { useProgress } from '../../hooks/stores';
 import { downloadTarget, episodeTarget } from '../../ui/targets';
 
@@ -37,8 +39,10 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
   const context = (episode: MergedEpisode) => ({ title, masterId, seriesId: episode.seriesId, posterUrl: series.summary.posterUrl });
-  // Right-click on an episode: Mark as (not) watched (D-082).
+  // The episode's menu (D-083): its "…" button, or a right-click on the episode.
   const [menu, setMenu] = useState<{ episode: MergedEpisode; position: MenuPosition } | null>(null);
+  // Stable, so the open menu keeps its focus while a download's progress redraws the list.
+  const closeMenu = useCallback(() => setMenu(null), []);
 
   if (!season) return <p className="episodes muted">No episodes available.</p>;
 
@@ -62,7 +66,6 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
         const episode = episodeInVersion(listed, chosen[listed.id]);
         const target = episodeTarget(context(episode), episode);
         const saved = findEpisodeProgress(progress, episode);
-        const watched = isWatched(saved);
         return (
           <div
             key={listed.id}
@@ -117,34 +120,71 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
               >
                 <Icon name="play" size={20} />
               </button>
-              <DownloadButton target={downloadTarget(target, episode.durationSeconds)} />
+              {/* Everything else is in the episode's menu, so the row stays short (D-083). */}
               <button
                 type="button"
-                className={`icon-button${watched ? ' icon-button--on' : ''}`}
-                aria-pressed={watched}
-                aria-label={watched ? `Mark ${episode.title} as not watched` : `Mark ${episode.title} as watched`}
-                title={watched ? 'Mark as not watched' : 'Mark as watched'}
-                onClick={() => void setEpisodeWatched(stores.progress, episode, context(episode), !watched)}
+                className="icon-button"
+                aria-label={`More options for ${episode.title}`}
+                aria-haspopup="menu"
+                title="More options"
+                onClick={(event) => setMenu({ episode, position: menuBelow(event.currentTarget) })}
               >
-                <Icon name="check" size={20} />
+                <Icon name="more" size={20} />
               </button>
-              <VlcButton target={target} />
             </div>
           </div>
         );
       })}
       {menu ? (
-        <CardMenu
-          title={menu.episode.title}
-          subtitle={episodeLabel(menu.episode)}
+        <EpisodeMenu
+          episode={menu.episode}
+          target={episodeTarget(context(menu.episode), menu.episode)}
           position={menu.position}
-          onClose={() => setMenu(null)}
-          actions={cardMenuItems({ kind: 'episode', watched: isEpisodeWatched(progress, menu.episode) }).map((entry) => ({
-            label: entry.label,
-            onSelect: () => void setEpisodeWatched(stores.progress, menu.episode, context(menu.episode), entry.id === 'watched'),
-          }))}
+          watched={isEpisodeWatched(progress, menu.episode)}
+          onWatched={(watched) => void setEpisodeWatched(stores.progress, menu.episode, context(menu.episode), watched)}
+          onClose={closeMenu}
         />
       ) : null}
     </section>
+  );
+}
+
+/** An episode's options (D-083): Mark as (not) watched, Download, Open in VLC (desktop app). */
+function EpisodeMenu({
+  episode,
+  target,
+  position,
+  watched,
+  onWatched,
+  onClose,
+}: {
+  episode: MergedEpisode;
+  target: PlayTarget;
+  position: MenuPosition;
+  watched: boolean;
+  onWatched(watched: boolean): void;
+  onClose(): void;
+}) {
+  const download = useDownload(downloadTarget(target, episode.durationSeconds));
+  const vlc = useVlc();
+  const run: Record<EpisodeMenuItemId, () => void> = {
+    watched: () => onWatched(true),
+    unwatched: () => onWatched(false),
+    download: () => download?.toggle(),
+    'play-on-tv': () => undefined,
+    external: () => vlc?.(target),
+  };
+  return (
+    <CardMenu
+      title={episode.title}
+      subtitle={episodeLabel(episode)}
+      position={position}
+      onClose={onClose}
+      actions={episodeMenuItems({ watched, download: download?.menu, externalPlayer: vlc ? 'vlc' : null }).map((item) => ({
+        label: item.label,
+        disabled: item.disabled,
+        onSelect: run[item.id],
+      }))}
+    />
   );
 }

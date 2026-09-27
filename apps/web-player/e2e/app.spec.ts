@@ -311,7 +311,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 });
 
-test('series: Mark series as watched tags the cover and every episode; unwatching one episode clears the series tag (D-082)', async ({
+test('series: Mark series as watched tags the cover and every episode; unwatching one episode (its … menu) clears the series tag (D-082, D-083)', async ({
   page,
 }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
@@ -330,10 +330,15 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
 
   // One episode back to not watched: its tag and the series tag go.
   const count = await episodes.getByTestId('watched-tag').count();
+  // The row has Play and "…" (D-083); the episode's options are in its menu.
+  await expect(episodes.getByRole('button', { name: /^Mark / })).toHaveCount(0);
   await episodes
-    .getByRole('button', { name: /^Mark .* as not watched$/ })
+    .getByRole('button', { name: /^More options for / })
     .first()
     .click();
+  const episodeMenu = page.getByRole('menu');
+  await expect(episodeMenu.getByRole('menuitem', { name: /^(Download|Downloaded)$/ })).toBeVisible();
+  await episodeMenu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
   await expect(episodes.getByTestId('watched-tag')).toHaveCount(count - 1);
   await expect(dialog.locator('.details__watched')).toHaveCount(0);
   await page.keyboard.press('Escape');

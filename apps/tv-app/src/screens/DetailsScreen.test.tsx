@@ -151,7 +151,14 @@ describe('watched episodes and series (D-082)', () => {
     await flush();
     const puts = () => backend.calls.filter((c) => c.method === 'PUT').map((c) => c.url.pathname.split('/').pop());
 
-    await fireEvent.press(screen.getByTestId('episode-en-1-mark'));
+    // The row keeps Play, "…" and the version choice (D-083); the rest is in the episode's menu.
+    expect(screen.queryByTestId('download-button')).toBeNull();
+    expect(screen.queryByTestId('episode-en-1-mark')).toBeNull();
+    await fireEvent.press(screen.getByTestId('episode-en-1-more'));
+    const menu = within(screen.getByTestId('card-menu'));
+    expect(menu.getByText('Download')).toBeTruthy();
+    expect(menu.getByText('Open in another player')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('card-menu-watched'));
     await flush();
     expect(puts()).toEqual(['en-1']);
     expect(backend.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({ masterId: 'show', seriesId: 'en', episodeNumber: 1 });
@@ -162,14 +169,16 @@ describe('watched episodes and series (D-082)', () => {
     await fireEvent(screen.getByTestId('episode-ge-2'), 'longPress');
     expect(within(screen.getByTestId('card-menu')).getByText('Mark as watched')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('card-menu-watched'));
-    await fireEvent.press(screen.getByTestId('episode-en-3-mark'));
+    await fireEvent.press(screen.getByTestId('episode-en-3-more'));
+    await fireEvent.press(screen.getByTestId('card-menu-watched'));
     await flush();
     expect(puts()).toEqual(['en-1', 'ge-2', 'en-3']);
     // Every episode watched: the tag next to the title, and the note behind the series cover's tag.
     expect(screen.getByTestId('details-watched')).toBeTruthy();
     expect(stores.profilePrefs.getState().prefs.p1?.watchedSeries).toEqual(['show']);
 
-    await fireEvent.press(screen.getByTestId('episode-en-1-mark'));
+    await fireEvent.press(screen.getByTestId('episode-en-1-more'));
+    await fireEvent.press(screen.getByTestId('card-menu-unwatched'));
     await flush();
     expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname.split('/').pop())).toEqual(['en-1']);
     expect(screen.queryByTestId('episode-en-1-watched')).toBeNull();
