@@ -23,8 +23,9 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 
 | Feature | TV | Phone | Web / desktop | How it is reached |
 |---------|----|-------|---------------|-------------------|
-| Card menu: Go to details, Mark as (not) watched; Continue Watching: remove (D-078, D-081) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
-| "Watched" tag on covers (bottom right) and in details (D-081) | ✅ | ✅ | ✅ | movies and episodes; series covers have none (a card does not know the episode count) |
+| Card menu: Go to details, Mark as (not) watched (movies, series, episodes); Continue Watching: remove (D-078, D-081, D-082) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
+| "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series |
+| Mark an episode as (not) watched in series details (D-082) | ✅ | ✅ | ✅ | check button next to Play and Download · TV: hold OK on Play · phone: long touch · web: right-click the episode |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |

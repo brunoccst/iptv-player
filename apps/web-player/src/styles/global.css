@@ -146,6 +146,13 @@ img {
   background: transparent;
 }
 
+/* A toggle that is on (e.g. an episode marked watched, D-082): filled light, dark icon. */
+.icon-button--on {
+  border-color: var(--focus-ring);
+  background: var(--focus-ring);
+  color: var(--color-bg);
+}
+
 /* Forms */
 .field {
   display: grid;
