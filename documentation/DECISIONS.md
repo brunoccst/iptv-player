@@ -91,6 +91,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
 | [D-085](#d-085) | 2026-09-27 | Web and desktop: category chips on one line with Show all; row titles take the mouse |
 | [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
+| [D-087](#d-087) | 2026-09-27 | Subtitles picked in a series come back on its next episodes |
 
 ---
 
@@ -1534,3 +1535,15 @@ Decision:
 
 Limits: a category name in a language the hint does not know stays "no language" (its titles show under any filter).
 
+## D-087
+
+**Subtitles picked in a series come back on its next episodes** — 2026-09-27 (requested by owner)
+
+Context: every new episode started with the player's default subtitles, so the viewer picked them again each time.
+
+Decision:
+- **Kept per series and profile.** Picking subtitles (or Off) in the player keeps that choice for the series, across its versions (the master id; the series id when there is none), in the profile's preferences on this device (`ProfilePrefs.subtitles`, `playback/subtitleChoice.ts`). The newest 100 series are kept. Movies and live channels are not kept.
+- **Matched by language and name.** Episodes list their own tracks, often in another order, so the choice is matched again: same language and name, then same language, then same name. When nothing matches, the player's default stays.
+- **Applied once per episode.** When an episode's subtitle tracks are known, the kept choice is selected once; a later pick in the player replaces it and is kept in turn. Same on TV, phone (ExoPlayer tracks), web and desktop (hls.js tracks, or the video element's own).
+
+Limits: kept on each device, not synced between devices or through the server. Audio tracks are not kept.

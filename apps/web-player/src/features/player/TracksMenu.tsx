@@ -1,6 +1,7 @@
 import type Hls from 'hls.js';
-import type { VariantInfo } from '@iptv/shared';
+import type { SubtitleChoice, VariantInfo } from '@iptv/shared';
 import { t } from '@iptv/shared';
+import { activeSubtitle, choiceOf, showSubtitle, subtitleTracks } from './subtitles';
 
 interface TracksMenuProps {
   hls: Hls | null;
@@ -8,29 +9,22 @@ interface TracksMenuProps {
   variants: VariantInfo[];
   currentStreamId: string;
   onVariant(variant: VariantInfo): void;
+  /** A pick in the list, kept for the series' next episodes (D-087). */
+  onSubtitle(choice: SubtitleChoice): void;
   onChange(): void;
 }
 
 /** Audio, subtitles and "Version / Stream Quality" choices. */
-export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, onChange }: TracksMenuProps) {
+export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, onSubtitle, onChange }: TracksMenuProps) {
   const audio = hls?.audioTracks ?? [];
-  const subtitles = hls?.subtitleTracks ?? [];
-  const nativeText = video && !hls ? Array.from(video.textTracks) : [];
+  const subtitleOptions = subtitleTracks(hls, video);
+  const current = activeSubtitle(hls, video);
 
   const setSubtitle = (index: number) => {
-    if (hls) {
-      hls.subtitleDisplay = index >= 0;
-      hls.subtitleTrack = index;
-    } else {
-      nativeText.forEach((track, i) => (track.mode = i === index ? 'showing' : 'disabled'));
-    }
+    showSubtitle(hls, video, index);
+    onSubtitle(choiceOf(subtitleOptions, index));
     onChange();
   };
-
-  const activeSubtitle = hls ? hls.subtitleTrack : nativeText.findIndex((track) => track.mode === 'showing');
-  const subtitleOptions = hls
-    ? subtitles.map((track) => track.name || track.lang || t('Track {number}', { number: track.id }))
-    : nativeText.map((track) => track.label || track.language);
 
   return (
     <div className="tracks" role="dialog" aria-label={t('Audio, subtitles and version')}>
@@ -56,18 +50,14 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
       </div>
       <div>
         <h3>{t('Subtitles')}</h3>
-        <button
-          type="button"
-          className={`tracks__option${activeSubtitle < 0 ? ' tracks__option--active' : ''}`}
-          onClick={() => setSubtitle(-1)}
-        >
+        <button type="button" className={`tracks__option${current < 0 ? ' tracks__option--active' : ''}`} onClick={() => setSubtitle(-1)}>
           {t('Off')}
         </button>
-        {subtitleOptions.map((name, index) => (
+        {subtitleOptions.map(({ label: name }, index) => (
           <button
             key={`${name}-${index}`}
             type="button"
-            className={`tracks__option${activeSubtitle === index ? ' tracks__option--active' : ''}`}
+            className={`tracks__option${current === index ? ' tracks__option--active' : ''}`}
             onClick={() => setSubtitle(index)}
           >
             {name}

@@ -42,6 +42,9 @@ import {
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
+  pickSubtitle,
+  rememberSubtitle,
+  subtitleChoiceFor,
   tvPlaybackAttempts,
   type EpgListing,
   type LiveChannel,
@@ -177,6 +180,27 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   useEffect(() => {
     if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
   }, [target.kind, target.masterId]);
+
+  // Subtitles picked in this series come back on its next episodes (D-087): applied once per source, when its
+  // subtitle tracks are known; a pick in the drawer is kept for the series.
+  const subtitlesApplied = useRef<PlayerSource | null>(null);
+  const onTracks = (list: PlayerTrack[]) => {
+    setTracks(list);
+    const text = list.filter((track) => track.type === 'text');
+    if (!source || subtitlesApplied.current === source || text.length === 0) return;
+    subtitlesApplied.current = source;
+    const pick = pickSubtitle(text, subtitleChoiceFor(stores, target));
+    if (pick === null || pick === text.findIndex((track) => track.selected)) return;
+    const track = text[pick];
+    if (track) void playerRef.current?.selectTrack('text', track.groupIndex, track.trackIndex);
+    else void playerRef.current?.selectTrack('text', -1, 0);
+  };
+  const chooseTrack = (type: 'audio' | 'text', groupIndex: number, trackIndex: number) => {
+    void playerRef.current?.selectTrack(type, groupIndex, trackIndex);
+    if (type !== 'text') return;
+    const chosen = tracks.find((track) => track.type === 'text' && track.groupIndex === groupIndex && track.trackIndex === trackIndex);
+    rememberSubtitle(stores, target, chosen ? { language: chosen.language, label: chosen.label } : { off: true });
+  };
 
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
@@ -485,7 +509,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           setTime(timeRef.current);
           setDuration(durationRef.current);
         }}
-        onTracks={(e) => setTracks(e.nativeEvent.tracks)}
+        onTracks={(e) => onTracks(e.nativeEvent.tracks)}
         onEnd={() => {
           saveProgress();
           if (next && !nextDismissed) playNext();
@@ -779,7 +803,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           variants={variants}
           currentStreamId={target.streamId}
           series={series.data}
-          onTrack={(type, group, track) => void playerRef.current?.selectTrack(type, group, track)}
+          onTrack={chooseTrack}
           onVariant={(v) => {
             setDrawer(false);
             switchVariant(v);

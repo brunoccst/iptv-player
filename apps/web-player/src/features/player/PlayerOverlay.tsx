@@ -26,6 +26,9 @@ import {
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
+  pickSubtitle,
+  rememberSubtitle,
+  subtitleChoiceFor,
   type VariantInfo,
   t,
 } from '@iptv/shared';
@@ -44,6 +47,7 @@ import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
+import { activeSubtitle, showSubtitle, subtitleTracks } from './subtitles';
 
 const PROGRESS_SAVE_MS = 10_000;
 const IDLE_MS = 3000;
@@ -165,6 +169,25 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         void video.play().catch(() => setPlaying(false));
         engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
         engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
+        // Subtitles picked in this series come back on its next episodes (D-087), once its tracks are known.
+        const choice = subtitleChoiceFor(stores, target);
+        if (!choice) return;
+        const applySubtitles = () => {
+          const tracks = subtitleTracks(engine.hls, video);
+          if (controller.signal.aborted || tracks.length === 0) return;
+          stopWatching();
+          const pick = pickSubtitle(tracks, choice);
+          if (pick !== null && pick !== activeSubtitle(engine.hls, video)) showSubtitle(engine.hls, video, pick);
+          setTracksVersion((v) => v + 1);
+        };
+        const stopWatching = () => {
+          engine.hls?.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, applySubtitles);
+          video.textTracks.removeEventListener('addtrack', applySubtitles);
+        };
+        engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, applySubtitles);
+        if (!engine.hls) video.textTracks.addEventListener('addtrack', applySubtitles);
+        controller.signal.addEventListener('abort', stopWatching);
+        applySubtitles();
       },
       (loadError: unknown) => {
         if (controller.signal.aborted) return;
@@ -573,6 +596,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           variants={variants}
           currentStreamId={target.streamId}
           onVariant={switchVariant}
+          onSubtitle={(choice) => rememberSubtitle(stores, target, choice)}
           onChange={() => setTracksVersion((v) => v + 1)}
         />
       ) : null}

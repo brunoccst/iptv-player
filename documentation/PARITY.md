@@ -29,6 +29,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |
+| Subtitles picked in a series come back on its next episodes (D-087) | ✅ | ✅ | ✅ | matched by language, per profile |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Category chips on one line with Show all / Show less (D-085) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) |
 | Live TV guide page | ✅ | ✅ | ✅ | |
