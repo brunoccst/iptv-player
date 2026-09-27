@@ -30,6 +30,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
+| Category chips on one line with Show all / Show less (D-085) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) |
 | Live TV guide page | ✅ | ✅ | ✅ | |
 | Guide over the playing channel (D-058, D-081) | ✅ | ✅ | ✅ | TV: ↑ · phone and web: Guide button · web: also G (↑/↓ are the volume) |
 | Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in movie details, episode "…" menu; browsers cannot start other programs |

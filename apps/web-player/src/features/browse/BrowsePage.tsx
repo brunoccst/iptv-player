@@ -10,6 +10,7 @@ import {
   t,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
+import { ChipBar } from '../../components/ChipBar';
 import { Spinner } from '../../components/Spinner';
 import { useCatalog, useLibrary, useUi } from '../../hooks/stores';
 import { usePagedLibrary } from '../../hooks/usePagedLibrary';
@@ -32,29 +33,18 @@ export function BrowsePage({ section, banner }: { section: LibrarySection; banne
     <div className="page">
       <h1 className="page__title">{section === 'movies' ? t('Movies') : t('Series')}</h1>
       {banner}
-      <div className="chips" role="tablist" aria-label={t('Categories')}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={categoryId === null}
-          className={`chip${categoryId === null ? ' chip--active' : ''}`}
-          onClick={() => setCategoryId(null)}
-        >
-          {t('All')}
-        </button>
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            role="tab"
-            aria-selected={categoryId === category.id}
-            className={`chip${categoryId === category.id ? ' chip--active' : ''}`}
-            onClick={() => setCategoryId(category.id)}
-          >
-            {category.name}
-          </button>
-        ))}
-      </div>
+      <ChipBar
+        label={t('Categories')}
+        chips={[
+          { key: 'all', label: t('All'), active: categoryId === null, onSelect: () => setCategoryId(null) },
+          ...categories.map((category) => ({
+            key: category.id,
+            label: category.name,
+            active: categoryId === category.id,
+            onSelect: () => setCategoryId(category.id),
+          })),
+        ]}
+      />
       <PagedGrid
         key={`${section}-${categoryId}-${sortChoiceKey(sort)}-${revision}`}
         section={section}
