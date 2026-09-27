@@ -8,8 +8,9 @@
 | `02-offline.yaml` | With provider and backend stopped: cached session → My Downloads → offline playback. |
 | `03-direct.yaml` | Direct mode (no backend): login to the panel at `10.0.2.2:8091`, on-device library, playback from the provider, short-EPG guide. |
 | `04-phone-search.yaml` | Phone emulator (touch, on-screen keyboard): direct sign-in, then tap the search box and type; the text must stay in the box and find titles. |
+| `05-hold-right.yaml`, `06-hold-right-check.yaml` | Holding Right in a Home row (D-076): against a stress panel, focus the first card of a row that ends in "See all"; `run.sh` sends 16, then 40, quick Right presses (a held key repeats about every 50 ms; `input keyevent --duration` sends no repeats), then checks that "See all" has the focus. |
 | `install.sh <apk>` | Waits for the emulator's package manager, then installs the APK (3 attempts). |
-| `run.sh <out-dir> [phone]` | Runs the three TV flows (stops the stack before 02, starts only the panel before 03), or with `phone` only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
+| `run.sh <out-dir> [phone]` | Runs the TV flows (stops the stack before 02, starts only the panel before 03, a stress panel for 05/06), or with `phone` only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
 
 ## Run locally
 
@@ -22,4 +23,4 @@ apps/tv-app/e2e/install.sh apps/tv-app/android/app/build/outputs/apk/release/app
 apps/tv-app/e2e/run.sh maestro-output
 ```
 
-Hold-to-scrub is not scripted (Maestro sends single key presses); it is covered by unit tests (`remoteSeek.test.ts`, `PlayerScreen.test.tsx`).
+Hold-to-scrub is not scripted (Maestro sends single key presses; only the Home hold-Right check holds a key, from `run.sh`); it is covered by unit tests (`remoteSeek.test.ts`, `PlayerScreen.test.tsx`).

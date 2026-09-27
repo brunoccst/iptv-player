@@ -8,9 +8,11 @@ import {
   skipAheadWindow,
   SKIP_AHEAD_OPTIONS,
   continueWatching,
+  continueWatchingEntries,
   episodeLabel,
   isCompleted,
   nextEpisode,
+  previousEpisode,
   nextUpCountdown,
   resumePosition,
 } from './rules';
@@ -89,6 +91,19 @@ describe('playback rules', () => {
     expect(continueWatching(items).map((p) => p.itemId)).toEqual(['new-ep', 'movie']);
   });
 
+  it('removing from continue watching clears the unfinished episodes of the series, not the finished ones', () => {
+    const items = [
+      progress('ep1', 5990, '2026-01-01', { kind: 'episode', seriesId: 's' }),
+      progress('ep2', 500, '2026-01-02', { kind: 'episode', seriesId: 's' }),
+      progress('ep3', 700, '2026-01-03', { kind: 'episode', seriesId: 's' }),
+      progress('other', 500, '2026-01-03', { kind: 'episode', seriesId: 't' }),
+      progress('movie', 800, '2026-01-02'),
+    ];
+    const ids = (entry: (typeof items)[number]) => continueWatchingEntries(items, entry).map((p) => p.itemId);
+    expect(ids(items[2]!)).toEqual(['ep2', 'ep3']);
+    expect(ids(items[4]!)).toEqual(['movie']);
+  });
+
   it('skip-ahead window and labels, countdown and clamping', () => {
     expect(skipAheadWindow('movie', 6000)).toBeNull();
     expect(skipAheadWindow('episode', 300)).toBeNull();
@@ -110,10 +125,14 @@ describe('playback rules', () => {
     expect(clampTime(150, Number.NaN)).toBe(150);
   });
 
-  it('next episode crosses seasons in order', () => {
+  it('next and previous episode cross seasons in order', () => {
     expect(nextEpisode(series, 's1e1')?.id).toBe('s1e2');
     expect(nextEpisode(series, 's1e2')?.id).toBe('s2e1');
     expect(nextEpisode(series, 's2e1')).toBeNull();
+    expect(previousEpisode(series, 's2e1')?.id).toBe('s1e2');
+    expect(previousEpisode(series, 's1e2')?.id).toBe('s1e1');
+    expect(previousEpisode(series, 's1e1')).toBeNull();
+    expect(previousEpisode(series, 'unknown')).toBeNull();
     expect(episodeLabel(episode('x', 1, 2))).toBe('S01:E02');
   });
 

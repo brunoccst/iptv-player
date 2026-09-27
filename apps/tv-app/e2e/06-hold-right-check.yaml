@@ -1,0 +1,10 @@
+# Holding Right in a Home row, part 2 (after run.sh held the key): the focus stopped on "See all", at the end of the
+# same row. It never jumps up to Live TV or the nav, and the row scrolled along (the "See all" card is on screen).
+appId: ${APP_ID}
+---
+- takeScreenshot: 31-hold-right-end
+- assertVisible:
+    id: "row-movies-900-more"
+    focused: true
+- assertVisible:
+    id: "home-screen"

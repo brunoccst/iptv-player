@@ -295,6 +295,56 @@ describe('PlayerScreen', () => {
     jest.restoreAllMocks();
   });
 
+  it('episodes: previous/next episode buttons around ±10 s; "from the beginning" seeks to 0 (D-077)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+    backend.on('GET', '/api/playback/episode/e2', { body: playback('http://relay/e2.mp4', 'mp4') });
+    stubShow(backend);
+    const first: PlayTarget = { kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' };
+    navStore.getState().push({ name: 'player', target: first });
+    await render(<PlayerScreen target={first} />);
+    await flush();
+    await flush();
+    await ready();
+    await progress(600, 2400);
+
+    // First episode: no previous one; the next one follows the +10 s button.
+    expect(screen.queryByTestId('player-previous')).toBeNull();
+    expect(screen.getByLabelText('Next episode: S01:E02')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('player-restart'));
+    expect(playerState.seeks).toEqual([0]);
+    await fireEvent.press(screen.getByTestId('player-next'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'e2', seriesId: 's1' } });
+  });
+
+  it('episodes: the last one has a previous-episode button only', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e2', { body: playback('http://relay/e2.mp4', 'mp4') });
+    stubShow(backend);
+    const second: PlayTarget = { kind: 'episode', streamId: 'e2', container: 'mp4', title: 'Show', seriesId: 's1' };
+    navStore.getState().push({ name: 'player', target: second });
+    await render(<PlayerScreen target={second} />);
+    await flush();
+    await flush();
+    await ready();
+    await progress(600, 2400);
+    expect(screen.queryByTestId('player-next')).toBeNull();
+    await fireEvent.press(screen.getByTestId('player-previous'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'e1', seriesId: 's1' } });
+  });
+
+  it('movies have "from the beginning" but no episode buttons', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(600, 5400);
+    expect(screen.getByLabelText('Play from the beginning')).toBeTruthy();
+    expect(screen.queryByTestId('player-previous')).toBeNull();
+    expect(screen.queryByTestId('player-next')).toBeNull();
+  });
+
   it('episodes: Skip ahead opens 30 s … 3 min, cancels on re-press or Back; next-up offers the next episode', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
