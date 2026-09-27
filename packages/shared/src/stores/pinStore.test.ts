@@ -37,7 +37,11 @@ describe('pin store', () => {
     expect(await pin.getState().setPin('12a4')).toBe('wrong');
     expect(await pin.getState().setPin('1234')).toBe('ok');
     expect(pin.getState().status).toBe('set');
-    expect(storage.data.get(pinStorageKey(account.id))).not.toContain('1234');
+    // Only a salt and a hash are stored, never the PIN. (Not a substring check: a random hex hash can contain "1234".)
+    const stored = JSON.parse(storage.data.get(pinStorageKey(account.id))!) as Record<string, string>;
+    expect(Object.keys(stored).sort()).toEqual(['hash', 'salt']);
+    expect(Object.values(stored)).not.toContain('1234');
+    expect(stored.hash).toMatch(/^[0-9a-f]{40,}$/);
 
     expect(await pin.getState().verify('0000')).toBe('wrong');
     expect(await pin.getState().verify('1234')).toBe('ok');
