@@ -36,10 +36,11 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **TV: holding Right in a row** (reported 2026-09-27, D-076): the focus stops on "See all" instead of jumping to the nav or Live TV, and rows scroll with the focus again (the first fix, D-075, had stopped that). Checked on the emulator with bursts of Right presses.
 - [x] **Card menu, focus clipping** (requested 2026-09-27, D-078): hold OK on a Continue Watching card → "Remove from Continue Watching" / Cancel; the focused card's ring and glow are no longer cut at the top and bottom of TV rows.
 - [x] **Player: previous / next episode, from the beginning** (requested 2026-09-27, D-077): episodes get previous/next buttons around −10 s / +10 s; movies and episodes get "from the beginning". TV/phone app.
 - [x] **Skip ahead options on TV** (requested 2026-09-27, D-075): moving between 30 s … 3 min (and Play Now / Cancel) with ←/→ no longer skips ±10 s; the chosen option skips its full amount.
-- [x] **TV focus fixes** (requested 2026-09-27, D-075): focus stays in the details panel; ↓ in the player walks the on-screen buttons (↑ opens audio/subtitles); holding Right reaches "See all"; the "See all" card is filled like other cards.
+- [x] **TV focus fixes** (requested 2026-09-27, D-075): focus stays in the details panel; ↓ in the player walks the on-screen buttons (↑ opens audio/subtitles); the "See all" card is filled like other cards (holding Right: D-076).
 - [x] **Provider answer in the log** (requested 2026-09-27, D-074): when a stream is not a video, the log shows what the provider sent (status, type, start of the text, credentials masked); "max connections", "not found", "expired" get a clear message.
 - [x] **Desktop: in-app updates, TV-style login, even covers** (requested 2026-09-26, D-073): the app downloads and installs new versions itself (Windows, AppImage), so Windows no longer asks the SmartScreen question for updates; the login page matches the TV (IPTV provider / My server, QR code beside the form); cards keep one size whatever the image or title length. README shows the pipeline status badges. Phone: tapping the search box no longer moves focus to the first Live TV card (checked on a phone emulator in CI).
 - [x] **Desktop app: phone sync, install folder, size** (requested 2026-09-26, D-072): Sign in / Sync with phone by QR code (phone: Connect a TV or computer); Windows setup asks for whom and where to install; smaller download.
