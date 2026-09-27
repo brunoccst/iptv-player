@@ -63,7 +63,7 @@ sleep 1
 run_flow 03-direct
 
 # Holding Right in a Home row (D-076): a stress panel gives a row that ends in "See all". Maestro cannot hold a key, so
-# the emulator console does: key down, Android repeats it every 50 ms, key up. Then a burst of quick presses.
+# `input keyevent --duration` does (key down, repeats, key up). Then a burst of quick presses.
 "$HERE/../../../scripts/stop-e2e-stack.sh" panel
 sleep 1
 FAKE_PANEL_STRESS=200 "$HERE/../../../scripts/start-e2e-stack.sh" panel
@@ -71,21 +71,22 @@ focused_view() {
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml 2>/dev/null | tr '>' '\n' | grep 'focused="true"' | head -3 || true
 }
 hold_right() {
-  adb emu event send EV_KEY:KEY_RIGHT:1 EV_SYN:0:0
-  sleep "$1"
-  adb emu event send EV_KEY:KEY_RIGHT:0 EV_SYN:0:0
+  # Key down, repeats while held, key up (Android 13 `input keyevent --duration`).
+  adb shell input keyevent --duration "$1" 22
   sleep 2
 }
 hold_failed=
 run_flow 05-hold-right
-hold_right 3
+hold_right 3000
 echo "Focused after holding Right:"; focused_view
 run_flow 06-hold-right-check || hold_failed=1
-# The key held for longer (the page keeps repeating after the row's end).
-hold_right 6
+# The key held for longer (it keeps repeating after the row's end).
+run_flow 05-hold-right
+hold_right 6000
 echo "Focused after holding Right longer:"; focused_view
 run_flow 06-hold-right-check || hold_failed=1
-# Quick presses, faster than a person taps.
+# Quick presses, as fast as a held key repeats.
+run_flow 05-hold-right
 adb shell input keyevent $(printf '22 %.0s' $(seq 1 16))
 sleep 2
 echo "Focused after a burst of Right presses:"; focused_view

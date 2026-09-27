@@ -97,7 +97,9 @@ export function PosterCard({
 
 const styles = StyleSheet.create({
   card: { borderRadius: radius + 2, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
-  focused: { zIndex: 2, borderColor: focus.ring, ...focus.glow },
+  // No zIndex: a zIndex change reorders the row's views (the focused card is taken out and put back), which drops the
+  // focus; with quick Right presses it then landed on the nav (D-076). The glow's elevation already draws the card on top.
+  focused: { borderColor: focus.ring, ...focus.glow },
   art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1f1f1f' },
   fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },
   badge: {

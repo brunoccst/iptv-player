@@ -8,8 +8,3 @@ appId: ${APP_ID}
     focused: true
 - assertVisible:
     id: "home-screen"
-# Back to the first card for the next try.
-- repeat:
-    times: 12
-    commands:
-      - pressKey: Remote Dpad Left

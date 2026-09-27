@@ -1,6 +1,6 @@
 # Holding Right in a Home row (D-075, D-076). Part 1: sign in to the stress panel (a row with more than 10 titles, so
-# it ends in "See all") and focus the first card of that row. run.sh then holds the Right key on the emulator (a real
-# key hold: Android repeats the key every 50 ms) and runs 06-hold-right-check.
+# it ends in "See all") and focus the first card of that row. run.sh then holds Right (`input keyevent --duration`) or
+# sends a burst of quick presses, and runs 06-hold-right-check.
 appId: ${APP_ID}
 ---
 - launchApp:
