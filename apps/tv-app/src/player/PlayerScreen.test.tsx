@@ -4,7 +4,7 @@ import { Dimensions, Platform } from 'react-native';
 import { appLog, HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
 import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { playbackErrorText, PlayerScreen } from './PlayerScreen';
@@ -315,6 +315,47 @@ describe('PlayerScreen', () => {
     expect(playerState.seeks).toEqual([0]);
     await fireEvent.press(screen.getByTestId('player-next'));
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'e2', seriesId: 's1' } });
+  });
+
+  it('subtitles and audio picked in one title are what the next titles start with, matched by language (D-087)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    stubShow(backend);
+    const tracksEvent = (tracks: object[]) => act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks } } as never));
+    const episode: PlayTarget = { kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1', masterId: 'show-m' };
+    const view = await render(<PlayerScreen target={episode} />);
+    await flush();
+    await tracksEvent([
+      { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'Deutsch', language: 'de', selected: true },
+      { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'English', language: 'en', selected: false },
+      { type: 'text', groupIndex: 2, trackIndex: 0, label: 'English', language: 'en', selected: false },
+      { type: 'text', groupIndex: 3, trackIndex: 0, label: 'Português', language: 'pt', selected: false },
+    ]);
+    // Nothing chosen yet: the player's defaults stay.
+    expect(playerState.trackSelections).toEqual([]);
+    await act(async () => pressRemote('down', 'down'));
+    await fireEvent.press(screen.getByLabelText('English'));
+    await fireEvent.press(screen.getByText('Subtitles'));
+    await fireEvent.press(screen.getByLabelText('Português'));
+    expect(playerState.trackSelections).toEqual(['audio:1:0', 'text:3:0']);
+    expect(stores.profilePrefs.getState().prefs.p1?.playback).toEqual({
+      audio: { language: 'en', label: 'English' },
+      subtitles: { language: 'pt', label: 'Português' },
+    });
+
+    // A movie (its tracks in another order): the same languages are selected by themselves, once.
+    playerState.trackSelections.length = 0;
+    await view.rerender(<PlayerScreen target={movie} />);
+    await flush();
+    const movieTracks = [
+      { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'English', language: 'en', selected: false },
+      { type: 'audio', groupIndex: 0, trackIndex: 1, label: 'Français', language: 'fr', selected: true },
+      { type: 'text', groupIndex: 1, trackIndex: 0, label: 'Português', language: 'pt', selected: false },
+    ];
+    await tracksEvent(movieTracks);
+    await tracksEvent(movieTracks);
+    expect(playerState.trackSelections).toEqual(['text:1:0', 'audio:0:0']);
   });
 
   it('episodes: the last one has a previous-episode button only', async () => {

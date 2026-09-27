@@ -14,6 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
+  chooseVersion,
   episodeInVersion,
   episodeTarget,
   findEpisodeProgress,
@@ -466,7 +467,10 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
           value: variant.streamId,
           label: `${variant.label}${index === 0 ? ` (${t('best')})` : ''}`,
         }))}
-        onChange={(streamId) => stores.library.getState().selectVariant(master.id, streamId)}
+        onChange={(streamId) => {
+          const picked = master.variants.find((variant) => variant.streamId === streamId);
+          if (picked) chooseVersion(stores, master.id, picked);
+        }}
         testID="variant-button"
       />
     </Centered>

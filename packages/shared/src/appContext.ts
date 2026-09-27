@@ -13,6 +13,7 @@ import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProfilePrefsStore, profileLanguages, type ProfilePrefsStore } from './stores/profilePrefsStore';
+import { playbackChoicesOf } from './playback/playbackChoices';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
@@ -140,6 +141,15 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
   };
   profilePrefs.subscribe(filtersChanged);
   session.subscribe(filtersChanged);
+
+  // The open profile's version choice picks the version titles start with (D-087).
+  const followVersion = () => {
+    const version = playbackChoicesOf(activePrefs()).version ?? null;
+    if (library.getState().preferredVersion !== version) library.getState().setPreferredVersion(version);
+  };
+  followVersion();
+  profilePrefs.subscribe(followVersion);
+  session.subscribe(followVersion);
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {

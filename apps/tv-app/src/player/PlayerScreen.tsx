@@ -42,6 +42,11 @@ import {
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
+  chooseVersion,
+  pickTrack,
+  playbackChoices,
+  rememberPlayback,
+  usesPlaybackChoices,
   tvPlaybackAttempts,
   type EpgListing,
   type LiveChannel,
@@ -177,6 +182,38 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   useEffect(() => {
     if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
   }, [target.kind, target.masterId]);
+
+  // The profile's subtitles and audio track (D-087): selected once per source, when its tracks are known; a pick in
+  // the drawer becomes the choice every movie and series starts with.
+  const tracksApplied = useRef<{ source: PlayerSource | null; text: boolean; audio: boolean }>({ source: null, text: false, audio: false });
+  const onTracks = (list: PlayerTrack[]) => {
+    setTracks(list);
+    if (!source || !usesPlaybackChoices(target)) return;
+    if (tracksApplied.current.source !== source) tracksApplied.current = { source, text: false, audio: false };
+    const applied = tracksApplied.current;
+    const choices = playbackChoices(stores);
+    for (const [type, choice] of [
+      ['text', choices.subtitles],
+      ['audio', choices.audio],
+    ] as const) {
+      const options = list.filter((track) => track.type === type);
+      if (applied[type] || options.length === 0) continue;
+      applied[type] = true;
+      const pick = pickTrack(options, choice);
+      if (pick === null || pick === options.findIndex((track) => track.selected)) continue;
+      const track = options[pick];
+      if (track) void playerRef.current?.selectTrack(type, track.groupIndex, track.trackIndex);
+      else void playerRef.current?.selectTrack(type, -1, 0);
+    }
+  };
+  const chooseTrack = (type: 'audio' | 'text', groupIndex: number, trackIndex: number) => {
+    void playerRef.current?.selectTrack(type, groupIndex, trackIndex);
+    if (!usesPlaybackChoices(target)) return;
+    const chosen = tracks.find((track) => track.type === type && track.groupIndex === groupIndex && track.trackIndex === trackIndex);
+    const choice = chosen ? { language: chosen.language, label: chosen.label } : null;
+    if (type === 'text') rememberPlayback(stores, { subtitles: choice ?? { off: true } });
+    else if (choice) rememberPlayback(stores, { audio: choice });
+  };
 
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
@@ -455,7 +492,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
   const switchVariant = (variant: VariantInfo) => {
     saveProgress();
-    stores.library.getState().selectVariant(target.masterId!, variant.streamId);
+    chooseVersion(stores, target.masterId!, variant);
     navStore.getState().replaceTop({
       name: 'player',
       target: {
@@ -485,7 +522,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           setTime(timeRef.current);
           setDuration(durationRef.current);
         }}
-        onTracks={(e) => setTracks(e.nativeEvent.tracks)}
+        onTracks={(e) => onTracks(e.nativeEvent.tracks)}
         onEnd={() => {
           saveProgress();
           if (next && !nextDismissed) playNext();
@@ -779,7 +816,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           variants={variants}
           currentStreamId={target.streamId}
           series={series.data}
-          onTrack={(type, group, track) => void playerRef.current?.selectTrack(type, group, track)}
+          onTrack={chooseTrack}
           onVariant={(v) => {
             setDrawer(false);
             switchVariant(v);

@@ -91,6 +91,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
 | [D-085](#d-085) | 2026-09-27 | Web and desktop: category chips on one line with Show all; row titles take the mouse |
 | [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
+| [D-087](#d-087) | 2026-09-27 | Subtitles, audio and version: what you last picked is what every title starts with |
 
 ---
 
@@ -1534,3 +1535,15 @@ Decision:
 
 Limits: a category name in a language the hint does not know stays "no language" (its titles show under any filter).
 
+## D-087
+
+**Subtitles, audio and version: what you last picked is what every title starts with** — 2026-09-27 (requested by owner)
+
+Context: every movie and episode started with the player's default subtitles, audio and the best version, so the viewer picked the same language again each time.
+
+Decision:
+- **One choice per profile, for every movie and series.** The subtitles (or Off), the audio track and the version last picked are kept in the profile's preferences on this device (`ProfilePrefs.playback`, `playback/playbackChoices.ts`). Live channels keep what the stream sends.
+- **Tracks matched by language.** Titles list their own tracks, often in another order, so a choice is matched again: same language and name, then same language, then same name. Without a match the player's default stays. Applied once per title when its tracks are known; a new pick in the player replaces the choice. TV and phone use ExoPlayer's tracks; web and desktop hls.js's (subtitles also the video element's own; a plain file plays its default audio).
+- **Version by language, then quality.** Picking a version in details or in the player keeps its audio languages and quality. A title without a version picked for it starts with one in that language, the same quality first (English 4K → English 4K, else English in another quality); without one in that language, the best version as before (`preferredVariant`, used by `selectVariant`). A version picked for a title stays that title's; resuming another version still preselects it.
+
+Limits: kept on each device, not synced between devices or through the server.

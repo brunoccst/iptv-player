@@ -13,14 +13,17 @@ import type {
 } from '../api/types';
 import { createResourceLoader, emptyResource, toApiError, type LoadOptions, type Resource } from './resource';
 import { t } from '../i18n/i18n';
+import { preferredVariant, type VersionChoice } from '../playback/playbackChoices';
 
 /** Deduplicated library (master cards + variants) and the user's "Version / Stream Quality" choices. */
 export interface LibraryState {
   pages: Record<string, Resource<LibraryPage>>;
   details: Record<string, Resource<MasterDetails>>;
   status: Resource<LibraryStatus[]>;
-  /** masterId → chosen variant streamId. Missing = best variant. */
+  /** masterId → chosen variant streamId. Missing = the preferred version, else the best variant. */
   selectedVariants: Record<string, string>;
+  /** The open profile's version choice (D-087): language and quality titles start with when none was picked. */
+  preferredVersion: VersionChoice | null;
   syncing: boolean;
   syncError: ApiError | null;
   /** Chosen order per section for Movies/Series grids (session only). Missing = `DEFAULT_LIBRARY_SORT`. */
@@ -32,6 +35,7 @@ export interface LibraryState {
   /** Asks the backend to re-fetch the provider catalog and queue normalization. */
   sync(): Promise<boolean>;
   selectVariant(masterId: string, streamId: string): void;
+  setPreferredVersion(choice: VersionChoice | null): void;
   chooseSort(section: LibrarySection, choice: LibrarySortChoice): void;
   /** Drops cached pages/details (library re-processed). Keeps status and variant choices. */
   invalidate(): void;
@@ -134,6 +138,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       details: {},
       status: emptyResource(),
       selectedVariants: {},
+      preferredVersion: null,
       syncing: false,
       syncError: null,
       sortChoices: {},
@@ -159,6 +164,8 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       },
 
       selectVariant: (masterId, streamId) => set({ selectedVariants: { ...get().selectedVariants, [masterId]: streamId } }),
+
+      setPreferredVersion: (preferredVersion) => set({ preferredVersion }),
 
       chooseSort: (section, choice) => set({ sortChoices: { ...get().sortChoices, [section]: choice } }),
 
@@ -186,10 +193,21 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
 
 export type LibraryStore = ReturnType<typeof createLibraryStore>;
 
-/** The chosen variant, falling back to the best one (backend orders variants best-first). */
-export function selectVariant(state: Pick<LibraryState, 'selectedVariants'>, details: MasterDetails): VariantInfo | null {
+/**
+ * The chosen variant; else the one matching the profile's version choice (D-087); else the best one (backend orders
+ * variants best-first).
+ */
+export function selectVariant(
+  state: Pick<LibraryState, 'selectedVariants'> & Partial<Pick<LibraryState, 'preferredVersion'>>,
+  details: MasterDetails,
+): VariantInfo | null {
   const chosen = state.selectedVariants[details.id];
-  return details.variants.find((variant) => variant.streamId === chosen) ?? details.variants[0] ?? null;
+  return (
+    details.variants.find((variant) => variant.streamId === chosen) ??
+    preferredVariant(details.variants, state.preferredVersion) ??
+    details.variants[0] ??
+    null
+  );
 }
 
 /** True while any library kind still has a queued or running normalization job. */

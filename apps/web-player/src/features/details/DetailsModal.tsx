@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import {
+  chooseVersion,
   allEpisodesWatched,
   isMovieWatched,
   noteSeriesWatched,
@@ -90,7 +91,10 @@ function MovieDetails({ master }: { master: MasterDetails }) {
     const resumeHere = resume && resume.itemId === variant.streamId ? resume : null;
     uiStore.getState().play({ ...movieTarget(master, variant), startAt: resumeHere ? resumeHere.positionSeconds : undefined });
   };
-  const choose = (streamId: string) => stores.library.getState().selectVariant(master.id, streamId);
+  const choose = (streamId: string) => {
+    const picked = master.variants.find((v) => v.streamId === streamId);
+    if (picked) chooseVersion(stores, master.id, picked);
+  };
 
   const backdrop = meta.data?.backdropUrls[0] ?? meta.data?.summary.posterUrl ?? master.posterUrl;
   const duration = meta.data?.durationSeconds ?? null;
@@ -191,7 +195,10 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           <VariantSelect
             variants={master.variants}
             value={variant.streamId}
-            onChange={(streamId) => stores.library.getState().selectVariant(master.id, streamId)}
+            onChange={(streamId) => {
+              const picked = master.variants.find((v) => v.streamId === streamId);
+              if (picked) chooseVersion(stores, master.id, picked);
+            }}
           />
         </div>
         <div className="details__side">
