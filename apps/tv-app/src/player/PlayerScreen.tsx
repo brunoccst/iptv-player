@@ -14,6 +14,10 @@ import {
 } from 'react-native';
 import {
   appLog,
+  describeProbe,
+  probeHint,
+  probeMessage,
+  probeStream,
   errorMessage,
   NEXT_UP_COUNTDOWN_SECONDS,
   RemoteSeekController,
@@ -274,6 +278,18 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
   // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead.
   const lastTap = useRef<{ at: number; side: SeekDirection | null; controls: boolean } | null>(null);
+  /**
+   * Logs what the provider sent instead of a video (the first bytes, credentials masked). After the last attempt a
+   * recognisable answer ("max connections", "not found", …) replaces the general error text (D-074).
+   */
+  const explainFailure = (uri: string, attemptNo: number, final: boolean) => {
+    void probeStream(uri, { userAgent: providerUserAgent }).then((probe) => {
+      appLog.warn('player', `attempt ${attemptNo}: the provider answered ${describeProbe(probe)}`);
+      const text = final ? probeMessage(probeHint(probe)) : null;
+      if (text) setError(text);
+    });
+  };
+
   const onScreenTap = (event: GestureResponderEvent) => {
     if (Platform.isTV) return;
     const x = event.nativeEvent.locationX;
@@ -433,6 +449,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         onError={(e) => {
           const { message, code, detail } = e.nativeEvent;
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
+          // "Not a video" or an HTTP error: log what the provider actually sent (D-074).
+          const explain = !source?.offlineId && /^ERROR_CODE_(PARSING|IO_BAD_HTTP_STATUS)/.test(code) ? source?.uri : undefined;
           // Decoding errors: the other server and the HLS copy carry the same audio/video, so retrying only costs time.
           if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
             setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
@@ -441,12 +459,15 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           // The stream server's other address only helps with network and HTTP errors.
           const alternate = source?.offlineId || !code.startsWith('ERROR_CODE_IO') ? undefined : alternates.current.shift();
           if (alternate) {
+            if (explain) explainFailure(explain, attempt + 1, false);
             appLog.info('player', `attempt ${attempt + 1}: retrying on the stream server ${alternate}`);
             setSource({ ...source, uri: alternate });
             return;
           }
           // A failed stream (not a download) moves on to the next attempt.
-          if (!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1) {
+          const final = !(!source?.offlineId && attempt < tvPlaybackAttempts(target.kind, target.container).length - 1);
+          if (explain) explainFailure(explain, attempt + 1, final);
+          if (!final) {
             setReady(false);
             setAttempt((a) => a + 1);
           } else setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));

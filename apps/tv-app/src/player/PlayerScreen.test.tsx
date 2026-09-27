@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Dimensions, Platform } from 'react-native';
-import { HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
+import { appLog, HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
 import { navStore } from '../appContext';
@@ -99,6 +99,31 @@ describe('PlayerScreen', () => {
 
     await act(async () => playerState.props?.onError?.({ nativeEvent: { message: 'Source error', code: 'X' } } as never));
     expect(await screen.findByText('Source error')).toBeTruthy();
+  });
+
+  it('logs what the provider sent instead of a video, and names "max connections" (D-074)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://relay/55.${url.searchParams.get('container')}`) }));
+    backend.on('GET', '/55.mkv', { body: 'Error: max connections reached' });
+    backend.on('GET', '/55.m3u8', { body: 'Error: max connections reached' });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    const notVideo = {
+      message: 'Source error',
+      code: 'ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED',
+      detail: 'None of the available extractors',
+    };
+    await act(async () => playerState.props?.onError?.({ nativeEvent: notVideo } as never));
+    await flush();
+    await act(async () =>
+      playerState.props?.onError?.({ nativeEvent: { ...notVideo, code: 'ERROR_CODE_PARSING_MANIFEST_MALFORMED' } } as never),
+    );
+    await flush();
+    expect(await screen.findByText(/all connections of the account are in use/)).toBeTruthy();
+    expect(appLog.text()).toMatch(
+      /attempt 1: the provider answered HTTP 200, application\/json, .* from relay: ""Error: max connections reached""/,
+    );
+    expect(appLog.text()).toMatch(/attempt 2: the provider answered HTTP 200/);
   });
 
   it('explains a provider refusal (HTTP 401/403) in plain words', () => {

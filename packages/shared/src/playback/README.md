@@ -5,6 +5,7 @@ Pure functions used by both players.
 | File | Exports |
 |------|---------|
 | `rules.ts` | `SKIP_SECONDS` (10), `NEXT_UP_COUNTDOWN_SECONDS` (10), `isCompleted`, `resumePosition`, `continueWatching`, `skipAheadWindow` / `isInSkipAheadWindow` ("Skip ahead" shows 5–90 s into episodes ≥ 10 min), `SKIP_AHEAD_OPTIONS` (30 s, 1, 2, 3 min) with labels, `nextUpCountdown`, `orderedEpisodes`, `nextEpisode`, `episodeLabel`, `clampTime`. |
+| `probe.ts` | When a stream is not a video: `probeStream` fetches its first 2 KB like the player, `describeProbe` makes the log line (credentials masked), `probeHint` / `probeMessage` recognise "max connections", "not found", "expired", refused and empty answers (D-074). |
 | `offlineAccess.ts` | `offlineAccess(account, lastOnlineAt)`: downloads play only with an unexpired subscription and an online check within `OFFLINE_RECHECK_DAYS` (30); `formatOfflineDate` (D-050). |
 | `seriesVersions.ts` | One episode list per series (D-066): `loadSeriesVersions` (episode lists of all versions, three at a time), `mergeSeriesVersions` (by season and episode number; the preferred version plays where it has the episode), `episodeInVersion`, `findEpisodeProgress`, `seriesVersionsOf`, `playerSeriesVersions`. |
 | `sources.ts` | `webPlaybackAttempts` (HLS first, then original file), `isBrowserNativeContainer`, `mimeTypeForContainer`. |
