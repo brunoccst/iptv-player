@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TVFocusGuideView,
   useWindowDimensions,
   View,
   type StyleProp,
@@ -84,7 +85,8 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
     );
   };
   return (
-    <View style={styles.overlay} testID="details-screen" accessibilityViewIsModal>
+    // TV: the D-pad stays in the panel; the page behind it is never reached (D-075).
+    <FocusTrap style={styles.overlay} testID="details-screen">
       <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel="Close details" />
       <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
         <View ref={panel} style={[styles.panel, { width: Math.min(850, width - 32) }]}>
@@ -108,7 +110,7 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
           </View>
         </View>
       </ScrollView>
-    </View>
+    </FocusTrap>
   );
 }
 
@@ -495,3 +497,18 @@ const styles = StyleSheet.create({
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   episodeActionsCompact: { marginTop: 8 },
 });
+
+/** TV: a focus guide that keeps the D-pad inside (all four directions); elsewhere a plain modal view. */
+function FocusTrap({ style, testID, children }: { style: StyleProp<ViewStyle>; testID: string; children: ReactNode }) {
+  if (!Platform.isTV)
+    return (
+      <View style={style} testID={testID} accessibilityViewIsModal>
+        {children}
+      </View>
+    );
+  return (
+    <TVFocusGuideView trapFocusUp trapFocusDown trapFocusLeft trapFocusRight style={style} testID={testID} accessibilityViewIsModal>
+      {children}
+    </TVFocusGuideView>
+  );
+}

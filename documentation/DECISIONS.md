@@ -78,6 +78,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
 | [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
 | [D-073](#d-073) | 2026-09-26 | Desktop in-app updates, TV-style login, cards of one size; phone search focus |
+| [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all" |
 
 ---
 
@@ -1334,3 +1335,15 @@ Decision:
 - **Phone search box keeps its focus.** Reproduced on a phone emulator (new CI flow `04-phone-search.yaml`): after tapping the search box the first Live TV card had focus and typing went nowhere; logcat said the text field was detached from the window. Focusing the box switched on the focus glow (`elevation`), and React Native then rebuilt the box's native views, detaching the text field; Android gave focus to the first focusable card. The search box keeps its border and background highlight without the glow.
 
 Tested: a 1.0.3 AppImage found 1.0.4 on a local feed, downloaded it, replaced itself and restarted (Linux). The Windows installer's silent update is electron-updater's standard path; not run on a real Windows PC.
+
+## D-075
+
+**TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all"** — 2026-09-27 (requested by owner)
+
+Decision:
+- **Details panel.** It is a focus guide that traps all four directions (TV only). Before, Down past the version picker left the panel for the grid behind it.
+- **Player buttons.** ↓ no longer opens the audio/subtitles drawer (↑ still does). It puts the focus on the on-screen buttons, play/pause first: Back at the top left; play/pause, −10 s, +10 s at the bottom left; episodes, audio and subtitles at the bottom right. The D-pad walks them and Select presses the focused one. Back, or 8 s without a key, returns to the video, where ←/→ seek again. Buttons that open a panel (audio and subtitles, episodes, guide) leave button mode.
+- **Holding Right in a Home row.** The row's scroll view on TV no longer handles the arrow keys itself (`scrollEnabled={false}`; it still scrolls to show the focused card). Its own arrow-key scrolling (`HorizontalScrollView.arrowScroll`) scrolled by half a screen when the next card looked too far away. That happened while holding, as the scroll lagged behind the focus. When the focused card was then off screen, it gave the focus up, and Android moved it to Live TV or the nav. Single presses gave the scroll time to catch up. The row's focus trap (D-069) now decides alone.
+- **"See all" card.** Like a card, the whole card has the background and fills the row's height, so it lines up with cards that have a second line.
+
+Tests: unit tests for the trap, the player buttons and the row's scrolling. The emulator flow checks ↑ drawer, ↓ buttons (play/pause focused, Right moves on, Up reaches Back, Back returns), and that Down ×8 in the details panel never focuses the page. Holding a key cannot be scripted in Maestro, and the fake panel has no row with "See all" (≤ 10 titles), so hold-Right is covered by the unit test and the reasoning above.

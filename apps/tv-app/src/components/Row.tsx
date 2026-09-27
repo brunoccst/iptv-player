@@ -49,6 +49,10 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
             removeClippedSubviews={false}
+            // TV: the row scrolls only to show the focused card. With its own arrow-key scrolling on, holding Right
+            // outran the scroll at the end of the row, and the scroll view handed the focus away (up to Live TV or
+            // the nav) instead of to "See all" (D-075).
+            scrollEnabled={!Platform.isTV}
             // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
             // cards, and focus fell out of the row (to the nav).
             initialNumToRender={Platform.isTV ? items.length : 8}
@@ -138,7 +142,9 @@ const styles = StyleSheet.create({
   content: { paddingVertical: 8 },
   empty: { color: colors.muted },
   spinner: { alignSelf: 'flex-start', marginVertical: 24 },
-  moreCard: { borderRadius: radius + 2, borderWidth: 2, borderColor: 'transparent' },
+  // Like a card (PosterCard): the whole card has the background and fills the row's height, so it lines up with cards
+  // that have a second line under the title.
+  moreCard: { flex: 1, borderRadius: radius + 2, borderWidth: 2, borderColor: 'transparent', backgroundColor: colors.surface },
   moreFocused: { transform: [{ scale: 1.08 }], borderColor: focus.ring, ...focus.glow },
   moreArt: {
     width: '100%',

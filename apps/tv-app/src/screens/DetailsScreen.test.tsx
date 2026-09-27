@@ -98,6 +98,13 @@ describe('series details: one episode list for all versions (D-066)', () => {
     backend.on('GET', '/api/catalog/series/ge', { body: series('ge', [{ number: 1, episodes: [episode('ge-1', 1, 1)] }]) });
     await render(<DetailsScreen section="series" masterId="show" />);
     await flush();
+    // The D-pad stays in the panel in every direction: the page behind is never reached (D-075).
+    expect(screen.getByTestId('details-screen').props).toMatchObject({
+      trapFocusUp: true,
+      trapFocusDown: true,
+      trapFocusLeft: true,
+      trapFocusRight: true,
+    });
 
     const play = screen.getByTestId('episode-en-1');
     let row = play.parent;

@@ -240,6 +240,36 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('quick-drawer')).toBeNull();
   });
 
+  it('TV: ↓ puts the focus on the on-screen buttons; the D-pad moves between them; Back returns to the video (D-075)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    expect(screen.getByTestId('player-toggle').props.focusable).toBe(false);
+
+    await act(async () => pressRemote('down', 'down'));
+    expect(screen.queryByTestId('quick-drawer')).toBeNull();
+    expect(screen.queryByTestId('player-focus')).toBeNull();
+    expect(screen.getByTestId('player-toggle').props).toMatchObject({ focusable: true, hasTVPreferredFocus: true });
+    expect(screen.getByTestId('player-back').props.focusable).toBe(true);
+    // On the buttons, ←/→ move the focus (native), not the video; Select presses the focused button.
+    await act(async () => pressRemote('right', 'down'));
+    await act(async () => pressRemote('right', 'up'));
+    expect(playerState.seeks).toEqual([]);
+    await fireEvent.press(screen.getByTestId('player-tracks'));
+    expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+    await act(async () => pressBack());
+
+    // Back from the buttons returns to the video: the focus anchor is back, the buttons leave D-pad focus.
+    await act(async () => pressRemote('down', 'down'));
+    expect(screen.getByTestId('player-toggle').props.focusable).toBe(true);
+    await act(async () => pressBack());
+    expect(screen.getByTestId('player-focus')).toBeTruthy();
+    expect(screen.getByTestId('player-toggle').props.focusable).toBe(false);
+    jest.restoreAllMocks();
+  });
+
   it('episodes: Skip ahead opens 30 s … 3 min, cancels on re-press or Back; next-up offers the next episode', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
