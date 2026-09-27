@@ -8,6 +8,7 @@ export function IconButton({
   icon,
   label,
   onPress,
+  onLongPress,
   size = 40,
   iconSize = 20,
   plain,
@@ -18,6 +19,8 @@ export function IconButton({
   icon: IconName;
   label: string;
   onPress(): void;
+  /** Holding OK (a long touch on phones), e.g. an episode's options menu (D-082). */
+  onLongPress?(): void;
   size?: number;
   iconSize?: number;
   /** `.icon-button--plain`: no ring or background (player controls). */
@@ -37,6 +40,7 @@ export function IconButton({
       hasTVPreferredFocus={hasTVPreferredFocus}
       focusable={focusable}
       onPress={onPress}
+      onLongPress={onLongPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
     >

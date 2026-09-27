@@ -15,6 +15,8 @@ export interface ProfilePrefs {
    * name rule (D-053); an empty list shows nothing of that section.
    */
   kidsCategories?: Partial<Record<CatalogSection, string[] | null>> | null;
+  /** Series titles (master ids) with every episode watched: the tag on their covers (D-082). */
+  watchedSeries?: string[] | null;
 }
 
 export interface ProfilePrefsState {

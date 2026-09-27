@@ -38,6 +38,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Watched series and episodes** (requested 2026-09-27, D-082): mark each episode watched or not (check button, or the episode's menu); "Mark series as watched" on series cards marks every episode; the "Watched" tag shows on fully watched series covers and next to the series title.
 - [x] **Watched tag, card menu options, the last two parity gaps** (requested 2026-09-27, D-081): a "Watched" tag at the bottom right of watched covers and in details; the card menu (hold OK, long touch, right-click) offers Go to details and Mark as (not) watched on every title card, plus Remove on Continue Watching; web/desktop get the guide over the playing channel (Guide button or G) and, in the desktop app, Open in VLC.
 - [x] **Keep every app level** (requested 2026-09-27, D-080): pull requests ask which apps they cover; CI checks that `PARITY.md` marks every app and that each missing one has an open `Parity: …` backlog item. Steps 2 and 3 (shared feature logic, one set of screens) are in the backlog.
 - [x] **Same look and features in every app** (requested 2026-09-27, D-079, [PARITY.md](PARITY.md)): web/desktop get the card menu by right-click, the player's from-the-beginning and previous/next episode buttons, the provider's answer on playback errors, About and Log in the account menu (TV groups), and the TV's focus look on cards.

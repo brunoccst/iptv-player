@@ -310,3 +310,32 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await menu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 });
+
+test('series: Mark series as watched tags the cover and every episode; unwatching one episode clears the series tag (D-082)', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Series', exact: true }).click();
+  const card = page.locator('.grid .card', { has: page.getByRole('button', { name: 'Test Series' }) });
+  await card.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });
+  const menu = page.getByRole('menu', { name: 'Options for Test Series' });
+  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark series as watched', 'Cancel']);
+  await menu.getByRole('menuitem', { name: 'Mark series as watched' }).click();
+  await expect(card.getByTestId('watched-tag')).toBeVisible();
+
+  await card.getByRole('button', { name: 'Test Series' }).click();
+  const dialog = page.getByRole('dialog');
+  const episodes = dialog.getByRole('region', { name: 'Episodes' });
+  await expect(dialog.locator('.details__watched')).toBeVisible();
+  await expect(episodes.getByTestId('watched-tag').first()).toBeVisible();
+
+  // One episode back to not watched: its tag and the series tag go.
+  const count = await episodes.getByTestId('watched-tag').count();
+  await episodes
+    .getByRole('button', { name: /^Mark .* as not watched$/ })
+    .first()
+    .click();
+  await expect(episodes.getByTestId('watched-tag')).toHaveCount(count - 1);
+  await expect(dialog.locator('.details__watched')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+});

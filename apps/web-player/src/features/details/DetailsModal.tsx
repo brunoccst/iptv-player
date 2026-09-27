@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import {
+  allEpisodesWatched,
   isMovieWatched,
+  noteSeriesWatched,
   formatDuration,
   loadSeriesVersions,
   mergeSeriesVersions,
@@ -141,6 +143,13 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   const merged = useMemo(() => (versions.data ? mergeSeriesVersions(versions.data, variant?.streamId) : null), [versions.data, variant]);
   const series = { ...versions, data: merged };
   const resume = useMasterProgress(master.id, master.variants, 'episode');
+  // Every episode finished: the tag next to the title, and the note behind the series cover's tag (D-082). Only once
+  // the progress list has loaded, so a slow start never clears the note.
+  const progressLoaded = useProgress((s) => s.items.status === 'success');
+  const allWatched = useProgress((s) => !!merged && allEpisodesWatched(s, merged));
+  useEffect(() => {
+    if (merged && progressLoaded) void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
+  }, [merged, progressLoaded, allWatched, master.id]);
   if (!variant) return <p style={{ padding: 32 }}>No playable versions.</p>;
 
   const firstEpisode = series.data?.seasons[0]?.episodes[0];
@@ -159,7 +168,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
 
   return (
     <>
-      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title}>
+      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title} watched={allWatched}>
         <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
           <Icon name="play" /> {resume ? `Resume S${resume.seasonNumber}:E${resume.episodeNumber}` : 'Play'}
         </button>

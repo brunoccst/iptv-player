@@ -86,6 +86,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
 | [D-080](#d-080) | 2026-09-27 | Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog |
 | [D-081](#d-081) | 2026-09-27 | "Watched" tag and card menu options in every app; guide over the channel and Open in VLC on web/desktop |
+| [D-082](#d-082) | 2026-09-27 | Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series |
 
 ---
 
@@ -1454,4 +1455,18 @@ Decision:
 - **Progress list** raised to 1000 entries per profile (backend `MaxListSize`, direct mode, `PROGRESS_LIST_LIMIT`) so older watched titles keep their tag.
 - **Guide over the playing channel on web and desktop** (the TV's D-058): a Guide button in the live player, and G (↑/↓ stay the volume there). Channels of the same category with now and next; a click switches channel; Escape, a click beside the panel or the button close it. No auto-hide with a mouse.
 - **Open in VLC in the desktop app** (the TV's "open in another player", D-057): a button next to Play in movie details and on each episode. The main process looks for VLC in the usual folders and on PATH and starts it with the stream (original file first) and the provider User-Agent; only http(s) addresses. When VLC is missing, the app says so. Not in a browser (it cannot start programs), not on Kids profiles.
+
+## D-082
+
+**Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series** — 2026-09-27 (requested by owner)
+
+Context: D-081 tagged and marked movies only; series had the tag only on episodes finished by playing them.
+
+Decision:
+- **Episodes.** In a series' details every episode has a check button next to Play and Download ("Mark as watched" / "Mark as not watched"), and a menu with the same: hold OK on its Play button (TV), a long touch (phone), a right-click on the episode (web, desktop). Marking saves finished progress on the version shown; "not watched" removes the progress of all its versions (D-066).
+- **Whole series.** The series card menu offers "Mark series as watched" / "Mark series as not watched": the app loads the episode lists of all versions, merges them, and marks every episode (a few requests at a time).
+- **Tag on series covers.** A card does not know how many episodes a series has, and loading every series' episodes on Home would be far too slow. So the profile keeps a note of fully watched series (`ProfilePrefs.watchedSeries`, on this device, in the backup's settings): set when the series is marked watched or when its details show every episode finished (after the progress list has loaded), cleared when marked not watched or an episode is unwatched. The details show the tag next to the title whenever every episode is finished.
+- Code: `isEpisodeWatched`, `allEpisodesWatched`, `setEpisodeWatched`, `setSeriesWatched`, `isSeriesWatched`, `noteSeriesWatched` and the menu items in `packages/shared/src/playback/watched.ts`.
+
+Limits: the note is per device; another device learns it when the series' details open there. A series that gains new episodes keeps its tag until its details are opened again.
 

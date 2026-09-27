@@ -186,6 +186,80 @@ describe('App (TV)', () => {
     expect(screen.queryByTestId('card-Big Test Movie-watched')).toBeNull();
   });
 
+  it('card menu on a series: Mark series as watched marks every episode and tags the cover (D-082)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/library/series', {
+      body: {
+        total: 1,
+        items: [{ id: 'show', title: 'Show', year: 2020, posterUrl: null, rating: null, bestQuality: null, variantCount: 1 }],
+      },
+    });
+    backend.on('GET', '/api/library/series/show', {
+      body: { id: 'show', title: 'Show', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('s1', 'ENG')] },
+    });
+    const ep = (id: string, n: number) => ({
+      id,
+      seasonNumber: 1,
+      episodeNumber: n,
+      title: id,
+      plot: null,
+      durationSeconds: 2400,
+      stillUrl: null,
+      containerExtension: 'mp4',
+    });
+    backend.on('GET', '/api/catalog/series/s1', {
+      body: {
+        summary: {
+          id: 's1',
+          name: 'Show',
+          categoryId: null,
+          posterUrl: null,
+          rating: null,
+          plot: null,
+          genre: null,
+          releaseDate: null,
+          lastModifiedAt: null,
+        },
+        cast: null,
+        director: null,
+        backdropUrls: [],
+        trailerYoutubeId: null,
+        seasons: [{ number: 1, name: 'Season 1', coverUrl: null, episodes: [ep('e1', 1), ep('e2', 2)] }],
+      },
+    });
+    for (const id of ['e1', 'e2']) {
+      backend.on('PUT', `/api/profiles/p1/progress/episode/${id}`, ({ body }) => ({
+        body: { kind: 'episode', itemId: id, updatedAt: '2026-09-27T00:00:00Z', ...(body as object) },
+      }));
+      backend.on('DELETE', `/api/profiles/p1/progress/episode/${id}`, { status: 204 });
+    }
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await act(async () => navStore.getState().goSection('series'));
+    await flush();
+    await screen.findAllByTestId('card-Show');
+    const card = () => screen.getAllByTestId('card-Show').at(-1)!;
+
+    await fireEvent(card(), 'longPress');
+    await fireEvent.press(within(screen.getByTestId('card-menu')).getByText('Mark series as watched'));
+    await flush();
+    expect(
+      backend.calls
+        .filter((c) => c.method === 'PUT')
+        .map((c) => c.url.pathname)
+        .sort(),
+    ).toEqual(['/api/profiles/p1/progress/episode/e1', '/api/profiles/p1/progress/episode/e2']);
+    expect(screen.getAllByTestId('card-Show-watched').length).toBeGreaterThan(0);
+
+    await fireEvent(card(), 'longPress');
+    await fireEvent.press(within(screen.getByTestId('card-menu')).getByText('Mark series as not watched'));
+    await flush();
+    expect(backend.calls.filter((c) => c.method === 'DELETE')).toHaveLength(2);
+    expect(screen.queryByTestId('card-Show-watched')).toBeNull();
+  });
+
   it('opens a movie in another player app with the provider User-Agent (D-057)', async () => {
     const backend = setupApp();
     stubLibrary(backend);

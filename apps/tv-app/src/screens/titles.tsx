@@ -13,6 +13,8 @@ import {
 import {
   cardMenuItems,
   isMovieWatched,
+  isSeriesWatched,
+  setSeriesWatched,
   setMovieWatched,
   LIBRARY_SORT_OPTIONS,
   sortChoiceKey,
@@ -22,9 +24,9 @@ import {
   type MasterCard,
   type MediaCategory,
 } from '@iptv/shared';
-import { navStore, stores } from '../appContext';
+import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
-import { useProgress } from '../hooks';
+import { useProfilePrefs, useProgress } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusRow } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
@@ -39,7 +41,7 @@ const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
 /**
- * Web `MasterCard`: poster, 4K badge, "year · N versions", "Watched" tag on finished movies; opens the details panel.
+ * Web `MasterCard`: poster, 4K badge, "year · N versions", "Watched" tag on finished movies and fully watched series (D-082); opens the details panel.
  * Holding OK (a long touch on phones) opens its menu: Go to details, Mark as (not) watched (D-081).
  */
 export function MasterCardItem({
@@ -53,7 +55,10 @@ export function MasterCardItem({
   width?: number;
   hasTVPreferredFocus?: boolean;
 }) {
-  const watched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
+  const movieWatched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
+  const profileId = useProgress((s) => s.profileId);
+  const seriesWatched = useProfilePrefs((s) => section === 'series' && isSeriesWatched(s.prefs, profileId, item.id));
+  const watched = movieWatched || seriesWatched;
   const [menu, setMenu] = useState(false);
   const openDetails = () => navStore.getState().push({ name: 'details', section, masterId: item.id });
   return (
@@ -73,12 +78,13 @@ export function MasterCardItem({
         <CardMenu
           title={item.title}
           onClose={() => setMenu(false)}
-          actions={cardMenuItems(section === 'movies' ? { kind: 'movie', watched } : { kind: 'series' }).map((entry) => ({
+          actions={cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched }).map((entry) => ({
             label: entry.label,
             testID: `card-menu-${entry.id}`,
             onPress: () => {
               if (entry.id === 'details') openDetails();
-              else void setMovieWatched(stores, item.id, entry.id === 'watched');
+              else if (section === 'movies') void setMovieWatched(stores, item.id, entry.id === 'watched');
+              else void setSeriesWatched({ api, ...stores }, item.id, entry.id === 'watched');
             },
           }))}
         />

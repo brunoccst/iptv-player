@@ -4,7 +4,12 @@ import type { ProgressDto } from '../api/types';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { createMemoryStorage } from '../stores/storage';
 import {
+  allEpisodesWatched,
   cardMenuItems,
+  isEpisodeWatched,
+  isSeriesWatched,
+  setEpisodeWatched,
+  setSeriesWatched,
   isMovieWatched,
   isWatched,
   markEntryWatched,
@@ -62,15 +67,17 @@ async function setup(progress: ProgressDto[]) {
   });
   for (const id of ['101', '102', 'e1', 'e2']) {
     backend.on('PUT', `/api/profiles/p1/progress/movie/${id}`, ({ body }) => ({ body: { ...entry(id, 0), ...(body as object) } }));
-    backend.on('PUT', `/api/profiles/p1/progress/episode/${id}`, ({ body }) => ({ body: { ...entry(id, 0), ...(body as object) } }));
+    backend.on('PUT', `/api/profiles/p1/progress/episode/${id}`, ({ body }) => ({
+      body: { ...entry(id, 0), kind: 'episode', ...(body as object) },
+    }));
     backend.on('DELETE', `/api/profiles/p1/progress/movie/${id}`, { status: 204 });
     backend.on('DELETE', `/api/profiles/p1/progress/episode/${id}`, { status: 204 });
   }
-  const { stores } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });
+  const { stores, api } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });
   await stores.session.getState().login({ serverUrl: 's', username: 'u', password: 'p' });
   stores.session.getState().selectProfile('p1');
   await stores.progress.getState().load('p1');
-  return { backend, stores };
+  return { backend, stores, api };
 }
 
 describe('watched titles (D-081)', () => {
@@ -126,6 +133,88 @@ describe('watched titles (D-081)', () => {
     ]);
     expect(labels(cardMenuItems({ kind: 'movie', watched: false }))).toEqual(['Go to details', 'Mark as watched']);
     expect(labels(cardMenuItems({ kind: 'movie', watched: true }))).toEqual(['Go to details', 'Mark as not watched']);
-    expect(labels(cardMenuItems({ kind: 'series' }))).toEqual(['Go to details']);
+    expect(labels(cardMenuItems({ kind: 'series', watched: false }))).toEqual(['Go to details', 'Mark series as watched']);
+    expect(labels(cardMenuItems({ kind: 'series', watched: true }))).toEqual(['Go to details', 'Mark series as not watched']);
+    expect(labels(cardMenuItems({ kind: 'episode', watched: false }))).toEqual(['Mark as watched']);
+  });
+
+  describe('episodes and whole series (D-082)', () => {
+    const ep = (id: string, n: number) => ({
+      id,
+      title: `E${n}`,
+      episodeNumber: n,
+      seasonNumber: 1,
+      durationSeconds: 2400,
+      containerExtension: 'mp4',
+      plot: null,
+      stillUrl: null,
+    });
+    const merged = (id: string, n: number) => ({
+      ...ep(id, n),
+      seriesId: 's1',
+      versions: [{ seriesId: 's1', label: 'ENG', episode: ep(id, n) }],
+    });
+    const seriesBody = (seriesId: string, ids: string[]) => ({
+      summary: { id: seriesId, name: 'Show', categoryId: null, genre: null, lastModifiedAt: null, plot: null, posterUrl: null },
+      backdropUrls: [],
+      cast: null,
+      director: null,
+      trailerYoutubeId: null,
+      seasons: [{ number: 1, name: 'Season 1', coverUrl: null, episodes: ids.map((id, i) => ep(id, i + 1)) }],
+    });
+
+    it('marks one episode, and says when every episode is watched', async () => {
+      const { backend, stores } = await setup([]);
+      const series = {
+        seasons: [
+          {
+            number: 1,
+            name: 'S1',
+            coverUrl: null,
+            episodes: [merged('e1', 1), merged('e2', 2)],
+          },
+        ],
+      };
+      const [e1, e2] = series.seasons[0]!.episodes;
+      expect(allEpisodesWatched(stores.progress.getState(), series)).toBe(false);
+      await setEpisodeWatched(stores.progress, e1!, { title: 'Show', masterId: 'show' }, true);
+      expect(backend.calls.find((c) => c.method === 'PUT')?.body).toMatchObject({
+        positionSeconds: 2400,
+        seriesId: 's1',
+        masterId: 'show',
+        episodeNumber: 1,
+      });
+      expect(isEpisodeWatched(stores.progress.getState(), e1!)).toBe(true);
+      expect(allEpisodesWatched(stores.progress.getState(), series)).toBe(false);
+      await setEpisodeWatched(stores.progress, e2!, { title: 'Show', masterId: 'show' }, true);
+      expect(allEpisodesWatched(stores.progress.getState(), series)).toBe(true);
+      await setEpisodeWatched(stores.progress, e1!, { title: 'Show' }, false);
+      expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual([
+        '/api/profiles/p1/progress/episode/e1',
+      ]);
+      expect(allEpisodesWatched(stores.progress.getState(), series)).toBe(false);
+    });
+
+    it('marks a whole series (all versions) and keeps the note for the cover tag', async () => {
+      const { backend, stores, api } = await setup([]);
+      backend.on('GET', '/api/library/series/show', {
+        body: { id: 'show', title: 'Show', posterUrl: null, rating: null, bestQuality: null, year: 2020, variants: [variant('s1')] },
+      });
+      backend.on('GET', '/api/catalog/series/s1', { body: seriesBody('s1', ['e1', 'e2']) });
+      const deps = { api, library: stores.library, progress: stores.progress, profilePrefs: stores.profilePrefs };
+
+      await setSeriesWatched(deps, 'show', true);
+      expect(
+        backend.calls
+          .filter((c) => c.method === 'PUT')
+          .map((c) => c.url.pathname)
+          .sort(),
+      ).toEqual(['/api/profiles/p1/progress/episode/e1', '/api/profiles/p1/progress/episode/e2']);
+      expect(isSeriesWatched(stores.profilePrefs.getState().prefs, 'p1', 'show')).toBe(true);
+
+      await setSeriesWatched(deps, 'show', false);
+      expect(backend.calls.filter((c) => c.method === 'DELETE')).toHaveLength(2);
+      expect(isSeriesWatched(stores.profilePrefs.getState().prefs, 'p1', 'show')).toBe(false);
+    });
   });
 });

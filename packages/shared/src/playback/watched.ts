@@ -1,7 +1,11 @@
-import type { MasterDetails, ProgressDto, ProgressKind, ProgressRequest } from '../api/types';
+import type { ApiClient } from '../api/apiClient';
+import type { Episode, MasterDetails, ProgressDto, ProgressKind, ProgressRequest } from '../api/types';
+import type { ProfilePrefsState, ProfilePrefsStore } from '../stores/profilePrefsStore';
+import { episodeStreamIds, findEpisodeProgress, loadSeriesVersions, mergeSeriesVersions, seriesVersionsOf } from './seriesVersions';
+import type { MergedEpisode, MergedSeries } from './seriesVersions';
 import type { LibraryStore } from '../stores/libraryStore';
 import { selectVariant } from '../stores/libraryStore';
-import type { ProgressStore } from '../stores/progressStore';
+import type { ProgressState, ProgressStore } from '../stores/progressStore';
 import { continueWatchingEntries, isCompleted } from './rules';
 
 /**
@@ -89,7 +93,11 @@ export interface CardMenuItem {
 }
 
 export function cardMenuItems(
-  card: { kind: 'continue'; entry: ProgressDto } | { kind: 'movie'; watched: boolean } | { kind: 'series' },
+  card:
+    | { kind: 'continue'; entry: ProgressDto }
+    | { kind: 'movie'; watched: boolean }
+    | { kind: 'series'; watched: boolean }
+    | { kind: 'episode'; watched: boolean },
 ): CardMenuItem[] {
   const details: CardMenuItem = { id: 'details', label: 'Go to details' };
   switch (card.kind) {
@@ -103,9 +111,101 @@ export function cardMenuItems(
     case 'movie':
       return [details, card.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' }];
     case 'series':
-      return [details];
+      return [
+        details,
+        card.watched ? { id: 'unwatched', label: 'Mark series as not watched' } : { id: 'watched', label: 'Mark series as watched' },
+      ];
+    case 'episode':
+      return [card.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' }];
   }
 }
 
 /** The tag's text (bottom right of a cover, next to the title in details). */
 export const WATCHED_LABEL = 'Watched';
+
+// Episodes and whole series (D-082).
+
+/** An episode is watched when any of its versions was finished. */
+export const isEpisodeWatched = (progress: Pick<ProgressState, 'items'>, episode: Episode | MergedEpisode) =>
+  isWatched(findEpisodeProgress(progress, episode));
+
+/** Every episode of every season is watched (and there is at least one). */
+export function allEpisodesWatched(progress: Pick<ProgressState, 'items'>, series: Pick<MergedSeries, 'seasons'>): boolean {
+  const episodes = series.seasons.flatMap((season) => season.episodes);
+  return episodes.length > 0 && episodes.every((episode) => isEpisodeWatched(progress, episode));
+}
+
+/** What an episode's progress belongs to: the series title (for Continue Watching and the cover tag). */
+export interface EpisodeContext {
+  title: string;
+  masterId?: string | null;
+  posterUrl?: string | null;
+}
+
+/** Marks one episode watched (finished progress on this version) or not watched (all its versions' progress removed). */
+export async function setEpisodeWatched(
+  progress: ProgressStore,
+  episode: Episode & { seriesId: string; versions?: MergedEpisode['versions'] },
+  context: EpisodeContext,
+  watched: boolean,
+): Promise<void> {
+  const state = progress.getState();
+  if (!watched) {
+    const ids = new Set([episode.id, ...episodeStreamIds(episode as MergedEpisode)]);
+    for (const item of state.items.data ?? [])
+      if (item.kind === 'episode' && ids.has(item.itemId)) await state.remove('episode', item.itemId);
+    return;
+  }
+  const existing = findEpisodeProgress(state, episode);
+  await state.save(
+    'episode',
+    episode.id,
+    watchedRequest({
+      title: context.title,
+      masterId: context.masterId ?? null,
+      posterUrl: context.posterUrl ?? null,
+      seriesId: episode.seriesId,
+      seasonNumber: episode.seasonNumber,
+      episodeNumber: episode.episodeNumber,
+      containerExtension: episode.containerExtension,
+      durationSeconds: existing?.durationSeconds || episode.durationSeconds,
+    }),
+  );
+}
+
+/**
+ * The "fully watched" note behind the tag on a series cover. A card does not know how many episodes a series has, so
+ * the note is kept per profile on this device: set when the series is marked watched or its details show every
+ * episode finished; cleared when marked not watched or an episode is unwatched.
+ */
+export const isSeriesWatched = (prefs: ProfilePrefsState['prefs'], profileId: string | null, masterId: string) =>
+  !!profileId && (prefs[profileId]?.watchedSeries ?? []).includes(masterId);
+
+export async function noteSeriesWatched(prefs: ProfilePrefsStore, profileId: string | null, masterId: string, watched: boolean) {
+  if (!profileId) return;
+  const current = prefs.getState().prefs[profileId]?.watchedSeries ?? [];
+  if (current.includes(masterId) === watched) return;
+  await prefs.getState().update(profileId, {
+    watchedSeries: watched ? [...current, masterId] : current.filter((id) => id !== masterId),
+  });
+}
+
+/** Marks every episode of a series title (all versions merged, D-066) watched or not watched, and updates the note. */
+export async function setSeriesWatched(
+  deps: { api: Pick<ApiClient, 'catalog'>; library: LibraryStore; progress: ProgressStore; profilePrefs: ProfilePrefsStore },
+  masterId: string,
+  watched: boolean,
+): Promise<void> {
+  const details = await deps.library.getState().loadDetails('series', masterId);
+  if (!details) return;
+  const series = mergeSeriesVersions(await loadSeriesVersions(deps.api, seriesVersionsOf(details)));
+  if (!series) return;
+  const context = { title: details.title, masterId, posterUrl: details.posterUrl };
+  const pending = series.seasons
+    .flatMap((season) => season.episodes)
+    .filter((episode) => isEpisodeWatched(deps.progress.getState(), episode) !== watched);
+  // A few at a time: a long series is hundreds of requests.
+  for (let start = 0; start < pending.length; start += 5)
+    await Promise.all(pending.slice(start, start + 5).map((episode) => setEpisodeWatched(deps.progress, episode, context, watched)));
+  await noteSeriesWatched(deps.profilePrefs, deps.progress.getState().profileId, masterId, watched);
+}
