@@ -1,0 +1,22 @@
+## What changes
+
+<!-- What people will see or be able to do, in a few lines. -->
+
+## Apps
+
+Which apps does this change? Every app should get a feature unless it does not apply to that device ([PARITY.md](../documentation/PARITY.md), D-080).
+
+- [ ] TV (remote)
+- [ ] Phone (touch)
+- [ ] Web player (browser)
+- [ ] Desktop app (the web player; also check the desktop-only parts)
+- [ ] Not user-facing (tooling, docs, backend only)
+
+If this adds or changes something people see or use:
+
+- [ ] `documentation/PARITY.md` is updated: ✅ where it is done, ➖ where it does not apply, ⏳ plus an open `Parity: …` item in `documentation/NEXT-STEPS.md` where it is still missing
+- [ ] Each app reaches it the way that device is used (e.g. hold OK on TV, long touch on the phone, right-click on a computer)
+
+## Tests
+
+<!-- Unit tests, emulator (Maestro) and Playwright flows added or run. -->

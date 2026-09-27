@@ -83,6 +83,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
 | [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
 | [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
+| [D-080](#d-080) | 2026-09-27 | Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog |
 
 ---
 
@@ -1406,4 +1407,21 @@ Decision:
 - **Look.** A hovered or keyboard-focused card on the web looks like a focused TV card: grows 8 %, light ring, soft white glow (`--focus-glow`), instead of a dark shadow. Rows have room above and below so it is not cut.
 
 Not done yet (backlog): the guide over the playing channel and "open in another player" on the desktop.
+
+## D-080
+
+**Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog** — 2026-09-27 (requested by owner)
+
+Context: the owner asked whether new features can reach every app (Android TV/phone, web, desktop) without being forgotten. Releases already reach every app: the desktop app is the web player (D-071), and a merge to `main` builds and publishes the APK and the desktop installers, which update themselves (D-062, D-073); the web player has no hosting yet (cloud deferred). What can be forgotten is the second implementation: TV/phone screens (React Native) and web/desktop screens (React DOM) are separate, and only the logic in `packages/shared` is written once.
+
+Options considered:
+1. **Checks** (chosen now): a checklist in every pull request and a CI check of the parity table. No double work saved, but no app is forgotten.
+2. **Shared feature logic** (backlog): view-models / hooks in `packages/shared`, thin screens per app.
+3. **One set of screens** with React Native Web (backlog): largest saving, a real migration; try one screen first.
+
+Decision (option 1):
+- `.github/pull_request_template.md`: which apps the change covers, and whether `PARITY.md` was updated.
+- `scripts/check-parity.mjs` (`npm run lint:parity`, CI *Lint and format*, with its own tests): every app cell of the Features table in `PARITY.md` is ✅, ➖ or ⏳; every ⏳ row names an open `Parity: <title>` item in `NEXT-STEPS.md`; every open `Parity: …` item is named in the table.
+
+Limits: the check cannot see features that are missing from the table itself; the pull request checklist is the reminder for that.
 

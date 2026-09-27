@@ -8,6 +8,8 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 - [ ] **Repository clean-up** (requested 2026-09-26): review the whole repository and remove unused or unnecessary files (dead code, stale scripts, leftover assets, outdated docs).
 - [ ] **Parity: guide over the playing channel on web / desktop** (requested 2026-09-27, D-079, [PARITY.md](PARITY.md)): the TV's ↑ guide (D-058) as a panel in the web player.
 - [ ] **Parity: open in another player from the desktop app** (requested 2026-09-27, D-079): launch VLC or the system player with the provider's User-Agent (D-057).
+- [ ] **App parity, step 2 — share feature logic, not only rules** (requested 2026-09-27, D-080): move each feature's behaviour (what a menu offers, what an action does, player button order and state) into `packages/shared` as small view-models or hooks, so the TV/phone and web/desktop screens only draw it (about 50–100 lines per app and feature). One feature at a time, starting with the card menu and the player controls. About 1–2 weeks, low risk.
+- [ ] **App parity, step 3 — one set of screens for all apps (React Native Web)** (requested 2026-09-27, D-080): render the TV/phone screens in the browser and the desktop app too, so a new screen appears everywhere at once. Stays per platform: the video player (ExoPlayer / hls.js), downloads, remote-control focus; mouse and keyboard need their own touches (right-click, hover). Try one screen first (e.g. My List) and compare look, speed and effort before migrating; the current web screens would be rewritten. Several weeks.
 - [ ] **Small Windows desktop app with Tauri** (requested 2026-09-26, see D-072): a Windows-only build on the system's WebView2 (Chromium, installed with Windows 10/11) instead of Electron, about 10–20 MB instead of ~270 MB. WebView2 can be started without the CORS check and with the player User-Agent (browser arguments), so the web player works as in the Electron app; storage, phone pairing and the update check move to Rust. macOS and Linux stay on Electron.
 
 ## Agent Suggestions
@@ -38,6 +40,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Keep every app level** (requested 2026-09-27, D-080): pull requests ask which apps they cover; CI checks that `PARITY.md` marks every app and that each missing one has an open `Parity: …` backlog item. Steps 2 and 3 (shared feature logic, one set of screens) are in the backlog.
 - [x] **Same look and features in every app** (requested 2026-09-27, D-079, [PARITY.md](PARITY.md)): web/desktop get the card menu by right-click, the player's from-the-beginning and previous/next episode buttons, the provider's answer on playback errors, About and Log in the account menu (TV groups), and the TV's focus look on cards.
 - [x] **Card menu, focus clipping** (requested 2026-09-27, D-078): hold OK on a Continue Watching card → "Remove from Continue Watching" / Cancel; the focused card's ring and glow are no longer cut at the top and bottom of TV rows.
 - [x] **Player: previous / next episode, from the beginning** (requested 2026-09-27, D-077): episodes get previous/next buttons around −10 s / +10 s; movies and episodes get "from the beginning". TV/phone app.

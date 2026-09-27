@@ -88,6 +88,9 @@ jobs:
       - run: npm ci
       - name: ESLint + Prettier
         run: npm run lint:js
+      # Every app has each feature, or the backlog says when it will (documentation/PARITY.md, D-080).
+      - name: App parity table
+        run: npm run lint:parity
       - name: dotnet format
         run: npm run lint:backend
       - name: Ruff
