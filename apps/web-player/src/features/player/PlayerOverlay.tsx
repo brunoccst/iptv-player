@@ -1,6 +1,11 @@
 import Hls from 'hls.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  appLog,
+  describeProbe,
+  probeHint,
+  probeMessage,
+  probeStream,
   NEXT_UP_COUNTDOWN_SECONDS,
   SKIP_SECONDS,
   clampTime,
@@ -14,7 +19,9 @@ import {
   SKIP_AHEAD_OPTIONS,
   loadSeriesVersions,
   mergeSeriesVersions,
+  episodeLabel,
   nextEpisode,
+  previousEpisode,
   playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
@@ -31,7 +38,7 @@ import type { PlayTarget } from '../../ui/uiStore';
 import { EpisodesDrawer } from './EpisodesDrawer';
 import { FrameGrabber } from './frameGrabber';
 import { NextUp } from './NextUp';
-import { PlaybackEngine, type LoadedSource } from './playbackEngine';
+import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
 
@@ -81,6 +88,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   );
   const series = { data: mergedSeries };
   const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
+  const previous = series.data && target.kind === 'episode' ? previousEpisode(series.data, target.streamId) : null;
 
   // Versions of a movie master for the in-player selector.
   const masterKey = target.kind === 'movie' && target.masterId ? `movies|${target.masterId}` : null;
@@ -126,9 +134,22 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     setError(null);
     setNextDismissed(false);
     setPanel(null);
+    // What the provider sent instead of a video (an error page such as "max connections"), in the log and, when
+    // recognised, as the message (D-074; the TV app does the same).
+    const explain = () => {
+      const url = engine.attempted.at(-1);
+      if (!url) return;
+      void probeStream(url).then((probe) => {
+        if (controller.signal.aborted) return;
+        appLog.warn('player', `the provider answered ${describeProbe(probe)}`);
+        const text = probeMessage(probeHint(probe));
+        if (text) setError(text);
+      });
+    };
     engine.onFatalError((message) => {
       setError(message);
       setStatus('error');
+      explain();
     });
 
     engine.load({ kind: target.kind, streamId: target.streamId, container: target.container }, offlineRecord, controller.signal).then(
@@ -146,6 +167,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         if (controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : String(loadError));
         setStatus('error');
+        if (!(loadError instanceof PlaybackUnavailableError && loadError.unsupportedFormat)) explain();
       },
     );
 
@@ -196,15 +218,24 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     else void root.current?.requestFullscreen?.();
   }, []);
 
+  // Another episode of this series (next up, previous/next buttons, the episodes drawer) replaces this playback.
+  const playEpisode = useCallback(
+    (episode: NonNullable<typeof next>) => {
+      saveProgress();
+      uiStore
+        .getState()
+        .replacePlayback(
+          episodeTarget(
+            { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
+            episode,
+          ),
+        );
+    },
+    [target, saveProgress],
+  );
   const playNext = useCallback(() => {
-    if (!next || !series.data || !target.seriesId) return;
-    saveProgress();
-    uiStore
-      .getState()
-      .replacePlayback(
-        episodeTarget({ title: target.title, masterId: target.masterId, seriesId: next.seriesId, posterUrl: target.posterUrl }, next),
-      );
-  }, [next, series.data, target, saveProgress]);
+    if (next && series.data && target.seriesId) playEpisode(next);
+  }, [next, series.data, target.seriesId, playEpisode]);
 
   const switchVariant = (variant: VariantInfo) => {
     const video = videoRef.current;
@@ -360,12 +391,43 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             </button>
             {!isLive ? (
               <>
+                <button
+                  type="button"
+                  className="player__control"
+                  onClick={() => seekTo(0)}
+                  aria-label="Play from the beginning"
+                  title="Play from the beginning"
+                >
+                  <Icon name="restart" size={30} />
+                </button>
+                {previous ? (
+                  <button
+                    type="button"
+                    className="player__control"
+                    onClick={() => playEpisode(previous)}
+                    aria-label={`Previous episode: ${episodeLabel(previous)}`}
+                    title={`Previous episode: ${episodeLabel(previous)}`}
+                  >
+                    <Icon name="previous" size={30} />
+                  </button>
+                ) : null}
                 <button type="button" className="player__control" onClick={() => skip(-SKIP_SECONDS)} aria-label="Back 10 seconds">
                   <Icon name="rewind10" size={32} />
                 </button>
                 <button type="button" className="player__control" onClick={() => skip(SKIP_SECONDS)} aria-label="Forward 10 seconds">
                   <Icon name="forward10" size={32} />
                 </button>
+                {next ? (
+                  <button
+                    type="button"
+                    className="player__control"
+                    onClick={() => playEpisode(next)}
+                    aria-label={`Next episode: ${episodeLabel(next)}`}
+                    title={`Next episode: ${episodeLabel(next)}`}
+                  >
+                    <Icon name="next" size={30} />
+                  </button>
+                ) : null}
               </>
             ) : null}
             <button
@@ -496,21 +558,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         />
       ) : null}
       {panel === 'episodes' && series.data && target.seriesId ? (
-        <EpisodesDrawer
-          series={series.data}
-          currentEpisodeId={target.streamId}
-          onPlay={(episode) => {
-            saveProgress();
-            uiStore
-              .getState()
-              .replacePlayback(
-                episodeTarget(
-                  { title: target.title, masterId: target.masterId, seriesId: episode.seriesId, posterUrl: target.posterUrl },
-                  episode,
-                ),
-              );
-          }}
-        />
+        <EpisodesDrawer series={series.data} currentEpisodeId={target.streamId} onPlay={playEpisode} />
       ) : null}
     </div>
   );

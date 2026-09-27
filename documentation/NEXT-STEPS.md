@@ -6,6 +6,8 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Repository clean-up** (requested 2026-09-26): review the whole repository and remove unused or unnecessary files (dead code, stale scripts, leftover assets, outdated docs).
+- [ ] **Parity: guide over the playing channel on web / desktop** (requested 2026-09-27, D-079, [PARITY.md](PARITY.md)): the TV's ↑ guide (D-058) as a panel in the web player.
+- [ ] **Parity: open in another player from the desktop app** (requested 2026-09-27, D-079): launch VLC or the system player with the provider's User-Agent (D-057).
 - [ ] **Small Windows desktop app with Tauri** (requested 2026-09-26, see D-072): a Windows-only build on the system's WebView2 (Chromium, installed with Windows 10/11) instead of Electron, about 10–20 MB instead of ~270 MB. WebView2 can be started without the CORS check and with the player User-Agent (browser arguments), so the web player works as in the Electron app; storage, phone pairing and the update check move to Rust. macOS and Linux stay on Electron.
 
 ## Agent Suggestions
@@ -36,6 +38,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Same look and features in every app** (requested 2026-09-27, D-079, [PARITY.md](PARITY.md)): web/desktop get the card menu by right-click, the player's from-the-beginning and previous/next episode buttons, the provider's answer on playback errors, About and Log in the account menu (TV groups), and the TV's focus look on cards.
 - [x] **Card menu, focus clipping** (requested 2026-09-27, D-078): hold OK on a Continue Watching card → "Remove from Continue Watching" / Cancel; the focused card's ring and glow are no longer cut at the top and bottom of TV rows.
 - [x] **Player: previous / next episode, from the beginning** (requested 2026-09-27, D-077): episodes get previous/next buttons around −10 s / +10 s; movies and episodes get "from the beginning". TV/phone app.
 - [x] **Skip ahead options on TV** (requested 2026-09-27, D-075): moving between 30 s … 3 min (and Play Now / Cancel) with ←/→ no longer skips ±10 s; the chosen option skips its full amount.

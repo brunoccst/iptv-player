@@ -1,6 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { continueWatching, pageKey, watchlistCard, type LibrarySection, type MediaCategory } from '@iptv/shared';
+import {
+  continueWatching,
+  continueWatchingEntries,
+  pageKey,
+  watchlistCard,
+  type LibrarySection,
+  type MediaCategory,
+  type ProgressDto,
+  type ProgressKind,
+} from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
+import { CardMenu, type MenuPosition } from '../../components/CardMenu';
 import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
 import { useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
@@ -46,9 +56,16 @@ export function HomePage({ banner }: { banner: ReactNode }) {
   );
 }
 
+const NO_PROGRESS: ProgressDto[] = [];
+
 function ContinueWatchingRow() {
-  const items = useProgress((s) => continueWatching(s.items.data ?? []));
+  const all = useProgress((s) => s.items.data) ?? NO_PROGRESS;
+  const items = continueWatching(all);
+  // Right-click on a card opens its options (holding OK on TV, D-078, D-079).
+  const [menu, setMenu] = useState<{ item: ProgressDto; position: MenuPosition } | null>(null);
   if (items.length === 0) return null;
+  const subtitleOf = (item: ProgressDto) =>
+    item.kind === 'episode' && item.seasonNumber != null ? `S${item.seasonNumber}:E${item.episodeNumber ?? '?'}` : null;
   return (
     <Row title="Continue Watching">
       {items.map((item) => (
@@ -57,10 +74,28 @@ function ContinueWatchingRow() {
           title={item.title}
           posterUrl={item.posterUrl}
           progress={item.positionSeconds / item.durationSeconds}
-          subtitle={item.kind === 'episode' && item.seasonNumber != null ? `S${item.seasonNumber}:E${item.episodeNumber ?? '?'}` : null}
+          subtitle={subtitleOf(item)}
           onSelect={() => uiStore.getState().play(progressTarget(item))}
+          onMenu={(position) => setMenu({ item, position })}
         />
       ))}
+      {menu ? (
+        <CardMenu
+          title={menu.item.title}
+          subtitle={subtitleOf(menu.item)}
+          position={menu.position}
+          onClose={() => setMenu(null)}
+          actions={[
+            {
+              label: 'Remove from Continue Watching',
+              onSelect: () => {
+                for (const entry of continueWatchingEntries(all, menu.item))
+                  void stores.progress.getState().remove(entry.kind as ProgressKind, entry.itemId);
+              },
+            },
+          ]}
+        />
+      ) : null}
     </Row>
   );
 }

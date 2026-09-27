@@ -1,4 +1,11 @@
-import { bindDownloadsToAccount, createAppContext, PROFILE_PREFS_KEY, type BackupStorages, type KeyValueStorage } from '@iptv/shared';
+import {
+  appLog,
+  bindDownloadsToAccount,
+  createAppContext,
+  PROFILE_PREFS_KEY,
+  type BackupStorages,
+  type KeyValueStorage,
+} from '@iptv/shared';
 import { appConfig } from './config';
 import { desktop } from './desktop';
 import { createCacheChunkStore, createMemoryChunkStore } from './offline/chunkStore';
@@ -55,3 +62,16 @@ export const { signOut } = bindDownloadsToAccount({
 });
 
 export const uiStore = createUiStore();
+
+// Diagnostics log (account menu → App → Log, D-079): kept across reloads in its own storage, outside the backup.
+void appLog
+  .persist(createWebStorage(`${appConfig.appSlug}-log`))
+  .then(() =>
+    appLog.info(
+      'app',
+      `${appConfig.appName} started: ${desktop ? `desktop app ${desktop.version} on ${desktop.platform}` : `web, ${navigator.userAgent}`}`,
+    ),
+  )
+  .catch(() => undefined);
+window.addEventListener('error', (event) => appLog.error('app', `uncaught: ${event.message}`));
+window.addEventListener('unhandledrejection', (event) => appLog.error('app', `unhandled rejection: ${String(event.reason)}`));

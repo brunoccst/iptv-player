@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { menuPosition, type MenuPosition } from './CardMenu';
 
 export interface PosterCardProps {
   title: string;
@@ -10,12 +11,24 @@ export interface PosterCardProps {
   landscape?: boolean;
   actions?: ReactNode;
   onSelect(): void;
+  /** Right-click (menu key, long touch): the card's options menu (D-079). Without it the browser's own menu shows. */
+  onMenu?(position: MenuPosition): void;
 }
 
-export function PosterCard({ title, posterUrl, subtitle, badge, progress, landscape, actions, onSelect }: PosterCardProps) {
+export function PosterCard({ title, posterUrl, subtitle, badge, progress, landscape, actions, onSelect, onMenu }: PosterCardProps) {
   const [failed, setFailed] = useState(false);
   return (
-    <article className={landscape ? 'card card--landscape' : 'card'}>
+    <article
+      className={landscape ? 'card card--landscape' : 'card'}
+      onContextMenu={
+        onMenu
+          ? (event) => {
+              event.preventDefault();
+              onMenu(menuPosition(event));
+            }
+          : undefined
+      }
+    >
       <button type="button" className="card__button" onClick={onSelect} aria-label={title}>
         <div className="card__art">
           {posterUrl && !failed ? (

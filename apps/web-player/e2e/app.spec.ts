@@ -93,6 +93,31 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await page.getByRole('button', { name: 'Play Now' }).click();
   await expect(page.locator('.player__subtitle')).toContainText('S01:E02');
   await expectPlaying(page);
+
+  // Previous / next episode around ±10 s, and "from the beginning" (D-077, as on TV).
+  await page.getByRole('button', { name: 'Previous episode: S01:E01' }).click();
+  await expect(page.locator('.player__subtitle')).toContainText('S01:E01');
+  await expectPlaying(page);
+  await expect(page.getByRole('button', { name: /^Previous episode/ })).toHaveCount(0);
+  await seek(page, 60);
+  await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(59);
+  await page.getByRole('button', { name: 'Play from the beginning' }).click();
+  await expect.poll(() => videoTime(page)).toBeLessThan(15);
+  await seek(page, 90);
+  await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(89);
+
+  // Right-click on a Continue Watching card: its options (holding OK on TV, D-078, D-079).
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'Home' }).click();
+  const continueRow = page.getByRole('region', { name: 'Continue Watching' });
+  await continueRow.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });
+  const menu = page.getByRole('menu', { name: 'Options for Test Series' });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await continueRow.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });
+  await menu.getByRole('menuitem', { name: 'Remove from Continue Watching' }).click();
+  await expect(continueRow).toBeHidden();
 });
 
 test('live TV guide shows what is on and plays a channel', async ({ page }) => {
@@ -205,7 +230,7 @@ test('optional parental PIN guards opening a regular profile from the picker', a
 
 test('back up to an encrypted file and restore it in another browser (D-056)', async ({ page, browser }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
-  await page.getByRole('menuitem', { name: 'Library & data' }).click();
+  await page.getByRole('menuitem', { name: 'Library & devices' }).click();
   await page.getByRole('menuitem', { name: 'Back up & restore' }).click();
   const dialog = page.getByRole('dialog', { name: 'Back up and restore' });
   await dialog.getByLabel('Password (at least 8 characters)').fill('correct horse');
@@ -227,4 +252,23 @@ test('back up to an encrypted file and restore it in another browser (D-056)', a
   await restore.getByRole('button', { name: 'Restore backup' }).click();
   await expect(other.getByRole('navigation', { name: 'Main' })).toBeVisible();
   await other.close();
+});
+
+test('account menu → App: About and the diagnostics log, as on TV (D-079)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'App' }).click();
+  await page.getByRole('menuitem', { name: 'About' }).click();
+  const about = page.getByRole('dialog', { name: 'About' });
+  await expect(about).toContainText('Web player (browser)');
+  await expect(about).toContainText('My server');
+  await about.getByRole('button', { name: 'Close', exact: true }).first().click();
+
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'App' }).click();
+  await page.getByRole('menuitem', { name: 'Log' }).click();
+  const log = page.getByRole('dialog', { name: 'Log' });
+  await expect(log.locator('.log__lines')).toContainText('[app]');
+  const saving = page.waitForEvent('download');
+  await log.getByRole('button', { name: 'Save log' }).click();
+  expect((await saving).suggestedFilename()).toMatch(/-log-\d{4}-\d{2}-\d{2}\.txt$/);
 });

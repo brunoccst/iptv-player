@@ -101,6 +101,21 @@ describe('PlaybackEngine', () => {
 
     expect(error).toBeInstanceOf(PlaybackUnavailableError);
     expect((error as Error).message).toMatch(/only available as MKV.*TV app/);
+    expect((error as PlaybackUnavailableError).unsupportedFormat).toBe(true);
+  });
+
+  it('remembers the addresses it tried, so the player can ask the provider what it sent (D-074)', async () => {
+    const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://r/bad.mp4' });
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      client,
+      fakeHls() as never,
+    );
+
+    const error = await engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null).catch((e: unknown) => e);
+
+    expect((error as PlaybackUnavailableError).unsupportedFormat).toBe(false);
+    expect(engine.attempted).toEqual(['http://r/bad.m3u8', 'http://r/bad.mp4']);
   });
 
   it('plays completed downloads without calling the API', async () => {

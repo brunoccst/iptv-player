@@ -82,6 +82,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all" |
 | [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
 | [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
+| [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
 
 ---
 
@@ -1389,4 +1390,20 @@ Decision:
 - **Focused card clipped (TV).** A row's horizontal scroll view clips its content, and it had only 8 dp above and below the cards. The focused card grows 8 % (about 10 dp at each edge) and glows (about 16 dp), so its ring and glow were cut at the top and bottom. TV rows now have 32 dp above and below, with a negative margin of the same extra amount, so the page layout does not move.
 
 Ideas for the menu later: "Mark as watched", "Play from the beginning", "Go to series / details", "Add to My List", "Download", "Choose another version"; on My List: "Remove from My List"; on Live TV: "Add to favourites".
+
+## D-079
+
+**One look and one feature set across TV, phone, web and desktop; right-click card menu** — 2026-09-27 (requested by owner)
+
+Context: the owner asked for all apps, the web player included, to look and work the same where feasible, adapted to each device (e.g. the TV's hold-OK card menu opens with a right-click on a computer).
+
+Decision:
+- **[PARITY.md](PARITY.md)** lists every feature per app and how it is reached (remote, touch, mouse and keyboard); each new feature updates it.
+- **Card menu on web and desktop.** A right-click on a Continue Watching card opens the same options as holding OK on TV (D-078), at the pointer like a normal context menu (kept on screen). The menu key or Shift+F10 opens it at the card; browsers that report a long touch as a context menu open it too. ↑/↓ move between the items; Escape, a click elsewhere, the mouse wheel or leaving the window close it. Cards without options keep the browser's own menu. `CardMenu` (`apps/web-player/src/components`), `PosterCard.onMenu`.
+- **Player.** From the beginning, previous / next episode, in the TV's order (D-077).
+- **Why a stream failed.** On a playback error the web player asks the provider for the first bytes of the last address it tried, logs the answer and shows the recognised message (D-074). Not for formats the browser cannot play (MKV): the message already says why.
+- **Account menu.** The TV's groups: Profiles · Library & devices · App. App has Check for updates (desktop), About (app, version, build, connection) and Log (save as a text file or copy; the TV shares it instead). The web log is kept across reloads in its own storage, outside the backup, with uncaught errors.
+- **Look.** A hovered or keyboard-focused card on the web looks like a focused TV card: grows 8 %, light ring, soft white glow (`--focus-glow`), instead of a dark shadow. Rows have room above and below so it is not cut.
+
+Not done yet (backlog): the guide over the playing channel and "open in another player" on the desktop.
 
