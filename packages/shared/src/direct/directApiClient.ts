@@ -618,7 +618,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async list(profileId: string, limit?: number) {
         await ownedProfile(profileId);
         const items = (await readJson<ProgressDto[]>(options.dataStorage, progressKey(profileId))) ?? [];
-        return items.sort((a, b) => ordinal(b.updatedAt, a.updatedAt)).slice(0, clamp(limit ?? 50, 1, 200));
+        return items.sort((a, b) => ordinal(b.updatedAt, a.updatedAt)).slice(0, clamp(limit ?? 50, 1, 1000));
       },
       async save(profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest) {
         await ownedProfile(profileId);

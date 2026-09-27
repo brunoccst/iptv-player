@@ -10,7 +10,19 @@ import { createServer } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { asPlayer, contentType, isNewer, keyFile, lanAddress, releaseVersion, staticFile, withCors } from './lib/helpers.mjs';
+import { spawn } from 'node:child_process';
+import {
+  asPlayer,
+  contentType,
+  isNewer,
+  keyFile,
+  lanAddress,
+  releaseVersion,
+  staticFile,
+  vlcArguments,
+  vlcCandidates,
+  withCors,
+} from './lib/helpers.mjs';
 
 const { autoUpdater } = electronUpdater;
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -369,6 +381,17 @@ app.whenReady().then(async () => {
   ipcMain.handle('iptv:check-updates', (event) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     void checkForUpdate(true);
+  });
+  // "Open in VLC" (D-081, like the TV's "open in another player", D-057): VLC plays the stream with the provider
+  // User-Agent. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
+  ipcMain.handle('iptv:open-external', (event, url, title) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    const args = vlcArguments(String(url ?? ''), config.userAgent, title ? String(title) : null);
+    if (!args) throw new Error('Not a stream address');
+    const vlc = vlcCandidates(process.platform, process.env).find((file) => existsSync(file));
+    if (!vlc) return 'none';
+    spawn(vlc, args, { detached: true, stdio: 'ignore' }).unref();
+    return 'vlc';
   });
   app.on('activate', () => {
     if (!window) createWindow();

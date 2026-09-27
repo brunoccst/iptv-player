@@ -5,6 +5,9 @@ import type { ProgressDto, ProgressKind, ProgressRequest } from '../api/types';
 import { emptyResource, toApiError, type Resource } from './resource';
 
 /** Watch progress of the active profile. Saves are optimistic: the list updates before the server answers. */
+/** Entries loaded per profile: enough to tag watched titles on covers (D-081); the backend and direct mode keep this many. */
+export const PROGRESS_LIST_LIMIT = 1000;
+
 export interface ProgressState {
   profileId: string | null;
   items: Resource<ProgressDto[]>;
@@ -38,7 +41,7 @@ export function createProgressStore({ api, now = () => new Date().toISOString() 
 
         set({ profileId, items: { ...emptyResource(), status: 'loading' } });
         const promise = api.progress
-          .list(profileId, 100)
+          .list(profileId, PROGRESS_LIST_LIMIT)
           .then(
             (data) => {
               if (get().profileId === profileId) set({ items: { data, status: 'success', error: null, updatedAt: Date.now() } });

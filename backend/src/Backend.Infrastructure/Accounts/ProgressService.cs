@@ -8,7 +8,7 @@ namespace Backend.Infrastructure.Accounts;
 public sealed class ProgressService(AppDbContext db, TimeProvider clock)
 {
     public static readonly string[] Kinds = ["movie", "episode"];
-    public const int MaxListSize = 200;
+    public const int MaxListSize = 1000;
 
     /// <returns><c>null</c> when the profile is not part of the account.</returns>
     public async Task<IReadOnlyList<WatchProgress>?> ListAsync(Guid accountId, Guid profileId, int limit, CancellationToken ct)

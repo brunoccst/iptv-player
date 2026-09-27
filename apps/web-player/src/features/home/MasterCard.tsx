@@ -1,21 +1,45 @@
-import { memo } from 'react';
-import type { LibrarySection, MasterCard as MasterCardData } from '@iptv/shared';
-import { uiStore } from '../../appContext';
+import { memo, useState } from 'react';
+import { cardMenuItems, isMovieWatched, setMovieWatched, type LibrarySection, type MasterCard as MasterCardData } from '@iptv/shared';
+import { stores, uiStore } from '../../appContext';
+import { CardMenu, type MenuPosition } from '../../components/CardMenu';
 import { PosterCard } from '../../components/PosterCard';
+import { useProgress } from '../../hooks/stores';
 
 /**
- * Poster card for one deduplicated title. Opens the details modal.
+ * Poster card for one deduplicated title. Opens the details modal; a right-click opens its menu (Go to details, Mark as
+ * (not) watched, D-081). Finished movies carry the "Watched" tag.
  * Memoized: loading the next grid page then renders only the new cards, not the thousands already shown.
  */
 export const MasterCard = memo(function MasterCard({ section, item }: { section: LibrarySection; item: MasterCardData }) {
   const versions = item.variantCount > 1 ? `${item.variantCount} versions` : null;
+  const watched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
+  const [menu, setMenu] = useState<MenuPosition | null>(null);
+  const openDetails = () => uiStore.getState().openDetails({ section, masterId: item.id });
   return (
-    <PosterCard
-      title={item.title}
-      posterUrl={item.posterUrl}
-      badge={item.bestQuality === '4K' ? '4K' : null}
-      subtitle={[item.year, versions].filter(Boolean).join(' · ') || null}
-      onSelect={() => uiStore.getState().openDetails({ section, masterId: item.id })}
-    />
+    <>
+      <PosterCard
+        title={item.title}
+        posterUrl={item.posterUrl}
+        badge={item.bestQuality === '4K' ? '4K' : null}
+        watched={watched}
+        subtitle={[item.year, versions].filter(Boolean).join(' · ') || null}
+        onSelect={openDetails}
+        onMenu={setMenu}
+      />
+      {menu ? (
+        <CardMenu
+          title={item.title}
+          position={menu}
+          onClose={() => setMenu(null)}
+          actions={cardMenuItems(section === 'movies' ? { kind: 'movie', watched } : { kind: 'series' }).map((entry) => ({
+            label: entry.label,
+            onSelect: () => {
+              if (entry.id === 'details') openDetails();
+              else void setMovieWatched(stores, item.id, entry.id === 'watched');
+            },
+          }))}
+        />
+      ) : null}
+    </>
   );
 });

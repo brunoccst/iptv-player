@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { menuPosition, type MenuPosition } from './CardMenu';
+import { WatchedTag } from './WatchedTag';
 
 export interface PosterCardProps {
   title: string;
@@ -8,6 +9,8 @@ export interface PosterCardProps {
   badge?: string | null;
   /** Watch progress 0..1; hidden when undefined. */
   progress?: number;
+  /** "Watched" tag at the bottom right of the cover (D-081). */
+  watched?: boolean;
   landscape?: boolean;
   actions?: ReactNode;
   onSelect(): void;
@@ -15,7 +18,18 @@ export interface PosterCardProps {
   onMenu?(position: MenuPosition): void;
 }
 
-export function PosterCard({ title, posterUrl, subtitle, badge, progress, landscape, actions, onSelect, onMenu }: PosterCardProps) {
+export function PosterCard({
+  title,
+  posterUrl,
+  subtitle,
+  badge,
+  progress,
+  watched,
+  landscape,
+  actions,
+  onSelect,
+  onMenu,
+}: PosterCardProps) {
   const [failed, setFailed] = useState(false);
   return (
     <article
@@ -37,6 +51,7 @@ export function PosterCard({ title, posterUrl, subtitle, badge, progress, landsc
             <span className="card__fallback">{title}</span>
           )}
           {badge ? <span className="card__badge">{badge}</span> : null}
+          {watched ? <WatchedTag className="card__watched" /> : null}
           {progress !== undefined ? (
             <span className="card__progress">
               <span style={{ width: `${Math.round(progress * 100)}%` }} />

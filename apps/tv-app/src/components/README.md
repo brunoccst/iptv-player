@@ -26,6 +26,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `Row.tsx` | Web `.row`: title (optionally a link "Drama ›"), horizontal cards, loading spinner, optional "See all" arrow card at the end, built like a card so it lines up in landscape rows too (D-043). Its cards sit in a `FocusRow` (D-069). |
 | `Select.tsx` | Web `.select`: box with the current value; opens an option list. |
 | `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume. |
+| `WatchedTag.tsx` | "Watched" tag: bottom right of a watched cover (`PosterCard.watched`), next to the title in details, on episode stills (D-081). |
 | `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). Hidden on Kids profiles. |
 | `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |
 | `ProgressRing.tsx` | SVG progress circle. |

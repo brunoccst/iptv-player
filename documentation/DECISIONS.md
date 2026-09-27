@@ -85,6 +85,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
 | [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
 | [D-080](#d-080) | 2026-09-27 | Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog |
+| [D-081](#d-081) | 2026-09-27 | "Watched" tag and card menu options in every app; guide over the channel and Open in VLC on web/desktop |
 
 ---
 
@@ -1440,4 +1441,17 @@ Decision (option 1):
 - `scripts/check-parity.mjs` (`npm run lint:parity`, CI *Lint and format*, with its own tests): every app cell of the Features table in `PARITY.md` is ✅, ➖ or ⏳; every ⏳ row names an open `Parity: <title>` item in `NEXT-STEPS.md`; every open `Parity: …` item is named in the table.
 
 Limits: the check cannot see features that are missing from the table itself; the pull request checklist is the reminder for that.
+
+## D-081
+
+**"Watched" tag and card menu options in every app; guide over the channel and Open in VLC on web/desktop** — 2026-09-27 (requested by owner)
+
+Decision:
+- **Watched.** A title is watched when its saved progress is finished (95 % played or under 2 minutes left, D-042). A movie is watched when any of its versions is. Shown as a "Watched" tag (check mark, light pill) at the bottom right of the cover, next to the title in the movie's details, and on watched episodes' stills. Series covers have none: a card does not know how many episodes there are.
+- **Card menu** (hold OK on TV, long touch on phones, right-click on web and desktop; D-078, D-079) on every title card: Go to details; Mark as watched / Mark as not watched (movies). Continue Watching cards: Go to details (when the entry knows its series or movie title), Mark as watched (Mark episode as watched), Remove from Continue Watching.
+- **Marking** saves finished progress on the chosen (else first) version; without a known runtime, 1 of 1 second. "Not watched" removes the progress of every version of the movie.
+- **One place for the rules** (app parity step 2, D-080): `packages/shared/src/playback/watched.ts` has `isWatched`, `isMovieWatched`, `setMovieWatched`, `markEntryWatched`, `removeFromContinueWatching` and `cardMenuItems` (the menu's items and labels). Each app only draws the tag and the menu.
+- **Progress list** raised to 1000 entries per profile (backend `MaxListSize`, direct mode, `PROGRESS_LIST_LIMIT`) so older watched titles keep their tag.
+- **Guide over the playing channel on web and desktop** (the TV's D-058): a Guide button in the live player, and G (↑/↓ stay the volume there). Channels of the same category with now and next; a click switches channel; Escape, a click beside the panel or the button close it. No auto-hide with a mouse.
+- **Open in VLC in the desktop app** (the TV's "open in another player", D-057): a button next to Play in movie details and on each episode. The main process looks for VLC in the usual folders and on PATH and starts it with the stream (original file first) and the provider User-Agent; only http(s) addresses. When VLC is missing, the app says so. Not in a browser (it cannot start programs), not on Kids profiles.
 

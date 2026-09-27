@@ -98,3 +98,49 @@ export function lanAddress(interfaces) {
   candidates.sort((a, b) => b.score - a.score);
   return candidates[0]?.address ?? null;
 }
+
+/**
+ * Where VLC usually is (D-081, "Open in VLC"): the standard install folders, then every folder on PATH. `env` and
+ * `platform` come from the process; `join` is the platform's path join (tests pass path.win32 / path.posix).
+ */
+export function vlcCandidates(platform, env, join = path.join) {
+  const onPath = (name) =>
+    (env.PATH ?? env.Path ?? '')
+      .split(platform === 'win32' ? ';' : ':')
+      .filter(Boolean)
+      .map((folder) => join(folder, name));
+  if (platform === 'win32')
+    return [
+      ...[env.ProgramFiles, env['ProgramFiles(x86)'], env.LOCALAPPDATA && join(env.LOCALAPPDATA, 'Programs')]
+        .filter(Boolean)
+        .map((folder) => join(folder, 'VideoLAN', 'VLC', 'vlc.exe')),
+      ...onPath('vlc.exe'),
+    ];
+  if (platform === 'darwin')
+    return [
+      '/Applications/VLC.app/Contents/MacOS/VLC',
+      ...(env.HOME ? [join(env.HOME, 'Applications', 'VLC.app', 'Contents', 'MacOS', 'VLC')] : []),
+      ...onPath('vlc'),
+    ];
+  return [...onPath('vlc'), '/usr/bin/vlc', '/snap/bin/vlc', '/var/lib/flatpak/exports/bin/org.videolan.VLC'];
+}
+
+/**
+ * VLC arguments for one stream: the provider's User-Agent (like the app's own requests) and the title in VLC's window.
+ * Only http(s) addresses; anything else returns null, so the page cannot make the app start VLC on local files.
+ */
+export function vlcArguments(url, userAgent, title) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+  return [
+    `--http-user-agent=${userAgent}`,
+    ...(title ? [`--meta-title=${String(title).slice(0, 200)}`] : []),
+    '--no-one-instance',
+    parsed.href,
+  ];
+}

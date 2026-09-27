@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { test } from 'node:test';
-import { asPlayer, contentType, isNewer, keyFile, lanAddress, releaseVersion, staticFile, withCors } from '../lib/helpers.mjs';
+import {
+  asPlayer,
+  contentType,
+  isNewer,
+  keyFile,
+  lanAddress,
+  releaseVersion,
+  staticFile,
+  vlcArguments,
+  vlcCandidates,
+  withCors,
+} from '../lib/helpers.mjs';
 
 const root = path.resolve('/app/web');
 
@@ -61,4 +72,30 @@ test('finds the home network address for the pairing code', () => {
   );
   assert.equal(lanAddress({ eth0: [v4('169.254.3.4')], docker0: [v4('172.17.0.1')] }), '172.17.0.1');
   assert.equal(lanAddress({ lo: [v4('127.0.0.1', true)] }), null);
+});
+
+test('finds VLC in the usual places and on PATH', () => {
+  const win = vlcCandidates(
+    'win32',
+    { ProgramFiles: 'C:\\Program Files', 'ProgramFiles(x86)': 'C:\\Program Files (x86)', Path: 'C:\\Tools;D:\\VLC' },
+    path.win32.join,
+  );
+  assert.deepEqual(win.slice(0, 2), ['C:\\Program Files\\VideoLAN\\VLC\\vlc.exe', 'C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe']);
+  assert.ok(win.includes('D:\\VLC\\vlc.exe'));
+  assert.equal(vlcCandidates('darwin', { HOME: '/Users/me' }, path.posix.join)[0], '/Applications/VLC.app/Contents/MacOS/VLC');
+  const linux = vlcCandidates('linux', { PATH: '/usr/local/bin:/usr/bin' }, path.posix.join);
+  assert.deepEqual(linux.slice(0, 2), ['/usr/local/bin/vlc', '/usr/bin/vlc']);
+  assert.ok(linux.includes('/snap/bin/vlc'));
+});
+
+test('VLC gets the stream with the provider User-Agent; only http(s) addresses', () => {
+  assert.deepEqual(vlcArguments('http://panel:8080/movie/u/p/1.mkv', 'VLC/3.0.21', 'Heat'), [
+    '--http-user-agent=VLC/3.0.21',
+    '--meta-title=Heat',
+    '--no-one-instance',
+    'http://panel:8080/movie/u/p/1.mkv',
+  ]);
+  assert.equal(vlcArguments('file:///etc/passwd', 'UA', 'x'), null);
+  assert.equal(vlcArguments('--help', 'UA', 'x'), null);
+  assert.equal(vlcArguments('not a url', 'UA', null), null);
 });

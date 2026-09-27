@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { episodeInVersion, findEpisodeProgress, formatDuration, type MergedEpisode, type MergedSeries } from '@iptv/shared';
+import { episodeInVersion, findEpisodeProgress, formatDuration, isWatched, type MergedEpisode, type MergedSeries } from '@iptv/shared';
 import { uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { Icon } from '../../components/Icon';
+import { WatchedTag } from '../../components/WatchedTag';
+import { VlcButton } from '../../components/VlcButton';
 import { useProgress } from '../../hooks/stores';
 import { downloadTarget, episodeTarget } from '../../ui/targets';
 
@@ -56,7 +58,9 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
               aria-label={`Play ${episode.title}`}
             >
               {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : null}
-              {saved && saved.durationSeconds > 0 ? (
+              {isWatched(saved) ? (
+                <WatchedTag className="card__watched" />
+              ) : saved && saved.durationSeconds > 0 ? (
                 <span className="card__progress">
                   <span style={{ width: `${(saved.positionSeconds / saved.durationSeconds) * 100}%` }} />
                 </span>
@@ -92,6 +96,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                 <Icon name="play" size={20} />
               </button>
               <DownloadButton target={downloadTarget(target, episode.durationSeconds)} />
+              <VlcButton target={target} />
             </div>
           </div>
         );

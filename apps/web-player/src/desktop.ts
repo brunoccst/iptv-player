@@ -10,6 +10,8 @@ export interface DesktopBridge {
   platform: string;
   /** Checks the desktop release; the app's own dialogs take it from there (D-073). */
   checkForUpdates(): Promise<void>;
+  /** Plays a stream address in VLC with the provider User-Agent (D-081); 'none' when VLC is not installed. */
+  openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** Phone-to-computer pairing (D-072): a server on the home network while the QR code is shown. */

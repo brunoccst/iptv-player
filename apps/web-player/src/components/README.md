@@ -10,4 +10,6 @@
 | `Row.tsx` | Horizontal scrolling row with arrows; `onVisible` for lazy loading; optional title link (`onTitleClick`), `onNearEnd` + `loadingMore` spinner for paging. |
 | `Modal.tsx` | Dialog overlay (Esc, backdrop click, focus). |
 | `DownloadButton.tsx` | "Download for Offline" toggle with progress circle. |
+| `WatchedTag.tsx` | "Watched" tag: bottom right of a watched cover (`PosterCard.watched`), in details, on episode stills (D-081). |
+| `VlcButton.tsx` | Desktop app only: "Open in VLC" next to Play, the stream with the provider User-Agent; not on Kids profiles (D-081). |
 | `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |

@@ -23,14 +23,15 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 
 | Feature | TV | Phone | Web / desktop | How it is reached |
 |---------|----|-------|---------------|-------------------|
-| Card menu (Continue Watching: remove) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
+| Card menu: Go to details, Mark as (not) watched; Continue Watching: remove (D-078, D-081) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
+| "Watched" tag on covers (bottom right) and in details (D-081) | ✅ | ✅ | ✅ | movies and episodes; series covers have none (a card does not know the episode count) |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Live TV guide page | ✅ | ✅ | ✅ | |
-| Guide over the playing channel (D-058) | ✅ | ✅ | ⏳ | backlog: Parity: guide over the playing channel on web / desktop |
-| Open in another player (VLC …, D-057) | ✅ | ✅ | ⏳ desktop · ➖ browser | backlog: Parity: open in another player from the desktop app |
+| Guide over the playing channel (D-058, D-081) | ✅ | ✅ | ✅ | TV: ↑ · phone and web: Guide button · web: also G (↑/↓ are the volume) |
+| Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in details; browsers cannot start other programs |
 | Downloads (offline) | ✅ | ✅ | ✅ | web: encrypted in the browser |
 | My List, search, category pages | ✅ | ✅ | ✅ | |
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | |

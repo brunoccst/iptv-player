@@ -124,6 +124,9 @@ describe('App (TV)', () => {
     await fireEvent(screen.getByTestId('card-Show'), 'longPress');
     expect(screen.getByTestId('card-menu')).toBeTruthy();
     expect(within(screen.getByTestId('card-menu')).getByText('S1:E3')).toBeTruthy();
+    // No series title on these entries: no "Go to details"; the episode can be marked watched.
+    expect(screen.queryByTestId('card-menu-details')).toBeNull();
+    expect(within(screen.getByTestId('card-menu')).getByText('Mark episode as watched')).toBeTruthy();
     // Cancel closes it and keeps the row.
     await fireEvent.press(screen.getByTestId('card-menu-cancel'));
     expect(screen.queryByTestId('card-menu')).toBeNull();
@@ -140,6 +143,47 @@ describe('App (TV)', () => {
         .map((c) => c.url.pathname)
         .sort(),
     ).toEqual(['/api/profiles/p1/progress/episode/e2', '/api/profiles/p1/progress/episode/e3']);
+  });
+
+  it('card menu on a movie: Mark as watched puts the Watched tag on the cover and in details; Mark as not watched removes it (D-081)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('PUT', '/api/profiles/p1/progress/movie/101', ({ body }) => ({
+      body: { kind: 'movie', itemId: '101', updatedAt: '2026-09-27T00:00:00Z', ...(body as object) },
+    }));
+    backend.on('DELETE', '/api/profiles/p1/progress/movie/101', { status: 204 });
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await act(async () => navStore.getState().goSection('movies'));
+    await flush();
+    await screen.findAllByTestId('card-Big Test Movie');
+
+    const card = () => screen.getAllByTestId('card-Big Test Movie').at(-1)!;
+    expect(screen.queryByTestId('card-Big Test Movie-watched')).toBeNull();
+    await fireEvent(card(), 'longPress');
+    expect(within(screen.getByTestId('card-menu')).getByText('Go to details')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('card-menu-watched'));
+    await flush();
+    const put = backend.calls.find((c) => c.method === 'PUT');
+    expect(put?.url.pathname).toBe('/api/profiles/p1/progress/movie/101');
+    expect(put?.body).toMatchObject({ masterId: 'm1', title: 'Big Test Movie' });
+    expect(screen.getAllByTestId('card-Big Test Movie-watched').length).toBeGreaterThan(0);
+
+    // The details show the same tag.
+    await fireEvent(card(), 'longPress');
+    await fireEvent.press(screen.getByTestId('card-menu-details'));
+    await flush();
+    expect(screen.getByTestId('details-watched')).toBeTruthy();
+    await act(async () => pressBack());
+    await flush();
+
+    await fireEvent(card(), 'longPress');
+    expect(within(screen.getByTestId('card-menu')).getByText('Mark as not watched')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('card-menu-unwatched'));
+    await flush();
+    expect(backend.calls.some((c) => c.method === 'DELETE' && c.url.pathname === '/api/profiles/p1/progress/movie/101')).toBe(true);
+    expect(screen.queryByTestId('card-Big Test Movie-watched')).toBeNull();
   });
 
   it('opens a movie in another player app with the provider User-Agent (D-057)', async () => {

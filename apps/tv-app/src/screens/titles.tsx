@@ -1,4 +1,4 @@
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,6 +11,9 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import {
+  cardMenuItems,
+  isMovieWatched,
+  setMovieWatched,
   LIBRARY_SORT_OPTIONS,
   sortChoiceKey,
   type LibrarySection,
@@ -19,7 +22,9 @@ import {
   type MasterCard,
   type MediaCategory,
 } from '@iptv/shared';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
+import { CardMenu } from '../components/CardMenu';
+import { useProgress } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusRow } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
@@ -33,7 +38,10 @@ const ROW_SIZE = 10;
 const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
-/** Web `MasterCard`: poster, 4K badge, "year · N versions"; opens the details panel. */
+/**
+ * Web `MasterCard`: poster, 4K badge, "year · N versions", "Watched" tag on finished movies; opens the details panel.
+ * Holding OK (a long touch on phones) opens its menu: Go to details, Mark as (not) watched (D-081).
+ */
 export function MasterCardItem({
   section,
   item,
@@ -45,16 +53,37 @@ export function MasterCardItem({
   width?: number;
   hasTVPreferredFocus?: boolean;
 }) {
+  const watched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
+  const [menu, setMenu] = useState(false);
+  const openDetails = () => navStore.getState().push({ name: 'details', section, masterId: item.id });
   return (
-    <PosterCard
-      title={item.title}
-      posterUrl={item.posterUrl}
-      width={width}
-      hasTVPreferredFocus={hasTVPreferredFocus}
-      badge={item.bestQuality === '4K' ? '4K' : null}
-      subtitle={[item.year, item.variantCount > 1 ? `${item.variantCount} versions` : null].filter(Boolean).join(' · ') || null}
-      onPress={() => navStore.getState().push({ name: 'details', section, masterId: item.id })}
-    />
+    <>
+      <PosterCard
+        title={item.title}
+        posterUrl={item.posterUrl}
+        width={width}
+        hasTVPreferredFocus={hasTVPreferredFocus}
+        badge={item.bestQuality === '4K' ? '4K' : null}
+        watched={watched}
+        subtitle={[item.year, item.variantCount > 1 ? `${item.variantCount} versions` : null].filter(Boolean).join(' · ') || null}
+        onPress={openDetails}
+        onLongPress={() => setMenu(true)}
+      />
+      {menu ? (
+        <CardMenu
+          title={item.title}
+          onClose={() => setMenu(false)}
+          actions={cardMenuItems(section === 'movies' ? { kind: 'movie', watched } : { kind: 'series' }).map((entry) => ({
+            label: entry.label,
+            testID: `card-menu-${entry.id}`,
+            onPress: () => {
+              if (entry.id === 'details') openDetails();
+              else void setMovieWatched(stores, item.id, entry.id === 'watched');
+            },
+          }))}
+        />
+      ) : null}
+    </>
   );
 }
 
