@@ -79,7 +79,8 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
 | [D-073](#d-073) | 2026-09-26 | Desktop in-app updates, TV-style login, cards of one size; phone search focus |
 | [D-074](#d-074) | 2026-09-27 | Log what the provider sent when a stream is not a video |
-| [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all" |
+| [D-075](#d-075) | 2026-09-27 | TV: focus stays in the details panel; ↓ walks the player buttons; "See all" card fill |
+| [D-076](#d-076) | 2026-09-27 | TV: holding Right in a row no longer drops the focus to the nav (focused card toggled zIndex) |
 | [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
 | [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
 | [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
@@ -1357,18 +1358,33 @@ Limits: one extra small request per failed attempt. On an account with one conne
 
 ## D-075
 
-**TV: focus stays in the details panel; ↓ walks the player buttons; holding Right reaches "See all"** — 2026-09-27 (requested by owner)
+**TV: focus stays in the details panel; ↓ walks the player buttons; "See all" card fill** — 2026-09-27 (requested by owner)
 
 Decision:
 - **Details panel.** It is a focus guide that traps all four directions (TV only). Before, Down past the version picker left the panel for the grid behind it.
 - **Player buttons.** ↓ no longer opens the audio/subtitles drawer (↑ still does). It puts the focus on the on-screen buttons, play/pause first: Back at the top left; play/pause, −10 s, +10 s at the bottom left; episodes, audio and subtitles at the bottom right. The D-pad walks them and Select presses the focused one. Back, or 8 s without a key, returns to the video, where ←/→ seek again. Buttons that open a panel (audio and subtitles, episodes, guide) leave button mode.
-- **Holding Right in a Home row.** The row's scroll view on TV no longer handles the arrow keys itself (`scrollEnabled={false}`; it still scrolls to show the focused card). Its own arrow-key scrolling (`HorizontalScrollView.arrowScroll`) scrolled by half a screen when the next card looked too far away. That happened while holding, as the scroll lagged behind the focus. When the focused card was then off screen, it gave the focus up, and Android moved it to Live TV or the nav. Single presses gave the scroll time to catch up. The row's focus trap (D-069) now decides alone.
+- **Holding Right in a Home row.** First attempt: the row's scroll view stopped handling the arrow keys (`scrollEnabled={false}`). It did not fix the escape, and the row stopped scrolling to the focused card; reverted in D-076, which has the real cause and fix.
 - **"See all" card.** Like a card, the whole card has the background and fills the row's height, so it lines up with cards that have a second line.
 
 - **Rows of buttons in the player** (added 2026-09-27): while Skip ahead's options (30 s … 3 min) or next-up's Play Now / Cancel are on screen, ←/→ only move between them. Before, each step also sought ±10 s, so a chosen option seemed to skip only 10 s. The single Skip ahead button still leaves ←/→ seeking.
 
-Tests: unit tests for the trap, the player buttons and the row's scrolling. The emulator flow checks ↑ drawer, ↓ buttons (play/pause focused, Right moves on, Up reaches Back, Back returns), and that Down ×8 in the details panel never focuses the page. Holding a key cannot be scripted in Maestro, and the fake panel has no row with "See all" (≤ 10 titles), so hold-Right is covered by the unit test and the reasoning above.
+Tests: unit tests for the trap, the player buttons and the row's scrolling. The emulator flow checks ↑ drawer, ↓ buttons (play/pause focused, Right moves on, Up reaches Back, Back returns), and that Down ×8 in the details panel never focuses the page. Hold-Right: see D-076 (emulator check).
 
+## D-076
+
+**TV: holding Right in a row no longer drops the focus to the nav (focused card toggled zIndex)** — 2026-09-27 (reported by owner)
+
+Context: holding Right on a Home row sent the focus up to Live TV or the top nav instead of stopping on "See all"; single presses worked. The first fix (D-075, `scrollEnabled={false}` on the row) did not help and broke the row's scrolling to the focused card.
+
+Reproduced on the Android TV emulator before changing anything: against a stress panel (a row ending in "See all"), 16 quick Right presses from the first card left the focus on the nav's account button. Focus had been lost mid-row; the remaining presses then walked the nav.
+
+Cause: the focused card's style set `zIndex: 2`. In the new renderer (Fabric) a zIndex change reorders the row's native views, taking the focused card out and putting it back. A focused view that is removed loses the focus, and Android hands it to the first focusable view on screen (the nav, or Live TV). With single presses the reorder landed between key presses; with a held key the next press found no focus in the row. Same class of bug as the phone search box (D-073): a focus style that changes how native views are arranged.
+
+Decision:
+- The focused card no longer sets `zIndex`; its glow's elevation already draws it above its neighbours. `scrollEnabled` on TV rows is back to default, so the row follows the focus again.
+- Emulator check (`apps/tv-app/e2e/05-hold-right.yaml`, `06-hold-right-check.yaml`, `run.sh`): with the fake panel's `FAKE_PANEL_STRESS`, 16 and then 40 quick Right presses from the first card of the "Stress Test (huge)" row must end on its "See all" card. Maestro cannot hold a key, and `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (it repeats every ~50 ms). Before the fix the 16-press burst ended on the nav; after it, both end on "See all".
+
+Rule for focus styles: change only drawing properties on focus (colour, border, shadow, transform, opacity), never zIndex or anything that can change which native views exist or their order.
 ## D-077
 
 **Player: previous / next episode and "from the beginning" buttons** — 2026-09-27 (requested by owner)
