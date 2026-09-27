@@ -109,4 +109,3 @@ test('update dialogs use the texts the page sent, English when missing (D-084)',
   assert.equal(fillText(texts, 'Later'), 'Later');
   assert.deepEqual(cleanTexts(null), {});
 });
-

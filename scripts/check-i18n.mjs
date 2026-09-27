@@ -45,7 +45,8 @@ export function extractTexts(code, file = 'file.tsx') {
       const line = source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
       const where = `${file}:${line}`;
       const [first, second] = node.arguments;
-      if (!isText(first) || (plural && !isText(second))) errors.push(`${where}: ${node.expression.text}() needs its English text as a string literal`);
+      if (!isText(first) || (plural && !isText(second)))
+        errors.push(`${where}: ${node.expression.text}() needs its English text as a string literal`);
       else texts.push({ key: first.text, other: plural ? second.text : undefined, where });
       if (!insideFunction(node)) errors.push(`${where}: ${node.expression.text}() runs when the module loads; call it while drawing`);
     }
@@ -62,20 +63,27 @@ export function checkCatalog(language, catalog, texts) {
   for (const text of texts) if (!used.has(text.key)) used.set(text.key, text);
   for (const [key, text] of used) {
     const entry = catalog[key];
-    const allowed = new Set([...placeholders(key), ...(text.other !== undefined ? placeholders(text.other) : []), ...(text.other !== undefined ? ['count'] : [])]);
+    const allowed = new Set([
+      ...placeholders(key),
+      ...(text.other !== undefined ? placeholders(text.other) : []),
+      ...(text.other !== undefined ? ['count'] : []),
+    ]);
     if (entry === undefined) {
       errors.push(`${language}: missing "${key}" (${text.where})`);
       continue;
     }
-    const values = text.other !== undefined ? (typeof entry === 'object' && entry ? entry : null) : typeof entry === 'string' ? { text: entry } : null;
+    const values =
+      text.other !== undefined ? (typeof entry === 'object' && entry ? entry : null) : typeof entry === 'string' ? { text: entry } : null;
     if (!values) {
       errors.push(`${language}: "${key}" must be ${text.other !== undefined ? 'plural forms {one, …, other}' : 'a text'}`);
       continue;
     }
-    const forms = text.other !== undefined ? PLURAL_FORMS[language] ?? ['one', 'other'] : ['text'];
-    for (const form of forms) if (!values[form]) errors.push(`${language}: "${key}" has no ${form === 'text' ? 'translation' : `"${form}" form`}`);
+    const forms = text.other !== undefined ? (PLURAL_FORMS[language] ?? ['one', 'other']) : ['text'];
+    for (const form of forms)
+      if (!values[form]) errors.push(`${language}: "${key}" has no ${form === 'text' ? 'translation' : `"${form}" form`}`);
     for (const value of Object.values(values))
-      for (const name of placeholders(String(value))) if (!allowed.has(name)) errors.push(`${language}: "${key}" uses {${name}}, which the English text does not have`);
+      for (const name of placeholders(String(value)))
+        if (!allowed.has(name)) errors.push(`${language}: "${key}" uses {${name}}, which the English text does not have`);
   }
   for (const key of Object.keys(catalog)) if (!used.has(key)) errors.push(`${language}: "${key}" is not used any more`);
   return errors;

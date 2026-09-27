@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { EPG_SLOT_MS, floorToSlot, formatGuideTime, formatProgrammeTime, guideSlots, layoutGuideRow, nowFraction, programmeAt, programmeProgress, useEpgGuide, useNow, type EpgListing, type LiveChannel, t, intlLocale } from '@iptv/shared';
+import {
+  EPG_SLOT_MS,
+  floorToSlot,
+  formatGuideTime,
+  formatProgrammeTime,
+  guideSlots,
+  layoutGuideRow,
+  nowFraction,
+  programmeAt,
+  programmeProgress,
+  useEpgGuide,
+  useNow,
+  type EpgListing,
+  type LiveChannel,
+  t,
+  intlLocale,
+} from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
 import { useCatalog } from '../../hooks/stores';

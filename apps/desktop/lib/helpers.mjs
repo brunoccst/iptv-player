@@ -163,4 +163,3 @@ export function cleanTexts(value) {
       .slice(0, 100),
   );
 }
-

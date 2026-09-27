@@ -22,6 +22,19 @@ describe('t and tn (D-084)', () => {
     expect(tn('{count} thing nobody translated', '{count} things nobody translated', 3)).toBe('3 things nobody translated');
   });
 
+  it('the catalogs translate, with plural forms per language', () => {
+    setUiLanguage('de');
+    expect(t('Mark as watched')).toBe('Als gesehen markieren');
+    expect(t('Play {title} on {tv}', { title: 'Heat', tv: 'Wohnzimmer' })).toBe('Heat auf Wohnzimmer abspielen');
+    expect(tn('{count} Season', '{count} Seasons', 2)).toBe('2 Staffeln');
+    setUiLanguage('pt-BR');
+    expect(tn('{count} Season', '{count} Seasons', 1)).toBe('1 temporada');
+    expect(t('My List')).toBe('Minha lista');
+    setUiLanguage('sh-BA');
+    expect([1, 3, 5, 21].map((n) => tn('{count} Season', '{count} Seasons', n))).toEqual(['1 sezona', '3 sezone', '5 sezona', '21 sezona']);
+    expect(t('Continue Watching')).toBe('Nastavi gledati');
+  });
+
   it('plural forms per language', () => {
     expect([0, 1, 2].map((n) => pluralForm('en', n))).toEqual(['other', 'one', 'other']);
     expect([0, 1, 2].map((n) => pluralForm('pt-BR', n))).toEqual(['one', 'one', 'other']);

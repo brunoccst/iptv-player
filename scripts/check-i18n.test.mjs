@@ -30,13 +30,27 @@ test('text that is not a literal, and t when the module loads, fail', () => {
 
 test('a catalog must have every text, its plural forms and only known placeholders', () => {
   const { texts } = extractTexts(code, 'Row.tsx');
-  assert.deepEqual(checkCatalog('de', { 'Play {title}': '{title} abspielen', '{count} episode': { one: '{count} Folge', other: '{count} Folgen' } }, texts), []);
-  assert.deepEqual(checkCatalog('sh-BA', { 'Play {name}': 'Pusti {name}', Old: 'Staro', '{count} episode': { one: '{count} epizoda', other: '{count} epizoda' } }, texts), [
-    'sh-BA: missing "Play {title}" (Row.tsx:4)',
-    'sh-BA: "{count} episode" has no "few" form',
-    'sh-BA: "Play {name}" is not used any more',
-    'sh-BA: "Old" is not used any more',
-  ]);
+  assert.deepEqual(
+    checkCatalog(
+      'de',
+      { 'Play {title}': '{title} abspielen', '{count} episode': { one: '{count} Folge', other: '{count} Folgen' } },
+      texts,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    checkCatalog(
+      'sh-BA',
+      { 'Play {name}': 'Pusti {name}', Old: 'Staro', '{count} episode': { one: '{count} epizoda', other: '{count} epizoda' } },
+      texts,
+    ),
+    [
+      'sh-BA: missing "Play {title}" (Row.tsx:4)',
+      'sh-BA: "{count} episode" has no "few" form',
+      'sh-BA: "Play {name}" is not used any more',
+      'sh-BA: "Old" is not used any more',
+    ],
+  );
   assert.deepEqual(checkCatalog('de', { 'Play {title}': '{name} abspielen', '{count} episode': '{count} Folgen' }, texts), [
     'de: "Play {title}" uses {name}, which the English text does not have',
     'de: "{count} episode" must be plural forms {one, …, other}',

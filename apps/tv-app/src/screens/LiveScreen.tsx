@@ -1,6 +1,24 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { EPG_SLOT_MS, floorToSlot, formatGuideTime, formatProgrammeTime, guideSlots, layoutGuideRow, liveTarget, nowFraction, programmeAt, programmeProgress, useEpgGuide, useNow, type EpgChannelRow, type EpgListing, type LiveChannel, t, intlLocale } from '@iptv/shared';
+import {
+  EPG_SLOT_MS,
+  floorToSlot,
+  formatGuideTime,
+  formatProgrammeTime,
+  guideSlots,
+  layoutGuideRow,
+  liveTarget,
+  nowFraction,
+  programmeAt,
+  programmeProgress,
+  useEpgGuide,
+  useNow,
+  type EpgChannelRow,
+  type EpgListing,
+  type LiveChannel,
+  t,
+  intlLocale,
+} from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';

@@ -39,6 +39,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Backup and restore | ✅ | ✅ | ✅ | |
 | Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | |
 | Play on TV from the phone (D-044) | ✅ receives | ✅ sends | ➖ | |
+| App language: English, Português (Brasil), Deutsch, Srpskohrvatski (BiH), per profile (D-084) | ✅ | ✅ | ✅ | account menu → App → App language; sign-in page |
 | About (version, build, connection) | ✅ | ✅ | ✅ | account menu → App |
 | Diagnostics log | ✅ share | ✅ share | ✅ save or copy | account menu → App → Log |
 | App updates | ✅ | ✅ | ✅ desktop · ➖ browser (always current) | |
