@@ -36,7 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
-- [x] **Desktop: in-app updates, TV-style login, even covers** (requested 2026-09-26, D-073): the app downloads and installs new versions itself (Windows, AppImage), so Windows no longer asks the SmartScreen question for updates; the login page matches the TV (IPTV provider / My server, QR code beside the form); cards keep one size whatever the image or title length. README shows the pipeline status badges.
+- [x] **Desktop: in-app updates, TV-style login, even covers** (requested 2026-09-26, D-073): the app downloads and installs new versions itself (Windows, AppImage), so Windows no longer asks the SmartScreen question for updates; the login page matches the TV (IPTV provider / My server, QR code beside the form); cards keep one size whatever the image or title length. README shows the pipeline status badges. Phone: tapping the search box no longer moves focus to the first Live TV card (checked on a phone emulator in CI).
 - [x] **Desktop app: phone sync, install folder, size** (requested 2026-09-26, D-072): Sign in / Sync with phone by QR code (phone: Connect a TV or computer); Windows setup asks for whom and where to install; smaller download.
 - [x] **Desktop app** (requested 2026-09-26, D-071): installers for Windows, macOS and Linux from the `desktop` release; signs in to the provider directly, no server or commands needed.
 - [x] **App versions and update installer** (requested 2026-09-26, D-070): the app has MAJOR.MINOR.PATCH versions (About, update dialog, release title); the installer now opens on the first try after the download, and the dialog can open it again.

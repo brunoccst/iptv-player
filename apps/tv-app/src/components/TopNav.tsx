@@ -251,7 +251,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(0,0,0,0.75)',
   },
-  searchFocused: { borderColor: focus.ring, backgroundColor: 'rgba(40,40,40,0.9)', ...focus.glow },
+  // No glow (elevation) here: switching it on made React Native rebuild the box's contents on phones, which detached
+  // the text field as it got focus; Android then focused the first card and typing went nowhere (D-073).
+  searchFocused: { borderColor: focus.ring, backgroundColor: 'rgba(40,40,40,0.9)' },
   searchInput: { flex: 1, color: colors.strong, fontSize: fonts.body, paddingVertical: 4 },
   avatar: { width: 34, height: 34, borderRadius: radius, alignItems: 'center', justifyContent: 'center' },
   avatarFocused: { transform: [{ scale: 1.12 }], ...focus.glow },

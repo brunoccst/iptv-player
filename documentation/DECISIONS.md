@@ -77,7 +77,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-070](#d-070) | 2026-09-26 | App versions MAJOR.MINOR.PATCH; the update installer opens on top of the app |
 | [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
 | [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
-| [D-073](#d-073) | 2026-09-26 | Desktop app: in-app updates, TV-style login, cards of one size |
+| [D-073](#d-073) | 2026-09-26 | Desktop in-app updates, TV-style login, cards of one size; phone search focus |
 
 ---
 
@@ -1316,7 +1316,7 @@ Why still ~270 MB installed: Electron brings its own Chromium (about 200 MB, plu
 
 ## D-073
 
-**Desktop app: in-app updates, TV-style login, cards of one size** — 2026-09-26 (requested by owner)
+**Desktop in-app updates, TV-style login, cards of one size; phone search focus** — 2026-09-26 (requested by owner)
 
 Decision:
 - **In-app updates.** Free code signing (SignPath Foundation) needs an application and still starts without SmartScreen reputation; paid signing (~$10/month) builds reputation the same way. Windows only asks the SmartScreen question for files marked as downloaded from the internet, and a file the app downloads itself carries no such mark. So the app installs updates itself:
@@ -1330,5 +1330,7 @@ Decision:
   - Beside the form is the **Sign in with your phone** card with the QR code.
   - In a browser the page shows only the form, since the browser always uses the backend.
 - **Cards of one size.** A card's minimum width was its content's: a long title (one line, never wrapped) widened its card, and the cover grew with it. Cards now have `min-width: 0`, rows cap them at the card width, and the image fills its box without adding size. This applies to the web and desktop apps.
+
+- **Phone search box keeps its focus.** Reproduced on a phone emulator (new CI flow `04-phone-search.yaml`): after tapping the search box the first Live TV card had focus and typing went nowhere; logcat said the text field was detached from the window. Focusing the box switched on the focus glow (`elevation`), and React Native then rebuilt the box's native views, detaching the text field; Android gave focus to the first focusable card. The search box keeps its border and background highlight without the glow.
 
 Tested: a 1.0.3 AppImage found 1.0.4 on a local feed, downloaded it, replaced itself and restarted (Linux). The Windows installer's silent update is electron-updater's standard path; not run on a real Windows PC.
