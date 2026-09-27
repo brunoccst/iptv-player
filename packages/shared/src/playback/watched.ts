@@ -93,11 +93,7 @@ export interface CardMenuItem {
 }
 
 export function cardMenuItems(
-  card:
-    | { kind: 'continue'; entry: ProgressDto }
-    | { kind: 'movie'; watched: boolean }
-    | { kind: 'series'; watched: boolean }
-    | { kind: 'episode'; watched: boolean },
+  card: { kind: 'continue'; entry: ProgressDto } | { kind: 'movie'; watched: boolean } | { kind: 'series'; watched: boolean },
 ): CardMenuItem[] {
   const details: CardMenuItem = { id: 'details', label: 'Go to details' };
   switch (card.kind) {
@@ -115,9 +111,55 @@ export function cardMenuItems(
         details,
         card.watched ? { id: 'unwatched', label: 'Mark series as not watched' } : { id: 'watched', label: 'Mark series as watched' },
       ];
-    case 'episode':
-      return [card.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' }];
   }
+}
+
+/** Where an episode's download is, for its menu item. */
+export interface DownloadMenuState {
+  status: 'none' | 'downloading' | 'paused' | 'completed' | 'failed';
+  /** 0 to 100. */
+  percent?: number;
+}
+
+export type EpisodeMenuItemId = 'watched' | 'unwatched' | 'download' | 'play-on-tv' | 'external';
+export interface EpisodeMenuItem {
+  id: EpisodeMenuItemId;
+  label: string;
+  /** Shown but not selectable (an episode already downloaded). */
+  disabled?: boolean;
+}
+
+/**
+ * An episode's options (D-083): the "…" button next to Play in series details, and holding OK / a long touch /
+ * right-click on the episode. Only Play and the version choice stay in the row, so it fits a phone. Items for things
+ * the device or profile cannot do are left out: pass `download` only where downloads work, `tvName` only on a phone
+ * with a paired TV, `externalPlayer` only where another player can be opened (not Kids profiles).
+ */
+export function episodeMenuItems(episode: {
+  watched: boolean;
+  download?: DownloadMenuState | null;
+  tvName?: string | null;
+  externalPlayer?: 'app' | 'vlc' | null;
+}): EpisodeMenuItem[] {
+  const items: EpisodeMenuItem[] = [
+    episode.watched ? { id: 'unwatched', label: 'Mark as not watched' } : { id: 'watched', label: 'Mark as watched' },
+  ];
+  const download = episode.download;
+  if (download) {
+    const percent = Math.round(download.percent ?? 0);
+    const label = {
+      none: 'Download',
+      downloading: `Pause download (${percent} %)`,
+      paused: `Resume download (${percent} %)`,
+      failed: 'Download failed · Retry',
+      completed: 'Downloaded',
+    }[download.status];
+    items.push({ id: 'download', label, ...(download.status === 'completed' ? { disabled: true } : {}) });
+  }
+  if (episode.tvName) items.push({ id: 'play-on-tv', label: `Play on ${episode.tvName}` });
+  if (episode.externalPlayer)
+    items.push({ id: 'external', label: episode.externalPlayer === 'vlc' ? 'Open in VLC' : 'Open in another player' });
+  return items;
 }
 
 /** The tag's text (bottom right of a cover, next to the title in details). */

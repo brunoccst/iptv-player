@@ -483,6 +483,12 @@
   color: var(--color-muted);
 }
 
+.card-menu__item:disabled {
+  background: none;
+  color: var(--color-muted);
+  cursor: default;
+}
+
 /* "Watched" tag (D-081): bottom right of a watched cover and episode still, next to the title in details. Same as TV. */
 .watched-tag {
   display: inline-flex;

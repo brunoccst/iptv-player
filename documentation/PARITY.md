@@ -23,16 +23,16 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 
 | Feature | TV | Phone | Web / desktop | How it is reached |
 |---------|----|-------|---------------|-------------------|
-| Card menu: Go to details, Mark as (not) watched (movies, series, episodes); Continue Watching: remove (D-078, D-081, D-082) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
+| Card menu: Go to details, Mark as (not) watched (movies, series); Continue Watching: remove (D-078, D-081, D-082) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
 | "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series |
-| Mark an episode as (not) watched in series details (D-082) | ✅ | ✅ | ✅ | check button next to Play and Download · TV: hold OK on Play · phone: long touch · web: right-click the episode |
+| Episode options in series details: Mark as (not) watched, Download, Play on TV, Open in another player (D-082, D-083) | ✅ | ✅ | ✅ | row: Play, "…", version · "…" or TV: hold OK on Play · phone: long touch · web: right-click the episode |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Live TV guide page | ✅ | ✅ | ✅ | |
 | Guide over the playing channel (D-058, D-081) | ✅ | ✅ | ✅ | TV: ↑ · phone and web: Guide button · web: also G (↑/↓ are the volume) |
-| Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in details; browsers cannot start other programs |
+| Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in movie details, episode "…" menu; browsers cannot start other programs |
 | Downloads (offline) | ✅ | ✅ | ✅ | web: encrypted in the browser |
 | My List, search, category pages | ✅ | ✅ | ✅ | |
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | |

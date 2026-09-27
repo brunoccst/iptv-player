@@ -18,7 +18,9 @@ import {
   episodeTarget,
   findEpisodeProgress,
   allEpisodesWatched,
-  cardMenuItems,
+  episodeMenuItems,
+  type EpisodeMenuItemId,
+  type PlayTarget,
   episodeLabel,
   isEpisodeWatched,
   isMovieWatched,
@@ -41,9 +43,9 @@ import {
   type VariantInfo,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
-import { DownloadButton } from '../components/DownloadButton';
-import { ExternalPlayerButton } from '../components/ExternalPlayerButton';
-import { PlayOnTvButton } from '../components/PlayOnTvButton';
+import { DownloadButton, useDownload } from '../components/DownloadButton';
+import { ExternalPlayerButton, useExternalPlayer } from '../components/ExternalPlayerButton';
+import { PlayOnTvButton, usePlayOnTv } from '../components/PlayOnTvButton';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -285,7 +287,7 @@ function Episodes({
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
   const compact = useCompact();
-  // Holding OK on an episode's Play button: Mark as (not) watched (D-082).
+  // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
   if (!season) return <Text style={[styles.muted, styles.episodes]}>No episodes available.</Text>;
   const context = (episode: MergedEpisode) => ({
@@ -316,9 +318,7 @@ function Episodes({
         const episode = episodeInVersion(listed, chosen[listed.id]);
         const target = episodeTarget(context(episode), episode);
         const saved = findEpisodeProgress(progress, episode);
-        const watched = isWatched(saved);
         const play = () => navStore.getState().push({ name: 'player', target });
-        const toggleWatched = () => void setEpisodeWatched(stores.progress, episode, context(episode), !watched);
         const actions = (
           <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
             <IconButton
@@ -328,15 +328,13 @@ function Episodes({
               onLongPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}`}
             />
-            <DownloadButton target={target} />
+            {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
             <IconButton
-              icon="check"
-              label={watched ? `Mark ${episode.title} as not watched` : `Mark ${episode.title} as watched`}
-              onPress={toggleWatched}
-              testID={`episode-${episode.id}-mark`}
+              icon="more"
+              label={`More options for ${episode.title}`}
+              onPress={() => setMenuFor(episode)}
+              testID={`episode-${episode.id}-more`}
             />
-            <PlayOnTvButton target={target} testID={`episode-${episode.id}-tv`} />
-            <ExternalPlayerButton target={target} testID={`episode-${episode.id}-external`} />
             {/* After the buttons, so Play is the first thing focused in an episode. */}
             {listed.versions.length > 1 ? (
               <Select
@@ -391,18 +389,55 @@ function Episodes({
         );
       })}
       {menuFor ? (
-        <CardMenu
-          title={menuFor.title}
-          subtitle={episodeLabel(menuFor)}
+        <EpisodeMenu
+          episode={menuFor}
+          target={episodeTarget(context(menuFor), menuFor)}
+          watched={isEpisodeWatched(progress, menuFor)}
+          onWatched={(watched) => void setEpisodeWatched(stores.progress, menuFor, context(menuFor), watched)}
           onClose={() => setMenuFor(null)}
-          actions={cardMenuItems({ kind: 'episode', watched: isEpisodeWatched(progress, menuFor) }).map((entry) => ({
-            label: entry.label,
-            testID: `card-menu-${entry.id}`,
-            onPress: () => void setEpisodeWatched(stores.progress, menuFor, context(menuFor), entry.id === 'watched'),
-          }))}
         />
       ) : null}
     </View>
+  );
+}
+
+/** An episode's options (D-083): Mark as (not) watched, Download, Play on the paired TV, Open in another player. */
+function EpisodeMenu({
+  episode,
+  target,
+  watched,
+  onWatched,
+  onClose,
+}: {
+  episode: MergedEpisode;
+  target: PlayTarget;
+  watched: boolean;
+  onWatched(watched: boolean): void;
+  onClose(): void;
+}) {
+  const download = useDownload(target);
+  const playOnTv = usePlayOnTv(target);
+  const external = useExternalPlayer(target);
+  const run: Record<EpisodeMenuItemId, () => void> = {
+    watched: () => onWatched(true),
+    unwatched: () => onWatched(false),
+    download: () => download?.toggle(),
+    'play-on-tv': () => playOnTv?.play(),
+    external: () => external?.open(),
+  };
+  const items = episodeMenuItems({
+    watched,
+    download: download?.menu,
+    tvName: playOnTv?.tvName,
+    externalPlayer: external ? 'app' : null,
+  });
+  return (
+    <CardMenu
+      title={episode.title}
+      subtitle={episodeLabel(episode)}
+      onClose={onClose}
+      actions={items.map((item) => ({ label: item.label, disabled: item.disabled, testID: `card-menu-${item.id}`, onPress: run[item.id] }))}
+    />
   );
 }
 

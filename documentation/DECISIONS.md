@@ -87,6 +87,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-080](#d-080) | 2026-09-27 | Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog |
 | [D-081](#d-081) | 2026-09-27 | "Watched" tag and card menu options in every app; guide over the channel and Open in VLC on web/desktop |
 | [D-082](#d-082) | 2026-09-27 | Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series |
+| [D-083](#d-083) | 2026-09-27 | Episode rows: Play, "…" and the version; the other options in the episode's menu |
 
 ---
 
@@ -1470,3 +1471,18 @@ Decision:
 
 Limits: the note is per device; another device learns it when the series' details open there. A series that gains new episodes keeps its tag until its details are opened again.
 
+Later: the episode's check button moved into its "…" menu (D-083).
+
+## D-083
+
+**Episode rows: Play, "…" and the version; the other options in the episode's menu** — 2026-09-27 (requested by owner)
+
+Context: on phones an episode row had six round buttons under the title (Play, Download, Mark as watched, Play on TV, Open in another player, version) and they were cramped. The check button (D-082) was also easy to mistake for a per-episode "My List"; the watchlist is per title only (the button in the details header).
+
+Decision:
+- An episode row shows only **Play**, a **"…"** button and, when the episode is in more than one version, the **version** choice. Same on every app (D-079), so they look alike and the TV row is shorter too.
+- "…" opens the episode's menu (the card menu, D-078): **Mark as watched / not watched**, **Download** (or Pause / Resume with the percentage, Retry after a failure, a greyed-out "Downloaded"), **Play on <TV>** (phone with a paired TV), **Open in another player** (TV and phone; "Open in VLC" in the desktop app; not on Kids profiles), then Cancel. Holding OK on Play (TV), a long touch (phone) and a right-click on the episode (web, desktop) open the same menu. On web it opens under the "…" button.
+- The episode's progress bar or "Watched" tag on its still stays, so its state is still visible without opening the menu.
+- Code: `episodeMenuItems` in `packages/shared/src/playback/watched.ts` decides the items and their words; the apps pass what the device can do (`useDownload`, `usePlayOnTv`, `useExternalPlayer` on TV/phone; `useDownload`, `useVlc` on web). Movies keep their buttons in the details header, which has the room.
+
+Limits: a download's progress is no longer drawn in the episode row; it shows in the menu item and on the Downloads page.
