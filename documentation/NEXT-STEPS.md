@@ -36,6 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Skip ahead options on TV** (requested 2026-09-27, D-075): moving between 30 s … 3 min (and Play Now / Cancel) with ←/→ no longer skips ±10 s; the chosen option skips its full amount.
 - [x] **TV focus fixes** (requested 2026-09-27, D-075): focus stays in the details panel; ↓ in the player walks the on-screen buttons (↑ opens audio/subtitles); holding Right reaches "See all"; the "See all" card is filled like other cards.
 - [x] **Provider answer in the log** (requested 2026-09-27, D-074): when a stream is not a video, the log shows what the provider sent (status, type, start of the text, credentials masked); "max connections", "not found", "expired" get a clear message.
 - [x] **Desktop: in-app updates, TV-style login, even covers** (requested 2026-09-26, D-073): the app downloads and installs new versions itself (Windows, AppImage), so Windows no longer asks the SmartScreen question for updates; the login page matches the TV (IPTV provider / My server, QR code beside the form); cards keep one size whatever the image or title length. README shows the pipeline status badges. Phone: tapping the search box no longer moves focus to the first Live TV card (checked on a phone emulator in CI).

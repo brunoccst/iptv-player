@@ -330,6 +330,37 @@ describe('PlayerScreen', () => {
     expect(screen.getByText('S01:E02 · Second')).toBeTruthy();
   });
 
+  it('TV: ←/→ between the Skip ahead options and the next-up buttons move the focus, not the video', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+    stubShow(backend);
+    await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
+    await flush();
+    await flush();
+    await ready();
+    await progress(30, 2400);
+
+    // Only the Skip ahead button: ←/→ still seek.
+    await act(async () => pressRemote('right'));
+    expect(playerState.seeks).toEqual([40_000]);
+    // Options open: walking them with →/← never seeks; the chosen option skips exactly its amount.
+    await fireEvent.press(screen.getByTestId('skip-ahead'));
+    await act(async () => pressRemote('right'));
+    await act(async () => pressRemote('right'));
+    await act(async () => pressRemote('left'));
+    expect(playerState.seeks).toEqual([40_000]);
+    await fireEvent.press(screen.getByLabelText('Skip ahead 2 minutes'));
+    expect(playerState.seeks).toEqual([40_000, 160_000]);
+
+    // Next-up: Play Now / Cancel are a row too.
+    await progress(2394, 2400);
+    expect(await screen.findByText('Next episode in 6')).toBeTruthy();
+    await act(async () => pressRemote('right'));
+    expect(playerState.seeks).toEqual([40_000, 160_000]);
+    jest.restoreAllMocks();
+  });
+
   it('next-up continues in another version of the series when the playing one lacks the next episode (D-066)', async () => {
     const backend = setupApp();
     stubShow(backend);
