@@ -363,3 +363,40 @@ test('app language (D-084): the whole app switches, and the choice stays after a
   await page.getByRole('menuitem', { name: 'App', exact: true }).click();
   await expect(page.getByRole('menuitem', { name: 'App-Sprache · App language' })).toBeVisible();
 });
+
+test('Home row titles take the mouse over their whole text, above the cards’ hover room (D-085)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  const link = page.getByRole('button', { name: 'Open Action' });
+  await link.scrollIntoViewIfNeeded();
+  const box = (await link.boundingBox())!;
+  for (const [fx, fy] of [
+    [0.1, 0.2],
+    [0.5, 0.5],
+    [0.9, 0.8],
+  ]) {
+    const onTitle = await page.evaluate(
+      ([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('.row__link'),
+      [box.x + box.width * fx!, box.y + box.height * fy!],
+    );
+    expect(onTitle).toBe(true);
+  }
+  await link.click();
+  await expect(page.getByRole('tab', { name: 'Action' })).toHaveAttribute('aria-selected', 'true');
+});
+
+test('category chips stay on one line with Show all / Show less when they do not fit (D-085)', async ({ page }) => {
+  await page.setViewportSize({ width: 300, height: 800 });
+  await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
+  const chips = page.getByRole('tablist', { name: 'Categories' });
+  const tops = async () =>
+    new Set(await chips.getByRole('tab').evaluateAll((tabs) => tabs.map((tab) => Math.round(tab.getBoundingClientRect().top))));
+  expect((await tops()).size).toBe(1);
+
+  await page.getByRole('button', { name: 'Show all categories' }).click();
+  expect((await tops()).size).toBeGreaterThan(1);
+  await chips.getByRole('tab', { name: 'Drama' }).click();
+  // Picking a chip returns to the line, with the chosen chip in view.
+  await expect(page.getByRole('button', { name: 'Show all categories' })).toBeVisible();
+  expect((await tops()).size).toBe(1);
+  await expect(chips.getByRole('tab', { name: 'Drama' })).toBeInViewport();
+});
