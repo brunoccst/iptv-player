@@ -374,6 +374,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     wake();
     // On the buttons the D-pad moves the focus and Select presses the focused button.
     if (tvButtons) return;
+    // A row of buttons on screen (Skip ahead's 30 s … 3 min, next-up's Play Now / Cancel): ←/→ move between them and
+    // must not also seek ±10 s. The single Skip ahead button leaves ←/→ seeking.
+    if ((key === 'left' || key === 'right') && Platform.isTV && (skipOpen || countdown !== null)) return;
     if ((key === 'left' || key === 'right') && !isLive) {
       const direction: SeekDirection = key === 'left' ? 'back' : 'forward';
       if (action === 'down') controller.current!.keyDown(direction);
