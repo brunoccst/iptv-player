@@ -89,6 +89,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-082](#d-082) | 2026-09-27 | Watched episodes and series: mark each episode, mark a whole series, tag on fully watched series |
 | [D-083](#d-083) | 2026-09-27 | Episode rows: Play, "…" and the version; the other options in the episode's menu |
 | [D-084](#d-084) | 2026-09-27 | The app in four languages: English (source and default), Brazilian Portuguese, German, Serbo-Croatian (Bosnia) |
+| [D-085](#d-085) | 2026-09-27 | Web and desktop: category chips on one line with Show all; row titles take the mouse |
 
 ---
 
@@ -1503,4 +1504,16 @@ Decision:
 - **Kept complete by CI**: `npm run lint:i18n` finds every `t`/`tn` text in the apps and the shared package and fails when a catalog misses one, has an unused one, uses an unknown `{placeholder}` or lacks a plural form; `t` must get a string literal and must not run when a module loads. `npm run i18n:sync` adds new texts to the catalogs. The pull request template asks for it.
 
 Limits: the translations were written with the code, not by native speakers of each language; wording fixes are changes to the catalogs only. The Maestro and Playwright flows run in English.
+
+## D-085
+
+**Web and desktop: category chips on one line with Show all; row titles take the mouse** — 2026-09-27 (requested by owner)
+
+Context: on Movies and Series, the web and desktop apps listed every category chip, a dozen lines with a large provider, before any title. The TV and phone apps already show one line with "Show all" (ChipBar). Separately, the Home row titles ("Open Action") only reacted to the mouse in a few spots.
+
+Decision:
+- **Chips like the TV and phone apps**: one line; when the chips do not fit, a "Show all ⌄" button wraps them across the width and "Show less ⌃" returns to the line. Picking a chip returns to the line with the chosen chip in view (also when a Home row title opened the category). On the line the mouse wheel scrolls sideways. `components/ChipBar.tsx` (web), `components/ChipBar.tsx` (TV/phone).
+- **Row titles**: a row's card track has 28 px of room above and below for the hovered card's growth and glow (D-078, D-079); that room lay over the row's title and took the mouse. The title now sits above the track (`position: relative; z-index: 1`); a hovered card still draws over it.
+
+Limits: Live TV on the web keeps its category list at the side.
 

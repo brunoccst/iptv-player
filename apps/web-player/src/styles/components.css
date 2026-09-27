@@ -42,6 +42,9 @@
 }
 
 .row__title {
+  /* Above the card track, whose room for the hovered card's glow reaches up over the title (D-085). */
+  position: relative;
+  z-index: 1;
   margin: 0 var(--gutter) 10px;
   font-size: clamp(1rem, 1.4vw, 1.4rem);
   font-weight: 700;
@@ -366,6 +369,50 @@
   border-color: var(--color-text-strong);
   background: var(--color-text-strong);
   color: #000;
+}
+
+/* Category chips on one line with "Show all", like the TV and phone apps (D-085). */
+.chip-bar {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.chip-bar__chips {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip-bar__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-bar__chips .chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.chip-bar--expanded .chip-bar__chips {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.chip-bar__toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.chip:hover,
+.chip:focus-visible {
+  border-color: var(--color-text-strong);
 }
 
 .banner {
