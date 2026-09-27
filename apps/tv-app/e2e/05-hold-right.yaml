@@ -21,20 +21,19 @@ appId: ${APP_ID}
     visible:
       id: "home-screen"
     timeout: 60000
-# Down walks the rows (the page follows the focus) to the stress row, below the fold.
+# Down walks the rows (the page follows the focus) to the stress row, below the fold: the first row with stress titles
+# (the movie rows are Action, 4K Movies, Drama, then "Stress Test (huge)").
 - repeat:
     while:
       notVisible:
+        id: "card-Stress Movie .*"
         focused: true
-        childOf:
-          id: "row-movies-900"
     times: 25
     commands:
       - pressKey: Remote Dpad Down
 - assertVisible:
+    id: "card-Stress Movie .*"
     focused: true
-    childOf:
-      id: "row-movies-900"
 # First card of the row.
 - repeat:
     times: 12
