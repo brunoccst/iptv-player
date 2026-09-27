@@ -78,6 +78,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-071](#d-071) | 2026-09-26 | Desktop app: the web player in Electron, talking to the provider directly |
 | [D-072](#d-072) | 2026-09-26 | Desktop app: sync with the phone by QR code, choose the install folder, smaller download |
 | [D-073](#d-073) | 2026-09-26 | Desktop in-app updates, TV-style login, cards of one size; phone search focus |
+| [D-074](#d-074) | 2026-09-27 | Log what the provider sent when a stream is not a video |
 
 ---
 
@@ -1334,3 +1335,17 @@ Decision:
 - **Phone search box keeps its focus.** Reproduced on a phone emulator (new CI flow `04-phone-search.yaml`): after tapping the search box the first Live TV card had focus and typing went nowhere; logcat said the text field was detached from the window. Focusing the box switched on the focus glow (`elevation`), and React Native then rebuilt the box's native views, detaching the text field; Android gave focus to the first focusable card. The search box keeps its border and background highlight without the glow.
 
 Tested: a 1.0.3 AppImage found 1.0.4 on a local feed, downloaded it, replaced itself and restarted (Linux). The Windows installer's silent update is electron-updater's standard path; not run on a real Windows PC.
+
+## D-074
+
+**Log what the provider sent when a stream is not a video** — 2026-09-27 (requested by owner)
+
+Context: an episode failed with "the provider did not send a playable video". The log showed only the player's view: the file was no known video format (no MP4 signature), and the HLS address did not return a playlist. VLC could not play it either. The provider's actual answer, often an error page such as "max connections reached", was not visible.
+
+Decision:
+- When the TV/phone player fails with a "not a video" error (`ERROR_CODE_PARSING_*`) or an HTTP error, the app asks the provider for the first 2 KB of the same address, with the player's User-Agent. It logs the status, content type, length, final host (after redirects), and the start of the answer as one line of text (or the first bytes in hex for binary data). Answers longer than 64 KB are not read.
+- Credentials from the stream address, and the provider's echo of them, are masked (`***`), besides the log's usual masking.
+- After the last attempt, a recognised answer replaces the general error text: all connections in use, file missing (404), subscription expired or account blocked, refused (401/403), empty answer.
+- Code: `packages/shared/src/playback/probe.ts` (`probeStream`, `describeProbe`, `probeHint`, `probeMessage`), used in `PlayerScreen`.
+
+Limits: one extra small request per failed attempt. On an account with one connection, the check itself counts briefly as a connection. The web player does not use it yet.

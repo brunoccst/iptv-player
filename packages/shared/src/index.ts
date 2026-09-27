@@ -22,6 +22,7 @@ export * from './playback/remoteSeek';
 export * from './playback/targets';
 export * from './playback/offlineAccess';
 export * from './playback/seriesVersions';
+export * from './playback/probe';
 export * from './epg/guide';
 export { createDirectApiClient, type DirectApiClient, type DirectApiClientOptions } from './direct/directApiClient';
 export { createHybridApiClient } from './direct/hybridApiClient';
