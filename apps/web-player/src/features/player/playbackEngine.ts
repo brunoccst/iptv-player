@@ -14,7 +14,15 @@ export interface LoadedSource {
   offline: boolean;
 }
 
-export class PlaybackUnavailableError extends Error {}
+export class PlaybackUnavailableError extends Error {
+  /** True when the browser cannot play the format at all (MKV …): asking the provider would not explain anything. */
+  constructor(
+    message: string,
+    readonly unsupportedFormat = false,
+  ) {
+    super(message);
+  }
+}
 
 type HlsFactory = Pick<typeof Hls, 'isSupported' | 'Events' | 'ErrorTypes'> & { new (config?: Partial<HlsConfig>): Hls };
 
@@ -24,6 +32,8 @@ const ATTACH_TIMEOUT_MS = 20_000;
 export class PlaybackEngine {
   private hlsInstance: Hls | null = null;
   private onFatal: ((message: string) => void) | null = null;
+  /** Stream addresses tried, last one last: what the provider sent there explains a failure (D-074, D-079). */
+  readonly attempted: string[] = [];
 
   constructor(
     private readonly video: HTMLVideoElement,
@@ -53,6 +63,7 @@ export class PlaybackEngine {
       try {
         const playback = await this.api.playback.get(source.kind, source.streamId, attempt.container, signal);
         const loaded: LoadedSource = { url: playback.url, engine: attempt.engine, offline: false };
+        this.attempted.push(playback.url);
         await this.attach(loaded, signal);
         return loaded;
       } catch (error) {
@@ -63,10 +74,12 @@ export class PlaybackEngine {
     }
 
     const container = (source.container ?? '').toUpperCase();
+    const unsupported = source.kind !== 'live' && !!source.container && !isBrowserNativeContainer(source.container);
     throw new PlaybackUnavailableError(
-      source.kind !== 'live' && source.container && !isBrowserNativeContainer(source.container)
+      unsupported
         ? `This version is only available as ${container}, which web browsers can't play. Pick another version or watch it on the TV app.`
         : `This stream couldn't be played. The provider may be offline. (${failures.join('; ')})`,
+      unsupported,
     );
   }
 

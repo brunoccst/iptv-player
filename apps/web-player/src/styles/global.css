@@ -15,6 +15,9 @@
   --nav-height: 68px;
   --card-width: clamp(120px, 14vw, 200px);
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  /* The TV app's focus look (focus.ring + focus.glow, D-079): a thin light ring and a soft white glow. */
+  --focus-ring: rgba(255, 255, 255, 0.92);
+  --focus-glow: 0 0 0 2px var(--focus-ring), 0 0 16px rgba(255, 255, 255, 0.5);
   color-scheme: dark;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }

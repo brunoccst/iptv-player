@@ -83,6 +83,8 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-076](#d-076) | 2026-09-27 | TV: holding Right in a row no longer drops the focus to the nav (focused card toggled zIndex) |
 | [D-077](#d-077) | 2026-09-27 | Player: previous / next episode and "from the beginning" buttons |
 | [D-078](#d-078) | 2026-09-27 | Card menu (hold OK): remove from Continue Watching; TV rows no longer clip the focused card |
+| [D-079](#d-079) | 2026-09-27 | One look and one feature set across TV, phone, web and desktop; right-click card menu |
+| [D-080](#d-080) | 2026-09-27 | Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog |
 
 ---
 
@@ -1368,6 +1370,21 @@ Decision:
 
 Tests: unit tests for the trap, the player buttons and the row's scrolling. The emulator flow checks ↑ drawer, ↓ buttons (play/pause focused, Right moves on, Up reaches Back, Back returns), and that Down ×8 in the details panel never focuses the page. Hold-Right: see D-076 (emulator check).
 
+## D-076
+
+**TV: holding Right in a row no longer drops the focus to the nav (focused card toggled zIndex)** — 2026-09-27 (reported by owner)
+
+Context: holding Right on a Home row sent the focus up to Live TV or the top nav instead of stopping on "See all"; single presses worked. The first fix (D-075, `scrollEnabled={false}` on the row) did not help and broke the row's scrolling to the focused card.
+
+Reproduced on the Android TV emulator before changing anything: against a stress panel (a row ending in "See all"), 16 quick Right presses from the first card left the focus on the nav's account button. Focus had been lost mid-row; the remaining presses then walked the nav.
+
+Cause: the focused card's style set `zIndex: 2`. In the new renderer (Fabric) a zIndex change reorders the row's native views, taking the focused card out and putting it back. A focused view that is removed loses the focus, and Android hands it to the first focusable view on screen (the nav, or Live TV). With single presses the reorder landed between key presses; with a held key the next press found no focus in the row. Same class of bug as the phone search box (D-073): a focus style that changes how native views are arranged.
+
+Decision:
+- The focused card no longer sets `zIndex`; its glow's elevation already draws it above its neighbours. `scrollEnabled` on TV rows is back to default, so the row follows the focus again.
+- Emulator check (`apps/tv-app/e2e/05-hold-right.yaml`, `06-hold-right-check.yaml`, `run.sh`): with the fake panel's `FAKE_PANEL_STRESS`, 16 and then 40 quick Right presses from the first card of the "Stress Test (huge)" row must end on its "See all" card. Maestro cannot hold a key, and `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (it repeats every ~50 ms). Before the fix the 16-press burst ended on the nav; after it, both end on "See all".
+
+Rule for focus styles: change only drawing properties on focus (colour, border, shadow, transform, opacity), never zIndex or anything that can change which native views exist or their order.
 ## D-077
 
 **Player: previous / next episode and "from the beginning" buttons** — 2026-09-27 (requested by owner)
@@ -1391,18 +1408,36 @@ Decision:
 
 Ideas for the menu later: "Mark as watched", "Play from the beginning", "Go to series / details", "Add to My List", "Download", "Choose another version"; on My List: "Remove from My List"; on Live TV: "Add to favourites".
 
-## D-076
+## D-079
 
-**TV: holding Right in a row no longer drops the focus to the nav (focused card toggled zIndex)** — 2026-09-27 (reported by owner)
+**One look and one feature set across TV, phone, web and desktop; right-click card menu** — 2026-09-27 (requested by owner)
 
-Context: holding Right on a Home row sent the focus up to Live TV or the top nav instead of stopping on "See all"; single presses worked. The first fix (D-075, `scrollEnabled={false}` on the row) did not help and broke the row's scrolling to the focused card.
-
-Reproduced on the Android TV emulator before changing anything: against a stress panel (a row ending in "See all"), 16 quick Right presses from the first card left the focus on the nav's account button. Focus had been lost mid-row; the remaining presses then walked the nav.
-
-Cause: the focused card's style set `zIndex: 2`. In the new renderer (Fabric) a zIndex change reorders the row's native views, taking the focused card out and putting it back. A focused view that is removed loses the focus, and Android hands it to the first focusable view on screen (the nav, or Live TV). With single presses the reorder landed between key presses; with a held key the next press found no focus in the row. Same class of bug as the phone search box (D-073): a focus style that changes how native views are arranged.
+Context: the owner asked for all apps, the web player included, to look and work the same where feasible, adapted to each device (e.g. the TV's hold-OK card menu opens with a right-click on a computer).
 
 Decision:
-- The focused card no longer sets `zIndex`; its glow's elevation already draws it above its neighbours. `scrollEnabled` on TV rows is back to default, so the row follows the focus again.
-- Emulator check (`apps/tv-app/e2e/05-hold-right.yaml`, `06-hold-right-check.yaml`, `run.sh`): with the fake panel's `FAKE_PANEL_STRESS`, 16 and then 40 quick Right presses from the first card of the "Stress Test (huge)" row must end on its "See all" card. Maestro cannot hold a key, and `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (it repeats every ~50 ms). Before the fix the 16-press burst ended on the nav; after it, both end on "See all".
+- **[PARITY.md](PARITY.md)** lists every feature per app and how it is reached (remote, touch, mouse and keyboard); each new feature updates it.
+- **Card menu on web and desktop.** A right-click on a Continue Watching card opens the same options as holding OK on TV (D-078), at the pointer like a normal context menu (kept on screen). The menu key or Shift+F10 opens it at the card; browsers that report a long touch as a context menu open it too. ↑/↓ move between the items; Escape, a click elsewhere, the mouse wheel or leaving the window close it. Cards without options keep the browser's own menu. `CardMenu` (`apps/web-player/src/components`), `PosterCard.onMenu`.
+- **Player.** From the beginning, previous / next episode, in the TV's order (D-077).
+- **Why a stream failed.** On a playback error the web player asks the provider for the first bytes of the last address it tried, logs the answer and shows the recognised message (D-074). Not for formats the browser cannot play (MKV): the message already says why.
+- **Account menu.** The TV's groups: Profiles · Library & devices · App. App has Check for updates (desktop), About (app, version, build, connection) and Log (save as a text file or copy; the TV shares it instead). The web log is kept across reloads in its own storage, outside the backup, with uncaught errors.
+- **Look.** A hovered or keyboard-focused card on the web looks like a focused TV card: grows 8 %, light ring, soft white glow (`--focus-glow`), instead of a dark shadow. Rows have room above and below so it is not cut.
 
-Rule for focus styles: change only drawing properties on focus (colour, border, shadow, transform, opacity), never zIndex or anything that can change which native views exist or their order.
+Not done yet (backlog): the guide over the playing channel and "open in another player" on the desktop.
+
+## D-080
+
+**Keeping the apps level: pull request checklist and a CI check of PARITY.md against the backlog** — 2026-09-27 (requested by owner)
+
+Context: the owner asked whether new features can reach every app (Android TV/phone, web, desktop) without being forgotten. Releases already reach every app: the desktop app is the web player (D-071), and a merge to `main` builds and publishes the APK and the desktop installers, which update themselves (D-062, D-073); the web player has no hosting yet (cloud deferred). What can be forgotten is the second implementation: TV/phone screens (React Native) and web/desktop screens (React DOM) are separate, and only the logic in `packages/shared` is written once.
+
+Options considered:
+1. **Checks** (chosen now): a checklist in every pull request and a CI check of the parity table. No double work saved, but no app is forgotten.
+2. **Shared feature logic** (backlog): view-models / hooks in `packages/shared`, thin screens per app.
+3. **One set of screens** with React Native Web (backlog): largest saving, a real migration; try one screen first.
+
+Decision (option 1):
+- `.github/pull_request_template.md`: which apps the change covers, and whether `PARITY.md` was updated.
+- `scripts/check-parity.mjs` (`npm run lint:parity`, CI *Lint and format*, with its own tests): every app cell of the Features table in `PARITY.md` is ✅, ➖ or ⏳; every ⏳ row names an open `Parity: <title>` item in `NEXT-STEPS.md`; every open `Parity: …` item is named in the table.
+
+Limits: the check cannot see features that are missing from the table itself; the pull request checklist is the reminder for that.
+

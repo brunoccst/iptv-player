@@ -6,6 +6,7 @@
 | `App.tsx` | Gate: restoring → login → profile picker → shell. Opens My Downloads when offline. |
 | `appContext.ts` | Shared app context (API + stores), downloads store, UI store. Session in `localStorage` (`<APP_SLUG>:session`). |
 | `config.ts` | `appConfig` from `import.meta.env`. |
+| `buildInfo.ts` | Commit and time of the build (`__BUILD_INFO__` from `vite.config.ts`), for About. |
 | `desktop.ts` | What the desktop app (`apps/desktop`, D-071) adds to the page; absent in a browser. With it, the app talks to the provider directly and stores data through the app. |
 | `components/` | Reusable UI pieces. |
 | `features/` | Screens and feature components. |

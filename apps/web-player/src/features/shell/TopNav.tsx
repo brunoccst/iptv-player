@@ -7,6 +7,8 @@ import { Icon } from '../../components/Icon';
 import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
 import { BackupDialog } from '../backup/BackupDialog';
+import { AboutDialog } from './AboutDialog';
+import { LogDialog } from './LogDialog';
 import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 import { avatarColor } from '../profiles/avatar';
 import { usePinGate } from '../profiles/PinDialog';
@@ -23,7 +25,8 @@ const LINKS: { view: View; label: string }[] = [
 ];
 
 /** Account menu groups; each opens in place with its name and a back arrow. */
-const GROUPS = ['Profiles', 'Library & data'] as const;
+/** The TV app's groups (D-079): Profiles, Library & devices, App. */
+const GROUPS = ['Profiles', 'Library & devices', 'App'] as const;
 type MenuGroup = (typeof GROUPS)[number];
 
 export function TopNav() {
@@ -43,6 +46,8 @@ export function TopNav() {
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
+  const [about, setAbout] = useState(false);
+  const [log, setLog] = useState(false);
   const pinStatus = usePin((s) => s.status);
   const { gate, dialog } = usePinGate();
   const ui = uiStore.getState();
@@ -142,7 +147,7 @@ export function TopNav() {
                         <Icon name="subtitles" size={18} /> Languages
                       </button>
                     </>
-                  ) : (
+                  ) : group === 'Library & devices' ? (
                     <>
                       <button
                         type="button"
@@ -155,17 +160,6 @@ export function TopNav() {
                       >
                         <Icon name="refresh" size={18} /> Refresh library
                       </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className="menu__item"
-                        onClick={() => {
-                          toggleMenu(false);
-                          setBackup(true);
-                        }}
-                      >
-                        <Icon name="backup" size={18} /> Back up &amp; restore
-                      </button>
                       {/* Desktop app only (D-072). */}
                       {desktop ? (
                         <button
@@ -177,9 +171,23 @@ export function TopNav() {
                             openSyncWithPhone();
                           }}
                         >
-                          <Icon name="refresh" size={18} /> Sync with phone
+                          <Icon name="phone" size={18} /> Sync with phone
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setBackup(true);
+                        }}
+                      >
+                        <Icon name="backup" size={18} /> Back up &amp; restore
+                      </button>
+                    </>
+                  ) : (
+                    <>
                       {desktop ? (
                         <button
                           type="button"
@@ -190,9 +198,31 @@ export function TopNav() {
                             void desktop?.checkForUpdates();
                           }}
                         >
-                          <Icon name="refresh" size={18} /> Check for updates (version {desktop.version})
+                          <Icon name="download" size={18} /> Check for updates
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setAbout(true);
+                        }}
+                      >
+                        <Icon name="info" size={18} /> About
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setLog(true);
+                        }}
+                      >
+                        <Icon name="info" size={18} /> Log
+                      </button>
                     </>
                   )}
                 </>
@@ -235,7 +265,7 @@ export function TopNav() {
                   ) : null}
                   {(kids ? [] : GROUPS).map((name) => (
                     <button key={name} type="button" role="menuitem" className="menu__item" onClick={() => setGroup(name)}>
-                      <Icon name={name === 'Profiles' ? 'pencil' : 'refresh'} size={18} /> {name}
+                      <Icon name={name === 'Profiles' ? 'pencil' : name === 'App' ? 'info' : 'refresh'} size={18} /> {name}
                       <span className="menu__chevron" aria-hidden>
                         <Icon name="chevronRight" size={18} />
                       </span>
@@ -266,6 +296,8 @@ export function TopNav() {
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
       {backup ? <BackupDialog onClose={() => setBackup(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
+      {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
+      {log ? <LogDialog onClose={() => setLog(false)} /> : null}
     </header>
   );
 }

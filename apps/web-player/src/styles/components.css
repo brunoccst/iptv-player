@@ -90,8 +90,9 @@
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  padding: 16px var(--gutter);
-  margin: -16px 0;
+  /* Room for the hovered card (8 % larger) and its glow: the track clips its content (D-078, D-079). */
+  padding: 28px var(--gutter);
+  margin: -28px 0;
   scrollbar-width: none;
 }
 
@@ -151,7 +152,13 @@
 .card:focus-within {
   z-index: 2;
   transform: scale(1.08);
-  box-shadow: var(--shadow);
+  /* Same as a focused card on TV: grows, light ring, soft glow (D-079). */
+  box-shadow: var(--focus-glow);
+}
+
+/* The ring is the card's; the button inside needs no outline of its own. */
+.card__button:focus-visible {
+  outline: none;
 }
 
 .card__button {
@@ -370,4 +377,108 @@
   border-radius: var(--radius);
   background: var(--color-surface-raised);
   font-size: 0.9rem;
+}
+
+/* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
+/* About and Log (account menu → App, D-079). */
+.about,
+.log {
+  display: grid;
+  gap: 14px;
+  min-width: min(520px, 80vw);
+}
+
+.about__rows {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.about__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.about__row dt {
+  color: var(--color-muted);
+}
+
+.about__row dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.log__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.log__lines {
+  max-height: 50vh;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.card-menu {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  min-width: 240px;
+  max-width: 320px;
+  padding: 6px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: rgba(20, 20, 20, 0.97);
+  box-shadow: var(--shadow);
+}
+
+.card-menu__header {
+  display: grid;
+  gap: 2px;
+  padding: 8px 16px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.card-menu__title {
+  overflow: hidden;
+  font-weight: 700;
+  color: var(--color-text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-menu__subtitle {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.card-menu__item {
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.card-menu__item:hover,
+.card-menu__item:focus-visible {
+  outline: none;
+  background: var(--color-surface-raised);
+  color: var(--color-text-strong);
+}
+
+.card-menu__item--cancel {
+  color: var(--color-muted);
 }
