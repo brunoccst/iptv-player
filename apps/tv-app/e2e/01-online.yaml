@@ -40,12 +40,26 @@ appId: ${APP_ID}
     focused: true
 - takeScreenshot: 00-nav-focus
 # Movie rows sit below the fold at 960x540 dp; rows reload once the worker finishes grouping titles.
-- scrollUntilVisible:
-    element:
-      id: "card-Big Test Movie"
-    direction: DOWN
-    timeout: 180000
-    centerElement: true
+# Rows appear only after the library is grouped, and a scroll that reached the bottom first would never look again:
+# back to the top, wait for the "Organizing your library" banner to go, then scroll down; up to three tries.
+- retry:
+    maxRetries: 2
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: "hero-play"
+          direction: UP
+          timeout: 20000
+          optional: true
+      - extendedWaitUntil:
+          notVisible: "Organizing your library.*"
+          timeout: 60000
+      - scrollUntilVisible:
+          element:
+            id: "card-Big Test Movie"
+          direction: DOWN
+          timeout: 120000
+          centerElement: true
 - takeScreenshot: 01-home
 # Details: three listings grouped into one title with a version picker.
 - tapOn:

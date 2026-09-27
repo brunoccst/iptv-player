@@ -24,12 +24,26 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 # The library is grouped on the device (TypeScript normalizer): three listings become one title.
-- scrollUntilVisible:
-    element:
-      id: "card-Big Test Movie"
-    direction: DOWN
-    timeout: 120000
-    centerElement: true
+# Rows appear only after the library is grouped, and a scroll that reached the bottom first would never look again:
+# back to the top, wait for the "Organizing your library" banner to go, then scroll down; up to three tries.
+- retry:
+    maxRetries: 2
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: "hero-play"
+          direction: UP
+          timeout: 20000
+          optional: true
+      - extendedWaitUntil:
+          notVisible: "Organizing your library.*"
+          timeout: 60000
+      - scrollUntilVisible:
+          element:
+            id: "card-Big Test Movie"
+          direction: DOWN
+          timeout: 90000
+          centerElement: true
 - takeScreenshot: 20-direct-home
 - tapOn:
     id: "card-Big Test Movie"
