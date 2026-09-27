@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Alert, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { avatarColor, needsPinToOpen, selectActiveProfile, t } from '@iptv/shared';
+import { avatarColor, needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { navStore, signOut, stores, updater } from '../appContext';
 import { appConfig, updateRepo } from '../config';
 import { useNav, usePin, useSession } from '../hooks';
 import { colors, fonts, radius, useNavHeight, useSizes } from '../theme';
 import { TvMedia } from '../../modules/tv-media';
 import { AboutDialog } from './AboutDialog';
+import { AppLanguageDialog } from './AppLanguageDialog';
 import { BackupDialog } from './BackupDialog';
 import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
@@ -45,6 +46,8 @@ export function AccountMenu() {
   const [playback, setPlayback] = useState(false);
   const [language, setLanguage] = useState(false);
   const [about, setAbout] = useState(false);
+  const [appLanguage, setAppLanguage] = useState(false);
+  const uiLanguage = useUiLanguage();
   const sizes = useSizes();
   const navH = useNavHeight();
 
@@ -57,6 +60,7 @@ export function AccountMenu() {
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
+      {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -132,6 +136,13 @@ export function AccountMenu() {
               },
             ]
           : []),
+        // Also in English, so it can be found in a language one cannot read (D-084).
+        {
+          icon: 'globe',
+          label: uiLanguage === 'en' ? t('App language') : `${t('App language')} · App language`,
+          testID: 'menu-app-language',
+          onPress: then(() => setAppLanguage(true)),
+        },
         { icon: 'info', label: t('About'), testID: 'menu-about', onPress: then(() => setAbout(true)) },
         { icon: 'info', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
         { icon: 'close', label: t('Close the app'), testID: 'menu-close-app', onPress: then(confirmCloseApp) },

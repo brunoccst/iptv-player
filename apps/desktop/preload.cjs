@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   version: info.version,
   platform: info.platform,
   checkForUpdates: () => ipcRenderer.invoke('iptv:check-updates'),
+  // The update dialogs' texts in the app's language (D-084).
+  setTexts: (texts) => ipcRenderer.invoke('iptv:set-texts', texts),
   // "Open in VLC" (D-081): 'vlc' when VLC started, 'none' when it is not installed.
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
   secure: storage('secure'),

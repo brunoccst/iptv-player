@@ -5,6 +5,7 @@ import type { StoreApi } from 'zustand/vanilla';
 import type { ApiError } from './api/httpClient';
 import type { EpgChannelRow, EpgStatus } from './api/types';
 import { EPG_DEFAULT_LIMIT, epgGridKey, type EpgGridRequest, type EpgState } from './stores/epgStore';
+import { i18nStore, type UiLanguage } from './i18n/i18n';
 
 /**
  * React binding for the vanilla stores: `useAppStore(stores.session, (s) => s.status)`.
@@ -13,6 +14,11 @@ import { EPG_DEFAULT_LIMIT, epgGridKey, type EpgGridRequest, type EpgState } fro
  */
 export function useAppStore<TState, TSlice>(store: StoreApi<TState>, selector: (state: TState) => TSlice): TSlice {
   return useStore(store, useShallow(selector));
+}
+
+/** The app's language (D-084). Apps key their root on it, so every text is drawn again when it changes. */
+export function useUiLanguage(): UiLanguage {
+  return useStore(i18nStore, (state) => state.language);
 }
 
 /** Current time in epoch ms, updated every `intervalMs` (guide "now" line, progress). */

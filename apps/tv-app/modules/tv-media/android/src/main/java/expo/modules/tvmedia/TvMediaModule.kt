@@ -159,7 +159,8 @@ class TvMediaModule : Module() {
       // Without a default app, Android resolves to its own resolver ("android"): show the chooser instead.
       val default = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
       if (default == null || default == "android") {
-        activity.startActivity(Intent.createChooser(intent, "Open with"))
+        // No title: Android shows its own "Open with", in the device language.
+        activity.startActivity(Intent.createChooser(intent, null))
         "chooser"
       } else {
         activity.startActivity(intent)

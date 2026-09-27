@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { needsPinToOpen, selectActiveProfile, t } from '@iptv/shared';
+import { needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
 import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
@@ -8,6 +8,7 @@ import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
 import { BackupDialog } from '../backup/BackupDialog';
 import { AboutDialog } from './AboutDialog';
+import { AppLanguageDialog } from './AppLanguageDialog';
 import { LogDialog } from './LogDialog';
 import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 import { avatarColor } from '../profiles/avatar';
@@ -49,6 +50,8 @@ export function TopNav() {
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
   const [about, setAbout] = useState(false);
+  const [appLanguage, setAppLanguage] = useState(false);
+  const uiLanguage = useUiLanguage();
   const [log, setLog] = useState(false);
   const pinStatus = usePin((s) => s.status);
   const { gate, dialog } = usePinGate();
@@ -203,6 +206,19 @@ export function TopNav() {
                           <Icon name="download" size={18} /> {t('Check for updates')}
                         </button>
                       ) : null}
+                      {/* Also in English, so it can be found in a language one cannot read (D-084). */}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setAppLanguage(true);
+                        }}
+                      >
+                        <Icon name="globe" size={18} /> {t('App language')}
+                        {uiLanguage === 'en' ? null : ' · App language'}
+                      </button>
                       <button
                         type="button"
                         role="menuitem"
@@ -299,6 +315,7 @@ export function TopNav() {
       {backup ? <BackupDialog onClose={() => setBackup(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
+      {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
       {log ? <LogDialog onClose={() => setLog(false)} /> : null}
     </header>
   );

@@ -3,7 +3,9 @@ import path from 'node:path';
 import { test } from 'node:test';
 import {
   asPlayer,
+  cleanTexts,
   contentType,
+  fillText,
   isNewer,
   keyFile,
   lanAddress,
@@ -99,3 +101,12 @@ test('VLC gets the stream with the provider User-Agent; only http(s) addresses',
   assert.equal(vlcArguments('--help', 'UA', 'x'), null);
   assert.equal(vlcArguments('not a url', 'UA', null), null);
 });
+
+test('update dialogs use the texts the page sent, English when missing (D-084)', () => {
+  const texts = cleanTexts({ 'Version {version} is ready.': 'Version {version} ist bereit.', Later: 42, [`x${'y'.repeat(600)}`]: 'long' });
+  assert.deepEqual(Object.keys(texts), ['Version {version} is ready.']);
+  assert.equal(fillText(texts, 'Version {version} is ready.', { version: '1.2.3' }), 'Version 1.2.3 ist bereit.');
+  assert.equal(fillText(texts, 'Later'), 'Later');
+  assert.deepEqual(cleanTexts(null), {});
+});
+

@@ -24,7 +24,7 @@ import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
-import { t } from '@iptv/shared';
+import { t, useUiLanguage } from '@iptv/shared';
 
 const UPDATE_CHECK_DELAY_MS = 15_000;
 
@@ -33,6 +33,7 @@ export function App() {
   const status = useSession((s) => s.status);
   const activeProfileId = useSession((s) => s.activeProfileId);
   const offline = useSession((s) => s.offline);
+  const language = useUiLanguage();
   const playing = useNav((s) => currentRoute(s).name === 'player');
   // Phones show the status bar and start the app below it, so rounded corners and the camera cut-out do not cover
   // the header. The player (and TVs) stay full screen.
@@ -58,7 +59,8 @@ export function App() {
   }, [offline]);
 
   return (
-    <View style={styles.root}>
+    // The whole app redraws in a newly chosen language (D-084).
+    <View style={styles.root} key={language}>
       <StatusBar hidden={fullScreen} style="light" />
       <View style={{ height: topInset }} testID="status-bar-space" />
       <View style={styles.app}>

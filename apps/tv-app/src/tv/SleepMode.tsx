@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { createStore } from 'zustand/vanilla';
-import { useAppStore, t } from '@iptv/shared';
+import { useAppStore, t, intlLocale } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
 import { appConfig } from '../config';
 import { colors, fonts } from '../theme';
@@ -97,7 +97,7 @@ function DriftingClock({ now }: { now(): number }) {
   const step = Math.floor(time / MOVE_MS);
   const left = ((step * 37) % 60) / 100;
   const top = ((step * 53) % 60) / 100;
-  const clock = new Date(time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const clock = new Date(time).toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit' });
   return (
     <View style={[styles.clock, { left: width * (0.1 + left * 0.8 * 0.8), top: height * (0.1 + top * 0.8 * 0.8) }]}>
       <Text style={styles.time}>{clock}</Text>

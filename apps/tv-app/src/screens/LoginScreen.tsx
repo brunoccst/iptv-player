@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { fluid, type ConnectionMode, t } from '@iptv/shared';
+import { fluid, type ConnectionMode, t, useUiLanguage } from '@iptv/shared';
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
+import { Select } from '../components/Select';
+import { chooseUiLanguage, uiLanguageOptions } from '../components/AppLanguageDialog';
 import { Gradient } from '../components/Gradient';
 import { BackupDialog } from '../components/BackupDialog';
 import { Chip } from '../components/ChipBar';
@@ -29,6 +31,7 @@ export function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [restore, setRestore] = useState(false);
+  const language = useUiLanguage();
   const { width } = useWindowDimensions();
   // TV screens are only ~540 dp tall: two columns so every field fits. Uses the physical screen, not the window:
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
@@ -91,6 +94,15 @@ export function LoginScreen() {
                 <Chip label={t('IPTV provider')} active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
                 <Chip label={t('My server')} active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
               </View>
+              {/* The app's language (D-084), before anything else is typed: choosing it draws the page again. */}
+              <Select
+                compact
+                label={t('App language')}
+                value={language}
+                options={uiLanguageOptions()}
+                onChange={chooseUiLanguage}
+                testID="login-language"
+              />
               {short ? note : null}
             </View>
             <View style={short ? styles.column : styles.stack}>

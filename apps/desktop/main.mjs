@@ -13,7 +13,9 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import {
   asPlayer,
+  cleanTexts,
   contentType,
+  fillText,
   isNewer,
   keyFile,
   lanAddress,
@@ -53,6 +55,9 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 let window = null;
 let appOrigin = '';
+/** Translations of the dialogs below, from the page (D-084). */
+let texts = {};
+const tx = (source, params) => fillText(texts, source, params);
 const isApp = (url) => url === appOrigin || url.startsWith(appOrigin + '/');
 
 /** Serves the web player on 127.0.0.1 (a secure context: offline downloads need it). */
@@ -260,7 +265,7 @@ let updating = false;
 
 async function checkForUpdate(manual = false) {
   if (!config.updateRepo || updating || !window) {
-    if (manual && !config.updateRepo) await message('This build does not check for updates.');
+    if (manual && !config.updateRepo) await message(tx('This build does not check for updates.'));
     return;
   }
   updating = true;
@@ -269,18 +274,18 @@ async function checkForUpdate(manual = false) {
   try {
     const latest = selfUpdates() ? await latestFromFeed() : await latestFromRelease();
     if (!latest || !isNewer(latest.version, app.getVersion())) {
-      if (manual) await message(`You have the newest version (${app.getVersion()}).`);
+      if (manual) await message(tx('You have the newest version ({version}).', { version: app.getVersion() }));
       return;
     }
     if (!manual && latest.version === readSkipped()) return;
     const { response: choice } = await dialog.showMessageBox(window, {
       type: 'info',
-      title: 'App update',
-      message: `Version ${latest.version} is available (you have ${app.getVersion()}).`,
+      title: tx('App update'),
+      message: tx('Version {version} is available (you have {current}).', { version: latest.version, current: app.getVersion() }),
       detail: latest.install
-        ? 'The app downloads it and restarts with the new version. Your data stays.'
-        : 'The download page opens in your browser. Install the new version over this one; your data stays.',
-      buttons: [latest.install ? 'Install now' : 'Download', 'Later'],
+        ? tx('The app downloads it and restarts with the new version. Your data stays.')
+        : tx('The download page opens in your browser. Install the new version over this one; your data stays.'),
+      buttons: [latest.install ? tx('Install now') : tx('Download'), tx('Later')],
       defaultId: 0,
       cancelId: 1,
     });
@@ -296,10 +301,10 @@ async function checkForUpdate(manual = false) {
     if (manual || installing) {
       const { response: choice } = await dialog.showMessageBox(window, {
         type: 'warning',
-        title: 'App update',
-        message: 'The update did not work.',
-        detail: `${error?.message ?? error}\n\nYou can download the new version from the release page instead.`,
-        buttons: ['Open the download page', 'Close'],
+        title: tx('App update'),
+        message: tx('The update did not work.'),
+        detail: `${error?.message ?? error}\n\n${tx('You can download the new version from the release page instead.')}`,
+        buttons: [tx('Open the download page'), tx('Close')],
         defaultId: 0,
         cancelId: 1,
       });
@@ -312,7 +317,7 @@ async function checkForUpdate(manual = false) {
 }
 
 const releasePage = () => `https://github.com/${config.updateRepo}/releases/tag/${RELEASE_TAG}`;
-const message = (text) => (window ? dialog.showMessageBox(window, { type: 'info', title: 'App update', message: text }) : null);
+const message = (text) => (window ? dialog.showMessageBox(window, { type: 'info', title: tx('App update'), message: text }) : null);
 
 /** Windows and AppImage: electron-updater reads latest.yml from the release (generic feed, fixed file names). */
 async function latestFromFeed() {
@@ -336,10 +341,10 @@ async function latestFromFeed() {
       window?.setProgressBar(-1);
       const { response: now } = await dialog.showMessageBox(window, {
         type: 'info',
-        title: 'App update',
-        message: `Version ${version} is ready.`,
-        detail: 'The app closes, installs it in the same folder and opens again.',
-        buttons: ['Restart now', 'When I close the app'],
+        title: tx('App update'),
+        message: tx('Version {version} is ready.', { version }),
+        detail: tx('The app closes, installs it in the same folder and opens again.'),
+        buttons: [tx('Restart now'), tx('When I close the app')],
         defaultId: 0,
         cancelId: 1,
       });
@@ -378,6 +383,11 @@ app.whenReady().then(async () => {
   registerPairing();
   createWindow();
   setTimeout(() => void checkForUpdate(), UPDATE_CHECK_DELAY_MS);
+  // The update dialogs' texts in the app's language (D-084), sent by the page when the language changes.
+  ipcMain.handle('iptv:set-texts', (event, value) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    texts = cleanTexts(value);
+  });
   ipcMain.handle('iptv:check-updates', (event) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     void checkForUpdate(true);

@@ -12,6 +12,8 @@ export interface DesktopBridge {
   checkForUpdates(): Promise<void>;
   /** Plays a stream address in VLC with the provider User-Agent (D-081); 'none' when VLC is not installed. */
   openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
+  /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
+  setTexts(texts: Record<string, string>): Promise<void>;
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** Phone-to-computer pairing (D-072): a server on the home network while the QR code is shown. */

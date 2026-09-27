@@ -75,6 +75,7 @@ const PROGRESS_SAVE_MS = 10_000;
  * although the login works: usually the account's connection limit, or the provider blocking the stream for a while.
  */
 export function playbackErrorText(message: string, detail?: string | null, code = '', ffmpegAudio = false): string {
+  if (code === 'OFFLINE_MISSING') return t('Download not found on this device.');
   const text = detail ? `${message} (${detail})` : message;
   const all = `${message} ${detail ?? ''}`;
   if (/HTTP 40[13]\b/.test(all))

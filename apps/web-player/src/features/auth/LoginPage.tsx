@@ -3,6 +3,7 @@ import { createConnectionStore, createMemoryStorage, useAppStore, type Connectio
 import { appConfig } from '../../config';
 import { stores } from '../../appContext';
 import { desktop } from '../../desktop';
+import { AppLanguageSelect } from '../shell/AppLanguageDialog';
 import { useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { BackupDialog } from '../backup/BackupDialog';
@@ -52,6 +53,7 @@ export function LoginPage() {
       <div className="login__cards">
         <form className="login__panel" onSubmit={(event) => void submit(event)} aria-label={t('Sign in')}>
           <h2>{t('Sign In')}</h2>
+          <AppLanguageSelect id="login-language" />
           {desktop ? (
             <div className="login__modes" role="radiogroup" aria-label={t('Connect to')}>
               <button

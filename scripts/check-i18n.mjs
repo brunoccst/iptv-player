@@ -107,10 +107,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         next[key] = catalog[key] ?? (plural ? Object.fromEntries(PLURAL_FORMS[language].map((form) => [form, ''])) : '');
       }
       writeFileSync(file, `${JSON.stringify(next, null, 2)}\n`);
+      console.log(`${file}: ${keys.length} texts, ${keys.filter((key) => !next[key]).length} to translate.`);
       continue;
     }
     errors.push(...checkCatalog(language, catalog, texts));
   }
+  if (write) process.exit(errors.length ? 1 : 0);
   if (errors.length) {
     console.error(`Translations (${errors.length} problems):\n${errors.map((error) => `  - ${error}`).join('\n')}`);
     process.exit(1);
