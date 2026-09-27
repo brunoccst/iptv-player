@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { useRowFocus } from './FocusRow';
+import { WatchedTag } from './WatchedTag';
 
 export interface PosterCardProps {
   title: string;
@@ -11,6 +12,8 @@ export interface PosterCardProps {
   badge?: string | null;
   /** 0..1 watch progress bar. */
   progress?: number;
+  /** "Watched" tag at the bottom right of the cover (D-081). */
+  watched?: boolean;
   landscape?: boolean;
   /** Overrides the web `--card-width` (grids stretch cards to fill a line). */
   width?: number;
@@ -30,6 +33,7 @@ export function PosterCard({
   subtitle,
   badge,
   progress,
+  watched,
   landscape,
   width,
   hasTVPreferredFocus,
@@ -83,6 +87,7 @@ export function PosterCard({
             <View style={[styles.progressValue, { width: `${Math.round(Math.min(1, Math.max(0, progress)) * 100)}%` }]} />
           </View>
         ) : null}
+        {watched ? <WatchedTag style={styles.watched} testID={`card-${title}-watched`} /> : null}
         {actions ? <View style={styles.actions}>{actions}</View> : null}
       </View>
       <View style={styles.meta}>
@@ -106,6 +111,7 @@ const styles = StyleSheet.create({
   focused: { borderColor: focus.ring, ...focus.glow },
   art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1f1f1f' },
   fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },
+  watched: { position: 'absolute', right: 6, bottom: 6 },
   badge: {
     position: 'absolute',
     top: 6,

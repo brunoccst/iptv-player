@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
-  continueWatchingEntries,
+  cardMenuItems,
+  markEntryWatched,
+  removeFromContinueWatching,
   watchlistCard,
   liveTarget,
   movieTarget,
@@ -11,7 +13,6 @@ import {
   selectVariant,
   type MasterCard,
   type ProgressDto,
-  type ProgressKind,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
@@ -166,16 +167,20 @@ function ContinueWatchingRow() {
           title={menuFor.title}
           subtitle={subtitleOf(menuFor)}
           onClose={() => setMenuFor(null)}
-          actions={[
-            {
-              label: 'Remove from Continue Watching',
-              testID: 'card-menu-remove',
-              onPress: () => {
-                for (const entry of continueWatchingEntries(items, menuFor))
-                  void stores.progress.getState().remove(entry.kind as ProgressKind, entry.itemId);
-              },
+          actions={cardMenuItems({ kind: 'continue', entry: menuFor }).map((entry) => ({
+            label: entry.label,
+            testID: `card-menu-${entry.id}`,
+            onPress: () => {
+              if (entry.id === 'details')
+                navStore.getState().push({
+                  name: 'details',
+                  section: menuFor.kind === 'episode' ? 'series' : 'movies',
+                  masterId: menuFor.masterId!,
+                });
+              else if (entry.id === 'watched') void markEntryWatched(stores.progress, menuFor);
+              else void removeFromContinueWatching(stores.progress, menuFor);
             },
-          ]}
+          }))}
         />
       ) : null}
     </>

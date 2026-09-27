@@ -17,6 +17,8 @@ import {
   episodeInVersion,
   episodeTarget,
   findEpisodeProgress,
+  isMovieWatched,
+  isWatched,
   fluid,
   formatDuration,
   loadSeriesVersions,
@@ -46,6 +48,7 @@ import { Select } from '../components/Select';
 import { useLibrary, useNav, useProgress } from '../hooks';
 import { colors, fonts, radius, useCompact } from '../theme';
 import { useAsync } from '../useAsync';
+import { WatchedTag } from '../components/WatchedTag';
 
 /** Space above the panel in the scroll view. */
 const PANEL_TOP = 32;
@@ -130,6 +133,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
   const variant = useLibrary((s) => selectVariant(s, master));
   const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
   const resume = useMasterProgress(master, 'movie');
+  const watched = useProgress((s) => isMovieWatched(s.items.data ?? [], master.id));
   useEffect(() => {
     // Resuming a different version than the best one: preselect it so "Resume" continues where the user left off.
     if (resume && master.variants.some((v) => v.streamId === resume.itemId))
@@ -143,7 +147,11 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
   return (
     <>
-      <DetailsHero backdrop={meta.data?.backdropUrls[0] ?? meta.data?.summary.posterUrl ?? master.posterUrl} title={master.title}>
+      <DetailsHero
+        backdrop={meta.data?.backdropUrls[0] ?? meta.data?.summary.posterUrl ?? master.posterUrl}
+        title={master.title}
+        watched={watched}
+      >
         <FocusButton
           label={canResume ? 'Resume' : 'Play'}
           icon="play"
@@ -324,7 +332,9 @@ function Episodes({
                 focusable={false}
               >
                 {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-                {saved && saved.durationSeconds > 0 ? (
+                {isWatched(saved) ? (
+                  <WatchedTag style={styles.stillTag} testID={`episode-${episode.id}-watched`} />
+                ) : saved && saved.durationSeconds > 0 ? (
                   <View style={styles.stillTrack}>
                     <View
                       style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
@@ -374,7 +384,18 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
   );
 }
 
-function DetailsHero({ backdrop, title, children }: { backdrop: string | null | undefined; title: string; children: ReactNode }) {
+function DetailsHero({
+  backdrop,
+  title,
+  watched,
+  children,
+}: {
+  backdrop: string | null | undefined;
+  title: string;
+  /** "Watched" tag next to the title (D-081). */
+  watched?: boolean;
+  children: ReactNode;
+}) {
   const { width } = useWindowDimensions();
   const panel = Math.min(850, width - 32);
   const compact = useCompact();
@@ -391,6 +412,7 @@ function DetailsHero({ backdrop, title, children }: { backdrop: string | null | 
         <Text style={[styles.title, { fontSize: fluid(width, 26, 4, 45) }]} accessibilityRole="header">
           {title}
         </Text>
+        {watched ? <WatchedTag style={styles.titleTag} testID="details-watched" /> : null}
         <FocusRow style={styles.actions}>{children}</FocusRow>
       </View>
     </View>
@@ -491,6 +513,8 @@ const styles = StyleSheet.create({
   stillCompact: { width: 96 },
   stillTrack: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   stillValue: { height: 3, backgroundColor: colors.accent },
+  stillTag: { position: 'absolute', right: 6, bottom: 6 },
+  titleTag: { marginTop: -4, marginBottom: 10 },
   episodeText: { flex: 1 },
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
   episodePlot: { color: colors.muted, fontSize: 13.6 },

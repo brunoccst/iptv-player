@@ -17,6 +17,7 @@ export * from './stores/downloadsOwner';
 export * from './stores/pinStore';
 export { isKidsCategory } from './profiles/kidsFilter';
 export * from './playback/rules';
+export * from './playback/watched';
 export * from './playback/sources';
 export * from './playback/remoteSeek';
 export * from './playback/targets';
