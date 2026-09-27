@@ -49,10 +49,6 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.content, { paddingHorizontal: sizes.gutter }]}
             removeClippedSubviews={false}
-            // TV: the row scrolls only to show the focused card. With its own arrow-key scrolling on, holding Right
-            // outran the scroll at the end of the row, and the scroll view handed the focus away (up to Live TV or
-            // the nav) instead of to "See all" (D-075).
-            scrollEnabled={!Platform.isTV}
             // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
             // cards, and focus fell out of the row (to the nav).
             initialNumToRender={Platform.isTV ? items.length : 8}

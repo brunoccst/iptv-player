@@ -25,10 +25,11 @@ describe('focus rows (TV)', () => {
     while (node && node.props.trapFocusRight !== true) node = node.parent;
     expect(node?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
     expect(node?.props.trapFocusUp).toBeFalsy();
-    // TV: the row's scroll view leaves the arrow keys to the focus search (holding Right reaches "See all", D-075).
+    // The row keeps scrolling with the focus on TV: switched off, the focused card went off screen (D-076).
     let scroll = screen.getByTestId('row-more').parent;
-    while (scroll && scroll.props.scrollEnabled === undefined) scroll = scroll.parent;
-    expect(scroll?.props.scrollEnabled).toBe(false);
+    while (scroll && scroll.props.horizontal === undefined) scroll = scroll.parent;
+    expect(scroll?.props.horizontal).toBe(true);
+    expect(scroll?.props.scrollEnabled).not.toBe(false);
   });
 
   it('a focused card asks the page to centre its row', async () => {

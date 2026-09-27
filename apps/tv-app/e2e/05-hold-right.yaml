@@ -1,0 +1,43 @@
+# Holding Right in a Home row (D-075, D-076). Part 1: sign in to the stress panel (a row with more than 10 titles, so
+# it ends in "See all") and focus the first card of that row. run.sh then holds the Right key on the emulator (a real
+# key hold: Android repeats the key every 50 ms) and runs 06-hold-right-check.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- tapOn:
+    id: "login-server"
+- inputText: "http://10.0.2.2:8091"
+- pressKey: Enter
+- inputText: "demo"
+- pressKey: Enter
+- inputText: "demo"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 60000
+# Down walks the rows (the page follows the focus) to the stress row, below the fold.
+- repeat:
+    while:
+      notVisible:
+        focused: true
+        childOf:
+          id: "row-movies-900"
+    times: 25
+    commands:
+      - pressKey: Remote Dpad Down
+- assertVisible:
+    focused: true
+    childOf:
+      id: "row-movies-900"
+# First card of the row.
+- repeat:
+    times: 12
+    commands:
+      - pressKey: Remote Dpad Left
+- takeScreenshot: 30-hold-right-start
