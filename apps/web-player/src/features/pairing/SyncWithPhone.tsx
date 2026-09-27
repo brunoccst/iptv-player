@@ -9,7 +9,7 @@ const HOW_TO =
   'On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Phone and computer must be on the same home network; if Windows asks, allow the app on private networks.';
 
 /** The QR code, or what stands in for it (D-072). */
-function PairingCode({ state }: { state: PairingServerState }) {
+export function PairingCode({ state, size = 240 }: { state: PairingServerState; size?: number }) {
   switch (state.phase) {
     case 'starting':
       return <Spinner label="Preparing the code" />;
@@ -20,7 +20,7 @@ function PairingCode({ state }: { state: PairingServerState }) {
     default:
       return (
         <div style={{ display: 'grid', justifyItems: 'center', gap: 8 }}>
-          <QrCode text={state.qr} size={240} />
+          <QrCode text={state.qr} size={size} />
           {state.phase === 'working' ? <p className="muted">Connecting…</p> : null}
           {state.phase === 'ready' && state.error ? (
             <p className="error-text" role="alert">
@@ -33,23 +33,23 @@ function PairingCode({ state }: { state: PairingServerState }) {
 }
 
 /** Open state outside the screens: pairing reloads the app state, which briefly unmounts them (as on the TV). */
-const pairingDialog = createStore<{ open: boolean; signIn: boolean }>()(() => ({ open: false, signIn: false }));
-export const openSyncWithPhone = (signIn = false) => pairingDialog.setState({ open: true, signIn });
+const pairingDialog = createStore<{ open: boolean }>()(() => ({ open: false }));
+export const openSyncWithPhone = () => pairingDialog.setState({ open: true });
 const closeSyncWithPhone = () => pairingDialog.setState({ open: false });
 
 /** Rendered once at the app root. */
 export function SyncWithPhoneHost() {
-  const { open, signIn } = useAppStore(pairingDialog, (s) => s);
-  return open ? <SyncWithPhone signIn={signIn} onClose={closeSyncWithPhone} /> : null;
+  const open = useAppStore(pairingDialog, (s) => s.open);
+  return open ? <SyncWithPhone onClose={closeSyncWithPhone} /> : null;
 }
 
 /**
- * Desktop app: account menu → Sync with phone, and "Sign in with your phone" on the login page (D-072). Signed out,
- * scanning signs this computer in with the phone's account; signed in, profiles, My List and progress are merged.
+ * Desktop app: account menu → Sync with phone (D-072): profiles, My List and progress are merged with the phone's.
+ * The login page shows the same code beside the form, to sign in.
  */
-export function SyncWithPhone({ onClose, signIn = false }: { onClose(): void; signIn?: boolean }) {
+export function SyncWithPhone({ onClose }: { onClose(): void }) {
   const state = usePairingServer();
-  const title = signIn ? 'Sign in with your phone' : 'Sync with phone';
+  const title = 'Sync with phone';
   return (
     <Modal label={title} onClose={onClose}>
       <div style={{ display: 'grid', gap: 12, maxWidth: 420 }}>

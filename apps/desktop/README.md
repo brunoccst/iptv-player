@@ -6,7 +6,7 @@ Not an npm workspace: it has its own `package-lock.json`, so other pipelines do 
 
 | Path | Purpose |
 |------|---------|
-| `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, the pairing server for phone sync (D-072), one window, update check. |
+| `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, the pairing server for phone sync (D-072), one window, in-app updates (electron-updater on Windows and AppImage, the download page elsewhere, D-073). |
 | `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `pairing`), read by `apps/web-player/src/desktop.ts`. |
 | `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version, home network address. |
 | `scripts/prepare.mjs` | Writes `build-config.json` (name, User-Agent, update repository) from the root `.env` and CI variables; copies the icon. |
@@ -24,5 +24,7 @@ npm test                                         # unit tests
 npm run dist -- --linux                          # installers in release/ (--win, --mac on those systems)
 xvfb-run -a node e2e/smoke.mjs                   # needs the fake panel on :8090 (tools/fake-xtream-server)
 ```
+
+Update test: `IPTV_DESKTOP_UPDATE_FEED=<url>` points a packaged app at a local copy of the release (a folder with the installer and `latest*.yml`).
 
 Version: MAJOR.MINOR in `package.json` (raise by hand, write `X.Y.0`); PATCH counts the builds on `main` (`scripts/app-version.mjs apps/desktop/package.json`, D-070). The developer tools open with Ctrl+Shift+I (Cmd+Option+I on macOS); F11 toggles full screen.

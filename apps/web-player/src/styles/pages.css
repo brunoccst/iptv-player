@@ -813,3 +813,41 @@
     display: none;
   }
 }
+
+/* Login, laid out like the TV app: the form and, in the desktop app, the phone sign-in card beside it (D-072). */
+.login__cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+}
+
+.login__modes {
+  display: flex;
+  gap: 8px;
+}
+
+.login__note {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.login__phone {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  width: min(260px, 100%);
+  padding: 24px 20px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.75);
+  text-align: center;
+}
+
+.login__phone h3 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 1.1rem;
+}

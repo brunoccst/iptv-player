@@ -1,6 +1,6 @@
 // Installers for Windows (NSIS), macOS (DMG, Intel + Apple silicon) and Linux (AppImage, deb). See D-071.
 // Names come from build-config.json (scripts/prepare.mjs, from the repo .env); the web player is bundled as "web".
-const { appName, appSlug } = require('./build-config.json');
+const { appName, appSlug, updateRepo } = require('./build-config.json');
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
@@ -11,6 +11,9 @@ module.exports = {
   directories: { output: 'release', buildResources: 'build' },
   files: ['main.mjs', 'preload.cjs', 'lib/**', 'build-config.json', 'package.json'],
   extraResources: [{ from: '../web-player/dist', to: 'web' }],
+  // In-app updates (D-073): electron-updater reads latest.yml / latest-linux.yml next to the installers in the
+  // `desktop` release. Builds without an update repository (local) get no feed.
+  ...(updateRepo ? { publish: { provider: 'generic', url: `https://github.com/${updateRepo}/releases/download/desktop` } } : {}),
   // Fixed file names, so the download links in the README never change.
   win: { target: 'nsis', icon: 'build/icon.png', artifactName: `${appSlug}-setup.\${ext}` },
   // A normal setup wizard (D-072): for this user only (no administrator rights, default %LOCALAPPDATA%\Programs) or

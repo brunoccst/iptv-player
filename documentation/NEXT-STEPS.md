@@ -5,6 +5,7 @@
 Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
 
 - [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
+- [ ] **Repository clean-up** (requested 2026-09-26): review the whole repository and remove unused or unnecessary files (dead code, stale scripts, leftover assets, outdated docs).
 - [ ] **Small Windows desktop app with Tauri** (requested 2026-09-26, see D-072): a Windows-only build on the system's WebView2 (Chromium, installed with Windows 10/11) instead of Electron, about 10–20 MB instead of ~270 MB. WebView2 can be started without the CORS check and with the player User-Agent (browser arguments), so the web player works as in the Electron app; storage, phone pairing and the update check move to Rust. macOS and Linux stay on Electron.
 
 ## Agent Suggestions
@@ -35,6 +36,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅]
 ```
 
+- [x] **Desktop: in-app updates, TV-style login, even covers** (requested 2026-09-26, D-073): the app downloads and installs new versions itself (Windows, AppImage), so Windows no longer asks the SmartScreen question for updates; the login page matches the TV (IPTV provider / My server, QR code beside the form); cards keep one size whatever the image or title length. README shows the pipeline status badges. Phone: tapping the search box no longer moves focus to the first Live TV card (checked on a phone emulator in CI).
 - [x] **Desktop app: phone sync, install folder, size** (requested 2026-09-26, D-072): Sign in / Sync with phone by QR code (phone: Connect a TV or computer); Windows setup asks for whom and where to install; smaller download.
 - [x] **Desktop app** (requested 2026-09-26, D-071): installers for Windows, macOS and Linux from the `desktop` release; signs in to the provider directly, no server or commands needed.
 - [x] **App versions and update installer** (requested 2026-09-26, D-070): the app has MAJOR.MINOR.PATCH versions (About, update dialog, release title); the installer now opens on the first try after the download, and the dialog can open it again.
