@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import {
+  isMovieWatched,
   formatDuration,
   loadSeriesVersions,
   mergeSeriesVersions,
@@ -12,6 +13,7 @@ import {
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { WatchlistButton } from '../../components/WatchlistButton';
+import { WatchedTag } from '../../components/WatchedTag';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
@@ -70,6 +72,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
   const variant = useLibrary((s) => selectVariant(s, master));
   const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
   const resume = useMasterProgress(master.id, master.variants, 'movie');
+  const watched = useProgress((s) => isMovieWatched(s.items.data ?? [], master.id));
   useEffect(() => {
     // Resuming a different version than the best one: preselect it so "Resume" continues where the user left off.
     if (resume && master.variants.some((v) => v.streamId === resume.itemId))
@@ -89,7 +92,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
   return (
     <>
-      <DetailsHero backdrop={backdrop} title={master.title}>
+      <DetailsHero backdrop={backdrop} title={master.title} watched={watched}>
         <button type="button" className="button button--primary" onClick={play}>
           <Icon name="play" /> {resume && resume.itemId === variant.streamId ? 'Resume' : 'Play'}
         </button>
@@ -211,12 +214,24 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   );
 }
 
-function DetailsHero({ backdrop, title, children }: { backdrop: string | null | undefined; title: string; children: React.ReactNode }) {
+function DetailsHero({
+  backdrop,
+  title,
+  watched,
+  children,
+}: {
+  backdrop: string | null | undefined;
+  title: string;
+  /** "Watched" tag next to the title (D-081). */
+  watched?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="details__hero">
       {backdrop ? <img src={backdrop} alt="" /> : null}
       <div className="details__heading">
         <h2 className="details__title">{title}</h2>
+        {watched ? <WatchedTag className="details__watched" /> : null}
         <div className="details__actions">{children}</div>
       </div>
     </div>

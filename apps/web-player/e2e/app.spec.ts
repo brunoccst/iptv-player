@@ -272,3 +272,26 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
   await log.getByRole('button', { name: 'Save log' }).click();
   expect((await saving).suggestedFilename()).toMatch(/-log-\d{4}-\d{2}-\d{2}\.txt$/);
 });
+
+test('right-click on a movie: Mark as watched tags the cover and the details; Mark as not watched removes it (D-081)', async ({ page }) => {
+  const grid = page.locator('.grid');
+  const card = grid.locator('.card', { has: page.getByRole('button', { name: 'Sequel Test 2' }) });
+  await expect(card).toBeVisible();
+  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  const menu = page.getByRole('menu', { name: 'Options for Sequel Test 2' });
+  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark as watched', 'Cancel']);
+  await menu.getByRole('menuitem', { name: 'Mark as watched' }).click();
+  await expect(card.getByTestId('watched-tag')).toHaveText('Watched');
+
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await menu.getByRole('menuitem', { name: 'Go to details' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByTestId('watched-tag')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await menu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
+  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+});

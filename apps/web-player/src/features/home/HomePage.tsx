@@ -1,13 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   continueWatching,
-  continueWatchingEntries,
+  cardMenuItems,
+  markEntryWatched,
+  removeFromContinueWatching,
   pageKey,
   watchlistCard,
   type LibrarySection,
   type MediaCategory,
   type ProgressDto,
-  type ProgressKind,
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, type MenuPosition } from '../../components/CardMenu';
@@ -85,15 +86,17 @@ function ContinueWatchingRow() {
           subtitle={subtitleOf(menu.item)}
           position={menu.position}
           onClose={() => setMenu(null)}
-          actions={[
-            {
-              label: 'Remove from Continue Watching',
-              onSelect: () => {
-                for (const entry of continueWatchingEntries(all, menu.item))
-                  void stores.progress.getState().remove(entry.kind as ProgressKind, entry.itemId);
-              },
+          actions={cardMenuItems({ kind: 'continue', entry: menu.item }).map((entry) => ({
+            label: entry.label,
+            onSelect: () => {
+              if (entry.id === 'details')
+                uiStore
+                  .getState()
+                  .openDetails({ section: menu.item.kind === 'episode' ? 'series' : 'movies', masterId: menu.item.masterId! });
+              else if (entry.id === 'watched') void markEntryWatched(stores.progress, menu.item);
+              else void removeFromContinueWatching(stores.progress, menu.item);
             },
-          ]}
+          }))}
         />
       ) : null}
     </Row>
