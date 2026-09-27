@@ -100,19 +100,50 @@ appId: ${APP_ID}
 - evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
 # Slow screen reads can land the pause late in the 30 s clip: a skip near the end stops at 0:30.
 - assertTrue: ${output.after >= Math.min(output.before + 9, 30)}
-# Down: quick drawer (audio / subtitles / versions). Back closes it, second Back leaves the player.
-- pressKey: Remote Dpad Down
+# Up: quick drawer (audio / subtitles / versions). Back closes it.
+- pressKey: Remote Dpad Up
 - assertVisible:
     id: "quick-drawer"
 - takeScreenshot: 04-drawer
 - pressKey: back
 - assertNotVisible:
     id: "quick-drawer"
+# Down: the focus goes to the on-screen buttons, play/pause first; Right moves along them, Up reaches Back at the top
+# left. Back returns to the video, a second Back leaves the player (D-075).
+- pressKey: Remote Dpad Down
+- extendedWaitUntil:
+    visible:
+      id: "player-toggle"
+      focused: true
+    timeout: 10000
+- pressKey: Remote Dpad Right
+- assertNotVisible:
+    id: "player-toggle"
+    focused: true
+- pressKey: Remote Dpad Up
+- assertVisible:
+    id: "player-back"
+    focused: true
+- takeScreenshot: 04b-player-buttons
+- pressKey: back
+- assertVisible:
+    id: "player-screen"
 - pressKey: back
 - extendedWaitUntil:
     visible:
       id: "details-screen"
     timeout: 15000
+# The D-pad stays in the details panel: Down past the last control never reaches the page behind it (D-075).
+- repeat:
+    times: 8
+    commands:
+      - pressKey: Remote Dpad Down
+- assertVisible:
+    id: "details-screen"
+- assertNotVisible:
+    id: "card-Big Test Movie"
+    focused: true
+- takeScreenshot: 04c-details-focus-contained
 # Download for offline (Media3 DownloadManager, app-private storage).
 - tapOn:
     id: "download-button"

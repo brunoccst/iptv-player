@@ -103,11 +103,13 @@ const CODEC_NAMES: Record<string, string> = {
   av01: 'AV1',
 };
 const CONTROLS_HIDE_MS = 4000;
+/** TV: with the focus on the buttons, they stay a little longer after the last key. */
+const BUTTONS_HIDE_MS = 8000;
 /** Two taps on the left/right third within this time seek ∓10 s (phones). */
 const DOUBLE_TAP_MS = 300;
 
 /**
- * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↑/↓ quick drawer, Select play/pause, Back close.
+ * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↑ quick drawer, ↓ the on-screen buttons (D-075), Select play/pause, Back close.
  * Live: ↑ opens the guide overlay (phones: swipe up or the Guide button), ↓ the drawer. See DECISIONS.md#d-028, #d-058.
  */
 export function PlayerScreen({ target }: { target: PlayTarget }) {
@@ -125,6 +127,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [controls, setControls] = useState(true);
   const [drawer, setDrawer] = useState(false);
   const [guide, setGuide] = useState(false);
+  // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, ±10 s, episodes, audio and subtitles), which the
+  // D-pad then walks through; Back or a few seconds without keys return to the video (D-075).
+  const [buttons, setButtons] = useState(false);
+  const tvButtons = Platform.isTV && buttons;
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
   const [scrub, setScrub] = useState<{ preview: number; speed: number } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -260,8 +266,16 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const wake = useCallback(() => {
     setControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
-    hideTimer.current = playing ? setTimeout(() => setControls(false), CONTROLS_HIDE_MS) : null;
-  }, [playing]);
+    hideTimer.current = playing
+      ? setTimeout(
+          () => {
+            setControls(false);
+            setButtons(false);
+          },
+          buttons ? BUTTONS_HIDE_MS : CONTROLS_HIDE_MS,
+        )
+      : null;
+  }, [playing, buttons]);
   useEffect(() => {
     wake();
     return () => {
@@ -358,6 +372,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   useRemote(({ key, action }) => {
     if (drawer || guide || error) return;
     wake();
+    // On the buttons the D-pad moves the focus and Select presses the focused button.
+    if (tvButtons) return;
     if ((key === 'left' || key === 'right') && !isLive) {
       const direction: SeekDirection = key === 'left' ? 'back' : 'forward';
       if (action === 'down') controller.current!.keyDown(direction);
@@ -374,7 +390,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    if (key === 'up' && isLive) setGuide(true);
+    if (key === 'down' && Platform.isTV) setButtons(true);
+    else if (key === 'up' && isLive) setGuide(true);
     else if (key === 'up' || key === 'down') setDrawer(true);
     else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
@@ -386,11 +403,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       if (guide) setGuide(false);
       else if (drawer) setDrawer(false);
       else if (skipOpen) setSkipOpen(false);
+      else if (buttons) setButtons(false);
       else return false;
       return true;
     });
     return () => subscription.remove();
-  }, [guide, drawer, skipOpen]);
+  }, [guide, drawer, skipOpen, buttons]);
 
   // Phones, live: swipe up anywhere on the video opens the guide overlay.
   const swipeEnabled = useRef(false);
@@ -480,7 +498,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028.
           On TV it steps aside while Skip ahead / Next episode buttons need the focus; phones keep it, so a tap on the video
           still shows the controls and the timeline while those buttons are up. */}
-      {!drawer && !guide && !(Platform.isTV && focusablesVisible) && !error ? (
+      {!drawer && !guide && !(Platform.isTV && focusablesVisible) && !tvButtons && !error ? (
         <Pressable
           testID="player-focus"
           accessibilityLabel="Player"
@@ -503,7 +521,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
       {controls && !guide && !scrub && !error ? (
         // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.
-        <View style={styles.overlay} pointerEvents={Platform.isTV ? 'none' : 'box-none'} testID="player-controls">
+        <View style={styles.overlay} pointerEvents={Platform.isTV && !buttons ? 'none' : 'box-none'} testID="player-controls">
           <Gradient
             stops={[
               { offset: 0, color: '#000', opacity: 0.7 },
@@ -516,8 +534,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             <IconButton
               icon="back"
               label="Back"
+              testID="player-back"
               plain
-              focusable={!Platform.isTV}
+              focusable={!Platform.isTV || buttons}
               size={44}
               iconSize={28}
               onPress={() => navStore.getState().back()}
@@ -562,10 +581,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 icon={paused ? 'play' : 'pause'}
                 label={paused ? 'Play' : 'Pause'}
                 plain
-                focusable={!Platform.isTV}
+                focusable={!Platform.isTV || buttons}
                 size={44}
                 iconSize={30}
                 testID="player-toggle"
+                hasTVPreferredFocus={tvButtons}
                 onPress={() => setPaused((p) => !p)}
               />
               {isLive ? null : (
@@ -574,7 +594,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     icon="rewind10"
                     label={`Back ${SKIP_SECONDS} seconds`}
                     plain
-                    focusable={!Platform.isTV}
+                    focusable={!Platform.isTV || buttons}
                     size={44}
                     iconSize={28}
                     onPress={() => seekTo(timeRef.current - SKIP_SECONDS)}
@@ -583,7 +603,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     icon="forward10"
                     label={`Forward ${SKIP_SECONDS} seconds`}
                     plain
-                    focusable={!Platform.isTV}
+                    focusable={!Platform.isTV || buttons}
                     size={44}
                     iconSize={28}
                     onPress={() => seekTo(timeRef.current + SKIP_SECONDS)}
@@ -599,11 +619,14 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   icon="guide"
                   label="Guide"
                   plain
-                  focusable={!Platform.isTV}
+                  focusable={!Platform.isTV || buttons}
                   size={44}
                   iconSize={26}
                   testID="player-guide"
-                  onPress={() => setGuide(true)}
+                  onPress={() => {
+                    setButtons(false);
+                    setGuide(true);
+                  }}
                 />
               ) : null}
               {series.data ? (
@@ -611,20 +634,28 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   icon="episodes"
                   label="Episodes"
                   plain
-                  focusable={!Platform.isTV}
+                  focusable={!Platform.isTV || buttons}
                   size={44}
                   iconSize={26}
-                  onPress={() => setDrawer(true)}
+                  testID="player-episodes"
+                  onPress={() => {
+                    setButtons(false);
+                    setDrawer(true);
+                  }}
                 />
               ) : null}
               <IconButton
                 icon="subtitles"
                 label="Audio and subtitles"
                 plain
-                focusable={!Platform.isTV}
+                focusable={!Platform.isTV || buttons}
                 size={44}
                 iconSize={26}
-                onPress={() => setDrawer(true)}
+                testID="player-tracks"
+                onPress={() => {
+                  setButtons(false);
+                  setDrawer(true);
+                }}
               />
             </View>
           </View>
