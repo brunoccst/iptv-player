@@ -1,5 +1,5 @@
 /** Tag vocabularies for the title parser (D-017, D-038). */
-type Table = Record<string, string>;
+export type Table = Record<string, string>;
 
 export const QUALITY: Table = {
   '4k': '4K',

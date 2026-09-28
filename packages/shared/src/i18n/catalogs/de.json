@@ -16,6 +16,7 @@
   "{percent}% rating": "{percent} % Bewertung",
   "{position} of {duration}": "{position} von {duration}",
   "{seconds} s": "{seconds} s",
+  "{section}: {count} titles downloaded, grouping next…": "{section}: {count} Titel geladen, werden als Nächstes gruppiert…",
   "{section}: {count} titles ready": "{section}: {count} Titel bereit",
   "{section}: downloading the list from your provider…": "{section}: Liste wird von deinem Anbieter geladen…",
   "{section}: failed": "{section}: fehlgeschlagen",

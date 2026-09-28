@@ -18,7 +18,9 @@ class UnionFind {
     return index;
   }
   union(left: number, right: number) {
-    const [a, b] = [this.find(left), this.find(right)];
+    // No array destructuring in hot code: Babel compiles it to a slow helper on Hermes (D-093).
+    const a = this.find(left);
+    const b = this.find(right);
     if (a !== b) this.parent[Math.max(a, b)] = Math.min(a, b);
   }
 }
@@ -139,22 +141,32 @@ interface Features {
   chars: number[];
   length: number;
   numbers: Set<string>;
-  /** Count per character, for a quick upper bound on the LCS. */
-  counts: Map<number, number>;
+  /** The code points sorted, for a quick upper bound on the LCS (a merge, no Map: Map iteration is slow on Hermes). */
+  sorted: number[];
 }
 
 const features = (title: ParsedTitle): Features => {
   const key = compactKey(title);
   const chars = Array.from(key, (char) => char.codePointAt(0)!);
-  const counts = new Map<number, number>();
-  for (const char of chars) counts.set(char, (counts.get(char) ?? 0) + 1);
-  return { year: title.year, key, chars, length: chars.length, numbers: numberTokens(title), counts };
+  const sorted = [...chars].sort((a, b) => a - b);
+  return { year: title.year, key, chars, length: chars.length, numbers: numberTokens(title), sorted };
 };
 
 /** Characters both keys share (with repeats): the LCS can be at most this long. */
 function sharedCharacters(left: Features, right: Features): number {
+  const x = left.sorted;
+  const y = right.sorted;
   let shared = 0;
-  for (const [char, count] of left.counts) shared += Math.min(count, right.counts.get(char) ?? 0);
+  let i = 0;
+  let j = 0;
+  while (i < x.length && j < y.length) {
+    if (x[i]! === y[j]!) {
+      shared++;
+      i++;
+      j++;
+    } else if (x[i]! < y[j]!) i++;
+    else j++;
+  }
   return shared;
 }
 
@@ -187,7 +199,9 @@ function lcsRatio(x: number[], y: number[]): number {
     for (let j = 0; j < y.length; j++) {
       current[j + 1] = charX === y[j] ? previous[j]! + 1 : Math.max(previous[j + 1]!, current[j]!);
     }
-    [previous, current] = [current, previous];
+    const swap = previous;
+    previous = current;
+    current = swap;
   }
   return (200 * previous[y.length]!) / (x.length + y.length);
 }

@@ -1609,3 +1609,24 @@ Decision:
 
 Pausing rather than stopping keeps the position, so Play continues where it left off.
 
+## D-093
+
+**Large libraries on slow TVs: faster grouping, series first, category chips in pages** — 2026-09-28 (requested by owner)
+
+Context: on a Chromecast with Google TV, grouping 100k+ movies took far longer than on a phone, the series list was only grouped after all the movies, and opening Movies or Series after the library was ready froze the app (Home worked).
+
+Decision:
+- **Faster grouping, same result.** The TV app runs JavaScript on Hermes, which has no JIT, so every regex, helper call and allocation per name counts. Measured with the Hermes command-line VM on 110k realistic names (80k titles), grouping went from 21.7 s to 11.1 s, and parsing the names alone from 11.6 s to 4.4 s. On Android the gain is larger still, because the Unicode `normalize` that plain ASCII names now skip goes through Java there. What changed:
+  - Most names skip the subtitle and phrase regexes, found with a quick substring check.
+  - Numbered instead of named regex groups: Babel wraps named groups in a slow helper.
+  - Tokens are split with a character loop instead of a regex split, and each token is folded (accents, case) and looked up in the tag tables once, then cached.
+  - Plain ASCII skips `normalize` and the Unicode character classes.
+  - The fuzzy matcher's character count uses sorted arrays instead of a Map.
+  - A leaner SHA-1 for title ids (same ids).
+  - No array destructuring in hot code.
+  - Grouping yields to the UI after 50 ms of work, not after every 500 names: on React Native each yield waits for the next frame.
+
+  An old-versus-new comparison on 255k distinct names (accents, other scripts, odd spacing), on a whole 60k-item library and on 50k strings for SHA-1 gave identical output. `direct/normalizer/*`.
+- **Series do not wait for movies.** Both lists still download at once. Grouping (one JavaScript thread) now takes the lists in the order they arrive, the smaller first when both are in, so series, usually far fewer, are ready in seconds. A list that is in but waiting shows "Series: 9,000 titles downloaded, grouping next…". `syncLibrary` in `direct/directApiClient.ts`.
+- **Category chips in pages (TV, phone).** The Movies and Series bar built a focusable chip for every provider category at once. With thousands of categories that stalled a Chromecast, while Home, which has no chip bar, worked. The line now renders 40 chips and adds 40 more as it scrolls toward its end. A chosen category further down shows right after "All". The expanded box renders 150 at a time, adding more as it scrolls. `components/ChipBar.tsx`. Web and desktop are unchanged: a browser lays out thousands of buttons without trouble.
+

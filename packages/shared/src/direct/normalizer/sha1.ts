@@ -1,60 +1,81 @@
-/** SHA-1 hex of a UTF-8 string. Only for stable master ids; not for security. */
+/**
+ * SHA-1 hex of a UTF-8 string. Only for stable master ids; not for security. Written for Hermes (no JIT): no DataView,
+ * no helper calls or array destructuring per round, and plain ASCII (most names) skips the UTF-8 encoder; ids for
+ * 100k+ titles are hashed on slow TV CPUs (D-093).
+ */
+const w = new Uint32Array(80);
+
 export function sha1Hex(text: string): string {
   const bytes = utf8(text);
-  const bitLength = bytes.length * 8;
   const padded = new Uint8Array(Math.ceil((bytes.length + 9) / 64) * 64);
   padded.set(bytes);
   padded[bytes.length] = 0x80;
-  const view = new DataView(padded.buffer);
-  view.setUint32(padded.length - 8, Math.floor(bitLength / 2 ** 32));
-  view.setUint32(padded.length - 4, bitLength >>> 0);
+  const bitLength = bytes.length * 8;
+  const high = Math.floor(bitLength / 2 ** 32);
+  const low = bitLength >>> 0;
+  const end = padded.length;
+  padded[end - 8] = high >>> 24;
+  padded[end - 7] = (high >>> 16) & 0xff;
+  padded[end - 6] = (high >>> 8) & 0xff;
+  padded[end - 5] = high & 0xff;
+  padded[end - 4] = low >>> 24;
+  padded[end - 3] = (low >>> 16) & 0xff;
+  padded[end - 2] = (low >>> 8) & 0xff;
+  padded[end - 1] = low & 0xff;
 
-  const h = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0];
-  const w = new Uint32Array(80);
-  for (let offset = 0; offset < padded.length; offset += 64) {
-    for (let i = 0; i < 16; i++) w[i] = view.getUint32(offset + i * 4);
-    for (let i = 16; i < 80; i++) w[i] = rotl(w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!, 1);
-    // Plain variables, no array destructuring per round: ids for 100k+ titles are hashed on slow TV CPUs.
-    let a = h[0]!;
-    let b = h[1]!;
-    let c = h[2]!;
-    let d = h[3]!;
-    let e = h[4]!;
+  let h0 = 0x67452301;
+  let h1 = 0xefcdab89;
+  let h2 = 0x98badcfe;
+  let h3 = 0x10325476;
+  let h4 = 0xc3d2e1f0;
+  for (let offset = 0; offset < end; offset += 64) {
+    for (let i = 0; i < 16; i++) {
+      const at = offset + i * 4;
+      w[i] = (padded[at]! << 24) | (padded[at + 1]! << 16) | (padded[at + 2]! << 8) | padded[at + 3]!;
+    }
+    for (let i = 16; i < 80; i++) {
+      const x = w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!;
+      w[i] = (x << 1) | (x >>> 31);
+    }
+    let a = h0;
+    let b = h1;
+    let c = h2;
+    let d = h3;
+    let e = h4;
     for (let i = 0; i < 80; i++) {
-      let f: number;
-      let k: number;
-      if (i < 20) {
-        f = (b & c) | (~b & d);
-        k = 0x5a827999;
-      } else if (i < 40) {
-        f = b ^ c ^ d;
-        k = 0x6ed9eba1;
-      } else if (i < 60) {
-        f = (b & c) | (b & d) | (c & d);
-        k = 0x8f1bbcdc;
-      } else {
-        f = b ^ c ^ d;
-        k = 0xca62c1d6;
-      }
-      const next = (rotl(a, 5) + f + e + k + w[i]!) >>> 0;
+      const f = i < 20 ? (b & c) | (~b & d) : i < 40 ? b ^ c ^ d : i < 60 ? (b & c) | (b & d) | (c & d) : b ^ c ^ d;
+      const k = i < 20 ? 0x5a827999 : i < 40 ? 0x6ed9eba1 : i < 60 ? 0x8f1bbcdc : 0xca62c1d6;
+      const next = (((a << 5) | (a >>> 27)) + f + e + k + w[i]!) >>> 0;
       e = d;
       d = c;
-      c = rotl(b, 30);
+      c = ((b << 30) | (b >>> 2)) >>> 0;
       b = a;
       a = next;
     }
-    h[0] = (h[0]! + a) >>> 0;
-    h[1] = (h[1]! + b) >>> 0;
-    h[2] = (h[2]! + c) >>> 0;
-    h[3] = (h[3]! + d) >>> 0;
-    h[4] = (h[4]! + e) >>> 0;
+    h0 = (h0 + a) >>> 0;
+    h1 = (h1 + b) >>> 0;
+    h2 = (h2 + c) >>> 0;
+    h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0;
   }
-  return h.map((value) => value.toString(16).padStart(8, '0')).join('');
+  return hex(h0) + hex(h1) + hex(h2) + hex(h3) + hex(h4);
 }
 
-const rotl = (value: number, bits: number) => ((value << bits) | (value >>> (32 - bits))) >>> 0;
+const hex = (value: number) => value.toString(16).padStart(8, '0');
 
 function utf8(text: string): Uint8Array {
+  let ascii = true;
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) >= 0x80) {
+      ascii = false;
+      break;
+    }
+  }
+  if (ascii) {
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
+    return bytes;
+  }
   const bytes: number[] = [];
   for (const char of text) {
     const code = char.codePointAt(0)!;

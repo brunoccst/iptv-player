@@ -18,6 +18,7 @@
   "{percent}% rating": "Ocjena {percent}%",
   "{position} of {duration}": "{position} od {duration}",
   "{seconds} s": "{seconds} s",
+  "{section}: {count} titles downloaded, grouping next…": "{section}: {count} naslova preuzeto, grupisanje slijedi…",
   "{section}: {count} titles ready": "{section}: {count} naslova spremno",
   "{section}: downloading the list from your provider…": "{section}: preuzimanje liste od tvog provajdera…",
   "{section}: failed": "{section}: nije uspjelo",

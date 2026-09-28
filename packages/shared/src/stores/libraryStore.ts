@@ -232,6 +232,8 @@ export function describeLibraryProgress(statuses: LibraryStatus[] | null): strin
         return t('{section}: waiting to start…', { section: label });
       case 'processing':
         if (stage === 'downloading') return t('{section}: downloading the list from your provider…', { section: label });
+        if (stage === 'waiting' && total > 0)
+          return t('{section}: {count} titles downloaded, grouping next…', { section: label, count: count(total) });
         // Direct mode: `parsedCount` runs to `itemCount` over all grouping steps, so a percentage reads right.
         if (stage === 'grouping' && total > 0)
           return t('{section}: grouping {count} titles, {percent}%…', {

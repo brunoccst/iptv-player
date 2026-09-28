@@ -150,7 +150,7 @@ describe('createDirectApiClient', () => {
     expect((await restarted.library.list('movies')).total).toBe(2);
   });
 
-  it('reports download and grouping progress while the library builds', async () => {
+  it('reports download and grouping progress while the library builds; series do not wait for movies', async () => {
     const panel = createFakePanel();
     let release!: () => void;
     const gate = new Promise<void>((resolve) => (release = resolve));
@@ -168,6 +168,11 @@ describe('createDirectApiClient', () => {
       return status.stage ?? status.jobStatus;
     };
     await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(await stageOf('movie')).toBe('downloading');
+    // Series do not wait for the movie list: they are grouped and ready as soon as their own list is in (D-093).
+    for (let attempt = 0; attempt < 50 && (await stageOf('series')) !== 'done'; attempt++) await new Promise((r) => setTimeout(r, 5));
+    expect(await stageOf('series')).toBe('done');
+    expect((await api.library.list('series')).total).toBeGreaterThan(0);
     expect(await stageOf('movie')).toBe('downloading');
 
     release();

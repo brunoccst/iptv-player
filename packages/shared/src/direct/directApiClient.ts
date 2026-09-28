@@ -26,7 +26,7 @@ import type {
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
-import { buildMastersInChunks, tmdbId, type Master } from './normalizer/pipeline';
+import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
@@ -285,22 +285,41 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       const current = () => credentials?.account.id === accountId;
-      // Both lists download at once (the slow part on a phone); grouping then runs one kind at a time.
+      // Both lists download at once (the slow part on a phone). Grouping runs one kind at a time (one JS thread), in
+      // the order the lists arrive and the smaller first when both are in: series, usually far fewer, no longer wait
+      // for 100k movies to be grouped (D-093).
+      const started = Date.now();
+      const arrived: Partial<Record<LibraryKind, { items?: NormalizerItem[]; error?: unknown; seconds: number }>> = {};
       const downloads = {
         movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null, addedAt: unixSeconds(m.addedAt) }))),
         series: client
           .series()
           .then((list) => list.map((s) => ({ ...s, containerExtension: null, addedAt: unixSeconds(s.lastModifiedAt) }))),
       };
-      for (const promise of Object.values(downloads)) promise.catch(() => undefined);
-      for (const kind of ['movie', 'series'] as const) {
+      const settle = (kind: LibraryKind) =>
+        downloads[kind].then(
+          (items) => {
+            arrived[kind] = { items, seconds: Math.round((Date.now() - started) / 1000) };
+            if (library.status[kind].stage === 'downloading')
+              library.status[kind] = { ...library.status[kind], stage: 'waiting', itemCount: items.length };
+          },
+          (error: unknown) => void (arrived[kind] = { error, seconds: Math.round((Date.now() - started) / 1000) }),
+        );
+      const settled = { movie: settle('movie'), series: settle('series') };
+      const remaining: LibraryKind[] = ['movie', 'series'];
+      while (remaining.length > 0) {
+        if (!remaining.some((kind) => arrived[kind])) await Promise.race(remaining.map((kind) => settled[kind]));
+        const kind = remaining
+          .filter((next) => arrived[next])
+          .sort((a, b) => (arrived[a]!.items?.length ?? 0) - (arrived[b]!.items?.length ?? 0))[0]!;
+        remaining.splice(remaining.indexOf(kind), 1);
         try {
-          const downloadStarted = Date.now();
-          const items = await downloads[kind];
+          const download = arrived[kind]!;
+          if (!download.items) throw download.error;
+          const items = download.items;
           appLog.info(
             'library',
-            `${kind}: ${items.length} items downloaded (${Math.round((Date.now() - downloadStarted) / 1000)} s after ${kind === 'movie' ? 'start' : 'movies'}), ` +
-              `${items.filter((item) => tmdbId(item)).length} with a TMDB id`,
+            `${kind}: ${items.length} items downloaded in ${download.seconds} s, ${items.filter((item) => tmdbId(item)).length} with a TMDB id`,
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
