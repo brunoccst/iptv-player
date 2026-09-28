@@ -6,8 +6,12 @@ import { Animated, Platform, Pressable, type View } from 'react-native';
  * (spring) and lights up, with a soft glow, a filled pill or a highlighted row.
  */
 export const focus = {
-  /** Soft white glow around cards and buttons (Android draws it from `elevation` with `shadowColor`, API 28+). */
-  glow: { shadowColor: '#fff', shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
+  /**
+   * Soft white glow around cards and buttons, even on every side (`boxShadow`, Android 9+). An `elevation` shadow
+   * fell lower and to one side: Android lights it from above the screen (D-100). The elevation stays, with no visible
+   * shadow, so a focused card is still drawn over its neighbours (D-076).
+   */
+  glow: { boxShadow: '0px 0px 16px 2px rgba(255, 255, 255, 0.5)', elevation: 14, shadowColor: 'transparent', shadowOpacity: 0 },
   /** Thin light ring for cards; rounded, and together with the glow it reads as light, not as a box. */
   ring: 'rgba(255,255,255,0.92)',
   /** Background of a focused row or text link: a translucent pill. */
