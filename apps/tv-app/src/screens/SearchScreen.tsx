@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { CenteringScrollView } from '../components/CenterScroll';
 import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel, t } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
-import { MasterCardItem, useGridColumns } from './titles';
+import { MasterCardItem, TvLines, useGridColumns } from './titles';
 import { searchDelay, SEARCH_MIN_LENGTH } from './searchDelay';
 import { usePagedLibrary } from './usePagedLibrary';
 
 const PAGE = 100;
+/** TV: smaller pages that load as the focus nears the end; only the lines near the focus stay mounted (D-095). */
+const TV_PAGE = 36;
 /** Search results read best alphabetically. */
 const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 const MAX_CHANNELS = 30;
@@ -61,10 +63,19 @@ export function SearchScreen() {
 
 /** One result grid; "More results" loads the next page (the page scrolls as a whole). */
 function SearchGrid({ section, query, title }: { section: LibrarySection; query: string; title: string }) {
-  const page = usePagedLibrary(section, { search: query, sort: BY_TITLE }, PAGE);
+  const tv = Platform.isTV;
+  const page = usePagedLibrary(section, { search: query, sort: BY_TITLE }, tv ? TV_PAGE : PAGE);
   const { columns, itemWidth } = useGridColumns();
   const sizes = useSizes();
   const lines = Array.from({ length: Math.ceil(page.items.length / columns) }, (_, i) => page.items.slice(i * columns, (i + 1) * columns));
+
+  const renderLine = (line: (typeof lines)[number]) => (
+    <View key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
+      {line.map((item) => (
+        <MasterCardItem key={item.id} section={section} item={item} width={itemWidth} />
+      ))}
+    </View>
+  );
 
   return (
     <View style={styles.section} testID={`row-${section}-search`}>
@@ -77,17 +88,13 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
         />
       ) : page.items.length === 0 ? (
         <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>{t('No titles found.')}</Text>
+      ) : tv ? (
+        <TvLines lines={lines} renderLine={renderLine} onNearEnd={page.loadMore} testPrefix={`search-${section}`} />
       ) : (
-        lines.map((line) => (
-          <View key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
-            {line.map((item) => (
-              <MasterCardItem key={item.id} section={section} item={item} width={itemWidth} />
-            ))}
-          </View>
-        ))
+        lines.map(renderLine)
       )}
       {page.loadingMore ? <ActivityIndicator color={colors.accent} accessibilityLabel={t('Loading more')} /> : null}
-      {page.hasMore && !page.loadingMore ? (
+      {!tv && page.hasMore && !page.loadingMore ? (
         <Text style={[styles.more, { marginHorizontal: sizes.gutter }]} onPress={page.loadMore} accessibilityRole="button">
           {t('More results')}
         </Text>

@@ -1649,3 +1649,13 @@ Decision:
 - **Search clear on TV.** The "X" sits next to the search box, as its own stop for the remote (Right from the box). Inside the box it could not get the focus.
 - **No brand link.** "IPTV Player" in the header is plain text on every app; "Home" goes home.
 
+## D-095
+
+**TV centering without the two-step scroll; search results in pages** — 2026-09-28 (requested by owner)
+
+Context: on the Series page (and the other pages using D-094's centering), moving to the next row scrolled in two steps, half then the rest. Pressing or holding Up/Down quickly jumped back to earlier titles. A search with many results ("th") made the whole page slow to move through.
+
+Decision:
+- **Centering from the place in the page.** `CenteringScrollView` measured the focused element on screen and added the current scroll offset. While a scroll animates, that offset is stale, so each focus gave a different target: two steps for one move, and earlier titles on quick presses. It now measures the element inside the page content (`measureLayout` against the scroll view's content), the same way Home centers its rows, so a title always gives the same target. A target that equals the last one is not sent again.
+- **Search results in pages on TV.** 36 results per section, loaded as the focus reaches the last two lines. Only the lines near the focus are mounted, through the same `TvLines` the Movies/Series grid now uses. "More results" was plain text the remote could not reach; on TV it is gone, and the next page loads by itself. Phones keep 100 results and "More results".
+
