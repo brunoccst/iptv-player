@@ -93,6 +93,58 @@ describe('App (TV)', () => {
     expect(screen.getByTestId('row-mylist')).toBeTruthy();
   });
 
+  it('details: the eye button marks the movie as watched and back (D-104)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('PUT', '/api/profiles/p1/progress/movie/101', ({ body }) => ({
+      body: { kind: 'movie', itemId: '101', updatedAt: '2026-09-27T00:00:00Z', ...(body as object) },
+    }));
+    backend.on('DELETE', '/api/profiles/p1/progress/movie/101', { status: 204 });
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await act(async () => navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' }));
+    await flush();
+
+    expect(screen.queryByTestId('details-watched')).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Mark as watched'));
+    await flush();
+    expect(backend.calls.find((c) => c.method === 'PUT')?.url.pathname).toBe('/api/profiles/p1/progress/movie/101');
+    expect(screen.getByTestId('details-watched')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Mark as not watched'));
+    await flush();
+    expect(backend.calls.some((c) => c.method === 'DELETE' && c.url.pathname === '/api/profiles/p1/progress/movie/101')).toBe(true);
+    expect(screen.queryByTestId('details-watched')).toBeNull();
+  });
+
+  it('card menu: Add to My List and Remove from My List (D-104)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/profiles/p1/watchlist', { body: [] });
+    backend.on('PUT', '/api/profiles/p1/watchlist/movies/m1', ({ body }) => ({
+      body: { section: 'movies', masterId: 'm1', ...(body as object), addedAt: '2026-09-25T00:00:00Z' },
+    }));
+    backend.on('DELETE', '/api/profiles/p1/watchlist/movies/m1', { status: 204 });
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.watchlist.getState().load('p1', { force: true })));
+    await act(async () => navStore.getState().goSection('movies'));
+    await flush();
+    await screen.findAllByTestId('card-Big Test Movie');
+    const card = () => screen.getAllByTestId('card-Big Test Movie').at(-1)!;
+
+    await fireEvent(card(), 'longPress');
+    await fireEvent.press(screen.getByTestId('card-menu-mylist-add'));
+    await flush();
+    expect(backend.calls.some((c) => c.method === 'PUT' && c.url.pathname === '/api/profiles/p1/watchlist/movies/m1')).toBe(true);
+
+    await fireEvent(card(), 'longPress');
+    expect(within(screen.getByTestId('card-menu')).getByText('Remove from My List')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('card-menu-mylist-remove'));
+    await flush();
+    expect(backend.calls.some((c) => c.method === 'DELETE' && c.url.pathname === '/api/profiles/p1/watchlist/movies/m1')).toBe(true);
+  });
+
   it('Continue Watching: holding OK opens the card menu; Remove clears the unfinished episodes of the series (D-078)', async () => {
     const backend = setupApp();
     stubLibrary(backend);

@@ -29,6 +29,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `DownloadButton.tsx` | Round download button with progress ring; start / pause / resume; `useDownload` for menus (D-083). |
 | `WatchedTag.tsx` | "Watched" tag: bottom right of a watched cover (`PosterCard.watched`), next to the title in details, on episode stills (D-081). |
 | `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). Hidden on Kids profiles. `useExternalPlayer` for menus (D-083). |
+| `WatchedButton.tsx` | Round "Watched" toggle (open / closed eye) on the details panel; a whole series for series (D-104). |
 | `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |
 | `ProgressRing.tsx` | SVG progress circle. |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` mapping. |

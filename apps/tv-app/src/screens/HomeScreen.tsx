@@ -14,6 +14,8 @@ import {
   type MasterCard,
   type ProgressDto,
   t,
+  continueWatchlistEntry,
+  isOnWatchlist,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
@@ -168,7 +170,7 @@ function ContinueWatchingRow() {
           title={menuFor.title}
           subtitle={subtitleOf(menuFor)}
           onClose={() => setMenuFor(null)}
-          actions={cardMenuItems({ kind: 'continue', entry: menuFor }).map((entry) => ({
+          actions={cardMenuItems({ kind: 'continue', entry: menuFor, onList: continueOnList(menuFor) }).map((entry) => ({
             label: entry.label,
             testID: `card-menu-${entry.id}`,
             onPress: () => {
@@ -179,6 +181,7 @@ function ContinueWatchingRow() {
                   masterId: menuFor.masterId!,
                 });
               else if (entry.id === 'watched') void markEntryWatched(stores.progress, menuFor);
+              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') toggleContinueOnList(menuFor);
               else void removeFromContinueWatching(stores.progress, menuFor);
             },
           }))}
@@ -325,3 +328,13 @@ const styles = StyleSheet.create({
   heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   // Above everything on the page (rows, focused cards), not focusable.
 });
+
+/** Continue Watching card menu: is its title on My List, and add/remove it (D-104). */
+function continueOnList(entry: ProgressDto): boolean {
+  const target = continueWatchlistEntry(entry);
+  return !!target && isOnWatchlist(stores.watchlist.getState(), target.section, target.card.id);
+}
+function toggleContinueOnList(entry: ProgressDto): void {
+  const target = continueWatchlistEntry(entry);
+  if (target) void stores.watchlist.getState().toggle(target.section, target.card);
+}

@@ -26,6 +26,8 @@ import {
   isEpisodeWatched,
   isMovieWatched,
   noteSeriesWatched,
+  setMovieWatched,
+  setSeriesWatched,
   setEpisodeWatched,
   isWatched,
   fluid,
@@ -49,6 +51,7 @@ import { api, navStore, stores } from '../appContext';
 import { DownloadButton, useDownload } from '../components/DownloadButton';
 import { ExternalPlayerButton, useExternalPlayer } from '../components/ExternalPlayerButton';
 import { PlayOnTvButton, usePlayOnTv } from '../components/PlayOnTvButton';
+import { WatchedButton } from '../components/WatchedButton';
 import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -177,6 +180,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
         <DownloadButton target={target} />
         <PlayOnTvButton target={{ ...target, startAt: canResume ? resume!.positionSeconds : undefined }} testID="details-play-on-tv" />
         <ExternalPlayerButton target={target} testID="details-external" />
+        <WatchedButton kind="movie" watched={watched} onChange={(next) => setMovieWatched(stores, master.id, next)} />
         <WatchlistButton section="movies" title={master} />
       </DetailsHero>
       <Body
@@ -246,6 +250,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           testID="details-play"
         />
         <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
+        <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
         <WatchlistButton section="series" title={master} />
       </DetailsHero>
       <Body

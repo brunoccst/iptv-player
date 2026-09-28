@@ -88,35 +88,56 @@ export async function removeFromContinueWatching(progress: ProgressStore, entry:
 }
 
 /** What a card's menu offers (D-078, D-081). The apps turn each id into an action and a button or menu item. */
-export type CardMenuItemId = 'details' | 'watched' | 'unwatched' | 'remove';
+export type CardMenuItemId = 'details' | 'watched' | 'unwatched' | 'mylist-add' | 'mylist-remove' | 'remove';
 export interface CardMenuItem {
   id: CardMenuItemId;
   label: string;
 }
 
 export function cardMenuItems(
-  card: { kind: 'continue'; entry: ProgressDto } | { kind: 'movie'; watched: boolean } | { kind: 'series'; watched: boolean },
+  card:
+    | { kind: 'continue'; entry: ProgressDto; onList?: boolean }
+    | { kind: 'movie'; watched: boolean; onList?: boolean }
+    | { kind: 'series'; watched: boolean; onList?: boolean },
 ): CardMenuItem[] {
   const details: CardMenuItem = { id: 'details', label: t('Go to details') };
+  // Add to / Remove from My List (D-104): on every card that stands for a title.
+  const myList: CardMenuItem = card.onList
+    ? { id: 'mylist-remove', label: t('Remove from My List') }
+    : { id: 'mylist-add', label: t('Add to My List') };
   switch (card.kind) {
     case 'continue':
       return [
         // An episode started without its series title (from search or the guide) has no details page to go to.
         ...(card.entry.masterId ? [details] : []),
         { id: 'watched', label: card.entry.kind === 'episode' ? t('Mark episode as watched') : t('Mark as watched') },
+        ...(card.entry.masterId ? [myList] : []),
         { id: 'remove', label: t('Remove from Continue Watching') },
       ];
     case 'movie':
       return [
         details,
         card.watched ? { id: 'unwatched', label: t('Mark as not watched') } : { id: 'watched', label: t('Mark as watched') },
+        myList,
       ];
     case 'series':
       return [
         details,
         card.watched ? { id: 'unwatched', label: t('Mark series as not watched') } : { id: 'watched', label: t('Mark series as watched') },
+        myList,
       ];
   }
+}
+
+/** The My List entry behind a Continue Watching card (D-104): its title's section and card; null without a title. */
+export function continueWatchlistEntry(
+  entry: ProgressDto,
+): { section: 'movies' | 'series'; card: { id: string; title: string; year: null; posterUrl: string | null } } | null {
+  if (!entry.masterId) return null;
+  return {
+    section: entry.kind === 'episode' ? 'series' : 'movies',
+    card: { id: entry.masterId, title: entry.title, year: null, posterUrl: entry.posterUrl },
+  };
 }
 
 /** Where an episode's download is, for its menu item. */
@@ -150,8 +171,8 @@ export function episodeMenuItems(episode: {
 }): EpisodeMenuItem[] {
   const items: EpisodeMenuItem[] = [
     episode.watched
-      ? { id: 'unwatched', label: t('Mark as not watched'), icon: 'close' }
-      : { id: 'watched', label: t('Mark as watched'), icon: 'check' },
+      ? { id: 'unwatched', label: t('Mark as not watched'), icon: 'eyeOff' }
+      : { id: 'watched', label: t('Mark as watched'), icon: 'eye' },
   ];
   const download = episode.download;
   if (download) {

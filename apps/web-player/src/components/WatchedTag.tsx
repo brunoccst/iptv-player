@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 export function WatchedTag({ className }: { className?: string }) {
   return (
     <span className={className ? `watched-tag ${className}` : 'watched-tag'} data-testid="watched-tag">
-      <Icon name="check" size={12} /> {watchedLabel()}
+      <Icon name="eye" size={12} /> {watchedLabel()}
     </span>
   );
 }

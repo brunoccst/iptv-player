@@ -108,6 +108,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-101](#d-101) | 2026-09-28 | TV player: ↑ opens the buttons on Back, ↓ on Play/Pause |
 | [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
 | [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
+| [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 
 ---
 
@@ -1747,4 +1748,15 @@ Decision: three buttons, in the drawer's order: **Audio** (a new note icon), **S
 Context: on the TV's Live TV page, Down (to "Earlier") then Left (to "All channels") scrolled the page: "All channels" went under the top bar and the first channel was cut in half.
 
 Decision: the category list had no height limit, so with many categories it was taller than the screen. When a category got the focus, Android scrolled the page to show the whole list as far as it could: its top at the top of the screen, under the see-through top bar. Now the list is only as tall as the rest of the screen and scrolls on its own, and focusing a category scrolls the page back to the top (the list sits at the top of the page). Phones keep their category chips.
+
+## D-104
+
+**Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched** — 2026-09-28 (requested by owner)
+
+Context: "Mark as watched" for a movie or a whole series was only in the card menu (D-081, D-082); in series details only episodes had it. "Add to My List" was only a button in details. The Watched tag used a check, too close to My List's check.
+
+Decision:
+- **Details:** a round Watched toggle next to My List, on every app: for a movie it marks the movie, for a series every episode (`setMovieWatched` / `setSeriesWatched`, the same as the card menu). An open eye when watched, a closed eye when not (`eye` / `eyeOff` in `@iptv/shared`).
+- **Card menus:** Add to My List / Remove from My List on movie and series cards, and on Continue Watching cards that have a title (`cardMenuItems`, `continueWatchlistEntry`).
+- **Eye instead of check:** the Watched tag on covers, in details and on episodes, and the episode menu's Mark as (not) watched, now show the eye. My List keeps plus / check.
 
