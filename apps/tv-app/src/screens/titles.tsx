@@ -30,7 +30,7 @@ import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useProfilePrefs, useProgress } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
-import { CenteringScrollView } from '../components/CenterScroll';
+import { CenterFocus, CenteringScrollView, useCenterPage, type Measurable } from '../components/CenterScroll';
 import { FocusRow, RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
@@ -71,6 +71,7 @@ export function MasterCardItem({
         posterUrl={item.posterUrl}
         width={width}
         hasTVPreferredFocus={hasTVPreferredFocus}
+        reserveSubtitle
         badge={item.bestQuality === '4K' ? '4K' : null}
         watched={watched}
         subtitle={
@@ -319,9 +320,14 @@ export function LoadingMoreNote() {
 }
 
 /**
- * TV lines of cards (D-094, D-095): only the lines within MOUNTED_AROUND of the focused one are mounted, the others
- * are empty spacers of the same height; when the focus reaches one of the last two lines, `onNearEnd` asks for the
- * next page. Used by the Movies/Series grid and the search results.
+ * TV lines of cards (D-094, D-095, D-096): only the lines within MOUNTED_AROUND of the focused one are mounted, the
+ * others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the next page. Used
+ * by the Movies/Series grid and the search results.
+ *
+ * Every line, mounted or spacer, has the height of the first one, so swapping lines for spacers never moves the page;
+ * the focused line is centred like the rows on Home: its place is known (start of the block + index × line height)
+ * and the page scrolls straight there. Measuring each focused card, and lines of different heights (a card without
+ * a subtitle is shorter), made one move scroll in two steps.
  */
 export function TvLines({
   lines,
@@ -336,26 +342,49 @@ export function TvLines({
 }) {
   const [focusedLine, setFocusedLine] = useState(0);
   const [lineHeight, setLineHeight] = useState(0);
+  const page = useCenterPage();
+  const block = useRef<View>(null);
+  // Where the block starts in the page. Measured again after each move (sections above it can grow).
+  const top = useRef<number | null>(null);
+  const center = (index: number) => {
+    if (!page || !lineHeight) return;
+    if (top.current !== null) page.centerAt(top.current + index * lineHeight, lineHeight);
+    const content = page.inner();
+    if (!content) return;
+    (block.current as unknown as Measurable | null)?.measureLayout(
+      content,
+      (_x, y) => {
+        top.current = y;
+        page.centerAt(y + index * lineHeight, lineHeight);
+      },
+      () => undefined,
+    );
+  };
   const focusLine = (index: number) => {
     setFocusedLine(index);
+    center(index);
     if (index >= lines.length - 2) onNearEnd?.();
   };
   return (
-    <>
-      {lines.map((line, index) =>
-        Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
-          <View
-            key={line[0]!.id}
-            testID={`${testPrefix}-line-${index}`}
-            onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
-          >
-            <RowFocus.Provider value={() => focusLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
-          </View>
-        ) : (
-          <View key={line[0]!.id} testID={`${testPrefix}-spacer-${index}`} style={{ height: lineHeight }} />
-        ),
-      )}
-    </>
+    <View ref={block}>
+      {/* The line centres itself: cards must not measure and scroll too. */}
+      <CenterFocus.Provider value={null}>
+        {lines.map((line, index) =>
+          Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
+            <View
+              key={line[0]!.id}
+              testID={`${testPrefix}-line-${index}`}
+              style={lineHeight ? { height: lineHeight } : undefined}
+              onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
+            >
+              <RowFocus.Provider value={() => focusLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
+            </View>
+          ) : (
+            <View key={line[0]!.id} testID={`${testPrefix}-spacer-${index}`} style={{ height: lineHeight }} />
+          ),
+        )}
+      </CenterFocus.Provider>
+    </View>
   );
 }
 

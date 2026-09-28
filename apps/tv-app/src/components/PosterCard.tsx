@@ -19,6 +19,8 @@ export interface PosterCardProps {
   /** Overrides the web `--card-width` (grids stretch cards to fill a line). */
   width?: number;
   hasTVPreferredFocus?: boolean;
+  /** Keeps the subtitle line even when empty, so every card in a grid is the same height (D-096). */
+  reserveSubtitle?: boolean;
   /** Top-right corner actions (e.g. download button). */
   actions?: ReactNode;
   onPress(): void;
@@ -38,6 +40,7 @@ export function PosterCard({
   landscape,
   width,
   hasTVPreferredFocus,
+  reserveSubtitle,
   actions,
   onPress,
   onLongPress,
@@ -99,9 +102,9 @@ export function PosterCard({
         <Text style={styles.title} numberOfLines={1}>
           {title}
         </Text>
-        {subtitle ? (
+        {subtitle || reserveSubtitle ? (
           <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
+            {subtitle || ' '}
           </Text>
         ) : null}
       </View>
