@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
@@ -14,20 +24,56 @@ export interface ChipItem {
   testID?: string;
 }
 
+/** Chips rendered at first on the line and in the expanded box; more follow as the user scrolls toward the end. */
+const LINE_PAGE = 40;
+const BOX_PAGE = 150;
+/** Distance from the end (dp) at which the next page is added. */
+const NEAR_END = 400;
+
+/** True when a scroll view is within NEAR_END of its end (horizontally or vertically). */
+function nearEnd({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>, horizontal: boolean): boolean {
+  const { contentOffset, layoutMeasurement, contentSize } = nativeEvent;
+  return horizontal
+    ? contentOffset.x + layoutMeasurement.width >= contentSize.width - NEAR_END
+    : contentOffset.y + layoutMeasurement.height >= contentSize.height - NEAR_END;
+}
+
 /**
  * Category chips on one scrollable line. When they do not fit, "Show all" wraps every chip across the full width in
  * a box of at most half the screen that scrolls on its own, so "Show less" stays in view above it (D-091);
  * "Show less" returns to the line; picking a chip also returns to it, scrolled so the chosen chip is in view.
+ *
+ * Chips are rendered a page at a time (D-093): providers with 100k+ titles have thousands of categories, and building
+ * a focusable chip for each at once froze a Chromecast when Movies or Series opened.
  */
 export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: string; testID?: string }) {
   const [expanded, setExpanded] = useState(false);
   const [lineWidth, setLineWidth] = useState(0);
   const [contentWidth, setContentWidth] = useState(0);
+  const [lineLimit, setLineLimit] = useState(LINE_PAGE);
+  const [boxLimit, setBoxLimit] = useState(BOX_PAGE);
+  const [boxContentHeight, setBoxContentHeight] = useState(0);
   const { height } = useWindowDimensions();
+  const boxHeight = Math.round(height * 0.5);
+  // On the line, a chosen chip beyond the first page moves right after the first one ("All"), so it shows without
+  // rendering every chip before it; the expanded box keeps the provider's order.
+  const activeIndex = chips.findIndex((chip) => chip.active);
+  const lineChips =
+    activeIndex >= LINE_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
+  const lineCount = Math.min(chips.length, lineLimit);
+  const boxCount = Math.min(chips.length, boxLimit);
   const scroll = useRef<ScrollView>(null);
   // Scroll the active chip into view once it is laid out: on open (e.g. from a Home row) and after collapsing.
   const reveal = useRef(true);
   const overflows = contentWidth > lineWidth + 1;
+
+  // Render more while the rendered chips do not fill the line or the box, so "Show all" and scrolling still appear.
+  useEffect(() => {
+    if (!expanded && lineWidth > 0 && contentWidth > 0 && !overflows && lineCount < chips.length) setLineLimit(lineCount + LINE_PAGE);
+  }, [expanded, lineWidth, contentWidth, overflows, lineCount, chips.length]);
+  useEffect(() => {
+    if (expanded && boxContentHeight > 0 && boxContentHeight < boxHeight && boxCount < chips.length) setBoxLimit(boxCount + BOX_PAGE);
+  }, [expanded, boxContentHeight, boxHeight, boxCount, chips.length]);
 
   const choose = (chip: ChipItem) => {
     reveal.current = true;
@@ -52,7 +98,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
-  const items = chips.map((chip) => (
+  const items = (expanded ? chips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
       key={chip.key}
       label={chip.label}
@@ -69,6 +115,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
       onPress={() => {
         reveal.current = expanded;
+        setBoxLimit(BOX_PAGE);
         setExpanded(!expanded);
       }}
     />
@@ -83,9 +130,12 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
         </FocusRow>
         <ScrollView
           testID={testID && `${testID}-box`}
-          style={{ maxHeight: Math.round(height * 0.5) }}
+          style={{ maxHeight: boxHeight }}
           nestedScrollEnabled
           accessibilityLabel={label}
+          scrollEventThrottle={100}
+          onScroll={(event) => nearEnd(event, false) && boxCount < chips.length && setBoxLimit(boxCount + BOX_PAGE)}
+          onContentSizeChange={(_width, contentHeight) => setBoxContentHeight(contentHeight)}
         >
           <FocusRow style={styles.wrap}>{items}</FocusRow>
         </ScrollView>
@@ -103,6 +153,8 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
         style={styles.line}
         contentContainerStyle={styles.chips}
         accessibilityLabel={label}
+        scrollEventThrottle={100}
+        onScroll={(event) => nearEnd(event, true) && lineCount < chips.length && setLineLimit(lineCount + LINE_PAGE)}
         onLayout={(event) => setLineWidth(event.nativeEvent.layout.width)}
         onContentSizeChange={(width) => {
           setContentWidth(width);

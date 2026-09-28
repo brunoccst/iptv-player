@@ -35,6 +35,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
+- [x] **Large libraries on slow TVs** (requested 2026-09-28, D-093): grouping 100k+ titles about twice as fast on TVs (same result); series are grouped as soon as their list is in instead of after all movies; Movies and Series no longer freeze with thousands of categories (chips appear a page at a time).
 - [x] **Pause when the headphones go away** (issue #83, D-092): unplugging headphones or losing a Bluetooth headset pauses playback instead of carrying on through the speaker; Play resumes.
 - [x] **Live TV category, "Default" audio, category box** (requested 2026-09-28, D-090, D-091): the Live TV category stays selected after closing the player (TV, phone); a stream with a single unnamed audio track shows "Default" instead of a language its tag may get wrong; "Show all" lists the categories across the full width in a box that scrolls on its own, with "Show less" always in view.
 - [x] **Albanian and Kurdish titles; episodes button** (requested 2026-09-28, D-089): "ALB - …" and "KU - …" join the title's other versions (also in the content language filter); the library regroups once. The player's episodes button (TV, phone) opens the drawer on Episodes; audio and subtitle tracks without a name show the language's name ("English" instead of "en").

@@ -91,10 +91,13 @@ export function mergeByTmdb(groups: number[][], tmdbIds: (string | null)[], year
         firstGroup.set(id, index);
         continue;
       }
-      const [root, otherRoot] = [find(index), find(other)];
-      const [a, b] = [groupYears[root]!, groupYears[otherRoot]!];
+      const root = find(index);
+      const otherRoot = find(other);
+      const a = groupYears[root]!;
+      const b = groupYears[otherRoot]!;
       if (root !== otherRoot && (a.size === 0 || b.size === 0 || [...a].some((year) => b.has(year)))) {
-        const [low, high] = [Math.min(root, otherRoot), Math.max(root, otherRoot)];
+        const low = Math.min(root, otherRoot);
+        const high = Math.max(root, otherRoot);
         parent[high] = low;
         groupYears[low] = new Set([...a, ...b]);
       }
@@ -121,18 +124,28 @@ const byTmdb = (groups: number[][], usable: NormalizerItem[], parsed: ParsedTitl
  * Same result as `buildMasters`, but works in chunks and yields between them so the UI stays responsive, and
  * `onProgress(done, total)` reports how far it got (direct mode on TV/phone, D-038). `done` runs from 0 to `total`
  * across all steps: reading the names (first half), matching them (to 80 %), building the titles (the rest).
+ *
+ * It yields to the UI once `sliceMs` of work has passed, not after every chunk: on React Native each yield waits for
+ * the next frame, and hundreds of them added seconds of idle time on a TV (D-093).
  */
 export async function buildMastersInChunks(
   accountId: string,
   mediaKind: string,
   items: NormalizerItem[],
-  { chunkSize = 500, onProgress }: { chunkSize?: number; onProgress?(done: number, total: number): void } = {},
+  {
+    chunkSize = 500,
+    sliceMs = 50,
+    onProgress,
+  }: { chunkSize?: number; sliceMs?: number; onProgress?(done: number, total: number): void } = {},
 ): Promise<Master[]> {
   const usable = items.filter((item) => text(item.id) && text(item.name));
   const total = usable.length;
-  const pause = (fraction: number) => {
+  let sliceStarted = Date.now();
+  const pause = async (fraction: number) => {
     onProgress?.(Math.min(total, Math.floor(fraction * total)), total);
-    return new Promise<void>((resolve) => setTimeout(resolve, 0));
+    if (Date.now() - sliceStarted < sliceMs) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    sliceStarted = Date.now();
   };
 
   const parsed: ParsedTitle[] = [];
