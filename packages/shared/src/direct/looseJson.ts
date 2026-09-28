@@ -1,4 +1,4 @@
-/** Readers that tolerate Xtream panels mixing strings, numbers, nulls and empty arrays for one field. Mirrors backend LooseJson. */
+/** Readers that tolerate Xtream panels mixing strings, numbers, nulls and empty arrays for one field. */
 export type Json = unknown;
 
 export const isObject = (value: Json): value is Record<string, Json> =>

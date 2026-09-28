@@ -13,7 +13,7 @@ export interface EpgGridRequest {
 }
 
 export const EPG_DEFAULT_LIMIT = 50;
-/** Poll interval while the backend downloads the guide for the first time. */
+/** Poll interval while the guide downloads for the first time. */
 export const EPG_POLL_MS = 3000;
 
 export const epgGridKey = (r: EpgGridRequest) =>
@@ -26,7 +26,7 @@ export interface EpgState {
   loadGrid(request: EpgGridRequest, options?: LoadOptions): Promise<EpgGrid | null>;
   /** Loads the page and re-polls while its status is `refreshing`. Returns a stop function (call on unmount). */
   watchGrid(request: EpgGridRequest): () => void;
-  /** Asks the backend to download the guide again; cached pages reload on next watch. */
+  /** Downloads the guide again; cached pages reload on next watch. */
   refresh(): Promise<boolean>;
   reset(): void;
 }

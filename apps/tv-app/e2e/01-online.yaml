@@ -1,4 +1,5 @@
-# Server-mode flow on an Android TV emulator ("My server"): login, dedup library, details, playback + D-pad, drawer, download.
+# Main flow on an Android TV emulator: login to the fake panel, library grouped on the device, details, playback + D-pad,
+# drawer, download.
 appId: ${APP_ID}
 ---
 - launchApp:
@@ -8,13 +9,9 @@ appId: ${APP_ID}
       id: "login-server"
     timeout: 90000
 - tapOn:
-    id: "login-mode-server"
-# The CI build prefills the backend address (APP_API_BASE_URL in tv-app.yml): typing it timed out Maestro's driver.
-- assertVisible: "http://10.0.2.2:5091"
-- tapOn:
     id: "login-server"
-# Provider address as the backend sees it (same machine).
-- inputText: "http://localhost:8091"
+# The emulator reaches the runner's localhost at 10.0.2.2, where the fake panel runs.
+- inputText: "http://10.0.2.2:8091"
 # Enter moves to the next field (and opens the keyboard there); on the password it signs in.
 - pressKey: Enter
 - inputText: "demo"
@@ -169,7 +166,7 @@ appId: ${APP_ID}
     id: "nav-downloads"
 - assertVisible: "Big Test Movie"
 - takeScreenshot: 05-downloads
-# Live TV guide: each channel shows what is on now; "Test Arena" (304) has no XMLTV id and comes from short EPG.
+# Live TV guide: each channel shows what is on now (short EPG from the panel).
 - tapOn:
     id: "nav-live"
 - extendedWaitUntil:

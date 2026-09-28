@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('APP_NAME', 'Test App');
 vi.stubEnv('APP_SLUG', 'test-app');
-vi.stubEnv('APP_API_BASE_URL', 'http://api.test');
 
 const get = vi.fn(async () => ({ url: 'http://panel/movie/u/p/101.mkv' }));
 vi.mock('../appContext', () => ({

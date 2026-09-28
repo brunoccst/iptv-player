@@ -1,7 +1,7 @@
 // Global test setup: app config and secure storage without native modules.
 jest.mock('expo-constants', () => ({
   __esModule: true,
-  default: { expoConfig: { extra: { APP_NAME: 'Test TV', APP_SLUG: 'test-tv', APP_API_BASE_URL: 'http://api.test' } } },
+  default: { expoConfig: { extra: { APP_NAME: 'Test TV', APP_SLUG: 'test-tv' } } },
 }));
 
 jest.mock('expo-secure-store', () => {

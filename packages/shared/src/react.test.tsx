@@ -24,8 +24,7 @@ describe('useAppStore', () => {
 
 describe('useEpgGuide', () => {
   it('concatenates pages and restarts watchers after refresh', async () => {
-    const { createApiClient } = await import('./api/apiClient');
-    const { createHttpClient } = await import('./api/httpClient');
+    const { createFakeApi } = await import('./testing/fakeBackend');
     const { createFakeBackend } = await import('./testing/fakeBackend');
     const { createEpgStore } = await import('./stores/epgStore');
     const { useEpgGuide } = await import('./react');
@@ -46,7 +45,7 @@ describe('useEpgGuide', () => {
       };
     });
     backend.on('POST', '/api/epg/refresh', { status: 202 });
-    const store = createEpgStore({ api: createApiClient(createHttpClient({ baseUrl: 'http://api.test', fetch: backend.fetch })) });
+    const store = createEpgStore({ api: createFakeApi(backend) });
 
     function View({ pages }: { pages: number }) {
       const guide = useEpgGuide(store, { categoryId: null, from: 0, hours: 3 }, pages, 1);

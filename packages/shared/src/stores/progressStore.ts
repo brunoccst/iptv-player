@@ -1,11 +1,11 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient } from '../api/apiClient';
-import type { ApiError } from '../api/httpClient';
+import type { ApiError } from '../api/errors';
 import type { ProgressDto, ProgressKind, ProgressRequest } from '../api/types';
 import { emptyResource, toApiError, type Resource } from './resource';
 
 /** Watch progress of the active profile. Saves are optimistic: the list updates before the server answers. */
-/** Entries loaded per profile: enough to tag watched titles on covers (D-081); the backend and direct mode keep this many. */
+/** Entries loaded per profile: enough to tag watched titles on covers (D-081); the device keeps this many. */
 export const PROGRESS_LIST_LIMIT = 1000;
 
 export interface ProgressState {

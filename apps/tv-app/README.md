@@ -2,7 +2,7 @@
 
 Android TV client. Expo SDK 57 + `react-native-tvos` 0.86 + TypeScript + local native module `tv-media` (Media3 ExoPlayer + DownloadManager). Output: `.apk`.
 
-Looks the same as the web app (shared design tokens and icons, [D-041](../../documentation/DECISIONS.md#d-041)). Works without a server: by default it talks to the IPTV provider directly; "My server" on the sign-in screen goes through the backend instead ([D-038](../../documentation/DECISIONS.md#d-038)).
+Looks the same as the web app (shared design tokens and icons, [D-041](../../documentation/DECISIONS.md#d-041)). Talks to the IPTV provider directly and keeps profiles, progress and the grouped library on the device ([D-038](../../documentation/DECISIONS.md#d-038), [D-088](../../documentation/DECISIONS.md#d-088)).
 
 ```mermaid
 flowchart TD
@@ -47,9 +47,9 @@ The player turns to landscape and hides the navigation bar on phones, and the sc
 | `name` | `APP_NAME` |
 | `slug` | `APP_SLUG` |
 | `android.package` | `APP_ANDROID_PACKAGE` |
-| `extra.*` | `APP_NAME`, `APP_SLUG`; optional `APP_API_BASE_URL` (prefills "My server"), `APP_PROVIDER_USER_AGENT` (from `BACKEND_PROVIDER_USER_AGENT`, default VLC), `APP_TV_DEBUG_REMOTE=1` (logs every remote event to logcat, used by the emulator CI build) |
+| `extra.*` | `APP_NAME`, `APP_SLUG`; optional `APP_PROVIDER_USER_AGENT` (default VLC), `APP_TV_DEBUG_REMOTE=1` (logs every remote event to logcat, used by the emulator CI build) |
 
-Direct mode needs no address. For "My server": real device `http://<PC LAN IP>:5080`, emulator `http://10.0.2.2:5080`. Plain HTTP is allowed (`usesCleartextTraffic`).
+Plain HTTP providers are allowed (`usesCleartextTraffic`).
 
 ## Commands
 

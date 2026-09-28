@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createApiClient } from '../api/apiClient';
-import { createHttpClient } from '../api/httpClient';
-import { createFakeBackend } from '../testing/fakeBackend';
+import { createFakeApi, createFakeBackend } from '../testing/fakeBackend';
 import { ALL_CATEGORIES_KEY, createCatalogStore } from './catalogStore';
 import { createPlayerStore } from './playerStore';
 
 function api() {
   const backend = createFakeBackend();
-  return { backend, api: createApiClient(createHttpClient({ baseUrl: 'http://api.test', fetch: backend.fetch })) };
+  return { backend, api: createFakeApi(backend) };
 }
 
 describe('catalog store', () => {

@@ -1,4 +1,4 @@
-# Offline flow: backend and provider are stopped before this runs. The app restores the cached session,
+# Offline flow: the provider (fake panel) is stopped before this runs. The app restores the cached session,
 # opens My Downloads and plays the download from private storage.
 appId: ${APP_ID}
 ---

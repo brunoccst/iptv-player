@@ -1,7 +1,7 @@
 import type { EpgListing } from '../api/types';
 import { intlLocale } from '../i18n/i18n';
 
-/** Guide column width. Matches the backend's default window alignment. */
+/** Guide column width; guide windows start on a half hour. */
 export const EPG_SLOT_MINUTES = 30;
 export const EPG_SLOT_MS = EPG_SLOT_MINUTES * 60_000;
 

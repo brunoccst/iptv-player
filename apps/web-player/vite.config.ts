@@ -76,12 +76,19 @@ export default defineConfig({
   envPrefix: ['VITE_', 'APP_'],
   server: {
     port: 5173,
-    // GitHub Codespaces: only the web port is opened; /api (backend) and /img (fake panel art) go through Vite. See DECISIONS.md#d-035.
+    // GitHub Codespaces: only the web port is opened, so the fake panel (:8090) goes through Vite: sign in with the
+    // page's own address as the server URL. See DECISIONS.md#d-035.
     ...(codespaces
       ? {
           allowedHosts: ['.app.github.dev'],
           hmr: { clientPort: 443 },
-          proxy: { '/api': 'http://localhost:5080', '/img': 'http://localhost:8090' },
+          // Stream addresses are /movie|series|live/<user>/<password>/<id>; the page's own routes never look like that.
+          proxy: Object.fromEntries(
+            ['^/player_api\\.php', '^/xmltv\\.php', '^/(movie|series|live)/[^/]+/[^/]+/', '^/img/'].map((route) => [
+              route,
+              'http://localhost:8090',
+            ]),
+          ),
         }
       : {}),
   },

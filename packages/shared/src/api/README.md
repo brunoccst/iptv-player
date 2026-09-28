@@ -2,15 +2,17 @@
 
 | File | Purpose |
 |------|---------|
-| `httpClient.ts` | `fetch` wrapper: base URL (string, or a function read per request), bearer token, JSON, timeout (30 s), `ApiError` mapping, 401 hook. |
-| `apiClient.ts` | `createApiClient()`: one function per backend endpoint (`auth`, `profiles`, `progress`, `catalog`, `epg`, `library`, `playback`, `health`). |
-| `types.ts` | Friendly aliases for generated schemas (`MasterCard`, `VariantInfo`, …), route unions, `ApiErrorCode`, `OperationResult`. |
-| `generated/` | `schema.ts` from openapi-typescript. Do not edit. |
+| `apiClient.ts` | `ApiClient`: everything the apps read and change (`auth`, `profiles`, `progress`, `watchlist`, `catalog`, `library`, `epg`, `playback`), and the list queries. Implemented by `direct/directApiClient.ts`; tests use `testing/fakeBackend.ts`. |
+| `types.ts` | The data types (`MasterCard`, `VariantInfo`, `ProgressDto`, …), section and kind unions, `ApiErrorCode`. |
+| `errors.ts` | `ApiError` (`status` like HTTP, 0 = no answer; `code`). |
 
 `ApiError.code` values:
 
-| Code | Source |
-|------|--------|
-| `validation_failed`, `invalid_provider_credentials`, `provider_credentials_rejected`, `provider_unavailable` | Backend problem body. |
-| `unauthorized`, `not_found`, `http_error` | HTTP status without a backend code. |
+| Code | Meaning |
+|------|---------|
+| `invalid_provider_credentials`, `provider_credentials_rejected` | The provider refused the login, or no longer accepts the saved one. |
+| `provider_unavailable` | The provider did not answer, or answered something unreadable (the message has the detail). |
+| `validation_failed` | A value the app cannot use (e.g. no server URL). |
+| `unauthorized` | Not signed in on this device. |
+| `not_found`, `http_error` | No such title; anything else. |
 | `network_error`, `timeout`, `aborted` | Client side (`status` = 0). |

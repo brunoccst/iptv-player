@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import type { ProgressDto } from '../api/types';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { createMemoryStorage } from '../stores/storage';
@@ -19,7 +19,7 @@ import {
   watchedRequest,
 } from './watched';
 
-const config = { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'T', appSlug: 't' };
 const entry = (itemId: string, position: number, extra: Partial<ProgressDto> = {}): ProgressDto => ({
   kind: 'movie',
   itemId,
@@ -74,7 +74,7 @@ async function setup(progress: ProgressDto[]) {
     backend.on('DELETE', `/api/profiles/p1/progress/movie/${id}`, { status: 204 });
     backend.on('DELETE', `/api/profiles/p1/progress/episode/${id}`, { status: 204 });
   }
-  const { stores, api } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });
+  const { stores, api } = createTestAppContext({ config, storage: createMemoryStorage(), backend });
   await stores.session.getState().login({ serverUrl: 's', username: 'u', password: 'p' });
   stores.session.getState().selectProfile('p1');
   await stores.progress.getState().load('p1');

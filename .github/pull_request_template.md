@@ -8,9 +8,8 @@ Which apps does this change? Every app should get a feature unless it does not a
 
 - [ ] TV (remote)
 - [ ] Phone (touch)
-- [ ] Web player (browser)
-- [ ] Desktop app (the web player; also check the desktop-only parts)
-- [ ] Not user-facing (tooling, docs, backend only)
+- [ ] Desktop app (the web player in `apps/web-player`; also check the desktop-only parts)
+- [ ] Not user-facing (tooling, docs, CI only)
 
 If this adds or changes something people see or use:
 

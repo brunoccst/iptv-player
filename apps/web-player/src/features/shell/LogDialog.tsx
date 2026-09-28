@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { appLog, t } from '@iptv/shared';
-import { stores } from '../../appContext';
 import { Modal } from '../../components/Modal';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
@@ -17,11 +16,10 @@ export function LogDialog({ onClose }: { onClose(): void }) {
   const entries = appLog.entries();
 
   const exportText = () => {
-    const connection = stores.connection?.getState();
     const { text, lines, omitted } = appLog.shareText(Number.MAX_SAFE_INTEGER);
     return [
       `${appConfig.appName} diagnostics log`,
-      `Saved ${new Date().toISOString()} · ${desktop ? `desktop ${desktop.version} (${desktop.platform})` : 'web'} · mode ${connection?.mode ?? 'server'}`,
+      `Saved ${new Date().toISOString()} · ${desktop ? `desktop ${desktop.version} (${desktop.platform})` : 'web'}`,
       `${lines} lines${omitted ? `, ${omitted} older left out` : ''}; repeats folded (credentials masked)`,
       '',
       text,

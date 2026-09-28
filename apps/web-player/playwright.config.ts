@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 import { E2E } from './e2e/stack';
 
-/** End-to-end tests against a real local stack (fake Xtream panel, backend, worker, production build). See e2e/README.md. */
+/** End-to-end tests: a production build that talks to the fake Xtream panel directly. See e2e/README.md. */
 export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,

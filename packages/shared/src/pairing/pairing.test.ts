@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
-import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
@@ -27,7 +26,6 @@ function phone() {
   return {
     secure: createMemoryStorage({
       [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'direct-x', account, profiles, activeProfileId: 'phone-p1' }),
-      [CONNECTION_STORAGE_KEY]: JSON.stringify({ mode: 'direct', serverUrl: '' }),
       [CREDENTIALS_KEY]: JSON.stringify({ serverUrl: 'http://panel/', username: 'demo', password: 'secret' }),
       [pinStorageKey('acc-1')]: '{"salt":"s","hash":"h"}',
     }),
@@ -75,7 +73,6 @@ describe('phone-to-TV pairing (D-060)', () => {
     const session = JSON.parse(tv.secure.data.get(SESSION_STORAGE_KEY)!);
     expect(session).toMatchObject({ token: 'direct-x', account, activeProfileId: null });
     expect(tv.secure.data.get(CREDENTIALS_KEY)).toContain('secret');
-    expect(tv.secure.data.get(CONNECTION_STORAGE_KEY)).toContain('direct');
     expect(tv.secure.data.get(pinStorageKey('acc-1'))).toBe('{"salt":"s","hash":"h"}');
     expect(JSON.parse(tv.data.data.get(watchlistKey('phone-kids'))!)).toHaveLength(1);
     expect(tv.data.data.get('settings.playback')).toBe('{"audioDecoder":"device"}');

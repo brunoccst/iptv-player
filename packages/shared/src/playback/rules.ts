@@ -13,7 +13,7 @@ export const COMPLETED_REMAINING_SECONDS = 120;
 
 /**
  * "Skip ahead" button: shown early in episodes (where intros usually are), no intro detection.
- * Providers give no intro markers and the backend does no processing. See DECISIONS.md#d-042.
+ * Providers give no intro markers. See DECISIONS.md#d-042.
  */
 export const SKIP_AHEAD_WINDOW = { start: 5, end: 90, minDuration: 600 } as const;
 /** Choices the "Skip ahead" button expands into, in seconds. */

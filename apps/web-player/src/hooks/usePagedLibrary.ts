@@ -5,7 +5,7 @@ import { useLibrary } from './stores';
 
 /**
  * Library titles loaded page by page: `loadMore()` fetches the next page (rows and grids call it near their end).
- * Nothing loads until `enabled` (rows wait until they scroll into view). Without `sort` the backend default applies.
+ * Nothing loads until `enabled` (rows wait until they scroll into view). Without `sort` the default order applies (D-049).
  */
 export function usePagedLibrary(
   section: LibrarySection,

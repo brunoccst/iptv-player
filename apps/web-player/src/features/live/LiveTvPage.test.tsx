@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubEnv('APP_NAME', 'Test App');
 vi.stubEnv('APP_SLUG', 'test-app');
-vi.stubEnv('APP_API_BASE_URL', 'http://api.test');
 
 const NOW = Date.parse('2026-09-23T12:10:00Z');
 const at = (minutes: number) => new Date(Date.parse('2026-09-23T12:00:00Z') + minutes * 60_000).toISOString();
@@ -56,7 +55,9 @@ describe('LiveTvPage (guide)', () => {
       }),
     );
     const { LiveTvPage } = await import('./LiveTvPage');
-    const { uiStore } = await import('../../appContext');
+    const { appContext, uiStore } = await import('../../appContext');
+    const { createFakeApi } = await import('../../../../../packages/shared/src/testing/fakeBackend');
+    appContext.replaceApi(createFakeApi({ fetch }));
     const play = vi.spyOn(uiStore.getState(), 'play').mockImplementation(() => {});
 
     render(<LiveTvPage />);

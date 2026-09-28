@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
@@ -16,10 +16,10 @@ async function setup() {
   const storage = createMemoryStorage({
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [profile('p1')], activeProfileId: null }),
   });
-  const { stores } = createAppContext({
-    config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+  const { stores } = createTestAppContext({
+    config: { appName: 'T', appSlug: 't' },
     storage,
-    fetch: backend.fetch,
+    backend,
   });
   await stores.session.getState().restore();
   stores.session.getState().selectProfile('p1');

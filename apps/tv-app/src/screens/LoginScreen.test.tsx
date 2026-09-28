@@ -1,10 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { i18nStore, setUiLanguage } from '@iptv/shared';
-import * as SecureStore from 'expo-secure-store';
 import { createFakePanel } from '../../../../packages/shared/src/testing/fakePanel';
-import { stores } from '../appContext';
+import { appContext, stores } from '../appContext';
 import { App } from '../App';
-import { connectionStore } from '../hooks';
 import { setupApp } from '../../test/utils';
 
 async function flush() {
@@ -22,16 +20,17 @@ async function fillLogin() {
 describe('LoginScreen (TV)', () => {
   afterEach(() => setUiLanguage('en'));
 
-  it('signs in directly with the provider by default, without any backend', async () => {
+  it('signs in directly with the provider', async () => {
     setupApp({ signedIn: false });
-    await SecureStore.deleteItemAsync('connection');
-    connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });
+    appContext.replaceApi(null);
     const panel = createFakePanel();
     globalThis.fetch = panel.fetch;
 
     await render(<App />);
     await flush();
+    // No server choice or address (D-088).
     expect(screen.queryByTestId('login-backend')).toBeNull();
+    expect(screen.queryByTestId('login-mode-server')).toBeNull();
     await fillLogin();
     await fireEvent.press(screen.getByTestId('login-submit'));
     await flush();
@@ -39,13 +38,11 @@ describe('LoginScreen (TV)', () => {
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
     expect(stores.session.getState().account).toMatchObject({ serverUrl: 'http://panel.test:8080/', username: 'demo' });
     expect(panel.calls.every((url) => url.startsWith('http://panel.test:8080/player_api.php?'))).toBe(true);
-    expect(JSON.parse((await SecureStore.getItemAsync('connection'))!)).toEqual({ mode: 'direct', serverUrl: '' });
   });
 
   it('Enter on the password field signs in', async () => {
     setupApp({ signedIn: false });
-    await SecureStore.deleteItemAsync('connection');
-    connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });
+    appContext.replaceApi(null);
     globalThis.fetch = createFakePanel().fetch;
 
     await render(<App />);
@@ -56,28 +53,9 @@ describe('LoginScreen (TV)', () => {
     expect(await screen.findByTestId('home-screen')).toBeTruthy();
   });
 
-  it('goes through the backend when "My server" is chosen', async () => {
-    const backend = setupApp({ signedIn: false });
-    connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });
-    backend.on('POST', '/api/auth/login', { status: 401, body: { code: 'invalid_provider_credentials' } });
-
-    await render(<App />);
-    await flush();
-    await fireEvent.press(screen.getByTestId('login-mode-server'));
-    expect(screen.getByTestId('login-submit')).toBeDisabled();
-    await fireEvent.changeText(screen.getByTestId('login-backend'), 'http://home-pc:5080/');
-    await fillLogin();
-    await fireEvent.press(screen.getByTestId('login-submit'));
-    await flush();
-
-    expect(connectionStore.getState()).toMatchObject({ mode: 'server', serverUrl: 'http://home-pc:5080' });
-    expect(backend.calls.find((call) => call.url.pathname === '/api/auth/login')?.url.origin).toBe('http://home-pc:5080');
-  });
-
   it('the app language (D-084): chosen on the sign-in page, then per profile from the account menu', async () => {
     setupApp({ signedIn: false });
-    await SecureStore.deleteItemAsync('connection');
-    connectionStore.setState({ mode: 'direct', serverUrl: '', loaded: true });
+    appContext.replaceApi(null);
     globalThis.fetch = createFakePanel().fetch;
 
     await render(<App />);

@@ -92,6 +92,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-085](#d-085) | 2026-09-27 | Web and desktop: category chips on one line with Show all; row titles take the mouse |
 | [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
 | [D-087](#d-087) | 2026-09-27 | Subtitles, audio and version: what you last picked is what every title starts with |
+| [D-088](#d-088) | 2026-09-28 | No server: the apps only talk to the provider directly; backend and Python normalizer removed |
 
 ---
 
@@ -848,6 +849,8 @@ Storage on TV: credentials in expo-secure-store; profiles, progress and the libr
 - Background refresh every 24 h instead of 12 h: grouping a big catalog takes about 2 minutes on a phone.
 - Playback falls back to the stream server named in the login reply (`server_info`) when the portal address fails. Some panels answer API calls on one host and streams on another.
 
+Update 2026-09-28: "My server" and the backend are removed; direct mode is the only mode ([D-088](#d-088)).
+
 ## D-039
 
 **On-device diagnostics log with manual sharing** — 2026-09-24 (requested by owner: export the log for analysis)
@@ -1547,3 +1550,20 @@ Decision:
 - **Version by language, then quality.** Picking a version in details or in the player keeps its audio languages and quality. A title without a version picked for it starts with one in that language, the same quality first (English 4K → English 4K, else English in another quality); without one in that language, the best version as before (`preferredVariant`, used by `selectVariant`). A version picked for a title stays that title's; resuming another version still preselects it.
 
 Limits: kept on each device, not synced between devices or through the server.
+
+## D-088
+
+**No server: the apps only talk to the provider directly; backend and Python normalizer removed** — 2026-09-28 (requested by owner)
+
+Context: the owner uses only the TV, phone and desktop apps, which have talked to the provider directly by default since D-038 (D-071 for desktop). The server (.NET backend, Python title normalizer, OpenAPI types) was only needed for the web player in a plain browser and the optional "My server" sign-in. It doubled the work on library rules (the same change in Python, C# and TypeScript, e.g. D-086) and kept three languages in the project, which made maintenance by hand harder.
+
+Decision:
+- **One way to connect.** `createAppContext` always builds the direct client (`direct.dataStorage` is required); the connection store, the hybrid client and the HTTP API client are gone. Sign-in on TV, phone and desktop has no "IPTV provider / My server" choice or server address; About and the diagnostics log no longer name a connection. `APP_API_BASE_URL` and the `api_base_url` input of `tv-apk.yml` are removed; the provider User-Agent is `APP_PROVIDER_USER_AGENT`.
+- **Existing installs.** A login saved through a server has no provider credentials on the device: the app opens the sign-in screen once. The saved connection choice is deleted at startup; pairing and backups no longer carry it.
+- **Types without the server.** The data types (`api/types.ts`) and `ApiClient` (`api/apiClient.ts`) are written by hand; `ApiError` lives in `api/errors.ts`.
+- **Removed:** `backend/`, `services/title-normalizer/` (its JSON cases moved to `packages/shared/src/direct/normalizer/cases/`), `packages/shared/openapi` and the type generator, the .NET and Python CI steps, `dotnet format`, and the server settings in `.env`. Ruff now only checks the fake panel and `scripts/*.py` (`ruff.toml`).
+- **Tests.** Unit tests describe the app's data as routes on a fake (`testing/fakeBackend.ts`: `createFakeApi`, `createTestAppContext`; the TV and web apps plug it in with `appContext.replaceApi`), so the existing tests kept their shape. The web end-to-end tests and the TV emulator flows run against the fake panel only; the panel now allows web pages to read its answers (CORS) so the web player can use it from a browser.
+- **The browser.** The web player is the desktop app's screens. In a plain browser it also talks to the provider directly, with its data in localStorage, which only works against the fake panel (development, Codespaces, end-to-end tests): real providers do not allow it.
+
+Consequences: one implementation of every library rule (TypeScript, `packages/shared`); the guide comes from each channel's short EPG (the server's XMLTV parser is gone); no sync between devices other than pairing (D-060, D-072). The cloud deployment backlog item is dropped.
+

@@ -1,5 +1,5 @@
 import type { ApiClient, EpgGridQuery, LibraryListQuery } from '../api/apiClient';
-import { ApiError } from '../api/httpClient';
+import { ApiError } from '../api/errors';
 import type {
   AccountDto,
   CatalogSection,
@@ -31,7 +31,7 @@ import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
 
-/** `ApiClient` that runs on the device and talks to the provider directly (D-038). Same results as the backend endpoints. */
+/** The app's `ApiClient`: runs on the device and talks to the provider directly (D-038, D-088). */
 export interface DirectApiClientOptions {
   appName: string;
   /** Credentials. TV: expo-secure-store. */
@@ -88,7 +88,7 @@ const MAX_PROFILE_NAME = 50;
 const notFound = () => new ApiError(404, 'not_found', 'Not found.');
 const validation = (message: string) => new ApiError(400, 'validation_failed', message);
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-/** Ordinal compare, like the backend's SQLite ORDER BY and StringComparer.Ordinal. */
+/** Ordinal compare (code units), so the order does not depend on the device's locale. */
 const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 /** Startup waits this long for the provider before showing the app offline. */
 const ME_TIMEOUT_MS = 10_000;
@@ -120,7 +120,7 @@ function inLanguages(scope: Master[], languages: string[], categoryIds: string[]
   return result;
 }
 
-/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (same rule as the backend, D-063, D-067). */
+/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063, D-067). */
 const languageCodes = (languages: string | null | undefined) => [
   ...new Set(
     (languages ?? '')
@@ -130,7 +130,7 @@ const languageCodes = (languages: string | null | undefined) => [
   ),
 ];
 
-/** Same order as the backend (D-049): missing values last, then title, year and id. */
+/** D-049: missing values last, then title, year and id. */
 const defaultOrder = (sort: LibrarySort): SortOrder => (sort === 'title' ? 'asc' : 'desc');
 const sortValue = (master: Master, sort: LibrarySort) => (sort === 'added' ? master.addedAt : master.releaseKey);
 function compareMasters(sort: LibrarySort, order: SortOrder) {
@@ -448,7 +448,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const worker = async () => {
       for (let channel = queue.shift(); channel; channel = queue.shift()) {
         const id = channel.id;
-        // Guide data is optional: a failed channel is cached as "no guide", like the backend.
+        // Guide data is optional: a failed channel is cached as "no guide".
         const programmes = await cached(`epg:${stored.account.id}:${id}`, SHORT_EPG_CACHE_MS, () =>
           client.shortEpg(id, SHORT_EPG_LIMIT).catch(() => [] as EpgListing[]),
         );
@@ -494,8 +494,6 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       xtream = null;
       cache.clear();
     },
-
-    health: async () => ({ status: 'ok', app: options.appName }),
 
     auth: {
       async login(request: LoginRequest) {

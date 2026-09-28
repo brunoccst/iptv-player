@@ -26,22 +26,18 @@ function createWebStorage(prefix: string): KeyValueStorage {
 const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
 /**
- * One storage holds everything on the web; the user-data backup reads it (D-056). The desktop app (D-071) keeps it
- * encrypted by the operating system and talks to the provider directly, like the TV app (D-038); it sets the player
- * User-Agent itself, so none is sent from the page.
+ * The page talks to the IPTV provider directly, like the TV app (D-038, D-071, D-088). In the desktop app, sign-in and
+ * password are encrypted by the operating system and the library goes to files; the app sets the provider User-Agent
+ * itself, so none is sent from the page. In a plain browser (development and the end-to-end tests only: providers do
+ * not let a web page read their answers) both live in localStorage.
  */
 export const storage = desktop ? desktop.secure : createWebStorage(appConfig.appSlug);
-export const appContext = createAppContext({
-  config: appConfig,
-  storage,
-  ...(desktop ? { direct: { dataStorage: desktop.data } } : {}),
-});
+const dataStorage = desktop ? desktop.data : createWebStorage(`${appConfig.appSlug}-data`);
+export const appContext = createAppContext({ config: appConfig, storage, direct: { dataStorage } });
 export const { stores, api } = appContext;
 
-/** What the user-data backup reads and writes (D-056); the desktop app also has the TV app's direct-mode data. */
-export const backupStorages: BackupStorages = desktop
-  ? { secure: storage, data: desktop.data, settingsKeys: [PROFILE_PREFS_KEY] }
-  : { secure: storage };
+/** What the user-data backup reads and writes (D-056). */
+export const backupStorages: BackupStorages = { secure: storage, data: dataStorage, settingsKeys: [PROFILE_PREFS_KEY] };
 
 export const downloadsStore = createDownloadsStore({
   api,

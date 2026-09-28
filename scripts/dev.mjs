@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// One-command local stack: backend + title-normalizer worker + web player (+ fake panel with --fake).
-// Usage: npm run dev:all [-- --fake] [-- --no-web]. Ctrl+C stops everything. See DECISIONS.md#d-034.
+// One-command local start: the fake Xtream panel and the web player's dev server, which talks to the panel directly
+// (D-088). Usage: npm run dev:all [-- --no-web]. Sign in at http://localhost:5173 with http://localhost:8090, demo / demo.
+// Ctrl+C stops everything. See DECISIONS.md#d-034.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -9,26 +10,18 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = new Set(process.argv.slice(2));
 const isWindows = process.platform === 'win32';
-const venvPython = path.join(root, 'services/title-normalizer/.venv', isWindows ? 'Scripts/python.exe' : 'bin/python');
-const COLORS = { panel: 35, backend: 36, worker: 33, web: 32 };
+const python = isWindows ? 'python' : 'python3';
+const COLORS = { panel: 35, web: 32 };
 
 function fail(message) {
   console.error(`\n[dev] ${message}\n`);
   process.exit(1);
 }
 
-function has(command) {
-  return spawnSync(command, ['--version'], { stdio: 'ignore', shell: isWindows }).status === 0;
-}
-
 // Preflight: clear messages instead of a wall of stack traces.
 if (!existsSync(path.join(root, 'node_modules'))) fail('Run `npm install` first.');
-if (!has('dotnet')) fail('The .NET 10 SDK is missing (`dotnet` not on PATH).');
-if (!existsSync(venvPython)) {
-  fail(
-    'Missing the worker venv. Create it once:\n  cd services/title-normalizer && python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt',
-  );
-}
+if (spawnSync(python, ['--version'], { stdio: 'ignore', shell: isWindows }).status !== 0)
+  fail(`Python 3 is missing (\`${python}\` not on PATH); the fake panel needs it.`);
 
 const children = [];
 let stopping = false;
@@ -44,7 +37,7 @@ function prefix(name, stream, target) {
 }
 
 function start(name, command, commandArgs, cwd) {
-  // Own process group (POSIX) so stopping also ends grandchildren (`dotnet run` → app, npm → vite).
+  // Own process group (POSIX) so stopping also ends grandchildren (npm → vite).
   const child = spawn(command, commandArgs, { cwd, stdio: ['ignore', 'pipe', 'pipe'], detached: !isWindows, shell: isWindows });
   prefix(name, child.stdout, process.stdout);
   prefix(name, child.stderr, process.stderr);
@@ -74,19 +67,11 @@ function stop(exitCode = 0) {
 process.on('SIGINT', () => stop(0));
 process.on('SIGTERM', () => stop(0));
 
-if (args.has('--fake')) {
-  const panel = path.join(root, 'tools/fake-xtream-server');
-  if (!existsSync(path.join(panel, 'media')))
-    console.warn('[dev] No fake panel media yet: run `python tools/fake-xtream-server/generate_media.py` for playable videos.');
-  start('panel', venvPython, ['server.py'], panel);
-}
-start('backend', 'dotnet', ['run', '--project', 'src/Backend.Api'], path.join(root, 'backend'));
-start('worker', venvPython, ['-m', 'title_normalizer'], path.join(root, 'services/title-normalizer'));
+const panel = path.join(root, 'tools/fake-xtream-server');
+if (!existsSync(path.join(panel, 'media')))
+  console.warn('[dev] No fake panel media yet: run `python tools/fake-xtream-server/generate_media.py` for playable videos.');
+start('panel', python, ['server.py'], panel);
 if (!args.has('--no-web')) start('web', 'npm', ['run', 'dev', '--workspace=@iptv/web-player'], root);
 
-const urls = [
-  args.has('--no-web') ? null : 'Web http://localhost:5173',
-  'API http://localhost:5080',
-  args.has('--fake') ? 'fake panel http://localhost:8090 (demo / demo)' : null,
-];
+const urls = [args.has('--no-web') ? null : 'Web http://localhost:5173', 'fake panel http://localhost:8090 (demo / demo)'];
 console.log(`[dev] ${urls.filter(Boolean).join(' · ')} · Ctrl+C stops all.`);

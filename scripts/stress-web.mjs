@@ -1,5 +1,5 @@
 // UI stress test for the web grid (NEXT-STEPS "UI stress tests", D-048).
-// Start the stack with a huge category: FAKE_PANEL_STRESS=5000 npm run dev:all -- --fake
+// Start with a huge category: FAKE_PANEL_STRESS=5000 npm run dev:all
 // Then: node scripts/stress-web.mjs [http://localhost:5173]
 // Prints, every 50 scroll steps: cards in the DOM, DOM nodes, long tasks and frame times (p50/p95) while scrolling.
 import { chromium } from 'playwright';

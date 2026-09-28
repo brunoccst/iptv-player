@@ -1,6 +1,6 @@
 # App parity
 
-All apps share one look (the web design, D-041) and the same features where the device allows. What differs is how you reach them: a TV remote, a phone's touch screen, or a mouse and keyboard (web player in a browser, desktop app). This table is the checklist; update it with every feature (D-079).
+All apps share one look (the web design, D-041) and the same features where the device allows. What differs is how you reach them: a TV remote, a phone's touch screen, or a mouse and keyboard (the desktop app, which shows the web player; D-088). This table is the checklist; update it with every feature (D-079).
 
 Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row names its backlog item, `Parity: …`, in [NEXT-STEPS](NEXT-STEPS.md))
 

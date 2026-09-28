@@ -1,4 +1,4 @@
-/** Tag vocabularies. Port of services/title-normalizer/title_normalizer/tags.py; keep both in step (D-038). */
+/** Tag vocabularies for the title parser (D-017, D-038). */
 type Table = Record<string, string>;
 
 export const QUALITY: Table = {

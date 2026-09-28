@@ -26,7 +26,7 @@ stateDiagram-v2
   idle --> restoring: restore()
   restoring --> anonymous: no stored session / 401
   restoring --> authenticated: me + profiles OK
-  restoring --> authenticated: backend unreachable (offline = true)
+  restoring --> authenticated: provider unreachable (offline = true)
   anonymous --> authenticated: login() OK
   authenticated --> anonymous: logout() / any 401
 ```

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend } from '../testing/fakeBackend';
 import type { MasterDetails } from '../api/types';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
 import { describeLibraryProgress, isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
 
-const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'Test', appSlug: 'test' };
 
 const variant = (streamId: string) => ({
   streamId,
@@ -37,7 +37,7 @@ function setup() {
   const storage = createMemoryStorage({
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }),
   });
-  const context = createAppContext({ config, storage, fetch: backend.fetch });
+  const context = createTestAppContext({ config, storage, backend });
   return { backend, context, library: context.stores.library };
 }
 
@@ -153,7 +153,7 @@ describe('describeLibraryProgress', () => {
     expect(describeLibraryProgress([status('movie', { masterCount: 5 })])).toEqual([]);
   });
 
-  it('describes direct-mode stages and backend job states', () => {
+  it('describes the library stages and job states', () => {
     expect(
       describeLibraryProgress([
         status('movie', { jobStatus: 'processing', stage: 'grouping', itemCount: 12345, parsedCount: 4000 }),

@@ -3,7 +3,7 @@ import { compactKey, parseTitle, parseYear, type ParsedTitle } from './parser';
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
 
-/** Raw provider items → master titles with variants. Port of title_normalizer/pipeline.py (D-038). Pure: no I/O. */
+/** Raw provider items → master titles with variants (D-017, D-038). Pure: no I/O. */
 export interface NormalizerItem {
   id?: unknown;
   name?: unknown;
@@ -54,7 +54,7 @@ export interface Master {
 const text = (value: unknown) => (value === null || value === undefined ? '' : String(value).trim());
 const optional = (value: unknown) => text(value) || null;
 const rank = (quality: string) => tags.QUALITY_RANK[quality] ?? 0;
-/** Python compares str by code point; localeCompare would not. */
+/** Compares by code point; localeCompare would depend on the locale. */
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function buildMasters(accountId: string, mediaKind: string, items: NormalizerItem[]): Master[] {
@@ -70,8 +70,7 @@ export function tmdbId(item: NormalizerItem): string | null {
 
 /**
  * Joins name groups that share a TMDB id, e.g. "La Casa de Papel" and "Money Heist" (D-065). A shared id only joins
- * groups whose years agree (or are unknown): providers sometimes reuse an id for a remake or get it wrong. Port of
- * `merge_by_tmdb` in pipeline.py.
+ * groups whose years agree (or are unknown): providers sometimes reuse an id for a remake or get it wrong.
  */
 export function mergeByTmdb(groups: number[][], tmdbIds: (string | null)[], years: (number | null)[]): number[][] {
   const parent = groups.map((_, index) => index);
@@ -196,7 +195,7 @@ export function releaseKey(releaseDate: string | null, year: number | null): num
   return year ? year * 10000 : null;
 }
 
-/** Stable across re-syncs while the group's key and year stay the same. Same hash as the Python normalizer. */
+/** Stable across re-syncs while the group's key and year stay the same. Saved libraries and progress refer to it. */
 export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
   sha1Hex(`${accountId}|${mediaKind}|${key}|${year ?? ''}`).slice(0, 20);
 

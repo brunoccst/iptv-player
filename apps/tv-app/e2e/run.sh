@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs the Maestro flows (server mode, offline, direct mode) against an installed APK. Expects the local stack from scripts/start-e2e-stack.sh.
+# Runs the Maestro flows (main, offline, fresh sign-in, holding Right) against an installed APK. Expects the fake panel
+# from scripts/start-e2e-stack.sh.
 # Usage: apps/tv-app/e2e/run.sh <output-dir> [phone]   ("phone": only the phone flow; needs the fake panel)
 set -euo pipefail
 OUT="${1:-maestro-output}"
@@ -46,7 +47,7 @@ run_flow() {
 
 # Phone emulator (touch and the on-screen keyboard): only the phone flow, against the fake panel.
 if [ "${2:-}" = "phone" ]; then
-  curl -sf "http://localhost:8091/player_api.php" > /dev/null || "$HERE/../../../scripts/start-e2e-stack.sh" panel
+  curl -sf "http://localhost:8091/player_api.php" > /dev/null || "$HERE/../../../scripts/start-e2e-stack.sh"
   # A system dialog ("Pixel Launcher isn't responding") once covered the app on a freshly booted emulator.
   adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   run_flow 04-phone-search
@@ -55,21 +56,21 @@ fi
 
 run_flow 01-online
 
-# Offline: stop provider and backend, then relaunch.
-"$HERE/../../../scripts/stop-e2e-stack.sh" backend panel
+# Offline: stop the provider, then relaunch.
+"$HERE/../../../scripts/stop-e2e-stack.sh"
 run_flow 02-offline
 
-# Direct mode: only the provider runs; the app talks to it without the backend (DECISIONS.md#d-038).
+# A fresh sign-in once the provider is back (DECISIONS.md#d-038).
 sleep 1
-"$HERE/../../../scripts/start-e2e-stack.sh" panel
+"$HERE/../../../scripts/start-e2e-stack.sh"
 run_flow 03-direct
 
 # Holding Right in a Home row (D-076): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
 # `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (a held key
 # repeats every ~50 ms): 16 presses reach the row's end, 40 keep going past it.
-"$HERE/../../../scripts/stop-e2e-stack.sh" panel
+"$HERE/../../../scripts/stop-e2e-stack.sh"
 sleep 1
-FAKE_PANEL_STRESS=200 "$HERE/../../../scripts/start-e2e-stack.sh" panel
+FAKE_PANEL_STRESS=200 "$HERE/../../../scripts/start-e2e-stack.sh"
 focused_view() {
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml 2>/dev/null | tr '>' '\n' | grep 'focused="true"' | head -3 || true
 }
@@ -83,7 +84,7 @@ for presses in 16 40; do
 done
 
 # Back to the normal panel for the phone flow.
-"$HERE/../../../scripts/stop-e2e-stack.sh" panel
+"$HERE/../../../scripts/stop-e2e-stack.sh"
 sleep 1
-"$HERE/../../../scripts/start-e2e-stack.sh" panel
+"$HERE/../../../scripts/start-e2e-stack.sh"
 [ -z "$hold_failed" ] || { echo "Holding Right left the row or missed \"See all\" (see above)."; exit 1; }

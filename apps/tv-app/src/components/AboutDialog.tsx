@@ -1,6 +1,6 @@
 import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { TvMedia } from '../../modules/tv-media';
-import { stores, updater } from '../appContext';
+import { updater } from '../appContext';
 import { appConfig, buildInfo, updateRepo } from '../config';
 import { colors, fonts } from '../theme';
 import { versionLabel } from '../update/updates';
@@ -29,15 +29,10 @@ const ffmpegAudio = () => {
  */
 export function AboutDialog({ onClose }: { onClose(): void }) {
   const version = installedVersion();
-  const connection = stores.connection?.getState();
   const rows: [string, string][] = [
     [t('Version'), versionLabel(version)],
     [t('Built from'), buildInfo.commit ? buildInfo.commit.slice(0, 7) : t('a local build')],
     ...(buildInfo.date ? ([[t('Built on'), new Date(buildInfo.date).toLocaleString(intlLocale())]] as [string, string][]) : []),
-    [
-      t('Connection'),
-      connection?.mode === 'server' ? t('My server ({address})', { address: connection.serverUrl }) : t('Directly to the IPTV provider'),
-    ],
     [t('Dolby / DTS audio (FFmpeg)'), ffmpegAudio() ? t('included') : t('not included')],
     ['Android', String(Platform.Version)],
   ];

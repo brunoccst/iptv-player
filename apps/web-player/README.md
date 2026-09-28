@@ -1,6 +1,6 @@
 # @iptv/web-player
 
-Desktop browser client. React 19 + Vite + TypeScript + hls.js. Netflix-style UI, mouse/keyboard controls, encrypted offline downloads.
+The desktop app's screens (`apps/desktop` wraps them). React 19 + Vite + TypeScript + hls.js. Netflix-style UI, mouse/keyboard controls, encrypted offline downloads. Talks to the IPTV provider directly (D-071, D-088); in a plain browser only the fake panel answers (providers do not let web pages read their answers), so the browser is for development and tests.
 
 ```mermaid
 flowchart TD
@@ -11,7 +11,7 @@ flowchart TD
   SHELL --> DETAILS[DetailsModal]
   SHELL --> PLAYER[PlayerOverlay - lazy chunk with hls.js]
   PLAYER --> ENGINE[PlaybackEngine]
-  ENGINE -->|online| API[(backend relay)]
+  ENGINE -->|online| IPTV[(IPTV provider)]
   ENGINE -->|downloaded| SW[Service Worker /__offline__/]
   SW --> STORE[(Cache API: AES-GCM chunks + IndexedDB: records, keys)]
 ```
@@ -19,7 +19,6 @@ flowchart TD
 ## Config
 
 Reads `APP_*` keys from the repo root `.env` (Vite `envDir`). Override locally in root `.env.local`.
-The backend must allow the web origin in `BACKEND_CORS_ORIGINS` (defaults include `:5173` and `:4173`).
 
 ## Commands
 
@@ -29,16 +28,14 @@ npm run build --workspace=@iptv/web-player      # typecheck + build to dist/ (in
 npm run preview --workspace=@iptv/web-player    # serve dist/ on http://localhost:4173
 npm run typecheck --workspace=@iptv/web-player  # app + Service Worker (tsconfig.sw.json)
 npm run test --workspace=@iptv/web-player       # Vitest unit/component tests
-npm run test:e2e --workspace=@iptv/web-player   # Playwright against a real local stack (see e2e/README.md)
+npm run test:e2e --workspace=@iptv/web-player   # Playwright against the fake panel (see e2e/README.md)
 ```
 
 ## Try it without an IPTV subscription
 
 ```bash
-cd tools/fake-xtream-server && python generate_media.py && python server.py   # panel on :8090
-npm run backend:run                                                             # API on :5080
-cd services/title-normalizer && . .venv/bin/activate && python -m title_normalizer
-npm run dev:web                                                                 # sign in: http://localhost:8090 / demo / demo
+python tools/fake-xtream-server/generate_media.py   # test videos, once
+npm run dev:all                                      # fake panel :8090 + web :5173; sign in: http://localhost:8090 / demo / demo
 ```
 
 ## Player controls

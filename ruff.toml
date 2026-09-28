@@ -1,0 +1,8 @@
+# Ruff (lint and format) for the Python tools: the fake Xtream panel and scripts/*.py.
+line-length = 140
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# Line length is the formatter's job; long string literals (SVG) stay on one line.
+ignore = ["E501"]

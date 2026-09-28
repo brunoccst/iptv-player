@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient } from '../api/apiClient';
-import type { ApiError } from '../api/httpClient';
+import type { ApiError } from '../api/errors';
 import type { PlaybackInfo, PlaybackKind } from '../api/types';
 import { toApiError } from './resource';
 

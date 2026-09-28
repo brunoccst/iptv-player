@@ -1,14 +1,27 @@
-import type { HttpClient } from './httpClient';
 import type {
+  AccountDto,
   CatalogSection,
+  EpgGrid,
+  LibraryPage,
   LibrarySection,
   LibrarySort,
+  LibraryStatus,
+  LiveChannel,
   LoginRequest,
-  OperationResult,
+  LoginResponse,
+  MasterDetails,
+  MediaCategory,
+  MovieDetails,
+  MovieSummary,
+  PlaybackInfo,
   PlaybackKind,
+  ProfileDto,
   ProfileRequest,
+  ProgressDto,
   ProgressKind,
   ProgressRequest,
+  SeriesDetails,
+  SeriesSummary,
   SortOrder,
   WatchlistDto,
   WatchlistRequest,
@@ -33,7 +46,7 @@ export interface LibraryListQuery {
   languageCategoryIds?: string[] | null;
 }
 
-/** `from` is an ISO timestamp; the backend defaults it to the current half hour. */
+/** `from` is an ISO timestamp; default: the current half hour. */
 export interface EpgGridQuery {
   categoryId?: string | null;
   from?: string | null;
@@ -44,106 +57,54 @@ export interface EpgGridQuery {
   categoryIds?: string[] | null;
 }
 
-const segment = encodeURIComponent;
-/** Lists travel as one comma-separated parameter; absent stays absent. */
-const withCategoryIds = <T extends { categoryIds?: string[] | null }>({ categoryIds, ...rest }: T) => ({
-  ...rest,
-  categoryIds: categoryIds ? categoryIds.join(',') : undefined,
-});
-
-/** Typed wrapper for every backend endpoint. Return types come from the generated OpenAPI operations. */
-export function createApiClient(http: HttpClient) {
-  const get = <T>(path: string, query?: Record<string, string | number | null | undefined>, signal?: AbortSignal) =>
-    http.request<T>('GET', path, { query, signal });
-
-  return {
-    health: (signal?: AbortSignal) => get<OperationResult<'getHealth'>>('/api/health', undefined, signal),
-
-    auth: {
-      login: (request: LoginRequest) => http.request<OperationResult<'login'>>('POST', '/api/auth/login', { body: request }),
-      logout: () => http.request<OperationResult<'logout', 204>>('POST', '/api/auth/logout'),
-      me: (signal?: AbortSignal) => get<OperationResult<'getMe'>>('/api/auth/me', undefined, signal),
-    },
-
-    profiles: {
-      list: (signal?: AbortSignal) => get<OperationResult<'listProfiles'>>('/api/profiles', undefined, signal),
-      create: (request: ProfileRequest) => http.request<OperationResult<'createProfile', 201>>('POST', '/api/profiles', { body: request }),
-      update: (profileId: string, request: ProfileRequest) =>
-        http.request<OperationResult<'updateProfile'>>('PUT', `/api/profiles/${segment(profileId)}`, { body: request }),
-      remove: (profileId: string) => http.request<OperationResult<'deleteProfile', 204>>('DELETE', `/api/profiles/${segment(profileId)}`),
-    },
-
-    progress: {
-      list: (profileId: string, limit?: number, signal?: AbortSignal) =>
-        get<OperationResult<'listProgress'>>(`/api/profiles/${segment(profileId)}/progress`, { limit }, signal),
-      save: (profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest) =>
-        http.request<OperationResult<'saveProgress'>>('PUT', `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`, {
-          body: request,
-        }),
-      remove: (profileId: string, kind: ProgressKind, itemId: string) =>
-        http.request<OperationResult<'deleteProgress', 204>>(
-          'DELETE',
-          `/api/profiles/${segment(profileId)}/progress/${kind}/${segment(itemId)}`,
-        ),
-    },
-
-    /** "My List" per profile (D-055). */
-    watchlist: {
-      list: (profileId: string, signal?: AbortSignal) =>
-        get<WatchlistDto[]>(`/api/profiles/${segment(profileId)}/watchlist`, undefined, signal),
-      add: (profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest) =>
-        http.request<WatchlistDto>('PUT', `/api/profiles/${segment(profileId)}/watchlist/${section}/${segment(masterId)}`, {
-          body: request,
-        }),
-      remove: (profileId: string, section: LibrarySection, masterId: string) =>
-        http.request<OperationResult<'removeFromWatchlist', 204>>(
-          'DELETE',
-          `/api/profiles/${segment(profileId)}/watchlist/${section}/${segment(masterId)}`,
-        ),
-    },
-
-    catalog: {
-      categories: (section: CatalogSection, signal?: AbortSignal) =>
-        get<OperationResult<'listMovieCategories'>>(`/api/catalog/${section}/categories`, undefined, signal),
-      liveChannels: (categoryId?: string | null, signal?: AbortSignal) =>
-        get<OperationResult<'listLiveChannels'>>('/api/catalog/live/channels', { categoryId }, signal),
-      movies: (categoryId?: string | null, signal?: AbortSignal) =>
-        get<OperationResult<'listMovies'>>('/api/catalog/movies', { categoryId }, signal),
-      movie: (movieId: string, signal?: AbortSignal) =>
-        get<OperationResult<'getMovie'>>(`/api/catalog/movies/${segment(movieId)}`, undefined, signal),
-      series: (categoryId?: string | null, signal?: AbortSignal) =>
-        get<OperationResult<'listSeries'>>('/api/catalog/series', { categoryId }, signal),
-      seriesDetails: (seriesId: string, signal?: AbortSignal) =>
-        get<OperationResult<'getSeries'>>(`/api/catalog/series/${segment(seriesId)}`, undefined, signal),
-    },
-
-    library: {
-      sync: () => http.request<OperationResult<'syncLibrary', 202>>('POST', '/api/library/sync'),
-      status: (signal?: AbortSignal) => get<OperationResult<'getLibraryStatus'>>('/api/library/status', undefined, signal),
-      list: (section: LibrarySection, query: LibraryListQuery = {}, signal?: AbortSignal) =>
-        get<OperationResult<'listLibrary'>>(
-          `/api/library/${section}`,
-          withCategoryIds({
-            ...query,
-            languageCategoryIds: query.languageCategoryIds ? query.languageCategoryIds.join(',') : undefined,
-          }),
-          signal,
-        ),
-      get: (section: LibrarySection, masterId: string, signal?: AbortSignal) =>
-        get<OperationResult<'getLibraryItem'>>(`/api/library/${section}/${segment(masterId)}`, undefined, signal),
-    },
-
-    epg: {
-      grid: (query: EpgGridQuery = {}, signal?: AbortSignal) =>
-        get<OperationResult<'getEpgGrid'>>('/api/epg', withCategoryIds(query), signal),
-      refresh: () => http.request<OperationResult<'refreshEpg', 202>>('POST', '/api/epg/refresh'),
-    },
-
-    playback: {
-      get: (kind: PlaybackKind, id: string, container?: string | null, signal?: AbortSignal) =>
-        get<OperationResult<'getPlayback'>>(`/api/playback/${kind}/${segment(id)}`, { container }, signal),
-    },
+/**
+ * Everything the apps read and change. `createDirectApiClient` implements it by talking to the IPTV provider and
+ * keeping profiles, progress and the grouped library on the device (D-038, D-088). Tests use a fake
+ * (`testing/fakeBackend.ts`).
+ */
+export interface ApiClient {
+  auth: {
+    login(request: LoginRequest): Promise<LoginResponse>;
+    logout(): Promise<void>;
+    me(signal?: AbortSignal): Promise<AccountDto>;
+  };
+  profiles: {
+    list(signal?: AbortSignal): Promise<ProfileDto[]>;
+    create(request: ProfileRequest): Promise<ProfileDto>;
+    update(profileId: string, request: ProfileRequest): Promise<ProfileDto>;
+    remove(profileId: string): Promise<void>;
+  };
+  progress: {
+    list(profileId: string, limit?: number, signal?: AbortSignal): Promise<ProgressDto[]>;
+    save(profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest): Promise<ProgressDto>;
+    remove(profileId: string, kind: ProgressKind, itemId: string): Promise<void>;
+  };
+  /** "My List" per profile (D-055). */
+  watchlist: {
+    list(profileId: string, signal?: AbortSignal): Promise<WatchlistDto[]>;
+    add(profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest): Promise<WatchlistDto>;
+    remove(profileId: string, section: LibrarySection, masterId: string): Promise<void>;
+  };
+  catalog: {
+    categories(section: CatalogSection, signal?: AbortSignal): Promise<MediaCategory[]>;
+    liveChannels(categoryId?: string | null, signal?: AbortSignal): Promise<LiveChannel[]>;
+    movies(categoryId?: string | null, signal?: AbortSignal): Promise<MovieSummary[]>;
+    movie(movieId: string, signal?: AbortSignal): Promise<MovieDetails>;
+    series(categoryId?: string | null, signal?: AbortSignal): Promise<SeriesSummary[]>;
+    seriesDetails(seriesId: string, signal?: AbortSignal): Promise<SeriesDetails>;
+  };
+  library: {
+    /** Reads the provider's catalog again and regroups it. */
+    sync(): Promise<void>;
+    status(signal?: AbortSignal): Promise<LibraryStatus[]>;
+    list(section: LibrarySection, query?: LibraryListQuery, signal?: AbortSignal): Promise<LibraryPage>;
+    get(section: LibrarySection, masterId: string, signal?: AbortSignal): Promise<MasterDetails>;
+  };
+  epg: {
+    grid(query?: EpgGridQuery, signal?: AbortSignal): Promise<EpgGrid>;
+    refresh(): Promise<void>;
+  };
+  playback: {
+    get(kind: PlaybackKind, id: string, container?: string | null, signal?: AbortSignal): Promise<PlaybackInfo>;
   };
 }
-
-export type ApiClient = ReturnType<typeof createApiClient>;

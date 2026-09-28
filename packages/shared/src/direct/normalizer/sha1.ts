@@ -1,4 +1,4 @@
-/** SHA-1 hex of a UTF-8 string. Only for stable ids that match the Python normalizer; not for security. */
+/** SHA-1 hex of a UTF-8 string. Only for stable master ids; not for security. */
 export function sha1Hex(text: string): string {
   const bytes = utf8(text);
   const bitLength = bytes.length * 8;

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { StoreApi } from 'zustand/vanilla';
-import type { ApiError } from './api/httpClient';
+import type { ApiError } from './api/errors';
 import type { EpgChannelRow, EpgStatus } from './api/types';
 import { EPG_DEFAULT_LIMIT, epgGridKey, type EpgGridRequest, type EpgState } from './stores/epgStore';
 import { i18nStore, type UiLanguage } from './i18n/i18n';
@@ -40,7 +40,7 @@ export interface EpgGuideView {
 }
 
 /**
- * Guide pages 0..pageCount-1 for one category + window, concatenated. Each page polls while the backend's first
+ * Guide pages 0..pageCount-1 for one category + window, concatenated. Each page polls while the first
  * download runs (`watchGrid`); a `refresh()` restarts the watchers.
  */
 export function useEpgGuide(

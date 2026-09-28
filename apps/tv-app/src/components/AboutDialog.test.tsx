@@ -23,7 +23,6 @@ describe('account menu → About', () => {
     expect(screen.getByTestId('about-version')).toHaveTextContent('1.0.0 (build 57)');
     // Local and test builds have no commit.
     expect(screen.getByTestId('about-built')).toHaveTextContent('a local build');
-    expect(screen.getByTestId('about-connection')).toHaveTextContent(/My server|Directly/);
     await fireEvent.press(screen.getByTestId('about-close'));
     expect(screen.queryByTestId('about-dialog')).toBeNull();
   });

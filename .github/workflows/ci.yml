@@ -49,25 +49,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
       - run: npm ci
       - name: JS workspaces (typecheck, test, build)
         run: npm run typecheck && npm run test && npm run build
-      - name: Backend
-        run: dotnet test backend/Backend.sln
-      - name: API contract is committed
-        run: npm run generate:api --workspace=@iptv/shared && git diff --exit-code -- packages/shared
-      - name: Title normalizer
-        working-directory: services/title-normalizer
-        run: |
-          python -m venv .venv
-          .venv/bin/pip install -q -r requirements-dev.txt
-          .venv/bin/python -m pytest -q
 
   lint:
     name: Lint and format
@@ -79,9 +63,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -94,8 +75,6 @@ jobs:
       # Every text of the app is translated into each language (packages/shared/src/i18n, D-084).
       - name: Translations
         run: npm run lint:i18n
-      - name: dotnet format
-        run: npm run lint:backend
       - name: Ruff
         run: |
           pip install -q "ruff>=0.6,<1"
@@ -113,19 +92,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: npm ci
-      - name: Worker venv + test media
+      - name: Test media
         run: |
-          python -m venv services/title-normalizer/.venv
-          services/title-normalizer/.venv/bin/pip install -q -r services/title-normalizer/requirements.txt imageio-ffmpeg
-          FFMPEG=$(services/title-normalizer/.venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
-            python tools/fake-xtream-server/generate_media.py
+          pip install -q imageio-ffmpeg
+          FFMPEG=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") python tools/fake-xtream-server/generate_media.py
       - name: Chromium for Playwright
         run: npx playwright install --with-deps chromium
         working-directory: apps/web-player
@@ -165,7 +139,7 @@ jobs:
         run: |
           pip install -q imageio-ffmpeg
           FFMPEG=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") python tools/fake-xtream-server/generate_media.py
-      # Sign-in without a backend, a movie that plays, sign-in kept after a restart (D-071).
+      # Sign-in to the panel, a movie that plays, sign-in kept after a restart (D-071).
       - name: Start the app against the fake panel
         run: |
           (cd tools/fake-xtream-server && python server.py > "$RUNNER_TEMP/panel.log" 2>&1 &)

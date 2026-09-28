@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { appLog, t } from '@iptv/shared';
-import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, useSizes, useNavHeight } from '../theme';
@@ -16,12 +15,11 @@ export function LogScreen() {
   const navH = useNavHeight();
 
   const share = () => {
-    const connection = stores.connection?.getState();
     // Newest lines only: share targets cut long texts off at the end, which lost the lines that mattered.
     const { text, lines, omitted } = appLog.shareText();
     const header = [
       `${appConfig.appName} diagnostics log`,
-      `Shared ${new Date().toISOString()} · Android ${Platform.Version} · mode ${connection?.mode ?? 'server'}`,
+      `Shared ${new Date().toISOString()} · Android ${Platform.Version}`,
       `${lines} newest lines${omitted ? `, ${omitted} older left out` : ''}; repeats folded (credentials masked)`,
       '',
     ].join('\n');

@@ -49,7 +49,7 @@ describe('createXtreamClient', () => {
     expect(calls[0]!.headers['User-Agent']).toBe('VLC/3');
   });
 
-  it('maps rejected logins, inactive accounts and outages to the backend error codes', async () => {
+  it('maps rejected logins, inactive accounts and outages to the app error codes', async () => {
     await expect(createXtreamClient(credentials, panel({ login: { user_info: { auth: 0 } } })).validate()).rejects.toMatchObject({
       code: 'invalid_provider_credentials',
     });

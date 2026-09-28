@@ -5,8 +5,9 @@
 [![TV APK](https://github.com/brunoccst/iptv-player/actions/workflows/tv-apk.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/tv-apk.yml)
 [![Desktop app](https://github.com/brunoccst/iptv-player/actions/workflows/desktop.yml/badge.svg?branch=main)](https://github.com/brunoccst/iptv-player/actions/workflows/desktop.yml)
 
-Monorepo for an IPTV streaming platform: desktop web player, Android TV app, .NET API, Python processing service.
-The product name is configurable (`APP_NAME` in `.env`). Phase 1 runs locally only; Azure targets are planned.
+Monorepo for an IPTV player: an Android TV and phone app and a desktop app (Windows, macOS, Linux). There is no server:
+the apps talk to your IPTV provider directly and keep everything on the device ([D-088](./documentation/DECISIONS.md#d-088)).
+Everything is TypeScript. The product name is configurable (`APP_NAME` in `.env`).
 
 ## Install the apps
 
@@ -66,16 +67,15 @@ This app is a **player**. It ships no TV channels, films, series, channel lists 
   
   These measures support the private-copy rules. They are not a guarantee (see KI-002, KI-038).
 
-### If you run the server for other people
+### Sharing with other people
 
-Running the backend only for yourself or your household is private use. As soon as you run it for others, especially in the cloud:
+The apps have no server and relay nothing: each device talks to the provider itself. Passing streams on to people
+outside your household (for example by sharing your account or re-streaming) is covered in the table above.
 
-- **Rights:** passing TV channels on to other people needs licences from the broadcasters and rights holders (§§ 20, 20b UrhG). Depending on the setup, it may also make you a media platform under the Medienstaatsvertrag. A private IPTV subscription does not include these rights.
-- **Impressum:** a service offered to the public on a business-like basis needs a legal notice (§ 5 DDG).
+- **Rights:** passing TV channels on to other people needs licences from the broadcasters and rights holders (§§ 20, 20b UrhG). A private IPTV subscription does not include these rights.
 - **Data protection (DSGVO / GDPR):**
-  - The app stores provider logins, profiles, watch progress and diagnostic logs. For purely personal or household use, the GDPR does not apply (Art. 2 (2) (c)).
-  - If you run the backend for others, you are the controller. You need a legal basis, a privacy notice (Art. 13), appropriate security (Art. 32), and you must answer access and deletion requests.
-  - The backend stores provider passwords encrypted. The TV app keeps them in the Android Keystore.
+  - The apps store provider logins, profiles, watch progress and diagnostic logs on your own devices only. For purely personal or household use, the GDPR does not apply (Art. 2 (2) (c)).
+  - Provider passwords are encrypted: in the Android Keystore on TV and phone, by the operating system in the desktop app.
 - **Storage on devices (§ 25 TDDDG):** the apps store data on the device only where the function needs it (session, downloads, settings). They have no tracking or analytics, so no consent banner is needed for that.
 - **Youth protection (JMStV):**
   - Offering adult content to the public requires age verification.
@@ -100,45 +100,34 @@ Running the backend only for yourself or your household is private use. As soon 
 
 ```mermaid
 flowchart LR
-  subgraph Clients
-    WEB[apps/web-player<br/>React + Vite]
-    TV[apps/tv-app<br/>React Native TV<br/>Android .apk]
-    DESK[apps/desktop<br/>Electron around the web player<br/>Windows, macOS, Linux]
-  end
-  SHARED[packages/shared<br/>config, API clients, state]
-  API[backend<br/>ASP.NET Core .NET 10]
-  PY[services/title-normalizer<br/>Python]
+  TV[apps/tv-app<br/>React Native TV<br/>Android TV and phones]
+  WEB[apps/web-player<br/>React + Vite]
+  DESK[apps/desktop<br/>Electron around the web player<br/>Windows, macOS, Linux]
+  SHARED[packages/shared<br/>provider client, title grouping,<br/>stores, rules, translations]
   IPTV[(IPTV provider<br/>Xtream Codes)]
-  DB[(SQLite app.db)]
-  Q[(SQLite pipeline.db<br/>queue + master media)]
 
-  WEB --> SHARED
   TV --> SHARED
-  DESK --> WEB
-  SHARED -->|HTTP, web and TV 'My server'| API
-  SHARED -.->|TV and desktop direct mode, default| IPTV
-  API -->|server-to-server + stream relay| IPTV
-  API --> DB
-  API -->|enqueue raw VOD/series| Q
-  PY -->|claim job, write masters| Q
-  API -->|read masters| Q
+  DESK --> WEB --> SHARED
+  SHARED -->|directly, from each device| IPTV
 ```
 
-The TV and desktop apps work without a server: they talk to the IPTV provider directly and build the library on the device ([D-038](./documentation/DECISIONS.md#d-038), [D-071](./documentation/DECISIONS.md#d-071)). The web app in a browser always needs the backend.
+Each app talks to the IPTV provider directly, groups the provider's titles into one library on the device and keeps
+profiles, progress and My List there ([D-038](./documentation/DECISIONS.md#d-038), [D-071](./documentation/DECISIONS.md#d-071),
+[D-088](./documentation/DECISIONS.md#d-088)). Phones, TVs and computers share sign-in and data by scanning a code (D-060, D-072).
+The web player runs inside the desktop app; in a plain browser it is only used for development and tests, because
+providers do not let web pages read their answers.
 
 ## Structure
 
 | Path | Description |
 |------|-------------|
-| [`apps/web-player`](./apps/web-player) | Desktop browser client. |
-| [`apps/tv-app`](./apps/tv-app) | Android TV client. |
-| [`apps/desktop`](./apps/desktop) | Desktop app (Windows, macOS, Linux): the web player in Electron, no server needed. |
-| [`packages/shared`](./packages/shared) | TypeScript code shared by both clients. |
-| [`backend`](./backend) | C# .NET 10 Web API. |
-| [`services`](./services) | Python background services (title normalizer). |
-| [`tools`](./tools) | Developer tools: fake Xtream panel with test media. |
+| [`apps/tv-app`](./apps/tv-app) | Android TV and phone app. |
+| [`apps/desktop`](./apps/desktop) | Desktop app (Windows, macOS, Linux): the web player in Electron. |
+| [`apps/web-player`](./apps/web-player) | The desktop app's screens (React); runs in a browser for development and tests. |
+| [`packages/shared`](./packages/shared) | TypeScript code shared by the apps: provider client, title grouping, stores, rules, translations. |
+| [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`.devcontainer`](./.devcontainer) | GitHub Codespaces setup (web app + fake panel, works from a phone). |
-| [`scripts`](./scripts) | One-command dev stack; start/stop the local end-to-end stack. |
+| [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
 | [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`, `PARITY.md` (what each app has and how it is reached). |
 
@@ -148,8 +137,7 @@ The TV and desktop apps work without a server: they talk to the IPTV provider di
 |------|---------|
 | Node.js | 22+ (`.nvmrc`) |
 | npm | 10+ |
-| .NET SDK | 10.0 |
-| Python | 3.11+ |
+| Python | 3.11+ (fake panel and its test media only) |
 | Android SDK + JDK 17 | TV app native builds only |
 
 ## Quick start
@@ -159,19 +147,13 @@ npm install                 # all JS workspaces
 npm run typecheck           # all JS workspaces
 npm run test                # all JS workspaces
 npm run build               # all JS workspaces
-npm run dev:all             # backend + worker + web together (add `-- --fake` for the fake panel)
-npm run dev:web             # web player on http://localhost:5173
+npm run dev:all             # fake panel (:8090) + web player (:5173); sign in with http://localhost:8090, demo / demo
+npm run dev:web             # web player only, on http://localhost:5173
 npm run dev:tv              # Expo dev server for the TV app
-
-npm run backend:test        # dotnet test
-npm run backend:run         # API on http://localhost:5080 (also reachable on LAN IP)
-
-cd services/title-normalizer && python3 -m venv .venv && . .venv/bin/activate \
-  && pip install -r requirements-dev.txt && python -m pytest
-python -m title_normalizer  # dedup worker (venv active); needs the backend to have started once
 ```
 
-No IPTV subscription? Start the fake panel (`tools/fake-xtream-server`, see its README) and sign in with `http://localhost:8090` / `demo` / `demo`.
+In a browser the web player can only reach the fake panel (it allows web pages to read its answers); real providers
+work in the desktop, TV and phone apps.
 
 TV app: unit tests run anywhere (`npm run test --workspace=@iptv/tv-app`); the APK build and Android TV emulator tests run in GitHub Actions (`.github/workflows/tv-app.yml`, artifacts `tv-app-apk` (x86, emulator only) and `maestro-output`; the ARM APK for real TVs comes from `tv-apk.yml`).
 
@@ -179,37 +161,31 @@ Try it from a phone (no computer needed), free within the GitHub Codespaces mont
 
 1. Open https://github.com/codespaces/new?repo=brunoccst/iptv-player and choose **Create codespace** (first start takes ~5–10 min).
 2. When it is ready, open the **Ports** tab and tap the globe next to **Web app (5173)**, or open `https://<codespace-name>-5173.app.github.dev`.
-3. Sign in with server `http://localhost:8090`, username `demo`, password `demo`.
+3. Sign in with the page's own address (`https://<codespace-name>-5173.app.github.dev`) as the server, username `demo`, password `demo`.
 4. Stop the codespace when done (github.com/codespaces → ⋯ → Stop); it also stops itself after 30 idle minutes.
 
-End-to-end tests (starts its own stack on separate ports):
+End-to-end tests (start their own fake panel and web build on separate ports):
 
 ```bash
 npm run test:e2e
 ```
 
-Lint and format (CI runs the same checks; the Python part needs the worker venv active):
+Lint and format (CI runs the same checks; the Python part needs `pip install ruff`):
 
 ```bash
-npm run lint                # ESLint + Prettier, dotnet format, Ruff (check only)
-npm run format              # apply Prettier, dotnet format, Ruff fixes
+npm run lint                # ESLint + Prettier, app parity, translations, Ruff (check only)
+npm run format              # apply Prettier and Ruff fixes
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format commits in blame
 ```
-
-## API contract
-
-`dotnet build` writes `packages/shared/openapi/backend-openapi.json`; `npm run generate:api --workspace=@iptv/shared` turns it into TypeScript types. Commit both after backend API changes.
 
 ## Configuration
 
 | File | Committed | Purpose |
 |------|-----------|---------|
-| `.env` | Yes | Defaults: `APP_*` (public, shared by all apps), `DATA_DIR` (local databases, shared by backend + services), `BACKEND_*` (API only, see [`backend/README.md`](./backend/README.md#config)). |
+| `.env` | Yes | `APP_NAME`, `APP_SLUG`, `APP_ANDROID_PACKAGE`, `APP_PROVIDER_USER_AGENT` (public, read by all apps). |
 | `.env.local` | No | Local overrides and secrets. |
 
 Precedence (low → high): `.env` → `.env.local` → real environment variables. Relative paths resolve against the repo root.
-
-TV app on a real device: direct mode needs no address. For "My server", `APP_API_BASE_URL=http://<PC LAN IP>:5080` in `.env.local` prefills it.
 
 ## Root files
 
@@ -217,9 +193,10 @@ TV app on a real device: direct mode needs no address. For "My server", `APP_API
 |------|---------|
 | `LICENSE` | MIT No Attribution (`MIT-0`). |
 | `package.json` | npm workspaces, root scripts, `react-native` → `react-native-tvos` override. |
+| `ruff.toml` | Ruff settings for the Python tools (fake panel, `scripts/*.py`). |
 | `turbo.json` | Turborepo task pipeline. |
 | `tsconfig.base.json` | Shared TypeScript compiler options. |
-| `.editorconfig` | Editor formatting rules (`backend/.editorconfig` marks EF migrations as generated). |
+| `.editorconfig` | Editor formatting rules. |
 | `eslint.config.mjs` | ESLint for all TS/JS workspaces (typescript-eslint, react-hooks). |
 | `.prettierrc.json`, `.prettierignore` | Prettier style (140 columns, single quotes) and scope (TS/TSX/JS/CSS). |
 | `.git-blame-ignore-revs` | Bulk formatting commits to skip in `git blame`. |

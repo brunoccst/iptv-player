@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { findProgress } from './progressStore';
 import { createMemoryStorage } from './storage';
 
-const config = { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'T', appSlug: 't' };
 const entry = (itemId: string, updatedAt: string) => ({
   kind: 'movie',
   itemId,
@@ -28,7 +28,7 @@ describe('progress store', () => {
     });
     backend.on('GET', '/api/profiles/p1/progress', { body: [entry('55', '2026-01-01T00:00:00Z')] });
     backend.on('PUT', '/api/profiles/p1/progress/movie/77', ({ body }) => ({ body: { ...entry('77', 'x'), ...(body as object) } }));
-    const { stores } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });
+    const { stores } = createTestAppContext({ config, storage: createMemoryStorage(), backend });
     await stores.session.getState().login({ serverUrl: 's', username: 'u', password: 'p' });
 
     stores.session.getState().selectProfile('p1');
@@ -49,7 +49,7 @@ describe('progress store', () => {
     const backend = createFakeBackend();
     backend.on('GET', '/api/profiles/p1/progress', { body: [] });
     backend.on('PUT', '/api/profiles/p1/progress/movie/1', { networkError: true });
-    const { stores } = createAppContext({ config, storage: createMemoryStorage(), fetch: backend.fetch });
+    const { stores } = createTestAppContext({ config, storage: createMemoryStorage(), backend });
     await stores.progress.getState().load('p1');
 
     await stores.progress.getState().save('movie', '1', { title: 'A', positionSeconds: 50, durationSeconds: 100 });

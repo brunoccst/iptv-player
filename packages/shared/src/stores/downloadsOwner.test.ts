@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend } from '../testing/fakeBackend';
 import { bindDownloadsToAccount, DOWNLOADS_OWNER_KEY } from './downloadsOwner';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
 
-const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'Test', appSlug: 'test' };
 
 function setup(owner: string | null) {
   const backend = createFakeBackend();
@@ -13,7 +13,7 @@ function setup(owner: string | null) {
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }),
     ...(owner ? { [DOWNLOADS_OWNER_KEY]: owner } : {}),
   });
-  const { stores } = createAppContext({ config, storage, fetch: backend.fetch });
+  const { stores } = createTestAppContext({ config, storage, backend });
   const removeAll = vi.fn(async () => undefined);
   const binding = bindDownloadsToAccount({ session: stores.session, storage, removeAll });
   const restore = () => stores.session.getState().restore().then(binding.settled);

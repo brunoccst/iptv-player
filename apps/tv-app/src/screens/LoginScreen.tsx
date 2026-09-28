@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { fluid, type ConnectionMode, t, useUiLanguage } from '@iptv/shared';
+import { useRef, useState } from 'react';
+import { fluid, t, useUiLanguage } from '@iptv/shared';
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
@@ -9,24 +9,16 @@ import { Select } from '../components/Select';
 import { chooseUiLanguage, uiLanguageOptions } from '../components/AppLanguageDialog';
 import { Gradient } from '../components/Gradient';
 import { BackupDialog } from '../components/BackupDialog';
-import { Chip } from '../components/ChipBar';
 import { Field } from '../components/Field';
-import { connectionStore, useConnection, useSession } from '../hooks';
+import { useSession } from '../hooks';
 import { usePairingServer } from '../pairing/pairing';
 import { PairingCode } from '../pairing/PairingDialogs';
 import { colors, fonts, radius, useSizes } from '../theme';
 
-/**
- * Xtream login. "IPTV provider" (default) talks to the provider directly; "My server" goes through a backend (D-038).
- * Select a field to open the on-screen keyboard.
- */
+/** Xtream login: the app talks to the provider directly (D-038, D-088). Select a field to open the on-screen keyboard. */
 export function LoginScreen() {
   const busy = useSession((s) => s.busy);
   const error = useSession((s) => s.error);
-  const savedMode = useConnection((s) => s.mode);
-  const savedBackend = useConnection((s) => s.serverUrl);
-  const [mode, setMode] = useState<ConnectionMode>(savedMode);
-  const [backendUrl, setBackendUrl] = useState(savedBackend);
   const [serverUrl, setServerUrl] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -40,29 +32,17 @@ export function LoginScreen() {
   // TVs also offer sign-in by scanning a code with the phone app (D-060); phones are the ones that scan.
   const phoneCard = Platform.isTV;
   // Enter on the keyboard moves to the next field; on the password it signs in.
-  const serverRef = useRef<TextInput>(null);
   const usernameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const available = width - 32 - (phoneCard ? PHONE_CARD_WIDTH + 16 : 0);
 
-  useEffect(() => {
-    void connectionStore.getState().load();
-  }, []);
-  useEffect(() => {
-    setMode(savedMode);
-    setBackendUrl(savedBackend);
-  }, [savedMode, savedBackend]);
-
   const note = (
     <Text style={styles.note}>
-      {mode === 'direct'
-        ? t('The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.')
-        : t('Your IPTV password is sent once to your own backend, stored encrypted there, and never kept on this device.')}
+      {t('The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.')}
     </Text>
   );
 
   const submit = async () => {
-    await connectionStore.getState().setConnection(mode, backendUrl);
     await stores.session.getState().login({ serverUrl: serverUrl.trim(), username: username.trim(), password });
   };
 
@@ -90,10 +70,6 @@ export function LoginScreen() {
           >
             <View style={short ? styles.column : styles.stack}>
               <Text style={[styles.heading, short && styles.headingShort]}>{t('Sign In')}</Text>
-              <View style={styles.modes} accessibilityRole="radiogroup">
-                <Chip label={t('IPTV provider')} active={mode === 'direct'} onPress={() => setMode('direct')} testID="login-mode-direct" />
-                <Chip label={t('My server')} active={mode === 'server'} onPress={() => setMode('server')} testID="login-mode-server" />
-              </View>
               {/* The app's language (D-084), before anything else is typed: choosing it draws the page again. */}
               <Select
                 compact
@@ -106,18 +82,6 @@ export function LoginScreen() {
               {short ? note : null}
             </View>
             <View style={short ? styles.column : styles.stack}>
-              {mode === 'server' ? (
-                <Field
-                  label={t('My server address')}
-                  value={backendUrl}
-                  onChange={setBackendUrl}
-                  testID="login-backend"
-                  placeholder="http://192.168.1.10:5080"
-                  compact={short}
-                  returnKeyType="next"
-                  onSubmit={() => serverRef.current?.focus()}
-                />
-              ) : null}
               <Field
                 label={t('Server URL')}
                 value={serverUrl}
@@ -126,7 +90,6 @@ export function LoginScreen() {
                 autoFocus
                 placeholder="http://provider.example:8080"
                 compact={short}
-                inputRef={serverRef}
                 returnKeyType="next"
                 onSubmit={() => usernameRef.current?.focus()}
               />
@@ -150,7 +113,7 @@ export function LoginScreen() {
                 inputRef={passwordRef}
                 returnKeyType="go"
                 onSubmit={() => {
-                  if (!busy && !(mode === 'server' && !backendUrl.trim())) void submit();
+                  if (!busy) void submit();
                 }}
               />
               {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
@@ -158,7 +121,7 @@ export function LoginScreen() {
                 label={busy ? t('Signing in…') : t('Sign In')}
                 variant="accent"
                 onPress={() => void submit()}
-                disabled={busy || (mode === 'server' && !backendUrl.trim())}
+                disabled={busy}
                 testID="login-submit"
               />
               <FocusButton label={t('Restore from backup')} variant="ghost" onPress={() => setRestore(true)} testID="login-restore" />
@@ -208,6 +171,5 @@ const styles = StyleSheet.create({
   column: { flex: 1, gap: 10 },
   heading: { color: colors.strong, fontSize: 32, fontWeight: '700', marginBottom: 8 },
   headingShort: { fontSize: 26, marginBottom: 0 },
-  modes: { flexDirection: 'row', gap: 8 },
   note: { color: colors.muted, fontSize: 12.8 },
 });

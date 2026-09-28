@@ -1,13 +1,10 @@
-import { createApiClient, type ApiClient } from './api/apiClient';
-import { createHttpClient } from './api/httpClient';
+import type { ApiClient } from './api/apiClient';
 import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
-import { createHybridApiClient } from './direct/hybridApiClient';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
 import type { LibrarySection, MediaCategory } from './api/types';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
-import { createConnectionStore, type ConnectionStore } from './stores/connectionStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
 import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
@@ -34,52 +31,71 @@ export interface AppContext {
     watchlist: WatchlistStore;
     /** Optional parental PIN (D-054). */
     pin: PinStore;
-    /** Present when direct mode is enabled (native apps). */
-    connection?: ConnectionStore;
     /** Per-profile preferences on this device, e.g. the language filter (D-063). */
     profilePrefs: ProfilePrefsStore;
   };
   /** The language of the app's own words (D-084): per profile, the device's last choice before one is open. */
   uiLanguage: UiLanguageControl;
-  /** Re-reads the saved login, connection and profile data, e.g. after restoring a backup (D-056). */
+  /** Re-reads the saved login and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
+  /** Tests only: answer every call from `api` instead of the provider (`null` goes back). */
+  replaceApi(api: ApiClient | null): void;
 }
 
 export interface AppContextOptions {
   config: AppConfig;
   storage: KeyValueStorage;
   fetch?: typeof fetch;
-  /** Native apps: talk to the provider directly unless the user picks "My server". See DECISIONS.md#d-038. */
-  direct?: { dataStorage: KeyValueStorage; userAgent?: string };
+  /**
+   * The apps talk to the IPTV provider directly (D-038, D-088): `dataStorage` keeps profiles, progress and the grouped
+   * library; `userAgent` is sent to the provider.
+   */
+  direct: { dataStorage: KeyValueStorage; userAgent?: string };
+  /** Tests: a fake instead of the provider (see `testing/fakeBackend.ts`). */
+  api?: ApiClient;
   /** The device's preferred languages, for the app's language on a first start (D-084). Default: the browser's. */
   deviceLanguages?: () => readonly string[];
 }
 
+type AnyFunction = (...args: never[]) => unknown;
+
+/** An `ApiClient` that sends every call to whatever `current()` returns at the time of the call. */
+function delegatingApi(current: () => ApiClient): ApiClient {
+  const wrap = (path: string[], shape: object): object =>
+    Object.fromEntries(
+      Object.entries(shape).map(([key, value]) => [
+        key,
+        typeof value === 'function'
+          ? (...args: never[]) => {
+              let target: unknown = current();
+              for (const segment of [...path, key]) target = (target as Record<string, unknown>)[segment];
+              return (target as AnyFunction)(...args);
+            }
+          : wrap([...path, key], value as object),
+      ]),
+    );
+  return wrap([], current()) as ApiClient;
+}
+
+/** Saved by versions that could go through a server ("My server", D-038); read by none since D-088. */
+const RETIRED_CONNECTION_KEY = 'connection';
+
 /** Wires API client and stores together. Each app creates exactly one context at startup. */
-export function createAppContext({ config, storage, fetch, direct, deviceLanguages }: AppContextOptions): AppContext {
-  const connection = direct ? createConnectionStore({ storage, defaultServerUrl: config.apiBaseUrl }) : undefined;
-  const http = createHttpClient({
-    baseUrl: connection ? () => connection.getState().serverUrl : config.apiBaseUrl,
+export function createAppContext({ config, storage, fetch, direct, api: testApi, deviceLanguages }: AppContextOptions): AppContext {
+  const directApi = createDirectApiClient({
+    appName: config.appName,
+    secureStorage: storage,
+    dataStorage: direct.dataStorage,
     fetch,
-    // Called per request, after `session` below is initialized.
-    getToken: () => session.getState().token ?? null,
-    onUnauthorized: () => session.getState().handleUnauthorized(),
+    userAgent: direct.userAgent,
   });
-  const serverApi = createApiClient(http);
-  const directApi = direct
-    ? createDirectApiClient({
-        appName: config.appName,
-        secureStorage: storage,
-        dataStorage: direct.dataStorage,
-        fetch,
-        userAgent: direct.userAgent,
-      })
-    : undefined;
-  const providerApi = directApi && connection ? createHybridApiClient({ server: serverApi, connection, direct: directApi }) : serverApi;
+  let replacement: ApiClient | null = testApi ?? null;
+  const providerApi = delegatingApi(() => replacement ?? directApi);
+  void Promise.resolve(storage.removeItem(RETIRED_CONNECTION_KEY)).catch(() => undefined);
 
   // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
   // Per-profile preferences on this device: the language filter (D-063) and a Kids profile's categories (D-064).
-  const profilePrefs = createProfilePrefsStore(direct?.dataStorage ?? storage);
+  const profilePrefs = createProfilePrefsStore(direct.dataStorage);
   void profilePrefs.getState().load();
   const activePrefs = () => {
     const profileId = session.getState().activeProfileId;
@@ -125,7 +141,7 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
   const progress = createProgressStore({ api });
   const watchlist = createWatchlistStore({ api });
   const pin = createPinStore({ session, storage });
-  const uiLanguage = createUiLanguage({ storage: direct?.dataStorage ?? storage, session, profilePrefs, deviceLanguages });
+  const uiLanguage = createUiLanguage({ storage: direct.dataStorage, session, profilePrefs, deviceLanguages });
   void uiLanguage.load();
 
   // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
@@ -178,8 +194,7 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
   });
 
   const reload = async () => {
-    await connection?.getState().reload();
-    directApi?.reloadCredentials();
+    directApi.reloadCredentials();
     kids.reset();
     categoryNames.clear();
     catalog.getState().reset();
@@ -201,7 +216,10 @@ export function createAppContext({ config, storage, fetch, direct, deviceLanguag
     config,
     api,
     reload,
+    replaceApi: (next) => {
+      replacement = next;
+    },
     uiLanguage,
-    stores: { session, catalog, epg, library, player, progress, watchlist, pin, connection, profilePrefs },
+    stores: { session, catalog, epg, library, player, progress, watchlist, pin, profilePrefs },
   };
 }

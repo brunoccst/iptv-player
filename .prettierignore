@@ -10,8 +10,6 @@ apps/tv-app/android/
 apps/tv-app/ios/
 packages/shared/src/api/generated/
 packages/shared/openapi/
-backend/
-services/
 tools/
 documentation/
 *.md

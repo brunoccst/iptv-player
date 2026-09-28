@@ -1,7 +1,6 @@
 import type { ProfileDto, ProgressDto, WatchlistDto } from '../api/types';
 import { collectUserData, type BackupStorages, type UserDataContents } from '../backup/userData';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
-import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
@@ -125,7 +124,7 @@ export function mergeMedia(incoming: MediaState, local: MediaState): { merged: M
   return { merged: { profiles, progress, watchlist }, localIds };
 }
 
-/** Direct mode only: in server mode profiles, progress and My List live on the server, so there is nothing to merge. */
+/** Profiles, progress and My List live on each device, so pairing merges them. */
 function mediaFrom(data: Record<string, string>, accountId: string): MediaState {
   const profiles = parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? [];
   const state: MediaState = { profiles, progress: {}, watchlist: {} };
@@ -136,7 +135,7 @@ function mediaFrom(data: Record<string, string>, accountId: string): MediaState 
   return state;
 }
 
-/** Storage entries for a media state. Empty when there are no profiles (server mode keeps them on the server). */
+/** Storage entries for a media state. Empty when there are no profiles. */
 function mediaEntries(state: MediaState, accountId: string): Record<string, string> {
   if (state.profiles.length === 0) return {};
   const entries: Record<string, string> = { [profilesKey(accountId)]: JSON.stringify(state.profiles) };
@@ -208,7 +207,7 @@ export async function acceptPairing(
     // The phone's sign-in, then the profile picker (who is watching on this TV is not the phone's choice).
     const session = { ...phoneSession, profiles: profiles.length ? profiles : phoneSession.profiles, activeProfileId: null };
     await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-    for (const copied of [CONNECTION_STORAGE_KEY, CREDENTIALS_KEY, pinKey]) {
+    for (const copied of [CREDENTIALS_KEY, pinKey]) {
       if (secure[copied] !== undefined) await storages.secure.setItem(copied, secure[copied]);
     }
   } else {

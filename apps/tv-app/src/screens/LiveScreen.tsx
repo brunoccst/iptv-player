@@ -27,7 +27,7 @@ import { useCatalog } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
 
-/** Same 3-hour window as the web guide. The backend caches now −3 h … +48 h (DECISIONS.md#d-031). */
+/** Same 3-hour window as the web guide (DECISIONS.md#d-031). */
 const HOURS = 3;
 const STEP_MS = 2 * EPG_SLOT_MS;
 const MIN_BACK_MS = 3 * 3600_000;
