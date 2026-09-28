@@ -105,6 +105,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-098](#d-098) | 2026-09-28 | TV grid and search: only the centering scrolls, as on Home |
 | [D-099](#d-099) | 2026-09-28 | TV grid: light Up/Down moves, and held Up stays in the grid |
 | [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
+| [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 
 ---
 
@@ -1720,3 +1721,12 @@ Decision:
 Decision:
 - **Skip ahead** shows 5–15 s into an episode (10 s on screen) instead of 5–90 s (D-042's window), on every app (`SKIP_AHEAD_WINDOW` in `@iptv/shared`). While its choices are open it stays, as before.
 - **Focus glow centered (TV/phone).** The glow came from Android's `elevation` shadow, which Android lights from above the screen, so it fell lower and to one side of the focused card or button. `focus.glow` now draws it with `boxShadow` (`0 0 16px 2px`, white at 50 %), the same on every side (Android 9+). The elevation stays, with a transparent shadow, so a focused card is still drawn over its neighbours (D-076).
+
+## D-103
+
+**TV Live TV: the category list fits the screen; focusing a category keeps the page at the top** — 2026-09-28 (requested by owner)
+
+Context: on the TV's Live TV page, Down (to "Earlier") then Left (to "All channels") scrolled the page: "All channels" went under the top bar and the first channel was cut in half.
+
+Decision: the category list had no height limit, so with many categories it was taller than the screen. When a category got the focus, Android scrolled the page to show the whole list as far as it could: its top at the top of the screen, under the see-through top bar. Now the list is only as tall as the rest of the screen and scrolls on its own, and focusing a category scrolls the page back to the top (the list sits at the top of the page). Phones keep their category chips.
+

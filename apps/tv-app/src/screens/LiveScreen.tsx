@@ -1,5 +1,16 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import {
   EPG_SLOT_MS,
   floorToSlot,
@@ -63,6 +74,10 @@ export function LiveScreen() {
   const [pages, setPages] = useState(1);
   const [selected, setSelected] = useState<Selection | null>(null);
   const [pageWidth, setPageWidth] = useState(0);
+  // Where the category list starts in the page, to fit it to the screen (D-103).
+  const [listTop, setListTop] = useState(0);
+  const { height: windowHeight } = useWindowDimensions();
+  const page = useRef<ScrollView>(null);
   const guide = useEpgGuide(stores.epg, { categoryId, from, hours: HOURS }, pages);
   const sizes = useSizes();
   const navH = useNavHeight();
@@ -88,9 +103,13 @@ export function LiveScreen() {
   const described = selected ?? (Platform.isTV && first ? { channel: first.channel, programme: programmeAt(first.programmes, now) } : null);
   const nowAt = nowFraction(now, from, to);
   const moreChannels = guide.rows.length < guide.totalChannels;
+  const toTop = () => {
+    if (Platform.isTV) page.current?.scrollTo({ y: 0, animated: true });
+  };
 
   return (
     <ScrollView
+      ref={page}
       style={styles.screen}
       testID="live-screen"
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
@@ -101,7 +120,11 @@ export function LiveScreen() {
       scrollEventThrottle={200}
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Live TV')}</Text>
-      <View style={[styles.live, compact && styles.liveCompact]}>
+      <View
+        style={[styles.live, compact && styles.liveCompact]}
+        testID="live-body"
+        onLayout={(event) => setListTop(event.nativeEvent.layout.y)}
+      >
         {compact ? (
           // Phones (portrait): the same expandable chips as Movies/Series.
           <ChipBar
@@ -113,10 +136,18 @@ export function LiveScreen() {
             ]}
           />
         ) : (
-          <ScrollView style={styles.categories} accessibilityLabel={t('Channel categories')}>
-            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} />
+          // The list fits the screen and scrolls on its own. Taller than the screen, Android scrolled the whole page to
+          // show it when a category got the focus: its top went under the top bar ("All channels" hidden) and the first
+          // channel was cut in half. The categories sit at the top of the page, so focusing one scrolls the page there
+          // (TV, D-103).
+          <ScrollView
+            style={[styles.categories, listTop > 0 ? { maxHeight: Math.max(200, windowHeight - listTop - 24) } : null]}
+            accessibilityLabel={t('Channel categories')}
+            testID="live-categories"
+          >
+            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} onFocus={toTop} />
             {categories.map((c) => (
-              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
+              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} onFocus={toTop} />
             ))}
           </ScrollView>
         )}
@@ -192,7 +223,7 @@ export function LiveScreen() {
   );
 }
 
-function CategoryItem({ label, active, onPress }: { label: string; active: boolean; onPress(): void }) {
+function CategoryItem({ label, active, onPress, onFocus }: { label: string; active: boolean; onPress(): void; onFocus?(): void }) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -200,7 +231,10 @@ function CategoryItem({ label, active, onPress }: { label: string; active: boole
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        onFocus?.();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.category, active && styles.categoryActive, focused && styles.categoryFocused]}
     >
