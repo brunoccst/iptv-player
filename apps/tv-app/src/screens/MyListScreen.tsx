@@ -15,7 +15,12 @@ export function MyListScreen() {
   const lines = Array.from({ length: Math.ceil(list.length / columns) }, (_, i) => list.slice(i * columns, (i + 1) * columns));
 
   return (
-    <CenteringScrollView style={styles.screen} testID="mylist-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
+    <CenteringScrollView
+      onlyCentering
+      style={styles.screen}
+      testID="mylist-screen"
+      contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}
+    >
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>{t('My List')}</Text>
       {items.status === 'loading' && !items.data ? (
         <ActivityIndicator size="large" color={colors.accent} accessibilityLabel={t('Loading')} />

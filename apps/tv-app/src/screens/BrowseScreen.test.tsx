@@ -85,6 +85,8 @@ describe('BrowseScreen (TV)', () => {
     });
     await render(<BrowseScreen section="movies" />);
     await flush();
+    // Only the centering moves the page: Android's own D-pad scrolling is off (D-098).
+    expect(screen.getByTestId('browse-movies')).toHaveProp('scrollEnabled', false);
     // Before a line is measured every line is mounted; once its height is known, far lines become spacers.
     await fireEvent(screen.getByTestId('grid-line-0'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 400 } } });
     expect(screen.getByTestId('grid-line-6')).toBeTruthy();

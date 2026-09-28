@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -30,7 +30,7 @@ import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useProfilePrefs, useProgress } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
-import { CenterFocus, CenteringScrollView, useCenterPage, type Measurable } from '../components/CenterScroll';
+import { CenterFocus, CenteringScrollView, useCenterPage } from '../components/CenterScroll';
 import { FocusRow, RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
@@ -286,6 +286,7 @@ function TvGrid({
       <CenteringScrollView
         testID={testID}
         style={styles.list}
+        onlyCentering
         onLayout={(event) => {
           viewport.current = event.nativeEvent.layout.height;
           check();
@@ -320,53 +321,39 @@ export function LoadingMoreNote() {
 }
 
 /**
- * TV lines of cards (D-094, D-095, D-096): only the lines within MOUNTED_AROUND of the focused one are mounted, the
- * others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the next page. Used
- * by the Movies/Series grid and the search results.
+ * TV lines of cards (D-094, D-095, D-096, D-098): only the lines within MOUNTED_AROUND of the focused one are mounted,
+ * the others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the next page.
+ * Used by the Movies/Series grid and the search results.
  *
- * Every line, mounted or spacer, has the height of the first one, so swapping lines for spacers never moves the page;
- * the focused line is centred like the rows on Home: its place is known (start of the block + index × line height)
- * and the page scrolls straight there. Measuring each focused card, and lines of different heights (a card without
- * a subtitle is shorter), made one move scroll in two steps.
+ * Every line, mounted or spacer, has the height of the first one, so swapping lines for spacers never moves the page.
+ * The focused line is centred exactly like the rows on Home: its place in the page comes from layout (where the block
+ * sits, plus index × line height), and the page scrolls there on the same key press, with nothing measured.
+ * `parentY` is where the block's parent sits in the page, when the block is not directly in the scroll view (search).
  */
 export function TvLines({
   lines,
   renderLine,
   onNearEnd,
   testPrefix = 'grid',
+  parentY,
 }: {
   lines: MasterCard[][];
   renderLine(line: MasterCard[], index: number): ReactElement;
   onNearEnd?(): void;
   testPrefix?: string;
+  parentY?: RefObject<number>;
 }) {
   const [focusedLine, setFocusedLine] = useState(0);
   const [lineHeight, setLineHeight] = useState(0);
   const page = useCenterPage();
-  const block = useRef<View>(null);
-  // Where the block starts in the page. Measured again after each move (sections above it can grow).
-  const top = useRef<number | null>(null);
-  const center = (index: number) => {
-    if (!page || !lineHeight) return;
-    if (top.current !== null) page.centerAt(top.current + index * lineHeight, lineHeight);
-    const content = page.inner();
-    if (!content) return;
-    (block.current as unknown as Measurable | null)?.measureLayout(
-      content,
-      (_x, y) => {
-        top.current = y;
-        page.centerAt(y + index * lineHeight, lineHeight);
-      },
-      () => undefined,
-    );
-  };
+  const blockY = useRef(0);
   const focusLine = (index: number) => {
     setFocusedLine(index);
-    center(index);
+    if (page && lineHeight) page.centerAt((parentY?.current ?? 0) + blockY.current + index * lineHeight, lineHeight);
     if (index >= lines.length - 2) onNearEnd?.();
   };
   return (
-    <View ref={block}>
+    <View testID={`${testPrefix}-lines`} onLayout={(event) => (blockY.current = event.nativeEvent.layout.y)}>
       {/* The line centres itself: cards must not measure and scroll too. */}
       <CenterFocus.Provider value={null}>
         {lines.map((line, index) =>

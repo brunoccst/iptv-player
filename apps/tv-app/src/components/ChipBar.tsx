@@ -15,6 +15,7 @@ import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
 import { FocusRow } from './FocusRow';
+import { useCenterOnFocus } from './CenterScroll';
 import { t } from '@iptv/shared';
 
 export interface ChipItem {
@@ -219,14 +220,19 @@ function PageButton({
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const centering = useCenterOnFocus();
   return (
     <Pressable
+      ref={centering.ref}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={direction === 'left' ? t('Previous categories') : t('Next categories')}
       accessibilityState={{ disabled }}
       onPress={() => !disabled && onPress()}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        centering.center();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.chip, styles.pageButton, focused && styles.chipFocused, disabled && !focused && styles.dimmed]}
     >
@@ -239,14 +245,19 @@ function PageButton({
 function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   const text = expanded ? t('Show less') : t('Show all');
+  const centering = useCenterOnFocus();
   return (
     <Pressable
+      ref={centering.ref}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        centering.center();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.chip, styles.toggle, focused && styles.chipFocused]}
     >
@@ -271,15 +282,20 @@ export function Chip({
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
+  const centering = useCenterOnFocus();
   return (
     <Pressable
+      ref={centering.ref}
       testID={testID}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
       onLayout={onLayout}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        centering.center();
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.chip, active && styles.chipActive, focused && styles.chipFocused]}
     >

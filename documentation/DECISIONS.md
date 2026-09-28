@@ -1677,3 +1677,15 @@ Decision:
 Context: on the phone, double taps on the left or right of the video seeked ∓10 s only while the "−10"/"+10" circle was on screen; after it faded, they did nothing (the buttons still worked).
 
 Decision: the circle (`TapFlash`) faded out but stayed on screen, invisible, over the spot where the user taps, and it took those taps, so the video underneath never saw them. It now never takes touches (`pointerEvents="none"`, like the web's `.skip-flash`) and is removed once it has faded. The same circle shows for D-pad taps on TV, where it took no part in focus.
+
+## D-098
+
+**TV grid and search: only the centering scrolls, as on Home** — 2026-09-28 (requested by owner)
+
+Context: after D-096 the Movies/Series grid still scrolled in two steps on the Chromecast (1.0.28): half, then the rest. Home did not.
+
+Decision:
+- **The cause was Android's own scrolling.** On every Up/Down, Android's scroll view scrolls first, by itself, just enough to bring the next row onto the screen; then the centering scrolls the rest. On Home the next row is already on screen when the focused one is in the middle (its rows are short), so Android does not move and the centering is the only scroll. Grid rows are taller, so both moved.
+- **Only the centering moves the grid, search and My List pages on TV.** `CenteringScrollView` takes `onlyCentering`, which turns the scroll view's own D-pad scrolling off on TV (`scrollEnabled={false}`: Up/Down still move the focus, and `scrollTo` still scrolls). Everything focusable on those pages centers itself: cards, buttons, and now the category chips, their ‹ › buttons, "Show all" and "Sort by" (`useCenterOnFocus`).
+- **Row places come from layout, as on Home.** `TvLines` reads where its block sits from `onLayout` (plus the search section's place), adds index × row height and scrolls there on the key press. It no longer measures anything after the move, and the "same target" filter from D-095 is gone.
+- My List is a grid of title cards like Movies/Series, so it gets the same treatment. Downloads keeps Android's scrolling: its rows are short and its buttons do not center themselves.

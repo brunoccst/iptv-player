@@ -35,7 +35,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
-- [x] **TV centering and search paging** (requested 2026-09-28, D-095, D-096): moving between rows scrolls once, straight to the middle, also when pressing or holding Up/Down; search results come in pages that load as you move down, so long result lists stay quick.
+- [x] **TV centering and search paging** (requested 2026-09-28, D-095, D-096, D-098): moving between rows scrolls once, straight to the middle, also when pressing or holding Up/Down; search results come in pages that load as you move down, so long result lists stay quick.
 - [x] **TV browsing polish** (requested 2026-09-28, D-094): the Movies/Series grid stays fast after loading more titles and says when it is loading; the focused title is kept in the middle of the screen on every TV page; the category bar shows "All", three categories, ‹ › and "Show all"; the search "X" can be reached with the remote; "IPTV Player" in the header is no longer a link.
 - [x] **Movies/Series freeze on TV, series first** (requested 2026-09-28, D-093): the TV Movies and Series pages no longer freeze with a large library (the grid is a plain scroll view on TV); series are grouped first even when the movie list arrives a moment earlier; the Log screen notes when the app was busy; a 160k-title emulator test (`tv-stress`) covers it.
 - [x] **Large libraries on slow TVs** (requested 2026-09-28, D-093): grouping 100k+ titles about twice as fast on TVs (same result); series are grouped as soon as their list is in instead of after all movies; Movies and Series no longer freeze with thousands of categories (chips appear a page at a time).
