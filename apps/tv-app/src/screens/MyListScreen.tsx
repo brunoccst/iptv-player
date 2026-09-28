@@ -1,4 +1,5 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { CenteringScrollView } from '../components/CenterScroll';
 import { watchlistCard, t } from '@iptv/shared';
 import { useWatchlist } from '../hooks';
 import { colors, useNavHeight, useSizes } from '../theme';
@@ -14,7 +15,7 @@ export function MyListScreen() {
   const lines = Array.from({ length: Math.ceil(list.length / columns) }, (_, i) => list.slice(i * columns, (i + 1) * columns));
 
   return (
-    <ScrollView style={styles.screen} testID="mylist-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
+    <CenteringScrollView style={styles.screen} testID="mylist-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>{t('My List')}</Text>
       {items.status === 'loading' && !items.data ? (
         <ActivityIndicator size="large" color={colors.accent} accessibilityLabel={t('Loading')} />
@@ -37,7 +38,7 @@ export function MyListScreen() {
           </View>
         ))
       )}
-    </ScrollView>
+    </CenteringScrollView>
   );
 }
 

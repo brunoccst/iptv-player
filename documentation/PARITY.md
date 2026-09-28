@@ -33,6 +33,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Last picked subtitles, audio and version are every title's default (D-087) | ✅ | ✅ | ✅ | matched by language (versions: same quality first), per profile |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Category chips on one line with Show all / Show less; expanded, a full-width box that scrolls on its own (D-085, D-091) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) |
+| Focused item kept in the middle of the screen (D-094) | ✅ | ➖ | ➖ | TV only: phones and computers scroll by touch, wheel or keyboard |
 | Live TV guide page | ✅ | ✅ | ✅ | |
 | Guide over the playing channel (D-058, D-081) | ✅ | ✅ | ✅ | TV: ↑ · phone and web: Guide button · web: also G (↑/↓ are the volume) |
 | Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in movie details, episode "…" menu; browsers cannot start other programs |

@@ -1636,3 +1636,16 @@ Follow-up (same day):
 - **Series still waited for movies** when the movie list arrived first, as it did on the Chromecast, by 2 s. A smaller list that arrives while the larger one is grouping now goes first: the larger one pauses at its next break (`yieldTo` in `buildMastersInChunks`), the smaller one is grouped and shown, and the larger one resumes.
 - **Diagnostics.** The Log screen now records when the JavaScript thread was busy for 2 s or more, which page was opened, and slow library lists. CI builds also print these lines to logcat. The `tv-stress` workflow runs by hand, or on branches whose name contains "stress". It prints the grid's on-screen bounds, the focus and the frame statistics.
 
+## D-094
+
+**TV browsing: focused title in the middle, light grid, simpler category bar, reachable search clear, no brand link** — 2026-09-28 (requested by owner)
+
+Context: on the Chromecast, the Movies/Series grid gave no sign that the next page was loading and stayed slow after it loaded, until the page was reopened. The focused title could sit at the edge of the screen. Reaching "Show all" meant walking through every category. The search "X" could not be reached with the remote. "IPTV Player" in the header only repeated "Home".
+
+Decision:
+- **Light grid on TV.** Only the lines within six of the focused one are mounted; the others are empty spacers of the same height, so the page keeps its length and scroll position. Every loaded page used to stay mounted, 100 posters more each time, which is what kept the grid slow. While a page loads, a "Loading more titles…" note shows at the bottom of the screen (`TvGrid` in `screens/titles.tsx`).
+- **Focus in the middle, everywhere on TV.** A shared `CenteringScrollView` (`components/CenterScroll.tsx`) scrolls so that the focused card or button sits in the middle of the screen. Cards (`PosterCard`) and buttons (`FocusButton`) report their focus to it. It is used by the Movies/Series grid, Search, My List and Downloads. Home and Details already centered their rows and sections and keep doing so. Phones are unchanged.
+- **Category bar on TV.** "All", three categories, then ‹ › buttons that move three categories at a time, then "Show all" for the full list. It opens with the chosen category in view. Phones keep the swipeable line (D-085, D-091, D-093).
+- **Search clear on TV.** The "X" sits next to the search box, as its own stop for the remote (Right from the box). Inside the box it could not get the focus.
+- **No brand link.** "IPTV Player" in the header is plain text on every app; "Home" goes home.
+

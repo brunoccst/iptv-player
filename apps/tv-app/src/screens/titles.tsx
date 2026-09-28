@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   FlatList,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -31,7 +30,8 @@ import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useProfilePrefs, useProgress } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
-import { FocusRow } from '../components/FocusRow';
+import { CenteringScrollView } from '../components/CenterScroll';
+import { FocusRow, RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { Select } from '../components/Select';
@@ -205,14 +205,20 @@ export function TitleGrid({
   );
 
   // TV: a plain ScrollView, like Home. A FlatList on Android TV got a 2 px viewport on the Movies/Series pages: nothing
-  // under the header showed and every frame took seconds, which froze the app (D-093). Pages load as it scrolls.
+  // under the header showed and every frame took seconds, which froze the app (D-093). Pages load as it scrolls; only
+  // the lines near the focus are mounted, and the focused title is kept in the middle of the screen (D-094).
   if (Platform.isTV) {
     return (
-      <TvGrid testID={testID ?? `grid-${section}`} onScroll={onScroll} onNearEnd={page.loadMore}>
-        {listHeader}
-        {lines.length === 0 ? empty : lines.map(renderLine)}
-        {footer}
-      </TvGrid>
+      <TvGrid
+        testID={testID ?? `grid-${section}`}
+        header={listHeader}
+        lines={lines}
+        empty={empty}
+        renderLine={renderLine}
+        loadingMore={page.loadingMore}
+        onScroll={onScroll}
+        onNearEnd={page.loadMore}
+      />
     );
   }
 
@@ -239,49 +245,87 @@ export function TitleGrid({
   );
 }
 
+/** Lines kept mounted above and below the focused one on TV; the rest are empty spacers of the same height. */
+const MOUNTED_AROUND = 6;
+
 /**
- * TV grid container: a ScrollView that asks for the next page when the end is within one and a half screens, and
- * while the content is still shorter than that (the first page may not fill the screen).
+ * TV grid (D-093, D-094): a scroll view that asks for the next page when its end is within one and a half screens.
+ * Only the lines near the focused one are mounted: with every loaded page mounted, a Chromecast slowed down for good
+ * after the first extra page. A note at the bottom of the screen shows while a page loads, and the focused title is
+ * kept in the middle of the screen.
  */
 function TvGrid({
   testID,
+  header,
+  lines,
+  empty,
+  renderLine,
+  loadingMore,
   onScroll,
   onNearEnd,
-  children,
 }: {
   testID: string;
+  header: ReactNode;
+  lines: MasterCard[][];
+  empty: ReactNode;
+  renderLine(line: MasterCard[], index: number): ReactElement;
+  loadingMore: boolean;
   onScroll?(event: NativeSyntheticEvent<NativeScrollEvent>): void;
   onNearEnd(): void;
-  children: ReactNode;
 }) {
   const viewport = useRef(0);
   const offset = useRef(0);
   const content = useRef(0);
+  const [focusedLine, setFocusedLine] = useState(0);
+  const [lineHeight, setLineHeight] = useState(0);
   const check = () => {
     if (viewport.current > 0 && content.current > 0 && content.current - offset.current - viewport.current < viewport.current * 1.5)
       onNearEnd();
   };
   return (
-    <ScrollView
-      testID={testID}
-      style={styles.list}
-      scrollEventThrottle={100}
-      onLayout={(event) => {
-        viewport.current = event.nativeEvent.layout.height;
-        check();
-      }}
-      onContentSizeChange={(_width, height) => {
-        content.current = height;
-        check();
-      }}
-      onScroll={(event) => {
-        offset.current = event.nativeEvent.contentOffset.y;
-        check();
-        onScroll?.(event);
-      }}
-    >
-      {children}
-    </ScrollView>
+    <View style={styles.list}>
+      <CenteringScrollView
+        testID={testID}
+        style={styles.list}
+        onLayout={(event) => {
+          viewport.current = event.nativeEvent.layout.height;
+          check();
+        }}
+        onContentSizeChange={(_width, height) => {
+          content.current = height;
+          check();
+        }}
+        onScroll={(event) => {
+          offset.current = event.nativeEvent.contentOffset.y;
+          check();
+          onScroll?.(event);
+        }}
+      >
+        {header}
+        {lines.length === 0
+          ? empty
+          : lines.map((line, index) =>
+              Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
+                <View
+                  key={line[0]!.id}
+                  testID={`grid-line-${index}`}
+                  onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
+                >
+                  <RowFocus.Provider value={() => setFocusedLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
+                </View>
+              ) : (
+                <View key={line[0]!.id} testID={`grid-spacer-${index}`} style={{ height: lineHeight }} />
+              ),
+            )}
+        <View style={styles.bottom} />
+      </CenteringScrollView>
+      {loadingMore ? (
+        <View style={styles.loadingNote} pointerEvents="none" accessibilityRole="alert" testID="grid-loading-more">
+          <ActivityIndicator size="small" color={colors.accent} />
+          <Text style={styles.loadingText}>{t('Loading more titles…')}</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -324,4 +368,20 @@ const styles = StyleSheet.create({
   first: { marginVertical: 40 },
   more: { marginVertical: 24 },
   bottom: { height: 60 },
+  loadingNote: {
+    position: 'absolute',
+    bottom: 24,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20,20,20,0.95)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 12,
+  },
+  loadingText: { color: colors.text, fontSize: 16 },
 });
