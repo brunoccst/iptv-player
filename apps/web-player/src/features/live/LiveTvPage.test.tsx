@@ -42,6 +42,7 @@ describe('LiveTvPage (guide)', () => {
     vi.useRealTimers();
   });
 
+  // 15 s: it loads the whole app context (1-2 s alone), which can pass 5 s while the TV tests and builds run too.
   it('shows the grid, selects a programme and plays its channel with the programme as subtitle', async () => {
     vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
     const requests: URL[] = [];
@@ -85,5 +86,5 @@ describe('LiveTvPage (guide)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Later ▶' }));
     await act(async () => {});
     expect(requests.at(-1)!.searchParams.get('from')).toBe('2026-09-23T13:00:00.000Z');
-  });
+  }, 15_000);
 });
