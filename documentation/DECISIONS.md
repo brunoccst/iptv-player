@@ -1659,3 +1659,11 @@ Decision:
 - **Centering from the place in the page.** `CenteringScrollView` measured the focused element on screen and added the current scroll offset. While a scroll animates, that offset is stale, so each focus gave a different target: two steps for one move, and earlier titles on quick presses. It now measures the element inside the page content (`measureLayout` against the scroll view's content), the same way Home centers its rows, so a title always gives the same target. A target that equals the last one is not sent again.
 - **Search results in pages on TV.** 36 results per section, loaded as the focus reaches the last two lines. Only the lines near the focus are mounted, through the same `TvLines` the Movies/Series grid now uses. "More results" was plain text the remote could not reach; on TV it is gone, and the next page loads by itself. Phones keep 100 results and "More results".
 
+
+## D-097
+
+**Phone player: double taps keep working after the "−10"/"+10" circle fades** — 2026-09-28 (requested by owner)
+
+Context: on the phone, double taps on the left or right of the video seeked ∓10 s only while the "−10"/"+10" circle was on screen; after it faded, they did nothing (the buttons still worked).
+
+Decision: the circle (`TapFlash`) faded out but stayed on screen, invisible, over the spot where the user taps, and it took those taps, so the video underneath never saw them. It now never takes touches (`pointerEvents="none"`, like the web's `.skip-flash`) and is removed once it has faded. The same circle shows for D-pad taps on TV, where it took no part in focus.

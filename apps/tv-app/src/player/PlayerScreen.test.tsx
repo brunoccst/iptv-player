@@ -733,6 +733,10 @@ describe('PlayerScreen', () => {
       expect(playerState.seeks.at(-1)).toBe(40_000);
       // Controls stay as they were before the double tap (hidden).
       expect(screen.queryByTestId('player-controls')).toBeNull();
+      // The "+10" circle never takes the next taps, and goes once it has faded (D-097).
+      expect(screen.getByTestId('tap-flash-forward')).toHaveProp('pointerEvents', 'none');
+      await act(async () => jest.advanceTimersByTime(1000));
+      expect(screen.queryByTestId('tap-flash-forward')).toBeNull();
 
       await act(async () => jest.advanceTimersByTime(1000));
       await act(async () => tap(width * 0.1));
