@@ -1596,3 +1596,16 @@ Decision:
 Context: with "Show all", the chips wrapped in a column next to the "Show less" button, which left the button's column empty below it; with many categories the page scrolled far down and "Show less" scrolled away with it.
 
 Decision: expanded, the category bar shows its name and "Show less" on one line, then every chip across the full width in a box of at most half the screen that scrolls on its own. "Show less" stays where it is while the chips scroll, and more chips fit on each line. The chip size is unchanged: smaller chips would fit a few more but are harder to read and to hit on a TV and a phone. TV, phone (`ScrollView` with `nestedScrollEnabled`), web and desktop (`max-height: 50vh; overflow-y: auto`). Picking a chip or "Show less" returns to the single line as before (D-085).
+
+## D-092
+
+**Pause when the headphones go away** — 2026-09-28 (issue #83)
+
+Context: when wired headphones were unplugged or a Bluetooth headset switched off (battery), playback carried on through the phone's speaker.
+
+Decision:
+- **TV and phone**: ExoPlayer handles Android's "audio becoming noisy" signal (`setHandleAudioBecomingNoisy`), so it pauses as soon as the sound would move to the speaker. The native player reports the pause (`pausedByAudioOutput` on the status event), so the screen shows it paused and Play resumes. `modules/tv-media/…/TvPlayerView.kt`, `player/PlayerScreen.tsx`.
+- **Desktop**: the player pauses when an audio output it was able to see disappears (`devicechange`; `features/player/audioOutput.ts`). Adding a device (plugging headphones in) never pauses. A plain browser that hides the devices' ids does nothing, as before.
+
+Pausing rather than stopping keeps the position, so Play continues where it left off.
+

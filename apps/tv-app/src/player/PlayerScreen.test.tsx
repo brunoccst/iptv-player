@@ -202,6 +202,24 @@ describe('PlayerScreen', () => {
     expect(playerState.props?.paused).toBe(false);
   });
 
+  it('headphones disconnected: the player paused itself, so the screen shows Play and Play resumes (#83)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    expect(playerState.props?.paused).toBe(false);
+
+    await act(async () =>
+      playerState.props?.onStatus?.({ nativeEvent: { state: 'ready', isPlaying: false, pausedByAudioOutput: true } } as never),
+    );
+    expect(playerState.props?.paused).toBe(true);
+    expect(screen.getByLabelText('Play')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Play'));
+    expect(playerState.props?.paused).toBe(false);
+  });
+
   it('tap ←/→ skips 10 s with a flash; holding scrubs with acceleration and seeks once on release', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

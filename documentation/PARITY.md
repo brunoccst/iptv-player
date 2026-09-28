@@ -29,6 +29,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: ↑ drawer · web: buttons |
+| Player pauses when the headphones go away (D-092) | ✅ | ✅ | ✅ | TV: Bluetooth headphones · phone: wired or Bluetooth · desktop: an output device removed |
 | Last picked subtitles, audio and version are every title's default (D-087) | ✅ | ✅ | ✅ | matched by language (versions: same quality first), per profile |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Category chips on one line with Show all / Show less; expanded, a full-width box that scrolls on its own (D-085, D-091) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) |

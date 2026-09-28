@@ -50,6 +50,7 @@ import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './p
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
 import { activeSubtitle, audioTracks, showSubtitle, subtitleTracks } from './tracks';
+import { usePauseOnAudioOutputLoss } from './audioOutput';
 
 const PROGRESS_SAVE_MS = 10_000;
 const IDLE_MS = 3000;
@@ -60,6 +61,7 @@ type Status = 'loading' | 'ready' | 'error';
 export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const root = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  usePauseOnAudioOutputLoss(videoRef);
   const engineRef = useRef<PlaybackEngine | null>(null);
   const previewRef = useRef<FrameGrabber | null>(null);
   const [source, setSource] = useState<LoadedSource | null>(null);

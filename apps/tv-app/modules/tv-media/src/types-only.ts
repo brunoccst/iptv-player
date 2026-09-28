@@ -28,6 +28,8 @@ export type AudioDecoderChoice = 'device' | 'ffmpeg';
 export interface PlayerStatusEvent {
   state: 'idle' | 'buffering' | 'ready' | 'ended';
   isPlaying: boolean;
+  /** The player paused itself because the headphones or Bluetooth headset went away (#83). */
+  pausedByAudioOutput?: boolean;
 }
 
 export interface PlayerProgressEvent {

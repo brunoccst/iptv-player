@@ -80,6 +80,21 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
       onStatus(mapOf("state" to stateName(player?.playbackState ?: Player.STATE_IDLE), "isPlaying" to isPlaying))
     }
 
+    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+      // Headphones unplugged or Bluetooth headset gone: ExoPlayer paused rather than play on the speaker (#83).
+      // Tell the screen, so its play/pause button shows the pause and Play resumes.
+      if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY) {
+        paused = true
+        onStatus(
+          mapOf(
+            "state" to stateName(player?.playbackState ?: Player.STATE_IDLE),
+            "isPlaying" to false,
+            "pausedByAudioOutput" to true,
+          ),
+        )
+      }
+    }
+
     override fun onPlayerError(error: PlaybackException) {
       onError(mapOf("message" to (error.message ?: "Playback error"), "code" to error.errorCodeName, "detail" to causeOf(error)))
     }
@@ -111,6 +126,8 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
       .setExtensionRendererMode(extensionMode)
     val exoPlayer = ExoPlayer.Builder(context, renderers)
       .setMediaSourceFactory(DefaultMediaSourceFactory(DownloadCenter.httpDataSourceFactory))
+      // Pause when the audio output goes away (headphones, Bluetooth) instead of carrying on through the speaker.
+      .setHandleAudioBecomingNoisy(true)
       .build()
     exoPlayer.addListener(listener)
     playerView.player = exoPlayer

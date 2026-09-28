@@ -515,7 +515,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         style={StyleSheet.absoluteFill}
         source={source}
         paused={paused}
-        onStatus={(e) => setReady(e.nativeEvent.state === 'ready' || e.nativeEvent.isPlaying || ready)}
+        onStatus={(e) => {
+          setReady(e.nativeEvent.state === 'ready' || e.nativeEvent.isPlaying || ready);
+          // Headphones gone: the player paused itself; show it paused so Play resumes (#83).
+          if (e.nativeEvent.pausedByAudioOutput) setPaused(true);
+        }}
         onProgress={(e) => {
           if (scrub) return;
           timeRef.current = e.nativeEvent.positionMs / 1000;
