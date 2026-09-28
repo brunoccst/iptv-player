@@ -42,7 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-build-properties',
       {
         android: {
-          // The local backend is plain HTTP on the LAN (KI-009); Android blocks cleartext by default.
+          // Many IPTV providers answer on plain HTTP (KI-009); Android blocks cleartext by default.
           usesCleartextTraffic: true,
           // Smaller APK (D-045): compress native libraries, strip unused Java code (R8) and resources.
           useLegacyPackaging: true,
@@ -56,9 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     APP_NAME: requireEnv('APP_NAME'),
     APP_SLUG: requireEnv('APP_SLUG'),
-    // Optional: prefills "My server". Without it the app starts in direct mode only (D-038).
-    APP_API_BASE_URL: process.env.APP_API_BASE_URL?.trim() ?? '',
-    APP_PROVIDER_USER_AGENT: process.env.BACKEND_PROVIDER_USER_AGENT?.trim() ?? '',
+    APP_PROVIDER_USER_AGENT: process.env.APP_PROVIDER_USER_AGENT?.trim() ?? '',
     // Optional: '1' logs every remote event (used by the emulator CI build).
     APP_TV_DEBUG_REMOTE: process.env.APP_TV_DEBUG_REMOTE ?? '',
     // Optional: "owner/repo" whose tv-apk release the app checks for updates (tv-apk.yml sets it; D-062).

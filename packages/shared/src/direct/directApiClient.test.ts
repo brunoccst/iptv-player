@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
-import { createConnectionStore } from '../stores/connectionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { createDirectApiClient } from './directApiClient';
-import { createHybridApiClient } from './hybridApiClient';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
@@ -193,7 +191,7 @@ describe('createDirectApiClient', () => {
     expect(downloads()).toBe(before);
   });
 
-  it('keeps profiles on the device with the backend rules', async () => {
+  it('keeps profiles on the device', async () => {
     const { api } = setup();
     await api.auth.login(login);
     const kids = await api.profiles.create({ name: ' Kids ', isKids: true });
@@ -261,36 +259,5 @@ describe('createDirectApiClient', () => {
       deliveryMode: 'direct',
     });
     await expect(api.catalog.movie('999')).rejects.toMatchObject({ status: 404 });
-  });
-});
-
-describe('createHybridApiClient', () => {
-  it('routes each call to the client chosen by the saved connection', async () => {
-    const connection = createConnectionStore({ storage: createMemoryStorage(), defaultServerUrl: 'http://tv-server:5080' });
-    const direct = setup().api;
-    const serverCalls: string[] = [];
-    const server = {
-      ...direct,
-      health: async () => {
-        serverCalls.push(connection.getState().serverUrl);
-        return { status: 'ok', app: 'server' };
-      },
-    } as ApiClient;
-    const api = createHybridApiClient({ server, direct, connection });
-
-    expect(await api.health()).toEqual({ status: 'ok', app: 'Test' });
-    await connection.getState().setConnection('server', 'http://home-pc:5080/');
-    expect(await api.health()).toEqual({ status: 'ok', app: 'server' });
-    expect(serverCalls).toEqual(['http://home-pc:5080']);
-  });
-
-  it('loads the saved choice before the first call', async () => {
-    const storage = createMemoryStorage({ connection: JSON.stringify({ mode: 'server', serverUrl: 'http://saved:5080' }) });
-    const connection = createConnectionStore({ storage });
-    await connection.getState().load();
-    expect(connection.getState()).toMatchObject({ mode: 'server', serverUrl: 'http://saved:5080', loaded: true });
-    const broken = createConnectionStore({ storage: createMemoryStorage({ connection: '{' }) });
-    await broken.getState().load();
-    expect(broken.getState().mode).toBe('direct');
   });
 });

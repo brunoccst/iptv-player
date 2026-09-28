@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import type { MasterDetails, VariantInfo } from '../api/types';
 import { selectVariant } from '../stores/libraryStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
@@ -15,10 +15,10 @@ function app() {
   const storage = createMemoryStorage({
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [first, second], activeProfileId: 'p1' }),
   });
-  const context = createAppContext({
-    config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+  const context = createTestAppContext({
+    config: { appName: 'T', appSlug: 't' },
     storage,
-    fetch: createFakeBackend().fetch,
+    backend: createFakeBackend(),
   });
   return { ...context, storage };
 }
@@ -93,10 +93,10 @@ describe('playback choices for every movie and series (D-087)', () => {
     rememberPlayback(stores, { subtitles: { off: true } });
     expect(playbackChoices(stores).subtitles).toEqual({ off: true });
 
-    const again = createAppContext({
-      config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+    const again = createTestAppContext({
+      config: { appName: 'T', appSlug: 't' },
       storage,
-      fetch: createFakeBackend().fetch,
+      backend: createFakeBackend(),
     });
     await again.stores.session.getState().restore();
     await again.stores.profilePrefs.getState().load();

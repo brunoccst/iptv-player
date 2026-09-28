@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient } from '../api/apiClient';
-import type { ApiError } from '../api/httpClient';
+import type { ApiError } from '../api/errors';
 import type { AccountDto, LoginRequest, ProfileDto, ProfileRequest } from '../api/types';
 import { toApiError } from './resource';
 import type { KeyValueStorage } from './storage';
@@ -27,15 +27,15 @@ export interface SessionState {
   /** True while login or a profile mutation is running. */
   busy: boolean;
   error: ApiError | null;
-  /** True when restore could not reach the backend and cached data is shown. */
+  /** True when restore could not reach the provider and cached data is shown. */
   offline: boolean;
-  /** Last time login or restore reached the backend (server mode) or provider (direct mode). Gates downloads (D-050). */
+  /** Last time login or restore reached the provider. Gates downloads (D-050). */
   lastOnlineAt: string | null;
 
   restore(): Promise<void>;
   login(request: LoginRequest): Promise<boolean>;
   logout(): Promise<void>;
-  /** Clears the session locally after the backend answered 401. */
+  /** Clears the session locally after a call answered 401 (signed out). */
   handleUnauthorized(): void;
   selectProfile(profileId: string | null): void;
   refreshProfiles(): Promise<void>;

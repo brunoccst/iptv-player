@@ -1,13 +1,12 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
-import os from 'node:os';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { E2E, repoRoot } from './stack';
 
 const children: ChildProcess[] = [];
 
 function start(name: string, command: string, args: string[], options: { cwd: string; env?: NodeJS.ProcessEnv }) {
-  // Own process group so teardown also stops grandchildren (npx → vite, dotnet run → app).
+  // Own process group so teardown also stops grandchildren (npx → vite).
   const child = spawn(command, args, {
     cwd: options.cwd,
     env: { ...process.env, ...options.env },
@@ -44,16 +43,12 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed`);
 }
 
-/** Starts fake panel, backend (temp DATA_DIR), normalizer worker and a production web build. Returns teardown. */
+/** Starts the fake panel and a production web build; the page talks to the panel directly (D-088). Returns teardown. */
 export default async function globalSetup() {
   const panelDir = path.join(repoRoot, 'tools/fake-xtream-server');
-  const workerPython = path.join(repoRoot, 'services/title-normalizer/.venv/bin/python');
-  if (!existsSync(workerPython)) {
-    throw new Error('Missing services/title-normalizer/.venv. Create it first (see services/title-normalizer/README.md).');
-  }
   if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8'))) run('python3', ['generate_media.py'], panelDir);
 
-  for (const url of [E2E.panelUrl, E2E.apiUrl, E2E.webUrl]) {
+  for (const url of [E2E.panelUrl, E2E.webUrl]) {
     if (
       await fetch(url).then(
         () => true,
@@ -63,27 +58,13 @@ export default async function globalSetup() {
       throw new Error(`${url} is already in use. Stop the process using it first.`);
   }
 
-  const dataDir = mkdtempSync(path.join(os.tmpdir(), 'iptv-e2e-'));
-  const sharedEnv = { DATA_DIR: dataDir, APP_API_BASE_URL: E2E.apiUrl, BACKEND_CORS_ORIGINS: E2E.webUrl };
-
   start('panel', 'python3', ['server.py', '--port', new URL(E2E.panelUrl).port], { cwd: panelDir });
-  start('backend', 'dotnet', ['run', '--no-launch-profile', '--project', 'src/Backend.Api'], {
-    cwd: path.join(repoRoot, 'backend'),
-    env: { ...sharedEnv, ASPNETCORE_URLS: E2E.apiUrl, ASPNETCORE_ENVIRONMENT: 'Development' },
-  });
-
   const webDir = path.join(repoRoot, 'apps/web-player');
-  run('npx', ['vite', 'build', '--outDir', 'dist-e2e', '--emptyOutDir'], webDir, sharedEnv);
+  run('npx', ['vite', 'build', '--outDir', 'dist-e2e', '--emptyOutDir'], webDir);
   start('web', 'npx', ['vite', 'preview', '--outDir', 'dist-e2e', '--port', new URL(E2E.webUrl).port, '--strictPort'], { cwd: webDir });
 
   await waitFor(`${E2E.panelUrl}/player_api.php`);
-  await waitFor(`${E2E.apiUrl}/api/health`);
   await waitFor(E2E.webUrl);
-  // Worker starts after the backend created pipeline.db.
-  start('worker', workerPython, ['-m', 'title_normalizer', '--interval', '1'], {
-    cwd: path.join(repoRoot, 'services/title-normalizer'),
-    env: sharedEnv,
-  });
 
   return async () => {
     for (const child of children) {
@@ -93,6 +74,5 @@ export default async function globalSetup() {
         // Already exited.
       }
     }
-    rmSync(dataDir, { recursive: true, force: true });
   };
 }

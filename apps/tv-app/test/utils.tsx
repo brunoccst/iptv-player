@@ -1,9 +1,8 @@
 import { pinStorageKey } from '@iptv/shared';
 import * as SecureStore from 'expo-secure-store';
 import { DeviceEventEmitter } from 'react-native';
-import { createFakeBackend, type FakeBackend } from '../../../packages/shared/src/testing/fakeBackend';
-import { downloadsStore, navStore, playbackSettings, stores } from '../src/appContext';
-import { connectionStore } from '../src/hooks';
+import { createFakeApi, createFakeBackend, type FakeBackend } from '../../../packages/shared/src/testing/fakeBackend';
+import { appContext, downloadsStore, navStore, playbackSettings, stores } from '../src/appContext';
 import { pairingDialog } from '../src/pairing/PairingDialogs';
 import { pairedTv } from '../src/pairing/remote';
 import { nativeState, playerState } from './tvMediaMock';
@@ -19,12 +18,16 @@ export const account = {
   maxConnections: 1,
 };
 
-/** Fresh fake backend on global fetch, signed-in session, empty caches. Server mode ("My server" at http://api.test). */
+/** Fresh fake data (`createFakeApi`, also on global fetch), signed-in session, empty caches. */
 export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   const backend = createFakeBackend();
   globalThis.fetch = backend.fetch;
-  connectionStore.setState({ mode: 'server', serverUrl: 'http://api.test', loaded: true });
-  void SecureStore.setItemAsync('connection', JSON.stringify({ mode: 'server', serverUrl: 'http://api.test' }));
+  appContext.replaceApi(
+    createFakeApi(backend, {
+      getToken: () => stores.session.getState().token,
+      onUnauthorized: () => stores.session.getState().handleUnauthorized(),
+    }),
+  );
   backend.on('GET', '/api/profiles/p1/progress', { body: [] });
   if (options.signedIn === false) void SecureStore.deleteItemAsync('session');
   else {

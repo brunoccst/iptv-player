@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile, type FakeBackend } from '../testing/fakeBackend';
 import { SESSION_STORAGE_KEY, selectActiveProfile } from './sessionStore';
 import { createMemoryStorage } from './storage';
 
-const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'Test', appSlug: 'test' };
 
 describe('session store', () => {
   let backend: FakeBackend;
@@ -15,7 +15,7 @@ describe('session store', () => {
     storage = createMemoryStorage();
   });
 
-  const create = () => createAppContext({ config, storage, fetch: backend.fetch }).stores.session;
+  const create = () => createTestAppContext({ config, storage, backend }).stores.session;
 
   it('login stores token, auto-selects a single profile and persists', async () => {
     backend.on('POST', '/api/auth/login', {
@@ -64,7 +64,7 @@ describe('session store', () => {
     expect(storage.data.has(SESSION_STORAGE_KEY)).toBe(false);
   });
 
-  it('restore while backend is unreachable keeps cached session in offline mode', async () => {
+  it('restore while the provider is unreachable keeps cached session in offline mode', async () => {
     storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [profile('p1')], activeProfileId: 'p1' }));
     backend.on('GET', '/api/auth/me', { networkError: true });
     backend.on('GET', '/api/profiles', { networkError: true });

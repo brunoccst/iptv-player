@@ -18,7 +18,7 @@ const config = {
   appName: value('APP_NAME', 'IPTV Player'),
   appSlug: value('APP_SLUG', 'iptv-player'),
   // Many providers only answer known players (same default as the TV app).
-  userAgent: value('APP_PROVIDER_USER_AGENT') || value('BACKEND_PROVIDER_USER_AGENT', 'VLC/3.0.21 LibVLC/3.0.21'),
+  userAgent: value('APP_PROVIDER_USER_AGENT', 'VLC/3.0.21 LibVLC/3.0.21'),
   // "owner/repo" whose `desktop` release has updates; empty in local builds: no update checks.
   updateRepo: value('APP_UPDATE_REPO'),
   buildCommit: value('APP_BUILD_COMMIT'),

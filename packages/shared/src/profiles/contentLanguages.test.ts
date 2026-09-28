@@ -29,7 +29,7 @@ describe('content language filter: category hint (D-086)', () => {
 
 describe('library lists send the category hint with the content language filter (D-086)', () => {
   it('asks for the categories once and sends the hinted ids', async () => {
-    const { createAppContext } = await import('../appContext');
+    const { createTestAppContext } = await import('../testing/fakeBackend');
     const { createFakeBackend, account, profile } = await import('../testing/fakeBackend');
     const { createMemoryStorage } = await import('../stores/storage');
     const backend = createFakeBackend();
@@ -44,10 +44,10 @@ describe('library lists send the category hint with the content language filter 
       ],
     });
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
-    const context = createAppContext({
-      config: { apiBaseUrl: 'http://api.test', appName: 'T', appSlug: 't' },
+    const context = createTestAppContext({
+      config: { appName: 'T', appSlug: 't' },
       storage: createMemoryStorage(),
-      fetch: backend.fetch,
+      backend,
     });
     await context.stores.session.getState().login({ serverUrl: 'http://p', username: 'u', password: 'p' });
     await context.stores.profilePrefs.getState().update('p1', { languages: ['GER'] });

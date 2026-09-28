@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createApiClient } from '../api/apiClient';
-import { createHttpClient } from '../api/httpClient';
-import { createFakeBackend } from '../testing/fakeBackend';
+import { createFakeApi, createFakeBackend } from '../testing/fakeBackend';
 import { createEpgStore, epgGridKey, type EpgGridRequest } from './epgStore';
 
 const request: EpgGridRequest = { categoryId: '1', from: Date.parse('2026-09-23T12:00:00Z'), hours: 3 };
@@ -9,7 +7,7 @@ const grid = (status: string) => ({ status, updatedAt: null, from: '', to: '', t
 
 function setup() {
   const backend = createFakeBackend();
-  const api = createApiClient(createHttpClient({ baseUrl: 'http://api.test', fetch: backend.fetch }));
+  const api = createFakeApi(backend);
   return { backend, epg: createEpgStore({ api, pollMs: 1000 }) };
 }
 

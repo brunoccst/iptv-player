@@ -2,9 +2,8 @@
 
 ## Human-Requested Backlog
 
-Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 runs locally only (D-010).
+Open items requested by the owner. Finished ones move to [Done](#done).
 
-- [ ] **Later — Cloud deployment** (deferred 2026-09-23): Azure Static Web Apps, App Service, Functions, managed database.
 - [ ] **Repository clean-up** (requested 2026-09-26): review the whole repository and remove unused or unnecessary files (dead code, stale scripts, leftover assets, outdated docs).
 - [ ] **App parity, step 2 — share feature logic, not only rules** (requested 2026-09-27, D-080): move each feature's behaviour (what a menu offers, what an action does, player button order and state) into `packages/shared` as small view-models or hooks, so the TV/phone and web/desktop screens only draw it (about 50–100 lines per app and feature). One feature at a time, starting with the card menu and the player controls. About 1–2 weeks, low risk.
 - [ ] **App parity, step 3 — one set of screens for all apps (React Native Web)** (requested 2026-09-27, D-080): render the TV/phone screens in the browser and the desktop app too, so a new screen appears everywhere at once. Stays per platform: the video player (ExoPlayer / hls.js), downloads, remote-control focus; mouse and keyboard need their own touches (right-click, hover). Try one screen first (e.g. My List) and compare look, speed and effort before migrating; the current web screens would be rewritten. Several weeks.
@@ -12,20 +11,17 @@ Open items requested by the owner. Finished ones move to [Done](#done). Phase 1 
 
 ## Agent Suggestions
 
-- **Direct mode + server sync**: let a direct-mode device also push progress/profiles to a backend when one is configured (after Step 8).
+- **Sync between devices without a server**: progress and My List follow the other devices on the home network (the pairing code already merges them once, D-060, D-072).
 - **Catch-up playback** for channels with `tv_archive` (KI-032): play past programmes from the guide.
 - **Guide reminders**: notify (web) / banner (TV) when a chosen programme starts.
 - **TV guide: move the window with the D-pad** (→ on the last visible programme loads the next hour) instead of the Earlier/Later buttons only.
 - **Infer missing XMLTV `stop` times** from the next programme (KI-030).
 
-- **Refresh relay URLs for long-paused TV downloads** (KI-026): re-request the playback URL on resume.
-- **Trickplay sprites**: backend generates preview sprites on demand to replace the extra preview connection (KI-020).
+- **Refresh the playback URL of long-paused TV downloads** (KI-026): re-request it on resume.
 - **URL routing** for deep links (KI-023).
 - **mpegts.js** fallback for TS-only live panels (KI-022).
-- **Connection-limit awareness**: expose `maxConnections` to clients and warn before starting a stream that would exceed it (KI-004).
-- **Local HTTPS** for LAN traffic (KI-009).
-- **Before any cloud move**: SSRF guard + login rate limit (KI-008), hybrid relay/direct delivery (D-013), Bicep templates, Key Vault–backed Data Protection keys.
-- **Manual override**: admin endpoint to split/merge masters, stored as rules the worker applies.
+- **Connection-limit awareness**: warn before starting a stream that would exceed the account's `maxConnections` (KI-004).
+- **Manual override**: split or merge titles by hand, kept as rules the grouping applies on the device.
 
 ## Done
 
@@ -35,9 +31,10 @@ Finished owner requests, newest first; details in the linked decisions. The orig
 flowchart LR
   S1[1. Scaffold ✅] --> S2[2. Backend providers ✅] --> S3[3. Python dedup ✅] --> S4[4. Shared clients + state ✅]
   S4 --> S5[5. Web player ✅] --> S6[6. TV app ✅] --> S7[7. Live TV EPG ✅] --> S8[8. Hybrid: direct mode ✅]
-  S8 --> S9[9. Phone app ✅]
+  S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
+- [x] **Retire the server** (requested 2026-09-28, D-088): the TV, phone and desktop apps only talk to the IPTV provider directly; the "My server" choice and address are gone from sign-in, About and the log. The .NET backend and the Python title normalizer are removed (the TypeScript normalizer and its test cases stay in `packages/shared`), with their CI jobs, OpenAPI types and scripts; the whole project is TypeScript, plus the Python fake panel for tests. A login saved through a server goes back to the sign-in screen once. The cloud deployment item is dropped (nothing left to host).
 - [x] **Keep subtitles, audio and version choices** (requested 2026-09-27, D-087): the subtitles, audio track and version last picked are what every movie and series starts with, matched by language (versions: the same quality first), per profile, on every app.
 - [x] **Content language filter fixes** (requested 2026-09-27, D-086): the filter takes a title's language from its category's name when the title's own name has none, and shows titles in categories without a language; renamed "Content language filter"; "TS"/"DE" inside names no longer cut them or count as tags; episodes like "EP197"/"EP196" stay apart; Sync with phone centred, select arrows with room, icons in the episode menu.
 - [x] **Web/desktop: category chips on one line, row titles clickable** (requested 2026-09-27, D-085): Movies and Series show one line of category chips with Show all / Show less, like the TV and phone apps; Home row titles take the mouse over their whole text.

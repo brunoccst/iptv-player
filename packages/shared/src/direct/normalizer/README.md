@@ -1,14 +1,14 @@
 # normalizer
 
-TypeScript port of `services/title-normalizer` (parser, tags, grouping, masters). Rationale: [D-017](../../../../../documentation/DECISIONS.md#d-017), [D-038](../../../../../documentation/DECISIONS.md#d-038).
+Groups the provider's listings into titles with versions (parser, tags, grouping, masters). Rationale: [D-017](../../../../../documentation/DECISIONS.md#d-017), [D-038](../../../../../documentation/DECISIONS.md#d-038).
 
-| File | Python source | Exports |
-|------|---------------|---------|
-| `tags.ts` | `tags.py` | Tag tables and quality ranks. |
-| `parser.ts` | `parser.py` | `parseTitle`, `normalizeKey`, `parseYear`, `compactKey`, `numberTokens`. |
-| `matching.ts` | `matching.py` | `groupTitles`, `isFuzzyMatch`, `ratio` (same result as rapidfuzz `fuzz.ratio`). |
-| `pipeline.ts` | `pipeline.py` | `buildMasters`, `buildMastersInChunks` (yields every 500 titles, reports progress), `mergeByTmdb` (joins translated titles with the same TMDB id, D-065), `qualityScore`, `variantLabel`, `masterId`. |
-| `sha1.ts` | `hashlib.sha1` | `sha1Hex`, so master ids equal the Python ones. |
-| `normalizer.test.ts` | — | Runs `services/title-normalizer/tests/cases/*.json`, the same cases as the Python tests. |
+| File | Exports |
+|------|---------|
+| `tags.ts` | Tag tables and quality ranks. |
+| `parser.ts` | `parseTitle`, `normalizeKey`, `parseYear`, `compactKey`, `numberTokens`. |
+| `matching.ts` | `groupTitles`, `isFuzzyMatch`, `ratio` (same result as rapidfuzz `fuzz.ratio`). |
+| `pipeline.ts` | `buildMasters`, `buildMastersInChunks` (yields every 500 titles, reports progress), `mergeByTmdb` (joins translated titles with the same TMDB id, D-065), `qualityScore`, `variantLabel`, `masterId`. |
+| `sha1.ts` | `sha1Hex`, for stable master ids. |
+| `normalizer.test.ts` | Runs the JSON cases in `cases/`. |
 
-Change a rule in both languages and add the case to the JSON files.
+Add a case to `cases/` with every rule change.

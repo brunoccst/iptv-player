@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { createMemoryStorage } from '../stores/storage';
 import { i18nStore, intlLocale, matchUiLanguage, pluralForm, setUiLanguage, t, tn } from './i18n';
@@ -72,12 +72,12 @@ describe('choosing the language (D-084)', () => {
   });
 
   it('a first start follows the device, a saved choice wins over it', async () => {
-    const config = { apiBaseUrl: 'http://api.test', appName: 'Test', appSlug: 'test' };
-    const fresh = createAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['de-DE'] });
+    const config = { appName: 'Test', appSlug: 'test' };
+    const fresh = createTestAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['de-DE'] });
     await fresh.uiLanguage.load();
     expect(i18nStore.getState().language).toBe('de');
 
-    const other = createAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['fr-FR'] });
+    const other = createTestAppContext({ config, storage: createMemoryStorage(), deviceLanguages: () => ['fr-FR'] });
     await other.uiLanguage.load();
     expect(i18nStore.getState().language).toBe('de');
     setUiLanguage('en');
@@ -86,7 +86,7 @@ describe('choosing the language (D-084)', () => {
 
     const storage = createMemoryStorage();
     storage.setItem(UI_LANGUAGE_KEY, 'sh-BA');
-    const chosen = createAppContext({ config, storage, deviceLanguages: () => ['pt-BR'] });
+    const chosen = createTestAppContext({ config, storage, deviceLanguages: () => ['pt-BR'] });
     await chosen.uiLanguage.load();
     expect(i18nStore.getState().language).toBe('sh-BA');
   });
@@ -102,10 +102,10 @@ describe('choosing the language (D-084)', () => {
     backend.on('GET', '/api/profiles/p2/watchlist', { body: [] });
     const storage = createMemoryStorage();
     storage.setItem(UI_LANGUAGE_KEY, 'pt-BR');
-    const context = createAppContext({
-      config: { apiBaseUrl: 'http://api.test', appName: 'Test', appSlug: 'test' },
+    const context = createTestAppContext({
+      config: { appName: 'Test', appSlug: 'test' },
       storage,
-      fetch: backend.fetch,
+      backend,
     });
     await context.uiLanguage.load();
     expect(i18nStore.getState().language).toBe('pt-BR');

@@ -27,11 +27,10 @@ async function flush() {
 }
 
 const offer = { host: '192.168.1.20', port: 38123, key: PAIRING_KEY };
-/** A phone app signed in to `accountId` ("My server" mode, so the fake backend serves both devices). */
+/** A phone app signed in to `accountId`; the fake data serves both devices. */
 const phoneStorages = (accountId = account.id) => ({
   secure: createMemoryStorage({
     session: JSON.stringify({ token: 'phone-token', account: { ...account, id: accountId }, profiles: [profile], activeProfileId: 'p1' }),
-    connection: JSON.stringify({ mode: 'server', serverUrl: 'http://api.test' }),
   }),
   data: createMemoryStorage({ 'settings.playback': '{"audioDecoder":"ffmpeg"}' }),
 });

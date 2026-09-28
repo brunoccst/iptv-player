@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { ProfileDto } from '../api/types';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend } from '../testing/fakeBackend';
 import { MAX_PIN_TRIES, needsPinToManage, needsPinToOpen, PIN_LOCK_MS, pinStorageKey } from './pinStore';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
 
-const config = { appName: 'Test', appSlug: 'test', apiBaseUrl: 'http://api.test' };
+const config = { appName: 'Test', appSlug: 'test' };
 
 async function setup() {
   const backend = createFakeBackend();
@@ -16,7 +16,7 @@ async function setup() {
   const storage = createMemoryStorage({
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }),
   });
-  const { stores } = createAppContext({ config, storage, fetch: backend.fetch });
+  const { stores } = createTestAppContext({ config, storage, backend });
   await stores.session.getState().restore();
   await new Promise((resolve) => setTimeout(resolve, 0));
   return { stores, storage, pin: stores.pin };

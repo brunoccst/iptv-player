@@ -1,4 +1,4 @@
-# Direct mode (default, no backend): sign in to the fake panel from the emulator, on-device library, playback, guide. D-038.
+# A fresh sign-in to the fake panel (after the offline flow), on-device library, playback, guide. D-038.
 appId: ${APP_ID}
 ---
 - launchApp:
@@ -7,11 +7,9 @@ appId: ${APP_ID}
     visible:
       id: "login-server"
     timeout: 90000
-- assertNotVisible:
-    id: "login-backend"
 - tapOn:
     id: "login-server"
-# The emulator reaches the runner's localhost at 10.0.2.2; only the fake panel runs, no backend.
+# The emulator reaches the runner's localhost at 10.0.2.2, where the fake panel runs.
 - inputText: "http://10.0.2.2:8091"
 # Enter moves to the next field (and opens the keyboard there); on the password it signs in.
 - pressKey: Enter

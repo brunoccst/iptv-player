@@ -18,8 +18,6 @@ export default tseslint.config(
       'apps/tv-app/android/**',
       'apps/tv-app/ios/**',
       'packages/shared/src/api/generated/**',
-      'backend/**',
-      'services/**',
       'tools/**',
       'apps/desktop/release/**',
     ],

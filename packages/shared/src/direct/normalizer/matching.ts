@@ -1,6 +1,6 @@
 import { compactKey, numberTokens, type ParsedTitle } from './parser';
 
-/** Groups parsed titles that refer to the same work. Port of title_normalizer/matching.py (D-017, D-038). */
+/** Groups parsed titles that refer to the same work. (D-017, D-038). */
 const FUZZY_THRESHOLD = 90;
 const MIN_FUZZY_LENGTH = 6;
 const BLOCK_PREFIX_LENGTH = 4;

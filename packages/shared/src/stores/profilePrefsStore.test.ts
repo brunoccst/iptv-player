@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createAppContext } from '../appContext';
+import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { PROFILE_PREFS_KEY, createProfilePrefsStore, profileLanguages } from './profilePrefsStore';
 import { SESSION_STORAGE_KEY } from './sessionStore';
@@ -32,10 +32,10 @@ describe('profile preferences', () => {
     const storage = createMemoryStorage({
       [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [first, second], activeProfileId: 'p1' }),
     });
-    const { stores } = createAppContext({
-      config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+    const { stores } = createTestAppContext({
+      config: { appName: 'T', appSlug: 't' },
       storage,
-      fetch: backend.fetch,
+      backend,
     });
     await stores.session.getState().restore();
     const lastLanguage = () => backend.calls.at(-1)?.url.searchParams.get('language') ?? null;
@@ -69,10 +69,10 @@ describe('profile preferences', () => {
     const storage = createMemoryStorage({
       [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'tok', account, profiles: [kid], activeProfileId: 'kid' }),
     });
-    const { stores } = createAppContext({
-      config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+    const { stores } = createTestAppContext({
+      config: { appName: 'T', appSlug: 't' },
       storage,
-      fetch: backend.fetch,
+      backend,
     });
     await stores.session.getState().restore();
 

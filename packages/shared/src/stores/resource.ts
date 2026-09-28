@@ -1,4 +1,4 @@
-import { ApiError } from '../api/httpClient';
+import { ApiError } from '../api/errors';
 
 export type ResourceStatus = 'idle' | 'loading' | 'success' | 'error';
 

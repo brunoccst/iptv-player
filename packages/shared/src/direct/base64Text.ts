@@ -39,7 +39,7 @@ function decodeUtf8(bytes: Uint8Array): string | null {
   return text;
 }
 
-/** Short-EPG titles are base64 on most panels and plain text on some. Mirrors the backend's DecodeBase64. */
+/** Short-EPG titles are base64 on most panels and plain text on some. */
 export function decodeMaybeBase64(value: string | null): string | null {
   if (value === null) return null;
   const bytes = decodeBase64(value);

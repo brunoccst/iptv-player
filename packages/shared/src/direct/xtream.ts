@@ -1,4 +1,4 @@
-import { ApiError } from '../api/httpClient';
+import { ApiError } from '../api/errors';
 import type {
   Episode,
   EpgListing,
@@ -17,7 +17,7 @@ import { decodeMaybeBase64 } from './base64Text';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 import { t } from '../i18n/i18n';
 
-/** Direct-mode port of backend XtreamCodesProvider (D-011, D-038). Same DTOs, so screens do not notice the difference. */
+/** The provider's Xtream Codes API (D-011, D-038), turned into the app's types (`api/types.ts`). */
 export interface XtreamCredentials {
   /** Normalized with `normalizeServerUrl`: scheme + host + path, trailing slash. */
   serverUrl: string;
@@ -123,7 +123,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       appLog.error('provider', `${operation}: HTTP ${response.status} from ${host()} after ${Date.now() - started} ms`);
       throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
     }
-    // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects (the backend's parser skips it).
+    // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects.
     const text = await response.text().catch(() => '');
     appLog.info('provider', `${operation}: HTTP ${response.status}, ${text.length} chars in ${Date.now() - started} ms`);
     try {

@@ -499,7 +499,6 @@ describe('App (TV)', () => {
     backend.on('GET', '/api/profiles', { body: [profile] });
     const old = createMemoryStorage({
       session: JSON.stringify({ token: 'restored', account, profiles: [profile], activeProfileId: 'p1' }),
-      connection: JSON.stringify({ mode: 'server', serverUrl: 'http://api.test' }),
     });
     const backup = new File(Paths.document, 'old-device.iptvbackup');
     const oldData = createMemoryStorage({ 'settings.playback': JSON.stringify({ audioDecoder: 'ffmpeg' }) });

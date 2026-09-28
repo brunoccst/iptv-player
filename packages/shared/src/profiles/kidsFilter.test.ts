@@ -82,7 +82,7 @@ describe('withKidsFilter', () => {
 
 describe('Kids profile in the app context', () => {
   it('filters after switching to a Kids profile and drops what an adult profile loaded', async () => {
-    const { createAppContext } = await import('../appContext');
+    const { createTestAppContext } = await import('../testing/fakeBackend');
     const { account, createFakeBackend, profile } = await import('../testing/fakeBackend');
     const { createMemoryStorage } = await import('../stores/storage');
     const { SESSION_STORAGE_KEY } = await import('../stores/sessionStore');
@@ -101,10 +101,10 @@ describe('Kids profile in the app context', () => {
       ],
     });
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
-    const { stores } = createAppContext({
-      config: { appName: 'T', appSlug: 't', apiBaseUrl: 'http://api.test' },
+    const { stores } = createTestAppContext({
+      config: { appName: 'T', appSlug: 't' },
       storage,
-      fetch: backend.fetch,
+      backend,
     });
     await stores.session.getState().restore();
 

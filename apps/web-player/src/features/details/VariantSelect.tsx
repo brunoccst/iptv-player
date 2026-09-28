@@ -1,7 +1,7 @@
 import type { VariantInfo } from '@iptv/shared';
 import { t } from '@iptv/shared';
 
-/** "Version / Stream Quality" dropdown. Variants arrive best-first from the backend. */
+/** "Version / Stream Quality" dropdown. Variants arrive best-first. */
 export function VariantSelect({ variants, value, onChange }: { variants: VariantInfo[]; value: string; onChange(streamId: string): void }) {
   if (variants.length < 2) return null;
   return (

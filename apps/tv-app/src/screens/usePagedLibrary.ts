@@ -5,7 +5,7 @@ import { useLibrary } from '../hooks';
 
 /**
  * Library titles loaded page by page: `loadMore()` fetches the next page when the list nears its end.
- * `loadingMore` drives the spinner at the end of rows and grids. Without `sort` the backend default applies.
+ * `loadingMore` drives the spinner at the end of rows and grids. Without `sort` the default order applies (D-049).
  */
 export function usePagedLibrary(
   section: LibrarySection,

@@ -7,8 +7,6 @@ __pycache__/
 # Build output
 dist/
 build/
-bin/
-obj/
 .turbo/
 .expo/
 web-build/
@@ -20,12 +18,9 @@ web-build/
 # Local config overrides and secrets
 .env.local
 .env.*.local
-local.settings.json
-.data/
 
 # Tooling
 .claude/
-.pytest_cache/
 .vs/
 .idea/
 *.user

@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
-import type { ApiError } from '../api/httpClient';
+import type { ApiError } from '../api/errors';
 import type {
   LibraryPage,
   LibrarySection,
@@ -32,7 +32,7 @@ export interface LibraryState {
   loadPage(section: LibrarySection, query?: LibraryListQuery, options?: LoadOptions): Promise<LibraryPage | null>;
   loadDetails(section: LibrarySection, masterId: string, options?: LoadOptions): Promise<MasterDetails | null>;
   refreshStatus(): Promise<LibraryStatus[] | null>;
-  /** Asks the backend to re-fetch the provider catalog and queue normalization. */
+  /** Reads the provider's catalog again and regroups it. */
   sync(): Promise<boolean>;
   selectVariant(masterId: string, streamId: string): void;
   setPreferredVersion(choice: VersionChoice | null): void;
@@ -194,7 +194,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
 export type LibraryStore = ReturnType<typeof createLibraryStore>;
 
 /**
- * The chosen variant; else the one matching the profile's version choice (D-087); else the best one (backend orders
+ * The chosen variant; else the one matching the profile's version choice (D-087); else the best one (variants are ordered
  * variants best-first).
  */
 export function selectVariant(
@@ -219,7 +219,7 @@ const count = (value: number) => String(Math.round(value)).replace(/\B(?=(\d{3})
 
 /**
  * One line per library kind for the "organizing your library" notice. Uses the direct-mode stage and count when
- * present (D-038) and plain backend job states otherwise. Empty when nothing is running.
+ * present (D-038) and the plain job states otherwise. Empty when nothing is running.
  */
 export function describeLibraryProgress(statuses: LibraryStatus[] | null): string[] {
   if (!isLibraryProcessing(statuses)) return [];

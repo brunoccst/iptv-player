@@ -24,7 +24,7 @@ import { errorText } from '../../ui/errorText';
 
 const HOURS = 3;
 const STEP_MS = 2 * EPG_SLOT_MS;
-/** The backend caches now −3 h … +48 h (DECISIONS.md#d-031). */
+/** Guide window (DECISIONS.md#d-031). */
 const MIN_BACK_MS = 3 * 3600_000;
 const MAX_AHEAD_MS = 45 * 3600_000;
 

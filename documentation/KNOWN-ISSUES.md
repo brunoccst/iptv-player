@@ -7,18 +7,18 @@ Bugs, external limitations, technical debt and risks.
 | [KI-001](#ki-001) | Risk | backend | Resolved |
 | [KI-002](#ki-002) | Limitation | web-player | Open (mitigated by D-024, D-050; needs DRM to close) |
 | [KI-003](#ki-003) | Limitation | tv-app | Resolved (D-050) |
-| [KI-004](#ki-004) | Limitation | backend | Open |
+| [KI-004](#ki-004) | Limitation | providers | Open |
 | [KI-005](#ki-005) | Limitation | tv-app | Resolved |
 | [KI-006](#ki-006) | Tech debt | tooling | Open |
 | [KI-007](#ki-007) | Limitation | build env | Open |
-| [KI-008](#ki-008) | Risk | backend | Open |
-| [KI-009](#ki-009) | Risk | backend | Open (accepted for phase 1) |
+| [KI-008](#ki-008) | Risk | backend | Resolved (D-088) |
+| [KI-009](#ki-009) | Risk | backend | Resolved (D-088) |
 | [KI-010](#ki-010) | Limitation | web-player | Mitigated |
-| [KI-011](#ki-011) | Risk | backend | Open |
-| [KI-012](#ki-012) | Tech debt | backend | Open |
-| [KI-013](#ki-013) | Limitation | title-normalizer | Open |
-| [KI-014](#ki-014) | Limitation | title-normalizer | Open |
-| [KI-015](#ki-015) | Risk | backend + worker | Open |
+| [KI-011](#ki-011) | Risk | backend | Resolved (D-088) |
+| [KI-012](#ki-012) | Tech debt | backend | Resolved (D-088) |
+| [KI-013](#ki-013) | Limitation | shared (title grouping) | Open |
+| [KI-014](#ki-014) | Limitation | shared (title grouping) | Open |
+| [KI-015](#ki-015) | Risk | backend + worker | Resolved (D-088) |
 | [KI-016](#ki-016) | Limitation | backend | Resolved (D-051) |
 | [KI-017](#ki-017) | Risk | web-player | Open (accepted for phase 1) |
 | [KI-018](#ki-018) | Tech debt | shared + backend | Resolved |
@@ -33,9 +33,9 @@ Bugs, external limitations, technical debt and risks.
 | [KI-027](#ki-027) | Limitation | tv-app | Resolved |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
 | [KI-029](#ki-029) | Limitation | build env | Open |
-| [KI-030](#ki-030) | Limitation | backend | Open |
+| [KI-030](#ki-030) | Limitation | backend | Resolved (D-088) |
 | [KI-031](#ki-031) | Limitation | web-player, tv-app | Open |
-| [KI-032](#ki-032) | Limitation | backend, clients | Open |
+| [KI-032](#ki-032) | Limitation | clients | Open |
 | [KI-033](#ki-033) | Risk | tv-app CI | Resolved |
 | [KI-034](#ki-034) | Limitation | tv-app (direct mode) | Open |
 | [KI-035](#ki-035) | Limitation | tv-app (direct mode) | Open |
@@ -83,6 +83,8 @@ Resolved 2026-09-25 (D-050): segments are AES-encrypted; the key is stored wrapp
 - Providers may block datacenter IP ranges. Not relevant while local-only (D-010); relevant for a future cloud move.
 - Provider uptime is outside our control. Failures surface as `502 provider_unavailable`.
 
+Update 2026-09-28 ([D-088](./DECISIONS.md#d-088)): there is no relay any more. The TV and phone app need no CORS; the desktop app adds the permission to provider answers itself (D-071), so the web player only runs there. The connection limit is still not checked before playing.
+
 ## KI-005
 
 **`expo-video` does not expose ExoPlayer `DownloadManager`** — logged 2026-09-23
@@ -107,11 +109,15 @@ In the Claude Code cloud sandbox two `expo-doctor` checks fail because Expo's sc
 
 `POST /api/auth/login` makes the backend call whatever `serverUrl` the client sends, including LAN addresses. Low risk while the API is local and single-household. Before any public exposure: block private/loopback ranges or allow-list provider hosts, and rate-limit login.
 
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the server is removed; the apps talk to the provider directly.
+
 ## KI-009
 
 **Plain HTTP on the LAN** — logged 2026-09-23
 
 The API listens on `0.0.0.0:5080` without TLS (D-010). Anyone on the same network can sniff bearer tokens and relay URLs. Accepted for phase 1. Fix: local HTTPS (dev certificate trusted on TV) or a reverse proxy with TLS.
+
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the server is removed; the apps talk to the provider directly.
 
 ## KI-010
 
@@ -125,11 +131,15 @@ Many Xtream VOD items use `container_extension: mkv`. Browsers play MP4/WebM/HLS
 
 Xtream stream URLs contain the username and password in the path. `appsettings.json` sets `System.Net.Http.HttpClient.relay` to `Warning` to keep them out of logs. Lowering that level to `Information` writes credentials to logs. `player_api.php` query strings are redacted by .NET 10 by default.
 
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the server is removed; the apps talk to the provider directly.
+
 ## KI-012
 
 **Catalog cache is memory-only** — logged 2026-09-23
 
 `CatalogService` cache (D-015) is lost on restart and holds full lists in RAM (large VOD catalogs can reach tens of MB per account). Acceptable for one local user. The deduplicated library (`/api/library`) is persisted in `pipeline.db`; the raw `/api/catalog` endpoints still use this cache.
+
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the server is removed; the apps talk to the provider directly.
 
 ## KI-013
 
@@ -152,6 +162,8 @@ A master id derives from the group's most frequent spelling + year (D-017). If a
 **Two processes write SQLite** — logged 2026-09-23
 
 The worker's library replace holds a write lock for the transaction (≈ 1 s for 50k items). Backend writes to `pipeline.db` (new jobs) wait up to 30 s (busy timeout). `app.db` is unaffected. Moving to cloud requires replacing SQLite with a server database and queue (D-018).
+
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the server is removed; the apps talk to the provider directly.
 
 ## KI-016
 
@@ -251,6 +263,8 @@ No `/dev/kvm`, and `dl.google.com` (Android SDK, Google Maven) is blocked by the
 
 The parser keeps only programmes with a valid start and stop (D-031). Some feeds omit `stop` and expect it to be inferred from the next programme's start. Those channels show gaps unless short EPG covers them.
 
+Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the XMLTV parser went with the server; the guide comes from each channel's short EPG.
+
 ## KI-031
 
 **Guide windows align to UTC half hours** — logged 2026-09-23
@@ -262,6 +276,8 @@ The backend default `from` and the client slot math round to 30 minutes in UTC. 
 **No catch-up (archive) playback** — logged 2026-09-23
 
 Channels report `hasCatchup`, but past programmes cannot be played; selecting one plays the live channel (D-032). Needs `timeshift` URLs in `IMediaProvider` and the relay.
+
+Update 2026-09-28 ([D-088](./DECISIONS.md#d-088)): with no server, catch-up would need the provider's `timeshift` URLs built in the direct client (`packages/shared/src/direct/xtream.ts`).
 
 ## KI-033
 

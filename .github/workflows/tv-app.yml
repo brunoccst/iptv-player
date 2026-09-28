@@ -5,8 +5,6 @@ on:
     paths:
       - 'apps/tv-app/**'
       - 'packages/shared/**'
-      - 'backend/**'
-      - 'services/**'
       - 'tools/**'
       - 'scripts/**'
       - 'package-lock.json'
@@ -20,9 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Prefills "My server" (the app still starts in direct mode, D-038), so the server-mode flow does not type it:
-  # long inputText on the busy emulator made Maestro's driver die (DeviceServerDiedException). 10.0.2.2 = runner.
-  APP_API_BASE_URL: 'http://10.0.2.2:5091'
   APP_ID: com.iptvplayer.tv
   # Logs every remote event to logcat so failed flows show which keys reached the app.
   APP_TV_DEBUG_REMOTE: '1'
@@ -60,9 +55,6 @@ jobs:
           java-version: '17'
       # Caches Gradle's downloads and build cache between runs (written by main; D-044).
       - uses: gradle/actions/setup-gradle@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -101,11 +93,12 @@ jobs:
           name: tv-app-apk
           path: ${{ runner.temp }}/app-release.apk
 
-      - name: Start local stack (fake panel, backend, worker)
+      # The fake panel (Python standard library) and its test videos (ffmpeg from imageio-ffmpeg).
+      - name: Start the fake panel
         run: |
-          python -m venv services/title-normalizer/.venv
-          services/title-normalizer/.venv/bin/pip install -q -r services/title-normalizer/requirements.txt imageio-ffmpeg
-          FFMPEG=$(services/title-normalizer/.venv/bin/python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+          python -m venv "$RUNNER_TEMP/media-venv"
+          "$RUNNER_TEMP/media-venv/bin/pip" install -q imageio-ffmpeg
+          FFMPEG=$("$RUNNER_TEMP/media-venv/bin/python" -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
             python tools/fake-xtream-server/generate_media.py --codec h264
           scripts/start-e2e-stack.sh
 
@@ -130,7 +123,7 @@ jobs:
             apps/tv-app/e2e/run.sh maestro-output
 
       # The same APK on a phone: touch and the on-screen keyboard (search box focus, D-073). The fake panel from the
-      # direct-mode flow is still running.
+      # TV flows is still running.
       - name: Run the phone flow on a phone emulator
         if: success() || failure()
         uses: reactivecircus/android-emulator-runner@v2
@@ -146,9 +139,9 @@ jobs:
             apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output phone
 
-      - name: Stack logs
+      - name: Fake panel log
         if: always()
-        run: tail -n 80 $E2E_RUN_DIR/*.log || true
+        run: tail -n 80 $E2E_RUN_DIR/panel.log || true
 
       - uses: actions/upload-artifact@v4
         if: always()

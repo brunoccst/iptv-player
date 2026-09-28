@@ -853,11 +853,6 @@
   width: 100%;
 }
 
-.login__modes {
-  display: flex;
-  gap: 8px;
-}
-
 .login__note {
   margin: 0;
   font-size: 0.8rem;

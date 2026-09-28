@@ -1,6 +1,6 @@
 import { createStore } from 'zustand/vanilla';
 import type { ApiClient } from '../api/apiClient';
-import type { ApiError } from '../api/httpClient';
+import type { ApiError } from '../api/errors';
 import type { LibrarySection, MasterCard, WatchlistDto } from '../api/types';
 import { emptyResource, toApiError, type Resource } from './resource';
 

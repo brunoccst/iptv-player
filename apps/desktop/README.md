@@ -1,6 +1,6 @@
 # desktop
 
-Desktop app for Windows, macOS and Linux ([D-071](../../documentation/DECISIONS.md#d-071)): the web player (`apps/web-player`) in its own window. Like the TV app it talks to the IPTV provider directly, so it needs no backend. Users install it from the `desktop` release (links in the [root README](../../README.md#install-the-apps)).
+Desktop app for Windows, macOS and Linux ([D-071](../../documentation/DECISIONS.md#d-071)): the web player (`apps/web-player`) in its own window. Like the TV app it talks to the IPTV provider directly (D-038, D-088). Users install it from the `desktop` release (links in the [root README](../../README.md#install-the-apps)).
 
 Not an npm workspace: it has its own `package-lock.json`, so other pipelines do not download Electron.
 

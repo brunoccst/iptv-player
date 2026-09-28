@@ -5,9 +5,8 @@ import { normalizeKey, parseTitle } from './parser';
 import { buildMasters, buildMastersInChunks } from './pipeline';
 import { sha1Hex } from './sha1';
 
-/** The same JSON cases the Python tests run (services/title-normalizer/tests/cases). See DECISIONS.md#d-038. */
-const load = (name: string) =>
-  JSON.parse(readFileSync(new URL(`../../../../../services/title-normalizer/tests/cases/${name}.json`, import.meta.url), 'utf8'));
+/** The JSON cases in `cases/` (D-017, D-038). */
+const load = (name: string) => JSON.parse(readFileSync(new URL(`./cases/${name}.json`, import.meta.url), 'utf8'));
 
 interface ParseCase {
   raw: string;

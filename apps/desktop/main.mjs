@@ -1,5 +1,5 @@
 // Desktop app (Windows, macOS, Linux), DECISIONS.md#d-071: the web player in its own window. It talks to the IPTV
-// provider directly like the TV app (D-038), so no backend is needed. The page is served from 127.0.0.1 by this
+// provider directly like the TV app (D-038, D-088). The page is served from 127.0.0.1 by this
 // process; provider requests get the player User-Agent and CORS headers added here.
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import electronUpdater from 'electron-updater';

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createAppContext } from '../appContext';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
-import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
@@ -17,7 +16,6 @@ const profiles = [
 function device() {
   const secure = createMemoryStorage({
     [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'direct-x', account, profiles, activeProfileId: 'p1' }),
-    [CONNECTION_STORAGE_KEY]: JSON.stringify({ mode: 'direct', serverUrl: '' }),
     [CREDENTIALS_KEY]: JSON.stringify({ serverUrl: 'http://panel/', username: 'demo', password: 'sécret' }),
     [pinStorageKey('acc-1')]: JSON.stringify({ salt: 's', hash: 'h' }),
     'unrelated.key': 'stays out',

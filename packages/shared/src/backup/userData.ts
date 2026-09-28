@@ -2,7 +2,6 @@ import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha256';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
-import { CONNECTION_STORAGE_KEY } from '../stores/connectionStore';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import type { KeyValueStorage } from '../stores/storage';
@@ -21,7 +20,7 @@ export const MIN_BACKUP_PASSWORD = 8;
 const ITERATIONS = 100_000;
 
 export interface BackupStorages {
-  /** Session, connection, provider credentials, PIN. */
+  /** Session, provider credentials, PIN. */
   secure: KeyValueStorage;
   /** Direct-mode profiles, progress and My List (native apps; the web has none). */
   data?: KeyValueStorage;
@@ -81,7 +80,7 @@ export async function collectUserData(storages: BackupStorages): Promise<BackupC
     if (value !== null) into[key] = value;
   };
 
-  for (const key of [SESSION_STORAGE_KEY, CONNECTION_STORAGE_KEY, CREDENTIALS_KEY]) await read(storages.secure, key, secure);
+  for (const key of [SESSION_STORAGE_KEY, CREDENTIALS_KEY]) await read(storages.secure, key, secure);
   const session = parseJson<{ account?: { id: string }; profiles?: { id: string }[] }>(secure[SESSION_STORAGE_KEY] ?? null);
   const accountId = session?.account?.id;
   if (!accountId) throw new BackupFailure('no-data');

@@ -1,6 +1,6 @@
 import * as tags from './tags';
 
-/** Regex title parser. Port of title_normalizer/parser.py (D-017, D-038); the shared JSON cases keep both in step. */
+/** Regex title parser (D-017, D-038); the JSON cases in `cases/` describe what it must do. */
 export interface ParsedTitle {
   raw: string;
   cleanTitle: string;
@@ -81,7 +81,7 @@ const TRAILING_ARTICLE = /^(?<rest>.+),\s*(?<article>the|a|an)$/i;
 const splitTokens = (text: string) => text.split(TOKEN_SPLIT).filter(Boolean);
 const words = (text: string) => text.split(/\s+/).filter(Boolean);
 
-/** Python `str.strip(chars)`. */
+/** Trims any of `chars` from both ends. */
 function strip(text: string, chars: string): string {
   let start = 0;
   let end = text.length;
@@ -90,7 +90,7 @@ function strip(text: string, chars: string): string {
   return text.slice(start, end);
 }
 
-/** Python `str.isupper()`: has cased letters and all of them are uppercase. */
+/** Has cased letters and all of them are uppercase. */
 const isUpper = (text: string) => text === text.toUpperCase() && text !== text.toLowerCase();
 
 const removeMarks = (text: string) => text.normalize('NFKD').replace(/\p{M}/gu, '');

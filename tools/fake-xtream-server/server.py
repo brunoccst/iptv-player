@@ -116,6 +116,19 @@ class Handler(BaseHTTPRequestHandler):
         if self.server.verbose:  # type: ignore[attr-defined]
             super().log_message(format, *args)
 
+    # Lets a web page read the answers (CORS): the web player talks to the panel directly in the end-to-end tests and
+    # in development (D-088). Real providers do not send this, which is why the web player only runs in the desktop app.
+    def end_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Expose-Headers", "Content-Length, Content-Range, Accept-Ranges")
+        super().end_headers()
+
+    def do_OPTIONS(self) -> None:  # noqa: N802 - http.server naming
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def do_GET(self) -> None:  # noqa: N802 - http.server naming
         url = urlparse(self.path)
         path = url.path
