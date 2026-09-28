@@ -105,6 +105,8 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-098](#d-098) | 2026-09-28 | TV grid and search: only the centering scrolls, as on Home |
 | [D-099](#d-099) | 2026-09-28 | TV grid: light Up/Down moves, and held Up stays in the grid |
 | [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
+| [D-101](#d-101) | 2026-09-28 | TV player: ↑ opens the buttons on Back, ↓ on Play/Pause |
+| [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
 | [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 
 ---
@@ -1721,6 +1723,22 @@ Decision:
 Decision:
 - **Skip ahead** shows 5–15 s into an episode (10 s on screen) instead of 5–90 s (D-042's window), on every app (`SKIP_AHEAD_WINDOW` in `@iptv/shared`). While its choices are open it stays, as before.
 - **Focus glow centered (TV/phone).** The glow came from Android's `elevation` shadow, which Android lights from above the screen, so it fell lower and to one side of the focused card or button. `focus.glow` now draws it with `boxShadow` (`0 0 16px 2px`, white at 50 %), the same on every side (Android 9+). The elevation stays, with a transparent shadow, so a focused card is still drawn over its neighbours (D-076).
+
+## D-101
+
+**TV player: ↑ opens the buttons on Back, ↓ on Play/Pause** — 2026-09-28 (requested by owner)
+
+Context: in the TV player ↑ opened the audio/subtitles drawer (D-028) and ↓ the on-screen buttons with Play/Pause focused (D-075).
+
+Decision: ↑ and ↓ both open the on-screen buttons. ↓ puts the focus on Play/Pause, ↑ on Back at the top left. The drawer opens from its button on the bar (audio and subtitles, episodes). On Live TV ↑ still opens the guide over the playing channel (D-058): it is the only way to reach it with the remote. Phones are unchanged (a tap shows the controls).
+
+## D-102
+
+**TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order** — 2026-09-28 (requested by owner)
+
+Context: the player bar had two buttons into the quick drawer, Episodes then "Audio and subtitles", the reverse of the drawer's tabs (Audio, Subtitles, Versions, Episodes).
+
+Decision: three buttons, in the drawer's order: **Audio** (a new note icon), **Subtitles** and **Episodes** (series only), each opening the drawer on its tab. Versions stays a tab inside the drawer, reached from any of them. Web and desktop keep their single "Audio, subtitles and version" panel, which has no tabs.
 
 ## D-103
 
