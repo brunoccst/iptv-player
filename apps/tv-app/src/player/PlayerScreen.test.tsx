@@ -317,6 +317,27 @@ describe('PlayerScreen', () => {
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'e2', seriesId: 's1' } });
   });
 
+  it('the episodes button opens the drawer on Episodes; the audio button on Audio', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+    stubShow(backend);
+    const first: PlayTarget = { kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' };
+    await render(<PlayerScreen target={first} />);
+    await flush();
+    await flush();
+    await ready();
+
+    await fireEvent.press(screen.getByTestId('player-episodes'));
+    expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+    expect(screen.getByText('S01:E02 · Second')).toBeTruthy();
+    expect(screen.queryByText('Default audio')).toBeNull();
+    await act(async () => pressBack());
+
+    await fireEvent.press(screen.getByTestId('player-tracks'));
+    expect(screen.getByText('Default audio')).toBeTruthy();
+    expect(screen.queryByText('S01:E02 · Second')).toBeNull();
+  });
+
   it('subtitles and audio picked in one title are what the next titles start with, matched by language (D-087)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });

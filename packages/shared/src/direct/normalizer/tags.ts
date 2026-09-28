@@ -93,6 +93,13 @@ export const LANGUAGE_LONG: Table = {
   nld: 'DUT',
   polish: 'POL',
   pol: 'POL',
+  albanian: 'ALB',
+  shqip: 'ALB',
+  alb: 'ALB',
+  sqi: 'ALB',
+  kurdish: 'KUR',
+  kurdi: 'KUR',
+  kur: 'KUR',
 };
 
 /** Two-letter codes collide with real words ("It", "Us"): only accepted in prefixes, brackets, or uppercase. */
@@ -113,6 +120,8 @@ export const LANGUAGE_SHORT: Table = {
   kr: 'KOR',
   nl: 'DUT',
   pl: 'POL',
+  sq: 'ALB',
+  ku: 'KUR',
 };
 
 /** Country-style codes providers put in front of titles ("GE - ", "IN - "). Only accepted as a leading prefix group:

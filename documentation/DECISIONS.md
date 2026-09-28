@@ -93,6 +93,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-086](#d-086) | 2026-09-27 | Content language filter: the category's name as the hint; short tags and episode numbers in names; desktop polish |
 | [D-087](#d-087) | 2026-09-27 | Subtitles, audio and version: what you last picked is what every title starts with |
 | [D-088](#d-088) | 2026-09-28 | No server: the apps only talk to the provider directly; backend and Python normalizer removed |
+| [D-089](#d-089) | 2026-09-28 | Albanian and Kurdish titles join the grouped entry; the player's episodes button opens Episodes |
 
 ---
 
@@ -1566,4 +1567,14 @@ Decision:
 - **The browser.** The web player is the desktop app's screens. In a plain browser it also talks to the provider directly, with its data in localStorage, which only works against the fake panel (development, Codespaces, end-to-end tests): real providers do not allow it.
 
 Consequences: one implementation of every library rule (TypeScript, `packages/shared`); the guide comes from each channel's short EPG (the server's XMLTV parser is gone); no sync between devices other than pairing (D-060, D-072). The cloud deployment backlog item is dropped.
+
+## D-089
+
+**Albanian and Kurdish titles join the grouped entry; the player's episodes button opens Episodes** — 2026-09-28 (requested by owner)
+
+Context: a provider sends films as "ALB - Backrooms" and "KU - Backrooms" next to the other versions of "Backrooms". The parser did not know those codes, so both stayed separate cards. On TV and phones, the player's episodes button opened the quick drawer on Audio.
+
+Decision:
+- **Languages.** Albanian (`ALB`: "albanian", "shqip", "alb", "sqi"; two-letter `SQ`) and Kurdish (`KUR`: "kurdish", "kurdi", "kur"; two-letter `KU`) are title languages (`direct/normalizer/tags.ts`). Two-letter codes count only as a prefix, in brackets or in capitals, as for the other languages, so "KU - Backrooms" joins "Backrooms" and a title word like "Ku" does not. Both are offered in the content language filter (D-063), and "Albania", "Kosovo" and "Kurdistan" in a category name hint the language (D-086). The library rules version goes to 3, so on-device libraries are regrouped once after the update.
+- **Episodes button.** The quick drawer opens on the tab the button names: the episodes button on Episodes (with the focus there on TV), the audio and subtitles button and ↑/↓ on Audio. Web and desktop already have their own episodes panel.
 
