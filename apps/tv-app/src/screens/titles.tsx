@@ -26,10 +26,11 @@ import {
   type MediaCategory,
   t,
   tn,
+  isOnWatchlist,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
-import { useProfilePrefs, useProgress } from '../hooks';
+import { useProfilePrefs, useProgress, useWatchlist } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
 import { CenterFocus, CenteringScrollView, useCenterPage } from '../components/CenterScroll';
 import { FocusRow, RowFocus } from '../components/FocusRow';
@@ -63,6 +64,7 @@ export function MasterCardItem({
   const profileId = useProgress((s) => s.profileId);
   const seriesWatched = useProfilePrefs((s) => section === 'series' && isSeriesWatched(s.prefs, profileId, item.id));
   const watched = movieWatched || seriesWatched;
+  const onList = useWatchlist((s) => isOnWatchlist(s, section, item.id));
   const [menu, setMenu] = useState(false);
   const openDetails = () => navStore.getState().push({ name: 'details', section, masterId: item.id });
   return (
@@ -87,11 +89,12 @@ export function MasterCardItem({
         <CardMenu
           title={item.title}
           onClose={() => setMenu(false)}
-          actions={cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched }).map((entry) => ({
+          actions={cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched, onList }).map((entry) => ({
             label: entry.label,
             testID: `card-menu-${entry.id}`,
             onPress: () => {
               if (entry.id === 'details') openDetails();
+              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') void stores.watchlist.getState().toggle(section, item);
               else if (section === 'movies') void setMovieWatched(stores, item.id, entry.id === 'watched');
               else void setSeriesWatched({ api, ...stores }, item.id, entry.id === 'watched');
             },

@@ -23,8 +23,9 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 
 | Feature | TV | Phone | Web / desktop | How it is reached |
 |---------|----|-------|---------------|-------------------|
-| Card menu: Go to details, Mark as (not) watched (movies, series); Continue Watching: remove (D-078, D-081, D-082) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
-| "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series |
+| Card menu: Go to details, Mark as (not) watched (movies, series), Add to / Remove from My List; Continue Watching: remove (D-078, D-081, D-082, D-104) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
+| "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series; an eye since D-104 |
+| Details: Watched toggle for the movie or the whole series (D-104) | ✅ | ✅ | ✅ | eye button next to My List |
 | Episode options in series details: Mark as (not) watched, Download, Play on TV, Open in another player (D-082, D-083) | ✅ | ✅ | ✅ | row: Play, "…", version · "…" or TV: hold OK on Play · phone: long touch · web: right-click the episode |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |

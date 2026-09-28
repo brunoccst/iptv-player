@@ -6,6 +6,7 @@ import { createMemoryStorage } from '../stores/storage';
 import {
   allEpisodesWatched,
   cardMenuItems,
+  continueWatchlistEntry,
   episodeMenuItems,
   isEpisodeWatched,
   isSeriesWatched,
@@ -121,27 +122,45 @@ describe('watched titles (D-081)', () => {
     expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/profiles/p1/progress/episode/e1']);
   });
 
-  it('card menus: continue watching, movies (watched or not), series', () => {
+  it('card menus: continue watching, movies (watched or not), series; My List on every titled card (D-104)', () => {
     const labels = (items: { label: string }[]) => items.map((item) => item.label);
     expect(labels(cardMenuItems({ kind: 'continue', entry: entry('e1', 5, { kind: 'episode', masterId: 'show' }) }))).toEqual([
       'Go to details',
       'Mark episode as watched',
+      'Add to My List',
       'Remove from Continue Watching',
     ]);
     expect(labels(cardMenuItems({ kind: 'continue', entry: entry('e1', 5, { kind: 'episode', masterId: null }) }))).toEqual([
       'Mark episode as watched',
       'Remove from Continue Watching',
     ]);
-    expect(labels(cardMenuItems({ kind: 'movie', watched: false }))).toEqual(['Go to details', 'Mark as watched']);
-    expect(labels(cardMenuItems({ kind: 'movie', watched: true }))).toEqual(['Go to details', 'Mark as not watched']);
-    expect(labels(cardMenuItems({ kind: 'series', watched: false }))).toEqual(['Go to details', 'Mark series as watched']);
-    expect(labels(cardMenuItems({ kind: 'series', watched: true }))).toEqual(['Go to details', 'Mark series as not watched']);
+    expect(labels(cardMenuItems({ kind: 'movie', watched: false }))).toEqual(['Go to details', 'Mark as watched', 'Add to My List']);
+    expect(labels(cardMenuItems({ kind: 'movie', watched: true, onList: true }))).toEqual([
+      'Go to details',
+      'Mark as not watched',
+      'Remove from My List',
+    ]);
+    expect(labels(cardMenuItems({ kind: 'series', watched: false }))).toEqual([
+      'Go to details',
+      'Mark series as watched',
+      'Add to My List',
+    ]);
+    expect(labels(cardMenuItems({ kind: 'series', watched: true }))).toEqual([
+      'Go to details',
+      'Mark series as not watched',
+      'Add to My List',
+    ]);
+    expect(continueWatchlistEntry(entry('e1', 5, { kind: 'episode', masterId: 'show' }))).toMatchObject({
+      section: 'series',
+      card: { id: 'show' },
+    });
+    expect(continueWatchlistEntry(entry('e1', 5, { kind: 'episode', masterId: null }))).toBeNull();
   });
 
   it('episode menu (D-083): watched first, then what the device and profile allow', () => {
-    expect(episodeMenuItems({ watched: false })).toEqual([{ id: 'watched', label: 'Mark as watched', icon: 'check' }]);
+    expect(episodeMenuItems({ watched: false })).toEqual([{ id: 'watched', label: 'Mark as watched', icon: 'eye' }]);
     expect(episodeMenuItems({ watched: true, download: { status: 'none' }, tvName: 'Living room', externalPlayer: 'app' })).toEqual([
-      { id: 'unwatched', label: 'Mark as not watched', icon: 'close' },
+      { id: 'unwatched', label: 'Mark as not watched', icon: 'eyeOff' },
       { id: 'download', label: 'Download', icon: 'download' },
       { id: 'play-on-tv', label: 'Play on Living room', icon: 'tv' },
       { id: 'external', label: 'Open in another player', icon: 'external' },

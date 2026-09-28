@@ -107,6 +107,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
 | [D-101](#d-101) | 2026-09-28 | TV player: ↑ opens the buttons on Back, ↓ on Play/Pause |
 | [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
+| [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 
 ---
 
@@ -1738,4 +1739,15 @@ Decision: ↑ and ↓ both open the on-screen buttons. ↓ puts the focus on Pla
 Context: the player bar had two buttons into the quick drawer, Episodes then "Audio and subtitles", the reverse of the drawer's tabs (Audio, Subtitles, Versions, Episodes).
 
 Decision: three buttons, in the drawer's order: **Audio** (a new note icon), **Subtitles** and **Episodes** (series only), each opening the drawer on its tab. Versions stays a tab inside the drawer, reached from any of them. Web and desktop keep their single "Audio, subtitles and version" panel, which has no tabs.
+
+## D-104
+
+**Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched** — 2026-09-28 (requested by owner)
+
+Context: "Mark as watched" for a movie or a whole series was only in the card menu (D-081, D-082); in series details only episodes had it. "Add to My List" was only a button in details. The Watched tag used a check, too close to My List's check.
+
+Decision:
+- **Details:** a round Watched toggle next to My List, on every app: for a movie it marks the movie, for a series every episode (`setMovieWatched` / `setSeriesWatched`, the same as the card menu). An open eye when watched, a closed eye when not (`eye` / `eyeOff` in `@iptv/shared`).
+- **Card menus:** Add to My List / Remove from My List on movie and series cards, and on Continue Watching cards that have a title (`cardMenuItems`, `continueWatchlistEntry`).
+- **Eye instead of check:** the Watched tag on covers, in details and on episodes, and the episode menu's Mark as (not) watched, now show the eye. My List keeps plus / check.
 

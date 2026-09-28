@@ -3,6 +3,8 @@ import {
   chooseVersion,
   allEpisodesWatched,
   isMovieWatched,
+  setMovieWatched,
+  setSeriesWatched,
   noteSeriesWatched,
   formatDuration,
   loadSeriesVersions,
@@ -17,6 +19,7 @@ import {
 } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
+import { WatchedButton } from '../../components/WatchedButton';
 import { WatchlistButton } from '../../components/WatchlistButton';
 import { WatchedTag } from '../../components/WatchedTag';
 import { VlcButton } from '../../components/VlcButton';
@@ -106,6 +109,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           <Icon name="play" /> {resume && resume.itemId === variant.streamId ? t('Resume') : t('Play')}
         </button>
         <DownloadButton target={downloadTarget(movieTarget(master, variant), duration)} />
+        <WatchedButton kind="movie" watched={watched} onChange={(next) => setMovieWatched(stores, master.id, next)} />
         <WatchlistButton section="movies" title={master} />
         <VlcButton target={movieTarget(master, variant)} />
       </DetailsHero>
@@ -181,6 +185,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
             ? t('Resume S{seasonNumber}:E{episodeNumber}', { seasonNumber: resume.seasonNumber, episodeNumber: resume.episodeNumber })
             : t('Play')}
         </button>
+        <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
         <WatchlistButton section="series" title={master} />
       </DetailsHero>
       <div className="details__body">

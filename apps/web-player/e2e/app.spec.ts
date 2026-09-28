@@ -296,7 +296,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
 
   await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
   const menu = page.getByRole('menu', { name: 'Options for Sequel Test 2' });
-  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark as watched', 'Cancel']);
+  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark as watched', 'Add to My List', 'Cancel']);
   await menu.getByRole('menuitem', { name: 'Mark as watched' }).click();
   await expect(card.getByTestId('watched-tag')).toHaveText('Watched');
 
@@ -309,6 +309,21 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+
+  // The details' eye button does the same (D-104).
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click();
+  await dialog.getByRole('button', { name: 'Mark as watched' }).click();
+  await expect(dialog.getByTestId('watched-tag')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Mark as not watched' }).click();
+  await expect(dialog.getByTestId('watched-tag')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  // My List from the card menu (D-104).
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await menu.getByRole('menuitem', { name: 'Add to My List' }).click();
+  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await expect(menu.getByRole('menuitem', { name: 'Remove from My List' })).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'Remove from My List' }).click();
 });
 
 test('series: Mark series as watched tags the cover and every episode; unwatching one episode (its … menu) clears the series tag (D-082, D-083)', async ({
@@ -318,7 +333,7 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   const card = page.locator('.grid .card', { has: page.getByRole('button', { name: 'Test Series' }) });
   await card.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });
   const menu = page.getByRole('menu', { name: 'Options for Test Series' });
-  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark series as watched', 'Cancel']);
+  await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark series as watched', 'Add to My List', 'Cancel']);
   await menu.getByRole('menuitem', { name: 'Mark series as watched' }).click();
   await expect(card.getByTestId('watched-tag')).toBeVisible();
 
