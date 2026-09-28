@@ -46,7 +46,12 @@ export function SearchScreen() {
   }, [submits]);
 
   return (
-    <CenteringScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
+    <CenteringScrollView
+      onlyCentering
+      style={styles.screen}
+      testID="search-screen"
+      contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}
+    >
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
         {query ? t('Results for “{query}”', { query }) : search.trim().length < SEARCH_MIN_LENGTH ? t('Keep typing…') : t('Searching…')}
       </Text>
@@ -67,6 +72,8 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   const page = usePagedLibrary(section, { search: query, sort: BY_TITLE }, tv ? TV_PAGE : PAGE);
   const { columns, itemWidth } = useGridColumns();
   const sizes = useSizes();
+  // Where this section sits in the page, for centering its lines (D-098).
+  const sectionY = useRef(0);
   const lines = Array.from({ length: Math.ceil(page.items.length / columns) }, (_, i) => page.items.slice(i * columns, (i + 1) * columns));
 
   const renderLine = (line: (typeof lines)[number]) => (
@@ -78,7 +85,7 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   );
 
   return (
-    <View style={styles.section} testID={`row-${section}-search`}>
+    <View style={styles.section} testID={`row-${section}-search`} onLayout={(event) => (sectionY.current = event.nativeEvent.layout.y)}>
       <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{title}</Text>
       {page.loadingFirst ? (
         <ActivityIndicator
@@ -89,7 +96,7 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
       ) : page.items.length === 0 ? (
         <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>{t('No titles found.')}</Text>
       ) : tv ? (
-        <TvLines lines={lines} renderLine={renderLine} onNearEnd={page.loadMore} testPrefix={`search-${section}`} />
+        <TvLines lines={lines} renderLine={renderLine} onNearEnd={page.loadMore} testPrefix={`search-${section}`} parentY={sectionY} />
       ) : (
         lines.map(renderLine)
       )}

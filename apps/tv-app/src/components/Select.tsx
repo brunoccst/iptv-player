@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCenterOnFocus } from './CenterScroll';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
@@ -29,14 +30,19 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const current = options.find((option) => option.value === value);
+  const centering = useCenterOnFocus();
   return (
     <>
       <Pressable
+        ref={centering.ref}
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current?.label ?? ''}`}
         onPress={() => setOpen(true)}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          centering.center();
+        }}
         onBlur={() => setFocused(false)}
         style={[styles.box, compact ? styles.compact : styles.full, focused && styles.focused]}
       >
