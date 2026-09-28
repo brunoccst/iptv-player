@@ -46,7 +46,7 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
   // No parental PIN unless a test sets one (D-054).
   void SecureStore.deleteItemAsync(pinStorageKey(account.id));
   stores.pin.setState({ status: 'none', lockedUntil: null });
-  navStore.setState({ stack: [{ name: 'section', section: 'home' }] });
+  navStore.setState({ stack: [{ name: 'section', section: 'home' }], categoryId: null, search: '' });
   playbackSettings.setState({ audioDecoder: 'device' });
   stores.profilePrefs.setState({ prefs: {} });
   pairingDialog.setState({ open: false });

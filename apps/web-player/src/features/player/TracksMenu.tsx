@@ -1,6 +1,6 @@
 import type Hls from 'hls.js';
 import type { SubtitleChoice, TrackChoice, VariantInfo } from '@iptv/shared';
-import { t, trackLabel } from '@iptv/shared';
+import { audioTrackLabels, t, trackLabel } from '@iptv/shared';
 import { activeSubtitle, audioTracks, choiceOf, showSubtitle, subtitleTracks } from './tracks';
 
 interface TracksMenuProps {
@@ -18,6 +18,7 @@ interface TracksMenuProps {
 /** Audio, subtitles and "Version / Stream Quality" choices. */
 export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, onSubtitle, onAudio, onChange }: TracksMenuProps) {
   const audio = audioTracks(hls);
+  const audioLabels = audioTrackLabels(audio);
   const subtitleOptions = subtitleTracks(hls, video);
   const current = activeSubtitle(hls, video);
 
@@ -45,7 +46,7 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
                 onChange();
               }}
             >
-              {trackLabel(track)}
+              {audioLabels[index]}
             </button>
           ))
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
@@ -15,13 +15,15 @@ export interface ChipItem {
 }
 
 /**
- * Category chips on one scrollable line. When they do not fit, "Show all" wraps every chip across the width and
+ * Category chips on one scrollable line. When they do not fit, "Show all" wraps every chip across the full width in
+ * a box of at most half the screen that scrolls on its own, so "Show less" stays in view above it (D-091);
  * "Show less" returns to the line; picking a chip also returns to it, scrolled so the chosen chip is in view.
  */
 export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: string; testID?: string }) {
   const [expanded, setExpanded] = useState(false);
   const [lineWidth, setLineWidth] = useState(0);
   const [contentWidth, setContentWidth] = useState(0);
+  const { height } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
   // Scroll the active chip into view once it is laid out: on open (e.g. from a Home row) and after collapsing.
   const reveal = useRef(true);
@@ -61,40 +63,55 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     />
   ));
 
+  const toggle = (
+    <Toggle
+      expanded={expanded}
+      testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
+      onPress={() => {
+        reveal.current = expanded;
+        setExpanded(!expanded);
+      }}
+    />
+  );
+
+  if (expanded) {
+    return (
+      <View style={styles.expanded} testID={testID}>
+        <FocusRow style={styles.header}>
+          <Text style={styles.heading}>{label}</Text>
+          {toggle}
+        </FocusRow>
+        <ScrollView
+          testID={testID && `${testID}-box`}
+          style={{ maxHeight: Math.round(height * 0.5) }}
+          nestedScrollEnabled
+          accessibilityLabel={label}
+        >
+          <FocusRow style={styles.wrap}>{items}</FocusRow>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <FocusRow style={styles.bar} testID={testID}>
-      {expanded ? (
-        <View style={[styles.line, styles.wrap]} accessibilityLabel={label}>
-          {items}
-        </View>
-      ) : (
-        <ScrollView
-          ref={scroll}
-          testID={testID && `${testID}-line`}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.line}
-          contentContainerStyle={styles.chips}
-          accessibilityLabel={label}
-          onLayout={(event) => setLineWidth(event.nativeEvent.layout.width)}
-          onContentSizeChange={(width) => {
-            setContentWidth(width);
-            scheduleReveal();
-          }}
-        >
-          {items}
-        </ScrollView>
-      )}
-      {expanded || overflows ? (
-        <Toggle
-          expanded={expanded}
-          testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
-          onPress={() => {
-            reveal.current = expanded;
-            setExpanded(!expanded);
-          }}
-        />
-      ) : null}
+      <ScrollView
+        ref={scroll}
+        testID={testID && `${testID}-line`}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.line}
+        contentContainerStyle={styles.chips}
+        accessibilityLabel={label}
+        onLayout={(event) => setLineWidth(event.nativeEvent.layout.width)}
+        onContentSizeChange={(width) => {
+          setContentWidth(width);
+          scheduleReveal();
+        }}
+      >
+        {items}
+      </ScrollView>
+      {overflows ? toggle : null}
     </FocusRow>
   );
 }
@@ -155,6 +172,9 @@ export function Chip({
 const styles = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 24 },
   line: { flex: 1 },
+  expanded: { marginBottom: 24, gap: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  heading: { color: colors.muted, fontSize: 14 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chips: { gap: 8 },
   chip: { paddingVertical: 6, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 999 },

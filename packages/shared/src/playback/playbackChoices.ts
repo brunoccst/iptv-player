@@ -1,6 +1,6 @@
 import type { VariantInfo } from '../api/types';
 import { LANGUAGE_LONG, LANGUAGE_SHORT } from '../direct/normalizer/tags';
-import { intlLocale } from '../i18n/i18n';
+import { intlLocale, t } from '../i18n/i18n';
 import { languageNames, type ProfilePrefs, type ProfilePrefsStore } from '../stores/profilePrefsStore';
 
 /**
@@ -136,4 +136,19 @@ export function trackLabel(track: TrackInfo): string {
   const language = track.language?.trim() ?? '';
   if (label && label.toLowerCase() !== language.toLowerCase()) return label;
   return trackLanguageName(language) ?? (label || language);
+}
+
+/**
+ * Audio options: a stream with one audio track that carries no name of its own shows "Default". Its language tag
+ * is often wrong on IPTV restreams (a Brazilian channel tagged "en"), so it is not worth showing (D-090).
+ */
+export function audioTrackLabels(tracks: readonly TrackInfo[]): string[] {
+  if (tracks.length === 1 && !ownName(tracks[0]!)) return [t('Default')];
+  return tracks.map(trackLabel);
+}
+
+/** The stream names the track itself: not empty, not the language code, not the player's "Track 2" filler. */
+function ownName(track: TrackInfo): boolean {
+  const label = track.label?.trim() ?? '';
+  return !!label && label.toLowerCase() !== (track.language?.trim() ?? '').toLowerCase() && !/^track \d+$/i.test(label);
 }

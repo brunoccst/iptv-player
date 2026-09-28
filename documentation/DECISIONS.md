@@ -1579,3 +1579,20 @@ Decision:
 - **Track names.** A player track the stream gives no name of its own (the TV player then reported its language code, "en") shows the language's name in the app's language ("English", "Inglês"; `trackLabel` in `playback/playbackChoices.ts`: the app's language names first, then `Intl.DisplayNames`). Names the stream does give ("English 5.1", "Forced") stay as they are. TV, phone, web and desktop.
 - **Episodes button.** The quick drawer opens on the tab the button names: the episodes button on Episodes (with the focus there on TV), the audio and subtitles button and ↑/↓ on Audio. Web and desktop already have their own episodes panel.
 
+## D-090
+
+**A lone unnamed audio track is "Default"; Live TV keeps its category** — 2026-09-28 (requested by owner)
+
+Context: on a Brazilian live channel the audio option read "English". The name came from the stream itself: the TV player reports the audio track's language tag, and IPTV restreams often tag every track "en" whatever is spoken; D-089 only turned "en" into "English". Separately, on TV and phones the Live TV category went back to "All channels" after closing the player, because the page kept it in its own state and the page is rebuilt when the player closes.
+
+Decision:
+- **"Default" audio.** When a stream has one audio track and it has no name of its own (empty, only its language code, or the player's "Track 1"), the audio option reads "Default" (`audioTrackLabels` in `playback/playbackChoices.ts`). With several tracks, each shows its language's name as in D-089, since there the tags are what tells them apart; a name the stream gives ("Português 5.1") always shows. The language of a title's version still comes from its name ("PT - …", D-087). TV, phone, web and desktop.
+- **Live TV category.** The TV and phone Live TV page keeps the chosen category in the navigation store (`navStore.categoryId`, like Movies and Series), so it is still selected after Back from the player; picking another section resets it. The web and desktop Live TV page stays open under the player, so it already kept it.
+
+## D-091
+
+**Expanded category chips: full width, own scroll, "Show less" in view** — 2026-09-28 (requested by owner)
+
+Context: with "Show all", the chips wrapped in a column next to the "Show less" button, which left the button's column empty below it; with many categories the page scrolled far down and "Show less" scrolled away with it.
+
+Decision: expanded, the category bar shows its name and "Show less" on one line, then every chip across the full width in a box of at most half the screen that scrolls on its own. "Show less" stays where it is while the chips scroll, and more chips fit on each line. The chip size is unchanged: smaller chips would fit a few more but are harder to read and to hit on a TV and a phone. TV, phone (`ScrollView` with `nestedScrollEnabled`), web and desktop (`max-height: 50vh; overflow-y: auto`). Picking a chip or "Show less" returns to the single line as before (D-085).
