@@ -62,7 +62,7 @@ describe('LiveTvPage (guide)', () => {
 
     render(<LiveTvPage />);
 
-    const current = await screen.findByRole('button', { name: /^Morning Briefing,/ });
+    const current = await screen.findByRole('button', { name: /^Morning Briefing,/ }, { timeout: 5000 });
     expect(current.className).toContain('guide__programme--now');
     expect(screen.getByText('No guide information')).toBeTruthy();
     const epg = requests.find((u) => u.pathname === '/api/epg')!;

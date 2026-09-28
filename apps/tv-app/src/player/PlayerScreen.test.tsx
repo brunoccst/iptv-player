@@ -338,14 +338,19 @@ describe('PlayerScreen', () => {
     expect(screen.queryByText('S01:E02 · Second')).toBeNull();
     await act(async () => pressBack());
 
-    // A track the stream gives no name (only its code, "en") shows the language's name (D-089).
-    await act(async () =>
-      playerState.props?.onTracks?.({
-        nativeEvent: { tracks: [{ type: 'audio', groupIndex: 0, trackIndex: 0, label: 'en', language: 'en', selected: true }] },
-      } as never),
-    );
+    // A lone track with no name of its own is "Default": its language tag is often wrong (D-090).
+    const en = { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'en', language: 'en', selected: true };
+    await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [en] } } as never));
+    await fireEvent.press(screen.getByTestId('player-tracks'));
+    expect(screen.getByLabelText('✓ Default')).toBeTruthy();
+    await act(async () => pressBack());
+
+    // Several tracks with only their codes ("en") show the languages' names (D-089).
+    const pt = { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'pt', language: 'pt', selected: false };
+    await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [en, pt] } } as never));
     await fireEvent.press(screen.getByTestId('player-tracks'));
     expect(screen.getByLabelText('✓ English')).toBeTruthy();
+    expect(screen.getByLabelText('Portuguese')).toBeTruthy();
   });
 
   it('subtitles and audio picked in one title are what the next titles start with, matched by language (D-087)', async () => {

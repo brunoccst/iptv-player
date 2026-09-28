@@ -118,6 +118,28 @@ describe('LiveScreen (guide)', () => {
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: '1', subtitle: 'Morning Briefing' } });
   });
 
+  it('keeps the chosen category after the player closes', async () => {
+    const backend = setupApp();
+    const requests: URL[] = [];
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '7', name: 'AM | BR | BRAZIL', kind: 'live' }] });
+    backend.on('GET', '/api/epg', ({ url }) => {
+      requests.push(url);
+      return { body: { status: 'ready', updatedAt: at(0), from: at(0), to: at(180), totalChannels: 0, channels: [] } };
+    });
+
+    const view = await render(<LiveScreen />);
+    await flush();
+    await fireEvent.press(screen.getByLabelText('AM | BR | BRAZIL'));
+    await flush();
+    expect(requests.at(-1)!.searchParams.get('categoryId')).toBe('7');
+
+    // Opening the player unmounts the page; Back mounts it again.
+    await view.rerender(<LiveScreen key="after-player" />);
+    await flush();
+    expect(screen.getByLabelText('AM | BR | BRAZIL').props.accessibilityState).toMatchObject({ selected: true });
+    expect(requests.at(-1)!.searchParams.get('categoryId')).toBe('7');
+  });
+
   it('says so while the guide downloads for the first time', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/catalog/live/categories', { body: [] });

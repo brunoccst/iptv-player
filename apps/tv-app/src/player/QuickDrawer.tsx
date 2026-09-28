@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
-import { episodeLabel, trackLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
+import { audioTrackLabels, episodeLabel, trackLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
@@ -31,6 +31,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
   const first = tabs.find((entry) => entry.id === initialTab)?.id ?? 'audio';
   const [tab, setTab] = useState<DrawerTab>(first);
   const audio = tracks.filter((track) => track.type === 'audio');
+  const audioLabels = audioTrackLabels(audio);
   const text = tracks.filter((track) => track.type === 'text');
 
   return (
@@ -52,10 +53,10 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
           audio.length === 0 ? (
             <Text style={styles.muted}>{t('Default audio')}</Text>
           ) : (
-            audio.map((track) => (
+            audio.map((track, index) => (
               <FocusButton
                 key={`${track.groupIndex}-${track.trackIndex}`}
-                label={`${track.selected ? '✓ ' : ''}${trackLabel(track)}`}
+                label={`${track.selected ? '✓ ' : ''}${audioLabels[index]}`}
                 variant="ghost"
                 onPress={() => onTrack('audio', track.groupIndex, track.trackIndex)}
               />

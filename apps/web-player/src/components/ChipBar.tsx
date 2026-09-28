@@ -11,8 +11,9 @@ export interface ChipItem {
 
 /**
  * Category chips on one line, like the TV and phone apps (D-085). When they do not fit, "Show all" wraps every chip
- * across the width and "Show less" returns to the line; picking a chip also returns to it, with the chosen chip in
- * view. On the line, the mouse wheel scrolls sideways.
+ * across the full width in a box of at most half the screen that scrolls on its own, with "Show less" above it
+ * (D-091); "Show less" returns to the line; picking a chip also returns to it, with the chosen chip in view. On the
+ * line, the mouse wheel scrolls sideways.
  */
 export function ChipBar({ chips, label }: { chips: ChipItem[]; label: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -46,6 +47,7 @@ export function ChipBar({ chips, label }: { chips: ChipItem[]; label: string }) 
 
   return (
     <div className={`chip-bar${expanded ? ' chip-bar--expanded' : ''}`}>
+      {expanded ? <span className="chip-bar__heading muted">{label}</span> : null}
       <div className="chips chip-bar__chips" role="tablist" aria-label={label} ref={line} onWheel={onWheel}>
         {chips.map((chip) => (
           <button

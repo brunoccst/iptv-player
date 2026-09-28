@@ -384,7 +384,7 @@ test('Home row titles take the mouse over their whole text, above the cards’ h
   await expect(page.getByRole('tab', { name: 'Action' })).toHaveAttribute('aria-selected', 'true');
 });
 
-test('category chips stay on one line with Show all / Show less when they do not fit (D-085)', async ({ page }) => {
+test('category chips stay on one line with Show all / Show less when they do not fit (D-085, D-091)', async ({ page }) => {
   await page.setViewportSize({ width: 300, height: 800 });
   await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
   const chips = page.getByRole('tablist', { name: 'Categories' });
@@ -394,6 +394,11 @@ test('category chips stay on one line with Show all / Show less when they do not
 
   await page.getByRole('button', { name: 'Show all categories' }).click();
   expect((await tops()).size).toBeGreaterThan(1);
+  // Expanded, the chips use the full width in a box of at most half the screen, under "Show less" (D-091).
+  const box = (await chips.boundingBox())!;
+  const less = (await page.getByRole('button', { name: 'Show fewer categories' }).boundingBox())!;
+  expect(box.height).toBeLessThanOrEqual(400);
+  expect(less.y + less.height).toBeLessThanOrEqual(box.y);
   await chips.getByRole('tab', { name: 'Drama' }).click();
   // Picking a chip returns to the line, with the chosen chip in view.
   await expect(page.getByRole('button', { name: 'Show all categories' })).toBeVisible();

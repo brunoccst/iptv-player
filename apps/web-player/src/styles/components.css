@@ -398,9 +398,25 @@
   white-space: nowrap;
 }
 
-.chip-bar--expanded .chip-bar__chips {
+/* Expanded: heading and "Show less" on top, then every chip across the full width in a box that scrolls on its own. */
+.chip-bar--expanded {
   flex-wrap: wrap;
-  overflow: visible;
+  align-items: center;
+}
+
+.chip-bar__heading {
+  flex: 1;
+  font-size: 14px;
+}
+
+.chip-bar--expanded .chip-bar__chips {
+  flex: 1 0 100%;
+  flex-wrap: wrap;
+  order: 1;
+  max-height: 50vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .chip-bar__toggle {

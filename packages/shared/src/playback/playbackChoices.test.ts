@@ -10,6 +10,7 @@ import {
   chooseVersion,
   pickTrack,
   trackLabel,
+  audioTrackLabels,
   playbackChoices,
   preferredVariant,
   rememberPlayback,
@@ -65,6 +66,19 @@ describe('playback choices for every movie and series (D-087)', () => {
     setUiLanguage('de');
     expect(trackLabel({ language: 'en', label: 'en' })).toBe('Englisch');
     setUiLanguage('en');
+  });
+
+  it('call a lone unnamed audio track "Default": its language tag is often wrong (D-090)', () => {
+    expect(audioTrackLabels([{ language: 'en', label: 'en' }])).toEqual(['Default']);
+    expect(audioTrackLabels([{ language: 'en', label: 'Track 1' }])).toEqual(['Default']);
+    expect(audioTrackLabels([{ language: null, label: '' }])).toEqual(['Default']);
+    expect(audioTrackLabels([{ language: 'pt', label: 'Português 5.1' }])).toEqual(['Português 5.1']);
+    expect(
+      audioTrackLabels([
+        { language: 'en', label: 'en' },
+        { language: 'pt', label: 'pt' },
+      ]),
+    ).toEqual(['English', 'Portuguese']);
   });
 
   it('pick a version in the chosen language, the same quality first', () => {

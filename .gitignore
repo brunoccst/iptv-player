@@ -30,3 +30,6 @@ coverage/
 # APK signing key (scripts/create-signing-key.sh), and old keys kept by --replace. Never commit.
 .signing/
 .signing.old-*/
+
+# Playwright output when run from the repository root
+test-results/

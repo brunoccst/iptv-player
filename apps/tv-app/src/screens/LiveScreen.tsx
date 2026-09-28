@@ -23,7 +23,7 @@ import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
-import { useCatalog } from '../hooks';
+import { useCatalog, useNav } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
 
@@ -56,8 +56,8 @@ function play(channel: LiveChannel, programme: EpgListing | null) {
  */
 export function LiveScreen() {
   const categories = useCatalog((s) => s.categories.live?.data ?? []);
-  // Starts on the category opened from the Home row's arrow card (null = All channels).
-  const [categoryId, setCategoryId] = useState<string | null>(() => navStore.getState().categoryId);
+  // Kept in navStore so it survives opening the player and pressing Back (null = All channels).
+  const categoryId = useNav((s) => s.categoryId);
   const now = useNow();
   const [from, setFrom] = useState(() => floorToSlot(Date.now()));
   const [pages, setPages] = useState(1);
@@ -78,7 +78,7 @@ export function LiveScreen() {
   }, []);
 
   const chooseCategory = (id: string | null) => {
-    setCategoryId(id);
+    navStore.getState().setCategory(id);
     setPages(1);
     setSelected(null);
   };

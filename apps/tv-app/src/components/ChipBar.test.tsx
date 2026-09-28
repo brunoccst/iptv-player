@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions } from 'react-native';
 import { ChipBar, type ChipItem } from './ChipBar';
 
 function chips(active: string, onPress: (key: string) => void): ChipItem[] {
@@ -33,6 +34,8 @@ describe('ChipBar', () => {
     await fireEvent.press(screen.getByTestId('chips-all'));
     expect(screen.queryByTestId('chips-line')).toBeNull();
     expect(screen.getByTestId('chips-less')).toHaveProp('accessibilityState', { expanded: true });
+    // The chips scroll in their own box of at most half the screen, so "Show less" stays in view (D-091).
+    expect(screen.getByTestId('chips-box')).toHaveStyle({ maxHeight: Math.round(Dimensions.get('window').height * 0.5) });
 
     await fireEvent.press(screen.getByTestId('chips-less'));
     expect(screen.getByTestId('chips-line')).toBeTruthy();
