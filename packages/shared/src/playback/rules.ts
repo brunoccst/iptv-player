@@ -15,7 +15,7 @@ export const COMPLETED_REMAINING_SECONDS = 120;
  * "Skip ahead" button: shown early in episodes (where intros usually are), no intro detection.
  * Providers give no intro markers. See DECISIONS.md#d-042.
  */
-export const SKIP_AHEAD_WINDOW = { start: 5, end: 90, minDuration: 600 } as const;
+export const SKIP_AHEAD_WINDOW = { start: 5, end: 15, minDuration: 600 } as const;
 /** Choices the "Skip ahead" button expands into, in seconds. */
 export const SKIP_AHEAD_OPTIONS = [30, 60, 120, 180] as const;
 
@@ -69,7 +69,7 @@ export interface SkipAheadWindow {
   end: number;
 }
 
-/** When the "Skip ahead" button shows: episodes of at least 10 minutes, 5–90 s in. Movies and live never. */
+/** When the "Skip ahead" button shows: episodes of at least 10 minutes, 5–15 s in (10 s on screen, D-100). Movies and live never. */
 export function skipAheadWindow(kind: 'live' | 'movie' | 'episode', durationSeconds: number): SkipAheadWindow | null {
   if (kind !== 'episode' || !(durationSeconds >= SKIP_AHEAD_WINDOW.minDuration)) return null;
   return { start: SKIP_AHEAD_WINDOW.start, end: SKIP_AHEAD_WINDOW.end };

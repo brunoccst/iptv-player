@@ -94,6 +94,16 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-087](#d-087) | 2026-09-27 | Subtitles, audio and version: what you last picked is what every title starts with |
 | [D-088](#d-088) | 2026-09-28 | No server: the apps only talk to the provider directly; backend and Python normalizer removed |
 | [D-089](#d-089) | 2026-09-28 | Albanian and Kurdish titles join the grouped entry; language names for unnamed tracks; the episodes button opens Episodes |
+| [D-090](#d-090) | 2026-09-28 | A lone unnamed audio track is "Default"; Live TV keeps its category |
+| [D-091](#d-091) | 2026-09-28 | Expanded category chips: full width, own scroll, "Show less" in view |
+| [D-092](#d-092) | 2026-09-28 | Pause when the headphones go away |
+| [D-093](#d-093) | 2026-09-28 | Large libraries on slow TVs: faster grouping, series first, category chips in pages |
+| [D-094](#d-094) | 2026-09-28 | TV browsing: focused title in the middle, light grid, simpler category bar, reachable search clear, no brand link |
+| [D-095](#d-095) | 2026-09-28 | TV centering without the two-step scroll; search results in pages |
+| [D-096](#d-096) | 2026-09-28 | TV grid centering the Home way: rows of one height, scrolled straight to |
+| [D-097](#d-097) | 2026-09-28 | Phone player: double taps keep working after the "−10"/"+10" circle fades |
+| [D-098](#d-098) | 2026-09-28 | TV grid and search: only the centering scrolls, as on Home |
+| [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
 
 ---
 
@@ -1689,3 +1699,11 @@ Decision:
 - **Only the centering moves the grid, search and My List pages on TV.** `CenteringScrollView` takes `onlyCentering`, which turns the scroll view's own D-pad scrolling off on TV (`scrollEnabled={false}`: Up/Down still move the focus, and `scrollTo` still scrolls). Everything focusable on those pages centers itself: cards, buttons, and now the category chips, their ‹ › buttons, "Show all" and "Sort by" (`useCenterOnFocus`).
 - **Row places come from layout, as on Home.** `TvLines` reads where its block sits from `onLayout` (plus the search section's place), adds index × row height and scrolls there on the key press. It no longer measures anything after the move, and the "same target" filter from D-095 is gone.
 - My List is a grid of title cards like Movies/Series, so it gets the same treatment. Downloads keeps Android's scrolling: its rows are short and its buttons do not center themselves.
+
+## D-100
+
+**"Skip ahead" on screen for 10 s; focus glow centered** — 2026-09-28 (requested by owner)
+
+Decision:
+- **Skip ahead** shows 5–15 s into an episode (10 s on screen) instead of 5–90 s (D-042's window), on every app (`SKIP_AHEAD_WINDOW` in `@iptv/shared`). While its choices are open it stays, as before.
+- **Focus glow centered (TV/phone).** The glow came from Android's `elevation` shadow, which Android lights from above the screen, so it fell lower and to one side of the focused card or button. `focus.glow` now draws it with `boxShadow` (`0 0 16px 2px`, white at 50 %), the same on every side (Android 9+). The elevation stays, with a transparent shadow, so a focused card is still drawn over its neighbours (D-076).

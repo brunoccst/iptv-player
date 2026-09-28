@@ -189,7 +189,7 @@ After a backend API change, `dotnet build` rewrites the OpenAPI JSON, but `npm r
 
 **Skip Intro uses a fixed window** — logged 2026-09-23 · resolved 2026-09-24
 
-Providers supply no intro markers. The button shows on episodes ≥ 10 min between 5 s and 90 s and jumps to 90 s. Wrong for shows with cold opens or long intros. Fix options: per-series markers learned from user skips, or audio fingerprinting across episodes.
+Providers supply no intro markers. The Skip ahead button shows on episodes ≥ 10 min between 5 s and 15 s (D-100) and jumps 30 s to 3 min. Wrong for shows with cold opens or long intros. Fix options: per-series markers learned from user skips, or audio fingerprinting across episodes.
 
 Resolved 2026-09-24 without detection (D-042): the button is now "Skip ahead" and the viewer picks 30 s, 1, 2 or 3 min, so it no longer claims to know where the intro ends.
 

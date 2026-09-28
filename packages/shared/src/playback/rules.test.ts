@@ -108,8 +108,11 @@ describe('playback rules', () => {
     expect(skipAheadWindow('movie', 6000)).toBeNull();
     expect(skipAheadWindow('episode', 300)).toBeNull();
     const window = skipAheadWindow('episode', 2400);
-    expect(isInSkipAheadWindow(window, 30)).toBe(true);
-    expect(isInSkipAheadWindow(window, 95)).toBe(false);
+    expect(isInSkipAheadWindow(window, 4)).toBe(false);
+    expect(isInSkipAheadWindow(window, 5)).toBe(true);
+    expect(isInSkipAheadWindow(window, 14.9)).toBe(true);
+    // On screen for 10 s only (D-100).
+    expect(isInSkipAheadWindow(window, 15)).toBe(false);
     expect(SKIP_AHEAD_OPTIONS.map(skipAheadLabel)).toEqual(['30 s', '1 min', '2 min', '3 min']);
     expect(SKIP_AHEAD_OPTIONS.map(skipAheadDescription)).toEqual([
       'Skip ahead 30 seconds',

@@ -448,7 +448,7 @@ describe('PlayerScreen', () => {
     await flush();
     await flush();
     await ready();
-    await progress(30, 2400);
+    await progress(10, 2400);
 
     // Re-pressing the button cancels.
     await fireEvent.press(screen.getByTestId('skip-ahead'));
@@ -466,13 +466,31 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('player-controls')).toBeNull();
     await fireEvent.press(screen.getByTestId('skip-ahead'));
     await fireEvent.press(screen.getByLabelText('Skip ahead 1 minute'));
-    expect(playerState.seeks).toEqual([90_000]);
+    expect(playerState.seeks).toEqual([70_000]);
     expect(screen.getByTestId('player-timeline')).toBeTruthy();
     expect(screen.queryByTestId('skip-ahead-60')).toBeNull();
 
     await progress(2394, 2400);
     expect(await screen.findByText('Next episode in 6')).toBeTruthy();
     expect(screen.getByText('S01:E02 · Second')).toBeTruthy();
+  });
+
+  it('episodes: Skip ahead is on screen for 10 s only, 5–15 s in (D-100)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
+    stubShow(backend);
+    await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
+    await flush();
+    await flush();
+    await ready();
+    await progress(4, 2400);
+    expect(screen.queryByTestId('skip-ahead')).toBeNull();
+    await progress(5, 2400);
+    expect(screen.getByTestId('skip-ahead')).toBeTruthy();
+    await progress(14, 2400);
+    expect(screen.getByTestId('skip-ahead')).toBeTruthy();
+    await progress(15, 2400);
+    expect(screen.queryByTestId('skip-ahead')).toBeNull();
   });
 
   it('TV: ←/→ between the Skip ahead options and the next-up buttons move the focus, not the video', async () => {
@@ -484,25 +502,27 @@ describe('PlayerScreen', () => {
     await flush();
     await flush();
     await ready();
-    await progress(30, 2400);
+    await progress(5, 2400);
 
     // Only the Skip ahead button: ←/→ still seek.
     await act(async () => pressRemote('right'));
-    expect(playerState.seeks).toEqual([40_000]);
+    expect(playerState.seeks).toEqual([15_000]);
+    // Back inside the 10 s the button is up (D-100).
+    await progress(8, 2400);
     // Options open: walking them with →/← never seeks; the chosen option skips exactly its amount.
     await fireEvent.press(screen.getByTestId('skip-ahead'));
     await act(async () => pressRemote('right'));
     await act(async () => pressRemote('right'));
     await act(async () => pressRemote('left'));
-    expect(playerState.seeks).toEqual([40_000]);
+    expect(playerState.seeks).toEqual([15_000]);
     await fireEvent.press(screen.getByLabelText('Skip ahead 2 minutes'));
-    expect(playerState.seeks).toEqual([40_000, 160_000]);
+    expect(playerState.seeks).toEqual([15_000, 128_000]);
 
     // Next-up: Play Now / Cancel are a row too.
     await progress(2394, 2400);
     expect(await screen.findByText('Next episode in 6')).toBeTruthy();
     await act(async () => pressRemote('right'));
-    expect(playerState.seeks).toEqual([40_000, 160_000]);
+    expect(playerState.seeks).toEqual([15_000, 128_000]);
     jest.restoreAllMocks();
   });
 
@@ -704,7 +724,7 @@ describe('PlayerScreen', () => {
       await render(<PlayerScreen target={{ kind: 'episode', streamId: 'e1', container: 'mp4', title: 'Show', seriesId: 's1' }} />);
       await flush();
       await ready();
-      await progress(30, 2400);
+      await progress(10, 2400);
       await act(async () => jest.advanceTimersByTime(5000));
       expect(screen.getByTestId('skip-ahead')).toBeTruthy();
       expect(screen.queryByTestId('player-controls')).toBeNull();
