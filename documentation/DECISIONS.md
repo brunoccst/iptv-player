@@ -1669,3 +1669,11 @@ Context: after D-095, the Movies/Series grid (and TV search) still scrolled in t
 Decision:
 - **Rows of one height.** A card without a subtitle (no year, one version) was shorter, so its line was too. The spacers that replace far lines (D-094) all took the first line's height, so every move, as lines turned into spacers and back, grew or shrank the page above the focus and shifted what was on screen: the second step. Grid cards now always keep the subtitle line, and every line, mounted or spacer, has the first line's height.
 - **Centered like Home.** Home knows where each row sits and scrolls straight there. `TvLines` now does the same: the focused line's place is the start of the block plus its index times the line height, so the scroll starts on the same key press with nothing to measure. The block's start is measured again after each move, in case a section above it grew (search). The cards inside no longer measure and scroll on their own. My List and Downloads keep D-095's per-card centering: they have no spacers, so nothing moves under them.
+
+## D-097
+
+**Phone player: double taps keep working after the "−10"/"+10" circle fades** — 2026-09-28 (requested by owner)
+
+Context: on the phone, double taps on the left or right of the video seeked ∓10 s only while the "−10"/"+10" circle was on screen; after it faded, they did nothing (the buttons still worked).
+
+Decision: the circle (`TapFlash`) faded out but stayed on screen, invisible, over the spot where the user taps, and it took those taps, so the video underneath never saw them. It now never takes touches (`pointerEvents="none"`, like the web's `.skip-flash`) and is removed once it has faded. The same circle shows for D-pad taps on TV, where it took no part in focus.
