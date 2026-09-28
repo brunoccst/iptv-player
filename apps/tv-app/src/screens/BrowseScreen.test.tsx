@@ -90,7 +90,7 @@ describe('BrowseScreen (TV)', () => {
     // Before a line is measured every line is mounted; once its height is known, far lines become spacers.
     await fireEvent(screen.getByTestId('grid-line-0'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 400 } } });
     expect(screen.getByTestId('grid-line-6')).toBeTruthy();
-    expect(screen.getByTestId('grid-spacer-7')).toHaveStyle({ height: 400 });
+    expect(screen.getByTestId('grid-spacer-9')).toHaveStyle({ height: 400 });
     expect(screen.queryByTestId('card-Movie 99')).toBeNull();
 
     // Focusing a title further down moves the mounted window with it.
@@ -100,6 +100,8 @@ describe('BrowseScreen (TV)', () => {
     expect(screen.getByTestId('grid-line-12')).toBeTruthy();
     await fireEvent(within(screen.getByTestId('grid-line-12')).getAllByRole('button')[0]!, 'focus');
     expect(screen.getByTestId('grid-line-18')).toBeTruthy();
-    expect(screen.getByTestId('grid-spacer-0')).toHaveStyle({ height: 400 });
+    expect(screen.getByTestId('grid-spacer-1')).toHaveStyle({ height: 400 });
+    // The first line stays mounted: its first card takes the focus when it mounts (D-099).
+    expect(screen.getByTestId('grid-line-0')).toBeTruthy();
   });
 });

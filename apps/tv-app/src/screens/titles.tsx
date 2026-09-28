@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react';
+import { memo, startTransition, useCallback, useMemo, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Platform,
   StyleSheet,
   Text,
+  TVFocusGuideView,
   useWindowDimensions,
   View,
   type NativeScrollEvent,
@@ -247,7 +248,9 @@ export function TitleGrid({
 }
 
 /** Lines kept mounted above and below the focused one on TV; the rest are empty spacers of the same height. */
-const MOUNTED_AROUND = 6;
+const MOUNTED_AROUND = 8;
+/** The mounted lines move only when the focus gets this close to their edge, a few lines at a time (D-099). */
+const WINDOW_EDGE = 3;
 
 /**
  * TV grid (D-093, D-094): a scroll view that asks for the next page when its end is within one and a half screens.
@@ -321,14 +324,19 @@ export function LoadingMoreNote() {
 }
 
 /**
- * TV lines of cards (D-094, D-095, D-096, D-098): only the lines within MOUNTED_AROUND of the focused one are mounted,
- * the others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the next page.
- * Used by the Movies/Series grid and the search results.
+ * TV lines of cards (D-094, D-095, D-096, D-098, D-099): only the lines within MOUNTED_AROUND of the focus are
+ * mounted, the others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the
+ * next page. Used by the Movies/Series grid and the search results.
  *
  * Every line, mounted or spacer, has the height of the first one, so swapping lines for spacers never moves the page.
  * The focused line is centred exactly like the rows on Home: its place in the page comes from layout (where the block
  * sits, plus index × line height), and the page scrolls there on the same key press, with nothing measured.
  * `parentY` is where the block's parent sits in the page, when the block is not directly in the scroll view (search).
+ *
+ * Moving between lines must stay light (D-099): lines are memoised, so a move re-renders nothing; the mounted lines
+ * move only when the focus nears their edge, as a low-priority update that never holds up the key press; and Up is
+ * kept inside the block while the focus is below its first line. Held Up went faster than lines were mounted, so the
+ * focus jumped over the empty spacers to the category bar and the page showed only spacers.
  */
 export function TvLines({
   lines,
@@ -343,37 +351,82 @@ export function TvLines({
   testPrefix?: string;
   parentY?: RefObject<number>;
 }) {
-  const [focusedLine, setFocusedLine] = useState(0);
+  const [windowCenter, setWindowCenter] = useState(0);
   const [lineHeight, setLineHeight] = useState(0);
+  const [onFirstLine, setOnFirstLine] = useState(true);
   const page = useCenterPage();
   const blockY = useRef(0);
-  const focusLine = (index: number) => {
-    setFocusedLine(index);
-    if (page && lineHeight) page.centerAt((parentY?.current ?? 0) + blockY.current + index * lineHeight, lineHeight);
-    if (index >= lines.length - 2) onNearEnd?.();
-  };
+  // The latest values for the focus handler, which stays the same function so the lines never re-render for it.
+  const latest = useRef({ page, lineHeight, windowCenter, count: lines.length, onNearEnd, parentY });
+  latest.current = { page, lineHeight, windowCenter, count: lines.length, onNearEnd, parentY };
+  const focusLine = useCallback((index: number) => {
+    const now = latest.current;
+    if (now.page && now.lineHeight)
+      now.page.centerAt((now.parentY?.current ?? 0) + blockY.current + index * now.lineHeight, now.lineHeight);
+    setOnFirstLine(index === 0);
+    if (Math.abs(index - now.windowCenter) > MOUNTED_AROUND - WINDOW_EDGE) startTransition(() => setWindowCenter(index));
+    if (index >= now.count - 2) now.onNearEnd?.();
+  }, []);
+  const measureFirst = useCallback((height: number) => setLineHeight((known) => known || height), []);
   return (
-    <View testID={`${testPrefix}-lines`} onLayout={(event) => (blockY.current = event.nativeEvent.layout.y)}>
+    <TVFocusGuideView
+      testID={`${testPrefix}-lines`}
+      trapFocusUp={Platform.isTV && !onFirstLine}
+      onLayout={(event) => (blockY.current = event.nativeEvent.layout.y)}
+    >
       {/* The line centres itself: cards must not measure and scroll too. */}
       <CenterFocus.Provider value={null}>
-        {lines.map((line, index) =>
-          Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
-            <View
-              key={line[0]!.id}
-              testID={`${testPrefix}-line-${index}`}
-              style={lineHeight ? { height: lineHeight } : undefined}
-              onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
-            >
-              <RowFocus.Provider value={() => focusLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
-            </View>
-          ) : (
-            <View key={line[0]!.id} testID={`${testPrefix}-spacer-${index}`} style={{ height: lineHeight }} />
-          ),
-        )}
+        {lines.map((line, index) => (
+          <TvLine
+            key={line[0]!.id}
+            line={line}
+            index={index}
+            // The first line stays mounted: its first card asks for the focus when it mounts (hasTVPreferredFocus).
+            mounted={index === 0 || Math.abs(index - windowCenter) <= MOUNTED_AROUND || !lineHeight}
+            lineHeight={lineHeight}
+            testPrefix={testPrefix}
+            renderLine={renderLine}
+            onFocusLine={focusLine}
+            onFirstHeight={index === 0 ? measureFirst : undefined}
+          />
+        ))}
       </CenterFocus.Provider>
-    </View>
+    </TVFocusGuideView>
   );
 }
+
+/** One line of `TvLines`, or its spacer; re-renders only when its own props change. */
+const TvLine = memo(function TvLine({
+  line,
+  index,
+  mounted,
+  lineHeight,
+  testPrefix,
+  renderLine,
+  onFocusLine,
+  onFirstHeight,
+}: {
+  line: MasterCard[];
+  index: number;
+  mounted: boolean;
+  lineHeight: number;
+  testPrefix: string;
+  renderLine(line: MasterCard[], index: number): ReactElement;
+  onFocusLine(index: number): void;
+  onFirstHeight?(height: number): void;
+}) {
+  const focus = useCallback(() => onFocusLine(index), [onFocusLine, index]);
+  if (!mounted) return <View testID={`${testPrefix}-spacer-${index}`} style={{ height: lineHeight }} />;
+  return (
+    <View
+      testID={`${testPrefix}-line-${index}`}
+      style={lineHeight ? { height: lineHeight } : undefined}
+      onLayout={onFirstHeight && !lineHeight ? (event) => onFirstHeight(event.nativeEvent.layout.height) : undefined}
+    >
+      <RowFocus.Provider value={focus}>{renderLine(line, index)}</RowFocus.Provider>
+    </View>
+  );
+});
 
 /** Web "Sort by" menu: only the orders the library has data for. */
 function SortBar({

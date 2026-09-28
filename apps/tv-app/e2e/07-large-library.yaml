@@ -66,6 +66,18 @@ appId: ${APP_ID}
       focused: true
     timeout: 60000
 - takeScreenshot: 73b-movies-quick-presses
+# Quick presses up keep the focus on a card: held Up once went faster than lines were mounted, jumped over the empty spacers to
+# the category bar and left only spacers on screen (D-099).
+- repeat:
+    times: 20
+    commands:
+      - pressKey: Remote Dpad Up
+- extendedWaitUntil:
+    visible:
+      id: "card-Stress Movie 159[0-9][0-9][0-9]"
+      focused: true
+    timeout: 60000
+- takeScreenshot: 73c-movies-quick-up
 - tapOn:
     id: "nav-series"
 - extendedWaitUntil:

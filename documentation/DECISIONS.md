@@ -1689,3 +1689,15 @@ Decision:
 - **Only the centering moves the grid, search and My List pages on TV.** `CenteringScrollView` takes `onlyCentering`, which turns the scroll view's own D-pad scrolling off on TV (`scrollEnabled={false}`: Up/Down still move the focus, and `scrollTo` still scrolls). Everything focusable on those pages centers itself: cards, buttons, and now the category chips, their ‹ › buttons, "Show all" and "Sort by" (`useCenterOnFocus`).
 - **Row places come from layout, as on Home.** `TvLines` reads where its block sits from `onLayout` (plus the search section's place), adds index × row height and scrolls there on the key press. It no longer measures anything after the move, and the "same target" filter from D-095 is gone.
 - My List is a grid of title cards like Movies/Series, so it gets the same treatment. Downloads keeps Android's scrolling: its rows are short and its buttons do not center themselves.
+
+## D-099
+
+**TV grid: light Up/Down moves, and held Up stays in the grid** — 2026-09-28 (requested by owner)
+
+Context: with D-098 the grid scrolled in one step, but on the Chromecast each Up/Down came about half a second late, while Left/Right was smooth. Holding Up for a second jumped to the category bar's › button, and the grid then showed no titles until Down was pressed a few times.
+
+Decision:
+- **Why Up/Down was slow.** Every line change re-rendered every mounted line of `TvLines` and mounted/unmounted one more; Left/Right stays on the same line, so nothing re-rendered. Lines are now memoised (`TvLine`), so a move re-renders none of them. The mounted lines (now eight on each side) move only when the focus is within three lines of their edge, and as a low-priority update (`startTransition`) that never holds up the key press or the focus highlight.
+- **Why held Up jumped to the category bar.** Android moves the focus on its own as fast as the key repeats. Once it outran the mounting, the next line up was an empty spacer, so the focus skipped over the spacers to the next focusable above: the category bar. That scrolled the page to the top, where there were only spacers. `TvLines` now keeps Up inside its block (`TVFocusGuideView trapFocusUp`) while the focus is below its first line: at the edge of the mounted lines the focus waits for the next ones instead of leaving the grid. From the first line, Up leaves as before.
+- **The first line always stays mounted.** Its first card asks for the focus when it mounts (`hasTVPreferredFocus`); remounted when coming back up, it could have pulled the focus to the top.
+- Stress flow: 20 quick Up presses must leave the focus on a card.
