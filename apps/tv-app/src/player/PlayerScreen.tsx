@@ -69,7 +69,7 @@ import { IconButton } from '../components/IconButton';
 import { colors, fonts, useSizes } from '../theme';
 import { useAsync } from '../useAsync';
 import { GuideOverlay } from './GuideOverlay';
-import { QuickDrawer } from './QuickDrawer';
+import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { sleepControl } from '../tv/SleepMode';
 
@@ -142,7 +142,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [duration, setDuration] = useState(0);
   const [tracks, setTracks] = useState<PlayerTrack[]>([]);
   const [controls, setControls] = useState(true);
-  const [drawer, setDrawer] = useState(false);
+  // Open drawer and the tab it opened on; false = closed.
+  const [drawer, setDrawer] = useState<DrawerTab | false>(false);
   const [guide, setGuide] = useState(false);
   // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, from the beginning, previous episode, ±10 s, next
   // episode, episodes, audio and subtitles), which the D-pad then walks through; Back or a few seconds without keys
@@ -455,7 +456,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     if (action === 'up') return;
     if (key === 'down' && Platform.isTV) setButtons(true);
     else if (key === 'up' && isLive) setGuide(true);
-    else if (key === 'up' || key === 'down') setDrawer(true);
+    else if (key === 'up' || key === 'down') setDrawer('audio');
     else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
   });
@@ -737,7 +738,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   testID="player-episodes"
                   onPress={() => {
                     setButtons(false);
-                    setDrawer(true);
+                    setDrawer('episodes');
                   }}
                 />
               ) : null}
@@ -751,7 +752,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 testID="player-tracks"
                 onPress={() => {
                   setButtons(false);
-                  setDrawer(true);
+                  setDrawer('audio');
                 }}
               />
             </View>
@@ -812,6 +813,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
       {drawer ? (
         <QuickDrawer
+          initialTab={drawer}
           tracks={tracks}
           variants={variants}
           currentStreamId={target.streamId}

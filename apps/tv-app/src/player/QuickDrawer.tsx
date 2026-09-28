@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
-import { episodeLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
+import { episodeLabel, trackLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
 
-type Tab = 'audio' | 'subtitles' | 'versions' | 'episodes';
+export type DrawerTab = 'audio' | 'subtitles' | 'versions' | 'episodes';
 
 interface QuickDrawerProps {
   tracks: PlayerTrack[];
@@ -16,28 +16,31 @@ interface QuickDrawerProps {
   onTrack(type: 'audio' | 'text', groupIndex: number, trackIndex: number): void;
   onVariant(variant: VariantInfo): void;
   onEpisode(episode: MergedEpisode): void;
+  /** The tab it opens on: Episodes from the player's episodes button, Audio otherwise. */
+  initialTab?: DrawerTab;
 }
 
 /** Up/Down in the player: Audio, Subtitles, Versions, Episodes. Focus is trapped inside; Back closes. */
-export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack, onVariant, onEpisode }: QuickDrawerProps) {
-  const tabs: { id: Tab; label: string }[] = [
+export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack, onVariant, onEpisode, initialTab }: QuickDrawerProps) {
+  const tabs: { id: DrawerTab; label: string }[] = [
     { id: 'audio', label: t('Audio') },
     { id: 'subtitles', label: t('Subtitles') },
     ...(variants.length > 1 ? [{ id: 'versions' as const, label: t('Versions') }] : []),
     ...(series ? [{ id: 'episodes' as const, label: t('Episodes') }] : []),
   ];
-  const [tab, setTab] = useState<Tab>('audio');
+  const first = tabs.find((entry) => entry.id === initialTab)?.id ?? 'audio';
+  const [tab, setTab] = useState<DrawerTab>(first);
   const audio = tracks.filter((track) => track.type === 'audio');
   const text = tracks.filter((track) => track.type === 'text');
 
   return (
     <TVFocusGuideView style={styles.drawer} trapFocusUp trapFocusDown trapFocusLeft trapFocusRight testID="quick-drawer">
       <View style={styles.tabs}>
-        {tabs.map((entry, index) => (
+        {tabs.map((entry) => (
           <FocusButton
             key={entry.id}
             label={entry.label}
-            hasTVPreferredFocus={index === 0}
+            hasTVPreferredFocus={entry.id === first}
             variant={tab === entry.id ? 'primary' : 'ghost'}
             onPress={() => setTab(entry.id)}
             onFocus={() => setTab(entry.id)}
@@ -52,7 +55,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
             audio.map((track) => (
               <FocusButton
                 key={`${track.groupIndex}-${track.trackIndex}`}
-                label={`${track.selected ? '✓ ' : ''}${track.label}`}
+                label={`${track.selected ? '✓ ' : ''}${trackLabel(track)}`}
                 variant="ghost"
                 onPress={() => onTrack('audio', track.groupIndex, track.trackIndex)}
               />
@@ -69,7 +72,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
             {text.map((track) => (
               <FocusButton
                 key={`${track.groupIndex}-${track.trackIndex}`}
-                label={`${track.selected ? '✓ ' : ''}${track.label}`}
+                label={`${track.selected ? '✓ ' : ''}${trackLabel(track)}`}
                 variant="ghost"
                 onPress={() => onTrack('text', track.groupIndex, track.trackIndex)}
               />

@@ -78,6 +78,8 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   JPN: 'Japanese',
   KOR: 'Korean',
   CHI: 'Chinese',
+  ALB: 'Albanian',
+  KUR: 'Kurdish',
 };
 
 /** The language names in the app's language (D-084), for the language choice. */
@@ -98,4 +100,6 @@ export const languageNames = (): Record<string, string> => ({
   JPN: t('Japanese'),
   KOR: t('Korean'),
   CHI: t('Chinese'),
+  ALB: t('Albanian'),
+  KUR: t('Kurdish'),
 });
