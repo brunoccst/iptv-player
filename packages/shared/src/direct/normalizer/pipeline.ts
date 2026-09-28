@@ -136,13 +136,26 @@ export async function buildMastersInChunks(
     chunkSize = 500,
     sliceMs = 50,
     onProgress,
-  }: { chunkSize?: number; sliceMs?: number; onProgress?(done: number, total: number): void } = {},
+    yieldTo,
+  }: {
+    chunkSize?: number;
+    sliceMs?: number;
+    onProgress?(done: number, total: number): void;
+    /** Asked at every pause: a job to run first (e.g. a smaller list that just arrived), awaited before going on. */
+    yieldTo?(): Promise<unknown> | null;
+  } = {},
 ): Promise<Master[]> {
   const usable = items.filter((item) => text(item.id) && text(item.name));
   const total = usable.length;
   let sliceStarted = Date.now();
   const pause = async (fraction: number) => {
     onProgress?.(Math.min(total, Math.floor(fraction * total)), total);
+    const first = yieldTo?.();
+    if (first) {
+      await first;
+      sliceStarted = Date.now();
+      return;
+    }
     if (Date.now() - sliceStarted < sliceMs) return;
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     sliceStarted = Date.now();

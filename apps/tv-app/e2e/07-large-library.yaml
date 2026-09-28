@@ -1,0 +1,56 @@
+# Large library (D-093): 160k titles from the stress panel. Signs in, waits for the library, opens Movies and checks
+# that the page shows titles and the remote still moves the focus. Run by .github/workflows/tv-stress.yml.
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-server"
+    timeout: 90000
+- tapOn:
+    id: "login-server"
+- inputText: "http://10.0.2.2:8091"
+- pressKey: Enter
+- inputText: "demo"
+- pressKey: Enter
+- inputText: "demo"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 120000
+- takeScreenshot: 70-home-organizing
+# Grouping 160k titles on the emulator takes minutes.
+- extendedWaitUntil:
+    notVisible: "Organizing your library.*"
+    timeout: 1500000
+- takeScreenshot: 71-home-ready
+- tapOn:
+    id: "nav-movies"
+- extendedWaitUntil:
+    visible:
+      id: "browse-movies"
+    timeout: 120000
+- takeScreenshot: 72a-movies-opened
+- extendedWaitUntil:
+    visible: "__wait_20s__"
+    timeout: 20000
+    optional: true
+- takeScreenshot: 72b-movies-20s
+- extendedWaitUntil:
+    visible:
+      id: "card-Stress Movie.*"
+    timeout: 120000
+- takeScreenshot: 72-movies
+- pressKey: Remote Dpad Down
+- pressKey: Remote Dpad Down
+- pressKey: Remote Dpad Right
+- takeScreenshot: 73-movies-after-keys
+- tapOn:
+    id: "nav-series"
+- extendedWaitUntil:
+    visible:
+      id: "browse-series"
+    timeout: 120000
+- takeScreenshot: 74-series

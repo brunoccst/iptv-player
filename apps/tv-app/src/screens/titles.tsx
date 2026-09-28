@@ -1,8 +1,9 @@
-import { useMemo, useState, type ReactElement } from 'react';
+import { useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -175,6 +176,46 @@ export function TitleGrid({
     <Text style={[styles.muted, { marginHorizontal: gutter }]}>{emptyText ?? t('No titles found.')}</Text>
   );
 
+  const listHeader =
+    onSort && sort ? (
+      <>
+        {header}
+        <SortBar value={sort} sorts={page.sorts ?? [sort.sort]} onChange={onSort} />
+      </>
+    ) : (
+      header
+    );
+  const renderLine = (line: MasterCard[], lineIndex: number) => (
+    <FocusRow key={line[0]!.id} style={[styles.line, { paddingHorizontal: gutter }]}>
+      {line.map((item, index) => (
+        <MasterCardItem
+          key={item.id}
+          section={section}
+          item={item}
+          width={itemWidth}
+          hasTVPreferredFocus={Platform.isTV && lineIndex === 0 && index === 0}
+        />
+      ))}
+    </FocusRow>
+  );
+  const footer = page.loadingMore ? (
+    <ActivityIndicator style={styles.more} size="large" color={colors.accent} accessibilityLabel={t('Loading more')} />
+  ) : (
+    <View style={styles.bottom} />
+  );
+
+  // TV: a plain ScrollView, like Home. A FlatList on Android TV got a 2 px viewport on the Movies/Series pages: nothing
+  // under the header showed and every frame took seconds, which froze the app (D-093). Pages load as it scrolls.
+  if (Platform.isTV) {
+    return (
+      <TvGrid testID={testID ?? `grid-${section}`} onScroll={onScroll} onNearEnd={page.loadMore}>
+        {listHeader}
+        {lines.length === 0 ? empty : lines.map(renderLine)}
+        {footer}
+      </TvGrid>
+    );
+  }
+
   return (
     <FlatList
       key={columns}
@@ -182,46 +223,65 @@ export function TitleGrid({
       style={styles.list}
       data={lines}
       keyExtractor={(line) => line[0]!.id}
-      ListHeaderComponent={
-        onSort && sort ? (
-          <>
-            {header}
-            <SortBar value={sort} sorts={page.sorts ?? [sort.sort]} onChange={onSort} />
-          </>
-        ) : (
-          header
-        )
-      }
+      ListHeaderComponent={listHeader}
       ListEmptyComponent={empty}
-      renderItem={({ item: line, index: lineIndex }) => (
-        <FocusRow style={[styles.line, { paddingHorizontal: gutter }]}>
-          {line.map((item, index) => (
-            <MasterCardItem
-              key={item.id}
-              section={section}
-              item={item}
-              width={itemWidth}
-              hasTVPreferredFocus={Platform.isTV && lineIndex === 0 && index === 0}
-            />
-          ))}
-        </FocusRow>
-      )}
+      renderItem={({ item: line, index: lineIndex }) => renderLine(line, lineIndex)}
       onEndReached={page.loadMore}
       onEndReachedThreshold={1.5}
       onScroll={onScroll}
       scrollEventThrottle={100}
-      ListFooterComponent={
-        page.loadingMore ? (
-          <ActivityIndicator style={styles.more} size="large" color={colors.accent} accessibilityLabel={t('Loading more')} />
-        ) : (
-          <View style={styles.bottom} />
-        )
-      }
+      ListFooterComponent={footer}
       removeClippedSubviews={false}
       initialNumToRender={3}
       maxToRenderPerBatch={2}
       windowSize={5}
     />
+  );
+}
+
+/**
+ * TV grid container: a ScrollView that asks for the next page when the end is within one and a half screens, and
+ * while the content is still shorter than that (the first page may not fill the screen).
+ */
+function TvGrid({
+  testID,
+  onScroll,
+  onNearEnd,
+  children,
+}: {
+  testID: string;
+  onScroll?(event: NativeSyntheticEvent<NativeScrollEvent>): void;
+  onNearEnd(): void;
+  children: ReactNode;
+}) {
+  const viewport = useRef(0);
+  const offset = useRef(0);
+  const content = useRef(0);
+  const check = () => {
+    if (viewport.current > 0 && content.current > 0 && content.current - offset.current - viewport.current < viewport.current * 1.5)
+      onNearEnd();
+  };
+  return (
+    <ScrollView
+      testID={testID}
+      style={styles.list}
+      scrollEventThrottle={100}
+      onLayout={(event) => {
+        viewport.current = event.nativeEvent.layout.height;
+        check();
+      }}
+      onContentSizeChange={(_width, height) => {
+        content.current = height;
+        check();
+      }}
+      onScroll={(event) => {
+        offset.current = event.nativeEvent.contentOffset.y;
+        check();
+        onScroll?.(event);
+      }}
+    >
+      {children}
+    </ScrollView>
   );
 }
 

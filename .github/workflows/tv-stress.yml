@@ -1,0 +1,125 @@
+name: TV app, large library (stress)
+
+# Reproduces large providers (D-093): the fake panel with 160k movies, the release APK on an Android TV emulator,
+# sign-in, grouping, then Movies and Series. Runs by hand, or on pushes to branches whose name contains "stress".
+on:
+  push:
+    branches: ['**stress**']
+  workflow_dispatch:
+
+concurrency:
+  group: tv-stress-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_ID: com.iptvplayer.tv
+  APP_TV_DEBUG_REMOTE: '1'
+  E2E_RUN_DIR: /tmp/iptv-e2e
+
+jobs:
+  stress:
+    name: Large library on the Android TV emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      # The runner disk is too small for the Gradle build plus the TV system image. See DECISIONS.md#d-030.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/swift /opt/ghc /usr/local/.ghcup /usr/local/share/boost \
+            /usr/local/share/powershell /opt/hostedtoolcache/CodeQL /usr/local/julia* /opt/microsoft/msedge
+          sudo docker image prune --all --force > /dev/null
+          df -h /
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      # Caches Gradle's downloads and build cache between runs (written by main; D-044).
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: npm ci
+
+      - name: Prebuild Android project
+        working-directory: apps/tv-app
+        run: CI=1 npx expo prebuild --platform android --no-install
+
+      # Signs with a throwaway key so the release-signing setup (D-052) is exercised on every change.
+      - name: Throwaway signing key
+        run: |
+          bash scripts/create-signing-key.sh --no-upload > /dev/null
+          echo "ANDROID_KEYSTORE_FILE=$PWD/.signing/iptv-player-release.p12" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$(cat .signing/ANDROID_KEYSTORE_PASSWORD.txt)" >> "$GITHUB_ENV"
+
+      # Only the emulator's ABI: native code compiles once instead of three times. The ARM APK for real TVs is tv-apk.yml.
+      - name: Build release APK
+        working-directory: apps/tv-app/android
+        run: ./gradlew assembleRelease --no-daemon --build-cache -PreactNativeArchitectures=x86
+
+      - name: Keep APK, drop build output
+        run: |
+          cp apps/tv-app/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/app-release.apk"
+          # ~/.gradle/caches stays: the Gradle action saves it at the end of the job for the next run.
+          rm -rf apps/tv-app/android/app/build apps/tv-app/android/.gradle
+          find node_modules apps/tv-app/modules -path '*/android/build' -type d -prune -exec rm -rf {} +
+          df -h /
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-app-apk
+          path: ${{ runner.temp }}/app-release.apk
+
+      # The fake panel (Python standard library) and its test videos (ffmpeg from imageio-ffmpeg).
+      - name: Start the fake panel
+        run: |
+          python -m venv "$RUNNER_TEMP/media-venv"
+          "$RUNNER_TEMP/media-venv/bin/pip" install -q imageio-ffmpeg
+          FFMPEG=$("$RUNNER_TEMP/media-venv/bin/python" -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+            python tools/fake-xtream-server/generate_media.py --codec h264
+          FAKE_PANEL_STRESS=160000 scripts/start-e2e-stack.sh
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Large-library flow on the Android TV emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          cores: 4
+          disable-animations: true
+          # No -noaudio: ExoPlayer's clock follows audio output; without a sound device playback stays at 0:00.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+          script: |
+            apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
+            apps/tv-app/e2e/run.sh maestro-output stress
+
+      # The same APK on a phone: touch and the on-screen keyboard (search box focus, D-073). The fake panel from the
+      # TV flows is still running.
+      - name: Fake panel log
+        if: always()
+        run: tail -n 40 $E2E_RUN_DIR/panel.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-output-stress
+          path: maestro-output
