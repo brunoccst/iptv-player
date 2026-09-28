@@ -107,6 +107,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
 | [D-101](#d-101) | 2026-09-28 | TV player: ↑ opens the buttons on Back, ↓ on Play/Pause |
 | [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
+| [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 
 ---
@@ -1739,6 +1740,14 @@ Decision: ↑ and ↓ both open the on-screen buttons. ↓ puts the focus on Pla
 Context: the player bar had two buttons into the quick drawer, Episodes then "Audio and subtitles", the reverse of the drawer's tabs (Audio, Subtitles, Versions, Episodes).
 
 Decision: three buttons, in the drawer's order: **Audio** (a new note icon), **Subtitles** and **Episodes** (series only), each opening the drawer on its tab. Versions stays a tab inside the drawer, reached from any of them. Web and desktop keep their single "Audio, subtitles and version" panel, which has no tabs.
+
+## D-103
+
+**TV Live TV: the category list fits the screen; focusing a category keeps the page at the top** — 2026-09-28 (requested by owner)
+
+Context: on the TV's Live TV page, Down (to "Earlier") then Left (to "All channels") scrolled the page: "All channels" went under the top bar and the first channel was cut in half.
+
+Decision: the category list had no height limit, so with many categories it was taller than the screen. When a category got the focus, Android scrolled the page to show the whole list as far as it could: its top at the top of the screen, under the see-through top bar. Now the list is only as tall as the rest of the screen and scrolls on its own, and focusing a category scrolls the page back to the top (the list sits at the top of the page). Phones keep their category chips.
 
 ## D-104
 

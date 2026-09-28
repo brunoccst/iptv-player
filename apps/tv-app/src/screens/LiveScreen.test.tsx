@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Platform } from 'react-native';
+import { Dimensions, Platform, ScrollView } from 'react-native';
 import { navStore } from '../appContext';
 import { setupApp } from '../../test/utils';
 import { LiveScreen } from './LiveScreen';
@@ -151,5 +151,32 @@ describe('LiveScreen (guide)', () => {
     await flush();
 
     expect(screen.getByText('Downloading the TV guide…')).toBeTruthy();
+  });
+
+  it('TV: the category list fits the screen, and focusing a category scrolls the page to the top (D-103)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });
+    backend.on('GET', '/api/epg', ({ url }) => ({
+      body: {
+        status: 'ready',
+        updatedAt: at(0),
+        from: url.searchParams.get('from'),
+        to: at(120),
+        totalChannels: 1,
+        channels: [{ channel: channel('1', 'News HD'), programmes: [] }],
+      },
+    }));
+    const scrollTo = jest.spyOn(ScrollView.prototype as unknown as { scrollTo(): void }, 'scrollTo');
+    await render(<LiveScreen />);
+    await flush();
+
+    // The list starts 180 px down the page: it may be as tall as the rest of the screen, and scrolls on its own.
+    await fireEvent(screen.getByTestId('live-body'), 'layout', { nativeEvent: { layout: { x: 0, y: 180, width: 1280, height: 900 } } });
+    expect(screen.getByTestId('live-categories')).toHaveStyle({ maxHeight: Dimensions.get('window').height - 180 - 24 });
+
+    scrollTo.mockClear();
+    await fireEvent(screen.getByLabelText('All channels'), 'focus');
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: true });
   });
 });
