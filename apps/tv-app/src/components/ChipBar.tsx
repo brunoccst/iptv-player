@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +28,8 @@ export interface ChipItem {
 /** Chips rendered at first on the line and in the expanded box; more follow as the user scrolls toward the end. */
 const LINE_PAGE = 40;
 const BOX_PAGE = 150;
+/** TV: categories shown between "All" and the ‹ › buttons. */
+const TV_WINDOW = 3;
 /** Distance from the end (dp) at which the next page is added. */
 const NEAR_END = 400;
 
@@ -53,6 +56,8 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const [lineLimit, setLineLimit] = useState(LINE_PAGE);
   const [boxLimit, setBoxLimit] = useState(BOX_PAGE);
   const [boxContentHeight, setBoxContentHeight] = useState(0);
+  // TV: the first chip of the categories shown after "All" (null: around the chosen one).
+  const [tvStart, setTvStart] = useState<number | null>(null);
   const { height } = useWindowDimensions();
   const boxHeight = Math.round(height * 0.5);
   // On the line, a chosen chip beyond the first page moves right after the first one ("All"), so it shows without
@@ -77,6 +82,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
 
   const choose = (chip: ChipItem) => {
     reveal.current = true;
+    setTvStart(null);
     setExpanded(false);
     chip.onPress();
   };
@@ -143,6 +149,38 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     );
   }
 
+  // TV (D-094): "All", three categories, ‹ › to page through them, then "Show all" — no long walk to reach the end.
+  if (Platform.isTV) {
+    const rest = chips.slice(1);
+    const lastStart = Math.max(0, rest.length - TV_WINDOW);
+    const start = Math.min(lastStart, Math.max(0, tvStart ?? activeIndex - 2));
+    const shown = [chips[0], ...rest.slice(start, start + TV_WINDOW)].filter((chip): chip is ChipItem => !!chip);
+    return (
+      <FocusRow style={[styles.bar, styles.tvBar]} testID={testID}>
+        {shown.map((chip) => (
+          <Chip key={chip.key} label={chip.label} active={chip.active} testID={chip.testID} onPress={() => choose(chip)} />
+        ))}
+        {rest.length > TV_WINDOW ? (
+          <>
+            <PageButton
+              direction="left"
+              disabled={start === 0}
+              testID={testID && `${testID}-prev`}
+              onPress={() => setTvStart(Math.max(0, start - TV_WINDOW))}
+            />
+            <PageButton
+              direction="right"
+              disabled={start >= lastStart}
+              testID={testID && `${testID}-next`}
+              onPress={() => setTvStart(Math.min(lastStart, start + TV_WINDOW))}
+            />
+            {toggle}
+          </>
+        ) : null}
+      </FocusRow>
+    );
+  }
+
   return (
     <FocusRow style={styles.bar} testID={testID}>
       <ScrollView
@@ -165,6 +203,35 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       </ScrollView>
       {overflows ? toggle : null}
     </FocusRow>
+  );
+}
+
+/** TV: ‹ or › — shows the previous or next three categories. Stays focusable at the ends, dimmed. */
+function PageButton({
+  direction,
+  disabled,
+  onPress,
+  testID,
+}: {
+  direction: 'left' | 'right';
+  disabled: boolean;
+  onPress(): void;
+  testID?: string;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={direction === 'left' ? t('Previous categories') : t('Next categories')}
+      accessibilityState={{ disabled }}
+      onPress={() => !disabled && onPress()}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={[styles.chip, styles.pageButton, focused && styles.chipFocused, disabled && !focused && styles.dimmed]}
+    >
+      <Icon name={direction === 'left' ? 'chevronLeft' : 'chevronRight'} size={20} color={focused ? '#000' : colors.text} />
+    </Pressable>
   );
 }
 
@@ -235,5 +302,8 @@ const styles = StyleSheet.create({
   chipFocused: { borderColor: focus.solid, backgroundColor: focus.solid, ...focus.glow },
   chipText: { color: colors.text, fontSize: 14 },
   chipTextActive: { color: '#000' },
+  tvBar: { flexWrap: 'nowrap', alignItems: 'center' },
+  pageButton: { paddingHorizontal: 10 },
+  dimmed: { opacity: 0.4 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, backgroundColor: colors.raised },
 });

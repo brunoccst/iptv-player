@@ -65,9 +65,8 @@ export function TopNav() {
 
   return (
     <header className={`nav${solid || view !== 'home' ? ' nav--solid' : ''}`}>
-      <button type="button" className="nav__brand" onClick={() => ui.navigate('home')}>
-        {appConfig.appName}
-      </button>
+      {/* Plain text, not a link: "Home" already goes home (D-094). */}
+      <span className="nav__brand">{appConfig.appName}</span>
       <nav aria-label={t('Main')}>
         <ul className="nav__links">
           {LINKS.map((link) => (

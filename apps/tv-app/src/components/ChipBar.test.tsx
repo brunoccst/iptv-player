@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform } from 'react-native';
 import { ChipBar, type ChipItem } from './ChipBar';
 
 function chips(active: string, onPress: (key: string) => void): ChipItem[] {
@@ -85,5 +85,48 @@ describe('ChipBar', () => {
       },
     });
     expect(screen.getAllByRole('tab').length).toBe(300);
+  });
+
+  it('TV: "All", three categories, ‹ › to page through them, then "Show all" (D-094)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const picked: string[] = [];
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'all',
+      testID: `chip-${key}`,
+      onPress: () => picked.push(key),
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    const tabs = () => screen.getAllByRole('tab').map((tab) => tab.props.testID as string);
+    expect(tabs()).toEqual(['chip-all', 'chip-c0', 'chip-c1', 'chip-c2']);
+    expect(screen.getByTestId('chips-all')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('chips-next'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c3', 'chip-c4', 'chip-c5']);
+    await fireEvent.press(screen.getByTestId('chips-next'));
+    await fireEvent.press(screen.getByTestId('chips-next'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c7', 'chip-c8', 'chip-c9']);
+    await fireEvent.press(screen.getByTestId('chips-next'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c7', 'chip-c8', 'chip-c9']);
+    await fireEvent.press(screen.getByTestId('chips-prev'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c4', 'chip-c5', 'chip-c6']);
+    await fireEvent.press(screen.getByTestId('chip-c5'));
+    expect(picked).toEqual(['c5']);
+    jest.restoreAllMocks();
+  });
+
+  it('TV: opens with the chosen category in view', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'c6',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    expect(screen.getAllByRole('tab').map((tab) => tab.props.testID)).toEqual(['chip-all', 'chip-c5', 'chip-c6', 'chip-c7']);
+    jest.restoreAllMocks();
   });
 });

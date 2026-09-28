@@ -35,6 +35,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
+- [x] **TV browsing polish** (requested 2026-09-28, D-094): the Movies/Series grid stays fast after loading more titles and says when it is loading; the focused title is kept in the middle of the screen on every TV page; the category bar shows "All", three categories, ‹ › and "Show all"; the search "X" can be reached with the remote; "IPTV Player" in the header is no longer a link.
 - [x] **Movies/Series freeze on TV, series first** (requested 2026-09-28, D-093): the TV Movies and Series pages no longer freeze with a large library (the grid is a plain scroll view on TV); series are grouped first even when the movie list arrives a moment earlier; the Log screen notes when the app was busy; a 160k-title emulator test (`tv-stress`) covers it.
 - [x] **Large libraries on slow TVs** (requested 2026-09-28, D-093): grouping 100k+ titles about twice as fast on TVs (same result); series are grouped as soon as their list is in instead of after all movies; Movies and Series no longer freeze with thousands of categories (chips appear a page at a time).
 - [x] **Pause when the headphones go away** (issue #83, D-092): unplugging headphones or losing a Bluetooth headset pauses playback instead of carrying on through the speaker; Play resumes.

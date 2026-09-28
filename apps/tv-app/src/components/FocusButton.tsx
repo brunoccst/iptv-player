@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useRef } from 'react';
 import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
+import { useCenterFocus, type Measurable } from './CenterScroll';
 import { Icon, type IconName } from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'accent' | 'ghost';
@@ -40,11 +41,14 @@ export function FocusButton({
 }: FocusButtonProps) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.06);
+  const centerFocus = useCenterFocus();
+  const self = useRef<Measurable>(null);
   // Focused: every variant turns white with dark text, the primary one (already white) gets the glow.
   const textColor = focused ? focus.onSolid : TEXT[variant];
   const iconNode = typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon;
   return (
     <AnimatedPressable
+      ref={self as never}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
@@ -54,6 +58,7 @@ export function FocusButton({
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
+        centerFocus?.(self.current);
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}

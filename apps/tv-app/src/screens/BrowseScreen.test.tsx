@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { setupApp } from '../../test/utils';
 import { BrowseScreen } from './BrowseScreen';
@@ -62,5 +62,42 @@ describe('BrowseScreen (TV)', () => {
     await flush();
     expect(offsets()).toEqual(['0', '100']);
     expect(screen.getByTestId('card-Movie 150')).toBeTruthy();
+  });
+
+  it('keeps only the lines near the focused one mounted (D-094)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/catalog/movies/categories', { body: [] });
+    backend.on('GET', '/api/library/movies', {
+      body: {
+        total: 100,
+        sorts: ['added'],
+        items: Array.from({ length: 100 }, (_, i) => ({
+          id: `m${i}`,
+          title: `Movie ${i}`,
+          year: 2000,
+          posterUrl: null,
+          rating: null,
+          bestQuality: null,
+          variantCount: 1,
+        })),
+      },
+    });
+    await render(<BrowseScreen section="movies" />);
+    await flush();
+    // Before a line is measured every line is mounted; once its height is known, far lines become spacers.
+    await fireEvent(screen.getByTestId('grid-line-0'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 400 } } });
+    expect(screen.getByTestId('grid-line-6')).toBeTruthy();
+    expect(screen.getByTestId('grid-spacer-7')).toHaveStyle({ height: 400 });
+    expect(screen.queryByTestId('card-Movie 99')).toBeNull();
+
+    // Focusing a title further down moves the mounted window with it.
+    const line = screen.getByTestId('grid-line-6');
+    const card = within(line).getAllByRole('button')[0]!;
+    await fireEvent(card, 'focus');
+    expect(screen.getByTestId('grid-line-12')).toBeTruthy();
+    await fireEvent(within(screen.getByTestId('grid-line-12')).getAllByRole('button')[0]!, 'focus');
+    expect(screen.getByTestId('grid-line-18')).toBeTruthy();
+    expect(screen.getByTestId('grid-spacer-0')).toHaveStyle({ height: 400 });
   });
 });

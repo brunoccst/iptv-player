@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useRef } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
+import { useCenterFocus, type Measurable } from './CenterScroll';
 import { useRowFocus } from './FocusRow';
 import { WatchedTag } from './WatchedTag';
 
@@ -48,9 +49,12 @@ export function PosterCard({
   const cardSize = width ?? cardWidth;
   const scale = useFocusScale(focused, 1.08);
   const rowFocus = useRowFocus();
+  const centerFocus = useCenterFocus();
+  const self = useRef<Measurable>(null);
 
   return (
     <AnimatedPressable
+      ref={self as never}
       testID={`card-${title}`}
       accessibilityRole="button"
       accessibilityLabel={title}
@@ -60,6 +64,7 @@ export function PosterCard({
       onFocus={() => {
         setFocused(true);
         rowFocus?.();
+        centerFocus?.(self.current);
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}

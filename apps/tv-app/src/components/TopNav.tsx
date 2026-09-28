@@ -35,10 +35,11 @@ export function TopNav() {
   const compact = useCompact();
   const height = useNavHeight();
 
+  // Plain text, not a link: "Home" already goes home, and the remote no longer stops on the name (D-094).
   const brand = (
-    <NavPressable onPress={() => navStore.getState().goSection('home')} testID="nav-brand" label={appConfig.appName}>
-      {() => <Text style={[styles.brand, { fontSize: sizes.brand }]}>{appConfig.appName}</Text>}
-    </NavPressable>
+    <Text testID="nav-brand" style={[styles.brand, { fontSize: sizes.brand }]}>
+      {appConfig.appName}
+    </Text>
   );
   const links = LINKS.map((link) => (
     <NavPressable
@@ -168,18 +169,39 @@ function SearchBox({ value, width }: { value: string; width: number }) {
       </View>
     );
   }
+  // TV: the clear button sits next to the box, as its own stop for the remote (Right from the box). Inside the box it
+  // could not get the focus (D-094).
+  return (
+    <View style={styles.tvSearch}>
+      <Pressable
+        testID="nav-search-box"
+        accessibilityRole="search"
+        accessibilityLabel={value ? t('Search: {value}', { value }) : t('Search')}
+        onPress={() => setEditing(true)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={[styles.search, { width }, focused && styles.searchFocused]}
+      >
+        {field}
+      </Pressable>
+      {value ? <TvClearButton /> : null}
+    </View>
+  );
+}
+
+function TvClearButton() {
+  const [focused, setFocused] = useState(false);
   return (
     <Pressable
-      testID="nav-search-box"
-      accessibilityRole="search"
-      accessibilityLabel={value ? t('Search: {value}', { value }) : t('Search')}
-      onPress={() => setEditing(true)}
+      accessibilityRole="button"
+      accessibilityLabel={t('Clear search')}
+      testID="nav-search-clear"
+      onPress={() => navStore.getState().setSearch('')}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      style={[styles.search, { width }, focused && styles.searchFocused]}
+      style={[styles.clear, focused && styles.clearFocused]}
     >
-      {field}
-      {clear}
+      <Icon name="close" size={18} color={focused ? '#000' : colors.text} />
     </Pressable>
   );
 }
@@ -218,6 +240,17 @@ function NavPressable({
 }
 
 const styles = StyleSheet.create({
+  tvSearch: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  clear: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  clearFocused: { backgroundColor: focus.solid, borderColor: focus.solid, ...focus.glow },
   nav: {
     position: 'absolute',
     top: 0,

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { formatOfflineDate, t, intlLocale } from '@iptv/shared';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { CenteringScrollView } from '../components/CenterScroll';
 import { downloadsStore, navStore } from '../appContext';
 import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
@@ -28,7 +29,7 @@ export function DownloadsScreen() {
 
   return (
     // A plain ScrollView: the list is short, and on the Android TV emulator FlatList rows exposed only their buttons.
-    <ScrollView
+    <CenteringScrollView
       style={styles.screen}
       testID="downloads-screen"
       contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60, gap: 12 }}
@@ -49,7 +50,7 @@ export function DownloadsScreen() {
       {records.map((record, index) => (
         <DownloadItem key={record.id} record={record} first={index === 0} playable={access.allowed} />
       ))}
-    </ScrollView>
+    </CenteringScrollView>
   );
 }
 

@@ -43,10 +43,18 @@ appId: ${APP_ID}
       id: "card-Stress Movie.*"
     timeout: 120000
 - takeScreenshot: 72-movies
-- pressKey: Remote Dpad Down
-- pressKey: Remote Dpad Down
-- pressKey: Remote Dpad Right
-- takeScreenshot: 73-movies-after-keys
+# Down through the first page (17 lines of 6) into the second: it loads as the end nears, only the lines near the
+# focus stay mounted, and the remote keeps moving (D-094).
+- repeat:
+    times: 24
+    commands:
+      - pressKey: Remote Dpad Down
+- extendedWaitUntil:
+    visible:
+      id: "card-Stress Movie 1598[0-9][0-9]"
+      focused: true
+    timeout: 60000
+- takeScreenshot: 73-movies-second-page
 - tapOn:
     id: "nav-series"
 - extendedWaitUntil:

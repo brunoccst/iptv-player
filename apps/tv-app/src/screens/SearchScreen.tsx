@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { CenteringScrollView } from '../components/CenterScroll';
 import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel, t } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
@@ -43,7 +44,7 @@ export function SearchScreen() {
   }, [submits]);
 
   return (
-    <ScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
+    <CenteringScrollView style={styles.screen} testID="search-screen" contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}>
       <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
         {query ? t('Results for “{query}”', { query }) : search.trim().length < SEARCH_MIN_LENGTH ? t('Keep typing…') : t('Searching…')}
       </Text>
@@ -54,7 +55,7 @@ export function SearchScreen() {
           <ChannelResults key={`c-${query}`} query={query} />
         </>
       ) : null}
-    </ScrollView>
+    </CenteringScrollView>
   );
 }
 
