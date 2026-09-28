@@ -3,18 +3,28 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { SCRUB_BASE_SPEED, SKIP_SECONDS, formatClock, type SeekDirection } from '@iptv/shared';
 import { colors, fonts, safe } from '../theme';
 
-/** Animated circle shown on a D-pad tap: "−10" left, "+10" right. `flashKey` restarts the animation. */
-export function TapFlash({ direction, flashKey }: { direction: SeekDirection; flashKey: number }) {
+/**
+ * Animated circle shown on a D-pad tap or a double tap: "−10" left, "+10" right. `flashKey` restarts the animation;
+ * `onDone` runs once it has faded out. It never takes touches: faded out but left on screen, it swallowed the next
+ * double taps on phones (D-097).
+ */
+export function TapFlash({ direction, flashKey, onDone }: { direction: SeekDirection; flashKey: number; onDone?(): void }) {
   const progress = useRef(new Animated.Value(0)).current;
+  const done = useRef(onDone);
+  done.current = onDone;
 
   useEffect(() => {
     progress.setValue(0);
-    Animated.timing(progress, { toValue: 1, duration: 650, useNativeDriver: true }).start();
+    // Not `finished` when a newer tap restarted it: that one clears it.
+    Animated.timing(progress, { toValue: 1, duration: 650, useNativeDriver: true }).start(({ finished }) => {
+      if (finished) done.current?.();
+    });
   }, [flashKey, progress]);
 
   return (
     <Animated.View
       testID={`tap-flash-${direction}`}
+      pointerEvents="none"
       style={[
         styles.flash,
         direction === 'back' ? styles.flashLeft : styles.flashRight,

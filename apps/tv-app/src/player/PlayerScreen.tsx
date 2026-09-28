@@ -584,7 +584,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
-      {flash ? <TapFlash direction={flash.direction} flashKey={flash.key} /> : null}
+      {flash ? <TapFlash direction={flash.direction} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
       {scrub ? <ScrubBar preview={scrub.preview} speed={scrub.speed} duration={duration} /> : null}
 
       {controls && !guide && !scrub && !error ? (
