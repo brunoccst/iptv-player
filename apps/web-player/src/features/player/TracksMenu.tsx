@@ -1,6 +1,6 @@
 import type Hls from 'hls.js';
 import type { SubtitleChoice, TrackChoice, VariantInfo } from '@iptv/shared';
-import { t } from '@iptv/shared';
+import { t, trackLabel } from '@iptv/shared';
 import { activeSubtitle, audioTracks, choiceOf, showSubtitle, subtitleTracks } from './tracks';
 
 interface TracksMenuProps {
@@ -45,7 +45,7 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
                 onChange();
               }}
             >
-              {track.label}
+              {trackLabel(track)}
             </button>
           ))
         )}
@@ -55,14 +55,14 @@ export function TracksMenu({ hls, video, variants, currentStreamId, onVariant, o
         <button type="button" className={`tracks__option${current < 0 ? ' tracks__option--active' : ''}`} onClick={() => setSubtitle(-1)}>
           {t('Off')}
         </button>
-        {subtitleOptions.map(({ label: name }, index) => (
+        {subtitleOptions.map((track, index) => (
           <button
-            key={`${name}-${index}`}
+            key={`${track.label}-${index}`}
             type="button"
             className={`tracks__option${current === index ? ' tracks__option--active' : ''}`}
             onClick={() => setSubtitle(index)}
           >
-            {name}
+            {trackLabel(track)}
           </button>
         ))}
       </div>

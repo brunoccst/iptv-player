@@ -336,6 +336,16 @@ describe('PlayerScreen', () => {
     await fireEvent.press(screen.getByTestId('player-tracks'));
     expect(screen.getByText('Default audio')).toBeTruthy();
     expect(screen.queryByText('S01:E02 · Second')).toBeNull();
+    await act(async () => pressBack());
+
+    // A track the stream gives no name (only its code, "en") shows the language's name (D-089).
+    await act(async () =>
+      playerState.props?.onTracks?.({
+        nativeEvent: { tracks: [{ type: 'audio', groupIndex: 0, trackIndex: 0, label: 'en', language: 'en', selected: true }] },
+      } as never),
+    );
+    await fireEvent.press(screen.getByTestId('player-tracks'));
+    expect(screen.getByLabelText('✓ English')).toBeTruthy();
   });
 
   it('subtitles and audio picked in one title are what the next titles start with, matched by language (D-087)', async () => {

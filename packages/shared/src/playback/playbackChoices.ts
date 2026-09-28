@@ -1,5 +1,7 @@
 import type { VariantInfo } from '../api/types';
-import type { ProfilePrefs, ProfilePrefsStore } from '../stores/profilePrefsStore';
+import { LANGUAGE_LONG, LANGUAGE_SHORT } from '../direct/normalizer/tags';
+import { intlLocale } from '../i18n/i18n';
+import { languageNames, type ProfilePrefs, type ProfilePrefsStore } from '../stores/profilePrefsStore';
 
 /**
  * The profile's playback choices (D-087): the subtitles, the audio track and the version last picked are what every
@@ -105,4 +107,33 @@ export function chooseVersion(
 ): void {
   stores.library.getState().selectVariant(masterId, variant.streamId);
   rememberPlayback(stores, { version: versionChoiceOf(variant) });
+}
+
+/**
+ * The language of a track code ("en", "eng", "de", "pt-BR"…) in the app's language: "English", "Inglês"… Our own
+ * language names first, then the platform's (`Intl.DisplayNames`); null when neither knows it.
+ */
+export function trackLanguageName(code: string | null | undefined): string | null {
+  const tag = code?.trim();
+  if (!tag || tag.toLowerCase() === 'und') return null;
+  const base = tag.toLowerCase().split(/[-_]/)[0]!;
+  const ours = LANGUAGE_LONG[base] ?? LANGUAGE_SHORT[base];
+  if (ours && languageNames()[ours]) return languageNames()[ours]!;
+  try {
+    const name = new Intl.DisplayNames([intlLocale()], { type: 'language' }).of(tag);
+    return name && name.toLowerCase() !== tag.toLowerCase() ? name : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What a player shows for a track: the stream's own name ("English 5.1", "Forced"), or, when it has none or only
+ * repeats the language code ("en"), the language's name (D-089).
+ */
+export function trackLabel(track: TrackInfo): string {
+  const label = track.label?.trim() ?? '';
+  const language = track.language?.trim() ?? '';
+  if (label && label.toLowerCase() !== language.toLowerCase()) return label;
+  return trackLanguageName(language) ?? (label || language);
 }

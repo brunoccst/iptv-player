@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import { setUiLanguage } from '../i18n/i18n';
 import { createTestAppContext } from '../testing/fakeBackend';
 import type { MasterDetails, VariantInfo } from '../api/types';
 import { selectVariant } from '../stores/libraryStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
-import { chooseVersion, pickTrack, playbackChoices, preferredVariant, rememberPlayback, usesPlaybackChoices } from './playbackChoices';
+import {
+  chooseVersion,
+  pickTrack,
+  trackLabel,
+  playbackChoices,
+  preferredVariant,
+  rememberPlayback,
+  usesPlaybackChoices,
+} from './playbackChoices';
 
 const variant = (streamId: string, audioLanguages: string[], quality: string | null) =>
   ({ streamId, audioLanguages, quality, label: streamId }) as unknown as VariantInfo;
@@ -42,6 +51,20 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(pickTrack(tracks, { language: 'de', label: 'Deutsch' })).toBeNull();
     expect(pickTrack(tracks, { off: true })).toBe(-1);
     expect(pickTrack(tracks, null)).toBeNull();
+  });
+
+  it("name a track by its language when the stream gives no name of its own, in the app's language (D-089)", () => {
+    expect(trackLabel({ language: 'en', label: 'en' })).toBe('English');
+    expect(trackLabel({ language: 'eng', label: '' })).toBe('English');
+    expect(trackLabel({ language: 'pt-BR', label: 'PT-BR' })).toBe('Portuguese');
+    expect(trackLabel({ language: 'sq', label: 'sq' })).toBe('Albanian');
+    expect(trackLabel({ language: 'en', label: 'English 5.1' })).toBe('English 5.1');
+    expect(trackLabel({ language: null, label: 'Commentary' })).toBe('Commentary');
+    expect(trackLabel({ language: 'fi', label: 'fi' })).toBe('Finnish');
+    expect(trackLabel({ language: 'und', label: 'Track 2' })).toBe('Track 2');
+    setUiLanguage('de');
+    expect(trackLabel({ language: 'en', label: 'en' })).toBe('Englisch');
+    setUiLanguage('en');
   });
 
   it('pick a version in the chosen language, the same quality first', () => {

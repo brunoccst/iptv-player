@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
-import { episodeLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
+import { episodeLabel, trackLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
@@ -55,7 +55,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
             audio.map((track) => (
               <FocusButton
                 key={`${track.groupIndex}-${track.trackIndex}`}
-                label={`${track.selected ? '✓ ' : ''}${track.label}`}
+                label={`${track.selected ? '✓ ' : ''}${trackLabel(track)}`}
                 variant="ghost"
                 onPress={() => onTrack('audio', track.groupIndex, track.trackIndex)}
               />
@@ -72,7 +72,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
             {text.map((track) => (
               <FocusButton
                 key={`${track.groupIndex}-${track.trackIndex}`}
-                label={`${track.selected ? '✓ ' : ''}${track.label}`}
+                label={`${track.selected ? '✓ ' : ''}${trackLabel(track)}`}
                 variant="ghost"
                 onPress={() => onTrack('text', track.groupIndex, track.trackIndex)}
               />
