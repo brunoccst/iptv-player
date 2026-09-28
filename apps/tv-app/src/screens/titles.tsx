@@ -276,8 +276,6 @@ function TvGrid({
   const viewport = useRef(0);
   const offset = useRef(0);
   const content = useRef(0);
-  const [focusedLine, setFocusedLine] = useState(0);
-  const [lineHeight, setLineHeight] = useState(0);
   const check = () => {
     if (viewport.current > 0 && content.current > 0 && content.current - offset.current - viewport.current < viewport.current * 1.5)
       onNearEnd();
@@ -302,30 +300,62 @@ function TvGrid({
         }}
       >
         {header}
-        {lines.length === 0
-          ? empty
-          : lines.map((line, index) =>
-              Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
-                <View
-                  key={line[0]!.id}
-                  testID={`grid-line-${index}`}
-                  onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
-                >
-                  <RowFocus.Provider value={() => setFocusedLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
-                </View>
-              ) : (
-                <View key={line[0]!.id} testID={`grid-spacer-${index}`} style={{ height: lineHeight }} />
-              ),
-            )}
+        {lines.length === 0 ? empty : <TvLines lines={lines} renderLine={renderLine} onNearEnd={onNearEnd} />}
         <View style={styles.bottom} />
       </CenteringScrollView>
-      {loadingMore ? (
-        <View style={styles.loadingNote} pointerEvents="none" accessibilityRole="alert" testID="grid-loading-more">
-          <ActivityIndicator size="small" color={colors.accent} />
-          <Text style={styles.loadingText}>{t('Loading more titles…')}</Text>
-        </View>
-      ) : null}
+      {loadingMore ? <LoadingMoreNote /> : null}
     </View>
+  );
+}
+
+/** "Loading more titles…" at the bottom of the screen, over the page (TV). */
+export function LoadingMoreNote() {
+  return (
+    <View style={styles.loadingNote} pointerEvents="none" accessibilityRole="alert" testID="grid-loading-more">
+      <ActivityIndicator size="small" color={colors.accent} />
+      <Text style={styles.loadingText}>{t('Loading more titles…')}</Text>
+    </View>
+  );
+}
+
+/**
+ * TV lines of cards (D-094, D-095): only the lines within MOUNTED_AROUND of the focused one are mounted, the others
+ * are empty spacers of the same height; when the focus reaches one of the last two lines, `onNearEnd` asks for the
+ * next page. Used by the Movies/Series grid and the search results.
+ */
+export function TvLines({
+  lines,
+  renderLine,
+  onNearEnd,
+  testPrefix = 'grid',
+}: {
+  lines: MasterCard[][];
+  renderLine(line: MasterCard[], index: number): ReactElement;
+  onNearEnd?(): void;
+  testPrefix?: string;
+}) {
+  const [focusedLine, setFocusedLine] = useState(0);
+  const [lineHeight, setLineHeight] = useState(0);
+  const focusLine = (index: number) => {
+    setFocusedLine(index);
+    if (index >= lines.length - 2) onNearEnd?.();
+  };
+  return (
+    <>
+      {lines.map((line, index) =>
+        Math.abs(index - focusedLine) <= MOUNTED_AROUND || !lineHeight ? (
+          <View
+            key={line[0]!.id}
+            testID={`${testPrefix}-line-${index}`}
+            onLayout={index === 0 && !lineHeight ? (event) => setLineHeight(event.nativeEvent.layout.height) : undefined}
+          >
+            <RowFocus.Provider value={() => focusLine(index)}>{renderLine(line, index)}</RowFocus.Provider>
+          </View>
+        ) : (
+          <View key={line[0]!.id} testID={`${testPrefix}-spacer-${index}`} style={{ height: lineHeight }} />
+        ),
+      )}
+    </>
   );
 }
 

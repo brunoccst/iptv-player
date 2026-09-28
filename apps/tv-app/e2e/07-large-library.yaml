@@ -55,6 +55,17 @@ appId: ${APP_ID}
       focused: true
     timeout: 60000
 - takeScreenshot: 73-movies-second-page
+# Quick presses keep going down: centering once jumped back to earlier titles (D-095).
+- repeat:
+    times: 12
+    commands:
+      - pressKey: Remote Dpad Down
+- extendedWaitUntil:
+    visible:
+      id: "card-Stress Movie 1597[0-9][0-9]"
+      focused: true
+    timeout: 60000
+- takeScreenshot: 73b-movies-quick-presses
 - tapOn:
     id: "nav-series"
 - extendedWaitUntil:
