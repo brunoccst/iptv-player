@@ -735,6 +735,33 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   }}
                 />
               ) : null}
+              {/* Same order as the drawer's tabs: Audio, Subtitles, Episodes (D-102). */}
+              <IconButton
+                icon="audio"
+                label={t('Audio')}
+                plain
+                focusable={!Platform.isTV || !!buttons}
+                size={44}
+                iconSize={26}
+                testID="player-audio"
+                onPress={() => {
+                  setButtons(false);
+                  setDrawer('audio');
+                }}
+              />
+              <IconButton
+                icon="subtitles"
+                label={t('Subtitles')}
+                plain
+                focusable={!Platform.isTV || !!buttons}
+                size={44}
+                iconSize={26}
+                testID="player-subtitles"
+                onPress={() => {
+                  setButtons(false);
+                  setDrawer('subtitles');
+                }}
+              />
               {series.data ? (
                 <IconButton
                   icon="episodes"
@@ -750,19 +777,6 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   }}
                 />
               ) : null}
-              <IconButton
-                icon="subtitles"
-                label={t('Audio and subtitles')}
-                plain
-                focusable={!Platform.isTV || !!buttons}
-                size={44}
-                iconSize={26}
-                testID="player-tracks"
-                onPress={() => {
-                  setButtons(false);
-                  setDrawer('audio');
-                }}
-              />
             </View>
           </View>
         </View>

@@ -300,7 +300,7 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('right', 'down'));
     await act(async () => pressRemote('right', 'up'));
     expect(playerState.seeks).toEqual([]);
-    await fireEvent.press(screen.getByTestId('player-tracks'));
+    await fireEvent.press(screen.getByTestId('player-audio'));
     expect(screen.getByTestId('quick-drawer')).toBeTruthy();
     await act(async () => pressBack());
 
@@ -359,22 +359,34 @@ describe('PlayerScreen', () => {
     expect(screen.queryByText('Default audio')).toBeNull();
     await act(async () => pressBack());
 
-    await fireEvent.press(screen.getByTestId('player-tracks'));
+    await fireEvent.press(screen.getByTestId('player-audio'));
     expect(screen.getByText('Default audio')).toBeTruthy();
     expect(screen.queryByText('S01:E02 · Second')).toBeNull();
+    await act(async () => pressBack());
+
+    // Audio, Subtitles, Episodes on the bar, in the drawer's order, each opening its tab (D-102).
+    const bar = screen.getAllByRole('button').map((button) => button.props.testID);
+    expect(bar.filter((id) => ['player-audio', 'player-subtitles', 'player-episodes'].includes(id))).toEqual([
+      'player-audio',
+      'player-subtitles',
+      'player-episodes',
+    ]);
+    await fireEvent.press(screen.getByTestId('player-subtitles'));
+    expect(screen.getByLabelText('✓ Off')).toBeTruthy();
+    expect(screen.queryByText('Default audio')).toBeNull();
     await act(async () => pressBack());
 
     // A lone track with no name of its own is "Default": its language tag is often wrong (D-090).
     const en = { type: 'audio', groupIndex: 0, trackIndex: 0, label: 'en', language: 'en', selected: true };
     await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [en] } } as never));
-    await fireEvent.press(screen.getByTestId('player-tracks'));
+    await fireEvent.press(screen.getByTestId('player-audio'));
     expect(screen.getByLabelText('✓ Default')).toBeTruthy();
     await act(async () => pressBack());
 
     // Several tracks with only their codes ("en") show the languages' names (D-089).
     const pt = { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'pt', language: 'pt', selected: false };
     await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [en, pt] } } as never));
-    await fireEvent.press(screen.getByTestId('player-tracks'));
+    await fireEvent.press(screen.getByTestId('player-audio'));
     expect(screen.getByLabelText('✓ English')).toBeTruthy();
     expect(screen.getByLabelText('Portuguese')).toBeTruthy();
   });

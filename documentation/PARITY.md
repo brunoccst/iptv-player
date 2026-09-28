@@ -28,7 +28,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Episode options in series details: Mark as (not) watched, Download, Play on TV, Open in another player (D-082, D-083) | ✅ | ✅ | ✅ | row: Play, "…", version · "…" or TV: hold OK on Play · phone: long touch · web: right-click the episode |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
-| Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV: its button on the player bar (↑/↓ open the bar, D-101) · web: buttons |
+| Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV/phone: Audio, Subtitles, Episodes buttons on the player bar (↑/↓ open the bar on TV, D-101, D-102) · web: buttons |
 | Player pauses when the headphones go away (D-092) | ✅ | ✅ | ✅ | TV: Bluetooth headphones · phone: wired or Bluetooth · desktop: an output device removed |
 | Last picked subtitles, audio and version are every title's default (D-087) | ✅ | ✅ | ✅ | matched by language (versions: same quality first), per profile |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
