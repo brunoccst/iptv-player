@@ -111,14 +111,21 @@ appId: ${APP_ID}
 - evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
 # Slow screen reads can land the pause late in the 30 s clip: a skip near the end stops at 0:30.
 - assertTrue: ${output.after >= Math.min(output.before + 9, 30)}
-# Up: quick drawer (audio / subtitles / versions). Back closes it.
+# Up: the on-screen buttons, with Back at the top left focused (D-101); Back returns to the video. The quick drawer
+# (audio / subtitles / versions) opens from its button on the bar.
 - pressKey: Remote Dpad Up
-- assertVisible:
-    id: "quick-drawer"
-- takeScreenshot: 04-drawer
-- pressKey: back
+- extendedWaitUntil:
+    visible:
+      id: "player-back"
+      focused: true
+    timeout: 10000
 - assertNotVisible:
     id: "quick-drawer"
+- takeScreenshot: 04-player-up
+- pressKey: back
+- assertNotVisible:
+    id: "player-back"
+    focused: true
 # Down: the focus goes to the on-screen buttons, play/pause first; Right moves along them, Up reaches Back at the top
 # left. Back returns to the video, a second Back leaves the player (D-075).
 - pressKey: Remote Dpad Down

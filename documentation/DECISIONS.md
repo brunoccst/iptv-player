@@ -105,6 +105,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-098](#d-098) | 2026-09-28 | TV grid and search: only the centering scrolls, as on Home |
 | [D-099](#d-099) | 2026-09-28 | TV grid: light Up/Down moves, and held Up stays in the grid |
 | [D-100](#d-100) | 2026-09-28 | "Skip ahead" on screen for 10 s; focus glow centered |
+| [D-101](#d-101) | 2026-09-28 | TV player: ↑ opens the buttons on Back, ↓ on Play/Pause |
 
 ---
 
@@ -1720,3 +1721,12 @@ Decision:
 Decision:
 - **Skip ahead** shows 5–15 s into an episode (10 s on screen) instead of 5–90 s (D-042's window), on every app (`SKIP_AHEAD_WINDOW` in `@iptv/shared`). While its choices are open it stays, as before.
 - **Focus glow centered (TV/phone).** The glow came from Android's `elevation` shadow, which Android lights from above the screen, so it fell lower and to one side of the focused card or button. `focus.glow` now draws it with `boxShadow` (`0 0 16px 2px`, white at 50 %), the same on every side (Android 9+). The elevation stays, with a transparent shadow, so a focused card is still drawn over its neighbours (D-076).
+
+## D-101
+
+**TV player: ↑ opens the buttons on Back, ↓ on Play/Pause** — 2026-09-28 (requested by owner)
+
+Context: in the TV player ↑ opened the audio/subtitles drawer (D-028) and ↓ the on-screen buttons with Play/Pause focused (D-075).
+
+Decision: ↑ and ↓ both open the on-screen buttons. ↓ puts the focus on Play/Pause, ↑ on Back at the top left. The drawer opens from its button on the bar (audio and subtitles, episodes). On Live TV ↑ still opens the guide over the playing channel (D-058): it is the only way to reach it with the remote. Phones are unchanged (a tap shows the controls).
+

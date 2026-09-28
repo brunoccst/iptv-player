@@ -126,8 +126,9 @@ const BUTTONS_HIDE_MS = 8000;
 const DOUBLE_TAP_MS = 300;
 
 /**
- * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↑ quick drawer, ↓ the on-screen buttons (D-075), Select play/pause, Back close.
- * Live: ↑ opens the guide overlay (phones: swipe up or the Guide button), ↓ the drawer. See DECISIONS.md#d-028, #d-058.
+ * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-075), ↑ the same
+ * buttons on Back (D-101), Select play/pause, Back close. Live: ↑ opens the guide overlay (phones: swipe up or the
+ * Guide button). See DECISIONS.md#d-028, #d-058.
  */
 export function PlayerScreen({ target }: { target: PlayTarget }) {
   const playerRef = useRef<TvPlayerViewRef>(null);
@@ -148,8 +149,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, from the beginning, previous episode, ±10 s, next
   // episode, episodes, audio and subtitles), which the D-pad then walks through; Back or a few seconds without keys
   // return to the video (D-075, D-077).
-  const [buttons, setButtons] = useState(false);
-  const tvButtons = Platform.isTV && buttons;
+  const [buttons, setButtons] = useState<false | 'play' | 'back'>(false);
+  const tvButtons = Platform.isTV && !!buttons;
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
   const [scrub, setScrub] = useState<{ preview: number; speed: number } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -454,8 +455,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    if (key === 'down' && Platform.isTV) setButtons(true);
+    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-101); on Live TV ↑ opens the guide.
+    if (key === 'down' && Platform.isTV) setButtons('play');
     else if (key === 'up' && isLive) setGuide(true);
+    else if (key === 'up' && Platform.isTV) setButtons('back');
     else if (key === 'up' || key === 'down') setDrawer('audio');
     else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
     else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
@@ -604,7 +607,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               label={t('Back')}
               testID="player-back"
               plain
-              focusable={!Platform.isTV || buttons}
+              focusable={!Platform.isTV || !!buttons}
+              hasTVPreferredFocus={tvButtons && buttons === 'back'}
               size={44}
               iconSize={28}
               onPress={() => navStore.getState().back()}
@@ -649,11 +653,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 icon={paused ? 'play' : 'pause'}
                 label={paused ? t('Play') : t('Pause')}
                 plain
-                focusable={!Platform.isTV || buttons}
+                focusable={!Platform.isTV || !!buttons}
                 size={44}
                 iconSize={30}
                 testID="player-toggle"
-                hasTVPreferredFocus={tvButtons}
+                hasTVPreferredFocus={tvButtons && buttons === 'play'}
                 onPress={() => setPaused((p) => !p)}
               />
               {isLive ? null : (
@@ -662,7 +666,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     icon="restart"
                     label={t('Play from the beginning')}
                     plain
-                    focusable={!Platform.isTV || buttons}
+                    focusable={!Platform.isTV || !!buttons}
                     size={44}
                     iconSize={28}
                     testID="player-restart"
@@ -673,7 +677,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                       icon="previous"
                       label={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
                       plain
-                      focusable={!Platform.isTV || buttons}
+                      focusable={!Platform.isTV || !!buttons}
                       size={44}
                       iconSize={28}
                       testID="player-previous"
@@ -684,7 +688,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     icon="rewind10"
                     label={t('Back {seconds} seconds', { seconds: SKIP_SECONDS })}
                     plain
-                    focusable={!Platform.isTV || buttons}
+                    focusable={!Platform.isTV || !!buttons}
                     size={44}
                     iconSize={28}
                     onPress={() => seekTo(timeRef.current - SKIP_SECONDS)}
@@ -693,7 +697,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     icon="forward10"
                     label={t('Forward {seconds} seconds', { seconds: SKIP_SECONDS })}
                     plain
-                    focusable={!Platform.isTV || buttons}
+                    focusable={!Platform.isTV || !!buttons}
                     size={44}
                     iconSize={28}
                     onPress={() => seekTo(timeRef.current + SKIP_SECONDS)}
@@ -703,7 +707,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                       icon="next"
                       label={t('Next episode: {episode}', { episode: episodeLabel(next) })}
                       plain
-                      focusable={!Platform.isTV || buttons}
+                      focusable={!Platform.isTV || !!buttons}
                       size={44}
                       iconSize={28}
                       testID="player-next"
@@ -721,7 +725,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   icon="guide"
                   label={t('Guide')}
                   plain
-                  focusable={!Platform.isTV || buttons}
+                  focusable={!Platform.isTV || !!buttons}
                   size={44}
                   iconSize={26}
                   testID="player-guide"
@@ -736,7 +740,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   icon="episodes"
                   label={t('Episodes')}
                   plain
-                  focusable={!Platform.isTV || buttons}
+                  focusable={!Platform.isTV || !!buttons}
                   size={44}
                   iconSize={26}
                   testID="player-episodes"
@@ -750,7 +754,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 icon="subtitles"
                 label={t('Audio and subtitles')}
                 plain
-                focusable={!Platform.isTV || buttons}
+                focusable={!Platform.isTV || !!buttons}
                 size={44}
                 iconSize={26}
                 testID="player-tracks"

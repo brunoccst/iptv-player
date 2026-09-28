@@ -310,6 +310,14 @@ describe('PlayerScreen', () => {
     await act(async () => pressBack());
     expect(screen.getByTestId('player-focus')).toBeTruthy();
     expect(screen.getByTestId('player-toggle').props.focusable).toBe(false);
+
+    // ↑ opens the same buttons with Back at the top left focused, not the drawer (D-101).
+    await act(async () => pressRemote('up', 'down'));
+    expect(screen.queryByTestId('quick-drawer')).toBeNull();
+    expect(screen.getByTestId('player-back').props).toMatchObject({ focusable: true, hasTVPreferredFocus: true });
+    expect(screen.getByTestId('player-toggle').props).toMatchObject({ focusable: true, hasTVPreferredFocus: false });
+    await act(async () => pressBack());
+    expect(screen.getByTestId('player-focus')).toBeTruthy();
     jest.restoreAllMocks();
   });
 
