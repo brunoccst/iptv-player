@@ -1659,3 +1659,13 @@ Decision:
 - **Centering from the place in the page.** `CenteringScrollView` measured the focused element on screen and added the current scroll offset. While a scroll animates, that offset is stale, so each focus gave a different target: two steps for one move, and earlier titles on quick presses. It now measures the element inside the page content (`measureLayout` against the scroll view's content), the same way Home centers its rows, so a title always gives the same target. A target that equals the last one is not sent again.
 - **Search results in pages on TV.** 36 results per section, loaded as the focus reaches the last two lines. Only the lines near the focus are mounted, through the same `TvLines` the Movies/Series grid now uses. "More results" was plain text the remote could not reach; on TV it is gone, and the next page loads by itself. Phones keep 100 results and "More results".
 
+
+## D-096
+
+**TV grid centering the Home way: rows of one height, scrolled straight to** — 2026-09-28 (requested by owner)
+
+Context: after D-095, the Movies/Series grid (and TV search) still scrolled in two steps on the Chromecast, while Home did not.
+
+Decision:
+- **Rows of one height.** A card without a subtitle (no year, one version) was shorter, so its line was too. The spacers that replace far lines (D-094) all took the first line's height, so every move, as lines turned into spacers and back, grew or shrank the page above the focus and shifted what was on screen: the second step. Grid cards now always keep the subtitle line, and every line, mounted or spacer, has the first line's height.
+- **Centered like Home.** Home knows where each row sits and scrolls straight there. `TvLines` now does the same: the focused line's place is the start of the block plus its index times the line height, so the scroll starts on the same key press with nothing to measure. The block's start is measured again after each move, in case a section above it grew (search). The cards inside no longer measure and scroll on their own. My List and Downloads keep D-095's per-card centering: they have no spacers, so nothing moves under them.
