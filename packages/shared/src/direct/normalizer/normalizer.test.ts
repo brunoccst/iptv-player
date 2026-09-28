@@ -123,4 +123,26 @@ describe('grouping large libraries (D-038)', () => {
     expect(reported.at(-1)).toBe(1);
     expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
   });
+
+  it('buildMastersInChunks runs a job it is asked to yield to before going on, with the same result (D-093)', async () => {
+    const items = Array.from({ length: 3000 }, (_, i) => ({ id: i + 1, name: `Film ${i % 1000} (${2000 + (i % 3)})` }));
+    const order: string[] = [];
+    let asked = 0;
+    const masters = await buildMastersInChunks('acc', 'movie', items, {
+      chunkSize: 100,
+      onProgress: (done) => done > 0 && order.length === 0 && order.push('movies started'),
+      yieldTo: () =>
+        ++asked === 3
+          ? new Promise<void>((resolve) =>
+              setTimeout(() => {
+                order.push('series grouped');
+                resolve();
+              }, 0),
+            )
+          : null,
+    });
+    order.push('movies done');
+    expect(order).toEqual(['movies started', 'series grouped', 'movies done']);
+    expect(masters).toEqual(buildMasters('acc', 'movie', items));
+  });
 });

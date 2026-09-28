@@ -306,13 +306,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           (error: unknown) => void (arrived[kind] = { error, seconds: Math.round((Date.now() - started) / 1000) }),
         );
       const settled = { movie: settle('movie'), series: settle('series') };
-      const remaining: LibraryKind[] = ['movie', 'series'];
-      while (remaining.length > 0) {
-        if (!remaining.some((kind) => arrived[kind])) await Promise.race(remaining.map((kind) => settled[kind]));
-        const kind = remaining
-          .filter((next) => arrived[next])
-          .sort((a, b) => (arrived[a]!.items?.length ?? 0) - (arrived[b]!.items?.length ?? 0))[0]!;
-        remaining.splice(remaining.indexOf(kind), 1);
+      const grouping = new Set<LibraryKind>();
+      const group = async (kind: LibraryKind): Promise<void> => {
         try {
           const download = arrived[kind]!;
           if (!download.items) throw download.error;
@@ -325,6 +320,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
           const masters = await buildMastersInChunks(accountId, kind, items, {
             onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
+            // A smaller list that arrives meanwhile (series while 100k movies group) is grouped and shown first.
+            yieldTo: () => {
+              const other: LibraryKind = kind === 'movie' ? 'series' : 'movie';
+              const waiting = arrived[other]?.items;
+              return waiting && !grouping.has(other) && waiting.length < items.length ? start(other) : null;
+            },
           });
           appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms`);
           if (!current()) return;
@@ -348,6 +349,20 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           };
         }
         await yieldToUi();
+      };
+      const start = (kind: LibraryKind) => {
+        grouping.add(kind);
+        return group(kind);
+      };
+      for (;;) {
+        const pending = (['movie', 'series'] as const).filter((kind) => !grouping.has(kind));
+        if (pending.length === 0) break;
+        if (!pending.some((kind) => arrived[kind])) await Promise.race(pending.map((kind) => settled[kind]));
+        const next = pending
+          .filter((kind) => arrived[kind])
+          .sort((a, b) => (arrived[a]!.items?.length ?? 0) - (arrived[b]!.items?.length ?? 0))[0]!;
+        await start(next);
+        if (!current()) return;
       }
     })().finally(() => {
       library.running = null;
@@ -758,6 +773,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
         const masters = (await ensureLibrary())?.[librarySection(section)] ?? [];
+        const started = Date.now();
         const sort = query.sort ?? 'added';
         const index = ordered(masters, sort, query.order ?? defaultOrder(sort));
         const search = query.search?.trim().toLowerCase();
@@ -772,6 +788,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           ? inLanguage.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
           : inLanguage;
         const offset = Math.max(0, query.offset ?? 0);
+        // Slow lists freeze the UI on a TV: the Log screen shows which (D-093).
+        const took = Date.now() - started;
+        if (took >= 300)
+          appLog.info(
+            'library',
+            `${section} list (${[query.categoryId && 'category', search && 'search', query.language && 'languages', allowed && 'kids'].filter(Boolean).join(', ') || 'all'}, ${sort}) took ${took} ms for ${masters.length} titles`,
+          );
         return {
           total: matches.length,
           items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard),

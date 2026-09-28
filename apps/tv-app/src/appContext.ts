@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { I18nManager, Platform } from 'react-native';
 import {
@@ -38,6 +39,17 @@ export const appContext = createAppContext({
   deviceLanguages,
 });
 TvMedia.setUserAgent(providerUserAgent);
+
+// CI builds (APP_TV_DEBUG_REMOTE) also print the diagnostics log to logcat, so emulator runs show it (D-093).
+if (Constants.expoConfig?.extra?.APP_TV_DEBUG_REMOTE === '1') {
+  for (const level of ['info', 'warn', 'error'] as const) {
+    const write = appLog[level];
+    appLog[level] = (area, message) => {
+      console.log(`[appLog] ${level} [${area}] ${message}`);
+      write(area, message);
+    };
+  }
+}
 
 // Diagnostics log (Log screen → Share): kept across restarts; uncaught JS errors are recorded before the app dies.
 void appLog

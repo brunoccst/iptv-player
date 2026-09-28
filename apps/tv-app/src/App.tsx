@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { startStallWatch } from './diagnostics/stallWatch';
 import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
@@ -24,7 +25,7 @@ import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
-import { t, useUiLanguage } from '@iptv/shared';
+import { appLog, t, useUiLanguage } from '@iptv/shared';
 
 const UPDATE_CHECK_DELAY_MS = 15_000;
 
@@ -48,7 +49,9 @@ export function App() {
     downloadsStore.getState().init();
     // Looks for a newer APK once the app has settled (D-062).
     const updateTimer = setTimeout(() => void updater.check(true), UPDATE_CHECK_DELAY_MS);
+    const stopStallWatch = startStallWatch();
     return () => {
+      stopStallWatch();
       clearTimeout(updateTimer);
       downloadsStore.getState().dispose();
     };
@@ -132,6 +135,9 @@ function Shell() {
   const categoryId = useNav((s) => s.categoryId);
   const processing = useLibraryWatcher();
   const shown = useShownSection(section);
+
+  // The Log screen then shows which page was opened before a stall (D-093).
+  useEffect(() => appLog.info('nav', `opened ${section}${categoryId ? ` (category ${categoryId})` : ''}`), [section, categoryId]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => navStore.getState().back());

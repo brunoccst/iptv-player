@@ -45,6 +45,30 @@ run_flow() {
     --debug-output "$OUT/$name" --test-output-dir "$OUT/$name" || { diagnose "$name"; return 1; }
 }
 
+# Large library (D-093): only the stress flow, against a panel started with FAKE_PANEL_STRESS; always dumps the state.
+if [ "${2:-}" = "stress" ]; then
+  status=0
+  run_flow 07-large-library || status=$?
+  echo "::group::App log (diagnostics lines in logcat)"
+  adb logcat -d -v time -s ReactNativeJS:V | grep -F '[appLog]' | tail -40 || true
+  echo "::endgroup::"
+  echo "::group::Layout: grid, header and first cards (uiautomator bounds)"
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 || true
+  adb shell cat /sdcard/ui.xml 2>/dev/null | tr '>' '\n' | grep -E 'resource-id="(browse-|chips|sort|card-|top-nav|nav-movies)' \
+    | sed -E 's/.*resource-id="([^"]*)".*focused="([a-z]*)".*bounds="([^"]*)".*/\1 focused=\2 \3/' | head -40 || true
+  echo "Windows:"; adb shell dumpsys window windows 2>/dev/null | grep -E 'mCurrentFocus|mFocusedApp' | head -5 || true
+  echo "::endgroup::"
+  echo "::group::Main thread busy? (dumpsys gfxinfo)"
+  adb shell dumpsys gfxinfo "$APP_ID" 2>/dev/null | head -30 || true
+  echo "::endgroup::"
+  [ "$status" -eq 0 ] && diagnose 07-large-library
+  echo "::group::ANR traces"
+  adb shell ls /data/anr 2>/dev/null || true
+  adb shell dumpsys activity processes 2>/dev/null | grep -iE 'not responding|anr' | head -20 || true
+  echo "::endgroup::"
+  exit "$status"
+fi
+
 # Phone emulator (touch and the on-screen keyboard): only the phone flow, against the fake panel.
 if [ "${2:-}" = "phone" ]; then
   curl -sf "http://localhost:8091/player_api.php" > /dev/null || "$HERE/../../../scripts/start-e2e-stack.sh"
