@@ -12,6 +12,8 @@ const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo'
 
 /** Each test runs twice: the library in memory (desktop, web) and in SQLite (TV/phone, D-121). */
 let databaseMode = false;
+/** Moves the clients' clock forward (saved copies growing old). */
+let clockShiftMs = 0;
 const newStorages = () => ({
   secure: createMemoryStorage(),
   data: createMemoryStorage(),
@@ -33,7 +35,7 @@ function setup(
     dataStorage: storages.data,
     fetch: panel.fetch,
     userAgent: 'VLC/3',
-    now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000),
+    now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000 + clockShiftMs),
     randomId: () => `id-${++ids}`,
     snapshotSaveMs: 0,
     libraryDb: storages.db,
@@ -428,6 +430,41 @@ describe.each([
     expect(panel.calls.filter((url) => url.includes('get_short_epg'))).toHaveLength(epgCalls);
     expect((await api.epg.grid({ offset: 2 })).channels.map((row) => row.channel.name)).toEqual(['Sport']);
   });
+
+  it.runIf(useDatabase)(
+    'keeps categories, movie info, episodes and the guide in the database: no download after a restart, old copies offline (D-125)',
+    async () => {
+      const first = setup();
+      await first.api.auth.login(login);
+      const read = async (api: ApiClient) => ({
+        categories: (await api.catalog.categories('movies')).map((category) => category.id),
+        movie: (await api.catalog.movie('101')).plot ?? null,
+        seasons: (await api.catalog.seriesDetails('201')).seasons.length,
+        guide: (await api.epg.grid({ hours: 1, limit: 1 })).channels[0]!.programmes.map((programme) => programme.title),
+      });
+      const before = await read(first.api);
+      expect(before.guide).toEqual(['Evening News', 'Late News']);
+      await new Promise((resolve) => setTimeout(resolve, 20)); // the copies are saved in the background
+
+      const asked = (action: string) => first.panel.calls.filter((url) => url.includes(`action=${action}`)).length;
+      const counts = () => ['get_vod_categories', 'get_vod_info', 'get_series_info', 'get_short_epg'].map(asked);
+      const downloaded = counts();
+      const restarted = setup(first.panel, first.storages);
+      expect(await read(restarted.api)).toEqual(before);
+      expect(counts()).toEqual(downloaded);
+
+      // Two weeks later and offline: every copy is old, the provider cannot answer, the old copies still do.
+      clockShiftMs = 14 * 24 * 3600_000;
+      try {
+        first.panel.offline();
+        const offline = setup(first.panel, first.storages);
+        const { categories, movie, seasons } = await read(offline.api).catch(() => ({ categories: null, movie: null, seasons: null }));
+        expect({ categories, movie, seasons }).toEqual({ categories: before.categories, movie: before.movie, seasons: before.seasons });
+      } finally {
+        clockShiftMs = 0;
+      }
+    },
+  );
 
   it('returns direct provider URLs for playback', async () => {
     const { api } = setup();

@@ -52,6 +52,13 @@ export function createFakePanel() {
         return [{ category_id: '10', category_name: 'Movies' }];
       case 'get_vod_info':
         return { info: [], movie_data: movies.find((movie) => String(movie.stream_id) === params.get('vod_id')) ?? {} };
+      case 'get_series_info':
+        return params.get('series_id') === '201'
+          ? {
+              info: { name: 'Test Series (2021)', plot: 'A test.' },
+              episodes: { '1': [{ id: '2011', episode_num: 1, title: 'Pilot', container_extension: 'mkv', season: 1 }] },
+            }
+          : [];
       case 'get_short_epg':
         if (params.get('stream_id') === '2') throw new Error('guide unavailable');
         return { epg_listings: [programme('Old show', -120, 60), programme('Evening News', 0, 30), programme('Late News', 30, 60)] };

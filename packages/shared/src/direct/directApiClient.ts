@@ -28,6 +28,7 @@ import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, readLibraryText } from './libraryCodec';
 import { createListSnapshot } from './listSnapshot';
+import { createSqlCatalogCache } from './sqlCatalogCache';
 import { createSqlLibrary, createSqlLiveChannels, type SqlDatabase, type SqlLibraryKind, type SqlLiveChannels } from './sqlLibrary';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
@@ -94,6 +95,10 @@ const oldLibraryKey = (accountId: string, kind: LibraryKind) => `direct.library.
 
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
+/** How long the database's copy stays fresh (D-125); an older one is still used when the provider cannot answer. */
+const SAVED_CATEGORIES_MS = 24 * 3600_000;
+const SAVED_MOVIE_MS = 7 * 24 * 3600_000;
+const SAVED_SERIES_MS = 12 * 3600_000;
 const SHORT_EPG_LIMIT = 12;
 // Low on purpose: some providers treat bursts of guide requests as flooding (a 503 was seen at 4 in parallel).
 const SHORT_EPG_PARALLELISM = 2;
@@ -326,6 +331,31 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   /** The library database; null without one, or after it failed to open (the library then stays in memory). */
   let sqlLibrary = options.libraryDb ? createSqlLibrary(options.libraryDb, yieldToUi) : null;
   const sqlLive = options.libraryDb && sqlLibrary ? createSqlLiveChannels(options.libraryDb, sqlLibrary, yieldToUi) : null;
+  const catalogDb = options.libraryDb ? createSqlCatalogCache(options.libraryDb, () => now().getTime()) : null;
+
+  /**
+   * The provider's answer, saved in the database (D-125): a copy younger than `freshMs` answers without the network;
+   * an older one answers when the provider fails (offline). Without a database, only the provider.
+   */
+  const persisted = async <T>(accountId: string, key: string, freshMs: number, load: () => Promise<T>): Promise<T> => {
+    if (!catalogDb) return load();
+    const saved = await catalogDb.get(accountId, key).catch((error: unknown) => {
+      appLog.warn('storage', `${key}: saved copy could not be read: ${errorMessage(error)}`);
+      return null;
+    });
+    if (saved && now().getTime() - saved.savedAt < freshMs) return saved.value as T;
+    try {
+      const value = await load();
+      if (value !== null && value !== undefined)
+        void catalogDb
+          .put(accountId, key, value)
+          .catch((error: unknown) => appLog.warn('storage', `${key}: not saved: ${errorMessage(error)}`));
+      return value;
+    } catch (error) {
+      if (saved) return saved.value as T;
+      throw error;
+    }
+  };
   const count = (data: StoredLibrary | null, kind: LibraryKind) => (data?.sql ? (data.sql[kind]?.count ?? 0) : (data?.[kind].length ?? 0));
   /** Every title of a kind, newest first (for an update to reuse). */
   const mastersOf = async (data: StoredLibrary, kind: LibraryKind): Promise<Master[]> => {
@@ -384,8 +414,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
-      // "Update library" also refreshes the saved channel list (D-123).
+      // "Update library" also refreshes the saved channel list (D-123) and the categories (D-125).
       if (sqlLive) void refreshLive();
+      for (const key of [...cache.keys()]) if (key.startsWith(`categories:${accountId}:`)) cache.delete(key);
+      void catalogDb?.forget(accountId, 'categories:').catch(() => undefined);
       const current = () => credentials?.account.id === accountId;
       // Both lists download at once (the slow part on a phone). Grouping runs one kind at a time (one JS thread), in
       // the order the lists arrive and the smaller first when both are in: series, usually far fewer, no longer wait
@@ -800,7 +832,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const id = channel.id;
         // Guide data is optional: a failed channel is cached as "no guide".
         const programmes = await cached(`epg:${stored.account.id}:${id}`, SHORT_EPG_CACHE_MS, () =>
-          client.shortEpg(id, SHORT_EPG_LIMIT).catch(() => [] as EpgListing[]),
+          persisted(stored.account.id, `epg:${id}`, SHORT_EPG_CACHE_MS, () => client.shortEpg(id, SHORT_EPG_LIMIT)).catch(
+            () => [] as EpgListing[],
+          ),
         );
         result.set(id, programmes);
       }
@@ -1072,7 +1106,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async categories(section: CatalogSection, signal?: AbortSignal) {
         const { stored, client } = await session();
         return cached(`categories:${stored.account.id}:${section}`, CATALOG_CACHE_MS, () =>
-          client.categories(catalogKind[section], signal),
+          persisted(stored.account.id, `categories:${section}`, SAVED_CATEGORIES_MS, () => client.categories(catalogKind[section], signal)),
         );
       },
       liveChannels,
@@ -1082,7 +1116,11 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       },
       async movie(movieId: string, signal?: AbortSignal) {
         const { stored, client } = await session();
-        return orNotFound(await cached(`movie:${stored.account.id}:${movieId}`, CATALOG_CACHE_MS, () => client.movie(movieId, signal)));
+        return orNotFound(
+          await cached(`movie:${stored.account.id}:${movieId}`, CATALOG_CACHE_MS, () =>
+            persisted(stored.account.id, `movie:${movieId}`, SAVED_MOVIE_MS, () => client.movie(movieId, signal)),
+          ),
+        );
       },
       async series(categoryId?: string | null, signal?: AbortSignal) {
         const { stored, client } = await session();
@@ -1091,7 +1129,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async seriesDetails(seriesId: string, signal?: AbortSignal) {
         const { stored, client } = await session();
         return orNotFound(
-          await cached(`series-details:${stored.account.id}:${seriesId}`, CATALOG_CACHE_MS, () => client.seriesDetails(seriesId, signal)),
+          await cached(`series-details:${stored.account.id}:${seriesId}`, CATALOG_CACHE_MS, () =>
+            persisted(stored.account.id, `series:${seriesId}`, SAVED_SERIES_MS, () => client.seriesDetails(seriesId, signal)),
+          ),
         );
       },
     },
@@ -1187,6 +1227,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async refresh() {
         const { stored } = await session();
         for (const key of [...cache.keys()]) if (key.startsWith(`epg:${stored.account.id}:`)) cache.delete(key);
+        await catalogDb?.forget(stored.account.id, 'epg:').catch(() => undefined);
         return undefined;
       },
     },
