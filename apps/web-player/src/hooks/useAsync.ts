@@ -39,5 +39,3 @@ export function useAsync<T>(key: string | null, load: () => Promise<T>): AsyncRe
 
   return state;
 }
-
-export const clearAsyncCache = () => cache.clear();

@@ -8,8 +8,6 @@ test-results/
 coverage/
 apps/tv-app/android/
 apps/tv-app/ios/
-packages/shared/src/api/generated/
-packages/shared/openapi/
 tools/
 documentation/
 *.md

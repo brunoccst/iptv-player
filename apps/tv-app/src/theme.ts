@@ -50,6 +50,3 @@ export function useCompact() {
 export function useNavHeight() {
   return useCompact() ? COMPACT_NAV_HEIGHT : navHeight;
 }
-
-/** Visible D-pad focus, like the web's `:focus-visible` outline. */
-export const focusRing = { borderColor: colors.strong, borderWidth: 2 } as const;
