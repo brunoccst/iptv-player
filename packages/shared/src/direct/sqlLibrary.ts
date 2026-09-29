@@ -1,5 +1,5 @@
 import type { LibraryListQuery } from '../api/apiClient';
-import type { LibraryPage, LibrarySort, MasterCard } from '../api/types';
+import type { LibraryPage, LibrarySort, LiveChannel, MasterCard } from '../api/types';
 import { NORMALIZER_RULES, packer, unpacker, type PackedMaster } from './libraryCodec';
 import type { Master } from './normalizer/pipeline';
 
@@ -119,6 +119,13 @@ export const toCard = (master: Master): MasterCard => ({
  * (`directApiClient`), except that titles order by their UTF-8 bytes, not UTF-16 units (they differ only between
  * characters outside the BMP and U+E000–U+FFFF).
  */
+/** Table names from the clock, never the same twice in a run (the library and the channels share them). */
+let lastTable = 0;
+const newTable = () => {
+  lastTable = Math.max(lastTable + 1, Date.now());
+  return `lib${lastTable}`;
+};
+
 export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   let ready: Promise<void> | null = null;
   /** Creates the table of contents once, and drops the tables of builds that never finished (the app was closed). */
@@ -135,12 +142,6 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       throw error;
     }));
 
-  let lastTable = 0;
-  const newTable = () => {
-    lastTable = Math.max(lastTable + 1, Date.now());
-    return `lib${lastTable}`;
-  };
-
   /** A filter's total is the same for every page and order: counted once per library and filter. */
   const totals = new Map<string, number>();
 
@@ -148,7 +149,10 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     /** What the database holds for the account (no titles are read). */
     async open(account: string): Promise<Partial<Record<LibraryKind, SqlLibraryKind>>> {
       await prepare();
-      const rows = await db.query('SELECT kind, tbl, built_at, rules, count, sorts, prefixes FROM library WHERE account = ?', [account]);
+      const rows = await db.query(
+        "SELECT kind, tbl, built_at, rules, count, sorts, prefixes FROM library WHERE account = ? AND kind IN ('movie', 'series')",
+        [account],
+      );
       const result: Partial<Record<LibraryKind, SqlLibraryKind>> = {};
       for (const [kind, table, builtAt, rules, count, sorts, prefixes] of rows) {
         result[kind as LibraryKind] = {
@@ -330,3 +334,147 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 }
 
 export type SqlLibrary = ReturnType<typeof createSqlLibrary>;
+
+/** An account's live channels in the database (D-123). */
+export interface SqlLiveChannels {
+  table: string;
+  builtAt: string;
+  count: number;
+}
+
+export interface LiveChannelQuery {
+  categoryId?: string | null;
+  /** Only these categories (Kids profiles). */
+  categoryIds?: string[] | null;
+  /** Leaves out channels in these categories (hidden by the profile, D-110). */
+  hiddenCategoryIds?: string[] | null;
+  /** Part of the name, any case. */
+  search?: string | null;
+  offset?: number;
+  /** Without a limit: every matching channel. */
+  limit?: number;
+}
+
+/** Channels saved per statement batch (one native call). */
+const CHANNEL_BATCH = 2000;
+
+/**
+ * Live channels in SQLite (D-123): providers list 20,000+ channels, and the guide, a category and a search each want a
+ * few of them. The whole list is downloaded now and then (daily, and with "Update library") and saved here in the
+ * provider's order; each screen then asks for its page. Tables are named like the library's (`lib…`), listed in the
+ * same table of contents (kind "live"), so an unfinished save is dropped at the next start the same way.
+ */
+export function createSqlLiveChannels(db: SqlDatabase, library: SqlLibrary, pause: () => Promise<void>) {
+  const totals = new Map<string, number>();
+  return {
+    async open(account: string): Promise<SqlLiveChannels | null> {
+      await library.open(account); // Creates the table of contents and drops unfinished saves.
+      const row = (await db.query("SELECT tbl, built_at, count FROM library WHERE account = ? AND kind = 'live'", [account]))[0];
+      return row ? { table: String(row[0]), builtAt: String(row[1]), count: Number(row[2]) } : null;
+    },
+
+    /** Saves the whole list beside the current one, then switches to it in one step. */
+    async save(account: string, builtAt: string, channels: LiveChannel[]): Promise<SqlLiveChannels> {
+      await library.open(account);
+      const t = newTable();
+      try {
+        await db.run([
+          {
+            sql: `CREATE TABLE ${t} (id TEXT NOT NULL, name TEXT NOT NULL, lower TEXT NOT NULL, cat TEXT, num INTEGER, logo TEXT,
+              epg TEXT, catchup INTEGER NOT NULL)`,
+          },
+        ]);
+        for (let start = 0; start < channels.length; start += CHANNEL_BATCH) {
+          const rows = channels
+            .slice(start, start + CHANNEL_BATCH)
+            .map((channel, index): SqlValue[] => [
+              start + index + 1,
+              channel.id,
+              channel.name,
+              channel.name.toLowerCase(),
+              channel.categoryId,
+              channel.number,
+              channel.logoUrl,
+              channel.epgChannelId,
+              channel.hasCatchup ? 1 : 0,
+            ]);
+          await db.run([
+            { sql: `INSERT INTO ${t} (rowid, id, name, lower, cat, num, logo, epg, catchup) VALUES (${placeholders(9)})`, rows },
+          ]);
+          await pause();
+        }
+        await db.run([{ sql: `CREATE INDEX ${t}_cat ON ${t}(cat)` }]);
+      } catch (error) {
+        await db.run([{ sql: `DROP TABLE IF EXISTS ${t}` }]).catch(() => undefined);
+        throw error;
+      }
+      const old = (await db.query("SELECT tbl FROM library WHERE account = ? AND kind = 'live'", [account]))[0]?.[0];
+      await db.run([
+        { sql: "DELETE FROM library WHERE account = ? AND kind = 'live'", rows: [[account]] },
+        {
+          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes) VALUES (?, 'live', ?, ?, 0, ?, '[]', '[]')",
+          rows: [[account, t, builtAt, channels.length]],
+        },
+      ]);
+      if (old) setTimeout(() => void db.run([{ sql: `DROP TABLE IF EXISTS ${String(old)}` }]).catch(() => undefined), RETIRE_MS);
+      return { table: t, builtAt, count: channels.length };
+    },
+
+    /** Matching channels in the provider's order, and how many match in all. */
+    async list(saved: SqlLiveChannels, query: LiveChannelQuery): Promise<{ total: number; channels: LiveChannel[] }> {
+      const t = saved.table;
+      const where: string[] = [];
+      const params: SqlValue[] = [];
+      if (query.categoryId) {
+        where.push('cat = ?');
+        params.push(query.categoryId);
+      }
+      if (query.categoryIds) {
+        if (query.categoryIds.length === 0) return { total: 0, channels: [] };
+        where.push(`cat IN (${placeholders(query.categoryIds.length)})`);
+        params.push(...query.categoryIds);
+      }
+      if (query.hiddenCategoryIds?.length) {
+        where.push(`(cat IS NULL OR cat NOT IN (${placeholders(query.hiddenCategoryIds.length)}))`);
+        params.push(...query.hiddenCategoryIds);
+      }
+      const search = query.search?.trim().toLowerCase();
+      if (search) {
+        where.push('instr(lower, ?) > 0');
+        params.push(search);
+      }
+      const filter = where.length ? ` WHERE ${where.join(' AND ')}` : '';
+      const offset = Math.max(0, query.offset ?? 0);
+      const limit = query.limit === undefined ? -1 : Math.max(1, query.limit);
+      const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
+      const [rows, total] = await Promise.all([
+        db.query(`SELECT id, name, cat, num, logo, epg, catchup FROM ${t}${filter} ORDER BY rowid LIMIT ? OFFSET ?`, [
+          ...params,
+          limit,
+          offset,
+        ]),
+        where.length === 0
+          ? saved.count
+          : (totals.get(totalKey) ??
+            db.query(`SELECT COUNT(*) FROM ${t}${filter}`, params).then((counted) => {
+              const count = Number(counted[0]?.[0] ?? 0);
+              if (totals.size > 200) totals.clear();
+              totals.set(totalKey, count);
+              return count;
+            })),
+      ]);
+      const channels = rows.map(([id, name, categoryId, number, logoUrl, epgChannelId, catchup]): LiveChannel => ({
+        id: String(id),
+        name: String(name),
+        categoryId: categoryId === null ? null : String(categoryId),
+        number: number === null ? null : Number(number),
+        logoUrl: logoUrl === null ? null : String(logoUrl),
+        epgChannelId: epgChannelId === null ? null : String(epgChannelId),
+        hasCatchup: Number(catchup) === 1,
+      }));
+      return { total, channels };
+    },
+  };
+}
+
+export type SqlLive = ReturnType<typeof createSqlLiveChannels>;
