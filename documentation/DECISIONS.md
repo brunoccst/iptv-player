@@ -111,7 +111,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 | [D-105](#d-105) | 2026-09-29 | TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen; focus after Show all / Show less |
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
-| [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title |
+| [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
 
 ---
 
@@ -1783,13 +1783,14 @@ Decision: `.devcontainer` is removed with its README section, Vite's Codespaces 
 
 ## D-108
 
-**TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title** — 2026-09-29 (requested by owner)
+**TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu** — 2026-09-29 (requested by owner)
 
 Context:
 
 - On TV, pressing ‹ until the first categories (or › until the last) moved the focus to a category chip; pressing OK again chose it. The button was marked disabled through `accessibilityState`, which on Android disables the view, and a disabled view cannot keep the focus.
 - After "Show all", the chosen chip in the box took the focus (D-105) and, like every chip, centered itself in the page, which scrolled the page down to the titles.
 - Search listed every matching movie before the series: with a common word, the series were a long way down. The "Results for …" title scrolled away with the first results, and Up from them went to the top bar, so it could not be seen again.
+- "Close the app" was hidden under avatar → App, and missing for Kids profiles.
 
 Decision:
 
@@ -1797,3 +1798,4 @@ Decision:
 - **Chips in the "Show all" box** do not center the page; the box scrolls to them itself.
 - **Search filter:** All · Movies · Series · Live TV above the results (TV, phone and desktop); "No channels." when Live TV finds none.
 - **Fixed title:** on TV and phone, the title and the filter sit above the scrolling results, so they stay on screen; Up from the first results goes to the filter.
+- **Close the app** (TV, phone) moves from avatar → App to the avatar menu itself, for every profile (Kids too), so nobody needs Settings → Apps → Force stop.

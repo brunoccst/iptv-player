@@ -45,7 +45,7 @@ describe('account menu groups', () => {
     expect(screen.queryByTestId('account-menu')).toBeNull();
   });
 
-  it('Kids profiles only switch profile: no settings, sync, backup, updates, log or sign-out', async () => {
+  it('Kids profiles only switch profile or close the app: no settings, sync, backup, updates, log or sign-out', async () => {
     setupApp();
     await render(<App />);
     await flush();
@@ -61,17 +61,17 @@ describe('account menu groups', () => {
     for (const id of ['menu-group-profiles', 'menu-group-library', 'menu-group-app', 'menu-sign-out']) {
       expect(screen.queryByTestId(id)).toBeNull();
     }
+    expect(screen.getByTestId('menu-close-app')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('menu-switch-profile'));
     expect(stores.session.getState().activeProfileId).toBeNull();
   });
 
-  it('App → Close the app asks first, then closes it like "Force stop"', async () => {
+  it('Close the app is on the main menu: it asks first, then closes the app like "Force stop" (D-108)', async () => {
     setupApp();
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     await render(<App />);
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
-    await fireEvent.press(screen.getByTestId('menu-group-app'));
     await fireEvent.press(screen.getByTestId('menu-close-app'));
     expect(nativeState.calls).not.toContain('close-app');
     const buttons = alert.mock.calls[0]![2] as AlertButton[];
