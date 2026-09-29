@@ -149,6 +149,12 @@ export const LANGUAGE_PREFIX: Table = {
   us: 'ENG',
 };
 
+/**
+ * Leading groups that say what kind of title it is, not its language ("BL - " = Bollywood, D-112): dropped from the
+ * name so the title joins its other versions, with no language. Only as a leading prefix group, like LANGUAGE_PREFIX.
+ */
+export const IGNORED_PREFIX = new Set(['bl']);
+
 export const AUDIO_TAG: Table = { dual: 'DUAL', multi: 'MULTI' };
 
 export const HDR = new Set(['hdr', 'dovi']);

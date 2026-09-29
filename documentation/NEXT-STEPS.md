@@ -33,7 +33,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
-- [x] **Menu focus, Show all, "PL = …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish.
+- [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **TV category pager, Show all, search filter** (requested 2026-09-29, D-108): ‹ › keep the focus at the first and last categories (OK does nothing there); "Show all" no longer scrolls the page down; search has All / Movies / Series / Live TV, and "Results for …" stays on screen; "Close the app" is in the avatar menu itself.
 - [x] **Greek, Ex-Yu, Punjabi, EAR** (requested 2026-09-29, D-107): "GR - …", "EXYU - …" / "EX-YU - …", "PUNJABI - …" and "EAR - …" (English, Arabic subtitles in the picture) titles join their other versions and can be chosen in the content language filter (Polish, "PL", already could); the library regroups once.
 - [x] **Repository clean-up** (requested 2026-09-26): review the whole repository and remove unused or unnecessary files (dead code, stale scripts, leftover assets, outdated docs). Done 2026-09-29: dead code removed (`clearAsyncCache` in both apps, `usePlayer`, `focusRing`, `isFuzzyMatch`), ignore entries for the removed OpenAPI folders dropped, known issues and READMEs that still described the server updated (KI-026 resolved; KI-031, KI-034, KI-036, KI-041 reworded). A `knip` scan found no unused files, assets or dependencies beyond these; the Codespaces setup went with D-106.
