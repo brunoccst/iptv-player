@@ -29,8 +29,10 @@ export interface ChipItem {
 /** Chips rendered at first on the line and in the expanded box; more follow as the user scrolls toward the end. */
 const LINE_PAGE = 40;
 const BOX_PAGE = 150;
-/** TV: categories shown between "All" and the ‹ › buttons. */
+/** TV: at most this many categories between "All" and the ‹ › buttons; fewer when their names do not fit (D-105). */
 const TV_WINDOW = 3;
+/** Space between the items of the bar (styles.bar gap). */
+const GAP = 8;
 /** Distance from the end (dp) at which the next page is added. */
 const NEAR_END = 400;
 
@@ -59,13 +61,53 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const [boxContentHeight, setBoxContentHeight] = useState(0);
   // TV: the first chip of the categories shown after "All" (null: around the chosen one).
   const [tvStart, setTvStart] = useState<number | null>(null);
+  // TV: where the focus goes after "Show all" / "Show less" (D-105): the chosen chip in the box, or back on the button.
+  // The button itself is replaced when the bar changes shape; without this the focus fell to the grid or "Sort by".
+  const [focusAfter, setFocusAfter] = useState<'active' | 'toggle' | null>(null);
+  // TV: measured widths (the bar, "All", ‹ ›, "Show all", each category chip), to show only the chips that fit.
+  const [tvWidths, setTvWidths] = useState<Record<string, number>>({});
+  const setTvWidth = (key: string, width: number) =>
+    setTvWidths((known) => (Math.abs((known[key] ?? -1) - width) < 1 ? known : { ...known, [key]: width }));
+  const tvRoomWithout = () => (tvWidths.bar ?? 0) - (tvWidths.all ?? 0) - GAP;
+  const tvRoomWith = () => tvRoomWithout() - (tvWidths.prev ?? 0) - (tvWidths.next ?? 0) - (tvWidths.toggle ?? 0) - 3 * GAP;
+  /**
+   * How many chips from `from` (going forward, or backward with step -1) fit in `room`, between 1 and TV_WINDOW.
+   * Until the bar and the chips are measured, TV_WINDOW.
+   */
+  const fitCount = (list: ChipItem[], from: number, room: number, step: 1 | -1) => {
+    if (!tvWidths.bar) return TV_WINDOW;
+    let used = 0;
+    let count = 0;
+    for (let index = from; index >= 0 && index < list.length && count < TV_WINDOW; index += step) {
+      const width = tvWidths[`chip:${list[index]!.key}`];
+      if (width === undefined) return count > 0 ? count : TV_WINDOW;
+      if (count > 0 && used + GAP + width > room) break;
+      used += (count > 0 ? GAP : 0) + width;
+      count += 1;
+    }
+    return Math.max(1, count);
+  };
+  /** Whether all of `list[from…to)` fits in `room` (unknown widths: assume it does). */
+  const fitsWhole = (list: ChipItem[], from: number, to: number, room: number) => {
+    if (!tvWidths.bar) return true;
+    let used = 0;
+    for (let index = from; index < to; index += 1) {
+      const width = tvWidths[`chip:${list[index]!.key}`];
+      if (width === undefined) return true;
+      used += (index > from ? GAP : 0) + width;
+    }
+    return used <= room;
+  };
   const { height } = useWindowDimensions();
   const boxHeight = Math.round(height * 0.5);
   // On the line, a chosen chip beyond the first page moves right after the first one ("All"), so it shows without
-  // rendering every chip before it; the expanded box keeps the provider's order.
+  // rendering every chip before it.
   const activeIndex = chips.findIndex((chip) => chip.active);
   const lineChips =
     activeIndex >= LINE_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
+  // The expanded box does the same beyond its first page, so the focus can go to the chosen chip (D-105).
+  const boxChips =
+    activeIndex >= BOX_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
   const lineCount = Math.min(chips.length, lineLimit);
   const boxCount = Math.min(chips.length, boxLimit);
   const scroll = useRef<ScrollView>(null);
@@ -84,6 +126,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const choose = (chip: ChipItem) => {
     reveal.current = true;
     setTvStart(null);
+    setFocusAfter(null);
     setExpanded(false);
     chip.onPress();
   };
@@ -105,7 +148,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
-  const items = (expanded ? chips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
+  const items = (expanded ? boxChips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
       key={chip.key}
       label={chip.label}
@@ -113,6 +156,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       testID={chip.testID}
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
+      hasTVPreferredFocus={Platform.isTV && expanded && chip.active && focusAfter === 'active'}
     />
   ));
 
@@ -120,9 +164,11 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     <Toggle
       expanded={expanded}
       testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
+      hasTVPreferredFocus={Platform.isTV && !expanded && focusAfter === 'toggle'}
       onPress={() => {
         reveal.current = expanded;
         setBoxLimit(BOX_PAGE);
+        setFocusAfter(expanded ? 'toggle' : 'active');
         setExpanded(!expanded);
       }}
     />
@@ -150,35 +196,73 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     );
   }
 
-  // TV (D-094): "All", three categories, ‹ › to page through them, then "Show all" — no long walk to reach the end.
+  // TV (D-094, D-105): "All", the categories that fit (at most TV_WINDOW), ‹ › to page through them, then "Show all" —
+  // no long walk to reach the end. Long names take more room: fewer of them show, so the buttons stay on screen.
   if (Platform.isTV) {
     const rest = chips.slice(1);
-    const lastStart = Math.max(0, rest.length - TV_WINDOW);
-    const start = Math.min(lastStart, Math.max(0, tvStart ?? activeIndex - 2));
-    const shown = [chips[0], ...rest.slice(start, start + TV_WINDOW)].filter((chip): chip is ChipItem => !!chip);
+    const needsPager = rest.length > TV_WINDOW || !fitsWhole(rest, 0, rest.length, tvRoomWithout());
+    const room = needsPager ? tvRoomWith() : tvRoomWithout();
+    // The last page is full: it starts as many chips before the end as fit.
+    const lastFirst = Math.max(0, rest.length - fitCount(rest, rest.length - 1, room, -1));
+    const first = Math.min(lastFirst, Math.max(0, tvStart ?? activeIndex - 2));
+    const count = fitCount(rest, first, room, 1);
+    const shown = [chips[0], ...rest.slice(first, first + count)].filter((chip): chip is ChipItem => !!chip);
+    // Chips around the shown ones, measured off screen so the next and previous pages know how many fit.
+    const measured = rest.slice(Math.max(0, first - TV_WINDOW), first + count + TV_WINDOW);
     return (
-      <FocusRow style={[styles.bar, styles.tvBar]} testID={testID}>
-        {shown.map((chip) => (
-          <Chip key={chip.key} label={chip.label} active={chip.active} testID={chip.testID} onPress={() => choose(chip)} />
-        ))}
-        {rest.length > TV_WINDOW ? (
-          <>
-            <PageButton
-              direction="left"
-              disabled={start === 0}
-              testID={testID && `${testID}-prev`}
-              onPress={() => setTvStart(Math.max(0, start - TV_WINDOW))}
+      <View style={styles.tvWrap}>
+        <FocusRow style={[styles.bar, styles.tvBar]} testID={testID}>
+          <View
+            style={styles.tvMeasure}
+            testID={testID && `${testID}-width`}
+            onLayout={(event) => setTvWidth('bar', event.nativeEvent.layout.width)}
+          />
+          {shown.map((chip, index) => (
+            <Chip
+              key={chip.key}
+              label={chip.label}
+              active={chip.active}
+              testID={chip.testID}
+              onPress={() => choose(chip)}
+              onLayout={index === 0 ? (event) => setTvWidth('all', event.nativeEvent.layout.width) : undefined}
             />
-            <PageButton
-              direction="right"
-              disabled={start >= lastStart}
-              testID={testID && `${testID}-next`}
-              onPress={() => setTvStart(Math.min(lastStart, start + TV_WINDOW))}
-            />
-            {toggle}
-          </>
-        ) : null}
-      </FocusRow>
+          ))}
+          {needsPager ? (
+            // Pinned to the right end, so ‹ › and "Show all" stay put whatever the shown categories' widths.
+            <View style={styles.tvPager} testID={testID && `${testID}-pager`}>
+              <PageButton
+                direction="left"
+                disabled={first === 0}
+                testID={testID && `${testID}-prev`}
+                onPress={() => setTvStart(Math.max(0, first - fitCount(rest, first - 1, room, -1)))}
+                onLayout={(event) => setTvWidth('prev', event.nativeEvent.layout.width)}
+              />
+              <PageButton
+                direction="right"
+                disabled={first + count >= rest.length}
+                testID={testID && `${testID}-next`}
+                onPress={() => setTvStart(Math.min(lastFirst, first + count))}
+                onLayout={(event) => setTvWidth('next', event.nativeEvent.layout.width)}
+              />
+              <View testID={testID && `${testID}-toggle-box`} onLayout={(event) => setTvWidth('toggle', event.nativeEvent.layout.width)}>
+                {toggle}
+              </View>
+            </View>
+          ) : null}
+        </FocusRow>
+        <View style={styles.tvHidden} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+          {measured.map((chip) => (
+            <View
+              key={chip.key}
+              style={styles.chip}
+              testID={testID && `${testID}-measure-${chip.key}`}
+              onLayout={(event) => setTvWidth(`chip:${chip.key}`, event.nativeEvent.layout.width)}
+            >
+              <Text style={styles.chipText}>{chip.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
     );
   }
 
@@ -212,11 +296,13 @@ function PageButton({
   direction,
   disabled,
   onPress,
+  onLayout,
   testID,
 }: {
   direction: 'left' | 'right';
   disabled: boolean;
   onPress(): void;
+  onLayout?(event: LayoutChangeEvent): void;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -227,6 +313,7 @@ function PageButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={direction === 'left' ? t('Previous categories') : t('Next categories')}
+      onLayout={onLayout}
       accessibilityState={{ disabled }}
       onPress={() => !disabled && onPress()}
       onFocus={() => {
@@ -242,7 +329,17 @@ function PageButton({
 }
 
 /** "Show all ⌄" / "Show less ⌃": stays in the same place in both modes. */
-function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): void; testID?: string }) {
+function Toggle({
+  expanded,
+  onPress,
+  hasTVPreferredFocus,
+  testID,
+}: {
+  expanded: boolean;
+  onPress(): void;
+  hasTVPreferredFocus?: boolean;
+  testID?: string;
+}) {
   const [focused, setFocused] = useState(false);
   const text = expanded ? t('Show less') : t('Show all');
   const centering = useCenterOnFocus();
@@ -253,6 +350,7 @@ function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): v
       accessibilityRole="button"
       accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
+      hasTVPreferredFocus={hasTVPreferredFocus}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
@@ -261,8 +359,9 @@ function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): v
       onBlur={() => setFocused(false)}
       style={[styles.chip, styles.toggle, focused && styles.chipFocused]}
     >
-      <Text style={styles.chipText}>{text}</Text>
-      <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={18} color={colors.text} />
+      {/* Focused, the button is white: dark text and arrow, as on a focused chip. */}
+      <Text style={[styles.chipText, focused && styles.chipTextActive]}>{text}</Text>
+      <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={18} color={focused ? '#000' : colors.text} />
     </Pressable>
   );
 }
@@ -273,12 +372,14 @@ export function Chip({
   active,
   onPress,
   onLayout,
+  hasTVPreferredFocus,
   testID,
 }: {
   label: string;
   active: boolean;
   onPress(): void;
   onLayout?(event: LayoutChangeEvent): void;
+  hasTVPreferredFocus?: boolean;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -287,6 +388,7 @@ export function Chip({
     <Pressable
       ref={centering.ref}
       testID={testID}
+      hasTVPreferredFocus={hasTVPreferredFocus}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
@@ -319,6 +421,12 @@ const styles = StyleSheet.create({
   chipText: { color: colors.text, fontSize: 14 },
   chipTextActive: { color: '#000' },
   tvBar: { flexWrap: 'nowrap', alignItems: 'center' },
+  tvWrap: { position: 'relative' },
+  // Fills the bar's width behind the chips, to measure it.
+  tvMeasure: { position: 'absolute', left: 0, right: 0, height: 0 },
+  // Off-screen copies of the chips, only to measure their widths.
+  tvHidden: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', opacity: 0, gap: GAP },
+  tvPager: { flexDirection: 'row', alignItems: 'center', gap: GAP, marginLeft: 'auto' },
   pageButton: { paddingHorizontal: 10 },
   dimmed: { opacity: 0.4 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, backgroundColor: colors.raised },

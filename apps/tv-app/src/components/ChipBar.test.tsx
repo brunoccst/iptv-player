@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Dimensions, Platform } from 'react-native';
 import { ChipBar, type ChipItem } from './ChipBar';
 
@@ -113,6 +113,71 @@ describe('ChipBar', () => {
     expect(tabs()).toEqual(['chip-all', 'chip-c4', 'chip-c5', 'chip-c6']);
     await fireEvent.press(screen.getByTestId('chip-c5'));
     expect(picked).toEqual(['c5']);
+    jest.restoreAllMocks();
+  });
+
+  it('TV: shows only the categories that fit, so ‹ › and "Show all" stay on screen (D-105)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key === 'all' ? 'All' : `VOD | MULTI-LANG ${key}`,
+      active: key === 'all',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    // Only the chips near the shown ones have an off-screen copy to measure.
+    const width = async (id: string, value: number) => {
+      const node = screen.queryByTestId(id, { includeHiddenElements: true });
+      if (node) await fireEvent(node, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: value, height: 40 } } });
+    };
+    const tabs = () => screen.getAllByRole('tab').map((tab) => tab.props.testID as string);
+    expect(tabs()).toHaveLength(4);
+
+    // Bar 1000 wide: "All" 60, ‹ › 40 each, "Show all" 100 and four gaps leave 728; long names are 300 wide each.
+    await width('chips-width', 1000);
+    await width('chip-all', 60);
+    await width('chips-prev', 40);
+    await width('chips-next', 40);
+    await width('chips-toggle-box', 100);
+    for (let i = 0; i < 10; i++) await width(`chips-measure-c${i}`, 300);
+    expect(tabs()).toEqual(['chip-all', 'chip-c0', 'chip-c1']);
+    expect(screen.getByTestId('chips-all')).toBeTruthy();
+
+    // › moves by as many as fit.
+    await fireEvent.press(screen.getByTestId('chips-next'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c2', 'chip-c3']);
+
+    // Short names: three fit again.
+    for (let i = 0; i < 10; i++) await width(`chips-measure-c${i}`, 120);
+    expect(tabs()).toEqual(['chip-all', 'chip-c2', 'chip-c3', 'chip-c4']);
+
+    // ‹ › and "Show all" are pinned to the right end, whatever the shown chips' widths.
+    expect(screen.getByTestId('chips-pager')).toHaveStyle({ marginLeft: 'auto' });
+    jest.restoreAllMocks();
+  });
+
+  it('TV: "Show all" puts the focus on the chosen chip, "Show less" back on the button; focused, its text is dark (D-105)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'c6',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', false);
+
+    await fireEvent.press(screen.getByTestId('chips-all'));
+    expect(screen.getByTestId('chip-c6')).toHaveProp('hasTVPreferredFocus', true);
+    expect(screen.getByTestId('chip-c0')).toHaveProp('hasTVPreferredFocus', false);
+
+    await fireEvent.press(screen.getByTestId('chips-less'));
+    expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', true);
+
+    await fireEvent(screen.getByTestId('chips-all'), 'focus');
+    expect(within(screen.getByTestId('chips-all')).getByText('Show all')).toHaveStyle({ color: '#000' });
     jest.restoreAllMocks();
   });
 

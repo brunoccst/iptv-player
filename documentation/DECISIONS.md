@@ -109,6 +109,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
 | [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
+| [D-105](#d-105) | 2026-09-29 | TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen; focus after Show all / Show less |
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 
 ---
@@ -1760,6 +1761,16 @@ Decision:
 - **Details:** a round Watched toggle next to My List, on every app: for a movie it marks the movie, for a series every episode (`setMovieWatched` / `setSeriesWatched`, the same as the card menu). An open eye when watched, a closed eye when not (`eye` / `eyeOff` in `@iptv/shared`).
 - **Card menus:** Add to My List / Remove from My List on movie and series cards, and on Continue Watching cards that have a title (`cardMenuItems`, `continueWatchlistEntry`).
 - **Eye instead of check:** the Watched tag on covers, in details and on episodes, and the episode menu's Mark as (not) watched, now show the eye. My List keeps plus / check.
+
+## D-105
+
+**TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen** — 2026-09-29 (requested by owner)
+
+Context: the TV category bar (D-094) always showed "All" and three categories. With long names (a provider's "VOD | MULTI-LANG 2020 AND BEYOND") the three pushed "Show all" and part of › off the screen in Movies; Series, with shorter names, fit.
+
+Decision: the bar measures its width, "All", ‹ ›, "Show all" and each category chip (off-screen copies of the chips near the shown ones), and shows as many categories as fit, at most three and at least one. ‹ › page by as many as fit; the last page is full. Until the widths are known, three show, as before. ‹ › and "Show all" are pinned to the right end of the bar, so they stay in the same place whatever the width of the categories shown.
+
+Also: after "Show all" the focus goes to the chosen category in the box (a chosen one beyond the box's first page moves right after "All", as on the line), and after "Show less" it stays on "Show all". Before, the button was replaced as the bar changed shape and the focus fell to the grid's first title (the page scrolled down) or to "Sort by". Focused, "Show all" has dark text and arrow on its white fill, like a focused chip.
 
 ## D-106
 
