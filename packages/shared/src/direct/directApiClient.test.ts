@@ -18,6 +18,7 @@ function setup(panel = createFakePanel(), storages = { secure: createMemoryStora
     userAgent: 'VLC/3',
     now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000),
     randomId: () => `id-${++ids}`,
+    snapshotSaveMs: 0,
   });
   return { api, panel, storages };
 }
@@ -258,6 +259,45 @@ describe('createDirectApiClient', () => {
     expect(statuses.map((status) => status.jobStatus)).toEqual(['done', 'done']);
     expect(page.total).toBe(2);
     expect(downloads()).toBe(before);
+  });
+
+  it('after a restart, Home answers from the snapshot while the saved library is still read (D-120)', async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    const hero = await first.api.library.list('movies', { limit: 30 });
+    const row = await first.api.library.list('series', { limit: 10, categoryId: '20' });
+    const details = await first.api.library.get('movies', hero.items[0]!.id);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // A library read that never ends: only the snapshot can answer.
+    const slowStorage = (data: typeof first.storages.data) => ({
+      ...data,
+      getItem: (key: string) => (key.startsWith('direct.library.') ? new Promise<string | null>(() => undefined) : data.getItem(key)),
+    });
+    const pending = <T>(promise: Promise<T>) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('pending'), 30))]);
+    const restart = () => setup(first.panel, { secure: first.storages.secure, data: slowStorage(first.storages.data) }).api;
+
+    const restarted = restart();
+    // The same query with its fields in another order is the same list.
+    expect(await restarted.library.list('series', { categoryId: '20', limit: 10 })).toEqual(row);
+    expect(await restarted.library.list('movies', { limit: 30 })).toEqual(hero);
+    expect(await restarted.library.get('movies', hero.items[0]!.id)).toEqual(details);
+    // Anything else waits for the library.
+    expect(await pending(restarted.library.list('movies', { limit: 30, search: 'big' }))).toBe('pending');
+    expect(await pending(restarted.library.list('movies', { limit: 30, offset: 30 }))).toBe('pending');
+
+    // A new library drops the answers from the old one before it is saved.
+    first.panel.movies.push({ ...first.panel.movies[0]!, stream_id: 999, name: 'EN - A Brand New Film (2026)' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await first.api.library.sync();
+    await libraryReady(first.api);
+    expect(await pending(restart().library.list('movies', { limit: 30 }))).toBe('pending');
+    // Asked again from the new library, it is kept again.
+    const updated = await first.api.library.list('movies', { limit: 30 });
+    expect(updated.total).toBe(hero.total + 1);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await restart().library.list('movies', { limit: 30 })).toEqual(updated);
   });
 
   it('keeps profiles on the device', async () => {

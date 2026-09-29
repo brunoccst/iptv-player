@@ -82,6 +82,50 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('hero-play')).toBeTruthy();
   });
 
+  it('rows shown before the first library status stay; they reload only after an update (D-120)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    const status = (jobStatus: string) =>
+      ['movie', 'series'].map((mediaKind) => ({
+        mediaKind,
+        jobStatus,
+        itemCount: 1,
+        queuedAt: null,
+        finishedAt: null,
+        error: null,
+        masterCount: 1,
+      }));
+    let current = status('done');
+    // The first status comes after Home shows (the saved library is still being read, D-120).
+    let answerFirst: (response: { body: unknown }) => void = () => undefined;
+    let first = true;
+    backend.on('GET', '/api/library/status', () => {
+      if (!first) return { body: current };
+      first = false;
+      return new Promise((resolve) => (answerFirst = resolve));
+    });
+    const movieLists = () => backend.calls.filter((call) => call.method === 'GET' && call.url.pathname === '/api/library/movies').length;
+
+    await render(<App />);
+    await flush();
+    expect(await screen.findByTestId('hero-play')).toBeTruthy();
+    const lists = movieLists();
+    // The first status ("done") only confirms what Home shows: nothing reloads.
+    await act(async () => answerFirst({ body: current }));
+    await flush();
+    expect(stores.library.getState().status.data).toHaveLength(2);
+    expect(navStore.getState().libraryRevision).toBe(0);
+    expect(movieLists()).toBe(lists);
+
+    current = status('processing');
+    await act(async () => void (await stores.library.getState().refreshStatus()));
+    current = status('done');
+    await act(async () => void (await stores.library.getState().refreshStatus()));
+    await flush();
+    expect(navStore.getState().libraryRevision).toBe(1);
+    expect(movieLists()).toBeGreaterThan(lists);
+  });
+
   it('after "Refresh library" it says the library is up to date, then the message goes (D-119)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
