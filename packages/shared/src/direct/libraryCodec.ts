@@ -61,6 +61,8 @@ export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
 /**
  * `JSON.stringify(packLibrary(…))`, built in chunks with `pause()` between them: 160,000 titles are ~30 MB of JSON,
  * which blocked a TV for seconds in one piece. Same data; `prefixes` comes last because it is complete only then.
+ * Each chunk is on a line of its own (a line break is only whitespace to JSON, and JSON text has none inside strings),
+ * so `readLibraryText` can read it a chunk at a time (D-120).
  */
 export async function packLibraryText(builtAt: string, masters: Master[], pause: () => Promise<void>, chunkSize = 2000): Promise<string> {
   const { packMaster, prefixes } = packer();
@@ -75,7 +77,7 @@ export async function packLibraryText(builtAt: string, masters: Master[], pause:
     await pause();
   }
   const head = `{"format":${LIBRARY_FORMAT},"rules":${NORMALIZER_RULES},"builtAt":${JSON.stringify(builtAt)},"masters":[`;
-  return `${head}${chunks.join(',')}],"prefixes":${JSON.stringify(prefixes)}}`;
+  return `${head}\n${chunks.join(',\n')}\n],"prefixes":${JSON.stringify(prefixes)}}`;
 }
 
 function packer() {
@@ -158,6 +160,48 @@ export async function unpackLibraryInSlices(
     }
   }
   return { builtAt: builtAtOf(packed), masters };
+}
+
+/**
+ * `unpackLibrary(JSON.parse(text))` without one long `JSON.parse`: 35 MB took 4 s on a Chromecast, with the screen
+ * frozen. A text from `packLibraryText` is read a line (2,000 titles) at a time, with `pause()` about every
+ * `sliceMs`; an older text without lines is parsed in one piece. `pieces`: the lines read (0 for one piece).
+ */
+export async function readLibraryText(
+  text: string,
+  pause: () => Promise<void>,
+  sliceMs = 100,
+): Promise<{ builtAt: string; masters: Master[]; pieces: number } | null> {
+  const first = text.indexOf('\n');
+  if (first < 0 || !text.slice(0, first).endsWith('"masters":[')) {
+    const value = JSON.parse(text) as unknown;
+    await pause();
+    const library = await unpackLibraryInSlices(value, pause, sliceMs);
+    return library && { ...library, pieces: 0 };
+  }
+  const last = text.lastIndexOf('\n');
+  // The first line ends with `"masters":[` and the last starts with `],"prefixes":`.
+  const head = JSON.parse(`${text.slice(0, first)}]}`) as PackedLibrary;
+  const tail = JSON.parse(`{"masters":[${text.slice(last + 1)}`) as Pick<PackedLibrary, 'prefixes'>;
+  const packed = checked({ ...head, prefixes: tail.prefixes });
+  if (!packed || !Array.isArray(packed.prefixes)) return null;
+  const unpack = unpacker(packed.prefixes);
+  const masters: Master[] = [];
+  let pieces = 0;
+  let sliceStarted = Date.now();
+  for (let start = first + 1; start < last;) {
+    const end = text.indexOf('\n', start);
+    const line = text.slice(start, text.charCodeAt(end - 1) === 44 /* , */ ? end - 1 : end);
+    start = end + 1;
+    if (!line) continue;
+    for (const master of JSON.parse(`[${line}]`) as PackedMaster[]) masters.push(unpack(master));
+    pieces++;
+    if (Date.now() - sliceStarted >= sliceMs) {
+      await pause();
+      sliceStarted = Date.now();
+    }
+  }
+  return { builtAt: builtAtOf(packed), masters, pieces };
 }
 
 const checked = (value: unknown): PackedLibrary | null => {

@@ -26,7 +26,8 @@ import type {
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
-import { LIBRARY_FORMAT, packLibraryText, unpackLibraryInSlices } from './libraryCodec';
+import { LIBRARY_FORMAT, packLibraryText, readLibraryText } from './libraryCodec';
+import { createListSnapshot } from './listSnapshot';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -47,6 +48,8 @@ export interface DirectApiClientOptions {
   hashIds?(texts: string[]): Promise<string[]>;
   now?: () => Date;
   randomId?: () => string;
+  /** How long after the last new list the start-up snapshot is saved (D-120); tests use 0. */
+  snapshotSaveMs?: number;
 }
 
 interface StoredCredentials {
@@ -310,10 +313,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     },
   };
   const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+  const snapshot = createListSnapshot(options.dataStorage, options.snapshotSaveMs);
+  /** Kinds whose new library is being saved: their lists are not kept meanwhile (the snapshot would be ahead of the file). */
+  const saving = new Set<LibraryKind>();
 
   /**
-   * A saved library, unpacked in slices so the screen keeps running (D-117). The Log says where the time went: reading
-   * the files, JSON.parse, or making the titles.
+   * A saved library, read and unpacked in slices so the screen keeps running (D-117, D-120). The Log says where the
+   * time went: reading the files, or reading the titles from the text.
    */
   const readSavedLibrary = async (key: string) => {
     const started = Date.now();
@@ -325,16 +331,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       }
       const read = Date.now();
       await yieldToUi();
-      const parseStarted = Date.now();
-      const value = JSON.parse(text) as unknown;
-      const parsed = Date.now();
-      await yieldToUi();
-      const unpackStarted = Date.now();
-      const library = await unpackLibraryInSlices(value, yieldToUi);
+      const titlesStarted = Date.now();
+      const library = await readLibraryText(text, yieldToUi);
       appLog.info(
         'storage',
-        `${key}: read ${text.length} chars in ${Date.now() - started} ms (file ${read - started} ms, JSON ${parsed - parseStarted} ms, ` +
-          `titles ${Date.now() - unpackStarted} ms)`,
+        `${key}: read ${text.length} chars in ${Date.now() - started} ms (file ${read - started} ms, titles ${Date.now() - titlesStarted} ms` +
+          `${library?.pieces ? ` in ${library.pieces} pieces` : ', in one piece'})`,
       );
       return library;
     } catch (error) {
@@ -427,12 +429,19 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           // sort (D-117).
           const newestFirst = [...masters].sort(compareMasters('added', 'desc'));
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
-          await writeText(
-            options.dataStorage,
-            libraryKey(accountId, kind),
-            () => packLibraryText(queuedAt, newestFirst, yieldToUi),
-            true,
-          ).catch(() => undefined);
+          // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-120).
+          saving.add(kind);
+          try {
+            await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
+            await writeText(
+              options.dataStorage,
+              libraryKey(accountId, kind),
+              () => packLibraryText(queuedAt, newestFirst, yieldToUi),
+              true,
+            ).catch(() => undefined);
+          } finally {
+            saving.delete(kind);
+          }
           library.status[kind] = {
             ...library.status[kind],
             jobStatus: 'done',
@@ -588,6 +597,40 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     variantCount: master.variants.length,
   });
 
+  const toDetails = (master: Master): MasterDetails => {
+    const variants = [...master.variants]
+      .sort((a, b) => b.qualityScore - a.qualityScore || ordinal(a.label, b.label))
+      .map((variant) => ({
+        streamId: variant.streamId,
+        label: variant.label,
+        quality: variant.quality,
+        source: variant.source,
+        audioLanguages: variant.audioLanguages,
+        audioTag: variant.audioTag,
+        isHdr: variant.isHdr,
+        containerExtension: variant.containerExtension,
+        categoryId: variant.categoryId,
+        rawTitle: variant.rawTitle,
+        subtitleLanguages: variant.subtitleLanguages,
+      }));
+    const { variantCount: _count, ...card } = toCard(master);
+    return { ...card, variants };
+  };
+
+  /**
+   * While the saved library is still being read after a start: the answer kept from the last run (D-120), if any. Home
+   * then shows in a moment instead of after the whole library (15 s for 160k titles on a Chromecast).
+   */
+  const beforeLoad = async <T>(answer: (accountId: string) => Promise<T | null>): Promise<T | null> => {
+    const { stored } = await session();
+    const accountId = stored.account.id;
+    if (library.accountId === accountId) return null;
+    const kept = await answer(accountId);
+    // Still starts the read (and the daily update when due), as a list from the library would.
+    if (kept) void ensureLibrary().catch(() => undefined);
+    return kept;
+  };
+
   // ---- Guide ----
   const liveChannels = async (categoryId?: string | null, signal?: AbortSignal): Promise<LiveChannel[]> => {
     const { stored, client } = await session();
@@ -695,6 +738,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         library.accountId = null;
         loading = null;
         library.data = null;
+        snapshot.close();
         return undefined;
       },
       /**
@@ -897,7 +941,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         }));
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
-        const masters = (await ensureLibrary())?.[librarySection(section)] ?? [];
+        const kept = await beforeLoad((accountId) => snapshot.list(accountId, section, query));
+        if (kept) return kept;
+        const data = await ensureLibrary();
+        const masters = data?.[librarySection(section)] ?? [];
         const started = Date.now();
         const sort = query.sort ?? 'added';
         const index = ordered(masters, sort, query.order ?? defaultOrder(sort));
@@ -923,32 +970,26 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             'library',
             `${section} list (${[query.categoryId && 'category', search && 'search', query.language && 'languages', allowed && 'kids', hidden && 'hidden'].filter(Boolean).join(', ') || 'all'}, ${sort}) took ${took} ms for ${masters.length} titles`,
           );
-        return {
+        const page = {
           total: matches.length,
           items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard),
           sorts: availableSorts(masters),
         };
+        if (data && library.data === data && credentials && !saving.has(librarySection(section))) {
+          const byId = indexFor(masters).byId;
+          snapshot.record(credentials.account.id, section, query, page, (id) => {
+            const master = byId.get(id);
+            return master ? toDetails(master) : null;
+          });
+        }
+        return page;
       },
       async get(section: LibrarySection, masterId: string): Promise<MasterDetails> {
+        const kept = await beforeLoad((accountId) => snapshot.details(accountId, section, masterId));
+        if (kept) return kept;
         const master = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []).byId.get(masterId);
         if (!master) throw notFound();
-        const variants = [...master.variants]
-          .sort((a, b) => b.qualityScore - a.qualityScore || ordinal(a.label, b.label))
-          .map((variant) => ({
-            streamId: variant.streamId,
-            label: variant.label,
-            quality: variant.quality,
-            source: variant.source,
-            audioLanguages: variant.audioLanguages,
-            audioTag: variant.audioTag,
-            isHdr: variant.isHdr,
-            containerExtension: variant.containerExtension,
-            categoryId: variant.categoryId,
-            rawTitle: variant.rawTitle,
-            subtitleLanguages: variant.subtitleLanguages,
-          }));
-        const { variantCount: _count, ...card } = toCard(master);
-        return { ...card, variants };
+        return toDetails(master);
       },
     },
 

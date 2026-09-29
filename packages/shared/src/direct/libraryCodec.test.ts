@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildMasters } from './normalizer/pipeline';
-import { packLibrary, packLibraryText, unpackLibrary, unpackLibraryInSlices } from './libraryCodec';
+import { packLibrary, packLibraryText, readLibraryText, unpackLibrary, unpackLibraryInSlices } from './libraryCodec';
 
 describe('library codec', () => {
   const masters = buildMasters('acc', 'movie', [
@@ -49,5 +49,26 @@ describe('library codec', () => {
     expect(pauses).toBe(Math.floor(many.length / 500));
     expect(pauses).toBeGreaterThan(1);
     expect(await unpackLibraryInSlices(null, async () => undefined)).toBeNull();
+  });
+
+  it('reads the saved text a line of titles at a time; older texts without lines in one piece (D-120)', async () => {
+    const text = await packLibraryText('2026-09-24T00:00:00Z', masters, async () => undefined, 1);
+    expect(masters.length).toBeGreaterThan(1);
+    // Still one JSON document, as older versions of the app read it.
+    expect(unpackLibrary(JSON.parse(text))).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters });
+    let pauses = 0;
+    const read = await readLibraryText(text, async () => void pauses++, 0);
+    expect(read).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters, pieces: masters.length });
+    expect(pauses).toBe(masters.length);
+
+    const oneLine = JSON.stringify(packLibrary('2026-09-24T00:00:00Z', masters));
+    expect(await readLibraryText(oneLine, async () => undefined)).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters, pieces: 0 });
+
+    const empty = await packLibraryText('2026-09-24T00:00:00Z', [], async () => undefined);
+    expect(await readLibraryText(empty, async () => undefined)).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters: [], pieces: 0 });
+    // Older title rules: shown, but out of date (D-086).
+    const older = text.replace(`"rules":${JSON.parse(text).rules},`, '');
+    expect((await readLibraryText(older, async () => undefined))?.builtAt).toBe(new Date(0).toISOString());
+    expect(await readLibraryText('{"builtAt":"x"}', async () => undefined)).toBeNull();
   });
 });

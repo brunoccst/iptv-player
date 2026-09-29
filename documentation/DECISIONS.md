@@ -1978,3 +1978,19 @@ Decision (`directApiClient.ts`, `libraryStore.ts`):
 - The store's `sync()` then reads the status again before "syncing" ends. A status read still in flight from before the update is dropped, not shared, so its old "done" cannot win.
 - **What it did:** when a refresh the user started ends, a message says so for 8 s (TV/phone: at the bottom of every screen; desktop: floating at the bottom, with Close): "Your library is up to date: nothing new from your provider.", or "Library updated: N new, N changed and N removed titles.", or that it failed. The update counts titles against the last library (`changes` in the status): an id not there before is new, one no longer there is removed, and a title that was there but not reused unchanged is changed. After a first build (nothing to compare with) it says "Your library was updated.". The automatic daily update shows no message.
 - Applies to TV, phone and desktop (same store). Tests reproduce both halves of the first-press bug; they fail without the fix.
+
+## D-120
+
+**Home shows at once after a start; the saved library loads behind it** — 2026-09-29 (reported by owner)
+
+Context: after a restart on a Chromecast with 110k movie titles, Home waited about 15 s for the hero and the rows. The saved library had to be read whole first: 5.4 s reading the files, 3.9 s `JSON.parse` (one block, the screen frozen), 3.9 s making the titles, then 2 s for the first list. When the first library status arrived, the rows were also thrown away and asked for again.
+
+Decision (`listSnapshot.ts`, `directApiClient.ts`, `libraryCodec.ts`, `useLibraryWatcher.ts`, web `LibraryBanner.tsx`):
+
+- **Snapshot:** the first pages the screens ask for (no search, offset 0; up to 40 lists), with the details of the titles in short lists (30 or fewer: the hero and the rows; up to 400), are saved in a small file per account, a few seconds after they change. After a start, `library.list()` and `library.get()` answer from it while the saved library is still being read; the read (and the daily update, when due) still starts. Anything else waits for the library as before.
+- It only ever holds answers from the saved library as it is now: before a new library of a kind is saved, that kind's answers are dropped and the snapshot saved, and none of that kind are kept until the file is written. Sign-out clears it from memory; the file stays, like the library.
+- **No reload for nothing:** the watcher reloads rows when an update ends or an empty library fills, not when the first status only confirms the library the rows came from.
+- **Reading in pieces:** the saved library text has each chunk of 2,000 titles on its own line (a line break is only whitespace to JSON: older app versions read the same file). It is read a line at a time with pauses about every 100 ms, instead of one `JSON.parse` of 35 MB. Older files without lines are read in one piece until the next update rewrites them. In Hermes (made-up 80k titles) this takes about 9% longer in total, and the longest block went from 521 ms to 109 ms.
+- TV/phone: the parts of a large saved value are read at the same time instead of one after another.
+- The Log line for the read now says "(file N ms, titles N ms in N pieces)".
+- Applies to TV, phone and desktop (same client). Tests: answers from the snapshot while the library read never ends, same list with its fields in another order, dropped after a rebuild; reading lined and older texts; rows kept when the first status arrives (fails without the fix).

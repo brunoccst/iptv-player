@@ -62,13 +62,10 @@ export const fileStorage: KeyValueStorage = {
     const text = await read(file);
     if (!text.startsWith(PARTS)) return text;
     const count = Number(text.slice(PARTS.length));
-    const parts: string[] = [];
-    for (let index = 0; index < count; index++) {
-      const part = partFor(key, index);
-      if (!part.exists) return null;
-      parts.push(await read(part));
-    }
-    return parts.join('');
+    const files = Array.from({ length: count }, (_, index) => partFor(key, index));
+    if (files.some((part) => !part.exists)) return null;
+    // All at once: native code reads each part on its own thread, so reading 9 parts does not take 9 turns (D-120).
+    return (await Promise.all(files.map(read))).join('');
   },
   setItem(key, value) {
     if (value.length <= PART_CHARS) {

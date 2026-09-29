@@ -7,16 +7,20 @@ import { useLibrary, useSession } from './hooks';
 const POLL_MS = 2000;
 
 /**
- * Polls library status while it is empty or processing; when that ends, invalidates cached pages and bumps
- * `libraryRevision` so rows reload. Same rule as the web LibraryBanner (DECISIONS.md#d-025). Returns `processing`.
+ * Polls library status while it is unknown, empty or processing; when an update ends or an empty library fills,
+ * invalidates cached pages and bumps `libraryRevision` so rows reload. Same rule as the web LibraryBanner (DECISIONS.md#d-025). Returns `processing`.
  */
 export function useLibraryWatcher(): boolean {
   const offline = useSession((s) => s.offline);
   const statuses = useLibrary((s) => s.status.data);
   const syncing = useLibrary((s) => s.syncing);
   const processing = isLibraryProcessing(statuses) || syncing;
-  const waiting = processing || !statuses || statuses.every((status) => status.masterCount === 0);
-  const wasWaiting = useRef(false);
+  const empty = !!statuses && statuses.every((status) => status.masterCount === 0);
+  const waiting = processing || !statuses || empty;
+  // Rows shown while the status was still unknown (a start, D-120) are already the saved library's: only an update or
+  // an empty library make them stale.
+  const stale = processing || empty;
+  const wasStale = useRef(false);
 
   useEffect(() => {
     if (offline) return;
@@ -27,12 +31,12 @@ export function useLibraryWatcher(): boolean {
   }, [waiting, offline]);
 
   useEffect(() => {
-    if (wasWaiting.current && !waiting) {
+    if (wasStale.current && !stale) {
       stores.library.getState().invalidate();
       navStore.getState().bumpLibrary();
     }
-    wasWaiting.current = waiting;
-  }, [waiting]);
+    wasStale.current = stale;
+  }, [stale]);
 
   return processing;
 }

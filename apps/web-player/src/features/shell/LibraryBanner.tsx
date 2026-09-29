@@ -16,7 +16,10 @@ export function LibraryBanner() {
   const empty = !statuses || statuses.every((status) => status.masterCount === 0);
   // Right after the first login the sync job may not exist yet: keep polling while empty, not only while processing.
   const waiting = processing || empty;
-  const wasWaiting = useRef(false);
+  // Rows shown while the status was still unknown (a start, D-120) are already the saved library's: only an update or
+  // an empty library make them stale.
+  const stale = processing || (!!statuses && empty);
+  const wasStale = useRef(false);
 
   useEffect(() => {
     if (offline) return;
@@ -27,12 +30,12 @@ export function LibraryBanner() {
   }, [waiting, offline]);
 
   useEffect(() => {
-    if (wasWaiting.current && !waiting) {
+    if (wasStale.current && !stale) {
       stores.library.getState().invalidate();
       uiStore.getState().bumpLibrary();
     }
-    wasWaiting.current = waiting;
-  }, [waiting]);
+    wasStale.current = stale;
+  }, [stale]);
 
   if (offline) {
     return (
