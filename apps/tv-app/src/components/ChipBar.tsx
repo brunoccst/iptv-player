@@ -157,6 +157,8 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
       hasTVPreferredFocus={Platform.isTV && expanded && chip.active && focusAfter === 'active'}
+      // In the box, the box scrolls to the focused chip; centering it in the page scrolled the page down to the titles.
+      centerOnFocus={!expanded}
     />
   ));
 
@@ -291,7 +293,10 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   );
 }
 
-/** TV: ‹ or › — shows the previous or next three categories. Stays focusable at the ends, dimmed. */
+/**
+ * TV: ‹ or › — shows the previous or next categories. At the ends it is dimmed and does nothing, but stays enabled: a
+ * disabled Android view loses the focus, which then jumped to a category chip, and a second OK chose it.
+ */
 function PageButton({
   direction,
   disabled,
@@ -314,7 +319,6 @@ function PageButton({
       accessibilityRole="button"
       accessibilityLabel={direction === 'left' ? t('Previous categories') : t('Next categories')}
       onLayout={onLayout}
-      accessibilityState={{ disabled }}
       onPress={() => !disabled && onPress()}
       onFocus={() => {
         setFocused(true);
@@ -373,6 +377,7 @@ export function Chip({
   onPress,
   onLayout,
   hasTVPreferredFocus,
+  centerOnFocus = true,
   testID,
 }: {
   label: string;
@@ -380,6 +385,8 @@ export function Chip({
   onPress(): void;
   onLayout?(event: LayoutChangeEvent): void;
   hasTVPreferredFocus?: boolean;
+  /** TV: scroll the page so the chip is in the middle (D-094). Off in the "Show all" box (D-108). */
+  centerOnFocus?: boolean;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -396,7 +403,7 @@ export function Chip({
       onLayout={onLayout}
       onFocus={() => {
         setFocused(true);
-        centering.center();
+        if (centerOnFocus) centering.center();
       }}
       onBlur={() => setFocused(false)}
       style={[styles.chip, active && styles.chipActive, focused && styles.chipFocused]}

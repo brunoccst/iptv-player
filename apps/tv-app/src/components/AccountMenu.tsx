@@ -145,7 +145,6 @@ export function AccountMenu() {
         },
         { icon: 'info', label: t('About'), testID: 'menu-about', onPress: then(() => setAbout(true)) },
         { icon: 'info', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
-        { icon: 'close', label: t('Close the app'), testID: 'menu-close-app', onPress: then(confirmCloseApp) },
       ],
     },
   ];
@@ -222,6 +221,8 @@ export function AccountMenu() {
                 onPress={then(confirmSignOut)}
               />
             )}
+            {/* On the main list, for every profile: no trip to Settings → Apps → Force stop (D-108). */}
+            <MenuItem icon="close" label={t('Close the app')} testID="menu-close-app" onPress={then(confirmCloseApp)} />
           </>
         )}
       </View>

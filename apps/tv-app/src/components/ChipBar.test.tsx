@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Dimensions, Platform } from 'react-native';
 import { ChipBar, type ChipItem } from './ChipBar';
+import { CenterFocus } from './CenterScroll';
 
 function chips(active: string, onPress: (key: string) => void): ChipItem[] {
   return ['all', 'a', 'b', 'c'].map((key) => ({
@@ -178,6 +179,53 @@ describe('ChipBar', () => {
 
     await fireEvent(screen.getByTestId('chips-all'), 'focus');
     expect(within(screen.getByTestId('chips-all')).getByText('Show all')).toHaveStyle({ color: '#000' });
+    jest.restoreAllMocks();
+  });
+
+  it('TV: at the ends ‹ › stay enabled (a disabled view loses the focus) and do nothing (D-108)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'all',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    const tabs = () => screen.getAllByRole('tab').map((tab) => tab.props.testID as string);
+    // Android: accessibilityState.disabled makes the view disabled, and a disabled view cannot keep the focus.
+    const enabled = (id: string) => expect(screen.getByTestId(id).props.accessibilityState?.disabled).toBeFalsy();
+    enabled('chips-prev');
+    await fireEvent.press(screen.getByTestId('chips-prev'));
+    expect(tabs()).toEqual(['chip-all', 'chip-c0', 'chip-c1', 'chip-c2']);
+    for (let i = 0; i < 5; i++) await fireEvent.press(screen.getByTestId('chips-next'));
+    enabled('chips-next');
+    expect(tabs()).toEqual(['chip-all', 'chip-c7', 'chip-c8', 'chip-c9']);
+    jest.restoreAllMocks();
+  });
+
+  it('TV: a chip in the "Show all" box does not scroll the page to it (D-108)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const center = jest.fn();
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'c6',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(
+      <CenterFocus.Provider value={center}>
+        <ChipBar label="Categories" testID="chips" chips={many} />
+      </CenterFocus.Provider>,
+    );
+    await fireEvent(screen.getByTestId('chip-c6'), 'focus');
+    expect(center).toHaveBeenCalledTimes(1);
+
+    await fireEvent.press(screen.getByTestId('chips-all'));
+    center.mockClear();
+    await fireEvent(screen.getByTestId('chip-c6'), 'focus');
+    expect(center).not.toHaveBeenCalled();
     jest.restoreAllMocks();
   });
 

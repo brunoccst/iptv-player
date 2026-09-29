@@ -420,3 +420,25 @@ test('category chips stay on one line with Show all / Show less when they do not
   expect((await tops()).size).toBe(1);
   await expect(chips.getByRole('tab', { name: 'Drama' })).toBeInViewport();
 });
+
+test('search: All, Movies, Series or Live TV shows only those results (D-108)', async ({ page }) => {
+  await page.getByPlaceholder('Titles, series').fill('Test');
+  await expect(page.getByRole('heading', { name: 'Results for “Test”' })).toBeVisible();
+  const filter = page.getByRole('tablist', { name: 'Search' });
+  const grid = (name: string) => page.locator('.grid').getByRole('button', { name });
+  await expect(grid('Big Test Movie')).toBeVisible();
+  await expect(grid('Test Series')).toBeVisible();
+
+  await filter.getByRole('tab', { name: 'Series' }).click();
+  await expect(grid('Test Series')).toBeVisible();
+  await expect(grid('Big Test Movie')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Movies' })).toHaveCount(0);
+
+  await filter.getByRole('tab', { name: 'Movies' }).click();
+  await expect(grid('Big Test Movie')).toBeVisible();
+  await expect(grid('Test Series')).toHaveCount(0);
+
+  await filter.getByRole('tab', { name: 'Live TV' }).click();
+  await expect(grid('Test News HD')).toBeVisible();
+  await expect(grid('Big Test Movie')).toHaveCount(0);
+});

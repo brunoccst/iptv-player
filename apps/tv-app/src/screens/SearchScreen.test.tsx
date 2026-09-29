@@ -40,6 +40,43 @@ describe('Search and Log pages (TV)', () => {
     expect(screen.getByTestId('row-series-search')).toHaveTextContent(/No titles found/);
   });
 
+  it('filters the results to movies, series or live channels; the title stays above them (D-108)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies', { body: { total: 1, items: [card('m1', 'News of the World')] } });
+    backend.on('GET', '/api/library/series', { body: { total: 1, items: [card('s1', 'The Newsroom')] } });
+    backend.on('GET', '/api/catalog/live/channels', {
+      body: [{ id: '1', name: 'BBC News', categoryId: null, number: 1, logoUrl: null, epgChannelId: null, hasCatchup: false }],
+    });
+    await render(<App />);
+    await flush();
+    await fireEvent.changeText(screen.getByTestId('nav-search'), 'news');
+    await flush(450);
+
+    // The title and the filter are outside the scrolling results, so they never scroll away.
+    const header = screen.getByTestId('search-header');
+    expect(within(header).getByText('Results for “news”')).toBeTruthy();
+    expect(within(screen.getByTestId('search-results')).queryByText('Results for “news”')).toBeNull();
+    expect(screen.getByTestId('search-filter-all')).toHaveProp('accessibilityState', { selected: true });
+    expect(screen.getByTestId('row-movies-search')).toBeTruthy();
+    expect(screen.getByTestId('row-series-search')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('search-filter-series'));
+    await flush();
+    expect(screen.queryByTestId('row-movies-search')).toBeNull();
+    expect((await screen.findAllByText('The Newsroom')).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('row-live-search')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('search-filter-movies'));
+    await flush();
+    expect(screen.queryByTestId('row-series-search')).toBeNull();
+    expect((await screen.findAllByText('News of the World')).length).toBeGreaterThan(0);
+
+    await fireEvent.press(screen.getByTestId('search-filter-live'));
+    await flush();
+    expect(screen.queryByTestId('row-movies-search')).toBeNull();
+    expect(screen.getAllByText('BBC News').length).toBeGreaterThan(0);
+  });
+
   it('TV: pages of 36 results that load as the focus nears the end (D-095)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
