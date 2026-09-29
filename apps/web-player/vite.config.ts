@@ -1,4 +1,3 @@
-import { createReadStream, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { build as esbuild } from 'esbuild';
@@ -45,29 +44,8 @@ function serviceWorker(): Plugin {
   };
 }
 
-/** Codespaces only: serves the TV APK fetched by .devcontainer/get-tv-apk.sh at /tv.apk. See DECISIONS.md#d-037. */
-function tvApkDownload(): Plugin {
-  const file = '/tmp/iptv-tv.apk';
-  return {
-    name: 'tv-apk-download',
-    configureServer(server) {
-      server.middlewares.use('/tv.apk', (_request, response) => {
-        if (!existsSync(file)) {
-          response.statusCode = 404;
-          response.end('No APK yet: run bash .devcontainer/get-tv-apk.sh');
-          return;
-        }
-        response.setHeader('Content-Type', 'application/vnd.android.package-archive');
-        createReadStream(file).pipe(response);
-      });
-    },
-  };
-}
-
-const codespaces = process.env.CODESPACES === 'true';
-
 export default defineConfig({
-  plugins: [react(), serviceWorker(), ...(codespaces ? [tvApkDownload()] : [])],
+  plugins: [react(), serviceWorker()],
   // Account menu → App → About (D-079): the commit and time this build was made from, like the TV app's About.
   define: {
     __BUILD_INFO__: JSON.stringify({ commit: process.env.GITHUB_SHA ?? '', date: new Date().toISOString() }),
@@ -76,21 +54,6 @@ export default defineConfig({
   envPrefix: ['VITE_', 'APP_'],
   server: {
     port: 5173,
-    // GitHub Codespaces: only the web port is opened, so the fake panel (:8090) goes through Vite: sign in with the
-    // page's own address as the server URL. See DECISIONS.md#d-035.
-    ...(codespaces
-      ? {
-          allowedHosts: ['.app.github.dev'],
-          hmr: { clientPort: 443 },
-          // Stream addresses are /movie|series|live/<user>/<password>/<id>; the page's own routes never look like that.
-          proxy: Object.fromEntries(
-            ['^/player_api\\.php', '^/xmltv\\.php', '^/(movie|series|live)/[^/]+/[^/]+/', '^/img/'].map((route) => [
-              route,
-              'http://localhost:8090',
-            ]),
-          ),
-        }
-      : {}),
   },
   preview: { port: 4173 },
   // hls.js alone is ~500 kB; it lives in the lazily loaded player chunk.
