@@ -6,9 +6,7 @@
       "year": 1999,
       "quality": "4K",
       "source": null,
-      "languages": [
-        "ENG"
-      ],
+      "languages": ["ENG"],
       "audioTag": "MULTI",
       "hdr": false
     },
@@ -28,9 +26,7 @@
       "year": null,
       "quality": "4K",
       "source": null,
-      "languages": [
-        "ENG"
-      ],
+      "languages": ["ENG"],
       "audioTag": null,
       "hdr": true
     },
@@ -50,9 +46,7 @@
       "year": 1999,
       "quality": null,
       "source": "TS",
-      "languages": [
-        "ENG"
-      ],
+      "languages": ["ENG"],
       "audioTag": null,
       "hdr": false
     },
@@ -72,9 +66,7 @@
       "year": 1999,
       "quality": null,
       "source": null,
-      "languages": [
-        "ESP"
-      ],
+      "languages": ["ESP"],
       "audioTag": "DUAL",
       "hdr": false
     },
@@ -94,9 +86,7 @@
       "year": 2024,
       "quality": "4K",
       "source": null,
-      "languages": [
-        "ENG"
-      ],
+      "languages": ["ENG"],
       "audioTag": null,
       "hdr": true
     },
@@ -126,10 +116,7 @@
       "year": 1994,
       "quality": null,
       "source": null,
-      "languages": [
-        "ENG",
-        "ESP"
-      ],
+      "languages": ["ENG", "ESP"],
       "audioTag": null,
       "hdr": false
     },
@@ -149,9 +136,7 @@
       "year": 2000,
       "quality": null,
       "source": null,
-      "languages": [
-        "POR"
-      ],
+      "languages": ["POR"],
       "audioTag": null,
       "hdr": false
     },
@@ -161,9 +146,7 @@
       "year": 2001,
       "quality": null,
       "source": null,
-      "languages": [
-        "FRE"
-      ],
+      "languages": ["FRE"],
       "audioTag": null,
       "hdr": false
     },
@@ -173,9 +156,7 @@
       "year": null,
       "quality": null,
       "source": null,
-      "languages": [
-        "ENG"
-      ],
+      "languages": ["ENG"],
       "audioTag": null,
       "hdr": false
     },
@@ -266,9 +247,7 @@
     {
       "raw": "GE - Jujutsu Kaisen (2020)",
       "title": "Jujutsu Kaisen",
-      "languages": [
-        "GER"
-      ],
+      "languages": ["GER"],
       "year": 2020,
       "quality": null,
       "source": null,
@@ -278,49 +257,37 @@
     {
       "raw": "ALB - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "ALB"
-      ],
+      "languages": ["ALB"],
       "year": 2026
     },
     {
       "raw": "KU - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "KUR"
-      ],
+      "languages": ["KUR"],
       "year": 2026
     },
     {
       "raw": "GR - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "GRE"
-      ],
+      "languages": ["GRE"],
       "year": 2026
     },
     {
       "raw": "EX-YU - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "EXYU"
-      ],
+      "languages": ["EXYU"],
       "year": 2026
     },
     {
       "raw": "|EXYU| Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "EXYU"
-      ],
+      "languages": ["EXYU"],
       "year": 2026
     },
     {
       "raw": "PL - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "POL"
-      ],
+      "languages": ["POL"],
       "year": 2026
     },
     {
@@ -377,32 +344,22 @@
     {
       "raw": "PUNJABI - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "PAN"
-      ],
+      "languages": ["PAN"],
       "year": 2026
     },
     {
       "raw": "EAR - Backrooms (2026)",
       "title": "Backrooms",
-      "languages": [
-        "ENG"
-      ],
-      "subtitles": [
-        "ARA"
-      ],
+      "languages": ["ENG"],
+      "subtitles": ["ARA"],
       "year": 2026,
       "note": "EAR: English audio, Arabic subtitles burned in"
     },
     {
       "raw": "|EAR| Backrooms (2026) 1080p",
       "title": "Backrooms",
-      "languages": [
-        "ENG"
-      ],
-      "subtitles": [
-        "ARA"
-      ],
+      "languages": ["ENG"],
+      "subtitles": ["ARA"],
       "quality": "1080p"
     },
     {
@@ -423,9 +380,7 @@
     {
       "raw": "Backrooms (2026) [Albanian]",
       "title": "Backrooms",
-      "languages": [
-        "ALB"
-      ],
+      "languages": ["ALB"],
       "year": 2026
     },
     {
@@ -436,9 +391,7 @@
     {
       "raw": "IN - Jujutsu Kaisen (2020)",
       "title": "Jujutsu Kaisen",
-      "languages": [
-        "HIN"
-      ],
+      "languages": ["HIN"],
       "year": 2020,
       "quality": null,
       "source": null,
@@ -460,58 +413,42 @@
       "title": "The Matrix",
       "year": 1999,
       "languages": [],
-      "subtitles": [
-        "ITA"
-      ]
+      "subtitles": ["ITA"]
     },
     {
       "raw": "Film (2020) ENG-SUB 1080p",
       "title": "Film",
       "quality": "1080p",
       "languages": [],
-      "subtitles": [
-        "ENG"
-      ]
+      "subtitles": ["ENG"]
     },
     {
       "raw": "EN - Movie (2020) [ENG SUB]",
       "title": "Movie",
-      "languages": [
-        "ENG"
-      ],
-      "subtitles": [
-        "ENG"
-      ]
+      "languages": ["ENG"],
+      "subtitles": ["ENG"]
     },
     {
       "raw": "Amelie (2001) VOSTFR",
       "title": "Amelie",
       "languages": [],
-      "subtitles": [
-        "FRE"
-      ]
+      "subtitles": ["FRE"]
     },
     {
       "raw": "O Filme (2020) Legendado",
       "title": "O Filme",
-      "subtitles": [
-        "POR"
-      ]
+      "subtitles": ["POR"]
     },
     {
       "raw": "Movie (2020) SUB PT-BR",
       "title": "Movie",
       "languages": [],
-      "subtitles": [
-        "POR"
-      ]
+      "subtitles": ["POR"]
     },
     {
       "raw": "Jujutsu Kaisen [Multi Sub] (2020)",
       "title": "Jujutsu Kaisen",
-      "subtitles": [
-        "MULTI"
-      ]
+      "subtitles": ["MULTI"]
     },
     {
       "raw": "Sub Zero (2020)",
@@ -538,9 +475,7 @@
       "raw": "The Heist TS x264 DE",
       "title": "The Heist",
       "source": "TS",
-      "languages": [
-        "GER"
-      ]
+      "languages": ["GER"]
     },
     {
       "raw": "Maria DE Souza Story",
@@ -552,9 +487,7 @@
       "title": "Heist",
       "year": 2019,
       "source": "CAM",
-      "languages": [
-        "GER"
-      ]
+      "languages": ["GER"]
     }
   ],
   "keys": [

@@ -1,6 +1,6 @@
 import { requireNativeModule, requireNativeViewManager, type NativeModule } from 'expo-modules-core';
 import type { ComponentType, Ref } from 'react';
-import type { ExternalPlayerResult, NativeDownload, TvPlayerViewProps, TvPlayerViewRef, UpdateCheck } from './types-only';
+import type { ExternalPlayerResult, MemoryInfo, NativeDownload, TvPlayerViewProps, TvPlayerViewRef, UpdateCheck } from './types-only';
 
 export * from './types-only';
 
@@ -20,6 +20,10 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   listDownloads(): NativeDownload[];
   /** True when the FFmpeg audio decoders are bundled in this build (D-059). */
   ffmpegAudioAvailable(): boolean;
+  /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
+  takeLastCrash(): string | null;
+  /** Java heap limit and use, and the device's RAM, in MB (D-113). */
+  memoryInfo(): MemoryInfo;
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;

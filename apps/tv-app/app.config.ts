@@ -52,6 +52,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     './plugins/withReleaseSigning.js',
+    // More Java heap on low-memory TVs (issue #109, D-113).
+    './plugins/withLargeHeap.js',
   ],
   extra: {
     APP_NAME: requireEnv('APP_NAME'),

@@ -14,6 +14,7 @@ import {
 import { TvMedia } from '../modules/tv-media';
 import { appConfig, providerUserAgent, updateRepo } from './config';
 import { fileStorage } from './dataStorage';
+import { logStartup } from './startupLog';
 import { createDownloadsStore } from './downloads/downloadsStore';
 import { createNavStore } from './navigation/navStore';
 import { createPlaybackSettings, PLAYBACK_SETTINGS_KEY } from './playbackSettings';
@@ -59,7 +60,9 @@ void appLog
       'app',
       `${appConfig.appName} started on Android ${Platform.Version}, FFmpeg audio ${TvMedia.ffmpegAudioAvailable() ? 'bundled' : 'not bundled'}`,
     ),
-  );
+  )
+  // The device's memory and the native crash of the last run, if any (D-113).
+  .then(logStartup);
 const errorUtils = (
   globalThis as {
     ErrorUtils?: {

@@ -40,6 +40,8 @@ class TvMediaModule : Module() {
     Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress")
 
     OnCreate {
+      // First, so a native crash from here on is in the next run's Log (D-113).
+      CrashLog.install(context)
       DownloadCenter.init(context)
       DownloadCenter.addListener(downloadsListener)
     }
@@ -48,6 +50,16 @@ class TvMediaModule : Module() {
       DownloadCenter.removeListener(downloadsListener)
       pairing.stop()
       remote.stop()
+    }
+
+    /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
+    Function("takeLastCrash") {
+      CrashLog.takeLastCrash(context)
+    }
+
+    /** Java heap limit and use, the device's RAM (MB), for the Log (D-113). */
+    Function("memoryInfo") {
+      CrashLog.memoryInfo(context)
     }
 
     /** Phone-to-TV pairing, TV side (DECISIONS.md#d-060): starts the one-time server; returns host, port and key. */

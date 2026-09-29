@@ -12,114 +12,67 @@
     },
     {
       "name": "spacing and punctuation differences merge",
-      "titles": [
-        "Spider-Man: No Way Home (2021)",
-        "Spiderman No Way Home (2021) 4K"
-      ],
+      "titles": ["Spider-Man: No Way Home (2021)", "Spiderman No Way Home (2021) 4K"],
       "groups": 1
     },
     {
       "name": "typos merge fuzzily",
-      "titles": [
-        "The Shawshank Redemption (1994)",
-        "The Shawshank Redemtion (1994) 720p"
-      ],
+      "titles": ["The Shawshank Redemption (1994)", "The Shawshank Redemtion (1994) 720p"],
       "groups": 1
     },
     {
       "name": "sequels never merge",
-      "titles": [
-        "Toy Story 2 (1999)",
-        "Toy Story 3 (2010)",
-        "Toy Story (1995)"
-      ],
+      "titles": ["Toy Story 2 (1999)", "Toy Story 3 (2010)", "Toy Story (1995)"],
       "groups": 3
     },
     {
       "name": "roman numeral sequels never merge",
-      "titles": [
-        "Rocky II",
-        "Rocky III"
-      ],
+      "titles": ["Rocky II", "Rocky III"],
       "groups": 2
     },
     {
       "name": "remakes with different years never merge",
-      "titles": [
-        "Dune (1984)",
-        "Dune (2021) 4K"
-      ],
+      "titles": ["Dune (1984)", "Dune (2021) 4K"],
       "groups": 2
     },
     {
       "name": "year-less entry joins the single dated group",
-      "titles": [
-        "Inception (2010) 4K",
-        "Inception HD"
-      ],
+      "titles": ["Inception (2010) 4K", "Inception HD"],
       "groups": 1
     },
     {
       "name": "year-less entry stays separate when ambiguous",
-      "titles": [
-        "Dune (1984)",
-        "Dune (2021)",
-        "Dune 1080p"
-      ],
+      "titles": ["Dune (1984)", "Dune (2021)", "Dune 1080p"],
       "groups": 3
     },
     {
       "name": "short titles require an exact match",
-      "titles": [
-        "Up (2009)",
-        "Us (2009)"
-      ],
+      "titles": ["Up (2009)", "Us (2009)"],
       "groups": 2
     },
     {
       "name": "distinct titles stay apart",
-      "titles": [
-        "The Batman (2022)",
-        "Batman (1989)",
-        "Batman Begins (2005)"
-      ],
+      "titles": ["The Batman (2022)", "Batman (1989)", "Batman Begins (2005)"],
       "groups": 3
     },
     {
       "name": "country-code prefixes merge",
-      "titles": [
-        "GE - Jujutsu Kaisen (2020)",
-        "IN - Jujutsu Kaisen (2020)",
-        "Jujutsu Kaisen (2020)"
-      ],
+      "titles": ["GE - Jujutsu Kaisen (2020)", "IN - Jujutsu Kaisen (2020)", "Jujutsu Kaisen (2020)"],
       "groups": 1
     },
     {
       "name": "Albanian and Kurdish prefixes merge",
-      "titles": [
-        "ALB - Backrooms (2026)",
-        "KU - Backrooms (2026)",
-        "EN - Backrooms (2026) 4K",
-        "Backrooms (2026)"
-      ],
+      "titles": ["ALB - Backrooms (2026)", "KU - Backrooms (2026)", "EN - Backrooms (2026) 4K", "Backrooms (2026)"],
       "groups": 1
     },
     {
       "name": "episode and scene numbers inside words keep titles apart",
-      "titles": [
-        "DOCS - WILD PLANET EP197",
-        "DOCS - WILD PLANET EP196",
-        "Studio Scene 3 Anna",
-        "Studio Scene 4 Anna"
-      ],
+      "titles": ["DOCS - WILD PLANET EP197", "DOCS - WILD PLANET EP196", "Studio Scene 3 Anna", "Studio Scene 4 Anna"],
       "groups": 4
     },
     {
       "name": "leading zeros do not split a title",
-      "titles": [
-        "Show Part 02 (2020)",
-        "Show Part 2 (2020) 1080p"
-      ],
+      "titles": ["Show Part 02 (2020)", "Show Part 2 (2020) 1080p"],
       "groups": 1
     }
   ]

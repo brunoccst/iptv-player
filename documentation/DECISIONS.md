@@ -117,6 +117,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-110](#d-110) | 2026-09-29 | Categories shown: a profile can leave categories out of browsing; search still finds them |
 | [D-111](#d-111) | 2026-09-29 | Automatic subtitles from OpenSubtitles.com, with the user's own API key |
 | [D-112](#d-112) | 2026-09-29 | TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" and "BL - …" prefixes |
+| [D-113](#d-113) | 2026-09-29 | Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log |
 
 ---
 
@@ -1879,3 +1880,17 @@ Decision:
 - **Menu:** the open menu traps the D-pad in every direction; Back (or a pick) closes it.
 - **Show all:** a category in the box centers the whole box in the page, so the page comes back to the box whatever the focus passed through.
 - **"=" prefixes:** "=" separates a prefix group like ":" and " - " do. The group must still be known tags in capitals ("PL = Title" → Polish), so "E=MC2" or "ABC = Murders" stay titles. "BL - " (Bollywood) is dropped from the name as a leading prefix group, with no language, so "BL - Amaanat" is "Amaanat" and joins its other versions. The library rules version goes to 5 (regrouped once).
+
+## D-113
+
+**Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log** — 2026-09-29 (issue #109, found by Ale)
+
+Context: on a TCL TV (32-bit ARM, 192 MB Java heap) the first library load crashed with `OutOfMemoryError` in `expo.modules.fetch.Response.bodyText`: the provider's movie list was 108 MB of JSON, and reading it as text needed one Java string that size. The saved library (tens of MB for 100k+ titles) went through a single Java string the same way when written and read.
+
+Decision:
+
+- **Lists** (`get_vod_streams`, `get_series`, `get_live_streams`; `direct/jsonStream.ts`, `xtream.ts`): the reply is read as a stream and parsed one array entry at a time, keeping only the fields the app uses (id, name, category, poster, rating, dates, container, TMDB id, …). Only the chunk being read and the current entry are in memory, never the whole reply. A reply that is not an array is read whole as before; one that is not JSON gets the usual "not JSON" message. Other requests (login, details, guide) are small and still read as text.
+- **Saved data on TV/phone** (`dataStorage.ts`): a value over 4 million characters is written as several files (`key.part0.json`, …) with a small index file, never cutting an emoji in two; reading joins them. A missing part reads as "nothing saved", so the library is built again.
+- **Large heap:** the TV/phone app asks Android for its larger per-app heap (`android:largeHeap`, `plugins/withLargeHeap.js`) as headroom.
+- The desktop app (Chromium) already streamed; it uses the same list reader.
+- **Native crashes in the Log** (TV/phone, `CrashLog.kt`, `startupLog.ts`): an error in native code ends the process before JavaScript can log it, so the Log of a crashed run just stopped. A native handler now writes the crash (type, message, stack) to a small file; the next start moves it into the Log as "the app stopped last time (out of memory): …". Every start also logs the Java heap limit and the device's RAM, so a memory problem is visible without a crash.

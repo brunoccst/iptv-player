@@ -233,6 +233,54 @@ describe('provider replies', () => {
   });
 });
 
+describe('big lists are read one entry at a time (D-113, #109)', () => {
+  /** A reply whose body arrives in small chunks, like a slow provider (and never as one text). */
+  const chunked = (body: string, size = 7) =>
+    (async () => {
+      const bytes = new TextEncoder().encode(body);
+      let offset = 0;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (offset >= bytes.length) return controller.close();
+          controller.enqueue(bytes.slice(offset, offset + size));
+          offset += size;
+        },
+      });
+      const response = new Response(stream, { status: 200 });
+      response.text = () => Promise.reject(new Error('read as one text'));
+      return response;
+    }) as unknown as typeof globalThis.fetch;
+
+  it('keeps only what the app needs from each movie, series and channel', async () => {
+    const movies = Array.from({ length: 500 }, (_, i) => ({
+      stream_id: i + 1,
+      name: `Film ${i} [ünïcödé]`,
+      category_id: '10',
+      plot: 'x'.repeat(300),
+      backdrop_path: ['http://a/b.jpg'],
+    }));
+    const client = createXtreamClient(credentials, { fetch: chunked(JSON.stringify([...movies, { name: 'no id' }])) });
+    const list = await client.movies();
+    expect(list).toHaveLength(500);
+    expect(list[499]).toMatchObject({ id: '500', name: 'Film 499 [ünïcödé]', categoryId: '10' });
+    expect(list[0]).not.toHaveProperty('plot');
+
+    const series = await createXtreamClient(credentials, {
+      fetch: chunked(JSON.stringify([{ series_id: 7, name: 'Show', cover: 'http://c' }, { name: 'no id' }])),
+    }).series();
+    expect(series).toEqual([expect.objectContaining({ id: '7', name: 'Show', posterUrl: 'http://c' })]);
+
+    const live = await createXtreamClient(credentials, { fetch: chunked('[{"stream_id": 3, "name": "News", "num": 1}]') }).liveChannels();
+    expect(live).toEqual([expect.objectContaining({ id: '3', name: 'News', number: 1 })]);
+  });
+
+  it('explains a list that is not JSON', async () => {
+    await expect(createXtreamClient(credentials, { fetch: chunked('<html>max connections</html>') }).movies()).rejects.toThrow(
+      `panel.test:8080 sent a reply that is not JSON for 'get_vod_streams': "<html>max connections</html>".`,
+    );
+  });
+});
+
 describe('decodeMaybeBase64', () => {
   it.each([
     ['TmV3cw==', 'News'],
