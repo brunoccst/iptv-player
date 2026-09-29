@@ -1,11 +1,7 @@
-import { useRef } from 'react';
-import { t } from '@iptv/shared';
+import { useWatchedToggle } from '@iptv/shared';
 import { Icon } from './Icon';
 
-/**
- * Round "Watched" toggle on the details panel (D-104), next to My List: an open eye when watched, a closed one when
- * not. For a series it marks every episode. Clicks while a change is still being saved are ignored.
- */
+/** Round "Watched" toggle on the details panel (D-104), next to My List; logic shared with the TV app (D-124). */
 export function WatchedButton({
   kind,
   watched,
@@ -15,15 +11,7 @@ export function WatchedButton({
   watched: boolean;
   onChange(watched: boolean): Promise<void>;
 }) {
-  const busy = useRef(false);
-  const label =
-    kind === 'series'
-      ? watched
-        ? t('Mark series as not watched')
-        : t('Mark series as watched')
-      : watched
-        ? t('Mark as not watched')
-        : t('Mark as watched');
+  const { icon, label, toggle } = useWatchedToggle(kind, watched, onChange);
   return (
     <button
       type="button"
@@ -32,13 +20,9 @@ export function WatchedButton({
       aria-label={label}
       title={label}
       data-testid="details-watched-toggle"
-      onClick={() => {
-        if (busy.current) return;
-        busy.current = true;
-        void onChange(!watched).finally(() => (busy.current = false));
-      }}
+      onClick={toggle}
     >
-      <Icon name={watched ? 'eye' : 'eyeOff'} size={20} />
+      <Icon name={icon} size={20} />
     </button>
   );
 }

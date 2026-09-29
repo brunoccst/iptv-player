@@ -1,9 +1,8 @@
-import { isOnWatchlist, type LibrarySection, type MasterCard, t } from '@iptv/shared';
-import { stores } from '../appContext';
-import { useWatchlist } from '../hooks';
+import type { LibrarySection, MasterCard } from '@iptv/shared';
+import { useWatchlistToggle } from '../hooks';
 import { IconButton } from './IconButton';
 
-/** Web `WatchlistButton`: round "My List" toggle on the details panel (D-055). */
+/** Web `WatchlistButton`: round "My List" toggle on the details panel (D-055; logic shared, D-124). */
 export function WatchlistButton({
   section,
   title,
@@ -11,13 +10,6 @@ export function WatchlistButton({
   section: LibrarySection;
   title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>;
 }) {
-  const saved = useWatchlist((s) => isOnWatchlist(s, section, title.id));
-  return (
-    <IconButton
-      icon={saved ? 'check' : 'plus'}
-      label={saved ? t('Remove {title} from My List', { title: title.title }) : t('Add {title} to My List', { title: title.title })}
-      testID="details-mylist"
-      onPress={() => void stores.watchlist.getState().toggle(section, title)}
-    />
-  );
+  const { icon, label, toggle } = useWatchlistToggle(section, title);
+  return <IconButton icon={icon} label={label} testID="details-mylist" onPress={toggle} />;
 }

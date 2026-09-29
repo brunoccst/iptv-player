@@ -12,11 +12,6 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import {
-  cardMenuItems,
-  isMovieWatched,
-  isSeriesWatched,
-  setSeriesWatched,
-  setMovieWatched,
   LIBRARY_SORT_OPTIONS,
   sortChoiceKey,
   type LibrarySection,
@@ -25,12 +20,10 @@ import {
   type MasterCard,
   type MediaCategory,
   t,
-  tn,
-  isOnWatchlist,
 } from '@iptv/shared';
-import { api, navStore, stores } from '../appContext';
+import { navStore } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
-import { useProfilePrefs, useProgress, useWatchlist } from '../hooks';
+import { useTitleCard } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
 import { CenterFocus, CenteringScrollView, useCenterPage } from '../components/CenterScroll';
 import { FocusRow, RowFocus } from '../components/FocusRow';
@@ -60,13 +53,9 @@ export function MasterCardItem({
   width?: number;
   hasTVPreferredFocus?: boolean;
 }) {
-  const movieWatched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
-  const profileId = useProgress((s) => s.profileId);
-  const seriesWatched = useProfilePrefs((s) => section === 'series' && isSeriesWatched(s.prefs, profileId, item.id));
-  const watched = movieWatched || seriesWatched;
-  const onList = useWatchlist((s) => isOnWatchlist(s, section, item.id));
   const [menu, setMenu] = useState(false);
   const openDetails = () => navStore.getState().push({ name: 'details', section, masterId: item.id });
+  const card = useTitleCard(section, item, openDetails);
   return (
     <>
       <PosterCard
@@ -75,13 +64,9 @@ export function MasterCardItem({
         width={width}
         hasTVPreferredFocus={hasTVPreferredFocus}
         reserveSubtitle
-        badge={item.bestQuality === '4K' ? '4K' : null}
-        watched={watched}
-        subtitle={
-          [item.year, item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null]
-            .filter(Boolean)
-            .join(' · ') || null
-        }
+        badge={card.badge}
+        watched={card.watched}
+        subtitle={card.subtitle}
         onPress={openDetails}
         onLongPress={() => setMenu(true)}
       />
@@ -89,16 +74,7 @@ export function MasterCardItem({
         <CardMenu
           title={item.title}
           onClose={() => setMenu(false)}
-          actions={cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched, onList }).map((entry) => ({
-            label: entry.label,
-            testID: `card-menu-${entry.id}`,
-            onPress: () => {
-              if (entry.id === 'details') openDetails();
-              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') void stores.watchlist.getState().toggle(section, item);
-              else if (section === 'movies') void setMovieWatched(stores, item.id, entry.id === 'watched');
-              else void setSeriesWatched({ api, ...stores }, item.id, entry.id === 'watched');
-            },
-          }))}
+          actions={card.menuItems().map((entry) => ({ label: entry.label, testID: `card-menu-${entry.id}`, onPress: entry.run }))}
         />
       ) : null}
     </>

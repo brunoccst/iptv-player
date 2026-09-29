@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavigationBar } from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import {
@@ -35,11 +35,6 @@ import {
   skipAheadLabel,
   skipAheadWindow,
   SKIP_AHEAD_OPTIONS,
-  loadSeriesVersions,
-  mergeSeriesVersions,
-  nextEpisode,
-  previousEpisode,
-  playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
   chooseVersion,
@@ -63,12 +58,12 @@ import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
-import { useLibrary } from '../hooks';
+import { useLibrary, usePlayerTitle } from '../hooks';
 import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { colors, fonts, useSizes } from '../theme';
-import { useAsync } from '@iptv/shared';
+import { savePlaybackProgress } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
@@ -164,29 +159,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const { width } = useWindowDimensions();
   const timelineWidth = useRef(0);
 
-  // The episode lists of all versions of the series, merged (D-066): next-up and the drawer run across versions.
-  const seriesMaster = useLibrary((s) => (target.masterId ? s.details[`series|${target.masterId}`] : undefined));
-  useEffect(() => {
-    if (target.kind === 'episode' && target.masterId) void stores.library.getState().loadDetails('series', target.masterId);
-  }, [target.kind, target.masterId]);
-  const seriesVersions = playerSeriesVersions(target, seriesMaster);
-  const loadedVersions = useAsync(seriesVersions ? `series-versions:${seriesVersions.map((v) => v.seriesId).join(',')}` : null, () =>
-    loadSeriesVersions(api, seriesVersions!),
-  );
-  const mergedSeries = useMemo(
-    () => (loadedVersions.data ? mergeSeriesVersions(loadedVersions.data, target.seriesId) : null),
-    [loadedVersions.data, target.seriesId],
-  );
-  const series = { data: mergedSeries };
-  const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
-  const previous = series.data && target.kind === 'episode' ? previousEpisode(series.data, target.streamId) : null;
-  const variants = useLibrary((s) =>
-    target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? []) : [],
-  );
-
-  useEffect(() => {
-    if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
-  }, [target.kind, target.masterId]);
+  // The episode lists of all versions of the series, merged (D-066), and a movie's versions; shared (D-124).
+  const { series, next, previous, variants } = usePlayerTitle(target);
 
   // The profile's subtitles and audio track (D-087): selected once per source, when its tracks are known; a pick in
   // the drawer becomes the choice every movie and series starts with.
@@ -299,20 +273,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     };
   }, [target, attempt]);
 
-  const saveProgress = useCallback(() => {
-    if (target.kind === 'live' || !(durationRef.current > 0)) return;
-    void stores.progress.getState().save(target.kind, target.streamId, {
-      title: target.title,
-      positionSeconds: timeRef.current,
-      durationSeconds: durationRef.current,
-      masterId: target.masterId ?? null,
-      seriesId: target.seriesId ?? null,
-      seasonNumber: target.seasonNumber ?? null,
-      episodeNumber: target.episodeNumber ?? null,
-      posterUrl: target.posterUrl ?? null,
-      containerExtension: target.container,
-    });
-  }, [target]);
+  const saveProgress = useCallback(() => savePlaybackProgress(stores.progress, target, timeRef.current, durationRef.current), [target]);
 
   useEffect(() => {
     if (paused || isLive) return;
@@ -803,7 +764,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   setDrawer('subtitles');
                 }}
               />
-              {series.data ? (
+              {series ? (
                 <IconButton
                   icon="episodes"
                   label={t('Episodes')}
@@ -880,7 +841,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           tracks={tracks}
           variants={variants}
           currentStreamId={target.streamId}
-          series={series.data}
+          series={series}
           onTrack={chooseTrack}
           onVariant={(v) => {
             setDrawer(false);

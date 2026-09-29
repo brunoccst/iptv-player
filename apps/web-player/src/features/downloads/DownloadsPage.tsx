@@ -1,14 +1,10 @@
-import { formatOfflineDate, t, intlLocale } from '@iptv/shared';
+import { formatOfflineDate, t } from '@iptv/shared';
+import { formatBytes } from '@iptv/shared';
 import { downloadsStore, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { useDownloads, useOfflineAccess } from '../../hooks/stores';
 import { downloadProgress, posterPath, type DownloadRecord } from '../../offline/types';
 import { playTargetFromDownload } from '../../ui/targets';
-
-const formatBytes = (bytes: number) =>
-  bytes >= 1e9
-    ? `${(bytes / 1e9).toLocaleString(intlLocale(), { maximumFractionDigits: 1 })} GB`
-    : `${Math.round(bytes / 1e6).toLocaleString(intlLocale())} MB`;
 
 /**
  * "My Downloads": encrypted in-app copies. Playable offline; never exposed as files. Play is hidden while downloads

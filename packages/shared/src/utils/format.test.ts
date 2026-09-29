@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatClock, formatDuration } from './format';
+import { formatBytes, formatClock, formatDuration } from './format';
 
 describe('format', () => {
   it('formatDuration', () => {
@@ -13,5 +13,10 @@ describe('format', () => {
     expect(formatClock(3723)).toBe('1:02:03');
     expect(formatClock(125.9)).toBe('2:05');
     expect(formatClock(Number.NaN)).toBe('0:00');
+  });
+
+  it('formatBytes', () => {
+    expect(formatBytes(350e6)).toBe('350 MB');
+    expect(formatBytes(1.44e9)).toBe('1.4 GB');
   });
 });

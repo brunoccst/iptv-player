@@ -22,6 +22,11 @@ export const {
   useHiddenCategories,
   useLanguageSettings,
   useChannelSearch,
+  useWatchlistToggle,
+  usePlayerTitle,
+  useHeroTitle,
+  useTitleCard,
+  continueMenuItems,
 } = createAppHooks({ api, stores, reloadLists: () => navStore.getState().bumpLibrary() });
 export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAppStore(downloadsStore, selector);
 export const useNav = <T>(selector: (state: NavState) => T) => useAppStore(navStore, selector);

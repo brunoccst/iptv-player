@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from './api/errors';
 import type {
   CatalogSection,
@@ -9,20 +9,33 @@ import type {
   MediaCategory,
   ProfileDto,
   ProgressDto,
+  VariantInfo,
 } from './api/types';
 import type { AppContext } from './appContext';
 import { offlineAccess } from './playback/offlineAccess';
 import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
-import { t } from './i18n/i18n';
+import { t, tn } from './i18n/i18n';
 import { MAX_SEARCH_CHANNELS } from './search/useSearchQuery';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
 import { chooseVersion } from './playback/playbackChoices';
-import { loadSeriesVersions, mergeSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
-import { episodeTarget, movieTarget, progressTarget } from './playback/targets';
-import { allEpisodesWatched, isMovieWatched, noteSeriesWatched, setMovieWatched } from './playback/watched';
+import { loadSeriesVersions, mergeSeriesVersions, playerSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
+import { nextEpisode, previousEpisode } from './playback/rules';
+import { episodeTarget, movieTarget, progressTarget, type PlayTarget } from './playback/targets';
+import {
+  allEpisodesWatched,
+  cardMenuItems,
+  continueWatchlistEntry,
+  isMovieWatched,
+  markEntryWatched,
+  removeFromContinueWatching,
+  isSeriesWatched,
+  noteSeriesWatched,
+  setMovieWatched,
+  setSeriesWatched,
+} from './playback/watched';
 import { useAppStore } from './react';
 import type { CatalogState } from './stores/catalogStore';
 import { pageKey, selectVariant, type LibrarySortChoice, type LibraryState } from './stores/libraryStore';
@@ -30,7 +43,7 @@ import type { PinState } from './stores/pinStore';
 import type { ProfilePrefsState } from './stores/profilePrefsStore';
 import type { ProgressState } from './stores/progressStore';
 import type { SessionState } from './stores/sessionStore';
-import type { WatchlistState } from './stores/watchlistStore';
+import { isOnWatchlist, type WatchlistState } from './stores/watchlistStore';
 
 /**
  * Hooks the TV/phone app and the desktop/web app share (D-124): the same state, loading and paging for both; each app
@@ -42,6 +55,54 @@ export const CATEGORY_SECTIONS: { section: CatalogSection; label: () => string }
   { section: 'series', label: () => t('Series') },
   { section: 'live', label: () => t('Live TV') },
 ];
+
+/**
+ * The details panel's round "Watched" toggle (D-104): an open eye when watched, a closed one when not. For a series it
+ * marks every episode. Presses while a change is still being saved are ignored.
+ */
+export function useWatchedToggle(kind: 'movie' | 'series', watched: boolean, onChange: (watched: boolean) => Promise<void>) {
+  const busy = useRef(false);
+  const label =
+    kind === 'series'
+      ? watched
+        ? t('Mark series as not watched')
+        : t('Mark series as watched')
+      : watched
+        ? t('Mark as not watched')
+        : t('Mark as watched');
+  return {
+    icon: watched ? ('eye' as const) : ('eyeOff' as const),
+    label,
+    toggle: () => {
+      if (busy.current) return;
+      busy.current = true;
+      void onChange(!watched).finally(() => (busy.current = false));
+    },
+  };
+}
+
+const NO_VARIANTS: VariantInfo[] = [];
+
+/** Saves where playback of a movie or episode is (live channels have none). */
+export function savePlaybackProgress(
+  progress: Pick<AppContext['stores'], 'progress'>['progress'],
+  target: PlayTarget,
+  positionSeconds: number,
+  durationSeconds: number,
+): void {
+  if (target.kind === 'live' || !(durationSeconds > 0)) return;
+  void progress.getState().save(target.kind, target.streamId, {
+    title: target.title,
+    positionSeconds,
+    durationSeconds,
+    masterId: target.masterId ?? null,
+    seriesId: target.seriesId ?? null,
+    seasonNumber: target.seasonNumber ?? null,
+    episodeNumber: target.episodeNumber ?? null,
+    posterUrl: target.posterUrl ?? null,
+    containerExtension: target.container,
+  });
+}
 
 export function createAppHooks({
   api,
@@ -310,6 +371,113 @@ export function createAppHooks({
     },
 
     /** Live channels whose name matches a search, hidden categories included (D-110); null until they arrive. */
+    /** The details panel's round "My List" toggle (D-055): plus to add, check when saved. */
+    useWatchlistToggle(section: LibrarySection, title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>) {
+      const saved = useAppStore(stores.watchlist, (s) => isOnWatchlist(s, section, title.id));
+      return {
+        saved,
+        icon: saved ? ('check' as const) : ('plus' as const),
+        label: saved ? t('Remove {title} from My List', { title: title.title }) : t('Add {title} to My List', { title: title.title }),
+        hint: saved ? t('Remove from My List') : t('Add to My List'),
+        toggle: () => void stores.watchlist.getState().toggle(section, title),
+      };
+    },
+
+    /**
+     * What the player knows about the playing title: for an episode, the episode lists of all versions of the series,
+     * merged (D-066), so next-up and the episodes drawer run across versions; for a movie, its versions for the
+     * selector. `revision`: loads again after a library update.
+     */
+    usePlayerTitle(target: PlayTarget, revision = 0) {
+      const seriesMaster = useLibrary((s) => (target.masterId ? s.details[`series|${target.masterId}`] : undefined));
+      useEffect(() => {
+        if (target.kind === 'episode' && target.masterId) void stores.library.getState().loadDetails('series', target.masterId);
+        if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
+      }, [target.kind, target.masterId, revision]);
+      const seriesVersions = playerSeriesVersions(target, seriesMaster);
+      const loadedVersions = useAsync(seriesVersions ? `series-versions:${seriesVersions.map((v) => v.seriesId).join(',')}` : null, () =>
+        loadSeriesVersions(api, seriesVersions!),
+      );
+      const series = useMemo(
+        () => (loadedVersions.data ? mergeSeriesVersions(loadedVersions.data, target.seriesId) : null),
+        [loadedVersions.data, target.seriesId],
+      );
+      const variants = useLibrary((s) =>
+        target.kind === 'movie' && target.masterId ? (s.details[`movies|${target.masterId}`]?.data?.variants ?? NO_VARIANTS) : NO_VARIANTS,
+      );
+      return {
+        series,
+        next: series && target.kind === 'episode' ? nextEpisode(series, target.streamId) : null,
+        previous: series && target.kind === 'episode' ? previousEpisode(series, target.streamId) : null,
+        variants,
+      };
+    },
+
+    /**
+     * Home's featured movie: a random one with a poster, its details, the version to play and its info (plot, backdrop,
+     * trailer). `revision`: loads again after a library update.
+     */
+    useHeroTitle(candidates: MasterCard[], revision = 0) {
+      const featured = useMemo(() => {
+        const withArt = candidates.filter((item) => item.posterUrl);
+        return withArt[Math.floor(Math.random() * withArt.length)] ?? candidates[0] ?? null;
+      }, [candidates]);
+      useEffect(() => {
+        if (featured) void stores.library.getState().loadDetails('movies', featured.id);
+      }, [featured, revision]);
+      const details = useLibrary((s) => (featured ? (s.details[`movies|${featured.id}`]?.data ?? null) : null));
+      const variant = useLibrary((s) => (details ? selectVariant(s, details) : null));
+      const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
+      const play = details && variant ? movieTarget(details, variant) : null;
+      return { featured, meta, play, backdrop: meta.data?.backdropUrls[0] ?? featured?.posterUrl ?? null };
+    },
+
+    /**
+     * A title's poster card: the "Watched" tag (finished movie, fully watched series, D-082), the year and version count,
+     * and its menu (Go to details, My List, Mark as (not) watched, D-081). Each app draws the card and the menu.
+     */
+    useTitleCard(section: LibrarySection, item: MasterCard, openDetails: () => void) {
+      const movieWatched = useProgress((s) => section === 'movies' && isMovieWatched(s.items.data ?? [], item.id));
+      const profileId = useProgress((s) => s.profileId);
+      const seriesWatched = useAppStore(stores.profilePrefs, (s) => section === 'series' && isSeriesWatched(s.prefs, profileId, item.id));
+      const watched = movieWatched || seriesWatched;
+      const onList = useAppStore(stores.watchlist, (s) => isOnWatchlist(s, section, item.id));
+      const versions = item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null;
+      return {
+        watched,
+        badge: item.bestQuality === '4K' ? '4K' : null,
+        subtitle: [item.year, versions].filter(Boolean).join(' · ') || null,
+        menuItems: () =>
+          cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched, onList }).map((entry) => ({
+            id: entry.id,
+            label: entry.label,
+            run: () => {
+              if (entry.id === 'details') openDetails();
+              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') void stores.watchlist.getState().toggle(section, item);
+              else if (section === 'movies') void setMovieWatched(stores, item.id, entry.id === 'watched');
+              else void setSeriesWatched({ api, ...stores }, item.id, entry.id === 'watched');
+            },
+          })),
+      };
+    },
+
+    /** A "Continue watching" card's menu (D-081): Go to details, Mark as watched, My List, Remove from the row. */
+    continueMenuItems(entry: ProgressDto, openDetails: (section: LibrarySection, masterId: string) => void) {
+      const listed = continueWatchlistEntry(entry);
+      const onList = !!listed && isOnWatchlist(stores.watchlist.getState(), listed.section, listed.card.id);
+      return cardMenuItems({ kind: 'continue', entry, onList }).map((item) => ({
+        id: item.id,
+        label: item.label,
+        run: () => {
+          if (item.id === 'details') openDetails(entry.kind === 'episode' ? 'series' : 'movies', entry.masterId!);
+          else if (item.id === 'watched') void markEntryWatched(stores.progress, entry);
+          else if (item.id === 'mylist-add' || item.id === 'mylist-remove') {
+            if (listed) void stores.watchlist.getState().toggle(listed.section, listed.card);
+          } else void removeFromContinueWatching(stores.progress, entry);
+        },
+      }));
+    },
+
     useChannelSearch(query: string): LiveChannel[] | null {
       const [channels, setChannels] = useState<LiveChannel[] | null>(null);
       useEffect(() => {

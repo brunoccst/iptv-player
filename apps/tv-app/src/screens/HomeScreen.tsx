@@ -1,32 +1,16 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import {
-  continueWatching,
-  cardMenuItems,
-  markEntryWatched,
-  removeFromContinueWatching,
-  watchlistCard,
-  liveTarget,
-  movieTarget,
-  pageKey,
-  progressTarget,
-  selectVariant,
-  type MasterCard,
-  type ProgressDto,
-  t,
-  continueWatchlistEntry,
-  isOnWatchlist,
-} from '@iptv/shared';
-import { api, navStore, stores } from '../appContext';
+import { continueWatching, watchlistCard, liveTarget, pageKey, progressTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
+import { navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
 import { RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { useCatalog, useLibrary, useProgress, useWatchlist } from '../hooks';
+import { continueMenuItems, useCatalog, useHeroTitle, useLibrary, useProgress, useWatchlist } from '../hooks';
 import { colors, useNavHeight, useSizes } from '../theme';
-import { useAsync } from '@iptv/shared';
+
 import { LibraryBanner } from '../components/LibraryBanner';
 import { MasterCardItem, TitleRow } from './titles';
 
@@ -199,21 +183,9 @@ function ContinueWatchingRow() {
           title={menuFor.title}
           subtitle={subtitleOf(menuFor)}
           onClose={() => setMenuFor(null)}
-          actions={cardMenuItems({ kind: 'continue', entry: menuFor, onList: continueOnList(menuFor) }).map((entry) => ({
-            label: entry.label,
-            testID: `card-menu-${entry.id}`,
-            onPress: () => {
-              if (entry.id === 'details')
-                navStore.getState().push({
-                  name: 'details',
-                  section: menuFor.kind === 'episode' ? 'series' : 'movies',
-                  masterId: menuFor.masterId!,
-                });
-              else if (entry.id === 'watched') void markEntryWatched(stores.progress, menuFor);
-              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') toggleContinueOnList(menuFor);
-              else void removeFromContinueWatching(stores.progress, menuFor);
-            },
-          }))}
+          actions={continueMenuItems(menuFor, (section, masterId) => navStore.getState().push({ name: 'details', section, masterId })).map(
+            (entry) => ({ label: entry.label, testID: `card-menu-${entry.id}`, onPress: entry.run }),
+          )}
         />
       ) : null}
     </>
@@ -291,25 +263,14 @@ function LibraryLoading() {
 
 /** Web `.hero`: featured movie backdrop with the two shades, big title, plot, Play and More Info. */
 function Hero({ candidates }: { candidates: MasterCard[] }) {
-  const featured = useMemo(() => {
-    const withArt = candidates.filter((item) => item.posterUrl);
-    return withArt[Math.floor(Math.random() * withArt.length)] ?? candidates[0] ?? null;
-  }, [candidates]);
+  const { featured, meta, play, backdrop } = useHeroTitle(candidates);
   const { width, height } = useWindowDimensions();
   const sizes = useSizes();
   const navH = useNavHeight();
 
-  useEffect(() => {
-    if (featured) void stores.library.getState().loadDetails('movies', featured.id);
-  }, [featured]);
-
-  const details = useLibrary((s) => (featured ? (s.details[`movies|${featured.id}`]?.data ?? null) : null));
-  const variant = useLibrary((s) => (details ? selectVariant(s, details) : null));
-  const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
   if (!featured) return <View style={{ height: navH }} />;
 
   const heroHeight = Math.max(420, Math.min(height * 0.8, width * 0.5625));
-  const backdrop = meta.data?.backdropUrls[0] ?? featured.posterUrl;
   return (
     <View style={[styles.hero, { height: heroHeight }]} accessibilityLabel={t('Featured')}>
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
@@ -342,8 +303,8 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             variant="primary"
             hasTVPreferredFocus
             testID="hero-play"
-            disabled={!details || !variant}
-            onPress={() => details && variant && navStore.getState().push({ name: 'player', target: movieTarget(details, variant) })}
+            disabled={!play}
+            onPress={() => play && navStore.getState().push({ name: 'player', target: play })}
           />
           <FocusButton
             label={t('More Info')}
@@ -375,11 +336,3 @@ const styles = StyleSheet.create({
 });
 
 /** Continue Watching card menu: is its title on My List, and add/remove it (D-104). */
-function continueOnList(entry: ProgressDto): boolean {
-  const target = continueWatchlistEntry(entry);
-  return !!target && isOnWatchlist(stores.watchlist.getState(), target.section, target.card.id);
-}
-function toggleContinueOnList(entry: ProgressDto): void {
-  const target = continueWatchlistEntry(entry);
-  if (target) void stores.watchlist.getState().toggle(target.section, target.card);
-}
