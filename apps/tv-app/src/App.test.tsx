@@ -501,6 +501,52 @@ describe('App (TV)', () => {
     expect(backend.calls.some((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7')).toBe(true);
   });
 
+  it('TV Home builds the first rows, then the next ones as the focus or the scroll moves down (D-122)', async () => {
+    const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    stubLibrary(backend);
+    const categories = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'].map((id) => ({ id, name: `Category ${id}`, parentId: null }));
+    backend.on('GET', '/api/catalog/movies/categories', { body: categories });
+    backend.on('GET', '/api/library/series', {
+      body: {
+        total: 1,
+        items: [{ id: 's1', title: 'Show A', year: 2021, posterUrl: null, rating: null, bestQuality: null, variantCount: 1 }],
+      },
+    });
+    const categoryRows = () =>
+      backend.calls.filter((call) => call.url.pathname === '/api/library/movies' && call.url.searchParams.get('categoryId'));
+    await render(<App />);
+    await flush();
+
+    // Continue Watching, My List, Live TV and Series: no category row yet, and none of their titles asked for.
+    expect(await screen.findByTestId('card-Show A')).toBeTruthy();
+    expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
+    expect(categoryRows()).toHaveLength(0);
+
+    // The focus on the Series row: the two rows below it are built.
+    await act(async () => fireEvent(screen.getByTestId('card-Show A'), 'focus'));
+    await flush();
+    expect(screen.getByTestId('row-movies-c1-open')).toBeTruthy();
+    expect(screen.getByTestId('row-movies-c2-open')).toBeTruthy();
+    expect(screen.queryByTestId('row-movies-c3-open')).toBeNull();
+    expect(categoryRows().map((call) => call.url.searchParams.get('categoryId'))).toEqual(['c1', 'c2']);
+
+    // Scrolled near the end: two more.
+    await act(async () =>
+      fireEvent.scroll(screen.getByTestId('home-screen'), {
+        nativeEvent: {
+          contentOffset: { x: 0, y: 900 },
+          contentSize: { width: 1920, height: 2000 },
+          layoutMeasurement: { width: 1920, height: 1080 },
+        },
+      }),
+    );
+    await flush();
+    expect(screen.getByTestId('row-movies-c4-open')).toBeTruthy();
+    expect(screen.queryByTestId('row-movies-c5-open')).toBeNull();
+    isTV.mockRestore();
+  });
+
   it('Home rows show 10 titles and end with an arrow card that opens the category', async () => {
     const backend = setupApp();
     stubLibrary(backend);

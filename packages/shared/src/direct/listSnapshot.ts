@@ -132,6 +132,17 @@ export function createListSnapshot(storage: KeyValueStorage, saveDelayMs = SAVE_
       await save();
     },
 
+    /** Not needed any more (the library is in a database, D-122): forgotten and its file removed. */
+    async forget(id: string) {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      accountId = null;
+      ready = Promise.resolve();
+      lists.clear();
+      details.clear();
+      await Promise.resolve(storage.removeItem(snapshotKey(id))).catch(() => undefined);
+    },
+
     /** Signed out: nothing is kept in memory (the file stays, like the library). */
     close() {
       if (timer) clearTimeout(timer);
