@@ -1,5 +1,5 @@
 import { groupTitles, groupTitlesAsync } from './matching';
-import { compactKey, parseTitle, parseYear, type ParsedTitle } from './parser';
+import { compactKey, normalizeKey, parseTitle, parseYear, type ParsedTitle } from './parser';
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
 
@@ -34,6 +34,12 @@ export interface Variant {
   containerExtension: string | null;
   /** From the name ("SUB ITA", "VOSTFR"); `MULTI` = several (D-063). */
   subtitleLanguages: string[];
+  /**
+   * What the parser read from the name: its clean title and year (not the release date's). Kept so the next update
+   * can skip parsing names that did not change (D-109). Missing in libraries saved before.
+   */
+  cleanTitle?: string;
+  nameYear?: number | null;
 }
 
 export interface Master {
@@ -59,7 +65,12 @@ const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function buildMasters(accountId: string, mediaKind: string, items: NormalizerItem[]): Master[] {
   const usable = items.filter((item) => text(item.id) && text(item.name));
-  return assemble(accountId, mediaKind, usable, usable.map(parseItem));
+  return assemble(
+    accountId,
+    mediaKind,
+    usable,
+    usable.map((item) => parseTitle(String(item.name))),
+  );
 }
 
 /** The TMDB id some providers send in their lists; "0" and empty mean none. */
@@ -137,12 +148,22 @@ export async function buildMastersInChunks(
     sliceMs = 50,
     onProgress,
     yieldTo,
+    previous,
+    onReuse,
   }: {
     chunkSize?: number;
     sliceMs?: number;
     onProgress?(done: number, total: number): void;
     /** Asked at every pause: a job to run first (e.g. a smaller list that just arrived), awaited before going on. */
     yieldTo?(): Promise<unknown> | null;
+    /**
+     * The same account's and kind's library from the last update, built with the current title rules (D-109): names
+     * seen there are not parsed again, and titles whose versions did not change are kept as they were. The result is
+     * the same as without it.
+     */
+    previous?: Master[];
+    /** How many names and titles came from `previous`. */
+    onReuse?(counts: { names: number; masters: number }): void;
   } = {},
 ): Promise<Master[]> {
   const usable = items.filter((item) => text(item.id) && text(item.name));
@@ -161,32 +182,126 @@ export async function buildMastersInChunks(
     sliceStarted = Date.now();
   };
 
+  const reuse = reuseFrom(previous);
   const parsed: ParsedTitle[] = [];
+  const names: ParsedTitle[] = [];
+  let reusedNames = 0;
   for (let start = 0; start < total; start += chunkSize) {
-    for (const item of usable.slice(start, start + chunkSize)) parsed.push(parseItem(item));
+    for (const item of usable.slice(start, start + chunkSize)) {
+      const name = String(item.name);
+      const known = reuse.names.get(name);
+      if (known) reusedNames++;
+      const fromName = known ?? parseTitle(name);
+      names.push(fromName);
+      parsed.push(withReleaseYear(fromName, item));
+    }
     await pause((0.5 * parsed.length) / total);
   }
   const groups = byTmdb(await groupTitlesAsync(parsed, (done) => pause(0.5 + 0.3 * done)), usable, parsed);
   const masters: Master[] = [];
+  let reusedMasters = 0;
   for (let start = 0; start < groups.length; start += chunkSize) {
-    for (const group of groups.slice(start, start + chunkSize)) masters.push(masterOf(accountId, mediaKind, usable, parsed, group));
+    for (const group of groups.slice(start, start + chunkSize)) {
+      const same = unchangedMaster(reuse, usable, group);
+      if (same) reusedMasters++;
+      masters.push(same ?? masterOf(accountId, mediaKind, usable, parsed, group, names));
+    }
     await pause(0.8 + (0.2 * Math.min(groups.length, start + chunkSize)) / groups.length);
   }
+  onReuse?.({ names: reusedNames, masters: reusedMasters });
   onProgress?.(total, total);
   return sortMasters(masters);
 }
 
-function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], parsed: ParsedTitle[]): Master[] {
-  return sortMasters(byTmdb(groupTitles(parsed), usable, parsed).map((group) => masterOf(accountId, mediaKind, usable, parsed, group)));
+function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], names: ParsedTitle[]): Master[] {
+  const parsed = names.map((name, index) => withReleaseYear(name, usable[index]!));
+  return sortMasters(
+    byTmdb(groupTitles(parsed), usable, parsed).map((group) => masterOf(accountId, mediaKind, usable, parsed, group, names)),
+  );
 }
 
-const masterOf = (accountId: string, mediaKind: string, usable: NormalizerItem[], parsed: ParsedTitle[], group: number[]) =>
+const masterOf = (
+  accountId: string,
+  mediaKind: string,
+  usable: NormalizerItem[],
+  parsed: ParsedTitle[],
+  group: number[],
+  names: ParsedTitle[],
+) =>
   buildMaster(
     accountId,
     mediaKind,
     group.map((index) => usable[index]!),
     group.map((index) => parsed[index]!),
+    group.map((index) => names[index]!),
   );
+
+/** What an update can take from the last library (D-109). */
+interface Reuse {
+  /** Raw name → what the parser read from it. */
+  names: Map<string, ParsedTitle>;
+  /** Stream id → the title and version it was in. */
+  streams: Map<string, { master: Master; variant: Variant }>;
+}
+
+function reuseFrom(previous: Master[] | undefined): Reuse {
+  const names = new Map<string, ParsedTitle>();
+  const streams = new Map<string, { master: Master; variant: Variant }>();
+  for (const master of previous ?? []) {
+    for (const variant of master.variants) {
+      // Saved before D-109: nothing to reuse.
+      if (variant.cleanTitle === undefined || variant.nameYear === undefined) continue;
+      streams.set(variant.streamId, { master, variant });
+      if (names.has(variant.rawTitle)) continue;
+      names.set(variant.rawTitle, {
+        raw: variant.rawTitle,
+        cleanTitle: variant.cleanTitle,
+        // The title's key is the key of its display title; any other spelling is keyed again (cheap next to parsing).
+        key: variant.cleanTitle === master.title ? master.normalizedKey : normalizeKey(variant.cleanTitle),
+        year: variant.nameYear,
+        quality: variant.quality,
+        source: variant.source,
+        audioLanguages: variant.audioLanguages,
+        audioTag: variant.audioTag,
+        isHdr: variant.isHdr,
+        subtitleLanguages: variant.subtitleLanguages,
+      });
+    }
+  }
+  return { names, streams };
+}
+
+/**
+ * The last library's title for this group, when the group is exactly its versions and none of them changed: same
+ * name, category, poster, rating and container. Only the dates are taken from the items again. Items with a release
+ * date are always rebuilt (it can change the year, and it is not saved).
+ */
+function unchangedMaster(reuse: Reuse, usable: NormalizerItem[], group: number[]): Master | null {
+  if (reuse.streams.size === 0) return null;
+  let master: Master | null = null;
+  let added: number | null = null;
+  for (const index of group) {
+    const item = usable[index]!;
+    const known = reuse.streams.get(text(item.id));
+    if (!known || (master && known.master !== master) || text(item.releaseDate)) return null;
+    master = known.master;
+    const { variant } = known;
+    if (
+      variant.rawTitle !== String(item.name) ||
+      variant.categoryId !== optional(item.categoryId) ||
+      variant.posterUrl !== optional(item.posterUrl) ||
+      variant.rating !== (typeof item.rating === 'number' ? item.rating : null) ||
+      variant.containerExtension !== optional(item.containerExtension)
+    )
+      return null;
+    if (typeof item.addedAt === 'number' && item.addedAt > 0) added = Math.max(added ?? 0, Math.trunc(item.addedAt));
+  }
+  if (!master || master.variants.length !== group.length) return null;
+  const releaseKeyNow = releaseKey(null, master.year);
+  return master.addedAt === added && master.releaseKey === releaseKeyNow
+    ? master
+    : { ...master, addedAt: added, releaseKey: releaseKeyNow };
+}
 
 /** By title (case-insensitive), then year. Lower-cased once per title, not once per comparison. */
 function sortMasters(masters: Master[]): Master[] {
@@ -225,14 +340,14 @@ export function releaseKey(releaseDate: string | null, year: number | null): num
 export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
   sha1Hex(`${accountId}|${mediaKind}|${key}|${year ?? ''}`).slice(0, 20);
 
-function parseItem(item: NormalizerItem): ParsedTitle {
-  const parsed = parseTitle(String(item.name));
+/** The name's year, else the release date's. */
+function withReleaseYear(parsed: ParsedTitle, item: NormalizerItem): ParsedTitle {
   const releaseYear = parsed.year === null ? parseYear(text(item.releaseDate).slice(0, 4)) : null;
   return releaseYear ? { ...parsed, year: releaseYear } : parsed;
 }
 
-function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem[], parsed: ParsedTitle[]): Master {
-  const built = items.map((item, index) => buildVariant(item, parsed[index]!));
+function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem[], parsed: ParsedTitle[], names: ParsedTitle[]): Master {
+  const built = items.map((item, index) => buildVariant(item, parsed[index]!, names[index]!.year));
   const order = built
     .map((_, index) => index)
     .sort((a, b) => built[b]!.qualityScore - built[a]!.qualityScore || compare(built[a]!.streamId, built[b]!.streamId));
@@ -264,7 +379,7 @@ function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem
   };
 }
 
-function buildVariant(item: NormalizerItem, title: ParsedTitle): Variant {
+function buildVariant(item: NormalizerItem, title: ParsedTitle, nameYear: number | null): Variant {
   const container = optional(item.containerExtension);
   return {
     streamId: text(item.id),
@@ -281,6 +396,8 @@ function buildVariant(item: NormalizerItem, title: ParsedTitle): Variant {
     rating: typeof item.rating === 'number' ? item.rating : null,
     containerExtension: container,
     subtitleLanguages: title.subtitleLanguages,
+    cleanTitle: title.cleanTitle,
+    nameYear,
   };
 }
 
