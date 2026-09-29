@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Dimensions, Platform } from 'react-native';
 import { ChipBar, type ChipItem } from './ChipBar';
 
@@ -151,6 +151,30 @@ describe('ChipBar', () => {
     // Short names: three fit again.
     for (let i = 0; i < 10; i++) await width(`chips-measure-c${i}`, 120);
     expect(tabs()).toEqual(['chip-all', 'chip-c2', 'chip-c3', 'chip-c4']);
+    jest.restoreAllMocks();
+  });
+
+  it('TV: "Show all" puts the focus on the chosen chip, "Show less" back on the button; focused, its text is dark (D-105)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'c6',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(<ChipBar label="Categories" testID="chips" chips={many} />);
+    expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', false);
+
+    await fireEvent.press(screen.getByTestId('chips-all'));
+    expect(screen.getByTestId('chip-c6')).toHaveProp('hasTVPreferredFocus', true);
+    expect(screen.getByTestId('chip-c0')).toHaveProp('hasTVPreferredFocus', false);
+
+    await fireEvent.press(screen.getByTestId('chips-less'));
+    expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', true);
+
+    await fireEvent(screen.getByTestId('chips-all'), 'focus');
+    expect(within(screen.getByTestId('chips-all')).getByText('Show all')).toHaveStyle({ color: '#000' });
     jest.restoreAllMocks();
   });
 

@@ -61,6 +61,9 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const [boxContentHeight, setBoxContentHeight] = useState(0);
   // TV: the first chip of the categories shown after "All" (null: around the chosen one).
   const [tvStart, setTvStart] = useState<number | null>(null);
+  // TV: where the focus goes after "Show all" / "Show less" (D-105): the chosen chip in the box, or back on the button.
+  // The button itself is replaced when the bar changes shape; without this the focus fell to the grid or "Sort by".
+  const [focusAfter, setFocusAfter] = useState<'active' | 'toggle' | null>(null);
   // TV: measured widths (the bar, "All", ‹ ›, "Show all", each category chip), to show only the chips that fit.
   const [tvWidths, setTvWidths] = useState<Record<string, number>>({});
   const setTvWidth = (key: string, width: number) =>
@@ -98,10 +101,13 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const { height } = useWindowDimensions();
   const boxHeight = Math.round(height * 0.5);
   // On the line, a chosen chip beyond the first page moves right after the first one ("All"), so it shows without
-  // rendering every chip before it; the expanded box keeps the provider's order.
+  // rendering every chip before it.
   const activeIndex = chips.findIndex((chip) => chip.active);
   const lineChips =
     activeIndex >= LINE_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
+  // The expanded box does the same beyond its first page, so the focus can go to the chosen chip (D-105).
+  const boxChips =
+    activeIndex >= BOX_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
   const lineCount = Math.min(chips.length, lineLimit);
   const boxCount = Math.min(chips.length, boxLimit);
   const scroll = useRef<ScrollView>(null);
@@ -120,6 +126,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const choose = (chip: ChipItem) => {
     reveal.current = true;
     setTvStart(null);
+    setFocusAfter(null);
     setExpanded(false);
     chip.onPress();
   };
@@ -141,7 +148,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
-  const items = (expanded ? chips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
+  const items = (expanded ? boxChips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
       key={chip.key}
       label={chip.label}
@@ -149,6 +156,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       testID={chip.testID}
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
+      hasTVPreferredFocus={Platform.isTV && expanded && chip.active && focusAfter === 'active'}
     />
   ));
 
@@ -156,9 +164,11 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     <Toggle
       expanded={expanded}
       testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
+      hasTVPreferredFocus={Platform.isTV && !expanded && focusAfter === 'toggle'}
       onPress={() => {
         reveal.current = expanded;
         setBoxLimit(BOX_PAGE);
+        setFocusAfter(expanded ? 'toggle' : 'active');
         setExpanded(!expanded);
       }}
     />
@@ -318,7 +328,17 @@ function PageButton({
 }
 
 /** "Show all ⌄" / "Show less ⌃": stays in the same place in both modes. */
-function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): void; testID?: string }) {
+function Toggle({
+  expanded,
+  onPress,
+  hasTVPreferredFocus,
+  testID,
+}: {
+  expanded: boolean;
+  onPress(): void;
+  hasTVPreferredFocus?: boolean;
+  testID?: string;
+}) {
   const [focused, setFocused] = useState(false);
   const text = expanded ? t('Show less') : t('Show all');
   const centering = useCenterOnFocus();
@@ -329,6 +349,7 @@ function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): v
       accessibilityRole="button"
       accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
+      hasTVPreferredFocus={hasTVPreferredFocus}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
@@ -337,8 +358,9 @@ function Toggle({ expanded, onPress, testID }: { expanded: boolean; onPress(): v
       onBlur={() => setFocused(false)}
       style={[styles.chip, styles.toggle, focused && styles.chipFocused]}
     >
-      <Text style={styles.chipText}>{text}</Text>
-      <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={18} color={colors.text} />
+      {/* Focused, the button is white: dark text and arrow, as on a focused chip. */}
+      <Text style={[styles.chipText, focused && styles.chipTextActive]}>{text}</Text>
+      <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={18} color={focused ? '#000' : colors.text} />
     </Pressable>
   );
 }
@@ -349,12 +371,14 @@ export function Chip({
   active,
   onPress,
   onLayout,
+  hasTVPreferredFocus,
   testID,
 }: {
   label: string;
   active: boolean;
   onPress(): void;
   onLayout?(event: LayoutChangeEvent): void;
+  hasTVPreferredFocus?: boolean;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -363,6 +387,7 @@ export function Chip({
     <Pressable
       ref={centering.ref}
       testID={testID}
+      hasTVPreferredFocus={hasTVPreferredFocus}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
