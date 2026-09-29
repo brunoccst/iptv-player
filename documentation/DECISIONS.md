@@ -113,6 +113,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 | [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups |
 | [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
+| [D-110](#d-110) | 2026-09-29 | Categories shown: a profile can leave categories out of browsing; search still finds them |
 
 ---
 
@@ -1816,3 +1817,16 @@ Decision:
 - **Search filter:** All · Movies · Series · Live TV above the results (TV, phone and desktop); "No channels." when Live TV finds none.
 - **Fixed title:** on TV and phone, the title and the filter sit above the scrolling results, so they stay on screen; Up from the first results goes to the filter.
 - **Close the app** (TV, phone) moves from avatar → App to the avatar menu itself, for every profile (Kids too), so nobody needs Settings → Apps → Force stop.
+
+## D-110
+
+**Categories shown: a profile can leave categories out of browsing; search still finds them** — 2026-09-29 (issue #104, raised by Ale)
+
+Context: providers send hundreds of categories for Live TV, Movies and Series, many of no interest (other countries, shopping, adult). The category bars and lists grow too long to browse.
+
+Decision (`profiles/hiddenCategories.ts`, `HiddenCategories` on TV/phone and desktop):
+
+- **Where:** avatar menu → Profiles → Categories shown: the categories per section (Movies, Series, Live TV), all checked at first; unchecked ones are hidden. Saved per profile on the device, like the content language filter (D-063); applied when saved (every list reloads).
+- **Hidden from browsing:** the category bars, the Movies and Series lists (a title goes only when every version is in a hidden category), Home rows, Live TV's channel lists and the guide.
+- **Not hidden:** search (titles and channels), My List, Continue watching, and the settings themselves.
+- It sits on top of the Kids filter (D-053, D-064): a Kids profile sees its kids categories minus the hidden ones; the menu entry is not offered to Kids profiles.

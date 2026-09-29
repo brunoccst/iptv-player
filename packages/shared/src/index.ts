@@ -15,6 +15,7 @@ export * from './stores/watchlistStore';
 export * from './stores/downloadsOwner';
 export * from './stores/pinStore';
 export { isKidsCategory } from './profiles/kidsFilter';
+export { withHiddenCategories } from './profiles/hiddenCategories';
 export * from './playback/rules';
 export * from './playback/watched';
 export * from './playback/sources';

@@ -44,6 +44,13 @@ export interface LibraryListQuery {
    * chosen language, or in none), D-086.
    */
   languageCategoryIds?: string[] | null;
+  /** Leaves out titles whose every version is in one of these categories (hidden by the profile, D-110). */
+  hiddenCategoryIds?: string[] | null;
+}
+
+/** Categories and channels the profile hid are left out (D-110), except with `includeHidden` (search, the settings). */
+export interface CatalogOptions {
+  includeHidden?: boolean;
 }
 
 /** `from` is an ISO timestamp; default: the current half hour. */
@@ -55,6 +62,8 @@ export interface EpgGridQuery {
   limit?: number;
   /** Only channels in these categories (Kids profiles, D-053). An empty list is not sent: callers handle "nothing allowed". */
   categoryIds?: string[] | null;
+  /** Leaves out channels in these categories (hidden by the profile, D-110). */
+  hiddenCategoryIds?: string[] | null;
 }
 
 /**
@@ -86,8 +95,8 @@ export interface ApiClient {
     remove(profileId: string, section: LibrarySection, masterId: string): Promise<void>;
   };
   catalog: {
-    categories(section: CatalogSection, signal?: AbortSignal): Promise<MediaCategory[]>;
-    liveChannels(categoryId?: string | null, signal?: AbortSignal): Promise<LiveChannel[]>;
+    categories(section: CatalogSection, signal?: AbortSignal, options?: CatalogOptions): Promise<MediaCategory[]>;
+    liveChannels(categoryId?: string | null, signal?: AbortSignal, options?: CatalogOptions): Promise<LiveChannel[]>;
     movies(categoryId?: string | null, signal?: AbortSignal): Promise<MovieSummary[]>;
     movie(movieId: string, signal?: AbortSignal): Promise<MovieDetails>;
     series(categoryId?: string | null, signal?: AbortSignal): Promise<SeriesSummary[]>;

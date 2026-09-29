@@ -459,6 +459,22 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   const librarySection = (section: LibrarySection): LibraryKind => (section === 'movies' ? 'movie' : 'series');
 
+  /** A list without the titles whose every version is in a hidden category; kept per list and hidden set (D-110). */
+  const withoutHiddenCache = new WeakMap<Master[], { key: string; masters: Master[] }>();
+  const withoutHidden = (list: Master[], categoriesOf: Map<string, Set<string>>, hidden: Set<string>, ids: string[]) => {
+    const key = [...ids].sort().join('|');
+    const cached = withoutHiddenCache.get(list);
+    if (cached?.key === key) return cached.masters;
+    const masters = list.filter((master) => {
+      const categories = categoriesOf.get(master.id);
+      if (!categories || categories.size === 0) return true;
+      for (const id of categories) if (!hidden.has(id)) return true;
+      return false;
+    });
+    withoutHiddenCache.set(list, { key, masters });
+    return masters;
+  };
+
   const toCard = (master: Master): MasterCard => ({
     id: master.id,
     title: master.title,
@@ -498,8 +514,11 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const from = query.from ? new Date(query.from) : new Date(Math.floor(current.getTime() / SLOT_MS) * SLOT_MS);
     const to = new Date(from.getTime() + clamp(query.hours ?? 3, 1, 12) * 3600_000);
     const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
+    const hidden = query.hiddenCategoryIds?.length ? new Set(query.hiddenCategoryIds) : null;
     const channels = (await liveChannels(query.categoryId, signal)).filter(
-      (channel) => !allowed || (channel.categoryId !== null && allowed.has(channel.categoryId)),
+      (channel) =>
+        (!allowed || (channel.categoryId !== null && allowed.has(channel.categoryId))) &&
+        (!hidden || channel.categoryId === null || !hidden.has(channel.categoryId)),
     );
     const offset = Math.max(0, query.offset ?? 0);
     const page = channels.slice(offset, offset + clamp(query.limit ?? 50, 1, 200));
@@ -780,9 +799,12 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
         const inCategory = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.all;
         const categoriesOf = indexFor(masters).categories;
-        const scope = allowed
+        const inAllowed = allowed
           ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
           : inCategory;
+        // Hidden categories (D-110): a title goes only when every version is in one; search ignores them.
+        const hidden = !search && query.hiddenCategoryIds?.length ? new Set(query.hiddenCategoryIds) : null;
+        const scope = hidden ? withoutHidden(inAllowed, categoriesOf, hidden, query.hiddenCategoryIds!) : inAllowed;
         const inLanguage = inLanguages(scope, languageCodes(query.language), query.languageCategoryIds);
         const matches = search
           ? inLanguage.filter((master) => master.normalizedKey.includes(search) || master.title.toLowerCase().includes(search))
@@ -793,7 +815,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         if (took >= 300)
           appLog.info(
             'library',
-            `${section} list (${[query.categoryId && 'category', search && 'search', query.language && 'languages', allowed && 'kids'].filter(Boolean).join(', ') || 'all'}, ${sort}) took ${took} ms for ${masters.length} titles`,
+            `${section} list (${[query.categoryId && 'category', search && 'search', query.language && 'languages', allowed && 'kids', hidden && 'hidden'].filter(Boolean).join(', ') || 'all'}, ${sort}) took ${took} ms for ${masters.length} titles`,
           );
         return {
           total: matches.length,

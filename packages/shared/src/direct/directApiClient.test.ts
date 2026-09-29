@@ -132,6 +132,10 @@ describe('createDirectApiClient', () => {
     expect(await titles({ language: 'ENG, ITA' })).toHaveLength(2);
     expect(await titles({ language: null })).toHaveLength(2);
     expect(await titles({ language: 'not-a-code' })).toHaveLength(2);
+    // Hidden categories (D-110): a title goes only when every version is in one; search still finds it.
+    expect(await titles({ hiddenCategoryIds: ['10'] })).toEqual(['Big Test Movie']);
+    expect(await titles({ hiddenCategoryIds: ['10', '11'] })).toEqual([]);
+    expect((await api.library.list('movies', { search: 'another', hiddenCategoryIds: ['10'] })).total).toBe(1);
     // Category hint (D-086): a version without a language in its name passes in a hinted category.
     expect(await titles({ language: 'GER', languageCategoryIds: ['10'] })).toEqual(['Big Test Movie']);
     expect(await titles({ language: 'GER', languageCategoryIds: ['11'] })).toEqual([]);
