@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { NotAJsonArray, readJsonArray } from './jsonStream';
 
 /** `text` as a byte stream cut into `size`-byte chunks (cuts can fall inside a UTF-8 character). */
@@ -55,5 +55,38 @@ describe('reading a JSON array one element at a time (D-113)', () => {
     expect(items).toEqual([{ stream_id: 9 }]);
     await expect(readJsonArray(streamOf('<html>max connections</html>', 4), all, none)).rejects.toBeInstanceOf(NotAJsonArray);
     await expect(readJsonArray(streamOf('[{"a": 1}, {"b"', 4), all, none)).rejects.toBeInstanceOf(NotAJsonArray);
+  });
+
+  describe('in batches parsed at once', () => {
+    // Like a provider's list: no spaces, many entries.
+    const entries = Array.from({ length: 60 }, (_, i) => ({ stream_id: i, name: `EN - Film ${i} ü`, category_ids: [i % 4] }));
+    const compact = JSON.stringify(entries);
+
+    it('gives the same elements with far fewer parses than elements', async () => {
+      for (const size of [1, 5, 64, 100_000]) {
+        const parse = vi.spyOn(JSON, 'parse');
+        const { items } = await readJsonArray(streamOf(compact, size), all, none, { batchChars: 600 });
+        expect(items).toEqual(entries);
+        expect(parse.mock.calls.length).toBeLessThan(entries.length / 5);
+        parse.mockRestore();
+      }
+    });
+
+    it('gives the same elements when "},{" appears inside a name or a nested object', async () => {
+      const tricky = entries.map((entry, i) => (i % 5 === 0 ? { ...entry, name: `A},{B ${i}`, info: [{ a: 1 }, { b: 2 }] } : entry));
+      for (const size of [1, 7, 100_000]) {
+        for (const batchChars of [10, 50, 300]) {
+          const { items } = await readJsonArray(streamOf(JSON.stringify(tricky), size), all, none, { batchChars });
+          expect(items).toEqual(tricky);
+        }
+      }
+    });
+
+    it('ignores text after the closing bracket, and still refuses a cut-off list', async () => {
+      expect((await readJsonArray(streamOf(`${compact}\n<!-- cached -->`, 64), all, none, { batchChars: 200 })).items).toEqual(entries);
+      await expect(readJsonArray(streamOf(compact.slice(0, -40), 64), all, none, { batchChars: 200 })).rejects.toBeInstanceOf(
+        NotAJsonArray,
+      );
+    });
   });
 });
