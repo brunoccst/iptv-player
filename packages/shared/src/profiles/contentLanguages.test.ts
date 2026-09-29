@@ -15,6 +15,23 @@ describe('content language filter: category hint (D-086)', () => {
     expect(categoryLanguages('VOD | NOW IN CINEMAS')).toEqual([]);
   });
 
+  it('reads Greek, Ex-Yu, Polish and Punjabi (D-107)', () => {
+    expect(categoryLanguages('VOD | GR - MOVIES')).toEqual(['GRE']);
+    expect(categoryLanguages('SRS | GREECE')).toEqual(['GRE']);
+    expect(categoryLanguages('VOD | EXYU FILMOVI')).toEqual(['EXYU']);
+    expect(categoryLanguages('VOD | EX-YU - DOMACI')).toEqual(['EXYU']);
+    expect(categoryLanguages('SRS | ex yu serije')).toEqual(['EXYU']);
+    expect(categoryLanguages('VOD | HRVATSKA')).toEqual(['EXYU']);
+    expect(categoryLanguages('VOD | PL - FILMY')).toEqual(['POL']);
+    expect(categoryLanguages('VOD | PUNJABI')).toEqual(['PAN']);
+    // EAR: English audio with Arabic subtitles in the picture.
+    expect(categoryLanguages('VOD | EAR - MOVIES')).toEqual(['ENG']);
+    expect(categoryLanguages('Ear Nose Throat')).toEqual([]);
+    // Not a language: "Apex" does not read as "Ex-Yu", "Grey" not as Greek.
+    expect(categoryLanguages('VOD | APEX YUKON')).toEqual([]);
+    expect(categoryLanguages('Grey Zone')).toEqual([]);
+  });
+
   it('keeps categories in the chosen languages and those without a language', () => {
     const categories = [
       { id: '1', name: 'SRS | EN - ACTION' },

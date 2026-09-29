@@ -292,6 +292,84 @@
       "year": 2026
     },
     {
+      "raw": "GR - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "GRE"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "EX-YU - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "EXYU"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "|EXYU| Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "EXYU"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "PL - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "POL"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "PUNJABI - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "PAN"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "EAR - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "ENG"
+      ],
+      "subtitles": [
+        "ARA"
+      ],
+      "year": 2026,
+      "note": "EAR: English audio, Arabic subtitles burned in"
+    },
+    {
+      "raw": "|EAR| Backrooms (2026) 1080p",
+      "title": "Backrooms",
+      "languages": [
+        "ENG"
+      ],
+      "subtitles": [
+        "ARA"
+      ],
+      "quality": "1080p"
+    },
+    {
+      "raw": "The Inner Ear (2019)",
+      "title": "The Inner Ear",
+      "languages": [],
+      "subtitles": [],
+      "year": 2019,
+      "note": "a title word, not EAR"
+    },
+    {
+      "raw": "Pan (2015)",
+      "title": "Pan",
+      "languages": [],
+      "year": 2015,
+      "note": "a title word, not Punjabi"
+    },
+    {
       "raw": "Backrooms (2026) [Albanian]",
       "title": "Backrooms",
       "languages": [
