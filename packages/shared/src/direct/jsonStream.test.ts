@@ -89,4 +89,15 @@ describe('reading a JSON array one element at a time (D-113)', () => {
       );
     });
   });
+
+  it('lets the screen run while reading a long list that is already downloaded', async () => {
+    let clock = 0;
+    const now = vi.spyOn(Date, 'now').mockImplementation(() => (clock += 20));
+    const pause = vi.spyOn(globalThis, 'setTimeout');
+    const { items } = await readJsonArray(streamOf(JSON.stringify(list), 8), all, none);
+    expect(items).toEqual(list);
+    expect(pause.mock.calls.filter(([, ms]) => ms === 0).length).toBeGreaterThan(1);
+    now.mockRestore();
+    pause.mockRestore();
+  });
 });
