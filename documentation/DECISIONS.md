@@ -111,6 +111,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 | [D-105](#d-105) | 2026-09-29 | TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen; focus after Show all / Show less |
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
+| [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title |
 
 ---
 
@@ -1780,3 +1781,19 @@ Context: since there is no server (D-088), the web player only works inside the 
 
 Decision: `.devcontainer` is removed with its README section, Vite's Codespaces proxy and `/tv.apk` download, and the fake panel's `FAKE_PANEL_IMAGE_BASE_URL`. The browser stays for development and the end-to-end tests. In a browser, About now says "Development build (browser)" instead of "Web player (browser)". The folder keeps its name, `apps/web-player`: moving it would touch CI, scripts and docs for no user-visible gain. D-035, D-036 and D-037 are superseded.
 
+## D-108
+
+**TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title** — 2026-09-29 (requested by owner)
+
+Context:
+
+- On TV, pressing ‹ until the first categories (or › until the last) moved the focus to a category chip; pressing OK again chose it. The button was marked disabled through `accessibilityState`, which on Android disables the view, and a disabled view cannot keep the focus.
+- After "Show all", the chosen chip in the box took the focus (D-105) and, like every chip, centered itself in the page, which scrolled the page down to the titles.
+- Search listed every matching movie before the series: with a common word, the series were a long way down. The "Results for …" title scrolled away with the first results, and Up from them went to the top bar, so it could not be seen again.
+
+Decision:
+
+- **‹ ›** stay enabled at the ends: dimmed, and OK does nothing; the focus stays on them until the user moves it.
+- **Chips in the "Show all" box** do not center the page; the box scrolls to them itself.
+- **Search filter:** All · Movies · Series · Live TV above the results (TV, phone and desktop); "No channels." when Live TV finds none.
+- **Fixed title:** on TV and phone, the title and the filter sit above the scrolling results, so they stay on screen; Up from the first results goes to the filter.

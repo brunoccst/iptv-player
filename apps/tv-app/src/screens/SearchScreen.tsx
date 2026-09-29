@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { CenteringScrollView } from '../components/CenterScroll';
+import { Chip } from '../components/ChipBar';
+import { FocusRow } from '../components/FocusRow';
 import { liveTarget, type LibrarySection, type LibrarySortChoice, type LiveChannel, t } from '@iptv/shared';
 import { api, navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
@@ -16,6 +18,15 @@ const TV_PAGE = 36;
 /** Search results read best alphabetically. */
 const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 const MAX_CHANNELS = 30;
+
+/** Which results show (D-108): everything, or only movies, series or live channels. */
+type SearchKind = 'all' | 'movies' | 'series' | 'live';
+const KINDS: { kind: SearchKind; label: () => string }[] = [
+  { kind: 'all', label: () => t('All') },
+  { kind: 'movies', label: () => t('Movies') },
+  { kind: 'series', label: () => t('Series') },
+  { kind: 'live', label: () => t('Live TV') },
+];
 
 /** Same as the web search page ("Results for …": Movies and Series grids), plus matching live channels. Text comes from the top nav. */
 export function SearchScreen() {
@@ -45,24 +56,46 @@ export function SearchScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only the Enter key triggers this
   }, [submits]);
 
+  const [kind, setKind] = useState<SearchKind>('all');
+  const shows = (section: SearchKind) => kind === 'all' || kind === section;
+
+  // The title and the filter stay above the results, so "Results for …" is always on screen (D-108).
   return (
-    <CenteringScrollView
-      onlyCentering
-      style={styles.screen}
-      testID="search-screen"
-      contentContainerStyle={{ paddingTop: navH + 24, paddingBottom: 60 }}
-    >
-      <Text style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
-        {query ? t('Results for “{query}”', { query }) : search.trim().length < SEARCH_MIN_LENGTH ? t('Keep typing…') : t('Searching…')}
-      </Text>
-      {query ? (
-        <>
-          <SearchGrid key={`m-${query}`} section="movies" query={query} title={t('Movies')} />
-          <SearchGrid key={`s-${query}`} section="series" query={query} title={t('Series')} />
-          <ChannelResults key={`c-${query}`} query={query} />
-        </>
-      ) : null}
-    </CenteringScrollView>
+    <View style={styles.screen} testID="search-screen">
+      <View style={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter }} testID="search-header">
+        <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>
+          {query ? t('Results for “{query}”', { query }) : search.trim().length < SEARCH_MIN_LENGTH ? t('Keep typing…') : t('Searching…')}
+        </Text>
+        {query ? (
+          <FocusRow style={styles.filters} testID="search-filter">
+            {KINDS.map((option) => (
+              <Chip
+                key={option.kind}
+                label={option.label()}
+                active={kind === option.kind}
+                testID={`search-filter-${option.kind}`}
+                onPress={() => setKind(option.kind)}
+              />
+            ))}
+          </FocusRow>
+        ) : null}
+      </View>
+      <CenteringScrollView
+        key={kind}
+        onlyCentering
+        style={styles.results}
+        testID="search-results"
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 60 }}
+      >
+        {query ? (
+          <>
+            {shows('movies') ? <SearchGrid key={`m-${query}`} section="movies" query={query} title={t('Movies')} /> : null}
+            {shows('series') ? <SearchGrid key={`s-${query}`} section="series" query={query} title={t('Series')} /> : null}
+            {shows('live') ? <ChannelResults key={`c-${query}`} query={query} alone={kind === 'live'} /> : null}
+          </>
+        ) : null}
+      </CenteringScrollView>
+    </View>
   );
 }
 
@@ -110,7 +143,8 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   );
 }
 
-function ChannelResults({ query }: { query: string }) {
+/** Matching live channels; `alone` (the Live TV filter): says so when there are none. */
+function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
   const [channels, setChannels] = useState<LiveChannel[] | null>(null);
   const sizes = useSizes();
 
@@ -126,7 +160,9 @@ function ChannelResults({ query }: { query: string }) {
     };
   }, [query]);
 
-  if (!channels?.length) return null;
+  if (!channels?.length) {
+    return alone && channels ? <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>{t('No channels.')}</Text> : null;
+  }
   return (
     <View style={styles.section} testID="row-live-search">
       <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{t('Live TV')}</Text>
@@ -153,7 +189,9 @@ function ChannelResults({ query }: { query: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
+  results: { flex: 1 },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 16 },
+  filters: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   section: { marginBottom: 32 },
   heading: { color: colors.text, fontWeight: '700', marginBottom: 12 },
   line: { flexDirection: 'row', gap: 8, marginBottom: 24 },
