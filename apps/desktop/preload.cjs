@@ -18,6 +18,11 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
   secure: storage('secure'),
   data: storage('data'),
+  // The library database (D-121): statements and queries as JSON, like the TV app's native module.
+  db: {
+    run: (statements) => ipcRenderer.invoke('iptv:db', 'run', statements),
+    query: (sql, params) => ipcRenderer.invoke('iptv:db', 'query', sql, params),
+  },
   // Phone-to-computer pairing (D-072): the main process runs the server, the page decides and answers.
   pairing: {
     start: () => ipcRenderer.invoke('iptv:pairing-start'),

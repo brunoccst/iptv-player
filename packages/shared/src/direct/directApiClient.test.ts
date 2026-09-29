@@ -1,14 +1,31 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
 import type { LibraryStatusProgress } from '../api/types';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { appLog } from '../utils/logger';
+import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { createDirectApiClient } from './directApiClient';
+import type { SqlDatabase } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
-function setup(panel = createFakePanel(), storages = { secure: createMemoryStorage(), data: createMemoryStorage() }) {
+/** Each test runs twice: the library in memory (desktop, web) and in SQLite (TV/phone, D-121). */
+let databaseMode = false;
+const newStorages = () => ({
+  secure: createMemoryStorage(),
+  data: createMemoryStorage(),
+  db: databaseMode ? createNodeSqlDatabase() : undefined,
+});
+
+function setup(
+  panel = createFakePanel(),
+  storages: {
+    secure: ReturnType<typeof createMemoryStorage>;
+    data: ReturnType<typeof createMemoryStorage>;
+    db?: SqlDatabase;
+  } = newStorages(),
+) {
   let ids = 0;
   const api = createDirectApiClient({
     appName: 'Test',
@@ -19,6 +36,7 @@ function setup(panel = createFakePanel(), storages = { secure: createMemoryStora
     now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000),
     randomId: () => `id-${++ids}`,
     snapshotSaveMs: 0,
+    libraryDb: storages.db,
   });
   return { api, panel, storages };
 }
@@ -33,7 +51,14 @@ async function libraryReady(api: ApiClient) {
   throw new Error('library did not finish');
 }
 
-describe('createDirectApiClient', () => {
+describe.each([
+  ['in memory', false],
+  ['in the database', true],
+])('createDirectApiClient (library %s)', (_mode, useDatabase) => {
+  beforeAll(() => {
+    databaseMode = useDatabase;
+  });
+
   it('signs in against the provider, creates a default profile and keeps the password out of the result', async () => {
     const { api } = setup();
     const response = await api.auth.login(login);
@@ -195,10 +220,14 @@ describe('createDirectApiClient', () => {
     const before = await first.api.library.list('movies');
 
     const restarted = setup(first.panel, first.storages).api;
+    const logged = appLog.entries().length;
     await restarted.auth.me();
     await restarted.library.sync();
     await libraryReady(restarted);
-    const messages = appLog.entries().map((entry) => entry.message);
+    const messages = appLog
+      .entries()
+      .slice(logged)
+      .map((entry) => entry.message);
     expect(
       messages.filter((message) => /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/.test(message)),
     ).toHaveLength(1);
@@ -261,7 +290,8 @@ describe('createDirectApiClient', () => {
     expect(downloads()).toBe(before);
   });
 
-  it('after a restart, Home answers from the snapshot while the saved library is still read (D-120)', async () => {
+  // With the database there is no saved file to wait for: the next test.
+  it.runIf(!useDatabase)('after a restart, Home answers from the snapshot while the saved library is still read (D-120)', async () => {
     const first = setup();
     await first.api.auth.login(login);
     await libraryReady(first.api);
@@ -298,6 +328,43 @@ describe('createDirectApiClient', () => {
     expect(updated.total).toBe(hero.total + 1);
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(await restart().library.list('movies', { limit: 30 })).toEqual(updated);
+  });
+
+  it.runIf(useDatabase)('moves a saved library file into the database once; then no start reads a file (D-121)', async () => {
+    // The app before D-121: the library in files.
+    databaseMode = false;
+    const first = setup();
+    databaseMode = true;
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    const movies = await first.api.library.list('movies');
+    const series = await first.api.library.list('series', { categoryId: '20' });
+    const details = await first.api.library.get('movies', movies.items[1]!.id);
+    const fileKeys = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.library.'));
+    expect(fileKeys()).toHaveLength(2);
+
+    // The update: the same storage, now with a database. The files are moved in, then removed.
+    const db = createNodeSqlDatabase();
+    const moved = setup(first.panel, { ...first.storages, db }).api;
+    expect(await moved.library.list('movies')).toEqual(movies);
+    expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
+    expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
+    expect(fileKeys()).toEqual([]);
+    expect((await moved.library.status()).map((status) => [status.jobStatus, status.masterCount])).toEqual([
+      ['done', 2],
+      ['done', 1],
+    ]);
+
+    // Next start: nothing is read from files (a file read would never end here), everything answers.
+    const noFiles = {
+      ...first.storages.data,
+      getItem: (key: string) =>
+        key.startsWith('direct.library.') ? new Promise<string | null>(() => undefined) : first.storages.data.getItem(key),
+    };
+    const restarted = setup(first.panel, { secure: first.storages.secure, data: noFiles as typeof first.storages.data, db }).api;
+    expect(await restarted.library.list('movies', { search: 'big' })).toMatchObject({ total: 1 });
+    expect(await restarted.library.list('movies', { offset: 1, limit: 1 })).toMatchObject({ total: 2, items: [movies.items[1]] });
+    expect(await restarted.library.get('movies', movies.items[1]!.id)).toEqual(details);
   });
 
   it('keeps profiles on the device', async () => {

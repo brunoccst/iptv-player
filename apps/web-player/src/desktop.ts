@@ -16,6 +16,8 @@ export interface DesktopBridge {
   setTexts(texts: Record<string, string>): Promise<void>;
   secure: KeyValueStorage;
   data: KeyValueStorage;
+  /** The library database (D-121): statements and queries as JSON text, run by the main process. */
+  db: { run(statements: string): Promise<void>; query(sql: string, params: string): Promise<string> };
   /** Phone-to-computer pairing (D-072): a server on the home network while the QR code is shown. */
   pairing: {
     /** `host` is null without a home network. `key`: 32 random bytes, base64. */

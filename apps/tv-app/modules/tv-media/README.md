@@ -33,3 +33,5 @@ Tests replace this module with `test/tvMediaMock.tsx` (Jest `moduleNameMapper`).
 `ListReader.kt`, `JsonArraySplitter.kt` (D-115): provider lists downloaded on a background thread and cut into batches of whole entries (`openList`, `readList`, `closeList`); JavaScript parses each batch with `JSON.parse`.
 
 `Sha1Batch.kt` (D-118): `sha1Batch` hashes many title ids at once with `MessageDigest`.
+
+`LibraryDb.kt` (D-121): the library database in Android's own SQLite (no library added to the APK). `dbRun(statementsJson)` runs statements with rows of parameters in one transaction; `dbQuery(sql, paramsJson)` answers rows as a JSON array of arrays. Writes and reads each have their own thread (write-ahead logging), and characters outside the BMP cross as JSON escapes both ways. All library logic is in `@iptv/shared` (`sqlLibrary.ts`).

@@ -34,7 +34,7 @@ type PackedVariant = [
   nameYear?: number | null,
 ];
 
-type PackedMaster = [
+export type PackedMaster = [
   id: string,
   title: string,
   normalizedKey: string,
@@ -80,7 +80,7 @@ export async function packLibraryText(builtAt: string, masters: Master[], pause:
   return `${head}\n${chunks.join(',\n')}\n],"prefixes":${JSON.stringify(prefixes)}}`;
 }
 
-function packer() {
+export function packer() {
   const prefixes: string[] = [];
   const prefixIndex = new Map<string, number>();
   const poster = (url: string | null): [number, string | null] => {
@@ -212,7 +212,7 @@ const checked = (value: unknown): PackedLibrary | null => {
 // Built with older rules: shown until the background rebuild replaces it.
 const builtAtOf = (packed: PackedLibrary) => (packed.rules === NORMALIZER_RULES ? packed.builtAt : new Date(0).toISOString());
 
-const unpacker =
+export const unpacker =
   (prefixes: string[]) =>
   ([id, title, normalizedKey, year, bestQuality, packedVariants, addedAt, releaseKey]: PackedMaster): Master => {
     const variants = packedVariants.map((p): Variant => {
