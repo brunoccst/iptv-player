@@ -38,6 +38,7 @@ export * from './backup/userData';
 export * from './utils/format';
 export * from './utils/logger';
 export * from './react';
+export * from './hooks';
 export * from './design/tokens';
 export * from './design/icons';
 export * from './design/avatar';

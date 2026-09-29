@@ -27,7 +27,7 @@ import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
 import { useLibrary, useProgress, useUi } from '../../hooks/stores';
-import { useAsync } from '../../hooks/useAsync';
+import { useAsync } from '@iptv/shared';
 import { errorText } from '../../ui/errorText';
 import { downloadTarget, episodeTarget, movieTarget, progressTarget } from '../../ui/targets';
 import type { DetailsTarget } from '../../ui/uiStore';

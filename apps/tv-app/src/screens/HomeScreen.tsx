@@ -26,7 +26,7 @@ import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { useCatalog, useLibrary, useProgress, useWatchlist } from '../hooks';
 import { colors, useNavHeight, useSizes } from '../theme';
-import { useAsync } from '../useAsync';
+import { useAsync } from '@iptv/shared';
 import { LibraryBanner } from '../components/LibraryBanner';
 import { MasterCardItem, TitleRow } from './titles';
 

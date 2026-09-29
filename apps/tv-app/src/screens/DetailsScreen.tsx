@@ -61,7 +61,7 @@ import { IconButton } from '../components/IconButton';
 import { Select } from '../components/Select';
 import { useLibrary, useNav, useProgress } from '../hooks';
 import { colors, fonts, radius, useCompact } from '../theme';
-import { useAsync } from '../useAsync';
+import { useAsync } from '@iptv/shared';
 import { WatchedTag } from '../components/WatchedTag';
 import { CardMenu } from '../components/CardMenu';
 

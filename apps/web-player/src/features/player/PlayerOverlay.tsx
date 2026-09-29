@@ -40,7 +40,7 @@ import { api, appContext, downloadsStore, stores, uiStore } from '../../appConte
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
 import { useLibrary, useUi } from '../../hooks/stores';
-import { useAsync } from '../../hooks/useAsync';
+import { useAsync } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';

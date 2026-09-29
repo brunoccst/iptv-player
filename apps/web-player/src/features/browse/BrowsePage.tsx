@@ -13,7 +13,7 @@ import { stores, uiStore } from '../../appContext';
 import { ChipBar } from '../../components/ChipBar';
 import { Spinner } from '../../components/Spinner';
 import { useCatalog, useLibrary, useUi } from '../../hooks/stores';
-import { usePagedLibrary } from '../../hooks/usePagedLibrary';
+import { usePagedLibrary } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { MasterCard } from '../home/MasterCard';
 

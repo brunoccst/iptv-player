@@ -38,7 +38,7 @@ import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { Select } from '../components/Select';
 import { colors, useSizes } from '../theme';
-import { usePagedLibrary } from './usePagedLibrary';
+import { usePagedLibrary } from '../hooks';
 
 /** Home rows show only the first titles; the arrow card at the end opens the category page. */
 const ROW_SIZE = 10;

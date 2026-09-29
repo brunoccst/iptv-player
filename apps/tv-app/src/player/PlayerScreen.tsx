@@ -68,7 +68,7 @@ import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { colors, fonts, useSizes } from '../theme';
-import { useAsync } from '../useAsync';
+import { useAsync } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';

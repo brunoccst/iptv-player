@@ -3,7 +3,7 @@ import { selectVariant, type MasterCard, t } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { useLibrary, useUi } from '../../hooks/stores';
-import { useAsync } from '../../hooks/useAsync';
+import { useAsync } from '@iptv/shared';
 import { movieTarget } from '../../ui/targets';
 
 const TRAILER_DELAY_MS = 3000;

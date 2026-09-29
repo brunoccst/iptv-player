@@ -10,7 +10,7 @@ import { useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
 import { MasterCardItem, TvLines, useGridColumns } from './titles';
 import { searchDelay, SEARCH_MIN_LENGTH } from './searchDelay';
-import { usePagedLibrary } from './usePagedLibrary';
+import { usePagedLibrary } from '../hooks';
 
 const PAGE = 100;
 /** TV: smaller pages that load as the focus nears the end; only the lines near the focus stay mounted (D-095). */
