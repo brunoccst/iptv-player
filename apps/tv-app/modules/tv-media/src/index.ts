@@ -36,6 +36,8 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   openList(url: string, headers: Record<string, string>, timeoutMs: number, batchChars: number): Promise<{ id: number; status: number }>;
   readList(id: number): Promise<ListPiece>;
   closeList(id: number): void;
+  /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another (D-118). */
+  sha1Batch(texts: string): Promise<string>;
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;

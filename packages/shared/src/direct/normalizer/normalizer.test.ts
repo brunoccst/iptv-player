@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { groupTitles, groupTitlesAsync, ratio } from './matching';
 import { normalizeKey, parseTitle } from './parser';
 import { buildMasters, buildMastersInChunks, type GroupingTimings } from './pipeline';
-import { sha1Hex } from './sha1';
+import { batchedSha1, sha1Hex } from './sha1';
 import { packLibrary, unpackLibrary } from '../libraryCodec';
 
 /** The JSON cases in `cases/` (D-017, D-038). */
@@ -123,6 +123,42 @@ describe('grouping large libraries (D-038)', () => {
     expect(masters).toHaveLength(2900);
     expect(reported.at(-1)).toBe(1);
     expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
+  });
+
+  it('buildMastersInChunks can hash the new ids all at once, with the same result (D-118)', async () => {
+    const items = Array.from({ length: 3000 }, (_, i) => ({ id: i + 1, name: `Film ${i % 1000} (${2000 + (i % 3)}) Über` }));
+    const batches: string[][] = [];
+    const hashIds = async (texts: string[]) => {
+      batches.push(texts);
+      return texts.map(sha1Hex);
+    };
+    const masters = await buildMastersInChunks('acc', 'movie', items, { hashIds });
+    expect(masters).toEqual(buildMasters('acc', 'movie', items));
+    expect(batches).toHaveLength(1);
+    expect(batches[0]).toHaveLength(masters.length);
+
+    // An update: only the new titles are hashed.
+    const today = [...items, { id: 9999, name: 'A New Film (2024)' }];
+    const updated = await buildMastersInChunks('acc', 'movie', today, { previous: masters, hashIds });
+    expect(updated).toEqual(buildMasters('acc', 'movie', today));
+    expect(batches[1]).toEqual(['acc|movie|newfilm|2024']);
+  });
+
+  it('batchedSha1 sends plain-ASCII texts in batches, hashes the rest itself, and falls back when native code fails (D-118)', async () => {
+    const texts = ['acc|movie|a|2001', 'acc|movie|über|', 'acc|movie|b|', 'acc|movie|日本|2020', 'acc|movie|c|1999'];
+    const sent: string[] = [];
+    const native = async (joined: string) => {
+      sent.push(joined);
+      return joined.split('\n').map(sha1Hex).join('');
+    };
+    expect(await batchedSha1(native, 2)(texts)).toEqual(texts.map(sha1Hex));
+    expect(sent).toEqual(['acc|movie|a|2001\nacc|movie|b|', 'acc|movie|c|1999']);
+
+    const failing = async () => {
+      throw new Error('native module missing');
+    };
+    expect(await batchedSha1(failing)(texts)).toEqual(texts.map(sha1Hex));
+    expect(await batchedSha1(async () => 'short')(texts)).toEqual(texts.map(sha1Hex));
   });
 
   it('buildMastersInChunks reports how long each step took, without the breaks (D-116)', async () => {

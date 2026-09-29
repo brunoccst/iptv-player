@@ -42,6 +42,8 @@ export interface DirectApiClientOptions {
   userAgent?: string;
   /** TV/phone: provider lists read by native code (D-115). */
   listReader?: ListReader;
+  /** TV/phone: SHA-1 hex of many texts at once, in native code, for title ids (D-118). */
+  hashIds?(texts: string[]): Promise<string[]>;
   now?: () => Date;
   randomId?: () => string;
 }
@@ -328,6 +330,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           let reused = '';
           const masters = await buildMastersInChunks(accountId, kind, items, {
             previous: previous?.[kind],
+            hashIds: options.hashIds,
             onReuse: (counts) => (reused = `, ${counts.names} names and ${counts.masters} titles unchanged`),
             // Where the time goes, to see what to speed up (D-116).
             onTimings: (time) => {
@@ -335,7 +338,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               appLog.info(
                 'library',
                 `${kind}: grouping steps: names ${s(time.names)}, exact matches ${s(time.exact)}, similarity keys ${s(time.keys)}, ` +
-                  `similar names ${s(time.similar)}, TMDB ${s(time.tmdb)}, titles ${s(time.titles)}, sorting ${s(time.sort)}, ` +
+                  `similar names ${s(time.similar)}, TMDB ${s(time.tmdb)}, titles ${s(time.titles)}, ids ${s(time.ids)}, sorting ${s(time.sort)}, ` +
                   `waiting for the screen ${s(time.waiting)} (${time.breaks} breaks)`,
               );
             },

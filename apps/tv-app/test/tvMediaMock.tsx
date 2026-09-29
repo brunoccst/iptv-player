@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import { View } from 'react-native';
 import type { ExternalPlayerResult, NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from '../modules/tv-media/src/types-only';
+import { sha1Hex } from '../../../packages/shared/src/direct/normalizer/sha1';
 
 export type * from '../modules/tv-media/src/types-only';
 
@@ -106,6 +107,7 @@ export const TvMedia = {
     return { kind: 'whole' as const, text, chars: text.length };
   },
   closeList: (id: number) => void lists.delete(id),
+  sha1Batch: async (joined: string) => joined.split('\n').map(sha1Hex).join(''),
   closeApp: async () => void nativeState.calls.push('close-app'),
   setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   addListener: ((

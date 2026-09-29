@@ -94,7 +94,7 @@ function* groupingSteps(titles: ParsedTitle[]): Generator<number, number[][]> {
   }
   const blocks = new Map<string, number[]>();
   featured.forEach((feature, index) =>
-    push(blocks, `${feature.key.slice(0, BLOCK_PREFIX_LENGTH)}|${feature.year ?? ''}|${[...feature.numbers].sort().join(',')}`, index),
+    push(blocks, `${feature.key.slice(0, BLOCK_PREFIX_LENGTH)}|${feature.year ?? ''}|${feature.numbers}`, index),
   );
   yield 0.2;
   let work = 0;
@@ -135,16 +135,32 @@ interface Features {
   /** Code points of the key. */
   chars: number[];
   length: number;
-  numbers: Set<string>;
+  /** The numbers in the key, sorted and joined by commas ("" for none): equal strings mean equal sets. */
+  numbers: string;
   /** The code points sorted, for a quick upper bound on the LCS (a merge, no Map: Map iteration is slow on Hermes). */
   sorted: number[];
 }
 
+/**
+ * Without allocating per character or calling a comparator: `Array.from` with a callback and a sort with a comparator
+ * made this step take 18 s for 160k names on a Chromecast (D-118).
+ */
 const features = (title: ParsedTitle): Features => {
   const key = compactKey(title);
-  const chars = Array.from(key, (char) => char.codePointAt(0)!);
-  const sorted = [...chars].sort((a, b) => a - b);
-  return { year: title.year, key, chars, length: chars.length, numbers: numberTokens(title), sorted };
+  const chars: number[] = [];
+  let digits = false;
+  for (let i = 0; i < key.length; i++) {
+    const code = key.codePointAt(i)!;
+    chars.push(code);
+    if (code > 0xffff) i++;
+    else if (code >= 48 && code <= 57) digits = true;
+  }
+  // A typed array sorts numerically without a comparator; copied back, since plain arrays read faster on Hermes.
+  const typed = Int32Array.from(chars).sort();
+  const sorted = new Array<number>(typed.length);
+  for (let i = 0; i < typed.length; i++) sorted[i] = typed[i]!;
+  const numbers = digits ? [...numberTokens(title)].sort().join(',') : '';
+  return { year: title.year, key, chars, length: chars.length, numbers, sorted };
 };
 
 /** Characters both keys share (with repeats): the LCS can be at most this long. */
@@ -167,7 +183,7 @@ function sharedCharacters(left: Features, right: Features): number {
 
 function fuzzyMatch(left: Features, right: Features): boolean {
   if (left.year !== right.year) return false;
-  if (left.numbers.size !== right.numbers.size || [...left.numbers].some((token) => !right.numbers.has(token))) return false;
+  if (left.numbers !== right.numbers) return false;
   if (Math.min(left.length, right.length) < MIN_FUZZY_LENGTH) return left.key === right.key;
   if (!lengthsCanMatch(left.length, right.length)) return false;
   // Cheap bound first: the LCS cannot be longer than the characters both keys share.
