@@ -130,10 +130,47 @@ function packer() {
 
 /** `null` for anything that is not the current format (older files are rebuilt, not migrated). */
 export function unpackLibrary(value: unknown): { builtAt: string; masters: Master[] } | null {
+  const packed = checked(value);
+  if (!packed) return null;
+  const unpack = unpacker(packed.prefixes);
+  return { builtAt: builtAtOf(packed), masters: packed.masters.map(unpack) };
+}
+
+/**
+ * `unpackLibrary` in slices of about 100 ms with `pause()` between them, so the screen keeps running while a library
+ * of 100k+ titles is unpacked (several seconds on a Chromecast, D-117).
+ */
+export async function unpackLibraryInSlices(
+  value: unknown,
+  pause: () => Promise<void>,
+  sliceMs = 100,
+): Promise<{ builtAt: string; masters: Master[] } | null> {
+  const packed = checked(value);
+  if (!packed) return null;
+  const unpack = unpacker(packed.prefixes);
+  const masters: Master[] = [];
+  let sliceStarted = Date.now();
+  for (let index = 0; index < packed.masters.length; index++) {
+    masters.push(unpack(packed.masters[index]!));
+    if (index % 500 === 499 && Date.now() - sliceStarted >= sliceMs) {
+      await pause();
+      sliceStarted = Date.now();
+    }
+  }
+  return { builtAt: builtAtOf(packed), masters };
+}
+
+const checked = (value: unknown): PackedLibrary | null => {
   const packed = value as PackedLibrary | null;
-  if (!packed || packed.format !== LIBRARY_FORMAT || !Array.isArray(packed.masters)) return null;
-  const { prefixes } = packed;
-  const masters = packed.masters.map(([id, title, normalizedKey, year, bestQuality, packedVariants, addedAt, releaseKey]): Master => {
+  return packed && packed.format === LIBRARY_FORMAT && Array.isArray(packed.masters) ? packed : null;
+};
+
+// Built with older rules: shown until the background rebuild replaces it.
+const builtAtOf = (packed: PackedLibrary) => (packed.rules === NORMALIZER_RULES ? packed.builtAt : new Date(0).toISOString());
+
+const unpacker =
+  (prefixes: string[]) =>
+  ([id, title, normalizedKey, year, bestQuality, packedVariants, addedAt, releaseKey]: PackedMaster): Master => {
     const variants = packedVariants.map((p): Variant => {
       const variant: Variant = {
         streamId: p[0],
@@ -170,7 +207,4 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
       releaseKey,
       variants,
     };
-  });
-  // Built with older rules: shown until the background rebuild replaces it.
-  return { builtAt: packed.rules === NORMALIZER_RULES ? packed.builtAt : new Date(0).toISOString(), masters };
-}
+  };

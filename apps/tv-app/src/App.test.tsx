@@ -61,6 +61,27 @@ describe('App (TV)', () => {
     expect(screen.getByLabelText('Movies')).toBeTruthy();
   });
 
+  it('Home shows "Loading your library…" until the first list answers, then the hero (D-117)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    let answer: (response: { body: unknown }) => void = () => undefined;
+    const movies = {
+      total: 1,
+      items: [{ id: 'm1', title: 'Big Test Movie', year: 2020, posterUrl: null, rating: 8, bestQuality: '4K', variantCount: 3 }],
+    };
+    backend.on('GET', '/api/library/movies', () => new Promise((resolve) => (answer = resolve)));
+
+    await render(<App />);
+    await flush();
+    expect(await screen.findByTestId('home-loading')).toBeTruthy();
+    expect(screen.getByText('Loading your library…')).toBeTruthy();
+
+    await act(async () => answer({ body: movies }));
+    await flush();
+    expect(screen.queryByTestId('home-loading')).toBeNull();
+    expect(await screen.findByTestId('hero-play')).toBeTruthy();
+  });
+
   it('shows provider login errors in plain language', async () => {
     const backend = setupApp({ signedIn: false });
     backend.on('POST', '/api/auth/login', { status: 401, body: { code: 'invalid_provider_credentials', detail: 'Invalid' } });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildMasters } from './normalizer/pipeline';
-import { packLibrary, packLibraryText, unpackLibrary } from './libraryCodec';
+import { packLibrary, packLibraryText, unpackLibrary, unpackLibraryInSlices } from './libraryCodec';
 
 describe('library codec', () => {
   const masters = buildMasters('acc', 'movie', [
@@ -33,5 +33,21 @@ describe('library codec', () => {
   it('ignores files in the old format', () => {
     expect(unpackLibrary({ builtAt: 'x', masters })).toBeNull();
     expect(unpackLibrary(null)).toBeNull();
+  });
+
+  it('unpacks in slices with the same result, letting the screen run in between (D-117)', async () => {
+    const many = buildMasters(
+      'acc',
+      'movie',
+      Array.from({ length: 2000 }, (_, i) => ({ id: i + 1, name: `Film ${i} (2001)`, posterUrl: `http://img.tv/p/${i}.jpg` })),
+    );
+    const value = JSON.parse(JSON.stringify(packLibrary('2026-09-24T00:00:00Z', many)));
+    let pauses = 0;
+    // A slice of 0 ms: a pause after every 500 titles.
+    const sliced = await unpackLibraryInSlices(value, async () => void pauses++, 0);
+    expect(sliced).toEqual(unpackLibrary(value));
+    expect(pauses).toBe(Math.floor(many.length / 500));
+    expect(pauses).toBeGreaterThan(1);
+    expect(await unpackLibraryInSlices(null, async () => undefined)).toBeNull();
   });
 });
