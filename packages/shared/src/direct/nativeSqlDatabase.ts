@@ -7,7 +7,10 @@ import type { SqlDatabase, SqlValue } from './sqlLibrary';
 const surrogatesEscaped = (json: string) =>
   json.replace(/[\uD800-\uDFFF]/g, (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`);
 
-/** `SqlDatabase` over native calls that take and give JSON (TV/phone: `TvMedia.dbRun` and `dbQuery`, D-121). */
+/**
+ * `SqlDatabase` over calls that take and give JSON (D-121): TV/phone `TvMedia.dbRun` and `dbQuery` (Android's SQLite),
+ * desktop `iptvDesktop.db` (SQLite in Electron's main process).
+ */
 export function createNativeSqlDatabase(native: {
   run(statements: string): Promise<void>;
   query(sql: string, params: string): Promise<string>;

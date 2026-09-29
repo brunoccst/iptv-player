@@ -68,9 +68,12 @@ const tables = (t: string) => [
   `CREATE TABLE ${t}_s (m INTEGER PRIMARY KEY, id TEXT NOT NULL, title TEXT NOT NULL, year INTEGER, added INTEGER, released INTEGER)`,
 ];
 
-/** After the rows: each order's numbers (a sorted copy's row numbers) and their indexes. */
+/**
+ * After the rows: each order's numbers (a sorted copy's row numbers) and their indexes. One step per call, so no call
+ * holds the database (on desktop: the main process) for long.
+ */
 const finish = (t: string) => [
-  ...Object.values(ORDERS).flatMap(({ column, by }) => [
+  ...Object.values(ORDERS).map(({ column, by }) => [
     `CREATE TABLE ${t}_o (m INTEGER NOT NULL)`,
     `INSERT INTO ${t}_o (m) SELECT m FROM ${t}_s ORDER BY ${by}`,
     `CREATE UNIQUE INDEX ${t}_om ON ${t}_o(m)`,
@@ -78,8 +81,7 @@ const finish = (t: string) => [
     `DROP TABLE ${t}_o`,
     `CREATE INDEX ${t}_${column} ON ${t}(${column})`,
   ]),
-  `DROP TABLE ${t}_s`,
-  `CREATE UNIQUE INDEX ${t}_id ON ${t}(id)`,
+  [`DROP TABLE ${t}_s`, `CREATE UNIQUE INDEX ${t}_id ON ${t}(id)`],
 ];
 
 const drops = (t: string) => ['', '_d', '_c', '_s', '_o'].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
@@ -212,7 +214,10 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
           ]);
           await pause();
         }
-        await db.run(finish(t).map((sql) => ({ sql })));
+        for (const step of finish(t)) {
+          await db.run(step.map((sql) => ({ sql })));
+          await pause();
+        }
       } catch (error) {
         await db.run(drops(t).map((sql) => ({ sql }))).catch(() => undefined);
         throw error;

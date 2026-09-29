@@ -2,6 +2,7 @@ import {
   appLog,
   bindDownloadsToAccount,
   createAppContext,
+  createNativeSqlDatabase,
   PROFILE_PREFS_KEY,
   type BackupStorages,
   type KeyValueStorage,
@@ -33,7 +34,9 @@ const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && '
  */
 export const storage = desktop ? desktop.secure : createWebStorage(appConfig.appSlug);
 const dataStorage = desktop ? desktop.data : createWebStorage(`${appConfig.appSlug}-data`);
-export const appContext = createAppContext({ config: appConfig, storage, direct: { dataStorage } });
+// The desktop app keeps the library in SQLite (D-121), like the TV app; a browser keeps it in memory.
+const libraryDb = desktop ? createNativeSqlDatabase(desktop.db) : undefined;
+export const appContext = createAppContext({ config: appConfig, storage, direct: { dataStorage, libraryDb } });
 export const { stores, api } = appContext;
 
 /** What the user-data backup reads and writes (D-056). */

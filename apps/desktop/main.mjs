@@ -25,6 +25,7 @@ import {
   vlcCandidates,
   withCors,
 } from './lib/helpers.mjs';
+import { openLibraryDb } from './lib/libraryDb.mjs';
 
 const { autoUpdater } = electronUpdater;
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -134,6 +135,15 @@ function registerStorage() {
       default:
         throw new Error('Unknown storage operation');
     }
+  });
+  // The library database (D-121): the same two calls as the TV app's native module, with JSON text.
+  const libraryDb = openLibraryDb(path.join(app.getPath('userData'), 'library.db'));
+  app.on('will-quit', () => libraryDb.close());
+  ipcMain.handle('iptv:db', (event, operation, first, second) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    if (operation === 'run') return void libraryDb.run(String(first));
+    if (operation === 'query') return libraryDb.query(String(first), String(second));
+    throw new Error('Unknown database operation');
   });
   ipcMain.on('iptv:info', (event) => {
     event.returnValue = { version: app.getVersion(), platform: process.platform };
