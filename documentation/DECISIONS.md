@@ -120,6 +120,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-113](#d-113) | 2026-09-29 | Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log |
 | [D-114](#d-114) | 2026-09-29 | TV: after "Show all" the focus stays on the button ("Show less") |
 | [D-115](#d-115) | 2026-09-29 | TV/phone: provider lists are read by native code on another thread |
+| [D-116](#d-116) | 2026-09-29 | Grouping: time per step in the Log; longer work slices between screen updates |
 
 ---
 
@@ -1922,3 +1923,15 @@ Decision (`ListReader.kt`, `JsonArraySplitter.kt`, `ListReader` in `direct/xtrea
 - **Same results and messages:** a reply that is not an array is handed over whole (an object or nothing reads as no entries, as before); a list cut before its "]" or an HTML page gets the "not JSON" message; timeouts, refused connections and HTTP errors get the usual messages; the Log line is the same ("… chars, … entries in … ms").
 - **Desktop** keeps the JavaScript reader (Chromium's V8 is fast enough). Small requests (login, details, guide) still use `fetch`.
 - Tested: the splitter against `JSON.parse` for every chunk and batch size (emoji, escapes, brackets inside names, non-array replies, cut-off lists); the reader against a local server (two 57 MB lists at once, a redirect, a 404, a refused connection, closing mid-way); the shared client with a fake native reader.
+
+## D-116
+
+**Grouping: time per step in the Log; longer work slices between screen updates** — 2026-09-29 (requested by owner)
+
+Context: a first library build took 305 s for 160k movies on a Chromecast. The Log only had the total, so there was no way to tell which step to speed up.
+
+Decision (`buildMastersInChunks` in `normalizer/pipeline.ts`, `directApiClient.ts`):
+
+- **Time per step in the Log**, without the breaks and without the other list's grouping when it runs in between: "movie: grouping steps: names …, exact matches …, similarity keys …, similar names …, TMDB …, titles …, sorting …, waiting for the screen … (N breaks)".
+- **Work slices of 250 ms instead of 50 ms.** Each break for the screen waits at least a frame (16 ms or more on a busy TV), so 50 ms slices could spend a fifth of the time or more waiting. The progress bar and the remote still get a turn 4 times a second.
+- **First measurement** (160k made-up provider names, Hermes without JIT on a PC, about 9× faster than the Chromecast): 35 s in total: similar names 17.4 s, reading names 10.6 s, building titles 4.4 s, similarity keys 1.5 s, the rest about 1 s. The Chromecast's own numbers decide what to speed up next.

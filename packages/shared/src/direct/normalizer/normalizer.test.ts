@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { groupTitles, groupTitlesAsync, ratio } from './matching';
 import { normalizeKey, parseTitle } from './parser';
-import { buildMasters, buildMastersInChunks } from './pipeline';
+import { buildMasters, buildMastersInChunks, type GroupingTimings } from './pipeline';
 import { sha1Hex } from './sha1';
 import { packLibrary, unpackLibrary } from '../libraryCodec';
 
@@ -123,6 +123,21 @@ describe('grouping large libraries (D-038)', () => {
     expect(masters).toHaveLength(2900);
     expect(reported.at(-1)).toBe(1);
     expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
+  });
+
+  it('buildMastersInChunks reports how long each step took, without the breaks (D-116)', async () => {
+    const items = Array.from({ length: 3000 }, (_, i) => ({ id: i + 1, name: `Film ${i % 1000} (${2000 + (i % 3)})` }));
+    let timings: GroupingTimings | null = null;
+    const started = Date.now();
+    // sliceMs 0: a break at every chunk, so the waiting is counted too.
+    await buildMastersInChunks('acc', 'movie', items, { chunkSize: 100, sliceMs: 0, onTimings: (reported) => (timings = reported) });
+    const elapsed = Date.now() - started;
+    const time = timings as unknown as GroupingTimings;
+    expect(time.breaks).toBeGreaterThan(10);
+    const steps = [time.names, time.exact, time.keys, time.similar, time.tmdb, time.titles, time.sort];
+    expect(steps.every((ms) => ms >= 0) && time.waiting >= 0).toBe(true);
+    expect(steps.reduce((sum, ms) => sum + ms, 0) + time.waiting).toBeLessThanOrEqual(elapsed);
+    expect(time.names + time.titles).toBeGreaterThan(0);
   });
 
   it('buildMastersInChunks runs a job it is asked to yield to before going on, with the same result (D-093)', async () => {
