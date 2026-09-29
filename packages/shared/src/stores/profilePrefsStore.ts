@@ -80,6 +80,9 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   CHI: 'Chinese',
   ALB: 'Albanian',
   KUR: 'Kurdish',
+  GRE: 'Greek',
+  EXYU: 'Ex-Yu (Bosnian, Croatian, Serbian)',
+  PAN: 'Punjabi',
 };
 
 /** The language names in the app's language (D-084), for the language choice. */
@@ -102,4 +105,7 @@ export const languageNames = (): Record<string, string> => ({
   CHI: t('Chinese'),
   ALB: t('Albanian'),
   KUR: t('Kurdish'),
+  GRE: t('Greek'),
+  EXYU: t('Ex-Yu (Bosnian, Croatian, Serbian)'),
+  PAN: t('Punjabi'),
 });

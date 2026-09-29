@@ -45,6 +45,8 @@ const PHRASES: [RegExp, string, string[]][] = [
   [/\bdolby[-_. ]?vision\b/gi, 'dovi', ['dolby']],
   [/\bhdr10(\+|plus)?/gi, 'hdr', ['hdr10']],
   [/\bpt[-_]br\b/gi, 'ptbr', ['pt-', 'pt_']],
+  // Keeps the case, so "EX-YU - " is still an uppercase prefix group.
+  [/\b(ex)[-_. ](yu)\b/gi, '$1$2', ['ex-', 'ex_', 'ex.', 'ex ']],
   [/\bh\.?26([45])\b/gi, 'x26$1', ['h26', 'h.26']],
   [/\bdd[p+]?[257]\.[01]\b/gi, 'ac3', ['dd']],
 ];
@@ -100,7 +102,7 @@ function extractSubtitles(raw: string): { text: string; languages: string[] } {
 }
 
 // Numbered groups only: Babel turns named groups into a slow wrapper around every match on Hermes (D-093).
-const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,6}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*/;
+const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
 const EDGE_PUNCTUATION = ' -–:|.,_/';
 const TRAILING_ARTICLE = /^(.+),\s*(the|a|an)$/i;

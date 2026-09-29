@@ -38,6 +38,16 @@ const COUNTRIES: Record<string, string> = {
   netherlands: 'DUT',
   holland: 'DUT',
   poland: 'POL',
+  greece: 'GRE',
+  hellas: 'GRE',
+  yugoslavia: 'EXYU',
+  serbia: 'EXYU',
+  srbija: 'EXYU',
+  croatia: 'EXYU',
+  hrvatska: 'EXYU',
+  bosnia: 'EXYU',
+  montenegro: 'EXYU',
+  punjab: 'PAN',
 };
 
 const fold = (word: string) => word.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
@@ -45,7 +55,11 @@ const fold = (word: string) => word.normalize('NFKD').replace(/\p{M}/gu, '').toL
 /** The languages a category's name says (`ENG`, `GER`…); empty when it says none. Two-letter codes only in capitals. */
 export function categoryLanguages(name: string): string[] {
   const found = new Set<string>();
-  for (const word of name.split(/[^\p{L}\p{N}]+/u).filter(Boolean)) {
+  // "EX-YU", "EX YU": one word, like "EXYU".
+  for (const word of name
+    .replace(/\b(ex)[-_. ]?(yu)\b/gi, '$1$2')
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)) {
     const key = fold(word);
     const code =
       tags.LANGUAGE_LONG[key] ??
