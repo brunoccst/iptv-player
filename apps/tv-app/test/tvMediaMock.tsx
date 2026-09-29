@@ -73,6 +73,9 @@ export const nativeState = {
   },
 };
 
+const lists = new Map<number, string>();
+let nextListId = 1;
+
 export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
@@ -91,6 +94,18 @@ export const TvMedia = {
     deviceFreeRamMb: 500,
     lowRamDevice: false,
   }),
+  // Lists: fetched with the test's fetch and handed over whole (the shared client parses a whole array as well).
+  openList: async (url: string, headers: Record<string, string>) => {
+    const response = await globalThis.fetch(url, { headers });
+    const id = nextListId++;
+    lists.set(id, await response.text());
+    return { id, status: response.status };
+  },
+  readList: async (id: number) => {
+    const text = lists.get(id) ?? '';
+    return { kind: 'whole' as const, text, chars: text.length };
+  },
+  closeList: (id: number) => void lists.delete(id),
   closeApp: async () => void nativeState.calls.push('close-app'),
   setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   addListener: ((

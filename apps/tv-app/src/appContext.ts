@@ -36,7 +36,16 @@ function deviceLanguages(): string[] {
 export const appContext = createAppContext({
   config: appConfig,
   storage: secureStorage,
-  direct: { dataStorage: fileStorage, userAgent: providerUserAgent },
+  // Lists are read by native code on another thread (D-115): in JavaScript it took minutes on a Chromecast.
+  direct: {
+    dataStorage: fileStorage,
+    userAgent: providerUserAgent,
+    listReader: {
+      open: (url, headers, timeoutMs, batchChars) => TvMedia.openList(url, headers, timeoutMs, batchChars),
+      next: (id) => TvMedia.readList(id),
+      close: (id) => TvMedia.closeList(id),
+    },
+  },
   deviceLanguages,
 });
 TvMedia.setUserAgent(providerUserAgent);

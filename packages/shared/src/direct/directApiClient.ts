@@ -28,7 +28,7 @@ import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
-import { createXtreamClient, normalizeServerUrl, type XtreamAccountInfo, type XtreamClient } from './xtream';
+import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
 
 /** The app's `ApiClient`: runs on the device and talks to the provider directly (D-038, D-088). */
@@ -40,6 +40,8 @@ export interface DirectApiClientOptions {
   dataStorage: KeyValueStorage;
   fetch?: typeof fetch;
   userAgent?: string;
+  /** TV/phone: provider lists read by native code (D-115). */
+  listReader?: ListReader;
   now?: () => Date;
   randomId?: () => string;
 }
@@ -212,7 +214,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   const connect = (stored: StoredCredentials | null) => {
     credentials = stored;
-    xtream = stored ? createXtreamClient(stored, { fetch: options.fetch, userAgent: options.userAgent }) : null;
+    xtream = stored
+      ? createXtreamClient(stored, { fetch: options.fetch, userAgent: options.userAgent, listReader: options.listReader })
+      : null;
     cache.clear();
   };
 
@@ -561,7 +565,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const username = request.username.trim();
         const client = createXtreamClient(
           { serverUrl, username, password: request.password },
-          { fetch: options.fetch, userAgent: options.userAgent },
+          { fetch: options.fetch, userAgent: options.userAgent, listReader: options.listReader },
         );
         const info = await client.validate();
         const account: AccountDto = {

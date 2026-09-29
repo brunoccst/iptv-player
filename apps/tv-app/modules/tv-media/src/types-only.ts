@@ -82,3 +82,11 @@ export interface MemoryInfo {
   deviceFreeRamMb: number;
   lowRamDevice: boolean;
 }
+
+/** A piece of a provider list read natively (D-115); the same shape as `ListPiece` in @iptv/shared. */
+export type ListPiece =
+  | { kind: 'batch'; text: string }
+  | { kind: 'end'; chars: number }
+  | { kind: 'whole'; text: string; chars: number }
+  | { kind: 'incomplete'; text: string; chars: number }
+  | { kind: 'error'; message: string };

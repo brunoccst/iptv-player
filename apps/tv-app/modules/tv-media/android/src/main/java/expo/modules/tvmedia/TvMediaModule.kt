@@ -52,6 +52,22 @@ class TvMediaModule : Module() {
       remote.stop()
     }
 
+    /**
+     * Provider lists read on a background thread (D-115): `openList` resolves with `{ id, status }`, `readList` with
+     * the next batch of whole entries (then the end), `closeList` stops and frees the download.
+     */
+    AsyncFunction("openList") { url: String, headers: Map<String, String>, timeoutMs: Int, batchChars: Int, promise: Promise ->
+      ListReader.open(url, headers, timeoutMs, batchChars, promise)
+    }
+
+    AsyncFunction("readList") { id: Int, promise: Promise ->
+      ListReader.next(id, promise)
+    }
+
+    Function("closeList") { id: Int ->
+      ListReader.close(id)
+    }
+
     /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
     Function("takeLastCrash") {
       CrashLog.takeLastCrash(context)

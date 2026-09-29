@@ -119,6 +119,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-112](#d-112) | 2026-09-29 | TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" and "BL - …" prefixes |
 | [D-113](#d-113) | 2026-09-29 | Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log |
 | [D-114](#d-114) | 2026-09-29 | TV: after "Show all" the focus stays on the button ("Show less") |
+| [D-115](#d-115) | 2026-09-29 | TV/phone: provider lists are read by native code on another thread |
 
 ---
 
@@ -1906,3 +1907,18 @@ Decision:
 Context: since D-105, "Show all" moved the focus to the chosen category in the box. It was meant to keep the focus from falling to the grid when the button is replaced, and was later tied to the page scrolling down (fixed for good in D-112 by centering the whole box). The owner prefers the focus to stay where OK was pressed.
 
 Decision (`ChipBar.tsx`): after "Show all" the focus stays on the same button, now "Show less"; after "Show less" it stays on "Show all" (as before). Choosing a category still closes the box. A chosen category beyond the box's first page is still listed right after "All", so it shows without scrolling the box.
+
+## D-115
+
+**TV/phone: provider lists are read by native code on another thread** — 2026-09-29 (requested by owner)
+
+Context: a Chromecast's Log showed the movie and series lists (about 200 MB of text together) taking 87 s and 128 s to read, with "JavaScript was busy for 9–11 s" throughout: in JavaScript, turning the bytes into text and finding the entries (D-113) used the one JavaScript thread for about two minutes. Native code does the same work many times faster, on its own thread.
+
+Decision (`ListReader.kt`, `JsonArraySplitter.kt`, `ListReader` in `direct/xtream.ts`):
+
+- **Native side (TV/phone):** a background thread per list downloads it (redirects followed, also between http and https), turns the bytes into text and cuts the array into batches of whole entries of about 500k characters, dropping whitespace outside strings. At most two batches wait, so memory stays at a few MB whatever the list's size.
+- **JavaScript** only parses each batch with one `JSON.parse` and keeps what the app needs from each entry, as before. Each batch arrives as a new event, so the screen keeps running in between.
+- **Emoji:** Expo hands text from Kotlin to JavaScript as modified UTF-8, which garbles characters outside the BMP; the native side writes them as JSON escapes (`\ud83d\ude00`), which `JSON.parse` turns back into the same characters. A NUL cannot occur (JSON escapes control characters).
+- **Same results and messages:** a reply that is not an array is handed over whole (an object or nothing reads as no entries, as before); a list cut before its "]" or an HTML page gets the "not JSON" message; timeouts, refused connections and HTTP errors get the usual messages; the Log line is the same ("… chars, … entries in … ms").
+- **Desktop** keeps the JavaScript reader (Chromium's V8 is fast enough). Small requests (login, details, guide) still use `fetch`.
+- Tested: the splitter against `JSON.parse` for every chunk and batch size (emoji, escapes, brackets inside names, non-array replies, cut-off lists); the reader against a local server (two 57 MB lists at once, a redirect, a 404, a refused connection, closing mid-way); the shared client with a fake native reader.
