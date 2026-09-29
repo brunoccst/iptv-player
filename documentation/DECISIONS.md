@@ -123,6 +123,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-116](#d-116) | 2026-09-29 | Grouping: time per step in the Log; longer work slices between screen updates |
 | [D-117](#d-117) | 2026-09-29 | Faster start with a large saved library; "Loading your library…" on Home |
 | [D-118](#d-118) | 2026-09-29 | Faster grouping: title ids hashed natively, lighter similarity keys, each name read once |
+| [D-119](#d-119) | 2026-09-29 | "Refresh library" shows the update from the first press |
 
 ---
 
@@ -1964,3 +1965,15 @@ Decision (`sha1.ts`, `pipeline.ts`, `matching.ts`, `parser.ts`, `Sha1Batch.kt`):
 - **Faster SHA-1 in JavaScript** (desktop, fallback): no allocation per call, the four round kinds as four loops, hex from a table. About 1.4× faster in Hermes; identical results (compared with the old code on 200k strings and with Node's SHA-1).
 - **Similarity keys:** the code points are read in a plain loop and sorted in a typed array (no comparator), and the numbers in a key are one sorted string instead of a `Set`, compared as a string. About 25% faster for that step and 20% for similar names in Hermes; the same groups (compared with the old code on 175k names).
 - **Reading names:** each distinct name is read once per update (providers list a movie in several categories under the same name), the "is it all tags" checks no longer build throw-away objects, and the strong tags of a word are looked up once. The same results on 200k made-up tricky names.
+
+## D-119
+
+**"Refresh library" shows the update from the first press** — 2026-09-29 (reported by owner)
+
+Context: on the TV, the first "Refresh library" only seemed to close the menu; a second press showed the update. The update did start, but `library.sync()` answered before it had marked itself as "processing". The app's watcher, which polls while the store says "syncing", read the status once, still "done", and stopped when "syncing" ended a moment later: no banner, and nothing reloaded when that update finished. The second press found it already marked, so it showed.
+
+Decision (`directApiClient.ts`, `libraryStore.ts`):
+
+- `library.sync()` answers once the update shows as "processing" (or has ended early, e.g. without a session).
+- The store's `sync()` then reads the status again before "syncing" ends. A status read still in flight from before the update is dropped, not shared, so its old "done" cannot win.
+- Applies to TV, phone and desktop (same store). Tests reproduce both halves; they fail without the fix.

@@ -128,6 +128,32 @@ describe('library store', () => {
     expect(isLibraryProcessing([])).toBe(false);
   });
 
+  it('after sync the status shows the update, even with an older status read still in flight (D-119)', async () => {
+    const { backend, library } = setup();
+    const status = (jobStatus: string) => [
+      { mediaKind: 'movie', jobStatus, itemCount: 2, queuedAt: null, finishedAt: null, error: null, masterCount: 5 },
+    ];
+    let running = false;
+    let reads = 0;
+    backend.on('POST', '/api/library/sync', () => {
+      running = true;
+      return { status: 202 };
+    });
+    // The first read (a watcher polling as `syncing` began) answers late, with the state from before the update.
+    backend.on('GET', '/api/library/status', () => {
+      reads++;
+      if (reads === 1) return new Promise((resolve) => setTimeout(() => resolve({ body: status('done') }), 20));
+      return { body: status(running ? 'processing' : 'done') };
+    });
+
+    const early = library.getState().refreshStatus();
+    await expect(library.getState().sync()).resolves.toBe(true);
+    await early;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(library.getState().syncing).toBe(false);
+    expect(isLibraryProcessing(library.getState().status.data)).toBe(true);
+  });
+
   it('is cleared when the account signs out', async () => {
     const { backend, context, library } = setup();
     backend.on('GET', '/api/auth/me', { body: account });

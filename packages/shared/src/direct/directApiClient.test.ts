@@ -203,6 +203,15 @@ describe('createDirectApiClient', () => {
     expect(await restarted.library.list('movies')).toEqual(before);
   });
 
+  it('sync answers once the update shows as processing (the first "Refresh library" seemed to do nothing, D-119)', async () => {
+    const { api } = setup();
+    await api.auth.login(login);
+    await libraryReady(api);
+    await api.library.sync();
+    expect((await api.library.status()).every((status) => status.jobStatus === 'processing')).toBe(true);
+    await libraryReady(api);
+  });
+
   it('reuses the saved library after a restart when many screens ask at once', async () => {
     const first = setup();
     await first.api.auth.login(login);

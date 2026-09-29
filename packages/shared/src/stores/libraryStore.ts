@@ -155,6 +155,11 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
         set({ syncing: true, syncError: null });
         try {
           await api.library.sync();
+          // The update now shows as "processing": read that before `syncing` ends, or watchers that polled while
+          // syncing saw the old "done" and stopped (the first "Refresh library" seemed to do nothing, D-119). A status
+          // read still in flight from before the update is dropped, not shared.
+          statusLoader.invalidate();
+          await statusLoader.load('status', () => api.library.status(), { force: true });
           set({ syncing: false });
           return true;
         } catch (error) {
