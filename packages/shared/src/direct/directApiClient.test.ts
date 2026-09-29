@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
+import type { LibraryStatusProgress } from '../api/types';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { appLog } from '../utils/logger';
@@ -201,6 +202,47 @@ describe('createDirectApiClient', () => {
       messages.filter((message) => /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/.test(message)),
     ).toHaveLength(1);
     expect(await restarted.library.list('movies')).toEqual(before);
+  });
+
+  it('sync answers once the update shows as processing (the first "Refresh library" seemed to do nothing, D-119)', async () => {
+    const panel = createFakePanel();
+    // The movie list answers only when the test says so: the update is still running when the status is read.
+    let release: () => void = () => undefined;
+    let hold = false;
+    const fetch = panel.fetch;
+    panel.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      if (hold && String(input).includes('get_vod_streams')) await new Promise<void>((resolve) => (release = resolve));
+      return fetch(input, init);
+    }) as typeof panel.fetch;
+    const { api } = setup(panel);
+    await api.auth.login(login);
+    await libraryReady(api);
+    // The login's update marks itself done a moment before it ends: let it end, so the refresh starts a new one.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    hold = true;
+    await api.library.sync();
+    // Movies are held, so they are still processing (series may already be done).
+    expect((await api.library.status()).find((status) => status.mediaKind === 'movie')?.jobStatus).toBe('processing');
+    hold = false;
+    release();
+    await libraryReady(api);
+  });
+
+  it('a refresh reports what changed: nothing, an added title, a removed one (D-119)', async () => {
+    const { api, panel } = setup();
+    await api.auth.login(login);
+    await libraryReady(api);
+    const movieChanges = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await api.library.sync();
+      const statuses = (await libraryReady(api)) as LibraryStatusProgress[];
+      return statuses.find((status) => status.mediaKind === 'movie')?.changes;
+    };
+    expect(await movieChanges()).toEqual({ added: 0, changed: 0, removed: 0 });
+    panel.movies.push({ ...panel.movies[0]!, stream_id: 999, name: 'EN - A Brand New Film (2026)' });
+    expect(await movieChanges()).toEqual({ added: 1, changed: 0, removed: 0 });
+    panel.movies.pop();
+    expect(await movieChanges()).toEqual({ added: 0, changed: 0, removed: 1 });
   });
 
   it('reuses the saved library after a restart when many screens ask at once', async () => {

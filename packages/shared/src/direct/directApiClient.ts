@@ -8,6 +8,7 @@ import type {
   EpgListing,
   LibrarySection,
   LibrarySort,
+  LibraryChanges,
   LibraryStatusProgress,
   LiveChannel,
   LoginRequest,
@@ -151,6 +152,18 @@ function compareMasters(sort: LibrarySort, order: SortOrder) {
     return result || ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1) || ordinal(a.id, b.id);
   };
 }
+/**
+ * Titles added, changed and removed against the last library (D-119); null on a first build. A reused title is
+ * unchanged; any other title whose id was there before counts as changed.
+ */
+function changesSince(previous: Master[] | undefined, masters: Master[], reused: number): LibraryChanges | null {
+  if (!previous?.length) return null;
+  const before = new Set(previous.map((master) => master.id));
+  let kept = 0;
+  for (const master of masters) if (before.has(master.id)) kept++;
+  return { added: masters.length - kept, changed: Math.max(0, kept - reused), removed: before.size - kept };
+}
+
 /** A sorted copy; a list already in that order (the saved library is newest first, D-117) is only checked, not sorted. */
 function inOrder(masters: Master[], compare: (a: Master, b: Master) => number): Master[] {
   for (let index = 1; index < masters.length; index++) {
@@ -283,11 +296,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     accountId: string | null;
     data: StoredLibrary | null;
     running: Promise<void> | null;
+    /** Resolves once the running update is marked as "processing" (or ended early), so `sync()` can report it. */
+    started: Promise<void>;
     status: Record<LibraryKind, Omit<LibraryStatusProgress, 'mediaKind' | 'masterCount'>>;
   } = {
     accountId: null,
     data: null,
     running: null,
+    started: Promise.resolve(),
     status: {
       movie: { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null },
       series: { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null },
@@ -329,6 +345,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   const syncLibrary = (): Promise<void> => {
     if (library.running) return library.running;
+    let markStarted: () => void = () => undefined;
+    library.started = new Promise<void>((resolve) => (markStarted = resolve));
     library.running = (async () => {
       const { stored, client } = await session();
       const accountId = stored.account.id;
@@ -340,6 +358,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       appLog.info('library', `sync started (saved copy: ${library.data ? `built ${library.data.builtAt}` : 'none'})`);
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
+      markStarted();
       const current = () => credentials?.account.id === accountId;
       // Both lists download at once (the slow part on a phone). Grouping runs one kind at a time (one JS thread), in
       // the order the lists arrive and the smaller first when both are in: series, usually far fewer, no longer wait
@@ -375,10 +394,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
           let reused = '';
+          let reusedMasters = 0;
           const masters = await buildMastersInChunks(accountId, kind, items, {
             previous: previous?.[kind],
             hashIds: options.hashIds,
-            onReuse: (counts) => (reused = `, ${counts.names} names and ${counts.masters} titles unchanged`),
+            onReuse: (counts) => {
+              reused = `, ${counts.names} names and ${counts.masters} titles unchanged`;
+              reusedMasters = counts.masters;
+            },
             // Where the time goes, to see what to speed up (D-116).
             onTimings: (time) => {
               const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -410,7 +433,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             () => packLibraryText(queuedAt, newestFirst, yieldToUi),
             true,
           ).catch(() => undefined);
-          library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
+          library.status[kind] = {
+            ...library.status[kind],
+            jobStatus: 'done',
+            stage: null,
+            finishedAt: now().toISOString(),
+            changes: changesSince(previous?.[kind], masters, reusedMasters),
+          };
         } catch (error) {
           appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
           library.status[kind] = {
@@ -439,6 +468,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       }
     })().finally(() => {
       library.running = null;
+      // Ended before marking itself (no session, the saved library failed to load): nothing to wait for.
+      markStarted();
     });
     return library.running;
   };
@@ -852,6 +883,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async sync() {
         await session();
         void syncLibrary().catch(() => undefined);
+        // Answer once the update shows as "processing": answering before, the status still read "done" and the app
+        // stopped watching, so the first "Refresh library" seemed to do nothing (D-119).
+        await library.started;
         return undefined;
       },
       async status() {

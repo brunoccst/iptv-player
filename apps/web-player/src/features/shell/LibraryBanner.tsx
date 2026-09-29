@@ -60,3 +60,30 @@ export function LibraryBanner() {
   }
   return null;
 }
+
+/** How long the result of a refresh stays on screen. */
+export const NOTICE_MS = 8000;
+
+/** After a "Refresh library": what it did, e.g. "Your library is up to date…" (D-119). Floats at the bottom, any page. */
+export function LibraryNotice() {
+  const notice = useLibrary((s) => s.refreshNotice);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => stores.library.getState().dismissRefreshNotice(), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  if (!notice) return null;
+  return (
+    <div className="banner banner--notice" role="status" data-testid="library-notice">
+      {notice}
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={t('Close')}
+        onClick={() => stores.library.getState().dismissRefreshNotice()}
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+  );
+}

@@ -4,7 +4,7 @@ import { account, createFakeBackend } from '../testing/fakeBackend';
 import type { MasterDetails } from '../api/types';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
-import { describeLibraryProgress, isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
+import { describeLibraryProgress, describeLibraryRefresh, isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
 
 const config = { appName: 'Test', appSlug: 'test' };
 
@@ -126,6 +126,69 @@ describe('library store', () => {
 
     expect(isLibraryProcessing(statuses)).toBe(true);
     expect(isLibraryProcessing([])).toBe(false);
+  });
+
+  it('after sync the status shows the update, even with an older status read still in flight (D-119)', async () => {
+    const { backend, library } = setup();
+    const status = (jobStatus: string) => [
+      { mediaKind: 'movie', jobStatus, itemCount: 2, queuedAt: null, finishedAt: null, error: null, masterCount: 5 },
+    ];
+    let running = false;
+    let reads = 0;
+    backend.on('POST', '/api/library/sync', () => {
+      running = true;
+      return { status: 202 };
+    });
+    // The first read (a watcher polling as `syncing` began) answers late, with the state from before the update.
+    backend.on('GET', '/api/library/status', () => {
+      reads++;
+      if (reads === 1) return new Promise((resolve) => setTimeout(() => resolve({ body: status('done') }), 20));
+      return { body: status(running ? 'processing' : 'done') };
+    });
+
+    const early = library.getState().refreshStatus();
+    await expect(library.getState().sync()).resolves.toBe(true);
+    await early;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(library.getState().syncing).toBe(false);
+    expect(isLibraryProcessing(library.getState().status.data)).toBe(true);
+  });
+
+  it('after a refresh it says whether anything changed (D-119)', async () => {
+    const { backend, library } = setup();
+    const status = (jobStatus: string, changes: object | null) => [
+      { mediaKind: 'movie', jobStatus, itemCount: 2, queuedAt: null, finishedAt: null, error: null, masterCount: 5, changes },
+      { mediaKind: 'series', jobStatus, itemCount: 2, queuedAt: null, finishedAt: null, error: null, masterCount: 5, changes },
+    ];
+    let current = status('processing', null);
+    backend.on('POST', '/api/library/sync', { status: 202 });
+    backend.on('GET', '/api/library/status', () => ({ body: current }));
+
+    await library.getState().sync();
+    expect(library.getState().refreshNotice).toBeNull();
+    current = status('done', { added: 0, changed: 0, removed: 0 });
+    await library.getState().refreshStatus();
+    expect(library.getState().refreshNotice).toBe('Your library is up to date: nothing new from your provider.');
+
+    // Only once: later status reads (the app polls) do not bring it back after it was dismissed.
+    library.getState().dismissRefreshNotice();
+    await library.getState().refreshStatus();
+    expect(library.getState().refreshNotice).toBeNull();
+
+    current = status('processing', null);
+    await library.getState().sync();
+    current = status('done', { added: 1200, changed: 3, removed: 2 });
+    await library.getState().refreshStatus();
+    expect(library.getState().refreshNotice).toBe('Library updated: 2,400 new, 6 changed and 4 removed titles.');
+  });
+
+  it('describeLibraryRefresh: running, failed and first builds', () => {
+    const base = { itemCount: 1, queuedAt: null, finishedAt: null, masterCount: 1 };
+    expect(describeLibraryRefresh([{ ...base, mediaKind: 'movie', jobStatus: 'processing', error: null }])).toBeNull();
+    expect(describeLibraryRefresh([{ ...base, mediaKind: 'movie', jobStatus: 'failed', error: 'HTTP 503' }])).toBe(
+      'The library could not be updated: HTTP 503',
+    );
+    expect(describeLibraryRefresh([{ ...base, mediaKind: 'movie', jobStatus: 'done', error: null }])).toBe('Your library was updated.');
   });
 
   it('is cleared when the account signs out', async () => {

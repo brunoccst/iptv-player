@@ -26,6 +26,11 @@ export interface LibraryState {
   preferredVersion: VersionChoice | null;
   syncing: boolean;
   syncError: ApiError | null;
+  /**
+   * After a refresh the user asked for (`sync`) has finished: what it did ("Your library is up to date…", or what
+   * changed), until `dismissRefreshNotice` (D-119).
+   */
+  refreshNotice: string | null;
   /** Chosen order per section for Movies/Series grids (session only). Missing = `DEFAULT_LIBRARY_SORT`. */
   sortChoices: Partial<Record<LibrarySection, LibrarySortChoice>>;
 
@@ -34,6 +39,7 @@ export interface LibraryState {
   refreshStatus(): Promise<LibraryStatus[] | null>;
   /** Reads the provider's catalog again and regroups it. */
   sync(): Promise<boolean>;
+  dismissRefreshNotice(): void;
   selectVariant(masterId: string, streamId: string): void;
   setPreferredVersion(choice: VersionChoice | null): void;
   chooseSort(section: LibrarySection, choice: LibrarySortChoice): void;
@@ -128,9 +134,19 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       () => get().details,
       (key, resource) => set({ details: { ...get().details, [key]: resource } }),
     );
+    // A refresh the user asked for: its result is announced when a status read shows it finished (D-119).
+    let refreshAsked = false;
     const statusLoader = createResourceLoader<LibraryStatus[]>(
       () => ({ status: get().status }),
-      (_, resource) => set({ status: resource }),
+      (_, resource) => {
+        set({ status: resource });
+        if (!refreshAsked || resource.status !== 'success') return;
+        const notice = describeLibraryRefresh(resource.data);
+        if (notice) {
+          refreshAsked = false;
+          set({ refreshNotice: notice });
+        }
+      },
     );
 
     return {
@@ -141,6 +157,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       preferredVersion: null,
       syncing: false,
       syncError: null,
+      refreshNotice: null,
       sortChoices: {},
 
       loadPage: (section, query = {}, options) =>
@@ -152,9 +169,15 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       refreshStatus: () => statusLoader.load('status', () => api.library.status(), { force: true }),
 
       async sync() {
-        set({ syncing: true, syncError: null });
+        set({ syncing: true, syncError: null, refreshNotice: null });
         try {
           await api.library.sync();
+          refreshAsked = true;
+          // The update now shows as "processing": read that before `syncing` ends, or watchers that polled while
+          // syncing saw the old "done" and stopped (the first "Refresh library" seemed to do nothing, D-119). A status
+          // read still in flight from before the update is dropped, not shared.
+          statusLoader.invalidate();
+          await statusLoader.load('status', () => api.library.status(), { force: true });
           set({ syncing: false });
           return true;
         } catch (error) {
@@ -162,6 +185,8 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
           return false;
         }
       },
+
+      dismissRefreshNotice: () => set({ refreshNotice: null }),
 
       selectVariant: (masterId, streamId) => set({ selectedVariants: { ...get().selectedVariants, [masterId]: streamId } }),
 
@@ -176,6 +201,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       },
 
       reset: () => {
+        refreshAsked = false;
         for (const loader of [pageLoader, detailsLoader, statusLoader]) loader.invalidate();
         set({
           pages: {},
@@ -183,6 +209,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
           status: emptyResource(),
           selectedVariants: {},
           syncing: false,
+          refreshNotice: null,
           syncError: null,
           sortChoices: {},
         });
@@ -249,5 +276,31 @@ export function describeLibraryProgress(statuses: LibraryStatus[] | null): strin
       default:
         return t('{section}: {count} titles ready', { section: label, count: count(status.masterCount) });
     }
+  });
+}
+
+/**
+ * What a finished refresh did (D-119): up to date, or how many titles were added, changed and removed; `null` while it
+ * runs. A failed list says so; a first build (nothing to compare with) only says the library was updated.
+ */
+export function describeLibraryRefresh(statuses: LibraryStatus[] | null): string | null {
+  if (!statuses?.length || isLibraryProcessing(statuses)) return null;
+  const list = statuses as LibraryStatusProgress[];
+  const failed = list.find((status) => status.jobStatus === 'failed');
+  if (failed) return t('The library could not be updated: {error}', { error: failed.error ?? t('unknown error') });
+  if (list.some((status) => !status.changes)) return t('Your library was updated.');
+  let added = 0;
+  let changed = 0;
+  let removed = 0;
+  for (const status of list) {
+    added += status.changes!.added;
+    changed += status.changes!.changed;
+    removed += status.changes!.removed;
+  }
+  if (added + changed + removed === 0) return t('Your library is up to date: nothing new from your provider.');
+  return t('Library updated: {added} new, {changed} changed and {removed} removed titles.', {
+    added: count(added),
+    changed: count(changed),
+    removed: count(removed),
   });
 }

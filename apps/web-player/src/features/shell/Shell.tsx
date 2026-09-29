@@ -8,7 +8,7 @@ import { DownloadsPage } from '../downloads/DownloadsPage';
 import { MyListPage } from '../browse/MyListPage';
 import { HomePage } from '../home/HomePage';
 import { LiveTvPage } from '../live/LiveTvPage';
-import { LibraryBanner } from './LibraryBanner';
+import { LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
 import { t } from '@iptv/shared';
 
@@ -32,6 +32,7 @@ export function Shell() {
         {view === 'mylist' ? <MyListPage /> : null}
         {view === 'downloads' ? <DownloadsPage /> : null}
       </main>
+      <LibraryNotice />
       {details ? <DetailsModal target={details} /> : null}
       {playing ? (
         <Suspense
