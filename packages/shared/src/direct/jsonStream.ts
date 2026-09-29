@@ -3,6 +3,12 @@
  * 100+ MB of JSON; reading it as one text needed a single string that size, which ran a TV with a 192 MB Java heap out
  * of memory (in the native fetch, before any JavaScript ran). Here only one chunk and one element are held at a time,
  * and `pick` keeps what the app needs from each element.
+ *
+ * Speed: going through every character in JavaScript was about 3× slower than parsing the whole text at once, which
+ * on a Chromecast added more than a minute to a 100 MB list. So the text is cut into batches of about 500k characters
+ * at an element boundary ("},{"), and each batch is parsed by the engine's own JSON.parse. A cut inside a string or a
+ * nested object makes that parse fail (the brackets or quotes no longer match), and then the rest of the list goes
+ * through the character-by-character reader instead, so the result is the same either way.
  */
 
 const OPEN_OBJECT = 123; // {
@@ -12,6 +18,13 @@ const CLOSE_ARRAY = 93; // ]
 const QUOTE = 34; // "
 const BACKSLASH = 92; // \
 const COMMA = 44; // ,
+
+/** Characters gathered before a batch is parsed (a few hundred ms of work on a TV at most). */
+const BATCH_CHARS = 500_000;
+/** Earlier "},{" tried when a cut lands inside an element (a nested object, or the text of a name). */
+const CUT_TRIES = 3;
+/** With no "},{" in this many batches' worth of text (plain values, or spaces between elements), give up on batches. */
+const MAX_BATCH_FACTOR = 8;
 
 const isSpace = (code: number) => code === 32 || code === 10 || code === 13 || code === 9 || code === 0xfeff;
 
@@ -37,12 +50,13 @@ export async function readJsonArray<T>(
   stream: ReadableStream<Uint8Array>,
   pick: (element: unknown) => T | null,
   other: (value: unknown) => T[],
+  { batchChars = BATCH_CHARS }: { batchChars?: number } = {},
 ): Promise<ArrayReadResult<T>> {
   const reader = stream.getReader();
   const decoder = new TextDecoder('utf-8');
   const items: T[] = [];
   let chars = 0;
-  // What is not parsed yet: the rest of the current element (and whatever follows it in the chunk).
+  // What is not parsed yet: the next batch, or the rest of the current element (and whatever follows it).
   let buffer = '';
   let pos = 0;
   // Before the array's "[" (0), inside it (1), after its "]" (2); a reply that is not an array (3).
@@ -62,17 +76,6 @@ export async function readJsonArray<T>(
   const scan = () => {
     while (pos < buffer.length && phase < 2) {
       const code = buffer.charCodeAt(pos);
-      if (phase === 0) {
-        if (isSpace(code)) pos++;
-        else if (code === OPEN_ARRAY) {
-          phase = 1;
-          pos++;
-        } else {
-          phase = 3;
-          return;
-        }
-        continue;
-      }
       if (inString) {
         if (escaped) escaped = false;
         else if (code === BACKSLASH) escaped = true;
@@ -106,12 +109,61 @@ export async function readJsonArray<T>(
     }
   };
 
+  // Whole batches of elements go to JSON.parse while that works; after the first failure, `scan` reads the rest.
+  let batches = true;
+  const parseBatch = (text: string): boolean => {
+    let values: unknown;
+    try {
+      values = JSON.parse(text);
+    } catch {
+      return false;
+    }
+    if (!Array.isArray(values)) return false;
+    for (const value of values) {
+      const kept = pick(value);
+      if (kept !== null) items.push(kept);
+    }
+    return true;
+  };
+  const readBatches = (done: boolean) => {
+    // Right after the "[": the buffer starts at an element (or the "]" of an empty array).
+    if (done) {
+      if (parseBatch('[' + buffer)) {
+        buffer = '';
+        phase = 2;
+      } else batches = false;
+      return;
+    }
+    if (buffer.length < batchChars) return;
+    let cut = buffer.length;
+    for (let tries = 0; tries < CUT_TRIES; tries++) {
+      cut = buffer.lastIndexOf('},{', cut - 1);
+      if (cut < 0) break;
+      if (parseBatch('[' + buffer.slice(0, cut + 1) + ']')) {
+        buffer = buffer.slice(cut + 2);
+        return;
+      }
+    }
+    if (cut >= 0 || buffer.length > MAX_BATCH_FACTOR * batchChars) batches = false;
+  };
+
   for (;;) {
     const { done, value } = await reader.read();
     const text = done ? decoder.decode() : decoder.decode(value, { stream: true });
     chars += text.length;
     buffer += text;
-    if (phase !== 3) {
+    if (phase === 0) {
+      while (pos < buffer.length && isSpace(buffer.charCodeAt(pos))) pos++;
+      if (pos < buffer.length) {
+        if (buffer.charCodeAt(pos) === OPEN_ARRAY) {
+          phase = 1;
+          buffer = buffer.slice(pos + 1);
+        } else phase = 3;
+        pos = 0;
+      }
+    }
+    if (phase === 1 && batches) readBatches(done);
+    if (phase === 1 && !batches) {
       scan();
       // Keep only what the next chunk needs: the unfinished element.
       const keep = start >= 0 ? start : pos;
