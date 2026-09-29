@@ -477,6 +477,8 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
   await expect(
     page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: 'English · OpenSubtitles' }),
   ).toBeVisible();
+});
+
 test('Categories shown: an unchecked category leaves browsing, but search still finds its titles (D-110)', async ({ page }) => {
   await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
   const grid = page.locator('.grid');

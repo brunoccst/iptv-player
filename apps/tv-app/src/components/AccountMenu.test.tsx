@@ -108,6 +108,9 @@ describe('App → Automatic subtitles (D-111)', () => {
       languages: ['pt-br', 'en'],
     });
     expect(screen.queryByTestId('subtitle-settings')).toBeNull();
+  });
+});
+
 describe('Profiles → Categories shown (D-110)', () => {
   it('unchecked categories leave the category bar; the choice is saved for the profile', async () => {
     const backend = setupApp();
