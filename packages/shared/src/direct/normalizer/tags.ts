@@ -100,6 +100,20 @@ export const LANGUAGE_LONG: Table = {
   kurdish: 'KUR',
   kurdi: 'KUR',
   kur: 'KUR',
+  greek: 'GRE',
+  ellinika: 'GRE',
+  gre: 'GRE',
+  ell: 'GRE',
+  // Ex-Yu (D-107): Bosnian, Croatian, Serbian and Montenegrin, one language as providers group them.
+  exyu: 'EXYU',
+  serbian: 'EXYU',
+  srpski: 'EXYU',
+  croatian: 'EXYU',
+  hrvatski: 'EXYU',
+  bosnian: 'EXYU',
+  bosanski: 'EXYU',
+  punjabi: 'PAN',
+  panjabi: 'PAN',
 };
 
 /** Two-letter codes collide with real words ("It", "Us"): only accepted in prefixes, brackets, or uppercase. */
@@ -122,6 +136,8 @@ export const LANGUAGE_SHORT: Table = {
   pl: 'POL',
   sq: 'ALB',
   ku: 'KUR',
+  gr: 'GRE',
+  pa: 'PAN',
 };
 
 /** Country-style codes providers put in front of titles ("GE - ", "IN - "). Only accepted as a leading prefix group:
