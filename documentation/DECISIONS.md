@@ -113,6 +113,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 | [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups |
 | [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
+| [D-109](#d-109) | 2026-09-29 | Library updates reuse the names and titles that did not change |
 | [D-111](#d-111) | 2026-09-29 | Automatic subtitles from OpenSubtitles.com, with the user's own API key |
 
 ---
@@ -1817,6 +1818,22 @@ Decision:
 - **Search filter:** All · Movies · Series · Live TV above the results (TV, phone and desktop); "No channels." when Live TV finds none.
 - **Fixed title:** on TV and phone, the title and the filter sit above the scrolling results, so they stay on screen; Up from the first results goes to the filter.
 - **Close the app** (TV, phone) moves from avatar → App to the avatar menu itself, for every profile (Kids too), so nobody needs Settings → Apps → Force stop.
+
+## D-109
+
+**Library updates reuse the names and titles that did not change** — 2026-09-29 (requested by owner)
+
+Context: every library update (daily, after an app update, or Refresh library) downloaded both full lists and rebuilt every title from scratch. The provider's API has no "changes since" request, so the download stays whole; but reading the names (about half the time) and building the titles (most of the rest) repeated the same work for the same 100k+ names every day, which takes minutes on a Chromecast.
+
+Decision (`direct/normalizer/pipeline.ts`, `libraryCodec.ts`, `directApiClient.ts`):
+
+- **Saved per version:** what the parser read from the name, its clean title (only when it differs from the title's) and the name's year. Files saved before have none of it, so the first update after this one still does everything.
+- **Names:** a name seen in the last library is not parsed again.
+- **Grouping** always runs over the whole list (it is fast), so new versions still join existing titles, and removed ones leave them.
+- **Titles:** a group made of exactly the same versions as a title in the last library, each with the same name, category, poster, rating and container, keeps that title; only its dates are taken again. Versions with a release date are always rebuilt (it can change the year, and it is not saved).
+- The result is the same as a full rebuild (tests compare both). A library built with older title rules is never reused.
+- The log says how many names and titles were reused ("… 159500 names and 3929 titles unchanged").
+- Measured on a PC, 160,000 names with 500 removed and 300 new: 1.8 s → 0.45 s. The download is unchanged.
 
 ## D-111
 
