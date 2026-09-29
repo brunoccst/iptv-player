@@ -93,3 +93,33 @@ describe('account menu groups', () => {
     alert.mockRestore();
   });
 });
+
+describe('Profiles → Categories shown (D-110)', () => {
+  it('unchecked categories leave the category bar; the choice is saved for the profile', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/catalog/movies/categories', {
+      body: [
+        { id: '1', name: 'Drama' },
+        { id: '2', name: 'VOD | HUGE LIST' },
+      ],
+    });
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
+    await fireEvent.press(screen.getByTestId('menu-hidden-categories'));
+    await flush();
+    expect(screen.getByTestId('hidden-category-Drama')).toHaveProp('accessibilityState', { checked: true });
+    await fireEvent.press(screen.getByTestId('hidden-category-VOD | HUGE LIST'));
+    expect(screen.getByTestId('hidden-category-VOD | HUGE LIST')).toHaveProp('accessibilityState', { checked: false });
+    await fireEvent.press(screen.getByTestId('hidden-categories-save'));
+    await flush();
+    expect(stores.profilePrefs.getState().prefs[profile.id]?.hiddenCategories).toEqual({ movies: ['2'] });
+    expect(screen.queryByTestId('hidden-categories')).toBeNull();
+
+    await act(async () => navStore.getState().goSection('movies'));
+    await flush();
+    expect(screen.getAllByText('Drama').length).toBeGreaterThan(0);
+    expect(screen.queryByText('VOD | HUGE LIST')).toBeNull();
+  });
+});
