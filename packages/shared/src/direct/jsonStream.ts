@@ -19,6 +19,13 @@ const QUOTE = 34; // "
 const BACKSLASH = 92; // \
 const COMMA = 44; // ,
 
+/**
+ * Longest stretch of reading without letting the screen run. Chunks that are already downloaded arrive without a real
+ * wait, so the reader could keep the one JavaScript thread for many seconds ("JavaScript was busy for 9 s" on a
+ * Chromecast) and the app did not react meanwhile.
+ */
+const BUSY_MS = 50;
+
 /** Characters gathered before a batch is parsed (a few hundred ms of work on a TV at most). */
 const BATCH_CHARS = 500_000;
 /** Earlier "},{" tried when a cut lands inside an element (a nested object, or the text of a name). */
@@ -147,7 +154,12 @@ export async function readJsonArray<T>(
     if (cut >= 0 || buffer.length > MAX_BATCH_FACTOR * batchChars) batches = false;
   };
 
+  let since = Date.now();
   for (;;) {
+    if (Date.now() - since > BUSY_MS) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      since = Date.now();
+    }
     const { done, value } = await reader.read();
     const text = done ? decoder.decode() : decoder.decode(value, { stream: true });
     chars += text.length;

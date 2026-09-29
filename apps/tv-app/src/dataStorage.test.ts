@@ -15,6 +15,8 @@ describe('app data files (D-113)', () => {
       'library.movie.part2.json',
     ]);
     for (const name of names('library.movie.part')) expect(files.get(name)!.length).toBeLessThanOrEqual(PART_CHARS);
+    // The main file holds only the marker and the count, with no NUL (Android would cut the text there).
+    expect(files.get('library.movie.json')).toBe('#parts:3');
     // The first part stops before the emoji instead of splitting it.
     expect(files.get('library.movie.part0.json')!.length).toBe(PART_CHARS - 1);
     expect(await fileStorage.getItem('library.movie')).toBe(big);
