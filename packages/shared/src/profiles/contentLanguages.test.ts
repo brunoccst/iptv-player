@@ -24,6 +24,9 @@ describe('content language filter: category hint (D-086)', () => {
     expect(categoryLanguages('VOD | HRVATSKA')).toEqual(['EXYU']);
     expect(categoryLanguages('VOD | PL - FILMY')).toEqual(['POL']);
     expect(categoryLanguages('VOD | PUNJABI')).toEqual(['PAN']);
+    // EAR: English audio with Arabic subtitles in the picture.
+    expect(categoryLanguages('VOD | EAR - MOVIES')).toEqual(['ENG']);
+    expect(categoryLanguages('Ear Nose Throat')).toEqual([]);
     // Not a language: "Apex" does not read as "Ex-Yu", "Grey" not as Greek.
     expect(categoryLanguages('VOD | APEX YUKON')).toEqual([]);
     expect(categoryLanguages('Grey Zone')).toEqual([]);

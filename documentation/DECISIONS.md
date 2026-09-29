@@ -111,7 +111,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 | [D-105](#d-105) | 2026-09-29 | TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen; focus after Show all / Show less |
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
-| [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu and Punjabi title languages; longer prefix groups |
+| [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups |
 
 ---
 
@@ -1783,15 +1783,16 @@ Decision: `.devcontainer` is removed with its README section, Vite's Codespaces 
 
 ## D-107
 
-**Greek, Ex-Yu and Punjabi title languages; longer prefix groups** — 2026-09-29 (requested by owner)
+**Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups** — 2026-09-29 (requested by owner)
 
-Context: the owner's provider names titles and categories "GR - …", "EXYU - …", "PL - …" and "PUNJABI - …". Greek, Ex-Yu and Punjabi were not known languages, so those versions did not join their title's other versions and the content language filter (D-063, D-086) could not offer them; "PUNJABI" (seven letters) was also too long for a prefix group.
+Context: the owner's provider names titles and categories "GR - …", "EXYU - …", "PL - …", "PUNJABI - …" and "EAR - …". Greek, Ex-Yu, Punjabi and EAR were not known, so those versions did not join their title's other versions and the content language filter (D-063, D-086) could not offer them; "PUNJABI" (seven letters) was also too long for a prefix group.
 
 Decision (`direct/normalizer/tags.ts`, `parser.ts`, `profiles/contentLanguages.ts`):
 
 - **Greek** (`GRE`): "greek", "ellinika", "gre", "ell"; two-letter `GR`; "Greece" and "Hellas" in a category name.
 - **Ex-Yu** (`EXYU`): "exyu" (also written "EX-YU", "Ex Yu"), "serbian", "srpski", "croatian", "hrvatski", "bosnian", "bosanski"; "Yugoslavia", "Serbia", "Srbija", "Croatia", "Hrvatska", "Bosnia" and "Montenegro" in a category name. Providers group these languages together, so the filter offers them as one: "Ex-Yu (Bosnian, Croatian, Serbian)".
 - **Punjabi** (`PAN`): "punjabi", "panjabi"; two-letter `PA`; "Punjab" in a category name. Not "pan", a title word ("Pan", "Peter Pan").
+- **EAR** (capitals only; "ear" is a word): English audio with Arabic subtitles burned into the picture. The version counts as English, with Arabic subtitles (which cannot be turned off); "EAR" in a category name hints English.
 - **Polish** was already known (`PL`, "polish", "Poland").
 - A leading prefix group may be up to eight letters ("PUNJABI - "), still only in capitals and only when every part is a known tag.
 - The library rules version goes to 4, so on-device libraries are regrouped once after the update.

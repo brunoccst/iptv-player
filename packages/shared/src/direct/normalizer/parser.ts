@@ -88,14 +88,23 @@ function subtitleCode(word: string): string {
 /** Every subtitle pattern contains "sub", "leg" or "vos"; names without them skip the long patterns. */
 const MAYBE_SUBTITLES = /sub|leg|vos/i;
 
+/** "EAR": English audio with Arabic subtitles burned into the picture (D-107). Capitals only: "ear" is a word. */
+const ENGLISH_ARABIC = /\bEAR\b/g;
+
 function extractSubtitles(raw: string): { text: string; languages: string[] } {
-  if (!MAYBE_SUBTITLES.test(raw)) return { text: raw, languages: [] };
   const found: string[] = [];
+  let text = raw;
+  if (raw.includes('EAR')) {
+    text = text.replace(ENGLISH_ARABIC, () => {
+      if (!found.includes('ARA')) found.push('ARA');
+      return 'ENG';
+    });
+  }
+  if (!MAYBE_SUBTITLES.test(text)) return { text, languages: found };
   const keep = (code: string) => {
     if (!found.includes(code)) found.push(code);
     return ' sub ';
   };
-  let text = raw;
   for (const pattern of [SUB_AFTER, SUB_BEFORE]) text = text.replace(pattern, (_match, word: string) => keep(subtitleCode(word)));
   for (const [pattern, code] of SUB_ONLY) text = text.replace(pattern, () => keep(code));
   return { text, languages: found };

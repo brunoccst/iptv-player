@@ -64,7 +64,9 @@ export function categoryLanguages(name: string): string[] {
     const code =
       tags.LANGUAGE_LONG[key] ??
       COUNTRIES[key] ??
-      (word.length === 2 && word === word.toUpperCase() ? tags.LANGUAGE_SHORT[key] : undefined);
+      (word.length === 2 && word === word.toUpperCase() ? tags.LANGUAGE_SHORT[key] : undefined) ??
+      // "EAR": English audio, Arabic subtitles in the picture (D-107).
+      (word === 'EAR' ? 'ENG' : undefined);
     if (code) found.add(code);
   }
   return [...found];
