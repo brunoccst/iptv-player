@@ -252,7 +252,7 @@ class Tags {
     this.hdr = false;
   }
 
-  /** Records `token` if it is a known tag. False for unknown tokens. `prefix`: a leading group ("GE - "). */
+  /** Records `token` if it is a known tag. False for unknown tokens (the same answer as `isTag`). `prefix`: a leading group ("GE - "). */
   absorb(token: string, allowShort: boolean, prefix = false): boolean {
     const word = fold(token);
     if (!word) return true;
@@ -272,8 +272,7 @@ class Tags {
   /** Absorbs "ENG-ESP" style tokens only if every part is a known tag; records nothing otherwise. */
   absorbCompound(token: string, allowShort: boolean, prefix = false): boolean {
     const parts = splitTokens(token);
-    const probe = new Tags();
-    if (parts.length === 0 || !parts.every((part) => probe.absorb(part, allowShort, prefix))) return false;
+    if (parts.length === 0 || !parts.every((part) => isTag(part, allowShort, prefix))) return false;
     for (const part of parts) this.absorb(part, allowShort, prefix);
     return true;
   }
@@ -281,6 +280,20 @@ class Tags {
   private addLanguage(code: string) {
     if (!this.languages.includes(code)) this.languages.push(code);
   }
+}
+
+/**
+ * Whether `absorb` would take `token`, without recording anything. It depends only on the token, so no throw-away
+ * `Tags` is needed to ask (thousands of them per library, D-118).
+ */
+function isTag(token: string, allowShort: boolean, prefix = false): boolean {
+  const word = fold(token);
+  if (!word) return true;
+  const known = lookup(word);
+  if (known.quality || known.source || known.hdr || known.audioTag || known.long) return true;
+  if (known.short && (allowShort || isUpper(token))) return true;
+  if (prefix && (known.prefix || known.ignoredPrefix)) return true;
+  return known.ignored;
 }
 
 const YEAR = /^\(?\d{4}\)?$/;
@@ -363,8 +376,7 @@ function stripBrackets(text: string, found: Tags): { text: string; year: number 
     const content = square ?? paren ?? curly ?? '';
     const tokens = splitTokens(content);
     const years = tokens.map(parseYear);
-    const probe = new Tags();
-    if (tokens.length > 0 && tokens.every((token, index) => years[index] !== null || probe.absorb(token, true))) {
+    if (tokens.length > 0 && tokens.every((token, index) => years[index] !== null || isTag(token, true))) {
       tokens.forEach((token, index) => {
         if (years[index] !== null) year ??= years[index]!;
         else found.absorb(token, true);
@@ -380,8 +392,21 @@ function stripBrackets(text: string, found: Tags): { text: string; year: number 
 const isShortWord = (word: string) => word.length <= 3 && /^\p{L}+$/u.test(word);
 
 function onlyTags(tokens: string[]): boolean {
-  const probe = new Tags();
-  return tokens.every((token) => splitTokens(token).every((part) => parseYear(part) !== null || probe.absorb(part, false)));
+  return tokens.every((token) => splitTokens(token).every((part) => parseYear(part) !== null || isTag(part, false)));
+}
+
+/** The strong tags in a token ("1080p" in "1080p-WEB"); the same tokens recur in every name, so each is looked at once. */
+const strongCache = new Map<string, string[]>();
+function strongWords(token: string): string[] {
+  let strong = strongCache.get(token);
+  if (strong === undefined) {
+    if (strongCache.size >= 50_000) strongCache.clear();
+    strong = splitTokens(token)
+      .map(fold)
+      .filter((word) => tags.STRONG.has(word));
+    strongCache.set(token, strong);
+  }
+  return strong;
 }
 
 /**
@@ -393,9 +418,7 @@ function splitTagZone(tokens: string[], found: Tags): { tokens: string[]; year: 
     const token = tokens[index]!;
     const year = parseYear(strip(token, EDGE_PUNCTUATION));
     if (year === null) {
-      const strong = splitTokens(token)
-        .map(fold)
-        .filter((word) => tags.STRONG.has(word));
+      const strong = strongWords(token);
       if (strong.length === 0) continue;
       if (strong.every(isShortWord) && !onlyTags(tokens.slice(index + 1))) continue;
     }

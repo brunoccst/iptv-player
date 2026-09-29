@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { I18nManager, Platform } from 'react-native';
 import {
   appLog,
+  batchedSha1,
   bindDownloadsToAccount,
   createAppContext,
   defaultDeviceLanguages,
@@ -45,6 +46,8 @@ export const appContext = createAppContext({
       next: (id) => TvMedia.readList(id),
       close: (id) => TvMedia.closeList(id),
     },
+    // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-118).
+    hashIds: batchedSha1((joined) => TvMedia.sha1Batch(joined)),
   },
   deviceLanguages,
 });

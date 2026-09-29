@@ -68,6 +68,11 @@ class TvMediaModule : Module() {
       ListReader.close(id)
     }
 
+    /** SHA-1 hex digests of texts separated by "\n", one after another (title ids, D-118). */
+    AsyncFunction("sha1Batch") { texts: String ->
+      Sha1Batch.hash(texts)
+    }
+
     /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
     Function("takeLastCrash") {
       CrashLog.takeLastCrash(context)

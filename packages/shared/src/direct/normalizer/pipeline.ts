@@ -145,6 +145,8 @@ export interface GroupingTimings {
   tmdb: number;
   /** Building the titles (or keeping unchanged ones). */
   titles: number;
+  /** Hashing the new titles' ids, when done all at once (`hashIds`). */
+  ids: number;
   sort: number;
   /** Waiting in breaks for the screen, and how many breaks. */
   waiting: number;
@@ -177,6 +179,7 @@ export async function buildMastersInChunks(
     previous,
     onReuse,
     onTimings,
+    hashIds,
   }: {
     chunkSize?: number;
     sliceMs?: number;
@@ -192,11 +195,27 @@ export async function buildMastersInChunks(
     /** How many names and titles came from `previous`. */
     onReuse?(counts: { names: number; masters: number }): void;
     onTimings?(timings: GroupingTimings): void;
+    /**
+     * SHA-1 hex of each text, all at once (TV/phone: native code, D-118). Without it, each id is hashed in JavaScript
+     * as the title is built. The ids are the same either way.
+     */
+    hashIds?(texts: string[]): Promise<string[]>;
   } = {},
 ): Promise<Master[]> {
   const usable = items.filter((item) => text(item.id) && text(item.name));
   const total = usable.length;
-  const timings: GroupingTimings = { names: 0, exact: 0, keys: 0, similar: 0, tmdb: 0, titles: 0, sort: 0, waiting: 0, breaks: 0 };
+  const timings: GroupingTimings = {
+    names: 0,
+    exact: 0,
+    keys: 0,
+    similar: 0,
+    tmdb: 0,
+    titles: 0,
+    ids: 0,
+    sort: 0,
+    waiting: 0,
+    breaks: 0,
+  };
   let sliceStarted = Date.now();
   // Work since the last break or step, added to the step that did it.
   let workStarted = sliceStarted;
@@ -227,12 +246,18 @@ export async function buildMastersInChunks(
   const parsed: ParsedTitle[] = [];
   const names: ParsedTitle[] = [];
   let reusedNames = 0;
+  // Providers list the same movie in several categories under the same name: each name is read once (D-118).
+  const readNow = new Map<string, ParsedTitle>();
   for (let start = 0; start < total; start += chunkSize) {
     for (const item of usable.slice(start, start + chunkSize)) {
       const name = String(item.name);
       const known = reuse.names.get(name);
       if (known) reusedNames++;
-      const fromName = known ?? parseTitle(name);
+      let fromName = known ?? readNow.get(name);
+      if (!fromName) {
+        fromName = parseTitle(name);
+        readNow.set(name, fromName);
+      }
       names.push(fromName);
       parsed.push(withReleaseYear(fromName, item));
     }
@@ -248,15 +273,31 @@ export async function buildMastersInChunks(
   work('tmdb');
   const masters: Master[] = [];
   let reusedMasters = 0;
+  // With `hashIds`, new titles get their ids afterwards, all in one go.
+  const idTexts: string[] = [];
+  const needIds: Master[] = [];
+  const idOf = hashIds
+    ? (idText: string) => {
+        idTexts.push(idText);
+        return '';
+      }
+    : hashedId;
   for (let start = 0; start < groups.length; start += chunkSize) {
     for (const group of groups.slice(start, start + chunkSize)) {
       const same = unchangedMaster(reuse, usable, group);
       if (same) reusedMasters++;
-      masters.push(same ?? masterOf(accountId, mediaKind, usable, parsed, group, names));
+      const master = same ?? masterOf(accountId, mediaKind, usable, parsed, group, names, idOf);
+      if (hashIds && !same) needIds.push(master);
+      masters.push(master);
     }
     await pause(0.8 + (0.2 * Math.min(groups.length, start + chunkSize)) / groups.length, 'titles');
   }
   work('titles');
+  if (hashIds && idTexts.length) {
+    const hashed = await hashIds(idTexts);
+    needIds.forEach((master, index) => (master.id = hashed[index]!.slice(0, 20)));
+  }
+  work('ids');
   onReuse?.({ names: reusedNames, masters: reusedMasters });
   onProgress?.(total, total);
   const sorted = sortMasters(masters);
@@ -279,6 +320,7 @@ const masterOf = (
   parsed: ParsedTitle[],
   group: number[],
   names: ParsedTitle[],
+  idOf: (idText: string) => string = hashedId,
 ) =>
   buildMaster(
     accountId,
@@ -286,6 +328,7 @@ const masterOf = (
     group.map((index) => usable[index]!),
     group.map((index) => parsed[index]!),
     group.map((index) => names[index]!),
+    idOf,
   );
 
 /** What an update can take from the last library (D-109). */
@@ -390,7 +433,13 @@ export function releaseKey(releaseDate: string | null, year: number | null): num
 
 /** Stable across re-syncs while the group's key and year stay the same. Saved libraries and progress refer to it. */
 export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
-  sha1Hex(`${accountId}|${mediaKind}|${key}|${year ?? ''}`).slice(0, 20);
+  hashedId(masterIdText(accountId, mediaKind, key, year));
+
+/** What a master id is the SHA-1 of. */
+const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null) =>
+  `${accountId}|${mediaKind}|${key}|${year ?? ''}`;
+
+const hashedId = (idText: string) => sha1Hex(idText).slice(0, 20);
 
 /** The name's year, else the release date's. */
 function withReleaseYear(parsed: ParsedTitle, item: NormalizerItem): ParsedTitle {
@@ -398,7 +447,14 @@ function withReleaseYear(parsed: ParsedTitle, item: NormalizerItem): ParsedTitle
   return releaseYear ? { ...parsed, year: releaseYear } : parsed;
 }
 
-function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem[], parsed: ParsedTitle[], names: ParsedTitle[]): Master {
+function buildMaster(
+  accountId: string,
+  mediaKind: string,
+  items: NormalizerItem[],
+  parsed: ParsedTitle[],
+  names: ParsedTitle[],
+  idOf: (idText: string) => string,
+): Master {
   const built = items.map((item, index) => buildVariant(item, parsed[index]!, names[index]!.year));
   const order = built
     .map((_, index) => index)
@@ -418,7 +474,7 @@ function buildMaster(accountId: string, mediaKind: string, items: NormalizerItem
   const released = items.flatMap((item) => releaseKey(optional(item.releaseDate), null) ?? []);
 
   return {
-    id: masterId(accountId, mediaKind, compactKey(canonical), year),
+    id: idOf(masterIdText(accountId, mediaKind, compactKey(canonical), year)),
     title: displayTitle,
     normalizedKey: canonical.key,
     year,

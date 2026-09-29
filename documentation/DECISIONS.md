@@ -122,6 +122,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-115](#d-115) | 2026-09-29 | TV/phone: provider lists are read by native code on another thread |
 | [D-116](#d-116) | 2026-09-29 | Grouping: time per step in the Log; longer work slices between screen updates |
 | [D-117](#d-117) | 2026-09-29 | Faster start with a large saved library; "Loading your library…" on Home |
+| [D-118](#d-118) | 2026-09-29 | Faster grouping: title ids hashed natively, lighter similarity keys, each name read once |
 
 ---
 
@@ -1950,3 +1951,16 @@ Decision (`directApiClient.ts`, `libraryCodec.ts`, TV `HomeScreen.tsx`):
 - **Unpacked in slices:** the saved library is unpacked in slices of about 100 ms with a break between them, and there is a break after reading the files and after `JSON.parse`, so the app keeps reacting.
 - **The Log says where the time goes:** "…movie: read … chars in … ms (file … ms, JSON … ms, titles … ms)".
 - **Feedback (TV/phone):** until the first list answers, Home shows a spinner and "Loading your library…" where the hero goes. Android's spinner turns on the UI thread, so it keeps moving even while JavaScript is busy. The desktop app reads its library in well under a second and shows no placeholder.
+
+## D-118
+
+**Faster grouping: title ids hashed natively, lighter similarity keys, each name read once** — 2026-09-29 (requested by owner)
+
+Context: the first build of 160k movie names took 259 s on a Chromecast (D-116): building the titles 76 s, reading the names 68 s, similarity keys 18 s, similar names 10 s. A profile in Hermes without JIT (made-up names) put about a third of building the titles into the SHA-1 of the title ids.
+
+Decision (`sha1.ts`, `pipeline.ts`, `matching.ts`, `parser.ts`, `Sha1Batch.kt`):
+
+- **Title ids hashed natively (TV/phone):** new titles get their ids after they are built, all at once. `batchedSha1` sends the plain-ASCII id texts (nearly all) to Android's `MessageDigest` in batches of 10,000; any other text is hashed in JavaScript (Kotlin gets text as modified UTF-8), as is a batch whose native call fails. The ids are the same as before (My List and progress refer to them). The Log shows the time as "ids".
+- **Faster SHA-1 in JavaScript** (desktop, fallback): no allocation per call, the four round kinds as four loops, hex from a table. About 1.4× faster in Hermes; identical results (compared with the old code on 200k strings and with Node's SHA-1).
+- **Similarity keys:** the code points are read in a plain loop and sorted in a typed array (no comparator), and the numbers in a key are one sorted string instead of a `Set`, compared as a string. About 25% faster for that step and 20% for similar names in Hermes; the same groups (compared with the old code on 175k names).
+- **Reading names:** each distinct name is read once per update (providers list a movie in several categories under the same name), the "is it all tags" checks no longer build throw-away objects, and the strong tags of a word are looked up once. The same results on 200k made-up tricky names.

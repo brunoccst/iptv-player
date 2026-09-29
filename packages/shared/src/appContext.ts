@@ -55,7 +55,13 @@ export interface AppContextOptions {
    * The apps talk to the IPTV provider directly (D-038, D-088): `dataStorage` keeps profiles, progress and the grouped
    * library; `userAgent` is sent to the provider; `listReader` reads the provider's lists outside JavaScript (D-115).
    */
-  direct: { dataStorage: KeyValueStorage; userAgent?: string; listReader?: ListReader };
+  direct: {
+    dataStorage: KeyValueStorage;
+    userAgent?: string;
+    listReader?: ListReader;
+    /** SHA-1 of title ids in native code (D-118). */
+    hashIds?(texts: string[]): Promise<string[]>;
+  };
   /** Tests: a fake instead of the provider (see `testing/fakeBackend.ts`). */
   api?: ApiClient;
   /** The device's preferred languages, for the app's language on a first start (D-084). Default: the browser's. */
@@ -94,6 +100,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     fetch,
     userAgent: direct.userAgent,
     listReader: direct.listReader,
+    hashIds: direct.hashIds,
   });
   let replacement: ApiClient | null = testApi ?? null;
   const providerApi = delegatingApi(() => replacement ?? directApi);
