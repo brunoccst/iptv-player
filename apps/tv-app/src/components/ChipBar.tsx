@@ -148,6 +148,9 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
+  // TV: "Show all" replaces the button; the focus can pass through a title of the grid (which scrolls the page to it)
+  // before it reaches the chosen chip. The box then brings the page back to itself (D-112).
+  const boxCentering = useCenterOnFocus();
   const items = (expanded ? boxChips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
       key={chip.key}
@@ -157,8 +160,9 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
       hasTVPreferredFocus={Platform.isTV && expanded && chip.active && focusAfter === 'active'}
-      // In the box, the box scrolls to the focused chip; centering it in the page scrolled the page down to the titles.
-      centerOnFocus={!expanded}
+      // In the box, the page centers the whole box (D-112): centering the chip scrolled the page down to the titles, and
+      // no centering left the page where a title the focus passed through had scrolled it.
+      onCenter={expanded ? boxCentering.center : undefined}
     />
   ));
 
@@ -178,7 +182,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
 
   if (expanded) {
     return (
-      <View style={styles.expanded} testID={testID}>
+      <View ref={boxCentering.ref} style={styles.expanded} testID={testID}>
         <FocusRow style={styles.header}>
           <Text style={styles.heading}>{label}</Text>
           {toggle}
@@ -377,7 +381,7 @@ export function Chip({
   onPress,
   onLayout,
   hasTVPreferredFocus,
-  centerOnFocus = true,
+  onCenter,
   testID,
 }: {
   label: string;
@@ -385,8 +389,8 @@ export function Chip({
   onPress(): void;
   onLayout?(event: LayoutChangeEvent): void;
   hasTVPreferredFocus?: boolean;
-  /** TV: scroll the page so the chip is in the middle (D-094). Off in the "Show all" box (D-108). */
-  centerOnFocus?: boolean;
+  /** TV: what centers the page when the chip gets the focus; default the chip itself (D-094). The "Show all" box: the box (D-112). */
+  onCenter?(): void;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -403,7 +407,8 @@ export function Chip({
       onLayout={onLayout}
       onFocus={() => {
         setFocused(true);
-        if (centerOnFocus) centering.center();
+        if (onCenter) onCenter();
+        else centering.center();
       }}
       onBlur={() => setFocused(false)}
       style={[styles.chip, active && styles.chipActive, focused && styles.chipFocused]}

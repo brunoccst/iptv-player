@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, Platform, Pressable, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
 import { avatarColor, needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { navStore, signOut, stores, updater } from '../appContext';
 import { appConfig, updateRepo } from '../config';
@@ -177,7 +177,16 @@ export function AccountMenu() {
     <>
       {overlays}
       <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel={t('Close menu')} focusable={false} />
-      <View style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]} accessibilityRole="menu" testID="account-menu">
+      {/* TV: the D-pad stays in the menu until Back (or a pick) closes it; it used to walk down into the page (D-112). */}
+      <TVFocusGuideView
+        style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]}
+        accessibilityRole="menu"
+        testID="account-menu"
+        trapFocusUp={Platform.isTV}
+        trapFocusDown={Platform.isTV}
+        trapFocusLeft={Platform.isTV}
+        trapFocusRight={Platform.isTV}
+      >
         {openGroup ? (
           <>
             {/* The group's name with a back arrow: back to the main list (so does the Back key). */}
@@ -245,7 +254,7 @@ export function AccountMenu() {
             <MenuItem icon="close" label={t('Close the app')} testID="menu-close-app" onPress={then(confirmCloseApp)} />
           </>
         )}
-      </View>
+      </TVFocusGuideView>
     </>
   );
 }

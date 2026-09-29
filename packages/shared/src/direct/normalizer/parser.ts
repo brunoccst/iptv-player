@@ -111,7 +111,8 @@ function extractSubtitles(raw: string): { text: string; languages: string[] } {
 }
 
 // Numbered groups only: Babel turns named groups into a slow wrapper around every match on Hermes (D-093).
-const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*/;
+// "=" too ("PL = Title", D-112): the group before it must still be a known tag in capitals, so "E=MC2" stays a title.
+const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:=]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
 const EDGE_PUNCTUATION = ' -–:|.,_/';
 const TRAILING_ARTICLE = /^(.+),\s*(the|a|an)$/i;
@@ -210,6 +211,7 @@ interface WordTags {
   long: string | null;
   short: string | null;
   prefix: string | null;
+  ignoredPrefix: boolean;
   ignored: boolean;
 }
 const wordTags = new Map<string, WordTags>();
@@ -226,6 +228,7 @@ function lookup(word: string): WordTags {
       long: from(tags.LANGUAGE_LONG),
       short: from(tags.LANGUAGE_SHORT),
       prefix: from(tags.LANGUAGE_PREFIX),
+      ignoredPrefix: tags.IGNORED_PREFIX.has(word),
       ignored: tags.IGNORED.has(word),
     };
     wordTags.set(word, known);
@@ -261,6 +264,7 @@ class Tags {
     else if (known.long) this.addLanguage(known.long);
     else if (known.short && (allowShort || isUpper(token))) this.addLanguage(known.short);
     else if (prefix && known.prefix) this.addLanguage(known.prefix);
+    else if (prefix && known.ignoredPrefix) return true;
     else if (!known.ignored) return false;
     return true;
   }
