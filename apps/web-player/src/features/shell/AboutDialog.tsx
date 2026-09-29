@@ -7,7 +7,7 @@ import { t, intlLocale } from '@iptv/shared';
 /** Account menu → App → About, like the TV app's (D-070, D-079): version, and the commit and date it was built from. */
 export function AboutDialog({ onClose }: { onClose(): void }) {
   const rows: [string, string][] = [
-    [t('App'), desktop ? t('Desktop app for {platform}', { platform: desktop.platform }) : t('Web player (browser)')],
+    [t('App'), desktop ? t('Desktop app for {platform}', { platform: desktop.platform }) : t('Development build (browser)')],
     ...(desktop ? ([[t('Version'), desktop.version]] as [string, string][]) : []),
     [t('Built from'), buildInfo.commit ? buildInfo.commit.slice(0, 7) : t('a local build')],
     ...(buildInfo.date ? ([[t('Built on'), new Date(buildInfo.date).toLocaleString(intlLocale())]] as [string, string][]) : []),

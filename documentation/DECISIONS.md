@@ -109,6 +109,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-102](#d-102) | 2026-09-28 | TV/phone player: Audio, Subtitles and Episodes buttons in the drawer's order |
 | [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
+| [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 
 ---
 
@@ -1759,4 +1760,12 @@ Decision:
 - **Details:** a round Watched toggle next to My List, on every app: for a movie it marks the movie, for a series every episode (`setMovieWatched` / `setSeriesWatched`, the same as the card menu). An open eye when watched, a closed eye when not (`eye` / `eyeOff` in `@iptv/shared`).
 - **Card menus:** Add to My List / Remove from My List on movie and series cards, and on Continue Watching cards that have a title (`cardMenuItems`, `continueWatchlistEntry`).
 - **Eye instead of check:** the Watched tag on covers, in details and on episodes, and the episode menu's Mark as (not) watched, now show the eye. My List keeps plus / check.
+
+## D-106
+
+**The web player is the desktop app's screens: no Codespaces setup** — 2026-09-29 (requested by owner)
+
+Context: since there is no server (D-088), the web player only works inside the desktop app against real providers; in a plain browser it reaches only the fake panel. The Codespaces setup (D-035, D-036, D-037) existed to try the web app from a phone and to hand the TV an APK; both are covered by the TV/phone APK and the README's release links.
+
+Decision: `.devcontainer` is removed with its README section, Vite's Codespaces proxy and `/tv.apk` download, and the fake panel's `FAKE_PANEL_IMAGE_BASE_URL`. The browser stays for development and the end-to-end tests. In a browser, About now says "Development build (browser)" instead of "Web player (browser)". The folder keeps its name, `apps/web-player`: moving it would touch CI, scripts and docs for no user-visible gain. D-035, D-036 and D-037 are superseded.
 
