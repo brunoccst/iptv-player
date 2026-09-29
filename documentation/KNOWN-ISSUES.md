@@ -29,7 +29,7 @@ Bugs, external limitations, technical debt and risks.
 | [KI-023](#ki-023) | Limitation | web-player | Open |
 | [KI-024](#ki-024) | Limitation | web-player | Open |
 | [KI-025](#ki-025) | Limitation | series | Resolved (D-066) |
-| [KI-026](#ki-026) | Limitation | tv-app | Open |
+| [KI-026](#ki-026) | Limitation | tv-app | Resolved (D-088) |
 | [KI-027](#ki-027) | Limitation | tv-app | Resolved |
 | [KI-028](#ki-028) | Limitation | tv-app | Open |
 | [KI-029](#ki-029) | Limitation | build env | Open |
@@ -237,6 +237,8 @@ Resolved 2026-09-26 (D-066): the details page and the player merge the episode l
 
 Media3 stores the relay URL (token valid `BACKEND_RELAY_TOKEN_HOURS`, default 12 h) in the download request. A download paused longer than that cannot resume and must be deleted and restarted. Offline playback is unaffected (it reads the cache). HLS downloads without stream keys fetch every rendition of multi-bitrate playlists (Xtream VOD playlists usually have one).
 
+Resolved 2026-09-29 by [D-088](./DECISIONS.md#d-088): there is no relay; downloads use the provider's own address, which stays valid unless the provider password changes. The note on HLS renditions still applies.
+
 ## KI-027
 
 **TV profiles are pick-only** — logged 2026-09-23
@@ -269,7 +271,7 @@ Resolved 2026-09-28 by [D-088](./DECISIONS.md#d-088): the XMLTV parser went with
 
 **Guide windows align to UTC half hours** — logged 2026-09-23
 
-The backend default `from` and the client slot math round to 30 minutes in UTC. In time zones with a 15/45-minute offset (for example UTC+5:45) the grid starts on a local :15/:45.
+The guide's slot math rounds to 30 minutes in UTC. In time zones with a 15/45-minute offset (for example UTC+5:45) the grid starts on a local :15/:45.
 
 ## KI-032
 
@@ -291,7 +293,7 @@ Resolved 2026-09-23: `tv-app.yml` run 15 is green (login, playback, pause, +10 s
 
 **Direct mode: no sync between devices** — logged 2026-09-24
 
-In direct mode (D-038) profiles, progress and the library live on each device. Continue Watching on the TV does not show what was watched on the web app or another TV. Workaround: use "My server". Planned: optional sync to a backend (NEXT-STEPS).
+In direct mode (D-038) profiles, progress and the library live on each device. Continue Watching on the TV does not show what was watched in the desktop app or on another TV. Scanning the QR code (D-060, D-072) copies sign-in and data from one device to another; after that they drift apart again. With no server (D-088) there is nothing to sync through.
 
 ## KI-035
 
@@ -303,7 +305,7 @@ Title parsing runs in chunks of 500 with a yield between them, but the grouping 
 
 **Direct mode: shorter guide, credentials in stream URLs** — logged 2026-09-24
 
-The guide uses the provider's short EPG (up to 12 programmes per channel), so it reaches fewer hours ahead than the backend's XMLTV cache. Playback URLs contain the provider username and password (Xtream format); in server mode the relay hides them. They stay on the device, but can appear in Android logs.
+The guide uses the provider's short EPG (up to 12 programmes per channel), so it reaches fewer hours ahead than a full XMLTV guide. Playback URLs contain the provider username and password (Xtream format). They stay on the device, but can appear in Android logs.
 
 
 ## KI-037
@@ -338,7 +340,7 @@ A backup file (D-056) can only be opened with its password; a forgotten password
 
 **External players: no progress, and not every app sends the User-Agent** — logged 2026-09-25
 
-Titles opened in another player (D-057) do not save progress, so Continue Watching and Resume stay where they were. The provider User-Agent goes in the `headers` extra, which MX Player and Just Player read; VLC uses its own User-Agent, so providers that only accept certain players may refuse the stream in VLC. In server mode the relay link expires after a while, so a paused stream in the other app may stop when resumed much later.
+Titles opened in another player (D-057) do not save progress, so Continue Watching and Resume stay where they were. The provider User-Agent goes in the `headers` extra, which MX Player and Just Player read; VLC uses its own User-Agent, so providers that only accept certain players may refuse the stream in VLC.
 
 ## KI-042
 

@@ -129,11 +129,6 @@ function* groupingSteps(titles: ParsedTitle[]): Generator<number, number[][]> {
   return [...merged.values()].map((indexes) => indexes.sort((a, b) => a - b));
 }
 
-/** Typo-tolerant match. Years must be equal; numbers must match (sequels); short keys only match exactly. */
-export function isFuzzyMatch(left: ParsedTitle, right: ParsedTitle): boolean {
-  return fuzzyMatch(features(left), features(right));
-}
-
 interface Features {
   year: number | null;
   key: string;

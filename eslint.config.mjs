@@ -17,7 +17,6 @@ export default tseslint.config(
       '**/coverage/**',
       'apps/tv-app/android/**',
       'apps/tv-app/ios/**',
-      'packages/shared/src/api/generated/**',
       'tools/**',
       'apps/desktop/release/**',
     ],
