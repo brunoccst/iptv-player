@@ -51,9 +51,14 @@ export function withKidsFilter(api: ApiClient, isKids: () => boolean, chosen: (s
         const picked = chosen(section);
         return picked ? list.filter((c) => picked.includes(c.id)) : list.filter((c) => isKidsCategory(c.name));
       },
-      liveChannels: async (categoryId, signal) => {
-        const list = await api.catalog.liveChannels(categoryId, signal);
-        return isKids() ? inAllowed(list, await allowedSet('live')) : list;
+      liveChannels: async (categoryId, signal, options) => {
+        if (!isKids()) return api.catalog.liveChannels(categoryId, signal, options);
+        // Every match, then only the allowed ones, then the limit: a limit first could leave out allowed channels.
+        const list = inAllowed(
+          await api.catalog.liveChannels(categoryId, signal, { ...options, limit: undefined }),
+          await allowedSet('live'),
+        );
+        return options?.limit === undefined ? list : list.slice(0, options.limit);
       },
       movies: async (categoryId, signal) => {
         const list = await api.catalog.movies(categoryId, signal);

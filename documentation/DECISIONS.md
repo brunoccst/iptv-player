@@ -2026,3 +2026,18 @@ Decision:
 - **Snapshot (D-120):** with a database, lists answer at once, so the snapshot of Home's lists only serves the first start, while the saved file is moved into the database. Once the database is open, the snapshot is removed and no longer kept. Without a database (a plain browser) it stays.
 - Not lazy, on purpose: the provider sends its whole lists and grouping needs every title; categories, channels, profiles, My List and watch progress are small.
 - Tests: the TV Home builds no category row (and asks for none of their titles) until the focus reaches the row above; a scroll builds two more (fails without the change). The move into the database removes the snapshot.
+
+## D-123
+
+**Live channels in the database too: the guide, a category and a search read only what they show** — 2026-09-29 (owner: the provider has more than 20,000 live channels)
+
+Context: live channels were not part of the library database (D-121). "All channels" in the Live TV guide and every channel search downloaded the provider's whole channel list (20,000+ entries), kept it for 15 minutes, and then cut out a page or filtered it in JavaScript.
+
+Decision (`sqlLibrary.ts` `createSqlLiveChannels`, `directApiClient.ts`, TV and desktop, where the library database is):
+
+- The whole channel list is downloaded and saved in the database in the provider's order: the first time it is needed, when the saved one is older than a day (in the background), and with "Update library". Saving is like the library's: a new table beside the old one, switched in one step, in the same table of contents (kind "live").
+- Once saved, everything reads the database: a category's channels, a page of the guide (with the Kids and hidden categories applied in SQL, and the total counted once per filter), and search (`CatalogOptions.search` and `limit`: the channels whose name contains the text, any case). Before the first save, a category still comes from the provider; "all channels" waits for the one download that fills the database, instead of downloading it twice.
+- Kids profiles pass the search on without the limit, filter by their categories, then cut to the limit, so allowed channels are not lost to the limit.
+- The library and the channel list take their table names from one counter: two saves in the same millisecond had taken the same name, and one of them failed.
+- Without a database (a plain browser) nothing changes, except that search and limit are applied to the downloaded list.
+- Tests: on 700 made-up channels, every category, search (with and without a limit, accents and emoji) and guide page (offsets, Kids and hidden categories) is the same with and without the database, and the database client downloads the list once for all of them.

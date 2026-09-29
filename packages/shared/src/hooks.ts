@@ -315,7 +315,9 @@ export function createAppHooks({
       useEffect(() => {
         let cancelled = false;
         const needle = query.toLowerCase();
-        api.catalog.liveChannels(null, undefined, { includeHidden: true }).then(
+        // Search also finds channels in hidden categories (D-110). The database finds the matches (D-123); the filter here
+        // is for an API that ignores `search`.
+        api.catalog.liveChannels(null, undefined, { includeHidden: true, search: needle, limit: MAX_SEARCH_CHANNELS }).then(
           (all) =>
             !cancelled && setChannels(all.filter((channel) => channel.name.toLowerCase().includes(needle)).slice(0, MAX_SEARCH_CHANNELS)),
           () => !cancelled && setChannels([]),
