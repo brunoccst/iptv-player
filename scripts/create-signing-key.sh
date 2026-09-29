@@ -28,7 +28,7 @@ confirm() {
 }
 
 REPO="$(git -C "$ROOT" remote get-url origin 2>/dev/null | sed -E 's#^(https://[^/]+/|git@[^:]+:)##; s#\.git$##')" || true
-# Codespaces set GITHUB_TOKEN, which may not save secrets; use your own login instead.
+# A GITHUB_TOKEN from the environment (e.g. CI) may not save secrets; use your own login instead.
 ghx() { env -u GITHUB_TOKEN -u GH_TOKEN gh "$@"; }
 gh_login() {
   if ! command -v gh >/dev/null 2>&1; then
@@ -99,7 +99,7 @@ MSG
 }
 backup() {
   echo
-  echo "Now back up the .signing folder (e.g. right-click it in the Codespace file list → Download) and keep it private,"
+  echo "Now back up the .signing folder and keep it private,"
   echo "for example as attachments in a password manager entry."
   echo "If it is lost, the next APK needs a new key and one uninstall (back up the app data first)."
 }
