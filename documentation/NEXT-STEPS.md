@@ -34,6 +34,7 @@ flowchart LR
 ```
 
 - [x] **Out of memory on low-memory TVs** (issue #109, D-113): provider lists are read one entry at a time instead of as one 100+ MB text; the saved library is kept in 4 MB parts; the app asks Android for a larger heap; a native crash (like this one) and the device's memory now show in the Log. Lists are parsed in batches of about 500k characters, as fast as reading the whole text. A library saved in parts is read back again (its index file lost everything after a NUL on Android), and the app keeps reacting while lists download.
+- [x] **TV: focus stays on "Show all" / "Show less"** (D-114): opening the category box no longer moves the focus to the chosen category.
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.
