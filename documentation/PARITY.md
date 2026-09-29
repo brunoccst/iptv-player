@@ -41,6 +41,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Downloads (offline) | ✅ | ✅ | ✅ | web: encrypted in the browser |
 | My List, search, category pages | ✅ | ✅ | ✅ | |
 | Automatic subtitles from OpenSubtitles (D-111) | ✅ | ✅ | ✅ | avatar → App → Automatic subtitles; user's own API key |
+| Categories shown: hide categories from browsing, search still finds them (D-110) | ✅ | ✅ | ✅ | avatar → Profiles |
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | |
 | Backup and restore | ✅ | ✅ | ✅ | |
 | Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | |

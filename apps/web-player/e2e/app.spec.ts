@@ -477,4 +477,22 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
   await expect(
     page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: 'English · OpenSubtitles' }),
   ).toBeVisible();
+test('Categories shown: an unchecked category leaves browsing, but search still finds its titles (D-110)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
+  const grid = page.locator('.grid');
+  await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
+
+  await page.locator('.menu__avatar').click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Categories shown' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('checkbox', { name: 'Drama' }).uncheck();
+  await dialog.getByRole('button', { name: 'Save' }).click();
+
+  await expect(page.getByRole('tablist', { name: 'Categories' }).getByRole('tab', { name: 'Drama' })).toHaveCount(0);
+  await expect(grid.getByRole('button', { name: 'Matroska Only' })).toHaveCount(0);
+  await expect(grid.getByRole('button', { name: 'Big Test Movie' })).toBeVisible();
+
+  await page.getByPlaceholder('Titles, series').fill('Matroska');
+  await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
 });

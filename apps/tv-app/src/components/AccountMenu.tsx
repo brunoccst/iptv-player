@@ -9,6 +9,7 @@ import { TvMedia } from '../../modules/tv-media';
 import { AboutDialog } from './AboutDialog';
 import { AppLanguageDialog } from './AppLanguageDialog';
 import { BackupDialog } from './BackupDialog';
+import { HiddenCategories } from './HiddenCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
@@ -47,6 +48,7 @@ export function AccountMenu() {
   const [playback, setPlayback] = useState(false);
   const [language, setLanguage] = useState(false);
   const [subtitleSettings, setSubtitleSettings] = useState(false);
+  const [hiddenCategories, setHiddenCategories] = useState(false);
   const [about, setAbout] = useState(false);
   const [appLanguage, setAppLanguage] = useState(false);
   const uiLanguage = useUiLanguage();
@@ -61,6 +63,7 @@ export function AccountMenu() {
       {backup ? <BackupDialog mode="backup" onClose={() => setBackup(false)} /> : null}
       {playback ? <PlaybackSettings onClose={() => setPlayback(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
+      {hiddenCategories ? <HiddenCategories onClose={() => setHiddenCategories(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
       {subtitleSettings ? <SubtitleSettings onClose={() => setSubtitleSettings(false)} /> : null}
       {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
@@ -91,6 +94,13 @@ export function AccountMenu() {
         },
         { icon: 'lock', label: t('Parental PIN'), testID: 'menu-pin', onPress: then(() => setPinSettings(true)) },
         { icon: 'subtitles', label: t('Content language filter'), testID: 'menu-language', onPress: then(() => setLanguage(true)) },
+        // Categories left out of browsing; search still finds them (D-110).
+        {
+          icon: 'eyeOff',
+          label: t('Categories shown'),
+          testID: 'menu-hidden-categories',
+          onPress: then(() => setHiddenCategories(true)),
+        },
       ],
     },
     {

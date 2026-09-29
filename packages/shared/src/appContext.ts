@@ -3,6 +3,7 @@ import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
+import { withHiddenCategories } from './profiles/hiddenCategories';
 import type { LibrarySection, MediaCategory } from './api/types';
 import { createCatalogStore, type CatalogStore } from './stores/catalogStore';
 import { createEpgStore, type EpgStore } from './stores/epgStore';
@@ -122,16 +123,18 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     }
     return list;
   };
+  // Categories the profile hid from browsing (D-110); search still sees them.
+  const browsing = withHiddenCategories(kids.api, (section) => activePrefs()?.hiddenCategories?.[section] ?? []);
   const api: ApiClient = {
-    ...kids.api,
+    ...browsing,
     library: {
-      ...kids.api.library,
+      ...browsing.library,
       list: async (section, query = {}, signal) => {
         const language = query.language !== undefined ? query.language : activeLanguage();
-        if (!language || query.languageCategoryIds) return kids.api.library.list(section, { ...query, language }, signal);
+        if (!language || query.languageCategoryIds) return browsing.library.list(section, { ...query, language }, signal);
         const categories = await categoriesOf(section).catch(() => []);
         const languageCategories = languageCategoryIds(categories, language.split(','));
-        return kids.api.library.list(section, { ...query, language, languageCategoryIds: languageCategories }, signal);
+        return browsing.library.list(section, { ...query, language, languageCategoryIds: languageCategories }, signal);
       },
     },
   };
@@ -154,8 +157,9 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   });
   void subtitles.settings.getState().load();
 
-  // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
-  const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null]);
+  // Another language, other Kids categories or other hidden categories (a new choice, or another profile's) mean other
+  // titles: drop cached lists.
+  const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null, activePrefs()?.hiddenCategories ?? null]);
   let current = filters();
   const filtersChanged = () => {
     const next = filters();

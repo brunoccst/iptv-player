@@ -13,6 +13,7 @@ import { LogDialog } from './LogDialog';
 import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 import { avatarColor } from '../profiles/avatar';
 import { usePinGate } from '../profiles/PinDialog';
+import { HiddenCategories } from '../profiles/HiddenCategories';
 import { LanguageSettings } from '../profiles/LanguageSettings';
 import { SubtitleSettings } from '../profiles/SubtitleSettings';
 import { PinSettings } from '../profiles/PinSettings';
@@ -50,6 +51,7 @@ export function TopNav() {
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
+  const [hiddenCategories, setHiddenCategories] = useState(false);
   const [about, setAbout] = useState(false);
   const [subtitleSettings, setSubtitleSettings] = useState(false);
   const [appLanguage, setAppLanguage] = useState(false);
@@ -151,6 +153,17 @@ export function TopNav() {
                         }}
                       >
                         <Icon name="subtitles" size={18} /> {t('Content language filter')}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
+                          setHiddenCategories(true);
+                        }}
+                      >
+                        <Icon name="eyeOff" size={18} /> {t('Categories shown')}
                       </button>
                     </>
                   ) : group === 'Library & devices' ? (
@@ -327,6 +340,7 @@ export function TopNav() {
       {backup ? <BackupDialog onClose={() => setBackup(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
       {subtitleSettings ? <SubtitleSettings onClose={() => setSubtitleSettings(false)} /> : null}
+      {hiddenCategories ? <HiddenCategories onClose={() => setHiddenCategories(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
       {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
       {log ? <LogDialog onClose={() => setLog(false)} /> : null}
