@@ -36,6 +36,12 @@ const HERO_CANDIDATES = 30;
 const LIVE_ROW_SIZE = 10;
 const MOVIE_ROWS = 6;
 const SERIES_ROWS = 3;
+/**
+ * TV: rows built at the start; more follow when the focus or the scroll gets near the last one (D-122). Each row fetches
+ * its titles and posters when built: all 13 at once cost a Chromecast about 130 posters before the screen settled.
+ */
+const TV_FIRST_ROWS = 4;
+const TV_ROWS_AHEAD = 2;
 
 /** Same as the web Home: hero, library banner, Continue Watching, Live TV, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
@@ -48,6 +54,9 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const { rowGap } = useSizes();
   const { height: screenHeight } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
+  const [shownRows, setShownRows] = useState(TV_FIRST_ROWS);
+  // The row below the focused one always exists, so the D-pad can move down into it.
+  const showThrough = (index: number) => setShownRows((count) => Math.max(count, index + 1 + TV_ROWS_AHEAD));
   // Where each row sits in the page, so a focused row can be scrolled to the middle of the screen (TV).
   const rowLayouts = useRef(new Map<string, { y: number; height: number }>());
   const centerRow = (key: string) => {
@@ -89,7 +98,18 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
       style={index === 0 ? [styles.rows, { marginTop: hasHero ? -Math.round(rowGap * 2) : Math.round(rowGap / 2) }] : styles.rows}
       onLayout={(event) => rowLayouts.current.set(row.key, event.nativeEvent.layout)}
     >
-      <RowFocus.Provider value={Platform.isTV ? () => centerRow(row.key) : null}>{row.render()}</RowFocus.Provider>
+      <RowFocus.Provider
+        value={
+          Platform.isTV
+            ? () => {
+                showThrough(index);
+                centerRow(row.key);
+              }
+            : null
+        }
+      >
+        {row.render()}
+      </RowFocus.Provider>
     </View>
   );
   const onScroll = (y: number) => navStore.getState().setScrolled(y > 10);
@@ -106,10 +126,16 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
           style={styles.screen}
           testID="home-screen"
           scrollEventThrottle={100}
-          onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
+          onScroll={(event) => {
+            const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+            onScroll(contentOffset.y);
+            // Scrolled (a swipe, a mouse wheel) within a screen of the end: the next rows.
+            if (contentOffset.y + layoutMeasurement.height >= contentSize.height - layoutMeasurement.height)
+              setShownRows((count) => (count < rows.length ? count + TV_ROWS_AHEAD : count));
+          }}
         >
           {loading ? <LibraryLoading /> : <Hero candidates={featured} />}
-          {rows.map(renderRow)}
+          {rows.slice(0, shownRows).map(renderRow)}
           <View style={styles.bottom} />
         </ScrollView>
         {banner}

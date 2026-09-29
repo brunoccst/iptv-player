@@ -342,6 +342,9 @@ describe.each([
     const details = await first.api.library.get('movies', movies.items[1]!.id);
     const fileKeys = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.library.'));
     expect(fileKeys()).toHaveLength(2);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const snapshots = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.snapshot.'));
+    expect(snapshots()).toHaveLength(1);
 
     // The update: the same storage, now with a database. The files are moved in, then removed.
     const db = createNodeSqlDatabase();
@@ -350,6 +353,8 @@ describe.each([
     expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
     expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
     expect(fileKeys()).toEqual([]);
+    // Home's snapshot (D-120) is not needed with a database (D-122).
+    expect(snapshots()).toEqual([]);
     expect((await moved.library.status()).map((status) => [status.jobStatus, status.masterCount])).toEqual([
       ['done', 2],
       ['done', 1],

@@ -454,7 +454,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-120).
           saving.add(kind);
           try {
-            await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
+            if (!sqlLibrary) await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
             if (sqlLibrary) {
               // Lists read the database: saved first, then shown (the last library shows meanwhile).
               const saveStarted = Date.now();
@@ -588,6 +588,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         appLog.info('storage', `${key}: moved ${saved.masters.length} titles into the database in ${Date.now() - moveStarted} ms`);
         await Promise.resolve(options.dataStorage.removeItem(key)).catch(() => undefined);
       }
+      // The database answers at once: the snapshot of Home's lists (D-120) only served the first start, while the file
+      // was moved in (D-122).
+      void snapshot.forget(accountId);
       const present = Object.values(kinds);
       appLog.info(
         'storage',

@@ -2013,3 +2013,16 @@ Decision:
 - If the database cannot be opened, the app logs it and uses the files as before. The web player in a plain browser (development and its end-to-end tests) keeps the library in memory: a browser has no SQLite without adding one.
 - Size on the device: about 65 MB for 116k made-up titles (the file was 35 MB; the extra is the filter columns and indexes).
 - Measured on a PC (Node, 116k made-up titles): save 3.5 s; a page of Home, a category, an order: 1–2 ms; languages 10–16 ms; search 20–30 ms; 20 hidden categories 80 ms the first time. Not yet measured on a TV: the Log shows "library database opened in N ms", "saved N titles to the database in N ms" and lists slower than 300 ms.
+
+## D-122
+
+**TV Home builds its rows as the focus moves down; the Home snapshot only serves the move into the database** — 2026-09-29 (requested by owner: "as many things lazy loaded as possible, if it makes sense")
+
+Context: with the library in SQLite (D-121), a start reads only a table of contents, and every list, grid and detail reads its own page. What was still built all at once: the TV Home, a plain scroll view with about 13 rows, each fetching its titles and posters at the start (about 130 posters on a Chromecast, with two or three rows on screen). The web and desktop Home already fetch a row when it nears the screen, and their posters load lazily; the phone Home is a virtualized list.
+
+Decision:
+
+- **TV Home:** the first 4 rows are built at the start; when a row gets the focus, the two rows below it are built, so the D-pad can always move down into one; a scroll (a swipe) within a screen of the end builds two more. A row fetches its titles and posters when it is built.
+- **Snapshot (D-120):** with a database, lists answer at once, so the snapshot of Home's lists only serves the first start, while the saved file is moved into the database. Once the database is open, the snapshot is removed and no longer kept. Without a database (a plain browser) it stays.
+- Not lazy, on purpose: the provider sends its whole lists and grouping needs every title; categories, channels, profiles, My List and watch progress are small.
+- Tests: the TV Home builds no category row (and asks for none of their titles) until the focus reaches the row above; a scroll builds two more (fails without the change). The move into the database removes the snapshot.
