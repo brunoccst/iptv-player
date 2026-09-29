@@ -5,12 +5,13 @@ import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { appLog } from '../utils/logger';
 import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
+import { withUserDatabase } from '../stores/databaseStorage';
 import { createDirectApiClient } from './directApiClient';
 import type { SqlDatabase } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
-/** Each test runs twice: the library in memory (desktop, web) and in SQLite (TV/phone, D-121). */
+/** Each test runs twice: the library in memory (a browser) and in SQLite (TV, phone and desktop, D-121). */
 let databaseMode = false;
 const newStorages = () => ({
   secure: createMemoryStorage(),
@@ -27,10 +28,12 @@ function setup(
   } = newStorages(),
 ) {
   let ids = 0;
+  // In the database mode, profiles, progress and My List are in the database too (D-126).
+  const kept = withUserDatabase({ secure: storages.secure, data: storages.data }, storages.db);
   const api = createDirectApiClient({
     appName: 'Test',
-    secureStorage: storages.secure,
-    dataStorage: storages.data,
+    secureStorage: kept.secure,
+    dataStorage: kept.data,
     fetch: panel.fetch,
     userAgent: 'VLC/3',
     now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000),

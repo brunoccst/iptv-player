@@ -12,6 +12,7 @@ import {
   PROFILE_PREFS_KEY,
   type BackupStorages,
   type KeyValueStorage,
+  withUserDatabase,
 } from '@iptv/shared';
 import { TvMedia } from '../modules/tv-media';
 import { appConfig, providerUserAgent, updateRepo } from './config';
@@ -23,7 +24,7 @@ import { createPlaybackSettings, PLAYBACK_SETTINGS_KEY } from './playbackSetting
 import { createUpdater } from './update/updates';
 
 /** Android Keystore-encrypted storage. Session token must not sit in plain files. */
-const secureStorage: KeyValueStorage = {
+const keystoreStorage: KeyValueStorage = {
   getItem: (key) => SecureStore.getItemAsync(key),
   setItem: (key, value) => SecureStore.setItemAsync(key, value),
   removeItem: (key) => SecureStore.deleteItemAsync(key),
@@ -35,12 +36,20 @@ function deviceLanguages(): string[] {
   return [locale?.replace('_', '-'), ...defaultDeviceLanguages()].filter((tag): tag is string => !!tag);
 }
 
+// The library in Android's own SQLite (D-121): a start reads a few rows, not 35 MB, and each list is a query.
+const libraryDb = createNativeSqlDatabase({
+  run: (statements) => TvMedia.dbRun(statements),
+  query: (sql, params) => TvMedia.dbQuery(sql, params),
+});
+// Profiles, progress, My List, settings and the PIN in the same database (D-126); the sign-in stays in the Keystore.
+const { secure: secureStorage, data: dataStorage } = withUserDatabase({ secure: keystoreStorage, data: fileStorage }, libraryDb);
+
 export const appContext = createAppContext({
   config: appConfig,
   storage: secureStorage,
   // Lists are read by native code on another thread (D-115): in JavaScript it took minutes on a Chromecast.
   direct: {
-    dataStorage: fileStorage,
+    dataStorage,
     userAgent: providerUserAgent,
     listReader: {
       open: (url, headers, timeoutMs, batchChars) => TvMedia.openList(url, headers, timeoutMs, batchChars),
@@ -49,11 +58,7 @@ export const appContext = createAppContext({
     },
     // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-118).
     hashIds: batchedSha1((joined) => TvMedia.sha1Batch(joined)),
-    // The library in Android's own SQLite (D-121): a start reads a few rows, not 35 MB, and each list is a query.
-    libraryDb: createNativeSqlDatabase({
-      run: (statements) => TvMedia.dbRun(statements),
-      query: (sql, params) => TvMedia.dbQuery(sql, params),
-    }),
+    libraryDb,
   },
   deviceLanguages,
 });
@@ -100,13 +105,13 @@ export const { stores, api } = appContext;
 /** What the user-data backup reads and writes (D-056). */
 export const backupStorages: BackupStorages = {
   secure: secureStorage,
-  data: fileStorage,
+  data: dataStorage,
   settingsKeys: [PLAYBACK_SETTINGS_KEY, PROFILE_PREFS_KEY],
 };
 export const navStore = createNavStore();
 /** Self-update from the GitHub release (D-062); off when the build has no `APP_UPDATE_REPO`. */
 export const updater = createUpdater({ repo: updateRepo, storage: fileStorage });
-export const playbackSettings = createPlaybackSettings(fileStorage);
+export const playbackSettings = createPlaybackSettings(dataStorage);
 void playbackSettings.getState().load();
 export const downloadsStore = createDownloadsStore({ api, native: TvMedia });
 /** Downloads belong to the signed-in account; `signOut` removes them first (D-050). */

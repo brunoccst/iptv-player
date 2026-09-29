@@ -2055,3 +2055,18 @@ Decision (`packages/shared/src/hooks.ts`, `search/`, `pairing/usePairingServer.t
 - Not shared: drawing. React Native Web was considered and set aside for now: it would make the desktop app draw with React Native, a much larger change.
 - Nothing changes for the user; code copied between the two apps (outside tests) went from about 590 lines to about 220, mostly layout that differs on purpose.
 - Tests: the existing unit, screen and end-to-end tests of both apps run unchanged against the shared hooks.
+
+## D-126
+
+**Profiles, progress, My List, settings and the PIN in the database** — 2026-09-29 (owner: "everything… in the database"; chose to move the user's data, with the sign-in kept in secure storage)
+
+Context: the library, channels and catalog data were in the database (D-121, D-123, D-125), but the user's own data was still one file per key (TV and phone) or in the desktop app's data folder: profiles, each profile's progress and My List, the settings, and the parental PIN (in the system's secure storage).
+
+Decision (`stores/databaseStorage.ts`; TV, phone and desktop):
+
+- `withUserDatabase` puts a `user_data` table (key, value) of the library database behind the storages the apps already use: profiles, progress, My List and every `settings.*` key from the data storage, and the PIN's salted hash from the secure storage. The code that reads and writes them, the backup (D-056) and phone pairing (D-060) are unchanged: they go through the same storages, so a backup reads the database and a restore writes into it.
+- Moving: a key still in its old place is moved into the database the first time it is read, then removed there; each key is read or written one operation at a time, so a move cannot overwrite a newer value.
+- The sign-in (provider password, session) stays in the system's encrypted storage. Library files of older versions, the diagnostics log, update and download records stay where they were.
+- If the database fails, the old storage answers, as before.
+- Without a database (a plain browser) nothing changes.
+- Tests: the move (and what stays), writes and removals, a read racing a write, a failing database, a backup and restore with the PIN; the direct client's tests run with the user data in the database; the desktop end-to-end test finds the profiles in `library.db`.
