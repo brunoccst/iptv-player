@@ -110,6 +110,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-103](#d-103) | 2026-09-28 | TV Live TV: the category list fits the screen; focusing a category keeps the page at the top |
 | [D-104](#d-104) | 2026-09-28 | Watched toggle in details (movies and whole series); My List in card menus; an eye for Watched |
 | [D-105](#d-105) | 2026-09-29 | TV category bar: only the categories that fit, so ‹ › and "Show all" stay on screen; focus after Show all / Show less |
+| [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 
 ---
 
@@ -1770,4 +1771,12 @@ Context: the TV category bar (D-094) always showed "All" and three categories. W
 Decision: the bar measures its width, "All", ‹ ›, "Show all" and each category chip (off-screen copies of the chips near the shown ones), and shows as many categories as fit, at most three and at least one. ‹ › page by as many as fit; the last page is full. Until the widths are known, three show, as before.
 
 Also: after "Show all" the focus goes to the chosen category in the box (a chosen one beyond the box's first page moves right after "All", as on the line), and after "Show less" it stays on "Show all". Before, the button was replaced as the bar changed shape and the focus fell to the grid's first title (the page scrolled down) or to "Sort by". Focused, "Show all" has dark text and arrow on its white fill, like a focused chip.
+
+## D-106
+
+**The web player is the desktop app's screens: no Codespaces setup** — 2026-09-29 (requested by owner)
+
+Context: since there is no server (D-088), the web player only works inside the desktop app against real providers; in a plain browser it reaches only the fake panel. The Codespaces setup (D-035, D-036, D-037) existed to try the web app from a phone and to hand the TV an APK; both are covered by the TV/phone APK and the README's release links.
+
+Decision: `.devcontainer` is removed with its README section, Vite's Codespaces proxy and `/tv.apk` download, and the fake panel's `FAKE_PANEL_IMAGE_BASE_URL`. The browser stays for development and the end-to-end tests. In a browser, About now says "Development build (browser)" instead of "Web player (browser)". The folder keeps its name, `apps/web-player`: moving it would touch CI, scripts and docs for no user-visible gain. D-035, D-036 and D-037 are superseded.
 

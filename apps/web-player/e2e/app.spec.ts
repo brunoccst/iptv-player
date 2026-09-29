@@ -274,7 +274,7 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
   await page.getByRole('menuitem', { name: 'App' }).click();
   await page.getByRole('menuitem', { name: 'About' }).click();
   const about = page.getByRole('dialog', { name: 'About' });
-  await expect(about).toContainText('Web player (browser)');
+  await expect(about).toContainText('Development build (browser)');
   await expect(about).not.toContainText('My server');
   await about.getByRole('button', { name: 'Close', exact: true }).first().click();
 
