@@ -2055,3 +2055,18 @@ Decision (`packages/shared/src/hooks.ts`, `search/`, `pairing/usePairingServer.t
 - Not shared: drawing. React Native Web was considered and set aside for now: it would make the desktop app draw with React Native, a much larger change.
 - Nothing changes for the user; code copied between the two apps (outside tests) went from about 590 lines to about 220, mostly layout that differs on purpose.
 - Tests: the existing unit, screen and end-to-end tests of both apps run unchanged against the shared hooks.
+
+## D-125
+
+**Categories, movie info, episodes and the guide in the database** — 2026-09-29 (owner: "everything, every page: in the database, lazy loaded")
+
+Context: after D-121 and D-123 the library and the channel list were in the database, but what the apps ask for one title or one channel at a time (a section's categories, a movie's info, a series' seasons and episodes, a channel's next programmes) was only kept in memory for 15 to 30 minutes: every start downloaded it again, and nothing showed offline.
+
+Decision (`sqlCatalogCache.ts`, `directApiClient.ts`; TV, phone and desktop, where the library database is):
+
+- Each answer is saved as one row of JSON (`catalog_cache`: account, key, time saved) when it is first asked for; nothing is downloaded ahead.
+- A copy answers without the network while fresh: categories 1 day, a movie's info 7 days, a series' episodes 12 hours (new episodes), a channel's programmes 30 minutes. An older copy answers when the provider cannot (offline); rows not saved again for 30 days are removed when the database opens.
+- "Update library" makes the categories fresh again; the guide's refresh drops the saved programmes.
+- The 15-minute memory cache stays in front, so a screen asking twice reads the database once. Without a database (a plain browser) nothing changes.
+- The SQL runs on SQLite 3.9 (checked on 3.9.1).
+- Tests: after a restart, categories, a movie's info, a series' episodes and the guide come from the database without a download; two weeks later and offline, the old copies still answer.
