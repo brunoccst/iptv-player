@@ -35,8 +35,36 @@ export interface XtreamAccountInfo {
   streamBaseUrl?: string | null;
 }
 
+/**
+ * Reads a list reply outside JavaScript (TV/phone: native code, D-115): the download, turning bytes into text and
+ * finding the entries happen on another thread; JavaScript only parses batches of whole entries.
+ */
+export interface ListReader {
+  /** Sends the request; resolves once the status is known. Rejects with `code` "ERR_LIST_TIMEOUT" or another code. */
+  open(url: string, headers: Record<string, string>, timeoutMs: number, batchChars: number): Promise<{ id: number; status: number }>;
+  /**
+   * The next piece: `batch` (entries joined by commas, no brackets), then one of `end`, `whole` (not an array: the
+   * whole text), `incomplete` (stopped before its "]") or `error`.
+   */
+  next(id: number): Promise<ListPiece>;
+  /** Stops the download and frees it; also after the last piece. */
+  close(id: number): void;
+}
+
+export type ListPiece =
+  | { kind: 'batch'; text: string }
+  | { kind: 'end'; chars: number }
+  | { kind: 'whole'; text: string; chars: number }
+  | { kind: 'incomplete'; text: string; chars: number }
+  | { kind: 'error'; message: string };
+
+/** Characters per batch handed over by a `ListReader`: a few hundred ms of parsing on a TV at most. */
+const LIST_BATCH_CHARS = 500_000;
+
 export interface XtreamClientOptions {
   fetch?: typeof fetch;
+  /** Reads lists (movies, series, channels) outside JavaScript when given (D-115). */
+  listReader?: ListReader;
   /** Sent on every provider request; many panels only answer player-like agents. */
   userAgent?: string;
   timeoutMs?: number;
@@ -83,6 +111,29 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     return `${credentials.serverUrl}${file}?${search}`;
   };
 
+  const headers = () => ({ Accept: 'application/json', ...(options.userAgent ? { 'User-Agent': options.userAgent } : {}) });
+
+  const connectFailure = (operation: string, timedOut: boolean, error: unknown) => {
+    const failure = timedOut
+      ? unavailable(t('No answer from {host} after {seconds} s.', { host: host(), seconds: Math.round(timeoutMs / 1000) }))
+      : unavailable(
+          t('Could not connect to {host} ({error}).', {
+            host: host(),
+            error: error instanceof Error ? error.message : t('network error'),
+          }),
+        );
+    appLog.error('provider', `${operation}: ${failure.message}`);
+    return failure;
+  };
+
+  const checkStatus = (status: number, operation: string, started: number) => {
+    if (status === 401 || status === 403) throw new ApiError(502, 'provider_credentials_rejected', 'Provider rejected the credentials.');
+    if (status < 200 || status > 299) {
+      appLog.error('provider', `${operation}: HTTP ${status} from ${host()} after ${Date.now() - started} ms`);
+      throw unavailable(`${host()} answered HTTP ${status} for '${operation}'.`);
+    }
+  };
+
   /** Sends the request and checks the status; the caller reads the body. */
   const request = async (
     action: string | null,
@@ -103,32 +154,15 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     let response: Response;
     try {
       const url = buildUrl('player_api.php', action ? { action, ...parameters } : parameters);
-      response = await fetchImpl(url, {
-        headers: { Accept: 'application/json', ...(options.userAgent ? { 'User-Agent': options.userAgent } : {}) },
-        signal: controller.signal,
-      });
+      response = await fetchImpl(url, { headers: headers(), signal: controller.signal });
     } catch (error) {
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
-      const failure = timedOut
-        ? unavailable(t('No answer from {host} after {seconds} s.', { host: host(), seconds: Math.round(timeoutMs / 1000) }))
-        : unavailable(
-            t('Could not connect to {host} ({error}).', {
-              host: host(),
-              error: error instanceof Error ? error.message : t('network error'),
-            }),
-          );
-      appLog.error('provider', `${operation}: ${failure.message}`);
-      throw failure;
+      throw connectFailure(operation, timedOut, error);
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
     }
-    if (response.status === 401 || response.status === 403)
-      throw new ApiError(502, 'provider_credentials_rejected', 'Provider rejected the credentials.');
-    if (!response.ok) {
-      appLog.error('provider', `${operation}: HTTP ${response.status} from ${host()} after ${Date.now() - started} ms`);
-      throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
-    }
+    checkStatus(response.status, operation, started);
     return { response, operation, started };
   };
 
@@ -159,6 +193,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     pick: (item: Json) => T | null,
     signal?: AbortSignal,
   ): Promise<T[]> => {
+    if (options.listReader) return readNatively(options.listReader, action, parameters, pick, signal);
     const { response, operation, started } = await request(action, parameters, signal);
     const body = response.body as ReadableStream<Uint8Array> | null;
     if (!body || typeof body.getReader !== 'function') {
@@ -185,6 +220,74 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
       appLog.error('provider', `${operation}: reading the list failed: ${error instanceof Error ? error.message : String(error)}`);
       throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+    }
+  };
+
+  /** `getList` with a `ListReader` (D-115): the same results and messages, the reading done outside JavaScript. */
+  const readNatively = async <T>(
+    reader: ListReader,
+    action: string,
+    parameters: Record<string, string>,
+    pick: (item: Json) => T | null,
+    signal?: AbortSignal,
+  ): Promise<T[]> => {
+    const operation = action;
+    const started = Date.now();
+    const aborted = () => new ApiError(0, 'aborted', 'Request was cancelled.');
+    if (signal?.aborted) throw aborted();
+    let id: number;
+    let status: number;
+    try {
+      ({ id, status } = await reader.open(buildUrl('player_api.php', { action, ...parameters }), headers(), timeoutMs, LIST_BATCH_CHARS));
+    } catch (error) {
+      throw connectFailure(operation, (error as { code?: string } | null)?.code === 'ERR_LIST_TIMEOUT', error);
+    }
+    const onAbort = () => reader.close(id);
+    signal?.addEventListener('abort', onAbort);
+    try {
+      checkStatus(status, operation, started);
+      const list: T[] = [];
+      const keep = (values: Json) => {
+        for (const item of items(values)) {
+          const kept = pick(item);
+          if (kept !== null) list.push(kept);
+        }
+      };
+      for (;;) {
+        const piece = await reader.next(id);
+        if (signal?.aborted) throw aborted();
+        if (piece.kind === 'batch') {
+          let values: Json;
+          try {
+            values = JSON.parse(`[${piece.text}]`) as Json;
+          } catch {
+            throw notJson(operation, piece.text);
+          }
+          keep(values);
+          continue;
+        }
+        if (piece.kind === 'error') {
+          appLog.error('provider', `${operation}: reading the list failed: ${piece.message}`);
+          throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+        }
+        if (piece.kind === 'incomplete') throw notJson(operation, piece.text);
+        if (piece.kind === 'whole') {
+          const text = piece.text.trim();
+          // An empty reply is an empty list, as before.
+          if (text) {
+            try {
+              keep(JSON.parse(text) as Json);
+            } catch {
+              throw notJson(operation, text);
+            }
+          }
+        }
+        appLog.info('provider', `${operation}: HTTP ${status}, ${piece.chars} chars, ${list.length} entries in ${Date.now() - started} ms`);
+        return list;
+      }
+    } finally {
+      signal?.removeEventListener('abort', onAbort);
+      reader.close(id);
     }
   };
 

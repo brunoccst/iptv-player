@@ -1,6 +1,14 @@
 import { requireNativeModule, requireNativeViewManager, type NativeModule } from 'expo-modules-core';
 import type { ComponentType, Ref } from 'react';
-import type { ExternalPlayerResult, MemoryInfo, NativeDownload, TvPlayerViewProps, TvPlayerViewRef, UpdateCheck } from './types-only';
+import type {
+  ExternalPlayerResult,
+  ListPiece,
+  MemoryInfo,
+  NativeDownload,
+  TvPlayerViewProps,
+  TvPlayerViewRef,
+  UpdateCheck,
+} from './types-only';
 
 export * from './types-only';
 
@@ -24,6 +32,10 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   takeLastCrash(): string | null;
   /** Java heap limit and use, and the device's RAM, in MB (D-113). */
   memoryInfo(): MemoryInfo;
+  /** Provider lists read on a background thread (D-115); see `ListReader` in @iptv/shared. */
+  openList(url: string, headers: Record<string, string>, timeoutMs: number, batchChars: number): Promise<{ id: number; status: number }>;
+  readList(id: number): Promise<ListPiece>;
+  closeList(id: number): void;
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;

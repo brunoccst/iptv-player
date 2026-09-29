@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeMaybeBase64 } from './base64Text';
-import { createXtreamClient, normalizeServerUrl } from './xtream';
+import { createXtreamClient, normalizeServerUrl, type ListPiece, type ListReader } from './xtream';
 
 const credentials = { serverUrl: 'http://panel.test:8080/', username: 'u s', password: 'p&w' };
 
@@ -289,4 +289,76 @@ describe('decodeMaybeBase64', () => {
     ['/w==', '/w=='],
     ['AAEC', 'AAEC'],
   ])('%s → %s', (input, expected) => expect(decodeMaybeBase64(input)).toBe(expected));
+});
+
+describe('lists read by native code (D-115)', () => {
+  /** A fake native reader: serves `pieces` for any list and records what was opened and closed. */
+  function nativeReader(pieces: ListPiece[], status = 200, fail?: { code: string; message: string }) {
+    const opened: { url: string; headers: Record<string, string>; timeoutMs: number; batchChars: number }[] = [];
+    const closed: number[] = [];
+    let at = 0;
+    const reader: ListReader = {
+      open: async (url, headers, timeoutMs, batchChars) => {
+        if (fail) throw Object.assign(new Error(fail.message), { code: fail.code });
+        opened.push({ url, headers, timeoutMs, batchChars });
+        return { id: 7, status };
+      },
+      next: async () => pieces[at++] ?? { kind: 'error', message: 'no more' },
+      close: (id) => void closed.push(id),
+    };
+    return { reader, opened, closed };
+  }
+
+  it('gives the same movies, series and channels as reading in JavaScript', async () => {
+    const movies = [
+      { stream_id: 1, name: 'Film 😀', category_id: '10', plot: 'long' },
+      { name: 'no id' },
+      { stream_id: 2, name: 'Zwei', category_id: '11' },
+    ];
+    const text = JSON.stringify(movies);
+    const native = nativeReader([
+      { kind: 'batch', text: text.slice(1, text.indexOf(',{"name"')) },
+      { kind: 'batch', text: text.slice(text.indexOf('{"name"'), -1) },
+      { kind: 'end', chars: text.length },
+    ]);
+    const viaNative = await createXtreamClient(credentials, { listReader: native.reader, userAgent: 'Player/1' }).movies();
+    const viaJs = await createXtreamClient(credentials, { fetch: panel({ get_vod_streams: movies }).fetch }).movies();
+    expect(viaNative).toEqual(viaJs);
+    expect(viaNative.map((movie) => movie.name)).toEqual(['Film 😀', 'Zwei']);
+    expect(new URL(native.opened[0]!.url).searchParams.get('action')).toBe('get_vod_streams');
+    expect(native.opened[0]).toMatchObject({ headers: { 'User-Agent': 'Player/1' }, batchChars: 500_000 });
+    expect(native.closed).toEqual([7]);
+  });
+
+  it('reads a reply that is not an array whole, like the JavaScript reader (an object or nothing: no entries)', async () => {
+    for (const text of ['{"1": {"series_id": 9, "name": "Show"}}', '']) {
+      const native = nativeReader([{ kind: 'whole', text, chars: text.length }]);
+      expect(await createXtreamClient(credentials, { listReader: native.reader }).series()).toEqual([]);
+    }
+  });
+
+  it('gives the usual messages, and always frees the download', async () => {
+    const client = (native: ReturnType<typeof nativeReader>) => createXtreamClient(credentials, { listReader: native.reader }).movies();
+    const html = nativeReader([{ kind: 'whole', text: '<html>max connections</html>', chars: 28 }]);
+    await expect(client(html)).rejects.toThrow(`sent a reply that is not JSON for 'get_vod_streams': "<html>max connections</html>".`);
+    const cut = nativeReader([
+      { kind: 'batch', text: '{"stream_id":1,"name":"A"}' },
+      { kind: 'incomplete', text: '{"stream_id":2', chars: 50 },
+    ]);
+    await expect(client(cut)).rejects.toThrow('not JSON');
+    const broken = nativeReader([{ kind: 'error', message: 'Connection reset' }]);
+    await expect(client(broken)).rejects.toThrow('Could not connect to panel.test:8080');
+    const denied = nativeReader([], 401);
+    await expect(client(denied)).rejects.toThrow('Provider rejected the credentials.');
+    const down = nativeReader([], 503);
+    await expect(client(down)).rejects.toThrow("panel.test:8080 answered HTTP 503 for 'get_vod_streams'.");
+    for (const native of [html, cut, broken, denied, down]) expect(native.closed).toEqual([7]);
+
+    await expect(client(nativeReader([], 200, { code: 'ERR_LIST_TIMEOUT', message: 'timeout' }))).rejects.toThrow(
+      'No answer from panel.test:8080 after 30 s.',
+    );
+    await expect(client(nativeReader([], 200, { code: 'ERR_LIST_CONNECT', message: 'Connection refused' }))).rejects.toThrow(
+      'Could not connect to panel.test:8080 (Connection refused).',
+    );
+  });
 });

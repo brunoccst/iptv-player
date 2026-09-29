@@ -1,6 +1,7 @@
 import type { ApiClient } from './api/apiClient';
 import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
+import type { ListReader } from './direct/xtream';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
 import { withHiddenCategories } from './profiles/hiddenCategories';
@@ -52,9 +53,9 @@ export interface AppContextOptions {
   fetch?: typeof fetch;
   /**
    * The apps talk to the IPTV provider directly (D-038, D-088): `dataStorage` keeps profiles, progress and the grouped
-   * library; `userAgent` is sent to the provider.
+   * library; `userAgent` is sent to the provider; `listReader` reads the provider's lists outside JavaScript (D-115).
    */
-  direct: { dataStorage: KeyValueStorage; userAgent?: string };
+  direct: { dataStorage: KeyValueStorage; userAgent?: string; listReader?: ListReader };
   /** Tests: a fake instead of the provider (see `testing/fakeBackend.ts`). */
   api?: ApiClient;
   /** The device's preferred languages, for the app's language on a first start (D-084). Default: the browser's. */
@@ -92,6 +93,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     dataStorage: direct.dataStorage,
     fetch,
     userAgent: direct.userAgent,
+    listReader: direct.listReader,
   });
   let replacement: ApiClient | null = testApi ?? null;
   const providerApi = delegatingApi(() => replacement ?? directApi);

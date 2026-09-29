@@ -27,7 +27,7 @@ export * from './playback/probe';
 export * from './playback/playbackChoices';
 export * from './epg/guide';
 export { createDirectApiClient, type DirectApiClient, type DirectApiClientOptions } from './direct/directApiClient';
-export { normalizeServerUrl } from './direct/xtream';
+export { normalizeServerUrl, type ListReader, type ListPiece } from './direct/xtream';
 export * from './appContext';
 export * from './i18n/i18n';
 export * from './i18n/uiLanguage';
