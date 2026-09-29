@@ -27,8 +27,11 @@ type PackedVariant = [
   posterRest: string | null,
   rating: number | null,
   containerExtension: string | null,
-  /** Only when there are any (D-063); files saved before it have 14 fields. */
+  /** Only when there are any (D-063) or when the next fields follow; files saved before it have 14 fields. */
   subtitleLanguages?: string[],
+  /** What the parser read from the name (D-109): null = the title's own; files saved before have no such fields. */
+  cleanTitle?: string | null,
+  nameYear?: number | null,
 ];
 
 type PackedMaster = [
@@ -89,7 +92,7 @@ function packer() {
     }
     return [index, url.slice(cut)];
   };
-  const packVariant = (v: Variant): PackedVariant => {
+  const packVariant = (v: Variant, title: string): PackedVariant => {
     const [posterPrefix, posterRest] = poster(v.posterUrl);
     const packed: PackedVariant = [
       v.streamId,
@@ -107,7 +110,9 @@ function packer() {
       v.rating,
       v.containerExtension,
     ];
-    if (v.subtitleLanguages.length) packed.push(v.subtitleLanguages);
+    if (v.cleanTitle !== undefined && v.nameYear !== undefined) {
+      packed.push(v.subtitleLanguages, v.cleanTitle === title ? null : v.cleanTitle, v.nameYear);
+    } else if (v.subtitleLanguages.length) packed.push(v.subtitleLanguages);
     return packed;
   };
   const packMaster = (m: Master): PackedMaster => [
@@ -116,7 +121,7 @@ function packer() {
     m.normalizedKey,
     m.year,
     m.bestQuality,
-    m.variants.map(packVariant),
+    m.variants.map((variant) => packVariant(variant, m.title)),
     m.addedAt,
     m.releaseKey,
   ];
@@ -129,22 +134,29 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
   if (!packed || packed.format !== LIBRARY_FORMAT || !Array.isArray(packed.masters)) return null;
   const { prefixes } = packed;
   const masters = packed.masters.map(([id, title, normalizedKey, year, bestQuality, packedVariants, addedAt, releaseKey]): Master => {
-    const variants = packedVariants.map((p): Variant => ({
-      streamId: p[0],
-      rawTitle: p[1],
-      label: p[2],
-      quality: p[3],
-      source: p[4],
-      audioLanguages: p[5],
-      audioTag: p[6],
-      isHdr: p[7] === 1,
-      qualityScore: p[8],
-      categoryId: p[9],
-      posterUrl: p[11] === null ? null : `${prefixes[p[10]] ?? ''}${p[11]}`,
-      rating: p[12],
-      containerExtension: p[13],
-      subtitleLanguages: p[14] ?? [],
-    }));
+    const variants = packedVariants.map((p): Variant => {
+      const variant: Variant = {
+        streamId: p[0],
+        rawTitle: p[1],
+        label: p[2],
+        quality: p[3],
+        source: p[4],
+        audioLanguages: p[5],
+        audioTag: p[6],
+        isHdr: p[7] === 1,
+        qualityScore: p[8],
+        categoryId: p[9],
+        posterUrl: p[11] === null ? null : `${prefixes[p[10]] ?? ''}${p[11]}`,
+        rating: p[12],
+        containerExtension: p[13],
+        subtitleLanguages: p[14] ?? [],
+      };
+      if (p.length > 15) {
+        variant.cleanTitle = p[15] ?? title;
+        variant.nameYear = p[16] ?? null;
+      }
+      return variant;
+    });
     const ratings = variants.flatMap((variant) => (variant.rating === null ? [] : [variant.rating]));
     return {
       id,

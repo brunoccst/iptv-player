@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
+import { appLog } from '../utils/logger';
 import { createDirectApiClient } from './directApiClient';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
@@ -183,6 +184,23 @@ describe('createDirectApiClient', () => {
     await libraryReady(api);
     expect(await stageOf('movie')).toBe('done');
     expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
+  });
+
+  it('Refresh library reuses the saved titles that did not change, after a restart too (D-109)', async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    const before = await first.api.library.list('movies');
+
+    const restarted = setup(first.panel, first.storages).api;
+    await restarted.auth.me();
+    await restarted.library.sync();
+    await libraryReady(restarted);
+    const messages = appLog.entries().map((entry) => entry.message);
+    expect(
+      messages.filter((message) => /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/.test(message)),
+    ).toHaveLength(1);
+    expect(await restarted.library.list('movies')).toEqual(before);
   });
 
   it('reuses the saved library after a restart when many screens ask at once', async () => {
