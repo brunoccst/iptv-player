@@ -51,6 +51,10 @@ export interface LibraryListQuery {
 /** Categories and channels the profile hid are left out (D-110), except with `includeHidden` (search, the settings). */
 export interface CatalogOptions {
   includeHidden?: boolean;
+  /** Live channels only: those whose name contains this text, any case (search, D-123). */
+  search?: string;
+  /** Live channels only: at most this many. */
+  limit?: number;
 }
 
 /** `from` is an ISO timestamp; default: the current half hour. */

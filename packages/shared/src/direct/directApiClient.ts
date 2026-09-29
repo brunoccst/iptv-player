@@ -1,4 +1,4 @@
-import type { ApiClient, EpgGridQuery, LibraryListQuery } from '../api/apiClient';
+import type { ApiClient, CatalogOptions, EpgGridQuery, LibraryListQuery } from '../api/apiClient';
 import { ApiError } from '../api/errors';
 import type {
   AccountDto,
@@ -28,7 +28,7 @@ import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, readLibraryText } from './libraryCodec';
 import { createListSnapshot } from './listSnapshot';
-import { createSqlLibrary, type SqlDatabase, type SqlLibraryKind } from './sqlLibrary';
+import { createSqlLibrary, createSqlLiveChannels, type SqlDatabase, type SqlLibraryKind, type SqlLiveChannels } from './sqlLibrary';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -325,6 +325,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   const snapshot = createListSnapshot(options.dataStorage, options.snapshotSaveMs);
   /** The library database; null without one, or after it failed to open (the library then stays in memory). */
   let sqlLibrary = options.libraryDb ? createSqlLibrary(options.libraryDb, yieldToUi) : null;
+  const sqlLive = options.libraryDb && sqlLibrary ? createSqlLiveChannels(options.libraryDb, sqlLibrary, yieldToUi) : null;
   const count = (data: StoredLibrary | null, kind: LibraryKind) => (data?.sql ? (data.sql[kind]?.count ?? 0) : (data?.[kind].length ?? 0));
   /** Every title of a kind, newest first (for an update to reuse). */
   const mastersOf = async (data: StoredLibrary, kind: LibraryKind): Promise<Master[]> => {
@@ -383,6 +384,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
+      // "Update library" also refreshes the saved channel list (D-123).
+      if (sqlLive) void refreshLive();
       const current = () => credentials?.account.id === accountId;
       // Both lists download at once (the slow part on a phone). Grouping runs one kind at a time (one JS thread), in
       // the order the lists arrive and the smaller first when both are in: series, usually far fewer, no longer wait
@@ -717,10 +720,75 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return kept;
   };
 
-  // ---- Guide ----
-  const liveChannels = async (categoryId?: string | null, signal?: AbortSignal): Promise<LiveChannel[]> => {
+  // ---- Live channels (in the database with one, D-123) ----
+  const live: {
+    accountId: string | null;
+    saved: SqlLiveChannels | null;
+    opening: Promise<SqlLiveChannels | null> | null;
+    refreshing: Promise<void> | null;
+  } = { accountId: null, saved: null, opening: null, refreshing: null };
+
+  /** Downloads the whole channel list and saves it in the database (one at a time). */
+  const refreshLive = (): Promise<void> => {
+    if (!sqlLive) return Promise.resolve();
+    live.refreshing ??= (async () => {
+      const { stored, client } = await session();
+      const accountId = stored.account.id;
+      const started = Date.now();
+      const channels = await client.liveChannels(null);
+      const downloaded = Date.now();
+      const saved = await sqlLive.save(accountId, now().toISOString(), channels);
+      appLog.info(
+        'library',
+        `live: ${channels.length} channels downloaded in ${downloaded - started} ms, saved to the database in ${Date.now() - downloaded} ms`,
+      );
+      if (credentials?.account.id === accountId) Object.assign(live, { accountId, saved, opening: Promise.resolve(saved) });
+    })()
+      .catch((error: unknown) => appLog.error('library', `live: channel list failed: ${errorMessage(error)}`))
+      .finally(() => (live.refreshing = null));
+    return live.refreshing;
+  };
+
+  /** The account's saved channels (read once), refreshed in the background when older than a day. */
+  const savedLive = async (): Promise<SqlLiveChannels | null> => {
+    if (!sqlLive || !sqlLibrary) return null;
+    const { stored } = await session();
+    const accountId = stored.account.id;
+    if (live.accountId !== accountId) {
+      Object.assign(live, { accountId, saved: null });
+      live.opening = sqlLive
+        .open(accountId)
+        .catch((error: unknown) => {
+          appLog.error('storage', `live: channels could not be read from the database: ${errorMessage(error)}`);
+          return null;
+        })
+        .then((saved) => {
+          if (live.accountId === accountId && !live.saved) live.saved = saved;
+          return saved;
+        });
+    }
+    const saved = await live.opening;
+    if (live.accountId !== accountId) return null;
+    const current = live.saved ?? saved;
+    if (!current || now().getTime() - Date.parse(current.builtAt) > LIBRARY_REFRESH_MS) void refreshLive();
+    return current;
+  };
+
+  const liveChannels = async (categoryId?: string | null, signal?: AbortSignal, options: CatalogOptions = {}): Promise<LiveChannel[]> => {
     const { stored, client } = await session();
-    return cached(`live:${stored.account.id}:${categoryId ?? ''}`, CATALOG_CACHE_MS, () => client.liveChannels(categoryId, signal));
+    let saved = await savedLive();
+    // Every channel, not saved yet: one download fills the database, which then answers (not two downloads).
+    if (!saved && !categoryId && sqlLive) {
+      await refreshLive();
+      saved = live.saved;
+    }
+    if (saved && sqlLive) return (await sqlLive.list(saved, { categoryId, search: options.search, limit: options.limit })).channels;
+    const list = await cached(`live:${stored.account.id}:${categoryId ?? ''}`, CATALOG_CACHE_MS, () =>
+      client.liveChannels(categoryId, signal),
+    );
+    const needle = options.search?.trim().toLowerCase();
+    const matches = needle ? list.filter((channel) => channel.name.toLowerCase().includes(needle)) : list;
+    return options.limit === undefined ? matches : matches.slice(0, options.limit);
   };
 
   const shortEpg = async (channels: LiveChannel[]): Promise<Map<string, EpgListing[]>> => {
@@ -745,15 +813,33 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const current = now();
     const from = query.from ? new Date(query.from) : new Date(Math.floor(current.getTime() / SLOT_MS) * SLOT_MS);
     const to = new Date(from.getTime() + clamp(query.hours ?? 3, 1, 12) * 3600_000);
-    const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
-    const hidden = query.hiddenCategoryIds?.length ? new Set(query.hiddenCategoryIds) : null;
-    const channels = (await liveChannels(query.categoryId, signal)).filter(
-      (channel) =>
-        (!allowed || (channel.categoryId !== null && allowed.has(channel.categoryId))) &&
-        (!hidden || channel.categoryId === null || !hidden.has(channel.categoryId)),
-    );
     const offset = Math.max(0, query.offset ?? 0);
-    const page = channels.slice(offset, offset + clamp(query.limit ?? 50, 1, 200));
+    const limit = clamp(query.limit ?? 50, 1, 200);
+    const saved = sqlLive ? await savedLive() : null;
+    let page: LiveChannel[];
+    let totalChannels: number;
+    if (saved && sqlLive) {
+      // Only this page of channels is read (D-123).
+      const found = await sqlLive.list(saved, {
+        categoryId: query.categoryId,
+        categoryIds: query.categoryIds,
+        hiddenCategoryIds: query.hiddenCategoryIds,
+        offset,
+        limit,
+      });
+      page = found.channels;
+      totalChannels = found.total;
+    } else {
+      const allowed = query.categoryIds ? new Set(query.categoryIds) : null;
+      const hidden = query.hiddenCategoryIds?.length ? new Set(query.hiddenCategoryIds) : null;
+      const channels = (await liveChannels(query.categoryId, signal)).filter(
+        (channel) =>
+          (!allowed || (channel.categoryId !== null && allowed.has(channel.categoryId))) &&
+          (!hidden || channel.categoryId === null || !hidden.has(channel.categoryId)),
+      );
+      page = channels.slice(offset, offset + limit);
+      totalChannels = channels.length;
+    }
     const programmes = await shortEpg(page);
     const rows: EpgChannelRow[] = page.map((channel) => ({
       channel,
@@ -766,7 +852,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       updatedAt: current.toISOString(),
       from: from.toISOString(),
       to: to.toISOString(),
-      totalChannels: channels.length,
+      totalChannels,
       channels: rows,
     };
   };
@@ -824,6 +910,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         library.accountId = null;
         loading = null;
         library.data = null;
+        Object.assign(live, { accountId: null, saved: null, opening: null });
         snapshot.close();
         return undefined;
       },

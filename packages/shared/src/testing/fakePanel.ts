@@ -44,8 +44,10 @@ export function createFakePanel() {
         return movies;
       case 'get_series':
         return series;
-      case 'get_live_streams':
-        return channels;
+      case 'get_live_streams': {
+        const categoryId = params.get('category_id');
+        return categoryId ? channels.filter((channel) => (channel as { category_id?: string }).category_id === categoryId) : channels;
+      }
       case 'get_vod_categories':
         return [{ category_id: '10', category_name: 'Movies' }];
       case 'get_vod_info':
@@ -75,6 +77,8 @@ export function createFakePanel() {
     nowSeconds,
     /** The provider's movie list; tests add or remove entries to change what the next update finds. */
     movies,
+    /** The provider's live channels. */
+    channels: channels as { stream_id: number; name: string; num?: number; epg_channel_id?: string; category_id?: string }[],
     offline: () => {
       down = true;
     },
