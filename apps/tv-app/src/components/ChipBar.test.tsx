@@ -151,6 +151,9 @@ describe('ChipBar', () => {
     // Short names: three fit again.
     for (let i = 0; i < 10; i++) await width(`chips-measure-c${i}`, 120);
     expect(tabs()).toEqual(['chip-all', 'chip-c2', 'chip-c3', 'chip-c4']);
+
+    // ‹ › and "Show all" are pinned to the right end, whatever the shown chips' widths.
+    expect(screen.getByTestId('chips-pager')).toHaveStyle({ marginLeft: 'auto' });
     jest.restoreAllMocks();
   });
 

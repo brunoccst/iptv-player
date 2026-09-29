@@ -228,7 +228,8 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
             />
           ))}
           {needsPager ? (
-            <>
+            // Pinned to the right end, so ‹ › and "Show all" stay put whatever the shown categories' widths.
+            <View style={styles.tvPager} testID={testID && `${testID}-pager`}>
               <PageButton
                 direction="left"
                 disabled={first === 0}
@@ -246,7 +247,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
               <View testID={testID && `${testID}-toggle-box`} onLayout={(event) => setTvWidth('toggle', event.nativeEvent.layout.width)}>
                 {toggle}
               </View>
-            </>
+            </View>
           ) : null}
         </FocusRow>
         <View style={styles.tvHidden} pointerEvents="none" importantForAccessibility="no-hide-descendants">
@@ -425,6 +426,7 @@ const styles = StyleSheet.create({
   tvMeasure: { position: 'absolute', left: 0, right: 0, height: 0 },
   // Off-screen copies of the chips, only to measure their widths.
   tvHidden: { position: 'absolute', top: 0, left: 0, flexDirection: 'row', opacity: 0, gap: GAP },
+  tvPager: { flexDirection: 'row', alignItems: 'center', gap: GAP, marginLeft: 'auto' },
   pageButton: { paddingHorizontal: 10 },
   dimmed: { opacity: 0.4 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingRight: 10, backgroundColor: colors.raised },

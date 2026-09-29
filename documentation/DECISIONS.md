@@ -1768,7 +1768,7 @@ Decision:
 
 Context: the TV category bar (D-094) always showed "All" and three categories. With long names (a provider's "VOD | MULTI-LANG 2020 AND BEYOND") the three pushed "Show all" and part of › off the screen in Movies; Series, with shorter names, fit.
 
-Decision: the bar measures its width, "All", ‹ ›, "Show all" and each category chip (off-screen copies of the chips near the shown ones), and shows as many categories as fit, at most three and at least one. ‹ › page by as many as fit; the last page is full. Until the widths are known, three show, as before.
+Decision: the bar measures its width, "All", ‹ ›, "Show all" and each category chip (off-screen copies of the chips near the shown ones), and shows as many categories as fit, at most three and at least one. ‹ › page by as many as fit; the last page is full. Until the widths are known, three show, as before. ‹ › and "Show all" are pinned to the right end of the bar, so they stay in the same place whatever the width of the categories shown.
 
 Also: after "Show all" the focus goes to the chosen category in the box (a chosen one beyond the box's first page moves right after "All", as on the line), and after "Show less" it stays on "Show all". Before, the button was replaced as the bar changed shape and the focus fell to the grid's first title (the page scrolled down) or to "Sort by". Focused, "Show all" has dark text and arrow on its white fill, like a focused chip.
 
