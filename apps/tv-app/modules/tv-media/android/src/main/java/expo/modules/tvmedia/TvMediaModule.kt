@@ -253,6 +253,10 @@ class TvMediaModule : Module() {
       AsyncFunction("selectTrack") { view: TvPlayerView, type: String, groupIndex: Int, trackIndex: Int ->
         view.selectTrack(type, groupIndex, trackIndex)
       }.runOnQueue(Queues.MAIN)
+
+      AsyncFunction("addSubtitle") { view: TvPlayerView, text: String, language: String, label: String ->
+        view.addSubtitle(text, language, label)
+      }.runOnQueue(Queues.MAIN)
     }
   }
 

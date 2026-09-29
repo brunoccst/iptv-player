@@ -175,10 +175,12 @@ export const playerState = {
   props: null as TvPlayerViewProps | null,
   seeks: [] as number[],
   trackSelections: [] as string[],
+  subtitles: [] as { text: string; language: string; label: string }[],
   reset() {
     this.props = null;
     this.seeks = [];
     this.trackSelections = [];
+    this.subtitles = [];
   },
 };
 
@@ -187,6 +189,10 @@ export const TvPlayerView = forwardRef<TvPlayerViewRef, TvPlayerViewProps>(funct
   useImperativeHandle(ref, () => ({
     seekTo: async (ms: number) => void playerState.seeks.push(ms),
     selectTrack: async (type: string, group: number, track: number) => void playerState.trackSelections.push(`${type}:${group}:${track}`),
+    addSubtitle: async (text: string, language: string, label: string) => {
+      playerState.subtitles.push({ text, language, label });
+      return true;
+    },
   }));
   return <View testID="tv-player-view" />;
 });

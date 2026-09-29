@@ -115,6 +115,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
 | [D-109](#d-109) | 2026-09-29 | Library updates reuse the names and titles that did not change |
 | [D-110](#d-110) | 2026-09-29 | Categories shown: a profile can leave categories out of browsing; search still finds them |
+| [D-111](#d-111) | 2026-09-29 | Automatic subtitles from OpenSubtitles.com, with the user's own API key |
 | [D-113](#d-113) | 2026-09-29 | Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log |
 
 ---
@@ -1848,6 +1849,20 @@ Decision (`profiles/hiddenCategories.ts`, `HiddenCategories` on TV/phone and des
 - **Hidden from browsing:** the category bars, the Movies and Series lists (a title goes only when every version is in a hidden category), Home rows, Live TV's channel lists and the guide.
 - **Not hidden:** search (titles and channels), My List, Continue watching, and the settings themselves.
 - It sits on top of the Kids filter (D-053, D-064): a Kids profile sees its kids categories minus the hidden ones; the menu entry is not offered to Kids profiles.
+
+## D-111
+
+**Automatic subtitles from OpenSubtitles.com, with the user's own API key** — 2026-09-29 (issue #103, raised by Ale)
+
+Context: many provider streams carry no subtitles, or none in the viewer's language. OpenSubtitles.com has a REST API; other sources (Subdl, Podnapisi, Addic7ed) are smaller or have no stable public API, so OpenSubtitles is the one supported.
+
+Decision (`subtitles/openSubtitles.ts`; TV/phone `SubtitleSettings`, `TvPlayerView.addSubtitle`; desktop `SubtitleSettings`, `tracks.ts`):
+
+- **Settings:** avatar menu → App → Automatic subtitles: on/off, the API key, an optional OpenSubtitles account, and the languages in order of preference. Kept on the device in secure storage (the key and password are secrets). There is no key built into the app: each user brings their own (free at opensubtitles.com, "API consumers").
+- **When:** a movie or episode that streams (not live TV, not downloads) starts playing and none of its own subtitle tracks is in a preferred language.
+- **What:** a search by title and year (movies) or by series title, season and episode, in the preferred languages. The first language that has a subtitle wins; within it, subtitles made by people come before machine or AI translations, trusted uploaders next, then the most downloaded. The subtitle is added to the player, turned on, and named in a short notice ("Subtitles: English · OpenSubtitles"). It is listed with the stream's own subtitles, so it can be switched off or changed.
+- **Quota:** without an account, OpenSubtitles allows 5 downloads per day per IP; with one, the account's quota (the app logs in and uses the server the login names). A downloaded subtitle is kept (the last 40), so watching again costs no download. When the quota is used up, the key is refused or nothing is found, the notice says so.
+- **Players:** the TV/phone player (ExoPlayer) sets the streamed item again with the SubRip file attached, from the current position. The desktop player converts it to WebVTT and adds it as a `<track>` after hls.js's own subtitles.
 
 ## D-113
 

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Alert, type AlertButton } from 'react-native';
 import { nativeState } from '../../test/tvMediaMock';
 import { App } from '../App';
-import { navStore, stores } from '../appContext';
+import { appContext, navStore, stores } from '../appContext';
 import { profile } from '../../test/utils';
 import { pressBack, setupApp } from '../../test/utils';
 
@@ -78,6 +78,36 @@ describe('account menu groups', () => {
     await act(async () => buttons.find((button) => button.text === 'Close the app')!.onPress!());
     expect(nativeState.calls).toContain('close-app');
     alert.mockRestore();
+  });
+});
+
+describe('App → Automatic subtitles (D-111)', () => {
+  it('saves the switch, the API key, the account and the languages in the order they were picked', async () => {
+    setupApp();
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-app'));
+    await fireEvent.press(screen.getByTestId('menu-subtitles'));
+    await fireEvent.press(screen.getByTestId('subtitle-settings-enabled'));
+    await fireEvent.changeText(screen.getByTestId('subtitle-settings-key'), ' abc123 ');
+    await fireEvent.changeText(screen.getByTestId('subtitle-settings-username'), 'ale');
+    await fireEvent.changeText(screen.getByTestId('subtitle-settings-password'), 'secret');
+    // English is picked by default; Portuguese (Brazil) goes before it once English is picked again.
+    await fireEvent.press(screen.getByTestId('subtitle-language-en'));
+    await fireEvent.press(screen.getByTestId('subtitle-language-pt-br'));
+    await fireEvent.press(screen.getByTestId('subtitle-language-en'));
+    expect(screen.getByTestId('subtitle-language-en')).toHaveTextContent('2. English');
+    await fireEvent.press(screen.getByTestId('subtitle-settings-save'));
+    await flush();
+    expect(appContext.subtitles.settings.getState().settings).toEqual({
+      enabled: true,
+      apiKey: 'abc123',
+      username: 'ale',
+      password: 'secret',
+      languages: ['pt-br', 'en'],
+    });
+    expect(screen.queryByTestId('subtitle-settings')).toBeNull();
   });
 });
 

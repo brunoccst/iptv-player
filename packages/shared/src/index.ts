@@ -40,3 +40,4 @@ export * from './design/icons';
 export * from './design/avatar';
 export * from './pairing/pairing';
 export * from './pairing/remote';
+export * from './subtitles/openSubtitles';
