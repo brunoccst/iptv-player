@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { describeLibraryProgress, t } from '@iptv/shared';
+import { stores } from '../appContext';
 import { useLibrary, useSession } from '../hooks';
 import { colors, fonts, radius, useSizes } from '../theme';
 
@@ -34,6 +36,29 @@ export function LibraryBanner({ processing }: { processing: boolean }) {
           ))}
         </>
       )}
+    </View>
+  );
+}
+
+/** How long the result of a refresh stays on screen. */
+export const NOTICE_MS = 8000;
+
+/**
+ * After a "Refresh library" the user started: what it did, e.g. "Your library is up to date: nothing new from your
+ * provider." (D-119). On every screen, for a few seconds.
+ */
+export function LibraryNotice() {
+  const notice = useLibrary((s) => s.refreshNotice);
+  const { gutter } = useSizes();
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => stores.library.getState().dismissRefreshNotice(), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  if (!notice) return null;
+  return (
+    <View style={[styles.banner, { left: gutter, right: gutter }]} testID="library-notice" accessibilityRole="alert" pointerEvents="none">
+      <Text style={styles.bannerText}>{notice}</Text>
     </View>
   );
 }

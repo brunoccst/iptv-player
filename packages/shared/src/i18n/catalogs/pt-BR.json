@@ -514,5 +514,10 @@
   "Your library is being organized. Titles appear here as soon as it is done.": "Sua biblioteca está sendo organizada. Os títulos aparecem aqui assim que terminar.",
   "Your library is empty. Is the title normalizer worker running?": "Sua biblioteca está vazia. O worker do normalizador de títulos está em execução?",
   "Your provider has no full TV guide. Showing what is available per channel.": "Seu provedor não tem guia de TV completo. Mostrando o que há disponível por canal.",
-  "Loading your library…": "Carregando sua biblioteca…"
+  "Loading your library…": "Carregando sua biblioteca…",
+  "The library could not be updated: {error}": "Não foi possível atualizar a biblioteca: {error}",
+  "unknown error": "erro desconhecido",
+  "Your library was updated.": "Sua biblioteca foi atualizada.",
+  "Your library is up to date: nothing new from your provider.": "Sua biblioteca está em dia: nada novo do seu provedor.",
+  "Library updated: {added} new, {changed} changed and {removed} removed titles.": "Biblioteca atualizada: {added} títulos novos, {changed} alterados e {removed} removidos."
 }

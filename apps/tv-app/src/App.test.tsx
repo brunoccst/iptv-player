@@ -82,6 +82,41 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('hero-play')).toBeTruthy();
   });
 
+  it('after "Refresh library" it says the library is up to date, then the message goes (D-119)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    const status = (jobStatus: string, changes: object | null) =>
+      ['movie', 'series'].map((mediaKind) => ({
+        mediaKind,
+        jobStatus,
+        itemCount: 1,
+        queuedAt: null,
+        finishedAt: null,
+        error: null,
+        masterCount: 1,
+        changes,
+      }));
+    let current = status('done', null);
+    backend.on('POST', '/api/library/sync', () => {
+      current = status('processing', null);
+      return { status: 202 };
+    });
+    backend.on('GET', '/api/library/status', () => ({ body: current }));
+
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.library.getState().sync()));
+    expect(screen.queryByTestId('library-notice')).toBeNull();
+
+    current = status('done', { added: 0, changed: 0, removed: 0 });
+    jest.useFakeTimers();
+    await act(async () => void (await stores.library.getState().refreshStatus()));
+    expect(screen.getByTestId('library-notice')).toHaveTextContent('Your library is up to date: nothing new from your provider.');
+    await act(async () => jest.advanceTimersByTime(8000));
+    expect(screen.queryByTestId('library-notice')).toBeNull();
+    jest.useRealTimers();
+  });
+
   it('shows provider login errors in plain language', async () => {
     const backend = setupApp({ signedIn: false });
     backend.on('POST', '/api/auth/login', { status: 401, body: { code: 'invalid_provider_credentials', detail: 'Invalid' } });

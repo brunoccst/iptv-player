@@ -514,5 +514,10 @@
   "Your library is being organized. Titles appear here as soon as it is done.": "Deine Mediathek wird gerade geordnet. Die Titel erscheinen hier, sobald das fertig ist.",
   "Your library is empty. Is the title normalizer worker running?": "Deine Mediathek ist leer. Läuft der Titel-Normalizer-Worker?",
   "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist.",
-  "Loading your library…": "Deine Mediathek wird geladen…"
+  "Loading your library…": "Deine Mediathek wird geladen…",
+  "The library could not be updated: {error}": "Die Mediathek konnte nicht aktualisiert werden: {error}",
+  "unknown error": "unbekannter Fehler",
+  "Your library was updated.": "Deine Mediathek wurde aktualisiert.",
+  "Your library is up to date: nothing new from your provider.": "Deine Mediathek ist aktuell: nichts Neues von deinem Anbieter.",
+  "Library updated: {added} new, {changed} changed and {removed} removed titles.": "Mediathek aktualisiert: {added} neue, {changed} geänderte und {removed} entfernte Titel."
 }

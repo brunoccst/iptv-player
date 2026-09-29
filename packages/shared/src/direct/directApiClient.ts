@@ -8,6 +8,7 @@ import type {
   EpgListing,
   LibrarySection,
   LibrarySort,
+  LibraryChanges,
   LibraryStatusProgress,
   LiveChannel,
   LoginRequest,
@@ -151,6 +152,18 @@ function compareMasters(sort: LibrarySort, order: SortOrder) {
     return result || ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1) || ordinal(a.id, b.id);
   };
 }
+/**
+ * Titles added, changed and removed against the last library (D-119); null on a first build. A reused title is
+ * unchanged; any other title whose id was there before counts as changed.
+ */
+function changesSince(previous: Master[] | undefined, masters: Master[], reused: number): LibraryChanges | null {
+  if (!previous?.length) return null;
+  const before = new Set(previous.map((master) => master.id));
+  let kept = 0;
+  for (const master of masters) if (before.has(master.id)) kept++;
+  return { added: masters.length - kept, changed: Math.max(0, kept - reused), removed: before.size - kept };
+}
+
 /** A sorted copy; a list already in that order (the saved library is newest first, D-117) is only checked, not sorted. */
 function inOrder(masters: Master[], compare: (a: Master, b: Master) => number): Master[] {
   for (let index = 1; index < masters.length; index++) {
@@ -381,10 +394,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
           let reused = '';
+          let reusedMasters = 0;
           const masters = await buildMastersInChunks(accountId, kind, items, {
             previous: previous?.[kind],
             hashIds: options.hashIds,
-            onReuse: (counts) => (reused = `, ${counts.names} names and ${counts.masters} titles unchanged`),
+            onReuse: (counts) => {
+              reused = `, ${counts.names} names and ${counts.masters} titles unchanged`;
+              reusedMasters = counts.masters;
+            },
             // Where the time goes, to see what to speed up (D-116).
             onTimings: (time) => {
               const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -416,7 +433,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             () => packLibraryText(queuedAt, newestFirst, yieldToUi),
             true,
           ).catch(() => undefined);
-          library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
+          library.status[kind] = {
+            ...library.status[kind],
+            jobStatus: 'done',
+            stage: null,
+            finishedAt: now().toISOString(),
+            changes: changesSince(previous?.[kind], masters, reusedMasters),
+          };
         } catch (error) {
           appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
           library.status[kind] = {

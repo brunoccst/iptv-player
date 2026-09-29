@@ -4,6 +4,7 @@ import { startStallWatch } from './diagnostics/stallWatch';
 import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
+import { LibraryNotice } from './components/LibraryBanner';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
 import { currentRoute, currentSection, type Section } from './navigation/navStore';
@@ -170,6 +171,7 @@ function Shell() {
       {route.name === 'details' ? null : <TopNav />}
       {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} /> : null}
       <AccountMenu />
+      {route.name === 'details' ? null : <LibraryNotice />}
     </View>
   );
 }

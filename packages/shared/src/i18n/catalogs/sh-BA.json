@@ -518,5 +518,10 @@
   "Your library is being organized. Titles appear here as soon as it is done.": "Biblioteka se sređuje. Naslovi će se pojaviti ovdje čim bude gotovo.",
   "Your library is empty. Is the title normalizer worker running?": "Biblioteka je prazna. Da li radi worker za normalizaciju naslova?",
   "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu.",
-  "Loading your library…": "Učitavanje biblioteke…"
+  "Loading your library…": "Učitavanje biblioteke…",
+  "The library could not be updated: {error}": "Biblioteka se nije mogla ažurirati: {error}",
+  "unknown error": "nepoznata greška",
+  "Your library was updated.": "Vaša biblioteka je ažurirana.",
+  "Your library is up to date: nothing new from your provider.": "Vaša biblioteka je ažurna: ništa novo od vašeg provajdera.",
+  "Library updated: {added} new, {changed} changed and {removed} removed titles.": "Biblioteka ažurirana: {added} novih, {changed} izmijenjenih i {removed} uklonjenih naslova."
 }

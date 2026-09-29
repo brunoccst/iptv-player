@@ -443,6 +443,18 @@
   font-size: 0.9rem;
 }
 
+/* The result of a "Refresh library" (D-119): floats at the bottom of any page. */
+.banner--notice {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 60;
+  margin: 0;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 2 * var(--gutter));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
 /* About and Log (account menu → App, D-079). */
 .about,

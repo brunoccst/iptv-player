@@ -249,7 +249,18 @@ export interface WatchlistRequest {
 /** Client-side extension of LibraryStatus: the stage and how many titles have been read (D-038). */
 /** `waiting`: downloaded, waiting for the other kind to finish grouping (D-093). */
 export type LibraryStage = 'downloading' | 'waiting' | 'grouping';
-export type LibraryStatusProgress = LibraryStatus & { stage?: LibraryStage | null; parsedCount?: number | null };
+/** What an update changed against the last library (D-119); none on a first build. */
+export interface LibraryChanges {
+  added: number;
+  changed: number;
+  removed: number;
+}
+
+export type LibraryStatusProgress = LibraryStatus & {
+  stage?: LibraryStage | null;
+  parsedCount?: number | null;
+  changes?: LibraryChanges | null;
+};
 /** The same stream on the provider's announced stream server (D-038). */
 export type PlaybackInfoWithAlternates = PlaybackInfo & { alternateUrls?: string[] };
 export type SortOrder = 'asc' | 'desc';

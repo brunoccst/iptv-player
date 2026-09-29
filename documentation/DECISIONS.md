@@ -123,7 +123,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-116](#d-116) | 2026-09-29 | Grouping: time per step in the Log; longer work slices between screen updates |
 | [D-117](#d-117) | 2026-09-29 | Faster start with a large saved library; "Loading your library…" on Home |
 | [D-118](#d-118) | 2026-09-29 | Faster grouping: title ids hashed natively, lighter similarity keys, each name read once |
-| [D-119](#d-119) | 2026-09-29 | "Refresh library" shows the update from the first press |
+| [D-119](#d-119) | 2026-09-29 | "Refresh library" shows the update from the first press, then says what it did |
 
 ---
 
@@ -1968,7 +1968,7 @@ Decision (`sha1.ts`, `pipeline.ts`, `matching.ts`, `parser.ts`, `Sha1Batch.kt`):
 
 ## D-119
 
-**"Refresh library" shows the update from the first press** — 2026-09-29 (reported by owner)
+**"Refresh library" shows the update from the first press, then says what it did** — 2026-09-29 (reported and requested by owner)
 
 Context: on the TV, the first "Refresh library" only seemed to close the menu; a second press showed the update. The update did start, but `library.sync()` answered before it had marked itself as "processing". The app's watcher, which polls while the store says "syncing", read the status once, still "done", and stopped when "syncing" ended a moment later: no banner, and nothing reloaded when that update finished. The second press found it already marked, so it showed.
 
@@ -1976,4 +1976,5 @@ Decision (`directApiClient.ts`, `libraryStore.ts`):
 
 - `library.sync()` answers once the update shows as "processing" (or has ended early, e.g. without a session).
 - The store's `sync()` then reads the status again before "syncing" ends. A status read still in flight from before the update is dropped, not shared, so its old "done" cannot win.
-- Applies to TV, phone and desktop (same store). Tests reproduce both halves; they fail without the fix.
+- **What it did:** when a refresh the user started ends, a message says so for 8 s (TV/phone: at the bottom of every screen; desktop: floating at the bottom, with Close): "Your library is up to date: nothing new from your provider.", or "Library updated: N new, N changed and N removed titles.", or that it failed. The update counts titles against the last library (`changes` in the status): an id not there before is new, one no longer there is removed, and a title that was there but not reused unchanged is changed. After a first build (nothing to compare with) it says "Your library was updated.". The automatic daily update shows no message.
+- Applies to TV, phone and desktop (same store). Tests reproduce both halves of the first-press bug; they fail without the fix.

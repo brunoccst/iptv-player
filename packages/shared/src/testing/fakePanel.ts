@@ -73,6 +73,8 @@ export function createFakePanel() {
     fetch,
     calls,
     nowSeconds,
+    /** The provider's movie list; tests add or remove entries to change what the next update finds. */
+    movies,
     offline: () => {
       down = true;
     },
