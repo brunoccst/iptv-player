@@ -55,9 +55,10 @@ import {
   type SeekDirection,
   type VariantInfo,
   t,
+  isFoundSubtitle,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
-import { api, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
+import { api, appContext, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
 import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -124,6 +125,8 @@ const CONTROLS_HIDE_MS = 4000;
 const BUTTONS_HIDE_MS = 8000;
 /** Two taps on the left/right third within this time seek ∓10 s (phones). */
 const DOUBLE_TAP_MS = 300;
+/** How long a notice (e.g. the subtitle OpenSubtitles added, D-111) stays up. */
+const NOTICE_MS = 4000;
 
 /**
  * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-075), ↑ the same
@@ -208,6 +211,39 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       else void playerRef.current?.selectTrack(type, -1, 0);
     }
   };
+  // OpenSubtitles (D-111): once per streamed source, when it plays and its own tracks are known; the stream's own
+  // subtitle in a preferred language wins. A short notice says what happened.
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
+  const movieYear = useLibrary((s) =>
+    target.kind === 'movie' && target.masterId ? s.details[`movies|${target.masterId}`]?.data?.year : null,
+  );
+  const subtitleFor = useRef<PlayerSource | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ready || !source?.uri || subtitleFor.current === source) return;
+    subtitleFor.current = source;
+    let cancelled = false;
+    const trackLanguages = tracksRef.current.filter((track) => track.type === 'text').map((track) => track.language);
+    void appContext.subtitles.find(target, { trackLanguages, year: movieYear ?? null }).then(async (found) => {
+      if (cancelled) return;
+      if (!isFoundSubtitle(found)) {
+        if (found.message) setNotice(found.message);
+        return;
+      }
+      const added = await playerRef.current?.addSubtitle(found.srt, found.language, found.label);
+      if (!cancelled && added) setNotice(t('Subtitles: {label}', { label: found.label }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, source, target, movieYear]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
   const chooseTrack = (type: 'audio' | 'text', groupIndex: number, trackIndex: number) => {
     void playerRef.current?.selectTrack(type, groupIndex, trackIndex);
     if (!usesPlaybackChoices(target)) return;
@@ -580,6 +616,11 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {!ready && !error ? <Loading label={t('Loading stream')} /> : null}
+      {notice && !error ? (
+        <View style={styles.notice} pointerEvents="none" testID="player-notice">
+          <Text style={styles.noticeText}>{notice}</Text>
+        </View>
+      ) : null}
       {error ? (
         <View style={styles.center}>
           <ErrorText>{error}</ErrorText>
@@ -863,6 +904,16 @@ const styles = StyleSheet.create({
   heading: { flexShrink: 1 },
   title: { color: colors.strong, fontWeight: '700' },
   subtitle: { color: colors.muted, fontSize: 14.4, marginTop: 2 },
+  notice: {
+    position: 'absolute',
+    top: 24,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  },
+  noticeText: { color: colors.strong, fontSize: 16 },
   live: {
     color: colors.strong,
     backgroundColor: colors.accent,

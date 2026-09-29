@@ -40,6 +40,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Open in another player (D-057, D-081) | ✅ any player app | ✅ any player app | ✅ desktop: VLC · ➖ browser | button next to Play in movie details, episode "…" menu; browsers cannot start other programs |
 | Downloads (offline) | ✅ | ✅ | ✅ | web: encrypted in the browser |
 | My List, search, category pages | ✅ | ✅ | ✅ | |
+| Automatic subtitles from OpenSubtitles (D-111) | ✅ | ✅ | ✅ | avatar → App → Automatic subtitles; user's own API key |
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | |
 | Backup and restore | ✅ | ✅ | ✅ | |
 | Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | |

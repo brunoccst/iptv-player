@@ -16,6 +16,7 @@ import { createWatchlistStore, type WatchlistStore } from './stores/watchlistSto
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 import { createUiLanguage, type UiLanguageControl } from './i18n/uiLanguage';
+import { createSubtitleService, type SubtitleService } from './subtitles/openSubtitles';
 
 export interface AppContext {
   config: AppConfig;
@@ -36,6 +37,8 @@ export interface AppContext {
   };
   /** The language of the app's own words (D-084): per profile, the device's last choice before one is open. */
   uiLanguage: UiLanguageControl;
+  /** Automatic subtitles from OpenSubtitles (D-111). */
+  subtitles: SubtitleService;
   /** Re-reads the saved login and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
   /** Tests only: answer every call from `api` instead of the provider (`null` goes back). */
@@ -143,6 +146,13 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   const pin = createPinStore({ session, storage });
   const uiLanguage = createUiLanguage({ storage: direct.dataStorage, session, profilePrefs, deviceLanguages });
   void uiLanguage.load();
+  const subtitles = createSubtitleService({
+    secureStorage: storage,
+    dataStorage: direct.dataStorage,
+    fetch,
+    userAgent: `${config.appName} v1`,
+  });
+  void subtitles.settings.getState().load();
 
   // Another language or other Kids categories (a new choice, or another profile's) mean other titles: drop cached lists.
   const filters = () => JSON.stringify([activeLanguage(), activePrefs()?.kidsCategories ?? null]);
@@ -220,6 +230,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
       replacement = next;
     },
     uiLanguage,
+    subtitles,
     stores: { session, catalog, epg, library, player, progress, watchlist, pin, profilePrefs },
   };
 }

@@ -16,7 +16,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 
 | Export | Description |
 |--------|-------------|
-| `TvPlayerView` | Props: `source` (`uri` + `isHls`, or `offlineId`), `paused`. Events: `onStatus`, `onProgress` (500 ms), `onTracks`, `onEnd`, `onError`. Ref: `seekTo(ms)`, `selectTrack(type, group, track)`. |
+| `TvPlayerView` | Props: `source` (`uri` + `isHls`, or `offlineId`), `paused`. Events: `onStatus`, `onProgress` (500 ms), `onTracks`, `onEnd`, `onError`. Ref: `seekTo(ms)`, `selectTrack(type, group, track)`, `addSubtitle(srt, language, label)` (OpenSubtitles, D-111; streams only). |
 | `TvMedia.startDownload(id, uri, isHls, metadataJson)` | Queues a download (foreground service). |
 | `TvMedia.pauseDownload / resumeDownload / removeDownload(id)` | Control a download. |
 | `TvMedia.removeAllDownloads()` | Deletes every download (sign-out, account change, D-050). |

@@ -33,8 +33,10 @@ import {
   usesPlaybackChoices,
   type VariantInfo,
   t,
+  isFoundSubtitle,
+  srtToVtt,
 } from '@iptv/shared';
-import { api, downloadsStore, stores, uiStore } from '../../appContext';
+import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
 import { useLibrary, useUi } from '../../hooks/stores';
@@ -49,11 +51,13 @@ import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
-import { activeSubtitle, audioTracks, showSubtitle, subtitleTracks } from './tracks';
+import { activeSubtitle, addSubtitle, audioTracks, removeAddedSubtitle, showSubtitle, subtitleTracks } from './tracks';
 import { usePauseOnAudioOutputLoss } from './audioOutput';
 
 const PROGRESS_SAVE_MS = 10_000;
 const IDLE_MS = 3000;
+/** How long a notice (e.g. the subtitle OpenSubtitles added, D-111) stays up. */
+const NOTICE_MS = 4000;
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -73,6 +77,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [buffered, setBuffered] = useState(0);
   const [volume, setVolume] = useState(1);
   const [muted, setMuted] = useState(false);
+  // A short message over the video, e.g. the subtitle OpenSubtitles added (D-111).
+  const [notice, setNotice] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
   const [panel, setPanel] = useState<'tracks' | 'episodes' | 'guide' | null>(null);
@@ -208,6 +214,21 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         }
         controller.signal.addEventListener('abort', stopWatching);
         applyChoices();
+        // OpenSubtitles (D-111): a subtitle in a preferred language when the stream has none of its own.
+        const year =
+          target.kind === 'movie' && target.masterId ? stores.library.getState().details[`movies|${target.masterId}`]?.data?.year : null;
+        void appContext.subtitles
+          .find(target, { trackLanguages: subtitleTracks(engine.hls, video).map((track) => track.language), year: year ?? null })
+          .then((found) => {
+            if (controller.signal.aborted) return;
+            if (!isFoundSubtitle(found)) {
+              if (found.message) setNotice(found.message);
+              return;
+            }
+            addSubtitle(engine.hls, video, srtToVtt(found.srt), found.language, found.label);
+            setNotice(t('Subtitles: {label}', { label: found.label }));
+            setTracksVersion((v) => v + 1);
+          });
       },
       (loadError: unknown) => {
         if (controller.signal.aborted) return;
@@ -219,6 +240,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
     return () => {
       controller.abort();
+      removeAddedSubtitle(video);
       saveProgress();
       previewRef.current?.destroy();
       previewRef.current = null;
@@ -229,6 +251,12 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     // Reload only when the playing item changes; saveProgress is refreshed with the same target.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target.kind, target.streamId]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   // Periodic progress save while playing.
   useEffect(() => {
@@ -597,6 +625,12 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           >
             <Icon name={skipOpen ? 'close' : 'forward10'} size={20} /> {t('Skip ahead')}
           </button>
+        </div>
+      ) : null}
+
+      {notice && status !== 'error' ? (
+        <div className="player__notice" role="status">
+          {notice}
         </div>
       ) : null}
 

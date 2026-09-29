@@ -14,6 +14,7 @@ import { openSyncWithPhone } from '../pairing/SyncWithPhone';
 import { avatarColor } from '../profiles/avatar';
 import { usePinGate } from '../profiles/PinDialog';
 import { LanguageSettings } from '../profiles/LanguageSettings';
+import { SubtitleSettings } from '../profiles/SubtitleSettings';
 import { PinSettings } from '../profiles/PinSettings';
 
 const LINKS: { view: View; label: () => string }[] = [
@@ -50,6 +51,7 @@ export function TopNav() {
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
   const [about, setAbout] = useState(false);
+  const [subtitleSettings, setSubtitleSettings] = useState(false);
   const [appLanguage, setAppLanguage] = useState(false);
   const uiLanguage = useUiLanguage();
   const [log, setLog] = useState(false);
@@ -224,6 +226,17 @@ export function TopNav() {
                         className="menu__item"
                         onClick={() => {
                           toggleMenu(false);
+                          setSubtitleSettings(true);
+                        }}
+                      >
+                        <Icon name="subtitles" size={18} /> {t('Automatic subtitles')}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu__item"
+                        onClick={() => {
+                          toggleMenu(false);
                           setAbout(true);
                         }}
                       >
@@ -313,6 +326,7 @@ export function TopNav() {
       {pinSettings ? <PinSettings onClose={() => setPinSettings(false)} /> : null}
       {backup ? <BackupDialog onClose={() => setBackup(false)} /> : null}
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
+      {subtitleSettings ? <SubtitleSettings onClose={() => setSubtitleSettings(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
       {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
       {log ? <LogDialog onClose={() => setLog(false)} /> : null}
