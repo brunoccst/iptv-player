@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
 import {
-  acceptPairing,
+  type PairingServer,
+  usePairingServer as usePairing,
   appLog,
   errorMessage,
-  pairingMessage,
-  pairingQrText,
   parsePairingQr,
   PairingFailure,
   sendPairing,
-  type PairingResult,
   t,
 } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
@@ -18,74 +15,32 @@ import { pairedTv, rememberPhone, remoteOffer } from './remote';
 /** Sign-in and media data only: device settings (the audio decoder, D-059) stay on each device (D-060). */
 const storages = { secure: backupStorages.secure, data: backupStorages.data };
 
-export type PairingServerState =
-  | { phase: 'starting' }
-  | { phase: 'ready'; qr: string; error: string | null }
-  | { phase: 'working'; qr: string }
-  | { phase: 'done'; mode: 'login' | 'sync'; accountName: string }
-  | { phase: 'offline' };
+export type { PairingServerState } from '@iptv/shared';
+
+/** The pairing server of the native module. */
+const server: PairingServer = {
+  start: () => TvMedia.startPairing(),
+  stop: () => TvMedia.stopPairing(),
+  respond: (id, status, body) => TvMedia.respondPairing(String(id), status, body),
+  onRequest: (listener) => {
+    const subscription = TvMedia.addListener('onPairingRequest', listener);
+    return () => subscription.remove();
+  },
+};
 
 /**
- * TV side (D-060): while mounted, the pairing server runs and `qr` holds the code to show. A phone that scans it signs
- * this TV in or merges its data; the app state is reloaded. Refused attempts (another account) keep the code valid.
+ * TV side (D-060), the shared hook (D-124): while mounted, the pairing server runs and `qr` holds the code to show.
+ * The phone also gets a key for remote play (D-061), kept here once pairing succeeded.
  */
-export function usePairingServer(): PairingServerState {
-  const [state, setState] = useState<PairingServerState>({ phase: 'starting' });
-  useEffect(() => {
-    let offer: ReturnType<typeof TvMedia.startPairing>;
-    try {
-      offer = TvMedia.startPairing();
-    } catch (error) {
-      appLog.warn('pairing', `server did not start: ${errorMessage(error)}`);
-      setState({ phase: 'offline' });
-      return;
-    }
-    if (!offer.host) {
-      TvMedia.stopPairing();
-      setState({ phase: 'offline' });
-      return;
-    }
-    const qr = pairingQrText({ host: offer.host, port: offer.port, key: offer.key });
-    setState({ phase: 'ready', qr, error: null });
-    let finished = false;
-    const subscription = TvMedia.addListener('onPairingRequest', ({ id, body }) => {
-      void (async () => {
-        if (finished) return TvMedia.respondPairing(id, 410, '');
-        try {
-          setState({ phase: 'working', qr });
-          // The phone also gets a key for remote play (D-061); kept here once pairing succeeded.
-          const remote = await remoteOffer();
-          const reply = await acceptPairing(storages, offer.key, body, { remote });
-          const result: PairingResult | null = reply.result;
-          if (result?.ok) finished = true;
-          TvMedia.respondPairing(id, reply.status, reply.body);
-          if (!result) {
-            appLog.warn('pairing', 'request with a wrong key ignored');
-            setState({ phase: 'ready', qr, error: null });
-          } else if (!result.ok) {
-            appLog.warn('pairing', `refused: ${result.error}`);
-            setState({ phase: 'ready', qr, error: pairingMessage(result.error) });
-          } else {
-            appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} with a phone`);
-            TvMedia.stopPairing();
-            await rememberPhone(remote);
-            await appContext.reload();
-            setState({ phase: 'done', mode: result.mode, accountName: result.accountName });
-          }
-        } catch (error) {
-          TvMedia.respondPairing(id, 500, '');
-          appLog.warn('pairing', errorMessage(error));
-          setState({ phase: 'ready', qr, error: t('Something went wrong. Scan the code again.') });
-        }
-      })();
-    });
-    return () => {
-      subscription.remove();
-      TvMedia.stopPairing();
-    };
-  }, []);
-  return state;
-}
+export const usePairingServer = () =>
+  usePairing(server, {
+    storages,
+    reload: () => appContext.reload(),
+    remoteOffer,
+    paired: async (remote) => {
+      if (remote) await rememberPhone(remote);
+    },
+  });
 
 /**
  * Phone side (D-060): scans the TV's QR code and pairs. Returns a message for the user, or null when the scan was
