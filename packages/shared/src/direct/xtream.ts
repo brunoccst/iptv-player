@@ -14,6 +14,7 @@ import type {
 } from '../api/types';
 import { appLog } from '../utils/logger';
 import { decodeMaybeBase64 } from './base64Text';
+import { NotAJsonArray, readJsonArray } from './jsonStream';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 import { t } from '../i18n/i18n';
 
@@ -82,7 +83,12 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     return `${credentials.serverUrl}${file}?${search}`;
   };
 
-  const getJson = async (action: string | null, parameters: Record<string, string> = {}, signal?: AbortSignal): Promise<Json> => {
+  /** Sends the request and checks the status; the caller reads the body. */
+  const request = async (
+    action: string | null,
+    parameters: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<{ response: Response; operation: string; started: number }> => {
     const fetchImpl = options.fetch ?? globalThis.fetch;
     const operation = action ?? 'login';
     const started = Date.now();
@@ -123,14 +129,62 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       appLog.error('provider', `${operation}: HTTP ${response.status} from ${host()} after ${Date.now() - started} ms`);
       throw unavailable(`${host()} answered HTTP ${response.status} for '${operation}'.`);
     }
+    return { response, operation, started };
+  };
+
+  const notJson = (operation: string, text: string) => {
+    const preview = text.replace(/\s+/g, ' ').trim().slice(0, 60);
+    return unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`);
+  };
+
+  const getJson = async (action: string | null, parameters: Record<string, string> = {}, signal?: AbortSignal): Promise<Json> => {
+    const { response, operation, started } = await request(action, parameters, signal);
     // Read as text: some panels send a byte-order mark or padding that JSON.parse rejects.
     const text = await response.text().catch(() => '');
     appLog.info('provider', `${operation}: HTTP ${response.status}, ${text.length} chars in ${Date.now() - started} ms`);
     try {
       return JSON.parse(text.replace(/^\uFEFF/, '').trim()) as Json;
     } catch {
-      const preview = text.replace(/\s+/g, ' ').trim().slice(0, 60);
-      throw unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`);
+      throw notJson(operation, text);
+    }
+  };
+
+  /**
+   * A list (movies, series, channels), read one entry at a time as it arrives (D-113): the whole reply as one text
+   * (100+ MB for a big catalog) ran TVs out of memory. `pick` keeps what the app needs from an entry (null = skip).
+   */
+  const getList = async <T>(
+    action: string,
+    parameters: Record<string, string>,
+    pick: (item: Json) => T | null,
+    signal?: AbortSignal,
+  ): Promise<T[]> => {
+    const { response, operation, started } = await request(action, parameters, signal);
+    const body = response.body as ReadableStream<Uint8Array> | null;
+    if (!body || typeof body.getReader !== 'function') {
+      // No stream (some test fetches): the whole reply at once.
+      const text = await response.text().catch(() => '');
+      appLog.info('provider', `${operation}: HTTP ${response.status}, ${text.length} chars in ${Date.now() - started} ms`);
+      let root: Json;
+      try {
+        root = JSON.parse(text.replace(/^\uFEFF/, '').trim()) as Json;
+      } catch {
+        throw notJson(operation, text);
+      }
+      return items(root).flatMap((item) => pick(item) ?? []);
+    }
+    try {
+      const { items: list, chars } = await readJsonArray(body, pick, (root) => items(root).flatMap((item) => pick(item) ?? []));
+      appLog.info(
+        'provider',
+        `${operation}: HTTP ${response.status}, ${chars} chars, ${list.length} entries in ${Date.now() - started} ms`,
+      );
+      return list;
+    } catch (error) {
+      if (error instanceof NotAJsonArray) throw notJson(operation, error.preview);
+      if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
+      appLog.error('provider', `${operation}: reading the list failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
     }
   };
 
@@ -221,23 +275,32 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     },
 
     async liveChannels(categoryId?: string | null, signal?: AbortSignal): Promise<LiveChannel[]> {
-      return items(await getJson('get_live_streams', categoryFilter(categoryId), signal))
-        .filter((item) => str(item, 'stream_id') !== null)
-        .map((item) => ({
-          id: str(item, 'stream_id')!,
-          name: str(item, 'name') ?? '',
-          categoryId: str(item, 'category_id'),
-          number: int(item, 'num'),
-          logoUrl: str(item, 'stream_icon'),
-          epgChannelId: str(item, 'epg_channel_id'),
-          hasCatchup: bool(item, 'tv_archive'),
-        }));
+      return getList(
+        'get_live_streams',
+        categoryFilter(categoryId),
+        (item): LiveChannel | null =>
+          str(item, 'stream_id') === null
+            ? null
+            : {
+                id: str(item, 'stream_id')!,
+                name: str(item, 'name') ?? '',
+                categoryId: str(item, 'category_id'),
+                number: int(item, 'num'),
+                logoUrl: str(item, 'stream_icon'),
+                epgChannelId: str(item, 'epg_channel_id'),
+                hasCatchup: bool(item, 'tv_archive'),
+              },
+        signal,
+      );
     },
 
     async movies(categoryId?: string | null, signal?: AbortSignal): Promise<MovieSummary[]> {
-      return items(await getJson('get_vod_streams', categoryFilter(categoryId), signal))
-        .filter((item) => str(item, 'stream_id') !== null)
-        .map(readMovieSummary);
+      return getList(
+        'get_vod_streams',
+        categoryFilter(categoryId),
+        (item) => (str(item, 'stream_id') === null ? null : readMovieSummary(item)),
+        signal,
+      );
     },
 
     async movie(movieId: string, signal?: AbortSignal): Promise<MovieDetails | null> {
@@ -265,9 +328,15 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     },
 
     async series(categoryId?: string | null, signal?: AbortSignal): Promise<SeriesSummary[]> {
-      return items(await getJson('get_series', categoryFilter(categoryId), signal))
-        .filter((item) => str(item, 'series_id') !== null)
-        .map((item) => readSeriesSummary(item, str(item, 'series_id')!));
+      return getList(
+        'get_series',
+        categoryFilter(categoryId),
+        (item) => {
+          const seriesId = str(item, 'series_id');
+          return seriesId === null ? null : readSeriesSummary(item, seriesId);
+        },
+        signal,
+      );
     },
 
     async seriesDetails(seriesId: string, signal?: AbortSignal): Promise<SeriesDetails | null> {

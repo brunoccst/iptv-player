@@ -16,6 +16,8 @@ export const nativeState = {
   calls: [] as string[],
   externalPlayerResult: 'chooser' as ExternalPlayerResult,
   ffmpegAudio: false,
+  /** The native crash the last run left (D-113). */
+  lastCrash: null as string | null,
   /** Phone-to-TV pairing (D-060): TV server state and what the phone's scanner returns. */
   pairingHost: '192.168.1.20' as string | null,
   pairingRunning: false,
@@ -55,6 +57,7 @@ export const nativeState = {
     this.calls = [];
     this.externalPlayerResult = 'chooser';
     this.ffmpegAudio = false;
+    this.lastCrash = null;
     this.pairingHost = '192.168.1.20';
     this.pairingRunning = false;
     this.pairingListeners.clear();
@@ -74,6 +77,20 @@ export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
+  takeLastCrash: () => {
+    const crash = nativeState.lastCrash;
+    nativeState.lastCrash = null;
+    return crash;
+  },
+  memoryInfo: () => ({
+    javaHeapMaxMb: 192,
+    javaHeapUsedMb: 20,
+    memoryClassMb: 192,
+    largeMemoryClassMb: 512,
+    deviceRamMb: 1400,
+    deviceFreeRamMb: 500,
+    lowRamDevice: false,
+  }),
   closeApp: async () => void nativeState.calls.push('close-app'),
   setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   addListener: ((

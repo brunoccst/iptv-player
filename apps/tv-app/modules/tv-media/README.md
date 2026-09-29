@@ -27,3 +27,5 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `onDownloadsChanged` event | Fired on state changes (not on every progress tick). |
 
 Tests replace this module with `test/tvMediaMock.tsx` (Jest `moduleNameMapper`).
+
+`CrashLog.kt` (D-113): a native crash is written to `last-crash.txt` and handed to the next start (`takeLastCrash()`), which puts it in the Log; `memoryInfo()` reports the Java heap limit and the device's RAM.
