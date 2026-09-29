@@ -37,6 +37,7 @@ flowchart LR
 - [x] **TV: focus stays on "Show all" / "Show less"** (D-114): opening the category box no longer moves the focus to the chosen category.
 - [x] **TV/phone: native list reading** (D-115): the provider's movie, series and channel lists are downloaded and cut into batches by native code on another thread; JavaScript only parses the batches.
 - [x] **Grouping time per step** (D-116): the Log shows how long each grouping step took; work slices between screen updates are 250 ms instead of 50 ms.
+- [x] **Faster start, "Loading your library…"** (D-117): a large saved library is kept newest first (no sort for the first list), unpacked in slices, and Home shows a spinner until the first list answers.
 - [x] **Faster grouping** (D-118): title ids hashed by native code on TV/phone, a faster SHA-1 in JavaScript, lighter similarity keys, and each distinct name read once per update.
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.

@@ -121,6 +121,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-114](#d-114) | 2026-09-29 | TV: after "Show all" the focus stays on the button ("Show less") |
 | [D-115](#d-115) | 2026-09-29 | TV/phone: provider lists are read by native code on another thread |
 | [D-116](#d-116) | 2026-09-29 | Grouping: time per step in the Log; longer work slices between screen updates |
+| [D-117](#d-117) | 2026-09-29 | Faster start with a large saved library; "Loading your library…" on Home |
 | [D-118](#d-118) | 2026-09-29 | Faster grouping: title ids hashed natively, lighter similarity keys, each name read once |
 
 ---
@@ -1936,6 +1937,20 @@ Decision (`buildMastersInChunks` in `normalizer/pipeline.ts`, `directApiClient.t
 - **Time per step in the Log**, without the breaks and without the other list's grouping when it runs in between: "movie: grouping steps: names …, exact matches …, similarity keys …, similar names …, TMDB …, titles …, sorting …, waiting for the screen … (N breaks)".
 - **Work slices of 250 ms instead of 50 ms.** Each break for the screen waits at least a frame (16 ms or more on a busy TV), so 50 ms slices could spend a fifth of the time or more waiting. The progress bar and the remote still get a turn 4 times a second.
 - **First measurement** (160k made-up provider names, Hermes without JIT on a PC, about 9× faster than the Chromecast): 35 s in total: similar names 17.4 s, reading names 10.6 s, building titles 4.4 s, similarity keys 1.5 s, the rest about 1 s. The Chromecast's own numbers decide what to speed up next.
+
+## D-117
+
+**Faster start with a large saved library; "Loading your library…" on Home** — 2026-09-29 (requested by owner)
+
+Context: on a Chromecast with 110k movie titles, Home showed nothing for about 26 s after a restart, with JavaScript busy for 18.5 s and no sign of life. The Log: reading the saved movie library 11.5 s (series 2.9 s), the first movies list 6.5 s (series 1.8 s). The first list sorts all titles newest first and builds a category index with one `Set` per title.
+
+Decision (`directApiClient.ts`, `libraryCodec.ts`, TV `HomeScreen.tsx`):
+
+- **Saved newest first:** after grouping, the titles are kept and saved in the order Home and the lists ask for first (newest first). After a restart that list is only checked (one pass), not sorted.
+- **Lighter category index:** each title's category ids are a small array instead of a `Set` (one per title cost seconds for 100k titles on a TV).
+- **Unpacked in slices:** the saved library is unpacked in slices of about 100 ms with a break between them, and there is a break after reading the files and after `JSON.parse`, so the app keeps reacting.
+- **The Log says where the time goes:** "…movie: read … chars in … ms (file … ms, JSON … ms, titles … ms)".
+- **Feedback (TV/phone):** until the first list answers, Home shows a spinner and "Loading your library…" where the hero goes. Android's spinner turns on the UI thread, so it keeps moving even while JavaScript is busy. The desktop app reads its library in well under a second and shows no placeholder.
 
 ## D-118
 

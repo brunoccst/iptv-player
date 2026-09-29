@@ -517,5 +517,6 @@
   "Your IPTV subscription has expired. Downloads play again once it is renewed and the app is online.": "Tvoja IPTV pretplata je istekla. Preuzimanja će ponovo raditi kad se obnovi i aplikacija bude na mreži.",
   "Your library is being organized. Titles appear here as soon as it is done.": "Biblioteka se sređuje. Naslovi će se pojaviti ovdje čim bude gotovo.",
   "Your library is empty. Is the title normalizer worker running?": "Biblioteka je prazna. Da li radi worker za normalizaciju naslova?",
-  "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu."
+  "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu.",
+  "Loading your library…": "Učitavanje biblioteke…"
 }

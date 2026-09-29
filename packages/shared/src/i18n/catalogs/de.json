@@ -513,5 +513,6 @@
   "Your IPTV subscription has expired. Downloads play again once it is renewed and the app is online.": "Dein IPTV-Abo ist abgelaufen. Downloads laufen wieder, sobald es verlängert ist und die App online ist.",
   "Your library is being organized. Titles appear here as soon as it is done.": "Deine Mediathek wird gerade geordnet. Die Titel erscheinen hier, sobald das fertig ist.",
   "Your library is empty. Is the title normalizer worker running?": "Deine Mediathek ist leer. Läuft der Titel-Normalizer-Worker?",
-  "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist."
+  "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist.",
+  "Loading your library…": "Deine Mediathek wird geladen…"
 }
