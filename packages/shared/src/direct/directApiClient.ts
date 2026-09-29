@@ -25,7 +25,7 @@ import type {
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
-import { LIBRARY_FORMAT, packLibraryText, unpackLibrary } from './libraryCodec';
+import { LIBRARY_FORMAT, packLibraryText, unpackLibraryInSlices } from './libraryCodec';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -149,6 +149,21 @@ function compareMasters(sort: LibrarySort, order: SortOrder) {
     return result || ordinal(a.title, b.title) || (a.year ?? -1) - (b.year ?? -1) || ordinal(a.id, b.id);
   };
 }
+/** A sorted copy; a list already in that order (the saved library is newest first, D-117) is only checked, not sorted. */
+function inOrder(masters: Master[], compare: (a: Master, b: Master) => number): Master[] {
+  for (let index = 1; index < masters.length; index++) {
+    if (compare(masters[index - 1]!, masters[index]!) > 0) return [...masters].sort(compare);
+  }
+  return [...masters];
+}
+
+/** The distinct category ids of a title's versions. */
+function categoryIdsOf(master: Master): string[] {
+  const ids: string[] = [];
+  for (const variant of master.variants) if (variant.categoryId !== null && !ids.includes(variant.categoryId)) ids.push(variant.categoryId);
+  return ids;
+}
+
 function availableSorts(masters: Master[]): LibrarySort[] {
   const sorts: LibrarySort[] = [];
   if (masters.some((master) => master.addedAt !== null)) sorts.push('added');
@@ -278,6 +293,38 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   };
   const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
+  /**
+   * A saved library, unpacked in slices so the screen keeps running (D-117). The Log says where the time went: reading
+   * the files, JSON.parse, or making the titles.
+   */
+  const readSavedLibrary = async (key: string) => {
+    const started = Date.now();
+    try {
+      const text = await options.dataStorage.getItem(key);
+      if (!text) {
+        appLog.info('storage', `${key}: nothing saved`);
+        return null;
+      }
+      const read = Date.now();
+      await yieldToUi();
+      const parseStarted = Date.now();
+      const value = JSON.parse(text) as unknown;
+      const parsed = Date.now();
+      await yieldToUi();
+      const unpackStarted = Date.now();
+      const library = await unpackLibraryInSlices(value, yieldToUi);
+      appLog.info(
+        'storage',
+        `${key}: read ${text.length} chars in ${Date.now() - started} ms (file ${read - started} ms, JSON ${parsed - parseStarted} ms, ` +
+          `titles ${Date.now() - unpackStarted} ms)`,
+      );
+      return library;
+    } catch (error) {
+      appLog.error('storage', `${key}: read failed after ${Date.now() - started} ms: ${errorMessage(error)}`);
+      return null;
+    }
+  };
+
   const syncLibrary = (): Promise<void> => {
     if (library.running) return library.running;
     library.running = (async () => {
@@ -350,11 +397,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms${reused}`);
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
-          library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
+          // Kept and saved newest first, the order Home and the lists ask for first: after a restart that list needs no
+          // sort (D-117).
+          const newestFirst = [...masters].sort(compareMasters('added', 'desc'));
+          library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
           await writeText(
             options.dataStorage,
             libraryKey(accountId, kind),
-            () => packLibraryText(queuedAt, masters, yieldToUi),
+            () => packLibraryText(queuedAt, newestFirst, yieldToUi),
             true,
           ).catch(() => undefined);
           library.status[kind] = { ...library.status[kind], jobStatus: 'done', stage: null, finishedAt: now().toISOString() };
@@ -402,7 +452,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       const promise = Promise.all(
         (['movie', 'series'] as const).map(async (kind) => {
           void Promise.resolve(options.dataStorage.removeItem(oldLibraryKey(accountId, kind))).catch(() => undefined);
-          return unpackLibrary(await readJson<unknown>(options.dataStorage, libraryKey(accountId, kind), true));
+          return readSavedLibrary(libraryKey(accountId, kind));
         }),
       ).then(([movie, series]) => {
         // A missing kind counts as very old, so the background refresh fills it in; the other kind still shows.
@@ -433,17 +483,16 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   /** Per library version: id lookup, category membership and each requested order, built once (not on every list()). */
   interface LibraryIndex {
     byId: Map<string, Master>;
-    categories: Map<string, Set<string>>;
+    /** Each title's category ids (arrays: one Set per title cost seconds for 100k titles on a TV). */
+    categories: Map<string, string[]>;
     orders: Map<string, { all: Master[]; byCategory: Map<string, Master[]> }>;
   }
   const indexes = new WeakMap<Master[], LibraryIndex>();
   const indexFor = (masters: Master[]) => {
     let index = indexes.get(masters);
     if (!index) {
-      const categories = new Map<string, Set<string>>();
-      for (const master of masters) {
-        categories.set(master.id, new Set(master.variants.flatMap((variant) => variant.categoryId ?? [])));
-      }
+      const categories = new Map<string, string[]>();
+      for (const master of masters) categories.set(master.id, categoryIdsOf(master));
       index = { byId: new Map(masters.map((master) => [master.id, master])), categories, orders: new Map() };
       indexes.set(masters, index);
     }
@@ -454,7 +503,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const key = `${sort}|${order}`;
     let result = index.orders.get(key);
     if (!result) {
-      const all = [...masters].sort(compareMasters(sort, order));
+      const all = inOrder(masters, compareMasters(sort, order));
       const byCategory = new Map<string, Master[]>();
       for (const master of all) {
         for (const categoryId of index.categories.get(master.id) ?? []) {
@@ -481,13 +530,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   /** A list without the titles whose every version is in a hidden category; kept per list and hidden set (D-110). */
   const withoutHiddenCache = new WeakMap<Master[], { key: string; masters: Master[] }>();
-  const withoutHidden = (list: Master[], categoriesOf: Map<string, Set<string>>, hidden: Set<string>, ids: string[]) => {
+  const withoutHidden = (list: Master[], categoriesOf: Map<string, string[]>, hidden: Set<string>, ids: string[]) => {
     const key = [...ids].sort().join('|');
     const cached = withoutHiddenCache.get(list);
     if (cached?.key === key) return cached.masters;
     const masters = list.filter((master) => {
       const categories = categoriesOf.get(master.id);
-      if (!categories || categories.size === 0) return true;
+      if (!categories || categories.length === 0) return true;
       for (const id of categories) if (!hidden.has(id)) return true;
       return false;
     });
@@ -820,7 +869,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const inCategory = query.categoryId ? (index.byCategory.get(query.categoryId) ?? []) : index.all;
         const categoriesOf = indexFor(masters).categories;
         const inAllowed = allowed
-          ? inCategory.filter((master) => [...(categoriesOf.get(master.id) ?? [])].some((id) => allowed.has(id)))
+          ? inCategory.filter((master) => (categoriesOf.get(master.id) ?? []).some((id) => allowed.has(id)))
           : inCategory;
         // Hidden categories (D-110): a title goes only when every version is in one; search ignores them.
         const hidden = !search && query.hiddenCategoryIds?.length ? new Set(query.hiddenCategoryIds) : null;

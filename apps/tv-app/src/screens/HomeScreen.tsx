@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
-import { FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   continueWatching,
   cardMenuItems,
@@ -40,6 +40,9 @@ const SERIES_ROWS = 3;
 /** Same as the web Home: hero, library banner, Continue Watching, Live TV, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.data?.items ?? []);
+  // Until the first list answers, the saved library is still being read (seconds for 100k+ titles on a TV, D-117).
+  const featuredStatus = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.status ?? 'idle');
+  const loading = featured.length === 0 && (featuredStatus === 'idle' || featuredStatus === 'loading');
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
   const seriesCategories = useCatalog((s) => s.categories.series?.data ?? []);
   const { rowGap } = useSizes();
@@ -105,7 +108,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
           scrollEventThrottle={100}
           onScroll={(event) => onScroll(event.nativeEvent.contentOffset.y)}
         >
-          <Hero candidates={featured} />
+          {loading ? <LibraryLoading /> : <Hero candidates={featured} />}
           {rows.map(renderRow)}
           <View style={styles.bottom} />
         </ScrollView>
@@ -121,7 +124,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
         testID="home-screen"
         data={rows}
         keyExtractor={(row) => row.key}
-        ListHeaderComponent={<Hero candidates={featured} />}
+        ListHeaderComponent={loading ? <LibraryLoading /> : <Hero candidates={featured} />}
         renderItem={({ item, index }) => renderRow(item, index)}
         ListFooterComponent={<View style={styles.bottom} />}
         // FlatList detaches off-screen children on Android by default; keep them attached (nested horizontal rows).
@@ -246,6 +249,20 @@ function LiveRow() {
   );
 }
 
+/**
+ * Where the hero goes, while the saved library is read after a start (D-117). Android's spinner turns on the UI
+ * thread, so it keeps moving even while JavaScript is busy unpacking the library.
+ */
+function LibraryLoading() {
+  const { height } = useWindowDimensions();
+  return (
+    <View style={[styles.loading, { height: Math.round(height * 0.6) }]} testID="home-loading" accessibilityRole="progressbar">
+      <ActivityIndicator size="large" color={colors.accent} />
+      <Text style={styles.loadingText}>{t('Loading your library…')}</Text>
+    </View>
+  );
+}
+
 /** Web `.hero`: featured movie backdrop with the two shades, big title, plot, Play and More Info. */
 function Hero({ candidates }: { candidates: MasterCard[] }) {
   const featured = useMemo(() => {
@@ -322,6 +339,8 @@ const styles = StyleSheet.create({
   rows: { zIndex: 1 },
   bottom: { height: 60 },
   hero: { overflow: 'hidden' },
+  loading: { alignItems: 'center', justifyContent: 'center', gap: 16 },
+  loadingText: { color: colors.text, fontSize: 18 },
   heroContent: { position: 'absolute' },
   heroTitle: { color: colors.strong, fontWeight: '900', lineHeight: undefined, marginBottom: 12, ...shadow },
   heroPlot: { color: colors.text, marginBottom: 20, ...shadow },
