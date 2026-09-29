@@ -18,7 +18,12 @@ const partFor = (key: string, index: number) => new File(folder(), `${safe(key)}
  * 192 MB Java heap. The main file then holds only `PARTS` and the number of parts.
  */
 export const PART_CHARS = 4_000_000;
-const PARTS = '\u0000parts:';
+/**
+ * Starts the main file of a value in parts. Plain ASCII that no JSON text starts with. (It used to begin with a NUL
+ * character, but Expo hands text to Android as a C string that ends at the first NUL, so the file was saved empty and
+ * the library read as "nothing saved" at every start.)
+ */
+const PARTS = '#parts:';
 
 /**
  * Files being read. The native file object can be released when JS no longer references it, even while `text()` is

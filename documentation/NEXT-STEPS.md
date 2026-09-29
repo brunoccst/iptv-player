@@ -33,7 +33,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
-- [x] **Out of memory on low-memory TVs** (issue #109, D-113): provider lists are read one entry at a time instead of as one 100+ MB text; the saved library is kept in 4 MB parts; the app asks Android for a larger heap; a native crash (like this one) and the device's memory now show in the Log. Lists are parsed in batches of about 500k characters, as fast as reading the whole text.
+- [x] **Out of memory on low-memory TVs** (issue #109, D-113): provider lists are read one entry at a time instead of as one 100+ MB text; the saved library is kept in 4 MB parts; the app asks Android for a larger heap; a native crash (like this one) and the device's memory now show in the Log. Lists are parsed in batches of about 500k characters, as fast as reading the whole text. A library saved in parts is read back again (its index file lost everything after a NUL on Android), and the app keeps reacting while lists download.
 - [x] **TV: focus stays on "Show all" / "Show less"** (D-114): opening the category box no longer moves the focus to the chosen category.
 - [x] **TV/phone: native list reading** (D-115): the provider's movie, series and channel lists are downloaded and cut into batches by native code on another thread; JavaScript only parses the batches.
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
