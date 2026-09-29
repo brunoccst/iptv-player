@@ -116,6 +116,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-109](#d-109) | 2026-09-29 | Library updates reuse the names and titles that did not change |
 | [D-110](#d-110) | 2026-09-29 | Categories shown: a profile can leave categories out of browsing; search still finds them |
 | [D-111](#d-111) | 2026-09-29 | Automatic subtitles from OpenSubtitles.com, with the user's own API key |
+| [D-112](#d-112) | 2026-09-29 | TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" and "BL - …" prefixes |
 
 ---
 
@@ -1862,3 +1863,19 @@ Decision (`subtitles/openSubtitles.ts`; TV/phone `SubtitleSettings`, `TvPlayerVi
 - **What:** a search by title and year (movies) or by series title, season and episode, in the preferred languages. The first language that has a subtitle wins; within it, subtitles made by people come before machine or AI translations, trusted uploaders next, then the most downloaded. The subtitle is added to the player, turned on, and named in a short notice ("Subtitles: English · OpenSubtitles"). It is listed with the stream's own subtitles, so it can be switched off or changed.
 - **Quota:** without an account, OpenSubtitles allows 5 downloads per day per IP; with one, the account's quota (the app logs in and uses the server the login names). A downloaded subtitle is kept (the last 40), so watching again costs no download. When the quota is used up, the key is refused or nothing is found, the notice says so.
 - **Players:** the TV/phone player (ExoPlayer) sets the streamed item again with the SubRip file attached, from the current position. The desktop player converts it to WebVTT and adds it as a `<track>` after hls.js's own subtitles.
+
+## D-112
+
+**TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" and "BL - …" prefixes** — 2026-09-29 (requested by owner)
+
+Context:
+
+- With the avatar menu open, Down past its last item walked into the page (categories, titles).
+- "Show all" still scrolled the page down to the titles (after D-108): the button is replaced when the bar changes shape, the focus passes through a title of the grid (which scrolls the page to it) and only then reaches the chosen category, which no longer centered anything.
+- Some of the owner's Polish titles are named "PL = Title"; many Indian films are named "BL - Title" (BL = Bollywood, not a language).
+
+Decision:
+
+- **Menu:** the open menu traps the D-pad in every direction; Back (or a pick) closes it.
+- **Show all:** a category in the box centers the whole box in the page, so the page comes back to the box whatever the focus passed through.
+- **"=" prefixes:** "=" separates a prefix group like ":" and " - " do. The group must still be known tags in capitals ("PL = Title" → Polish), so "E=MC2" or "ABC = Murders" stay titles. "BL - " (Bollywood) is dropped from the name as a leading prefix group, with no language, so "BL - Amaanat" is "Amaanat" and joins its other versions. The library rules version goes to 5 (regrouped once).
