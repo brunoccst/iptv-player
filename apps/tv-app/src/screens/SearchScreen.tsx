@@ -151,7 +151,8 @@ function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
   useEffect(() => {
     let cancelled = false;
     const needle = query.toLowerCase();
-    api.catalog.liveChannels(null).then(
+    // Search also finds channels in hidden categories (D-110).
+    api.catalog.liveChannels(null, undefined, { includeHidden: true }).then(
       (all) => !cancelled && setChannels(all.filter((channel) => channel.name.toLowerCase().includes(needle)).slice(0, MAX_CHANNELS)),
       () => !cancelled && setChannels([]),
     );

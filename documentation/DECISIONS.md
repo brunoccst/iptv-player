@@ -114,6 +114,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups |
 | [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
 | [D-109](#d-109) | 2026-09-29 | Library updates reuse the names and titles that did not change |
+| [D-110](#d-110) | 2026-09-29 | Categories shown: a profile can leave categories out of browsing; search still finds them |
 
 ---
 
@@ -1833,3 +1834,16 @@ Decision (`direct/normalizer/pipeline.ts`, `libraryCodec.ts`, `directApiClient.t
 - The result is the same as a full rebuild (tests compare both). A library built with older title rules is never reused.
 - The log says how many names and titles were reused ("… 159500 names and 3929 titles unchanged").
 - Measured on a PC, 160,000 names with 500 removed and 300 new: 1.8 s → 0.45 s. The download is unchanged.
+
+## D-110
+
+**Categories shown: a profile can leave categories out of browsing; search still finds them** — 2026-09-29 (issue #104, raised by Ale)
+
+Context: providers send hundreds of categories for Live TV, Movies and Series, many of no interest (other countries, shopping, adult). The category bars and lists grow too long to browse.
+
+Decision (`profiles/hiddenCategories.ts`, `HiddenCategories` on TV/phone and desktop):
+
+- **Where:** avatar menu → Profiles → Categories shown: the categories per section (Movies, Series, Live TV), all checked at first; unchecked ones are hidden. Saved per profile on the device, like the content language filter (D-063); applied when saved (every list reloads).
+- **Hidden from browsing:** the category bars, the Movies and Series lists (a title goes only when every version is in a hidden category), Home rows, Live TV's channel lists and the guide.
+- **Not hidden:** search (titles and channels), My List, Continue watching, and the settings themselves.
+- It sits on top of the Kids filter (D-053, D-064): a Kids profile sees its kids categories minus the hidden ones; the menu entry is not offered to Kids profiles.

@@ -17,6 +17,11 @@ export interface ProfilePrefs {
    * name rule (D-053); an empty list shows nothing of that section.
    */
   kidsCategories?: Partial<Record<CatalogSection, string[] | null>> | null;
+  /**
+   * Categories hidden from browsing per section (D-110): not in the category bars, lists, Home rows or the guide;
+   * search still finds their titles and channels.
+   */
+  hiddenCategories?: Partial<Record<CatalogSection, string[]>> | null;
   /** Series titles (master ids) with every episode watched: the tag on their covers (D-082). */
   watchedSeries?: string[] | null;
   /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
