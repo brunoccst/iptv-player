@@ -4,6 +4,7 @@ import { groupTitles, groupTitlesAsync, ratio } from './matching';
 import { normalizeKey, parseTitle } from './parser';
 import { buildMasters, buildMastersInChunks } from './pipeline';
 import { sha1Hex } from './sha1';
+import { packLibrary, unpackLibrary } from '../libraryCodec';
 
 /** The JSON cases in `cases/` (D-017, D-038). */
 const load = (name: string) => JSON.parse(readFileSync(new URL(`./cases/${name}.json`, import.meta.url), 'utf8'));
@@ -144,5 +145,61 @@ describe('grouping large libraries (D-038)', () => {
     order.push('movies done');
     expect(order).toEqual(['movies started', 'series grouped', 'movies done']);
     expect(masters).toEqual(buildMasters('acc', 'movie', items));
+  });
+});
+
+describe('updates reuse the last library (D-109)', () => {
+  const yesterday = [
+    { id: 1, name: 'EN - Big Movie (2020) [4K]', categoryId: '1', posterUrl: 'http://img/a.jpg', rating: 7, addedAt: 100 },
+    { id: 2, name: 'Big.Movie.2020.1080p.WEB-DL', categoryId: '1', addedAt: 90 },
+    { id: 3, name: 'Other Film (2019)', categoryId: '2', addedAt: 80 },
+    { id: 4, name: 'Old Show (2001) SUB ITA', categoryId: '2', addedAt: 70 },
+    { id: 5, name: 'Renamed Soon (2018)', categoryId: '3', addedAt: 60 },
+    { id: 6, name: 'Moves Category (2017)', categoryId: '3', addedAt: 50 },
+    { id: 7, name: 'Dated By Release', categoryId: '3', releaseDate: '2015-04-01', addedAt: 40 },
+  ];
+  const today = [
+    ...yesterday.filter((item) => item.id !== 4 && item.id !== 5 && item.id !== 6),
+    // A new version of an existing title, a renamed one, one in another category, a brand-new title.
+    { id: 8, name: 'Big Movie (2020) CAM', categoryId: '1', addedAt: 200 },
+    { id: 5, name: 'Renamed Now (2018)', categoryId: '3', addedAt: 60 },
+    { id: 6, name: 'Moves Category (2017)', categoryId: '9', addedAt: 50 },
+    { id: 9, name: 'Brand New (2026)', categoryId: '4', addedAt: 300 },
+  ];
+
+  it('gives the same library as a full rebuild, and reuses what did not change', async () => {
+    const previous = buildMasters('acc', 'movie', yesterday);
+    let counts = { names: 0, masters: 0 };
+    const updated = await buildMastersInChunks('acc', 'movie', today, { previous, onReuse: (reused) => (counts = reused) });
+    expect(updated).toEqual(buildMasters('acc', 'movie', today));
+    // Names 1, 2, 3, 6 and 7 were seen yesterday; only "Other Film" is the same title with the same versions ("Big
+    // Movie" got a version, 6 moved, 7 has a release date).
+    expect(counts).toEqual({ names: 5, masters: 1 });
+    expect(updated.find((master) => master.title === 'Other Film')).toBe(previous.find((master) => master.title === 'Other Film'));
+  });
+
+  it('also after a save and load, and nothing is reused from a library saved before', async () => {
+    const saved = unpackLibrary(JSON.parse(JSON.stringify(packLibrary('2026-09-28T00:00:00Z', buildMasters('acc', 'movie', yesterday)))))!;
+    let counts = { names: 0, masters: 0 };
+    const updated = await buildMastersInChunks('acc', 'movie', today, { previous: saved.masters, onReuse: (reused) => (counts = reused) });
+    expect(updated).toEqual(buildMasters('acc', 'movie', today));
+    expect(counts).toEqual({ names: 5, masters: 1 });
+
+    const before = saved.masters.map((master) => ({
+      ...master,
+      variants: master.variants.map(({ cleanTitle: _title, nameYear: _year, ...variant }) => variant),
+    }));
+    const rebuilt = await buildMastersInChunks('acc', 'movie', today, { previous: before, onReuse: (reused) => (counts = reused) });
+    expect(rebuilt).toEqual(buildMasters('acc', 'movie', today));
+    expect(counts).toEqual({ names: 0, masters: 0 });
+  });
+
+  it('an unchanged day reuses everything', async () => {
+    const previous = buildMasters('acc', 'movie', today);
+    let counts = { names: 0, masters: 0 };
+    const updated = await buildMastersInChunks('acc', 'movie', today, { previous, onReuse: (reused) => (counts = reused) });
+    expect(updated).toEqual(previous);
+    // Every name; every title except the one with a release date.
+    expect(counts).toEqual({ names: today.length, masters: previous.length - 1 });
   });
 });

@@ -280,6 +280,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       const { stored, client } = await session();
       const accountId = stored.account.id;
       await loadLibrary();
+      // The last library, when built with the current title rules (older rules load as built at time 0): unchanged names
+      // and titles are reused, so a daily update only works on what changed (D-109).
+      const previous = library.data && Date.parse(library.data.builtAt) > 0 ? library.data : null;
       const queuedAt = now().toISOString();
       appLog.info('library', `sync started (saved copy: ${library.data ? `built ${library.data.builtAt}` : 'none'})`);
       for (const kind of ['movie', 'series'] as const)
@@ -318,7 +321,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
+          let reused = '';
           const masters = await buildMastersInChunks(accountId, kind, items, {
+            previous: previous?.[kind],
+            onReuse: (counts) => (reused = `, ${counts.names} names and ${counts.masters} titles unchanged`),
             onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
             // A smaller list that arrives meanwhile (series while 100k movies group) is grouped and shown first.
             yieldTo: () => {
@@ -327,7 +333,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               return waiting && !grouping.has(other) && waiting.length < items.length ? start(other) : null;
             },
           });
-          appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms`);
+          appLog.info('library', `${kind}: grouped into ${masters.length} titles in ${Date.now() - groupStarted} ms${reused}`);
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: masters };
