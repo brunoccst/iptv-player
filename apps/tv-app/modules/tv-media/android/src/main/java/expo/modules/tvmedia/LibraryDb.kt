@@ -77,7 +77,8 @@ internal object LibraryDb {
           },
           sql,
           null,
-          null,
+          // No table to edit through the cursor (the parameter may not be null).
+          "",
         )
         promise.resolve(cursor.use { toJson(it) })
       } catch (error: Throwable) {
