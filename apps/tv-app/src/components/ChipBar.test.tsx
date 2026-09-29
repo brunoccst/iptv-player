@@ -158,7 +158,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: "Show all" puts the focus on the chosen chip, "Show less" back on the button; focused, its text is dark (D-105)', async () => {
+  it('TV: after "Show all" and "Show less" the focus stays on the button; focused, its text is dark (D-105, D-114)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
       key,
@@ -171,8 +171,8 @@ describe('ChipBar', () => {
     expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', false);
 
     await fireEvent.press(screen.getByTestId('chips-all'));
-    expect(screen.getByTestId('chip-c6')).toHaveProp('hasTVPreferredFocus', true);
-    expect(screen.getByTestId('chip-c0')).toHaveProp('hasTVPreferredFocus', false);
+    expect(screen.getByTestId('chips-less')).toHaveProp('hasTVPreferredFocus', true);
+    for (const key of ['all', 'c0', 'c6']) expect(screen.getByTestId(`chip-${key}`).props.hasTVPreferredFocus).toBeFalsy();
 
     await fireEvent.press(screen.getByTestId('chips-less'));
     expect(screen.getByTestId('chips-all')).toHaveProp('hasTVPreferredFocus', true);

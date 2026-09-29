@@ -61,9 +61,9 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const [boxContentHeight, setBoxContentHeight] = useState(0);
   // TV: the first chip of the categories shown after "All" (null: around the chosen one).
   const [tvStart, setTvStart] = useState<number | null>(null);
-  // TV: where the focus goes after "Show all" / "Show less" (D-105): the chosen chip in the box, or back on the button.
-  // The button itself is replaced when the bar changes shape; without this the focus fell to the grid or "Sort by".
-  const [focusAfter, setFocusAfter] = useState<'active' | 'toggle' | null>(null);
+  // TV: after "Show all" / "Show less" the focus stays on the button (D-105, D-114). The button itself is replaced when
+  // the bar changes shape; without this the focus fell to the grid or "Sort by".
+  const [refocusToggle, setRefocusToggle] = useState(false);
   // TV: measured widths (the bar, "All", ‹ ›, "Show all", each category chip), to show only the chips that fit.
   const [tvWidths, setTvWidths] = useState<Record<string, number>>({});
   const setTvWidth = (key: string, width: number) =>
@@ -105,7 +105,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const activeIndex = chips.findIndex((chip) => chip.active);
   const lineChips =
     activeIndex >= LINE_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
-  // The expanded box does the same beyond its first page, so the focus can go to the chosen chip (D-105).
+  // The expanded box does the same beyond its first page, so the chosen chip shows without scrolling the box (D-105).
   const boxChips =
     activeIndex >= BOX_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
   const lineCount = Math.min(chips.length, lineLimit);
@@ -126,7 +126,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const choose = (chip: ChipItem) => {
     reveal.current = true;
     setTvStart(null);
-    setFocusAfter(null);
+    setRefocusToggle(false);
     setExpanded(false);
     chip.onPress();
   };
@@ -148,8 +148,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
-  // TV: "Show all" replaces the button; the focus can pass through a title of the grid (which scrolls the page to it)
-  // before it reaches the chosen chip. The box then brings the page back to itself (D-112).
+  // TV: a chip in the box centers the whole box in the page, not itself (D-112).
   const boxCentering = useCenterOnFocus();
   const items = (expanded ? boxChips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
@@ -159,7 +158,6 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       testID={chip.testID}
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
-      hasTVPreferredFocus={Platform.isTV && expanded && chip.active && focusAfter === 'active'}
       // In the box, the page centers the whole box (D-112): centering the chip scrolled the page down to the titles, and
       // no centering left the page where a title the focus passed through had scrolled it.
       onCenter={expanded ? boxCentering.center : undefined}
@@ -170,11 +168,11 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     <Toggle
       expanded={expanded}
       testID={testID && `${testID}-${expanded ? 'less' : 'all'}`}
-      hasTVPreferredFocus={Platform.isTV && !expanded && focusAfter === 'toggle'}
+      hasTVPreferredFocus={Platform.isTV && refocusToggle}
       onPress={() => {
         reveal.current = expanded;
         setBoxLimit(BOX_PAGE);
-        setFocusAfter(expanded ? 'toggle' : 'active');
+        setRefocusToggle(true);
         setExpanded(!expanded);
       }}
     />

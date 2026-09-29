@@ -118,6 +118,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-111](#d-111) | 2026-09-29 | Automatic subtitles from OpenSubtitles.com, with the user's own API key |
 | [D-112](#d-112) | 2026-09-29 | TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" and "BL - …" prefixes |
 | [D-113](#d-113) | 2026-09-29 | Provider lists are read one entry at a time; the saved library is kept in 4 MB parts; large heap; native crashes in the Log |
+| [D-114](#d-114) | 2026-09-29 | TV: after "Show all" the focus stays on the button ("Show less") |
 
 ---
 
@@ -1895,3 +1896,11 @@ Decision:
 - The desktop app (Chromium) already streamed; it uses the same list reader.
 - **Speed (2026-09-29, after a Chromecast report):** going through every character in JavaScript made reading a list about 3× slower than parsing the whole text at once (1.4 s against 0.4 s for 10 MB in Hermes on a PC), which added more than a minute on a Chromecast, and it held the one JavaScript thread while the other list was grouping. The reader now gathers about 500k characters, cuts at the last "},{" and hands that batch to `JSON.parse`. A cut inside a name or a nested object cannot parse (quotes or brackets no longer match); up to three earlier cuts are tried, then the rest of the list goes through the character reader, so the result is always the same. Same 10 MB: 0.34–0.42 s, of which about 0.25 s is turning bytes into text.
 - **Native crashes in the Log** (TV/phone, `CrashLog.kt`, `startupLog.ts`): an error in native code ends the process before JavaScript can log it, so the Log of a crashed run just stopped. A native handler now writes the crash (type, message, stack) to a small file; the next start moves it into the Log as "the app stopped last time (out of memory): …". Every start also logs the Java heap limit and the device's RAM, so a memory problem is visible without a crash.
+
+## D-114
+
+**TV: after "Show all" the focus stays on the button ("Show less")** — 2026-09-29 (requested by owner)
+
+Context: since D-105, "Show all" moved the focus to the chosen category in the box. It was meant to keep the focus from falling to the grid when the button is replaced, and was later tied to the page scrolling down (fixed for good in D-112 by centering the whole box). The owner prefers the focus to stay where OK was pressed.
+
+Decision (`ChipBar.tsx`): after "Show all" the focus stays on the same button, now "Show less"; after "Show less" it stays on "Show all" (as before). Choosing a category still closes the box. A chosen category beyond the box's first page is still listed right after "All", so it shows without scrolling the box.
