@@ -1,8 +1,8 @@
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
-import { languageNames, profileLanguages, selectActiveProfile, t } from '@iptv/shared';
-import { navStore, stores } from '../appContext';
-import { useProfilePrefs, useSession } from '../hooks';
+
+import { languageNames, t } from '@iptv/shared';
+
+import { useLanguageSettings } from '../hooks';
 import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
 
@@ -14,30 +14,12 @@ import { FocusButton } from './FocusButton';
  */
 export function LanguageSettings({ onClose, profile }: { onClose(): void; profile?: { id: string; name: string } }) {
   // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
-  const activeId = useSession((s) => s.activeProfileId);
-  const activeName = useSession((s) => selectActiveProfile(s)?.name ?? null);
-  const profileId = profile?.id ?? activeId;
-  const profileName = profile?.name ?? activeName;
-  const saved = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
-  const [chosen, setChosen] = useState(saved);
-  const toggle = (code: string) =>
-    setChosen((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code]));
-  const close = () => {
-    onClose();
-    if (!profileId || chosen.join(',') === saved.join(',')) return;
-    void stores.profilePrefs
-      .getState()
-      .update(profileId, { languages: chosen, language: null })
-      // Rows and grids reload with the new filter.
-      .then(() => navStore.getState().bumpLibrary());
-  };
+  const { title, chosen, toggle, allLanguages, close } = useLanguageSettings(profile, onClose);
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <View style={styles.scrim}>
         <View style={styles.panel} testID="language-settings">
-          <Text style={styles.title}>
-            {profileName ? t('Content language filter for {name}', { name: profileName }) : t('Content language filter')}
-          </Text>
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.text}>
             {t(
               'Show only titles in one of these languages: from the title\'s name ("EN - …", "SUB ITA"), else from its category\'s name. Titles in a category without a language are always shown. Each profile has its own choice.',
@@ -49,7 +31,7 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
               variant={chosen.length === 0 ? 'primary' : 'ghost'}
               hasTVPreferredFocus={chosen.length === 0}
               testID="language-all"
-              onPress={() => setChosen([])}
+              onPress={() => allLanguages()}
             />
             {Object.entries(languageNames()).map(([code, label]) => {
               const on = chosen.includes(code);

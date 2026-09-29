@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { selectActiveProfile, type CatalogSection, type MediaCategory, t } from '@iptv/shared';
-import { api, navStore, stores } from '../appContext';
-import { useProfilePrefs, useSession } from '../hooks';
+import { CATEGORY_SECTIONS, t } from '@iptv/shared';
+
+import { useHiddenCategories } from '../hooks';
 import { colors, fonts } from '../theme';
 import { Chip } from './ChipBar';
 import { ErrorText } from './Feedback';
@@ -10,47 +10,13 @@ import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
 import { focus } from './focus';
 
-const SECTIONS: { section: CatalogSection; label: () => string }[] = [
-  { section: 'movies', label: () => t('Movies') },
-  { section: 'series', label: () => t('Series') },
-  { section: 'live', label: () => t('Live TV') },
-];
-
-type Hidden = Partial<Record<CatalogSection, string[]>>;
-
 /**
  * Account menu → Profiles → Categories shown (D-110): the categories this profile browses, per section. An unchecked
  * category leaves the category bars, lists, Home rows and the guide; search still finds its titles and channels. The
  * choice is applied when saved: it reloads every list.
  */
 export function HiddenCategories({ onClose }: { onClose(): void }) {
-  const profileId = useSession((s) => s.activeProfileId);
-  const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
-  const saved = useProfilePrefs((s) => (profileId ? (s.prefs[profileId]?.hiddenCategories ?? {}) : {}));
-  const [section, setSection] = useState<CatalogSection>('movies');
-  const [lists, setLists] = useState<Partial<Record<CatalogSection, MediaCategory[]>>>({});
-  const [hidden, setHidden] = useState<Hidden>(saved);
-  const [error, setError] = useState<string | null>(null);
-  const categories = lists[section];
-  const hiddenHere = hidden[section] ?? [];
-
-  useEffect(() => {
-    if (lists[section]) return;
-    api.catalog
-      .categories(section, undefined, { includeHidden: true })
-      .then((list) => setLists((current) => ({ ...current, [section]: list })))
-      .catch(() => setError(t('The categories could not be loaded.')));
-  }, [section, lists]);
-
-  const toggle = (id: string) =>
-    setHidden({ ...hidden, [section]: hiddenHere.includes(id) ? hiddenHere.filter((c) => c !== id) : [...hiddenHere, id] });
-  const save = async () => {
-    onClose();
-    if (!profileId || JSON.stringify(hidden) === JSON.stringify(saved)) return;
-    await stores.profilePrefs.getState().update(profileId, { hiddenCategories: hidden });
-    // Rows and grids reload without the hidden categories.
-    navStore.getState().bumpLibrary();
-  };
+  const { section, setSection, categories, error, profileName, isShown, anyHidden, toggle, showAll, save } = useHiddenCategories(onClose);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -58,7 +24,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
         <View style={styles.panel} testID="hidden-categories">
           <Text style={styles.title}>{profileName ? t('Categories shown to {name}', { name: profileName }) : t('Categories shown')}</Text>
           <View style={styles.sections}>
-            {SECTIONS.map((s) => (
+            {CATEGORY_SECTIONS.map((s) => (
               <Chip
                 key={s.section}
                 label={s.label()}
@@ -81,9 +47,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
               initialNumToRender={12}
               windowSize={5}
               ListEmptyComponent={<Text style={styles.hint}>{t('No categories.')}</Text>}
-              renderItem={({ item }) => (
-                <CategoryRow name={item.name} checked={!hiddenHere.includes(item.id)} onPress={() => toggle(item.id)} />
-              )}
+              renderItem={({ item }) => <CategoryRow name={item.name} checked={isShown(item.id)} onPress={() => toggle(item.id)} />}
             />
           ) : error ? null : (
             <ActivityIndicator color={colors.accent} />
@@ -93,8 +57,8 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
             <FocusButton
               label={t('Show all')}
               variant="ghost"
-              disabled={hiddenHere.length === 0}
-              onPress={() => setHidden({ ...hidden, [section]: [] })}
+              disabled={!anyHidden}
+              onPress={showAll}
               testID="hidden-categories-show-all"
             />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError } from './api/errors';
-import type { LibrarySection, MasterCard, MasterDetails, ProfileDto, ProgressDto } from './api/types';
+import type { CatalogSection, LibrarySection, MasterCard, MasterDetails, MediaCategory, ProfileDto, ProgressDto } from './api/types';
 import type { AppContext } from './appContext';
 import { offlineAccess } from './playback/offlineAccess';
 import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t } from './i18n/i18n';
+import { isKidsCategory } from './profiles/kidsFilter';
+import { profileLanguages } from './stores/profilePrefsStore';
+import { selectActiveProfile } from './stores/sessionStore';
 import { chooseVersion } from './playback/playbackChoices';
 import { loadSeriesVersions, mergeSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
 import { episodeTarget, movieTarget, progressTarget } from './playback/targets';
@@ -23,10 +26,39 @@ import type { WatchlistState } from './stores/watchlistStore';
  * Hooks the TV/phone app and the desktop/web app share (D-124): the same state, loading and paging for both; each app
  * only draws. Made once per app from its stores: `export const { useSession, usePagedLibrary } = createAppHooks(stores)`.
  */
-export function createAppHooks({ api, stores }: Pick<AppContext, 'api' | 'stores'>) {
+/** The sections a profile's category settings cover, in their order on screen. */
+export const CATEGORY_SECTIONS: { section: CatalogSection; label: () => string }[] = [
+  { section: 'movies', label: () => t('Movies') },
+  { section: 'series', label: () => t('Series') },
+  { section: 'live', label: () => t('Live TV') },
+];
+
+export function createAppHooks({
+  api,
+  stores,
+  reloadLists,
+}: Pick<AppContext, 'api' | 'stores'> & {
+  /** Every row and grid loads again (after a profile setting that changes what lists show). */
+  reloadLists: () => void;
+}) {
   const useSession = <T>(selector: (state: SessionState) => T) => useAppStore(stores.session, selector);
   const useLibrary = <T>(selector: (state: LibraryState) => T) => useAppStore(stores.library, selector);
   const useProgress = <T>(selector: (state: ProgressState) => T) => useAppStore(stores.progress, selector);
+
+  /** One section's categories at a time, each read once while the panel is open. */
+  const useSectionCategories = (includeHidden: boolean) => {
+    const [section, setSection] = useState<CatalogSection>('movies');
+    const [lists, setLists] = useState<Partial<Record<CatalogSection, MediaCategory[]>>>({});
+    const [error, setError] = useState<string | null>(null);
+    useEffect(() => {
+      if (lists[section]) return;
+      api.catalog
+        .categories(section, undefined, includeHidden ? { includeHidden: true } : undefined)
+        .then((list) => setLists((current) => ({ ...current, [section]: list })))
+        .catch(() => setError(t('The categories could not be loaded.')));
+    }, [section, lists]); // eslint-disable-line react-hooks/exhaustive-deps
+    return { section, setSection, categories: lists[section] ?? null, error };
+  };
 
   /** Latest progress for any version of this title (or series), for "Resume". */
   const useMasterProgress = (master: MasterDetails, kind: 'movie' | 'episode'): ProgressDto | null =>
@@ -183,6 +215,87 @@ export function createAppHooks({ api, stores }: Pick<AppContext, 'api' | 'stores
           : first
             ? episodeTarget({ title: master.title, masterId: master.id, seriesId: first.seriesId, posterUrl: master.posterUrl }, first)
             : null,
+      };
+    },
+
+    /**
+     * Profile editor → Choose categories (D-064): what a Kids profile may see, per section. Starts from the automatic
+     * choice (category names, D-053); `automatic()` goes back to it.
+     */
+    useKidsCategories(profileId: string, onClose: () => void) {
+      const lists = useSectionCategories(false);
+      const [picks, setPicks] = useState<Partial<Record<CatalogSection, string[] | null>>>(
+        () => stores.profilePrefs.getState().prefs[profileId]?.kidsCategories ?? {},
+      );
+      const chosen = picks[lists.section] ?? null;
+      const picked = chosen ?? (lists.categories ?? []).filter((c) => isKidsCategory(c.name)).map((c) => c.id);
+      return {
+        ...lists,
+        /** Chosen by the parent (false: the automatic choice). */
+        chosen: chosen !== null,
+        isPicked: (id: string) => picked.includes(id),
+        toggle: (id: string) =>
+          setPicks({ ...picks, [lists.section]: picked.includes(id) ? picked.filter((c) => c !== id) : [...picked, id] }),
+        automatic: () => setPicks({ ...picks, [lists.section]: null }),
+        async save() {
+          await stores.profilePrefs.getState().update(profileId, { kidsCategories: picks });
+          onClose();
+        },
+      };
+    },
+
+    /**
+     * Account menu → Categories shown (D-110): unchecked categories leave the category bars, lists, Home rows and the
+     * guide; search still finds them. Saved (and every list reloaded) on `save()`.
+     */
+    useHiddenCategories(onClose: () => void) {
+      const profileId = useSession((s) => s.activeProfileId);
+      const profileName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+      const saved = useAppStore(stores.profilePrefs, (s) => (profileId ? (s.prefs[profileId]?.hiddenCategories ?? {}) : {}));
+      const lists = useSectionCategories(true);
+      const [hidden, setHidden] = useState<Partial<Record<CatalogSection, string[]>>>(saved);
+      const hiddenHere = hidden[lists.section] ?? [];
+      return {
+        ...lists,
+        profileName,
+        isShown: (id: string) => !hiddenHere.includes(id),
+        /** Some category of this section is hidden ("Show all" can undo it). */
+        anyHidden: hiddenHere.length > 0,
+        showAll: () => setHidden({ ...hidden, [lists.section]: [] }),
+        toggle: (id: string) =>
+          setHidden({ ...hidden, [lists.section]: hiddenHere.includes(id) ? hiddenHere.filter((c) => c !== id) : [...hiddenHere, id] }),
+        async save() {
+          onClose();
+          if (!profileId || JSON.stringify(hidden) === JSON.stringify(saved)) return;
+          await stores.profilePrefs.getState().update(profileId, { hiddenCategories: hidden });
+          reloadLists();
+        },
+      };
+    },
+
+    /**
+     * Content language filter (D-063, D-067, D-086) of the active profile, or of `profile` (the profile editor): only
+     * titles with audio or subtitles in a chosen language; none chosen = all. Applied on `close()`.
+     */
+    useLanguageSettings(profile: { id: string; name: string } | undefined, onClose: () => void) {
+      const activeId = useSession((s) => s.activeProfileId);
+      const activeName = useSession((s) => selectActiveProfile(s)?.name ?? null);
+      const profileId = profile?.id ?? activeId;
+      const profileName = profile?.name ?? activeName;
+      const saved = useAppStore(stores.profilePrefs, (s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
+      const [chosen, setChosen] = useState(saved);
+      return {
+        profileName,
+        title: profileName ? t('Content language filter for {name}', { name: profileName }) : t('Content language filter'),
+        chosen,
+        toggle: (code: string) => setChosen((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code])),
+        /** "All languages": no filter. */
+        allLanguages: () => setChosen([]),
+        close() {
+          onClose();
+          if (!profileId || chosen.join(',') === saved.join(',')) return;
+          void stores.profilePrefs.getState().update(profileId, { languages: chosen, language: null }).then(reloadLists);
+        },
       };
     },
 

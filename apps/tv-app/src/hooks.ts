@@ -18,7 +18,10 @@ export const {
   useProfileEditor,
   useMovieDetails,
   useSeriesDetails,
-} = createAppHooks({ api, stores });
+  useKidsCategories,
+  useHiddenCategories,
+  useLanguageSettings,
+} = createAppHooks({ api, stores, reloadLists: () => navStore.getState().bumpLibrary() });
 export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAppStore(downloadsStore, selector);
 export const useNav = <T>(selector: (state: NavState) => T) => useAppStore(navStore, selector);
 export const usePlaybackSettings = <T>(selector: (state: PlaybackSettingsState) => T) => useAppStore(playbackSettings, selector);
