@@ -29,6 +29,8 @@ export * from './epg/guide';
 export { createDirectApiClient, type DirectApiClient, type DirectApiClientOptions } from './direct/directApiClient';
 export { normalizeServerUrl, type ListReader, type ListPiece } from './direct/xtream';
 export { batchedSha1 } from './direct/normalizer/sha1';
+export { createNativeSqlDatabase } from './direct/nativeSqlDatabase';
+export type { SqlDatabase, SqlValue } from './direct/sqlLibrary';
 export * from './appContext';
 export * from './i18n/i18n';
 export * from './i18n/uiLanguage';

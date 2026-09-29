@@ -28,6 +28,7 @@ import type { KeyValueStorage } from '../stores/storage';
 import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, readLibraryText } from './libraryCodec';
 import { createListSnapshot } from './listSnapshot';
+import { createSqlLibrary, type SqlDatabase, type SqlLibraryKind } from './sqlLibrary';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -50,6 +51,11 @@ export interface DirectApiClientOptions {
   randomId?: () => string;
   /** How long after the last new list the start-up snapshot is saved (D-120); tests use 0. */
   snapshotSaveMs?: number;
+  /**
+   * TV/phone: the library in SQLite (D-121), so a start reads a few rows instead of the whole library, and lists are
+   * queries. Without it (desktop, web) the library is one file per kind, read whole into memory.
+   */
+  libraryDb?: SqlDatabase;
 }
 
 interface StoredCredentials {
@@ -66,8 +72,11 @@ interface StoredProfile extends ProfileDto {
 
 interface StoredLibrary {
   builtAt: string;
+  /** In memory (no database); empty when `sql` is set. */
   movie: Master[];
   series: Master[];
+  /** In the database (D-121): where each kind is. */
+  sql?: Partial<Record<LibraryKind, SqlLibraryKind>>;
 }
 
 type LibraryKind = 'movie' | 'series';
@@ -314,6 +323,19 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   };
   const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
   const snapshot = createListSnapshot(options.dataStorage, options.snapshotSaveMs);
+  /** The library database; null without one, or after it failed to open (the library then stays in memory). */
+  let sqlLibrary = options.libraryDb ? createSqlLibrary(options.libraryDb, yieldToUi) : null;
+  const count = (data: StoredLibrary | null, kind: LibraryKind) => (data?.sql ? (data.sql[kind]?.count ?? 0) : (data?.[kind].length ?? 0));
+  /** Every title of a kind, newest first (for an update to reuse). */
+  const mastersOf = async (data: StoredLibrary, kind: LibraryKind): Promise<Master[]> => {
+    if (!data.sql) return data[kind];
+    const saved = data.sql[kind];
+    if (!saved || !sqlLibrary) return [];
+    const started = Date.now();
+    const masters = await sqlLibrary.all(saved);
+    appLog.info('library', `${kind}: read ${masters.length} saved titles from the database in ${Date.now() - started} ms`);
+    return masters;
+  };
   /** Kinds whose new library is being saved: their lists are not kept meanwhile (the snapshot would be ahead of the file). */
   const saving = new Set<LibraryKind>();
 
@@ -395,10 +417,11 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
+          const before = previous ? await mastersOf(previous, kind) : undefined;
           let reused = '';
           let reusedMasters = 0;
           const masters = await buildMastersInChunks(accountId, kind, items, {
-            previous: previous?.[kind],
+            previous: before,
             hashIds: options.hashIds,
             onReuse: (counts) => {
               reused = `, ${counts.names} names and ${counts.masters} titles unchanged`;
@@ -428,17 +451,26 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           // Kept and saved newest first, the order Home and the lists ask for first: after a restart that list needs no
           // sort (D-117).
           const newestFirst = [...masters].sort(compareMasters('added', 'desc'));
-          library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
           // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-120).
           saving.add(kind);
           try {
             await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
-            await writeText(
-              options.dataStorage,
-              libraryKey(accountId, kind),
-              () => packLibraryText(queuedAt, newestFirst, yieldToUi),
-              true,
-            ).catch(() => undefined);
+            if (sqlLibrary) {
+              // Lists read the database: saved first, then shown (the last library shows meanwhile).
+              const saveStarted = Date.now();
+              const saved = await sqlLibrary.save(accountId, kind, queuedAt, newestFirst);
+              appLog.info('library', `${kind}: saved ${newestFirst.length} titles to the database in ${Date.now() - saveStarted} ms`);
+              if (!current()) return;
+              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
+            } else {
+              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
+              await writeText(
+                options.dataStorage,
+                libraryKey(accountId, kind),
+                () => packLibraryText(queuedAt, newestFirst, yieldToUi),
+                true,
+              ).catch(() => undefined);
+            }
           } finally {
             saving.delete(kind);
           }
@@ -447,7 +479,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             jobStatus: 'done',
             stage: null,
             finishedAt: now().toISOString(),
-            changes: changesSince(previous?.[kind], masters, reusedMasters),
+            changes: changesSince(before, masters, reusedMasters),
           };
         } catch (error) {
           appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
@@ -492,35 +524,86 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const accountId = stored.account.id;
     if (library.accountId === accountId) return library.data;
     if (loading?.accountId !== accountId) {
-      const promise = Promise.all(
-        (['movie', 'series'] as const).map(async (kind) => {
-          void Promise.resolve(options.dataStorage.removeItem(oldLibraryKey(accountId, kind))).catch(() => undefined);
-          return readSavedLibrary(libraryKey(accountId, kind));
-        }),
-      ).then(([movie, series]) => {
-        // A missing kind counts as very old, so the background refresh fills it in; the other kind still shows.
-        const data: StoredLibrary | null =
-          movie || series
-            ? {
-                builtAt: !movie || !series ? new Date(0).toISOString() : movie.builtAt < series.builtAt ? movie.builtAt : series.builtAt,
-                movie: movie?.masters ?? [],
-                series: series?.masters ?? [],
-              }
-            : null;
-        if (credentials?.account.id === accountId && library.accountId !== accountId) {
-          library.accountId = accountId;
-          library.data = data;
-          for (const kind of ['movie', 'series'] as const) {
-            library.status[kind] = data
-              ? { jobStatus: 'done', itemCount: null, queuedAt: data.builtAt, finishedAt: data.builtAt, error: null }
-              : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
+      const opened = sqlLibrary ? openDatabase(accountId) : Promise.resolve(null);
+      const promise = opened
+        .then((fromDb) => (fromDb ? fromDb.data : readFiles(accountId)))
+        .then((data) => {
+          if (credentials?.account.id === accountId && library.accountId !== accountId) {
+            library.accountId = accountId;
+            library.data = data;
+            for (const kind of ['movie', 'series'] as const) {
+              library.status[kind] = data
+                ? { jobStatus: 'done', itemCount: null, queuedAt: data.builtAt, finishedAt: data.builtAt, error: null }
+                : { jobStatus: null, itemCount: null, queuedAt: null, finishedAt: null, error: null };
+            }
           }
-        }
-        return library.accountId === accountId ? library.data : data;
-      });
+          return library.accountId === accountId ? library.data : data;
+        });
       loading = { accountId, promise };
     }
     return loading.promise;
+  };
+
+  /** A missing kind counts as very old, so the background refresh fills it in; the other kind still shows. */
+  const oldestBuild = (kinds: { builtAt: string }[], complete: boolean) =>
+    !complete ? new Date(0).toISOString() : kinds.map((kind) => kind.builtAt).reduce((a, b) => (a < b ? a : b));
+
+  /** The saved files, read whole (no database: desktop, web). */
+  const readFiles = (accountId: string): Promise<StoredLibrary | null> =>
+    Promise.all(
+      (['movie', 'series'] as const).map(async (kind) => {
+        void Promise.resolve(options.dataStorage.removeItem(oldLibraryKey(accountId, kind))).catch(() => undefined);
+        return readSavedLibrary(libraryKey(accountId, kind));
+      }),
+    ).then(([movie, series]) =>
+      movie || series
+        ? {
+            builtAt: oldestBuild(
+              [movie, series].filter((kind) => !!kind),
+              !!movie && !!series,
+            ),
+            movie: movie?.masters ?? [],
+            series: series?.masters ?? [],
+          }
+        : null,
+    );
+
+  /**
+   * The library in the database (D-121): only its table of contents is read. A kind still in a saved file (the app
+   * before D-121) is moved into the database once, then the file is removed. If the database cannot be opened, null:
+   * the files are read as before.
+   */
+  const openDatabase = async (accountId: string): Promise<{ data: StoredLibrary | null } | null> => {
+    const database = sqlLibrary!;
+    try {
+      const started = Date.now();
+      const kinds = await database.open(accountId);
+      for (const kind of ['movie', 'series'] as const) {
+        if (kinds[kind]) continue;
+        const key = libraryKey(accountId, kind);
+        const saved = await readSavedLibrary(key);
+        if (!saved) continue;
+        const moveStarted = Date.now();
+        kinds[kind] = await database.save(accountId, kind, saved.builtAt, saved.masters);
+        appLog.info('storage', `${key}: moved ${saved.masters.length} titles into the database in ${Date.now() - moveStarted} ms`);
+        await Promise.resolve(options.dataStorage.removeItem(key)).catch(() => undefined);
+      }
+      const present = Object.values(kinds);
+      appLog.info(
+        'storage',
+        `library database opened in ${Date.now() - started} ms (movies ${kinds.movie?.count ?? 'none'}, series ${kinds.series?.count ?? 'none'})`,
+      );
+      if (present.length === 0) return { data: null };
+      const builtAt = oldestBuild(
+        present.map((kind) => ({ builtAt: kind.current ? kind.builtAt : new Date(0).toISOString() })),
+        !!kinds.movie && !!kinds.series,
+      );
+      return { data: { builtAt, movie: [], series: [], sql: kinds } };
+    } catch (error) {
+      appLog.error('storage', `library database failed, using files: ${errorMessage(error)}`);
+      sqlLibrary = null;
+      return null;
+    }
   };
 
   /** Per library version: id lookup, category membership and each requested order, built once (not on every list()). */
@@ -937,13 +1020,22 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         return (['movie', 'series'] as const).map((kind) => ({
           mediaKind: kind,
           ...library.status[kind],
-          masterCount: data?.[kind].length ?? 0,
+          masterCount: count(data, kind),
         }));
       },
       async list(section: LibrarySection, query: LibraryListQuery = {}) {
         const kept = await beforeLoad((accountId) => snapshot.list(accountId, section, query));
         if (kept) return kept;
         const data = await ensureLibrary();
+        if (data?.sql && sqlLibrary) {
+          const saved = data.sql[librarySection(section)];
+          if (!saved) return { total: 0, items: [], sorts: availableSorts([]) };
+          const started = Date.now();
+          const page = await sqlLibrary.list(saved, query);
+          const took = Date.now() - started;
+          if (took >= 300) appLog.info('library', `${section} list took ${took} ms in the database (${JSON.stringify(query)})`);
+          return page;
+        }
         const masters = data?.[librarySection(section)] ?? [];
         const started = Date.now();
         const sort = query.sort ?? 'added';
@@ -987,7 +1079,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       async get(section: LibrarySection, masterId: string): Promise<MasterDetails> {
         const kept = await beforeLoad((accountId) => snapshot.details(accountId, section, masterId));
         if (kept) return kept;
-        const master = indexFor((await ensureLibrary())?.[librarySection(section)] ?? []).byId.get(masterId);
+        const data = await ensureLibrary();
+        const saved = data?.sql?.[librarySection(section)];
+        const master =
+          data?.sql && sqlLibrary
+            ? saved
+              ? await sqlLibrary.get(saved, masterId)
+              : null
+            : indexFor(data?.[librarySection(section)] ?? []).byId.get(masterId);
         if (!master) throw notFound();
         return toDetails(master);
       },

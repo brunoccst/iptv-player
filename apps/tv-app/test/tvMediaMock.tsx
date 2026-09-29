@@ -108,6 +108,13 @@ export const TvMedia = {
   },
   closeList: (id: number) => void lists.delete(id),
   sha1Batch: async (joined: string) => joined.split('\n').map(sha1Hex).join(''),
+  // Tests use the fake API, not the provider: the library database is never reached.
+  dbRun: async () => {
+    throw new Error('no library database in tests');
+  },
+  dbQuery: async () => {
+    throw new Error('no library database in tests');
+  },
   closeApp: async () => void nativeState.calls.push('close-app'),
   setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   addListener: ((

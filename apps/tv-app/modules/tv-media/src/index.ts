@@ -38,6 +38,10 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   closeList(id: number): void;
   /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another (D-118). */
   sha1Batch(texts: string): Promise<string>;
+  /** The library database (D-121): `[{ sql, rows? }]` as JSON, run in one transaction. */
+  dbRun(statements: string): Promise<void>;
+  /** The rows of a query as a JSON array of arrays; `params` is a JSON array (D-121). */
+  dbQuery(sql: string, params: string): Promise<string>;
   startDownload(id: string, uri: string, isHls: boolean, metadata: string): void;
   pauseDownload(id: string): void;
   resumeDownload(id: string): void;

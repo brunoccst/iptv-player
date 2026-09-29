@@ -73,6 +73,16 @@ class TvMediaModule : Module() {
       Sha1Batch.hash(texts)
     }
 
+    /** The library database (D-121): statements with rows of parameters, all in one transaction (JSON). */
+    AsyncFunction("dbRun") { statements: String, promise: Promise ->
+      LibraryDb.run(context, statements, promise)
+    }
+
+    /** The rows of a query as a JSON array of arrays; `params` is a JSON array (D-121). */
+    AsyncFunction("dbQuery") { sql: String, params: String, promise: Promise ->
+      LibraryDb.query(context, sql, params, promise)
+    }
+
     /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
     Function("takeLastCrash") {
       CrashLog.takeLastCrash(context)

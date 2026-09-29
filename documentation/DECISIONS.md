@@ -1994,3 +1994,21 @@ Decision (`listSnapshot.ts`, `directApiClient.ts`, `libraryCodec.ts`, `useLibrar
 - TV/phone: the parts of a large saved value are read at the same time instead of one after another.
 - The Log line for the read now says "(file N ms, titles N ms in N pieces)".
 - Applies to TV, phone and desktop (same client). Tests: answers from the snapshot while the library read never ends, same list with its fields in another order, dropped after a rebuild; reading lined and older texts; rows kept when the first status arrives (fails without the fix).
+
+## D-121
+
+**TV/phone: the library in SQLite; a list reads only its page** — 2026-09-29 (requested by owner)
+
+Context: the library was one file per kind, read whole at every start and kept in memory (D-038). With 110k movie titles a Chromecast spent about 15 s reading it before Home could show (5.4 s the file, 3.9 s `JSON.parse`, 3.9 s the titles, 2 s the first list), and category pages, search and Movies still waited for it after D-120's snapshot. The owner asked for a database, as long as it did not make the app bigger or less compatible.
+
+Decision:
+
+- **Android's own SQLite** through two generic calls of the app's native module (`LibraryDb.kt`): run statements in one transaction, answer a query. No database library is added: the APK does not grow. The SQL uses only SQLite 3.9 features (Android 7, the app's lowest version): a replay of every statement of a save and 15 kinds of lists on SQLite 3.9.1 gave identical results.
+- **All the logic is shared TypeScript** (`sqlLibrary.ts`), tested on Node's SQLite. The whole client test suite runs twice, with the library in memory and in the database, and a comparison of 44 lists (every order, categories, languages with and without the category hint, hidden categories, Kids categories, search, pages) and 60 titles' details on 600 made-up names gives identical answers.
+- **Layout:** per account and kind, a set of tables per build and a table of contents (`library`) that points to the current set. A new build is written beside the old one and switched in one step, so a start in between still finds the last complete library; tables of a build that never finished are dropped at the next start. The per-title data is packed as in the file (D-038); filtering, search and ordering use a narrow table with the lower-case title, the comparison key, and the title's categories, languages and category hints. Each order other than newest first (the row order) is a number per title, worked out in SQL once when saving. A filter's total is counted once and remembered.
+- **Start:** only the table of contents is read. Home, category pages, search and details are queries. The first start after the update moves each saved file into the database once, then removes the file.
+- **Update:** the last library's titles are read from the database for reuse (D-109); the new one is saved to the database before it is shown.
+- Titles order by their UTF-8 bytes instead of UTF-16 units: they differ only between characters outside the BMP and U+E000–U+FFFF.
+- If the database cannot be opened, the app logs it and uses the files as before. Desktop and web keep the library in memory: a PC reads it in well under a second.
+- Size on the device: about 65 MB for 116k made-up titles (the file was 35 MB; the extra is the filter columns and indexes).
+- Measured on a PC (Node, 116k made-up titles): save 3.5 s; a page of Home, a category, an order: 1–2 ms; languages 10–16 ms; search 20–30 ms; 20 hidden categories 80 ms the first time. Not yet measured on a TV: the Log shows "library database opened in N ms", "saved N titles to the database in N ms" and lists slower than 300 ms.

@@ -4,6 +4,7 @@ import { I18nManager, Platform } from 'react-native';
 import {
   appLog,
   batchedSha1,
+  createNativeSqlDatabase,
   bindDownloadsToAccount,
   createAppContext,
   defaultDeviceLanguages,
@@ -48,6 +49,11 @@ export const appContext = createAppContext({
     },
     // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-118).
     hashIds: batchedSha1((joined) => TvMedia.sha1Batch(joined)),
+    // The library in Android's own SQLite (D-121): a start reads a few rows, not 35 MB, and each list is a query.
+    libraryDb: createNativeSqlDatabase({
+      run: (statements) => TvMedia.dbRun(statements),
+      query: (sql, params) => TvMedia.dbQuery(sql, params),
+    }),
   },
   deviceLanguages,
 });

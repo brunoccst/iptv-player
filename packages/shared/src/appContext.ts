@@ -2,6 +2,7 @@ import type { ApiClient } from './api/apiClient';
 import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import type { ListReader } from './direct/xtream';
+import type { SqlDatabase } from './direct/sqlLibrary';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
 import { withHiddenCategories } from './profiles/hiddenCategories';
@@ -61,6 +62,8 @@ export interface AppContextOptions {
     listReader?: ListReader;
     /** SHA-1 of title ids in native code (D-118). */
     hashIds?(texts: string[]): Promise<string[]>;
+    /** TV/phone: the library in SQLite (D-121). */
+    libraryDb?: SqlDatabase;
   };
   /** Tests: a fake instead of the provider (see `testing/fakeBackend.ts`). */
   api?: ApiClient;
@@ -101,6 +104,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     userAgent: direct.userAgent,
     listReader: direct.listReader,
     hashIds: direct.hashIds,
+    libraryDb: direct.libraryDb,
   });
   let replacement: ApiClient | null = testApi ?? null;
   const providerApi = delegatingApi(() => replacement ?? directApi);
