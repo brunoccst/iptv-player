@@ -1,6 +1,7 @@
 package expo.modules.tvmedia
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import androidx.media3.common.C
@@ -11,6 +12,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -24,6 +26,7 @@ import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
+import java.io.File
 
 /** What to play. Either `offlineId` (completed download) or `uri` (backend relay URL). */
 class PlayerSource : Record {
@@ -53,6 +56,8 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
   private var player: ExoPlayer? = null
   private var paused = false
   private var loadedKey: String? = null
+  /** The streamed item (not a download), so a subtitle file can be added to it later (D-111). */
+  private var streamItem: MediaItem? = null
 
   private val playerView = PlayerView(context).apply {
     useController = false
@@ -124,8 +129,9 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     val renderers = DefaultRenderersFactory(context)
       .setEnableDecoderFallback(true)
       .setExtensionRendererMode(extensionMode)
+    // HTTP for the stream; files too, for subtitles added from OpenSubtitles (D-111).
     val exoPlayer = ExoPlayer.Builder(context, renderers)
-      .setMediaSourceFactory(DefaultMediaSourceFactory(DownloadCenter.httpDataSourceFactory))
+      .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(context, DownloadCenter.httpDataSourceFactory)))
       // Pause when the audio output goes away (headphones, Bluetooth) instead of carrying on through the speaker.
       .setHandleAudioBecomingNoisy(true)
       .build()
@@ -143,6 +149,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
         .setUri(source.uri)
         .apply { if (source.isHls) setMimeType(MimeTypes.APPLICATION_M3U8) }
         .build()
+      streamItem = item
       exoPlayer.setMediaItem(item, source.startPositionMs.toLong())
     } else {
       onError(mapOf("message" to "Download not found on this device.", "code" to "OFFLINE_MISSING"))
@@ -162,6 +169,34 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
   fun seekTo(positionMs: Double) {
     player?.seekTo(positionMs.toLong().coerceAtLeast(0))
     emitProgress()
+  }
+
+  /**
+   * Adds a SubRip subtitle (from OpenSubtitles, D-111) to the streamed item and turns it on: the item is set again
+   * with the subtitle, from the current position. Downloads are not changed. False when there is nothing to add it to.
+   */
+  fun addSubtitle(text: String, language: String, label: String): Boolean {
+    val exoPlayer = player ?: return false
+    val item = streamItem ?: return false
+    val dir = File(context.cacheDir, "subtitles").apply { mkdirs() }
+    dir.listFiles()?.forEach { it.delete() }
+    val file = File(dir, "${System.currentTimeMillis()}.srt").apply { writeText(text) }
+    val subtitle = MediaItem.SubtitleConfiguration.Builder(Uri.fromFile(file))
+      .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+      .setLanguage(language)
+      .setLabel(label)
+      .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+      .build()
+    val withSubtitle = item.buildUpon().setSubtitleConfigurations(listOf(subtitle)).build()
+    streamItem = withSubtitle
+    exoPlayer.setMediaItem(withSubtitle, exoPlayer.currentPosition)
+    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters.buildUpon()
+      .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+      .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+      .setPreferredTextLanguage(language)
+      .build()
+    exoPlayer.prepare()
+    return true
   }
 
   /** `type` is "audio" or "text". `groupIndex` -1 disables text tracks. */
@@ -225,6 +260,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     player?.removeListener(listener)
     player?.release()
     player = null
+    streamItem = null
     playerView.player = null
     keepScreenOn = false
   }

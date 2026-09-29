@@ -15,6 +15,7 @@ import { PlaybackSettings } from './PlaybackSettings';
 import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
+import { SubtitleSettings } from './SubtitleSettings';
 import { pairingDialog } from '../pairing/PairingDialogs';
 import { focus } from './focus';
 
@@ -46,6 +47,7 @@ export function AccountMenu() {
   const [backup, setBackup] = useState(false);
   const [playback, setPlayback] = useState(false);
   const [language, setLanguage] = useState(false);
+  const [subtitleSettings, setSubtitleSettings] = useState(false);
   const [hiddenCategories, setHiddenCategories] = useState(false);
   const [about, setAbout] = useState(false);
   const [appLanguage, setAppLanguage] = useState(false);
@@ -63,6 +65,7 @@ export function AccountMenu() {
       {language ? <LanguageSettings onClose={() => setLanguage(false)} /> : null}
       {hiddenCategories ? <HiddenCategories onClose={() => setHiddenCategories(false)} /> : null}
       {about ? <AboutDialog onClose={() => setAbout(false)} /> : null}
+      {subtitleSettings ? <SubtitleSettings onClose={() => setSubtitleSettings(false)} /> : null}
       {appLanguage ? <AppLanguageDialog onClose={() => setAppLanguage(false)} /> : null}
     </>
   );
@@ -152,6 +155,13 @@ export function AccountMenu() {
           label: uiLanguage === 'en' ? t('App language') : `${t('App language')} · App language`,
           testID: 'menu-app-language',
           onPress: then(() => setAppLanguage(true)),
+        },
+        // OpenSubtitles (D-111).
+        {
+          icon: 'subtitles',
+          label: t('Automatic subtitles'),
+          testID: 'menu-subtitles',
+          onPress: then(() => setSubtitleSettings(true)),
         },
         { icon: 'info', label: t('About'), testID: 'menu-about', onPress: then(() => setAbout(true)) },
         { icon: 'info', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },

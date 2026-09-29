@@ -443,6 +443,42 @@ test('search: All, Movies, Series or Live TV shows only those results (D-108)', 
   await expect(grid('Big Test Movie')).toHaveCount(0);
 });
 
+test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subtitle, on and listed (D-111)', async ({ page }) => {
+  const calls: string[] = [];
+  const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' };
+  await page.route('https://api.opensubtitles.com/**', async (route) => {
+    const url = route.request().url();
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
+    calls.push(url.replace('https://api.opensubtitles.com/api/v1', ''));
+    if (url.includes('/subtitles?'))
+      return route.fulfill({
+        headers: cors,
+        json: { data: [{ id: '1', attributes: { language: 'en', download_count: 9, files: [{ file_id: 42 }] } }] },
+      });
+    return route.fulfill({ headers: cors, json: { link: 'https://dl.opensubtitles.com/42.srt', remaining: 4 } });
+  });
+  await page.route('https://dl.opensubtitles.com/**', (route) =>
+    route.fulfill({ headers: cors, body: '1\n00:00:00,000 --> 00:59:00,000\nHello from OpenSubtitles\n' }),
+  );
+
+  await page.locator('.menu__avatar').click();
+  await page.getByRole('menuitem', { name: 'App' }).click();
+  await page.getByRole('menuitem', { name: 'Automatic subtitles' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('checkbox', { name: 'On' }).check();
+  await dialog.getByLabel('API key').fill('test-key');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+
+  await page.getByRole('button', { name: 'Big Test Movie' }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByRole('status')).toHaveText('Subtitles: English · OpenSubtitles');
+  expect(calls).toEqual(['/subtitles?languages=en&query=big+test+movie&type=movie&year=2020', '/download']);
+  await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: 'English · OpenSubtitles' }),
+  ).toBeVisible();
+});
+
 test('Categories shown: an unchecked category leaves browsing, but search still finds its titles (D-110)', async ({ page }) => {
   await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
   const grid = page.locator('.grid');

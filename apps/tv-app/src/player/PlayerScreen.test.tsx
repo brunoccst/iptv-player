@@ -4,7 +4,7 @@ import { Dimensions, Platform } from 'react-native';
 import { appLog, HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
-import { navStore, stores } from '../appContext';
+import { appContext, navStore, stores } from '../appContext';
 import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { playbackErrorText, PlayerScreen } from './PlayerScreen';
@@ -430,6 +430,51 @@ describe('PlayerScreen', () => {
     await tracksEvent(movieTracks);
     await tracksEvent(movieTracks);
     expect(playerState.trackSelections).toEqual(['text:1:0', 'audio:0:0']);
+  });
+
+  it('OpenSubtitles: once the stream plays, a subtitle is found, added, turned on and named for a moment (D-111)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    const find = jest
+      .spyOn(appContext.subtitles, 'find')
+      .mockResolvedValue({ language: 'en', label: 'English · OpenSubtitles', srt: '1\n00:00:01,000 --> 00:00:02,000\nHi\n' });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await act(async () =>
+      playerState.props?.onTracks?.({
+        nativeEvent: { tracks: [{ type: 'text', groupIndex: 1, trackIndex: 0, label: 'Deutsch', language: 'de', selected: false }] },
+      } as never),
+    );
+    expect(find).not.toHaveBeenCalled();
+    await ready();
+    await flush();
+    expect(find).toHaveBeenCalledWith(expect.objectContaining({ streamId: '55' }), { trackLanguages: ['de'], year: null });
+    expect(playerState.subtitles).toEqual([
+      { text: '1\n00:00:01,000 --> 00:00:02,000\nHi\n', language: 'en', label: 'English · OpenSubtitles' },
+    ]);
+    expect(screen.getByTestId('player-notice')).toHaveTextContent('Subtitles: English · OpenSubtitles');
+    // Once per stream, and the notice goes away.
+    await ready();
+    await flush();
+    expect(find).toHaveBeenCalledTimes(1);
+    await act(async () => jest.advanceTimersByTime(4000));
+    expect(screen.queryByTestId('player-notice')).toBeNull();
+    find.mockRestore();
+  });
+
+  it('OpenSubtitles: says why when there is no subtitle, and adds none (D-111)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    const find = jest
+      .spyOn(appContext.subtitles, 'find')
+      .mockResolvedValue({ message: 'OpenSubtitles: the daily download limit is reached.' });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await flush();
+    expect(screen.getByTestId('player-notice')).toHaveTextContent('OpenSubtitles: the daily download limit is reached.');
+    expect(playerState.subtitles).toEqual([]);
+    find.mockRestore();
   });
 
   it('episodes: the last one has a previous-episode button only', async () => {
