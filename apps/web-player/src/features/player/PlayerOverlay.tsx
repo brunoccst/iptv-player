@@ -1,5 +1,5 @@
 import Hls from 'hls.js';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   liveTarget,
   appLog,
@@ -18,12 +18,7 @@ import {
   skipAheadLabel,
   skipAheadWindow,
   SKIP_AHEAD_OPTIONS,
-  loadSeriesVersions,
-  mergeSeriesVersions,
   episodeLabel,
-  nextEpisode,
-  previousEpisode,
-  playerSeriesVersions,
   nextUpCountdown,
   resumePosition,
   chooseVersion,
@@ -39,8 +34,8 @@ import {
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
-import { useLibrary, useUi } from '../../hooks/stores';
-import { useAsync } from '../../hooks/useAsync';
+import { usePlayerTitle, useUi } from '../../hooks/stores';
+import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
@@ -90,45 +85,14 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
 
   const isLive = target.kind === 'live';
 
-  // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066).
-  const seriesMaster = useLibrary((s) => (target.masterId ? s.details[`series|${target.masterId}`] : undefined));
-  useEffect(() => {
-    if (target.kind === 'episode' && target.masterId) void stores.library.getState().loadDetails('series', target.masterId);
-  }, [target.kind, target.masterId]);
-  const seriesVersions = playerSeriesVersions(target, seriesMaster);
-  const loadedVersions = useAsync(seriesVersions ? `series-versions:${seriesVersions.map((v) => v.seriesId).join(',')}` : null, () =>
-    loadSeriesVersions(api, seriesVersions!),
-  );
-  const mergedSeries = useMemo(
-    () => (loadedVersions.data ? mergeSeriesVersions(loadedVersions.data, target.seriesId) : null),
-    [loadedVersions.data, target.seriesId],
-  );
-  const series = { data: mergedSeries };
-  const next = series.data && target.kind === 'episode' ? nextEpisode(series.data, target.streamId) : null;
-  const previous = series.data && target.kind === 'episode' ? previousEpisode(series.data, target.streamId) : null;
-
-  // Versions of a movie master for the in-player selector.
-  const masterKey = target.kind === 'movie' && target.masterId ? `movies|${target.masterId}` : null;
-  const variants = useLibrary((s) => (masterKey ? (s.details[masterKey]?.data?.variants ?? []) : []));
+  // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066); a movie's
+  // versions for the in-player selector. Shared with the TV app (D-124).
   const revision = useUi((s) => s.libraryRevision);
-  useEffect(() => {
-    if (target.kind === 'movie' && target.masterId) void stores.library.getState().loadDetails('movies', target.masterId);
-  }, [target.kind, target.masterId, revision]);
+  const { series, next, previous, variants } = usePlayerTitle(target, revision);
 
   const saveProgress = useCallback(() => {
     const video = videoRef.current;
-    if (!video || isLive || !(video.duration > 0) || target.kind === 'live') return;
-    void stores.progress.getState().save(target.kind, target.streamId, {
-      title: target.title,
-      positionSeconds: video.currentTime,
-      durationSeconds: video.duration,
-      masterId: target.masterId ?? null,
-      seriesId: target.seriesId ?? null,
-      seasonNumber: target.seasonNumber ?? null,
-      episodeNumber: target.episodeNumber ?? null,
-      posterUrl: target.posterUrl ?? null,
-      containerExtension: target.container,
-    });
+    if (video && !isLive) savePlaybackProgress(stores.progress, target, video.currentTime, video.duration);
   }, [target, isLive]);
 
   // Load the stream whenever the item changes. The completed download (if any) is read once at start.
@@ -308,8 +272,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     [target, saveProgress],
   );
   const playNext = useCallback(() => {
-    if (next && series.data && target.seriesId) playEpisode(next);
-  }, [next, series.data, target.seriesId, playEpisode]);
+    if (next && series && target.seriesId) playEpisode(next);
+  }, [next, series, target.seriesId, playEpisode]);
 
   const switchVariant = (variant: VariantInfo) => {
     const video = videoRef.current;
@@ -550,7 +514,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                 <Icon name="guide" size={28} />
               </button>
             ) : null}
-            {series.data ? (
+            {series ? (
               <button
                 type="button"
                 className="player__control"
@@ -659,8 +623,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           onChange={() => setTracksVersion((v) => v + 1)}
         />
       ) : null}
-      {panel === 'episodes' && series.data && target.seriesId ? (
-        <EpisodesDrawer series={series.data} currentEpisodeId={target.streamId} onPlay={playEpisode} />
+      {panel === 'episodes' && series && target.seriesId ? (
+        <EpisodesDrawer series={series} currentEpisodeId={target.streamId} onPlay={playEpisode} />
       ) : null}
       {panel === 'guide' && isLive ? (
         <GuidePanel

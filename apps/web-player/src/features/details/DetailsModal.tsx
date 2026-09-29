@@ -1,22 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import {
-  chooseVersion,
-  allEpisodesWatched,
-  isMovieWatched,
-  setMovieWatched,
-  setSeriesWatched,
-  noteSeriesWatched,
-  formatDuration,
-  loadSeriesVersions,
-  mergeSeriesVersions,
-  selectVariant,
-  seriesVersionsOf,
-  type MasterDetails,
-  type ProgressDto,
-  type VariantInfo,
-  t,
-  tn,
-} from '@iptv/shared';
+import { useEffect } from 'react';
+import { chooseVersion, setSeriesWatched, formatDuration, type MasterDetails, t, tn } from '@iptv/shared';
 import { api, stores, uiStore } from '../../appContext';
 import { DownloadButton } from '../../components/DownloadButton';
 import { WatchedButton } from '../../components/WatchedButton';
@@ -26,10 +9,10 @@ import { VlcButton } from '../../components/VlcButton';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
-import { useLibrary, useProgress, useUi } from '../../hooks/stores';
-import { useAsync } from '../../hooks/useAsync';
+import { useLibrary, useMovieDetails, useSeriesDetails, useUi } from '../../hooks/stores';
+
 import { errorText } from '../../ui/errorText';
-import { downloadTarget, episodeTarget, movieTarget, progressTarget } from '../../ui/targets';
+import { downloadTarget } from '../../ui/targets';
 import type { DetailsTarget } from '../../ui/uiStore';
 import { EpisodeList } from './EpisodeList';
 import { VariantSelect } from './VariantSelect';
@@ -66,56 +49,37 @@ export function DetailsModal({ target }: { target: DetailsTarget }) {
   );
 }
 
-/** Latest progress for any variant of this master (or this series), used for "Resume". */
-function useMasterProgress(masterId: string, variants: VariantInfo[], kind: 'movie' | 'episode'): ProgressDto | null {
-  return useProgress(
-    (s) =>
-      (s.items.data ?? []).find(
-        (p) =>
-          p.kind === kind && (p.masterId === masterId || variants.some((v) => v.streamId === (kind === 'movie' ? p.itemId : p.seriesId))),
-      ) ?? null,
-  );
-}
-
 function MovieDetails({ master }: { master: MasterDetails }) {
-  const variant = useLibrary((s) => selectVariant(s, master));
-  const meta = useAsync(variant ? `movie:${variant.streamId}` : null, () => api.catalog.movie(variant!.streamId));
-  const resume = useMasterProgress(master.id, master.variants, 'movie');
-  const watched = useProgress((s) => isMovieWatched(s.items.data ?? [], master.id));
-  useEffect(() => {
-    // Resuming a different version than the best one: preselect it so "Resume" continues where the user left off.
-    if (resume && master.variants.some((v) => v.streamId === resume.itemId))
-      stores.library.getState().selectVariant(master.id, resume.itemId);
-  }, [resume?.itemId, master]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
-
-  const play = () => {
-    const resumeHere = resume && resume.itemId === variant.streamId ? resume : null;
-    uiStore.getState().play({ ...movieTarget(master, variant), startAt: resumeHere ? resumeHere.positionSeconds : undefined });
-  };
-  const choose = (streamId: string) => {
-    const picked = master.variants.find((v) => v.streamId === streamId);
-    if (picked) chooseVersion(stores, master.id, picked);
-  };
-
-  const backdrop = meta.data?.backdropUrls[0] ?? meta.data?.summary.posterUrl ?? master.posterUrl;
-  const duration = meta.data?.durationSeconds ?? null;
+  const {
+    variant,
+    meta,
+    watched,
+    canResume,
+    target,
+    play: playTarget,
+    backdrop,
+    duration,
+    rating,
+    choose,
+    setWatched,
+  } = useMovieDetails(master);
+  if (!variant || !target || !playTarget) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
+  const play = () => uiStore.getState().play(playTarget);
 
   return (
     <>
       <DetailsHero backdrop={backdrop} title={master.title} watched={watched}>
         <button type="button" className="button button--primary" onClick={play}>
-          <Icon name="play" /> {resume && resume.itemId === variant.streamId ? t('Resume') : t('Play')}
+          <Icon name="play" /> {canResume ? t('Resume') : t('Play')}
         </button>
-        <DownloadButton target={downloadTarget(movieTarget(master, variant), duration)} />
-        <WatchedButton kind="movie" watched={watched} onChange={(next) => setMovieWatched(stores, master.id, next)} />
+        <DownloadButton target={downloadTarget(target, duration)} />
+        <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
         <WatchlistButton section="movies" title={master} />
-        <VlcButton target={movieTarget(master, variant)} />
+        <VlcButton target={target} />
       </DetailsHero>
       <div className="details__body">
         <div>
-          <Facts year={master.year} rating={meta.data?.summary.rating ?? master.rating} quality={variant.quality} runtime={duration} />
+          <Facts year={master.year} rating={rating} quality={variant.quality} runtime={duration} />
           <p>{meta.data?.plot ?? (meta.loading ? '' : t('No description.'))}</p>
           <VariantSelect variants={master.variants} value={variant.streamId} onChange={choose} />
         </div>
@@ -145,40 +109,16 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 }
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
-  const variant = useLibrary((s) => selectVariant(s, master));
-  // All versions' episode lists, merged into one (D-066); the chosen version plays where it has the episode.
-  const versions = useAsync(variant ? `series-versions:${master.variants.map((v) => v.streamId).join(',')}` : null, () =>
-    loadSeriesVersions(api, seriesVersionsOf(master)),
-  );
-  const merged = useMemo(() => (versions.data ? mergeSeriesVersions(versions.data, variant?.streamId) : null), [versions.data, variant]);
-  const series = { ...versions, data: merged };
-  const resume = useMasterProgress(master.id, master.variants, 'episode');
-  // Every episode finished: the tag next to the title, and the note behind the series cover's tag (D-082). Only once
-  // the progress list has loaded, so a slow start never clears the note.
-  const progressLoaded = useProgress((s) => s.items.status === 'success');
-  const allWatched = useProgress((s) => !!merged && allEpisodesWatched(s, merged));
-  useEffect(() => {
-    if (merged && progressLoaded) void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
-  }, [merged, progressLoaded, allWatched, master.id]);
+  // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-082).
+  const { variant, series, resume, allWatched, backdrop, play: playTarget } = useSeriesDetails(master);
   if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
-
-  const firstEpisode = series.data?.seasons[0]?.episodes[0];
   const play = () => {
-    if (resume) uiStore.getState().play(progressTarget(resume));
-    else if (firstEpisode)
-      uiStore
-        .getState()
-        .play(
-          episodeTarget(
-            { title: master.title, masterId: master.id, seriesId: firstEpisode.seriesId, posterUrl: master.posterUrl },
-            firstEpisode,
-          ),
-        );
+    if (playTarget) uiStore.getState().play(playTarget);
   };
 
   return (
     <>
-      <DetailsHero backdrop={series.data?.backdropUrls[0] ?? master.posterUrl} title={master.title} watched={allWatched}>
+      <DetailsHero backdrop={backdrop} title={master.title} watched={allWatched}>
         <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
           <Icon name="play" />{' '}
           {resume

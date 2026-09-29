@@ -1,24 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import {
-  continueWatching,
-  cardMenuItems,
-  markEntryWatched,
-  removeFromContinueWatching,
-  pageKey,
-  watchlistCard,
-  type LibrarySection,
-  type MediaCategory,
-  type ProgressDto,
-  t,
-  continueWatchlistEntry,
-  isOnWatchlist,
-} from '@iptv/shared';
+import { continueWatching, pageKey, watchlistCard, type LibrarySection, type MediaCategory, type ProgressDto, t } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, type MenuPosition } from '../../components/CardMenu';
 import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
-import { useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
-import { usePagedLibrary } from '../../hooks/usePagedLibrary';
+import { continueMenuItems, useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
+import { usePagedLibrary } from '../../hooks/stores';
 import { progressTarget } from '../../ui/targets';
 import { Hero } from './Hero';
 import { MasterCard } from './MasterCard';
@@ -94,18 +81,12 @@ function ContinueWatchingRow() {
           subtitle={subtitleOf(menu.item)}
           position={menu.position}
           onClose={() => setMenu(null)}
-          actions={cardMenuItems({ kind: 'continue', entry: menu.item, onList: continueOnList(menu.item) }).map((entry) => ({
-            label: entry.label,
-            onSelect: () => {
-              if (entry.id === 'details')
-                uiStore
-                  .getState()
-                  .openDetails({ section: menu.item.kind === 'episode' ? 'series' : 'movies', masterId: menu.item.masterId! });
-              else if (entry.id === 'watched') void markEntryWatched(stores.progress, menu.item);
-              else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') toggleContinueOnList(menu.item);
-              else void removeFromContinueWatching(stores.progress, menu.item);
-            },
-          }))}
+          actions={continueMenuItems(menu.item, (section, masterId) => uiStore.getState().openDetails({ section, masterId })).map(
+            (entry) => ({
+              label: entry.label,
+              onSelect: entry.run,
+            }),
+          )}
         />
       ) : null}
     </Row>
@@ -185,11 +166,3 @@ function LibraryRow({ section, category, title }: { section: LibrarySection; cat
 }
 
 /** Continue Watching card menu: is its title on My List, and add/remove it (D-104). */
-function continueOnList(entry: ProgressDto): boolean {
-  const target = continueWatchlistEntry(entry);
-  return !!target && isOnWatchlist(stores.watchlist.getState(), target.section, target.card.id);
-}
-function toggleContinueOnList(entry: ProgressDto): void {
-  const target = continueWatchlistEntry(entry);
-  if (target) void stores.watchlist.getState().toggle(target.section, target.card);
-}

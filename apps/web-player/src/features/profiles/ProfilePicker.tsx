@@ -1,38 +1,18 @@
 import { useState } from 'react';
-import { needsPinToManage, needsPinToOpen, type ProfileDto, t } from '@iptv/shared';
-import { stores } from '../../appContext';
+import { type ProfileDto, t } from '@iptv/shared';
 import { Icon } from '../../components/Icon';
 import { Modal } from '../../components/Modal';
-import { usePin, useSession } from '../../hooks/stores';
+import { useProfileEditor, useProfilePicker } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
-import { AVATAR_COLORS, avatarColor } from './avatar';
+import { avatarColor } from './avatar';
 import { KidsCategories } from './KidsCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinDialog';
 
-const MAX_PROFILES = 5;
-
 /** "Who's watching?" screen. Manage mode edits or deletes profiles. With a parental PIN (D-054), regular profiles and managing ask for it. */
 export function ProfilePicker() {
-  const profiles = useSession((s) => s.profiles);
-  const pinStatus = usePin((s) => s.status);
-  const [managing, setManaging] = useState(false);
-  const [editing, setEditing] = useState<ProfileDto | 'new' | null>(null);
-  // Once the PIN was entered for managing, it is not asked again until the picker closes.
-  const [unlocked, setUnlocked] = useState(false);
   const { gate, dialog } = usePinGate();
-  const manage = (action: () => void) =>
-    gate(needsPinToManage(pinStatus) && !unlocked, t('Enter the parental PIN to manage profiles'), () => {
-      setUnlocked(true);
-      action();
-    });
-
-  const select = (profile: ProfileDto) =>
-    managing
-      ? setEditing(profile)
-      : gate(needsPinToOpen(pinStatus, null, profile), t('Enter the parental PIN to open {name}', { name: profile.name }), () =>
-          stores.session.getState().selectProfile(profile.id),
-        );
+  const { profiles, managing, editing, canAdd, select, add, toggleManaging, closeEditor } = useProfilePicker(gate);
 
   return (
     <main className="center-screen profiles">
@@ -48,8 +28,8 @@ export function ProfilePicker() {
               {profile.isKids ? <span className="profile-tile__kids">{t('Kids')}</span> : null}
             </button>
           ))}
-          {profiles.length < MAX_PROFILES ? (
-            <button type="button" className="profile-tile" onClick={() => manage(() => setEditing('new'))}>
+          {canAdd ? (
+            <button type="button" className="profile-tile" onClick={add}>
               <span className="profile-tile__avatar profile-tile__avatar--add">
                 <Icon name="plus" size={48} />
               </span>
@@ -57,48 +37,26 @@ export function ProfilePicker() {
             </button>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="button button--ghost"
-          onClick={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
-        >
+        <button type="button" className="button button--ghost" onClick={toggleManaging}>
           {managing ? t('Done') : t('Manage Profiles')}
         </button>
       </div>
-      {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
+      {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={closeEditor} /> : null}
       {dialog}
     </main>
   );
 }
 
 function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClose(): void }) {
-  const busy = useSession((s) => s.busy);
-  const error = useSession((s) => s.error);
-  const [name, setName] = useState(profile?.name ?? '');
-  const [isKids, setIsKids] = useState(profile?.isKids ?? false);
-  const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
+  const { busy, error, name, setName, isKids, setIsKids, color, setColor, colors, save, remove, close } = useProfileEditor(
+    profile,
+    onClose,
+  );
   const [categories, setCategories] = useState(false);
   const [languages, setLanguages] = useState(false);
-  const session = stores.session.getState();
-
-  const save = async () => {
-    const request = { name: name.trim(), isKids, avatarKey: color };
-    const saved = profile ? await session.updateProfile(profile.id, request) : await session.createProfile(request);
-    if (saved) onClose();
-  };
-
-  const remove = async () => {
-    if (profile && (await session.deleteProfile(profile.id))) onClose();
-  };
 
   return (
-    <Modal
-      label={profile ? t('Edit profile') : t('Add profile')}
-      onClose={() => {
-        session.clearError();
-        onClose();
-      }}
-    >
+    <Modal label={profile ? t('Edit profile') : t('Add profile')} onClose={close}>
       <form
         className="profile-editor"
         onSubmit={(event) => {
@@ -124,7 +82,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             {t('Colour')}
           </legend>
           <div style={{ display: 'flex', gap: 8 }}>
-            {AVATAR_COLORS.map((option) => (
+            {colors.map((option) => (
               <button
                 key={option}
                 type="button"

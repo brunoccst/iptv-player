@@ -1,42 +1,18 @@
-import { useEffect, useState } from 'react';
-import { isKidsCategory, type CatalogSection, type MediaCategory, t } from '@iptv/shared';
-import { api, stores } from '../../appContext';
-import { Modal } from '../../components/Modal';
+import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 
-const SECTIONS: { section: CatalogSection; label: () => string }[] = [
-  { section: 'movies', label: () => t('Movies') },
-  { section: 'series', label: () => t('Series') },
-  { section: 'live', label: () => t('Live TV') },
-];
+import { Modal } from '../../components/Modal';
+import { useKidsCategories } from '../../hooks/stores';
 
 /** Profile editor → Choose categories (D-064): what a Kids profile may see, per section; starts from the automatic choice. */
 export function KidsCategories({ profileId, name, onClose }: { profileId: string; name: string; onClose(): void }) {
-  const [section, setSection] = useState<CatalogSection>('movies');
-  const [lists, setLists] = useState<Partial<Record<CatalogSection, MediaCategory[]>>>({});
-  const [picks, setPicks] = useState(stores.profilePrefs.getState().prefs[profileId]?.kidsCategories ?? {});
-  const [error, setError] = useState<string | null>(null);
-  const categories = lists[section];
-
-  useEffect(() => {
-    if (lists[section]) return;
-    api.catalog
-      .categories(section)
-      .then((list) => setLists((current) => ({ ...current, [section]: list })))
-      .catch(() => setError(t('The categories could not be loaded.')));
-  }, [section, lists]);
-
-  const picked = (list: MediaCategory[]) => picks[section] ?? list.filter((c) => isKidsCategory(c.name)).map((c) => c.id);
-  const toggle = (list: MediaCategory[], id: string) => {
-    const current = picked(list);
-    setPicks({ ...picks, [section]: current.includes(id) ? current.filter((c) => c !== id) : [...current, id] });
-  };
+  const { section, setSection, categories, error, chosen, isPicked, toggle, automatic, save } = useKidsCategories(profileId, onClose);
 
   return (
     <Modal label={t('Categories for {name}', { name })} onClose={onClose}>
       <div className="profile-editor" style={{ display: 'grid', gap: 12 }}>
         <h2 style={{ margin: 0 }}>{t('Categories for {name}', { name })}</h2>
         <div className="chips" role="tablist">
-          {SECTIONS.map((s) => (
+          {CATEGORY_SECTIONS.map((s) => (
             <button
               key={s.section}
               type="button"
@@ -50,7 +26,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
           ))}
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          {picks[section] ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
+          {chosen ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
           {t('Only checked categories are shown.')}
         </p>
         {error ? (
@@ -61,25 +37,15 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
         <div style={{ maxHeight: '45vh', overflowY: 'auto', display: 'grid', gap: 4 }}>
           {categories?.map((category) => (
             <label key={category.id} className="checkbox">
-              <input type="checkbox" checked={picked(categories).includes(category.id)} onChange={() => toggle(categories, category.id)} />{' '}
-              {category.name}
+              <input type="checkbox" checked={isPicked(category.id)} onChange={() => toggle(category.id)} /> {category.name}
             </label>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="button button--primary"
-            onClick={() => void stores.profilePrefs.getState().update(profileId, { kidsCategories: picks }).then(onClose)}
-          >
+          <button type="button" className="button button--primary" onClick={() => void save()}>
             {t('Save')}
           </button>
-          <button
-            type="button"
-            className="button button--ghost"
-            disabled={!picks[section]}
-            onClick={() => setPicks({ ...picks, [section]: null })}
-          >
+          <button type="button" className="button button--ghost" disabled={!chosen} onClick={automatic}>
             {t('Automatic')}
           </button>
         </div>

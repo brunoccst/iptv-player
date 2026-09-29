@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { formatOfflineDate, t, intlLocale } from '@iptv/shared';
+import { formatOfflineDate, t } from '@iptv/shared';
+import { formatBytes } from '@iptv/shared';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { CenteringScrollView } from '../components/CenterScroll';
 import { downloadsStore, navStore } from '../appContext';
@@ -7,11 +8,6 @@ import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
 import { useDownloads, useOfflineAccess } from '../hooks';
 import { colors, fonts, radius, useSizes, useNavHeight } from '../theme';
-
-const formatBytes = (bytes: number) =>
-  bytes >= 1e9
-    ? `${(bytes / 1e9).toLocaleString(intlLocale(), { maximumFractionDigits: 1 })} GB`
-    : `${Math.round(bytes / 1e6).toLocaleString(intlLocale())} MB`;
 
 /**
  * Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons.

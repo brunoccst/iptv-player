@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { languageNames, profileLanguages, selectActiveProfile, t } from '@iptv/shared';
-import { stores, uiStore } from '../../appContext';
+import { languageNames, t } from '@iptv/shared';
+
 import { Modal } from '../../components/Modal';
-import { useProfilePrefs, useSession } from '../../hooks/stores';
+import { useLanguageSettings } from '../../hooks/stores';
 
 /**
  * Account menu → Content language filter (D-063, D-067, D-086): only titles with audio or subtitles in one of the chosen languages, for the
@@ -10,23 +9,7 @@ import { useProfilePrefs, useSession } from '../../hooks/stores';
  */
 export function LanguageSettings({ onClose, profile }: { onClose(): void; profile?: { id: string; name: string } }) {
   // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
-  const activeId = useSession((s) => s.activeProfileId);
-  const activeName = useSession((s) => selectActiveProfile(s)?.name ?? null);
-  const profileId = profile?.id ?? activeId;
-  const profileName = profile?.name ?? activeName;
-  const saved = useProfilePrefs((s) => (profileId ? profileLanguages(s.prefs[profileId]) : []));
-  const [chosen, setChosen] = useState(saved);
-  const toggle = (code: string) =>
-    setChosen((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code]));
-  const close = () => {
-    onClose();
-    if (!profileId || chosen.join(',') === saved.join(',')) return;
-    void stores.profilePrefs
-      .getState()
-      .update(profileId, { languages: chosen, language: null })
-      .then(() => uiStore.getState().bumpLibrary());
-  };
-  const title = profileName ? t('Content language filter for {name}', { name: profileName }) : t('Content language filter');
+  const { title, chosen, toggle, allLanguages, close } = useLanguageSettings(profile, onClose);
   return (
     <Modal label={title} onClose={close}>
       <div className="profile-editor" style={{ display: 'grid', gap: 12 }}>
@@ -37,7 +20,7 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
           )}
         </p>
         <label className="checkbox">
-          <input type="checkbox" checked={chosen.length === 0} onChange={() => setChosen([])} /> {t('All languages')}
+          <input type="checkbox" checked={chosen.length === 0} onChange={() => allLanguages()} /> {t('All languages')}
         </label>
         {Object.entries(languageNames()).map(([code, name]) => (
           <label key={code} className="checkbox">

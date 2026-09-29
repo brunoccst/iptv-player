@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isKidsCategory, type CatalogSection, type MediaCategory, t } from '@iptv/shared';
-import { api, stores } from '../appContext';
+import { CATEGORY_SECTIONS, t } from '@iptv/shared';
+
+import { useKidsCategories } from '../hooks';
 import { colors, fonts } from '../theme';
 import { Chip } from './ChipBar';
 import { ErrorText } from './Feedback';
@@ -9,45 +10,12 @@ import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
 import { focus } from './focus';
 
-const SECTIONS: { section: CatalogSection; label: () => string }[] = [
-  { section: 'movies', label: () => t('Movies') },
-  { section: 'series', label: () => t('Series') },
-  { section: 'live', label: () => t('Live TV') },
-];
-
-type Picks = Partial<Record<CatalogSection, string[] | null>>;
-
 /**
  * Profile editor → Choose categories (D-064): the categories a Kids profile may see, per section. Starts from the
  * automatic choice (category names, D-053); "Automatic" goes back to it. Saved on this device with the profile.
  */
 export function KidsCategories({ profileId, name, onClose }: { profileId: string; name: string; onClose(): void }) {
-  const saved = stores.profilePrefs.getState().prefs[profileId]?.kidsCategories ?? {};
-  const [section, setSection] = useState<CatalogSection>('movies');
-  const [lists, setLists] = useState<Partial<Record<CatalogSection, MediaCategory[]>>>({});
-  const [picks, setPicks] = useState<Picks>(saved);
-  const [error, setError] = useState<string | null>(null);
-  const categories = lists[section];
-
-  useEffect(() => {
-    if (lists[section]) return;
-    // The profile picker has no active profile, so this is the full, unfiltered list.
-    api.catalog
-      .categories(section)
-      .then((list) => setLists((current) => ({ ...current, [section]: list })))
-      .catch(() => setError(t('The categories could not be loaded.')));
-  }, [section, lists]);
-
-  const automatic = (list: MediaCategory[]) => list.filter((c) => isKidsCategory(c.name)).map((c) => c.id);
-  const picked = (list: MediaCategory[]) => picks[section] ?? automatic(list);
-  const toggle = (list: MediaCategory[], id: string) => {
-    const current = picked(list);
-    setPicks({ ...picks, [section]: current.includes(id) ? current.filter((c) => c !== id) : [...current, id] });
-  };
-  const save = async () => {
-    await stores.profilePrefs.getState().update(profileId, { kidsCategories: picks });
-    onClose();
-  };
+  const { section, setSection, categories, error, chosen, isPicked, toggle, automatic, save } = useKidsCategories(profileId, onClose);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -55,7 +23,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
         <View style={styles.panel} testID="kids-categories">
           <Text style={styles.title}>{t('Categories for {name}', { name })}</Text>
           <View style={styles.sections}>
-            {SECTIONS.map((s) => (
+            {CATEGORY_SECTIONS.map((s) => (
               <Chip
                 key={s.section}
                 label={s.label()}
@@ -66,7 +34,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             ))}
           </View>
           <Text style={styles.hint}>
-            {picks[section] ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
+            {chosen ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
             {t('Only checked categories are shown.')}
           </Text>
           {error ? <ErrorText>{error}</ErrorText> : null}
@@ -74,12 +42,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
             <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
               {categories.length === 0 ? <Text style={styles.hint}>{t('No categories.')}</Text> : null}
               {categories.map((category) => (
-                <CategoryRow
-                  key={category.id}
-                  name={category.name}
-                  checked={picked(categories).includes(category.id)}
-                  onPress={() => toggle(categories, category.id)}
-                />
+                <CategoryRow key={category.id} name={category.name} checked={isPicked(category.id)} onPress={() => toggle(category.id)} />
               ))}
             </ScrollView>
           ) : error ? null : (
@@ -87,13 +50,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
           )}
           <View style={styles.actions}>
             <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="kids-categories-save" />
-            <FocusButton
-              label={t('Automatic')}
-              variant="ghost"
-              disabled={!picks[section]}
-              onPress={() => setPicks({ ...picks, [section]: null })}
-              testID="kids-categories-automatic"
-            />
+            <FocusButton label={t('Automatic')} variant="ghost" disabled={!chosen} onPress={automatic} testID="kids-categories-automatic" />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
           </View>
         </View>

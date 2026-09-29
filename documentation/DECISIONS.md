@@ -2041,3 +2041,17 @@ Decision (`sqlLibrary.ts` `createSqlLiveChannels`, `directApiClient.ts`, TV and 
 - The library and the channel list take their table names from one counter: two saves in the same millisecond had taken the same name, and one of them failed.
 - Without a database (a plain browser) nothing changes, except that search and limit are applied to the downloaded list.
 - Tests: on 700 made-up channels, every category, search (with and without a limit, accents and emoji) and guide page (offsets, Kids and hidden categories) is the same with and without the database, and the database client downloads the list once for all of them.
+
+## D-124
+
+**One set of screen logic for the TV/phone app and the desktop app** — 2026-09-29 (owner: "standardized as much as possible, reusing UI components and logic… so we avoid re-doing things for multiple platforms"; chose "shared logic first")
+
+Context: the TV/phone app (React Native) and the desktop app (React DOM) draw differently, but each screen also carried its own copy of the same state, loading and rules. A duplicate scan (jscpd) found about 600 lines copied between the two apps; every change had to be made twice.
+
+Decision (`packages/shared/src/hooks.ts`, `search/`, `pairing/usePairingServer.ts`):
+
+- `createAppHooks({ api, stores, reloadLists })` makes each app's hooks from its own stores; the apps only list what they use (`apps/tv-app/src/hooks.ts`, `apps/web-player/src/hooks/stores.ts`). The hooks hold the state, loading and actions; each app keeps only its drawing (React Native views or HTML).
+- Shared now: paged lists (`usePagedLibrary`), the profile picker and editor, movie and series details, Kids categories, Categories shown, content languages, search (typing delay, All / Movies / Series / Live TV, channel matches), phone pairing on the TV or computer, the player's series and versions (next-up, previous, episodes drawer) and its progress saving, Home's featured title, poster cards with their menu, the Continue watching menu, My List and Watched buttons, and download sizes.
+- Not shared: drawing. React Native Web was considered and set aside for now: it would make the desktop app draw with React Native, a much larger change.
+- Nothing changes for the user; code copied between the two apps (outside tests) went from about 590 lines to about 220, mostly layout that differs on purpose.
+- Tests: the existing unit, screen and end-to-end tests of both apps run unchanged against the shared hooks.

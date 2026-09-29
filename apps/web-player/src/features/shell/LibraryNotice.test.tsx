@@ -7,7 +7,7 @@ const library = createStore<{ refreshNotice: string | null; dismissRefreshNotice
   refreshNotice: null,
   dismissRefreshNotice: () => set({ refreshNotice: null }),
 }));
-vi.mock('../../appContext', () => ({ stores: { library }, downloadsStore: library, uiStore: library }));
+vi.mock('../../appContext', () => ({ api: {}, stores: { library }, downloadsStore: library, uiStore: library }));
 
 describe('"Refresh library" result (D-119)', () => {
   afterEach(() => {

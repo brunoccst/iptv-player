@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import { AVATAR_COLORS, avatarColor, fluid, needsPinToManage, needsPinToOpen, type ProfileDto, t } from '@iptv/shared';
-import { stores } from '../appContext';
+import { avatarColor, fluid, type ProfileDto, t } from '@iptv/shared';
 import { confirmSignOut } from '../components/AccountMenu';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
@@ -9,37 +8,18 @@ import { Icon } from '../components/Icon';
 import { KidsCategories } from '../components/KidsCategories';
 import { LanguageSettings } from '../components/LanguageSettings';
 import { usePinGate } from '../components/PinPad';
-import { usePin, useSession } from '../hooks';
+import { useProfileEditor, useProfilePicker } from '../hooks';
 import { colors, fonts, radius } from '../theme';
 import { focus } from '../components/focus';
 
 export { avatarColor };
 
-const MAX_PROFILES = 5;
-
 /** Same as the web "Who's watching?": pick a profile; Manage Profiles edits, adds or deletes them. PIN rules: D-054. */
 export function ProfilesScreen() {
-  const profiles = useSession((s) => s.profiles);
-  const pinStatus = usePin((s) => s.status);
-  const [managing, setManaging] = useState(false);
-  const [editing, setEditing] = useState<ProfileDto | 'new' | null>(null);
-  // Once the PIN was entered for managing, it is not asked again until the picker closes.
-  const [unlocked, setUnlocked] = useState(false);
   const { gate, dialog } = usePinGate();
+  const { profiles, managing, editing, canAdd, select, add, toggleManaging, closeEditor } = useProfilePicker(gate);
   const { width } = useWindowDimensions();
   const tile = fluid(width, 90, 10, 150);
-
-  const manage = (action: () => void) =>
-    gate(needsPinToManage(pinStatus) && !unlocked, t('Enter the parental PIN to manage profiles'), () => {
-      setUnlocked(true);
-      action();
-    });
-  const select = (profile: ProfileDto) =>
-    managing
-      ? setEditing(profile)
-      : gate(needsPinToOpen(pinStatus, null, profile), t('Enter the parental PIN to open {name}', { name: profile.name }), () =>
-          stores.session.getState().selectProfile(profile.id),
-        );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.center}>
@@ -57,20 +37,18 @@ export function ProfilesScreen() {
             onPress={() => select(profile)}
           />
         ))}
-        {profiles.length < MAX_PROFILES ? (
-          <ProfileTile name="Add Profile" size={tile} add onPress={() => manage(() => setEditing('new'))} />
-        ) : null}
+        {canAdd ? <ProfileTile name="Add Profile" size={tile} add onPress={add} /> : null}
       </View>
       <View style={styles.actions}>
         <FocusButton
           label={managing ? t('Done') : t('Manage Profiles')}
           variant="ghost"
-          onPress={() => (managing ? setManaging(false) : manage(() => setManaging(true)))}
+          onPress={toggleManaging}
           testID="profiles-manage"
         />
         <FocusButton label={t('Sign out')} variant="ghost" onPress={confirmSignOut} testID="profiles-sign-out" />
       </View>
-      {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={() => setEditing(null)} /> : null}
+      {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={closeEditor} /> : null}
       {dialog}
     </ScrollView>
   );
@@ -130,27 +108,22 @@ function ProfileTile({
 
 /** Web `ProfileEditor`: name, colour, Kids profile; Save or Delete. */
 function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClose(): void }) {
-  const busy = useSession((s) => s.busy);
-  const error = useSession((s) => s.error);
-  const [name, setName] = useState(profile?.name ?? '');
-  const [isKids, setIsKids] = useState(profile?.isKids ?? false);
-  const [color, setColor] = useState(profile ? avatarColor(profile) : AVATAR_COLORS[0]!);
+  const {
+    busy,
+    error,
+    name,
+    setName,
+    isKids,
+    setIsKids,
+    color,
+    setColor,
+    colors: avatarColors,
+    save,
+    remove,
+    close,
+  } = useProfileEditor(profile, onClose);
   const [categories, setCategories] = useState(false);
   const [languages, setLanguages] = useState(false);
-  const session = stores.session.getState();
-  const close = () => {
-    session.clearError();
-    onClose();
-  };
-
-  const save = async () => {
-    const request = { name: name.trim(), isKids, avatarKey: color };
-    const saved = profile ? await session.updateProfile(profile.id, request) : await session.createProfile(request);
-    if (saved) onClose();
-  };
-  const remove = async () => {
-    if (profile && (await session.deleteProfile(profile.id))) onClose();
-  };
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={close}>
@@ -172,7 +145,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
           </View>
           <Text style={styles.label}>{t('Colour')}</Text>
           <View style={styles.swatches}>
-            {AVATAR_COLORS.map((option) => (
+            {avatarColors.map((option) => (
               <Pressable
                 key={option}
                 accessibilityRole="radio"
