@@ -131,13 +131,39 @@ const byTmdb = (groups: number[][], usable: NormalizerItem[], parsed: ParsedTitl
     parsed.map((title) => title.year),
   );
 
+/** Milliseconds per grouping step, without the breaks for the screen (D-116). */
+export interface GroupingTimings {
+  /** Reading the names (or taking them from the last library). */
+  names: number;
+  /** Matching: exact keys, and year-less titles joining a dated one. */
+  exact: number;
+  /** Matching: the keys for the similarity check. */
+  keys: number;
+  /** Matching: similar names within blocks. */
+  similar: number;
+  /** Joining groups that share a TMDB id. */
+  tmdb: number;
+  /** Building the titles (or keeping unchanged ones). */
+  titles: number;
+  sort: number;
+  /** Waiting in breaks for the screen, and how many breaks. */
+  waiting: number;
+  breaks: number;
+}
+
+type GroupingStep = Exclude<keyof GroupingTimings, 'waiting' | 'breaks'>;
+
 /**
  * Same result as `buildMasters`, but works in chunks and yields between them so the UI stays responsive, and
  * `onProgress(done, total)` reports how far it got (direct mode on TV/phone, D-038). `done` runs from 0 to `total`
  * across all steps: reading the names (first half), matching them (to 80 %), building the titles (the rest).
  *
  * It yields to the UI once `sliceMs` of work has passed, not after every chunk: on React Native each yield waits for
- * the next frame, and hundreds of them added seconds of idle time on a TV (D-093).
+ * the next frame, and hundreds of them added seconds of idle time on a TV (D-093). 250 ms (it was 50): each break costs
+ * at least a frame, so short slices spent a fifth of the time or more waiting; the progress still moves 4 times a
+ * second (D-116).
+ *
+ * `onTimings` reports how long each step took, without the breaks (logged, D-116).
  */
 export async function buildMastersInChunks(
   accountId: string,
@@ -145,11 +171,12 @@ export async function buildMastersInChunks(
   items: NormalizerItem[],
   {
     chunkSize = 500,
-    sliceMs = 50,
+    sliceMs = 250,
     onProgress,
     yieldTo,
     previous,
     onReuse,
+    onTimings,
   }: {
     chunkSize?: number;
     sliceMs?: number;
@@ -164,22 +191,36 @@ export async function buildMastersInChunks(
     previous?: Master[];
     /** How many names and titles came from `previous`. */
     onReuse?(counts: { names: number; masters: number }): void;
+    onTimings?(timings: GroupingTimings): void;
   } = {},
 ): Promise<Master[]> {
   const usable = items.filter((item) => text(item.id) && text(item.name));
   const total = usable.length;
+  const timings: GroupingTimings = { names: 0, exact: 0, keys: 0, similar: 0, tmdb: 0, titles: 0, sort: 0, waiting: 0, breaks: 0 };
   let sliceStarted = Date.now();
-  const pause = async (fraction: number) => {
+  // Work since the last break or step, added to the step that did it.
+  let workStarted = sliceStarted;
+  const work = (step: GroupingStep) => {
+    const now = Date.now();
+    timings[step] += now - workStarted;
+    workStarted = now;
+  };
+  const pause = async (fraction: number, step: GroupingStep) => {
+    work(step);
     onProgress?.(Math.min(total, Math.floor(fraction * total)), total);
     const first = yieldTo?.();
     if (first) {
+      // Another list's grouping: not this one's time.
       await first;
-      sliceStarted = Date.now();
+      sliceStarted = workStarted = Date.now();
       return;
     }
     if (Date.now() - sliceStarted < sliceMs) return;
+    const waitStarted = Date.now();
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    sliceStarted = Date.now();
+    timings.waiting += Date.now() - waitStarted;
+    timings.breaks++;
+    sliceStarted = workStarted = Date.now();
   };
 
   const reuse = reuseFrom(previous);
@@ -195,9 +236,16 @@ export async function buildMastersInChunks(
       names.push(fromName);
       parsed.push(withReleaseYear(fromName, item));
     }
-    await pause((0.5 * parsed.length) / total);
+    await pause((0.5 * parsed.length) / total, 'names');
   }
-  const groups = byTmdb(await groupTitlesAsync(parsed, (done) => pause(0.5 + 0.3 * done)), usable, parsed);
+  work('names');
+  // Matching reports 0–0.1 for the exact keys (and year-less titles), to 0.2 for the similarity keys, then similar names.
+  const matched = await groupTitlesAsync(parsed, (done) =>
+    pause(0.5 + 0.3 * done, done <= 0.1 ? 'exact' : done <= 0.2 ? 'keys' : 'similar'),
+  );
+  work('similar');
+  const groups = byTmdb(matched, usable, parsed);
+  work('tmdb');
   const masters: Master[] = [];
   let reusedMasters = 0;
   for (let start = 0; start < groups.length; start += chunkSize) {
@@ -206,11 +254,15 @@ export async function buildMastersInChunks(
       if (same) reusedMasters++;
       masters.push(same ?? masterOf(accountId, mediaKind, usable, parsed, group, names));
     }
-    await pause(0.8 + (0.2 * Math.min(groups.length, start + chunkSize)) / groups.length);
+    await pause(0.8 + (0.2 * Math.min(groups.length, start + chunkSize)) / groups.length, 'titles');
   }
+  work('titles');
   onReuse?.({ names: reusedNames, masters: reusedMasters });
   onProgress?.(total, total);
-  return sortMasters(masters);
+  const sorted = sortMasters(masters);
+  work('sort');
+  onTimings?.(timings);
+  return sorted;
 }
 
 function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], names: ParsedTitle[]): Master[] {

@@ -329,6 +329,16 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const masters = await buildMastersInChunks(accountId, kind, items, {
             previous: previous?.[kind],
             onReuse: (counts) => (reused = `, ${counts.names} names and ${counts.masters} titles unchanged`),
+            // Where the time goes, to see what to speed up (D-116).
+            onTimings: (time) => {
+              const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+              appLog.info(
+                'library',
+                `${kind}: grouping steps: names ${s(time.names)}, exact matches ${s(time.exact)}, similarity keys ${s(time.keys)}, ` +
+                  `similar names ${s(time.similar)}, TMDB ${s(time.tmdb)}, titles ${s(time.titles)}, sorting ${s(time.sort)}, ` +
+                  `waiting for the screen ${s(time.waiting)} (${time.breaks} breaks)`,
+              );
+            },
             onProgress: (parsed) => (library.status[kind] = { ...library.status[kind], parsedCount: parsed }),
             // A smaller list that arrives meanwhile (series while 100k movies group) is grouped and shown first.
             yieldTo: () => {
