@@ -204,7 +204,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: a chip in the "Show all" box does not scroll the page to it (D-108)', async () => {
+  it('TV: a chip in the "Show all" box centers the whole box, not itself (D-108, D-112)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const center = jest.fn();
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
@@ -221,11 +221,13 @@ describe('ChipBar', () => {
     );
     await fireEvent(screen.getByTestId('chip-c6'), 'focus');
     expect(center).toHaveBeenCalledTimes(1);
+    expect(center.mock.calls[0]![0]?.props?.testID).toBe('chip-c6');
 
     await fireEvent.press(screen.getByTestId('chips-all'));
     center.mockClear();
     await fireEvent(screen.getByTestId('chip-c6'), 'focus');
-    expect(center).not.toHaveBeenCalled();
+    await fireEvent(screen.getByTestId('chip-c2'), 'focus');
+    expect(center.mock.calls.map((call) => call[0]?.props?.testID)).toEqual(['chips', 'chips']);
     jest.restoreAllMocks();
   });
 

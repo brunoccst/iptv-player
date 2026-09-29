@@ -113,6 +113,7 @@ Code comments reference entries as `DECISIONS.md#d-XXX`.
 | [D-106](#d-106) | 2026-09-29 | The web player is the desktop app's screens: no Codespaces setup |
 | [D-107](#d-107) | 2026-09-29 | Greek, Ex-Yu, Punjabi and EAR (English, Arabic subtitles) title languages; longer prefix groups |
 | [D-108](#d-108) | 2026-09-29 | TV: ‹ › keep the focus at the ends; "Show all" no longer scrolls the page; search filter and a fixed search title; Close the app in the avatar menu |
+| [D-112](#d-112) | 2026-09-29 | TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" prefixes |
 
 ---
 
@@ -1816,3 +1817,19 @@ Decision:
 - **Search filter:** All · Movies · Series · Live TV above the results (TV, phone and desktop); "No channels." when Live TV finds none.
 - **Fixed title:** on TV and phone, the title and the filter sit above the scrolling results, so they stay on screen; Up from the first results goes to the filter.
 - **Close the app** (TV, phone) moves from avatar → App to the avatar menu itself, for every profile (Kids too), so nobody needs Settings → Apps → Force stop.
+
+## D-112
+
+**TV: the avatar menu keeps the focus; "Show all" keeps the category box on screen; "PL = …" prefixes** — 2026-09-29 (requested by owner)
+
+Context:
+
+- With the avatar menu open, Down past its last item walked into the page (categories, titles).
+- "Show all" still scrolled the page down to the titles (after D-108): the button is replaced when the bar changes shape, the focus passes through a title of the grid (which scrolls the page to it) and only then reaches the chosen category, which no longer centered anything.
+- Some of the owner's Polish titles are named "PL = Title".
+
+Decision:
+
+- **Menu:** the open menu traps the D-pad in every direction; Back (or a pick) closes it.
+- **Show all:** a category in the box centers the whole box in the page, so the page comes back to the box whatever the focus passed through.
+- **"=" prefixes:** "=" separates a prefix group like ":" and " - " do. The group must still be known tags in capitals ("PL = Title" → Polish), so "E=MC2" or "ABC = Murders" stay titles. The library rules version goes to 5 (regrouped once).

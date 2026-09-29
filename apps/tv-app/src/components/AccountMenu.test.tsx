@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert, type AlertButton } from 'react-native';
+import { Alert, Platform, type AlertButton } from 'react-native';
 import { nativeState } from '../../test/tvMediaMock';
 import { App } from '../App';
 import { navStore, stores } from '../appContext';
@@ -13,6 +13,19 @@ async function flush() {
 }
 
 describe('account menu groups', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('TV: the D-pad stays in the open menu, in every direction (D-112)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    setupApp();
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    const menu = screen.getByTestId('account-menu');
+    for (const direction of ['Up', 'Down', 'Left', 'Right']) expect(menu).toHaveProp(`trapFocus${direction}`, true);
+    await act(async () => navStore.getState().setMenuOpen(false));
+  });
+
   it('shows groups; a group replaces the list with its name, a back arrow and its items', async () => {
     setupApp();
     await render(<App />);

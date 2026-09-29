@@ -111,7 +111,8 @@ function extractSubtitles(raw: string): { text: string; languages: string[] } {
 }
 
 // Numbered groups only: Babel turns named groups into a slow wrapper around every match on Hermes (D-093).
-const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:]|\s[-–]\s)\s*/;
+// "=" too ("PL = Title", D-112): the group before it must still be a known tag in capitals, so "E=MC2" stays a title.
+const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:=]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
 const EDGE_PUNCTUATION = ' -–:|.,_/';
 const TRAILING_ARTICLE = /^(.+),\s*(the|a|an)$/i;

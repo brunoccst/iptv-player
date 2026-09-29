@@ -324,6 +324,37 @@
       "year": 2026
     },
     {
+      "raw": "PL = Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "POL"
+      ],
+      "year": 2026,
+      "note": "'=' after a language prefix"
+    },
+    {
+      "raw": "PL=Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [
+        "POL"
+      ],
+      "year": 2026
+    },
+    {
+      "raw": "E=MC2 (2020)",
+      "title": "E=MC2",
+      "languages": [],
+      "year": 2020,
+      "note": "not a prefix"
+    },
+    {
+      "raw": "ABC = Murders (2018)",
+      "title": "ABC = Murders",
+      "languages": [],
+      "year": 2018,
+      "note": "not a known tag: stays"
+    },
+    {
       "raw": "PUNJABI - Backrooms (2026)",
       "title": "Backrooms",
       "languages": [
