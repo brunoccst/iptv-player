@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ApiError } from './api/errors';
-import type { CatalogSection, LibrarySection, MasterCard, MasterDetails, MediaCategory, ProfileDto, ProgressDto } from './api/types';
+import type {
+  CatalogSection,
+  LibrarySection,
+  LiveChannel,
+  MasterCard,
+  MasterDetails,
+  MediaCategory,
+  ProfileDto,
+  ProgressDto,
+} from './api/types';
 import type { AppContext } from './appContext';
 import { offlineAccess } from './playback/offlineAccess';
 import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t } from './i18n/i18n';
+import { MAX_SEARCH_CHANNELS } from './search/useSearchQuery';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
@@ -297,6 +307,24 @@ export function createAppHooks({
           void stores.profilePrefs.getState().update(profileId, { languages: chosen, language: null }).then(reloadLists);
         },
       };
+    },
+
+    /** Live channels whose name matches a search, hidden categories included (D-110); null until they arrive. */
+    useChannelSearch(query: string): LiveChannel[] | null {
+      const [channels, setChannels] = useState<LiveChannel[] | null>(null);
+      useEffect(() => {
+        let cancelled = false;
+        const needle = query.toLowerCase();
+        api.catalog.liveChannels(null, undefined, { includeHidden: true }).then(
+          (all) =>
+            !cancelled && setChannels(all.filter((channel) => channel.name.toLowerCase().includes(needle)).slice(0, MAX_SEARCH_CHANNELS)),
+          () => !cancelled && setChannels([]),
+        );
+        return () => {
+          cancelled = true;
+        };
+      }, [query]);
+      return channels;
     },
 
     /** Whether downloads may play (subscription active, online within 30 days). D-050. */

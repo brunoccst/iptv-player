@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { searchDelay, SEARCH_DELAY_MAX_MS, SEARCH_DELAY_MIN_MS } from './searchDelay';
 
 describe('searchDelay', () => {

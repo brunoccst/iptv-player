@@ -1,33 +1,16 @@
-import { useEffect, useState } from 'react';
-import type { LibrarySortChoice, LiveChannel } from '@iptv/shared';
-import { api, uiStore } from '../../appContext';
+import { useState } from 'react';
+import { SEARCH_BY_TITLE, SEARCH_KINDS, type SearchKind, useSearchQuery } from '@iptv/shared';
+import { uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
-import { useUi } from '../../hooks/stores';
+import { useChannelSearch, useUi } from '../../hooks/stores';
 import { PagedGrid } from './BrowsePage';
 import { t } from '@iptv/shared';
-
-const DEBOUNCE_MS = 300;
-const MAX_CHANNELS = 30;
-/** Which results show (D-108): everything, or only movies, series or live channels. Same as the TV app. */
-type SearchKind = 'all' | 'movies' | 'series' | 'live';
-const KINDS: { kind: SearchKind; label: () => string }[] = [
-  { kind: 'all', label: () => t('All') },
-  { kind: 'movies', label: () => t('Movies') },
-  { kind: 'series', label: () => t('Series') },
-  { kind: 'live', label: () => t('Live TV') },
-];
-/** Search results read best alphabetically. */
-const BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 
 /** Searches movies and series (title or normalized key) and live channels by name; same as the TV app. */
 export function SearchPage() {
   const search = useUi((s) => s.search);
-  const [query, setQuery] = useState(search.trim());
-
-  useEffect(() => {
-    const timer = setTimeout(() => setQuery(search.trim()), DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [search]);
+  // Waits until typing pauses, adapted to the typing speed; the same as the TV app (D-124).
+  const query = useSearchQuery(search);
 
   const [kind, setKind] = useState<SearchKind>('all');
   const shows = (section: SearchKind) => kind === 'all' || kind === section;
@@ -38,7 +21,7 @@ export function SearchPage() {
       {query ? (
         <>
           <div className="chips" role="tablist" aria-label={t('Search')} style={{ marginBottom: 24 }}>
-            {KINDS.map((option) => (
+            {SEARCH_KINDS.map((option) => (
               <button
                 key={option.kind}
                 type="button"
@@ -56,7 +39,7 @@ export function SearchPage() {
               <h2 className="row__title" style={{ margin: '0 0 12px' }}>
                 {t('Movies')}
               </h2>
-              <PagedGrid key={`m-${query}`} section="movies" search={query} sort={BY_TITLE} />
+              <PagedGrid key={`m-${query}`} section="movies" search={query} sort={SEARCH_BY_TITLE} />
             </>
           ) : null}
           {shows('series') ? (
@@ -64,7 +47,7 @@ export function SearchPage() {
               <h2 className="row__title" style={{ margin: kind === 'all' ? '32px 0 12px' : '0 0 12px' }}>
                 {t('Series')}
               </h2>
-              <PagedGrid key={`s-${query}`} section="series" search={query} sort={BY_TITLE} />
+              <PagedGrid key={`s-${query}`} section="series" search={query} sort={SEARCH_BY_TITLE} />
             </>
           ) : null}
           {shows('live') ? <ChannelResults key={`c-${query}`} query={query} alone={kind === 'live'} /> : null}
@@ -76,20 +59,7 @@ export function SearchPage() {
 
 /** Matching live channels; `alone` (the Live TV filter): says so when there are none. */
 function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
-  const [channels, setChannels] = useState<LiveChannel[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const needle = query.toLowerCase();
-    // Search also finds channels in hidden categories (D-110).
-    api.catalog.liveChannels(null, undefined, { includeHidden: true }).then(
-      (all) => !cancelled && setChannels(all.filter((channel) => channel.name.toLowerCase().includes(needle)).slice(0, MAX_CHANNELS)),
-      () => !cancelled && setChannels([]),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [query]);
+  const channels = useChannelSearch(query);
 
   if (!channels?.length) return alone && channels ? <p className="muted">{t('No channels.')}</p> : null;
   return (

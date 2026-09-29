@@ -39,6 +39,8 @@ export * from './utils/format';
 export * from './utils/logger';
 export * from './react';
 export * from './hooks';
+export * from './search/searchDelay';
+export * from './search/useSearchQuery';
 export * from './design/tokens';
 export * from './design/icons';
 export * from './design/avatar';
