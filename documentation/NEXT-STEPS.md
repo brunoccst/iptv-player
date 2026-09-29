@@ -34,6 +34,7 @@ flowchart LR
 ```
 
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
+- [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.
 - [x] **Faster library updates** (requested 2026-09-29, D-109): an update still downloads the full lists (the provider offers nothing else), but only reads and builds the names and titles that changed; the rest is taken from the last library.
 - [x] **TV category pager, Show all, search filter** (requested 2026-09-29, D-108): ‹ › keep the focus at the first and last categories (OK does nothing there); "Show all" no longer scrolls the page down; search has All / Movies / Series / Live TV, and "Results for …" stays on screen; "Close the app" is in the avatar menu itself.
