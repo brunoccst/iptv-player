@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Dimensions, Platform } from 'react-native';
-import { appLog, HOLD_THRESHOLD_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
+import { appLog, HOLD_THRESHOLD_MS, TAP_CHAIN_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { playerState } from '../../test/tvMediaMock';
 import { appContext, navStore, stores } from '../appContext';
@@ -241,6 +241,30 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('left', 'up'));
     expect(playerState.seeks).toHaveLength(2);
     expect(playerState.seeks[1]).toBeLessThan(110_000 - 30_000);
+    expect(screen.queryByTestId('scrub-bar')).toBeNull();
+  });
+
+  it('presses in a row go faster, release-only arrows and ⏩ too: the bar previews, the video jumps once (issue #121)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(100, 6000);
+
+    // Remotes that report arrows only on release: no hold, so each press counts.
+    for (let i = 0; i < 4; i++) {
+      await act(async () => pressRemote('right', 'up'));
+      await act(async () => jest.advanceTimersByTime(300));
+    }
+    expect(playerState.seeks).toEqual([110_000]);
+    expect(screen.getByTestId('scrub-bar')).toBeTruthy();
+    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+0:30');
+    await act(async () => pressRemote('fastForward', 'down'));
+    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+1:00');
+    await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
+    // 110 + 10 + 30 + 30 + 60
+    expect(playerState.seeks).toEqual([110_000, 240_000]);
     expect(screen.queryByTestId('scrub-bar')).toBeNull();
   });
 
