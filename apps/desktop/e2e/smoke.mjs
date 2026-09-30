@@ -67,6 +67,20 @@ try {
   page = await app.firstWindow();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible({ timeout: 30_000 });
   console.log('still signed in after a restart');
+
+  // Profiles are in the library database with the library (D-121, D-126), not in files.
+  const { DatabaseSync } = await import('node:sqlite');
+  const db = new DatabaseSync(path.join(userData, 'library.db'), { readOnly: true });
+  const keys = db
+    .prepare('SELECT key FROM user_data')
+    .all()
+    .map((row) => String(row.key));
+  db.close();
+  assert.ok(
+    keys.some((key) => key.startsWith('direct.profiles.')),
+    `user data in the database: ${keys.join(', ')}`,
+  );
+  console.log('profiles are in the database');
 } finally {
   await app.close();
 }

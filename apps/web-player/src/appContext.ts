@@ -6,6 +6,7 @@ import {
   PROFILE_PREFS_KEY,
   type BackupStorages,
   type KeyValueStorage,
+  withUserDatabase,
 } from '@iptv/shared';
 import { appConfig } from './config';
 import { desktop } from './desktop';
@@ -32,10 +33,18 @@ const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && '
  * itself, so none is sent from the page. In a plain browser (development and the end-to-end tests only: providers do
  * not let a web page read their answers) both live in localStorage.
  */
-export const storage = desktop ? desktop.secure : createWebStorage(appConfig.appSlug);
-const dataStorage = desktop ? desktop.data : createWebStorage(`${appConfig.appSlug}-data`);
 // The desktop app keeps the library in SQLite (D-121), like the TV app; a browser keeps it in memory.
 const libraryDb = desktop ? createNativeSqlDatabase(desktop.db) : undefined;
+// Profiles, progress, My List, settings and the PIN in the same database (D-126); the sign-in stays encrypted.
+const storages = withUserDatabase(
+  {
+    secure: desktop ? desktop.secure : createWebStorage(appConfig.appSlug),
+    data: desktop ? desktop.data : createWebStorage(`${appConfig.appSlug}-data`),
+  },
+  libraryDb,
+);
+export const storage = storages.secure;
+const dataStorage = storages.data;
 export const appContext = createAppContext({ config: appConfig, storage, direct: { dataStorage, libraryDb } });
 export const { stores, api } = appContext;
 
