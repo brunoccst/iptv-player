@@ -152,4 +152,44 @@ describe('Profiles → Categories shown (D-110)', () => {
     expect(screen.getAllByText('Drama').length).toBeGreaterThan(0);
     expect(screen.queryByText('VOD | HUGE LIST')).toBeNull();
   });
+
+  it('"Select all" unchecks every category, then one can be picked alone, or checks them all again (issue #120)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/catalog/movies/categories', {
+      body: [
+        { id: '1', name: 'Drama' },
+        { id: '2', name: 'Comedy' },
+        { id: '3', name: 'Horror' },
+      ],
+    });
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
+    await fireEvent.press(screen.getByTestId('menu-hidden-categories'));
+    await flush();
+    const checked = (name: string) =>
+      (
+        screen.getByTestId(name === 'all' ? 'hidden-categories-all' : `hidden-category-${name}`).props as {
+          accessibilityState: { checked: boolean };
+        }
+      ).accessibilityState.checked;
+    expect(checked('all')).toBe(true);
+
+    await fireEvent.press(screen.getByTestId('hidden-categories-all'));
+    expect(['all', 'Drama', 'Comedy', 'Horror'].map(checked)).toEqual([false, false, false, false]);
+    await fireEvent.press(screen.getByTestId('hidden-category-Comedy'));
+    expect(['all', 'Drama', 'Comedy', 'Horror'].map(checked)).toEqual([false, false, true, false]);
+    await fireEvent.press(screen.getByTestId('hidden-categories-save'));
+    await flush();
+    expect(stores.profilePrefs.getState().prefs[profile.id]?.hiddenCategories).toEqual({ movies: ['1', '3'] });
+
+    // Not all shown: "Select all" shows them all again.
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
+    await fireEvent.press(screen.getByTestId('menu-hidden-categories'));
+    await flush();
+    await fireEvent.press(screen.getByTestId('hidden-categories-all'));
+    expect(['all', 'Drama', 'Comedy', 'Horror'].map(checked)).toEqual([true, true, true, true]);
+  });
 });

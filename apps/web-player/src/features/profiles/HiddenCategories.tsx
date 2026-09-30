@@ -8,7 +8,7 @@ import { useHiddenCategories } from '../../hooks/stores';
  * bars, lists, Home rows and the guide; search still finds them. Applied when saved (every list reloads).
  */
 export function HiddenCategories({ onClose }: { onClose(): void }) {
-  const { section, setSection, categories, error, profileName, isShown, anyHidden, toggle, showAll, save } = useHiddenCategories(onClose);
+  const { section, setSection, categories, error, profileName, isShown, allShown, toggle, toggleAll, save } = useHiddenCategories(onClose);
   const title = profileName ? t('Categories shown to {name}', { name: profileName }) : t('Categories shown');
 
   return (
@@ -35,7 +35,13 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
         {error ? <p role="alert">{error}</p> : null}
         {categories ? (
           <div style={{ display: 'grid', gap: 4, maxHeight: '50vh', overflowY: 'auto' }}>
-            {categories.length === 0 ? <p className="muted">{t('No categories.')}</p> : null}
+            {categories.length === 0 ? (
+              <p className="muted">{t('No categories.')}</p>
+            ) : (
+              <label className="checkbox">
+                <input type="checkbox" checked={allShown} onChange={toggleAll} /> <strong>{t('Select all')}</strong>
+              </label>
+            )}
             {categories.map((category) => (
               <label key={category.id} className="checkbox">
                 <input type="checkbox" checked={isShown(category.id)} onChange={() => toggle(category.id)} /> {category.name}
@@ -48,9 +54,6 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button type="button" className="button" onClick={() => void save()}>
             {t('Save')}
-          </button>
-          <button type="button" className="button button--ghost" disabled={!anyHidden} onClick={showAll}>
-            {t('Show all')}
           </button>
           <button type="button" className="button button--ghost" onClick={onClose}>
             {t('Cancel')}
