@@ -7,6 +7,14 @@ import type { PlaybackChoices } from '../playback/playbackChoices';
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
 
+export interface RecentLiveChannel {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+  categoryId?: string | null;
+  playedAt: number;
+}
+
 export interface ProfilePrefs {
   /** Only titles with audio or subtitles in one of these languages, e.g. `['ENG', 'GER']` (D-063, D-067). Empty = all. */
   languages?: string[] | null;
@@ -22,6 +30,8 @@ export interface ProfilePrefs {
    * search still finds their titles and channels.
    */
   hiddenCategories?: Partial<Record<CatalogSection, string[]>> | null;
+  /** The last 10 live TV channels watched by this profile, newest first. */
+  recentLiveChannels?: RecentLiveChannel[] | null;
   /** Series titles (master ids) with every episode watched: the tag on their covers (D-082). */
   watchedSeries?: string[] | null;
   /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
