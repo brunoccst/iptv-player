@@ -1,7 +1,9 @@
 import type { LibraryListQuery } from '../api/apiClient';
-import type { LibraryPage, LibrarySort, LiveChannel, MasterCard } from '../api/types';
-import { NORMALIZER_RULES, packer, unpacker, type PackedMaster } from './libraryCodec';
-import type { Master } from './normalizer/pipeline';
+import type { LibraryChanges, LibraryPage, LibrarySort, LiveChannel, MasterCard } from '../api/types';
+import { NORMALIZER_RULES, unpacker, type PackedMaster } from './libraryCodec';
+import { compactKey, parseTitle } from './normalizer/parser';
+import { masterIdText, qualityRank, qualityScore, savedItem, versionsOf, type Master, type NormalizerItem } from './normalizer/pipeline';
+import { sha1Hex } from './normalizer/sha1';
 
 export type SqlValue = string | number | null;
 
@@ -24,21 +26,33 @@ export interface SqlLibraryKind {
   builtAt: string;
   /** Built with the current title rules (D-086); otherwise shown, but out of date. */
   current: boolean;
+  /** Saved before D-133: whole titles packed in `${table}_d`, not the provider's items. */
+  packed: boolean;
   count: number;
   sorts: LibrarySort[];
   prefixes: string[];
 }
 
-/** Titles written per statement batch (one native call). */
+/** Rows written per statement batch (one native call). */
 const WRITE_BATCH = 1000;
 /** How long the last build's tables stay after a new one is in place. */
 const RETIRE_MS = 60_000;
-/** Titles read per query when all of them are needed (an update reusing the last library). */
+/** Rows read per query when all of them are needed. */
 const READ_BATCH = 5000;
+/** Libraries built with these rules or later keep the provider's items and group them by query (D-133). */
+const ITEM_RULES = 6;
+/** Names not seen in any update for this long are forgotten. */
+const NAME_KEEP_DAYS = 30;
+/** What the parser read from each name (D-133). The same for every account; read again when the rules change. */
+const NAMES = `title_names_${NORMALIZER_RULES}`;
 
 const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
   count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, PRIMARY KEY (account, kind))`;
+
+const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL,
+  nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
+  score INTEGER NOT NULL, qrank INTEGER NOT NULL, langs TEXT NOT NULL, seen INTEGER NOT NULL) WITHOUT ROWID`;
 
 /**
  * The list orders (D-049): missing values last, then title, year and id. Newest first is the order the titles are saved
@@ -53,38 +67,116 @@ const ORDERS: Record<string, { column: string; by: string }> = {
 };
 
 /**
- * - `${t}`: what lists filter and search on, one row per title (rowid: newest first). `cats`, `langs` and `hints` are
- *   lists like ",10,11,": the title's categories, its audio and subtitle languages, and the categories of its versions
- *   without a language (the category hint, D-086).
- * - `${t}_d`: everything about the title (its versions), packed as in the saved file (D-038).
+ * A library is the provider's items, grouped into titles by queries (D-133). Its tables:
+ * - `${t}_i`: the items, with what the parser read from their names and the title (`g`) each is in.
+ * - `${t}`: one row per title (rowid: newest first), with what lists show, filter, search and sort on. `cats`, `langs`
+ *   and `hints` are lists like ",10,11,": the title's categories, its audio and subtitle languages, and the categories
+ *   of its versions without a language (the category hint, D-086).
  * - `${t}_c`: title by category, for category pages and Kids profiles.
- * - `${t}_s`: what the orders sort by; only while saving.
+ * While building: `_r` (the items as downloaded), `_y`, `_t`, `_g` (grouping) and `_a` (the titles, before ordering).
  */
-const tables = (t: string) => [
-  `CREATE TABLE ${t} (id TEXT NOT NULL, lower TEXT NOT NULL, nkey TEXT NOT NULL, ncat INTEGER NOT NULL, cats TEXT NOT NULL,
-    langs TEXT NOT NULL, hints TEXT NOT NULL, a0 INTEGER, r1 INTEGER, r0 INTEGER, t0 INTEGER, t1 INTEGER)`,
-  `CREATE TABLE ${t}_d (m INTEGER PRIMARY KEY, data TEXT NOT NULL)`,
-  `CREATE TABLE ${t}_c (cat TEXT NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (cat, m)) WITHOUT ROWID`,
-  `CREATE TABLE ${t}_s (m INTEGER PRIMARY KEY, id TEXT NOT NULL, title TEXT NOT NULL, year INTEGER, added INTEGER, released INTEGER)`,
-];
+const ITEM_COLUMNS = `sid TEXT NOT NULL, name TEXT NOT NULL, cat TEXT, poster TEXT, rating REAL, added INTEGER, released INTEGER,
+  ext TEXT, tmdb TEXT, ryear INTEGER`;
+
+const TITLE_COLUMNS = `g INTEGER NOT NULL, id TEXT, lower TEXT, title TEXT NOT NULL, nkey TEXT, ckey TEXT, year INTEGER, poster TEXT,
+  rating REAL, best TEXT, n INTEGER NOT NULL, added INTEGER, released INTEGER, ncat INTEGER NOT NULL, cats TEXT NOT NULL,
+  langs TEXT NOT NULL, hints TEXT NOT NULL, sig TEXT NOT NULL`;
+const TITLE_NAMES = 'g, id, lower, title, nkey, ckey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig';
+
+/** The most common value among a title's items; ties go to its best item, then the smallest stream id (D-133). */
+const mostCommon = (t: string, column: string) =>
+  `(SELECT ${column} FROM ${t}_i x WHERE x.g = i.g AND ${column} IS NOT NULL GROUP BY ${column}
+    ORDER BY count(*) DESC, max(score) DESC, min(sid) LIMIT 1)`;
 
 /**
- * After the rows: each order's numbers (a sorted copy's row numbers) and their indexes. One step per call, so no call
- * holds the database (on desktop: the main process) for long.
+ * Grouping (D-133), one step per call so no call holds the database (on desktop: the main process) for long:
+ * 1. Same compact key (the key without spaces) and year. A year-less item takes its key's year when the key has
+ *    exactly one.
+ * 2. Each key takes the smallest TMDB id among its items; items with one group by it and the year instead (D-065).
+ * The same rules as `groupTitles` (the library in memory).
  */
-const finish = (t: string) => [
+const grouping = (t: string): string[][] => [
+  [
+    `CREATE TABLE ${t}_i (${ITEM_COLUMNS}, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL, year INTEGER,
+      nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
+      score INTEGER NOT NULL, qrank INTEGER NOT NULL, langs TEXT NOT NULL, gyear INTEGER, k TEXT, tm TEXT, gk TEXT, g INTEGER)`,
+    `INSERT INTO ${t}_i (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear, title, nkey, ckey, year, nyear,
+      quality, source, audio, atag, hdr, subs, score, qrank, langs)
+      SELECT r.sid, r.name, r.cat, r.poster, r.rating, r.added, r.released, r.ext, r.tmdb, r.ryear, n.title, n.nkey,
+        n.ckey, IFNULL(n.nyear, r.ryear), n.nyear, n.quality, n.source, n.audio, n.atag, n.hdr, n.subs,
+        n.score, n.qrank, n.langs
+      FROM ${t}_r r JOIN ${NAMES} n ON n.name = r.name ORDER BY r.rowid`,
+    `DROP TABLE ${t}_r`,
+  ],
+  [
+    `CREATE TABLE ${t}_y (ckey TEXT PRIMARY KEY, y INTEGER NOT NULL) WITHOUT ROWID`,
+    `INSERT INTO ${t}_y (ckey, y) SELECT ckey, min(year) FROM ${t}_i WHERE year IS NOT NULL GROUP BY ckey
+      HAVING count(DISTINCT year) = 1`,
+    `UPDATE ${t}_i SET gyear = IFNULL(year, (SELECT y FROM ${t}_y WHERE ckey = ${t}_i.ckey))`,
+    `UPDATE ${t}_i SET k = ckey || '|' || IFNULL(gyear, '')`,
+  ],
+  [
+    `CREATE TABLE ${t}_t (k TEXT PRIMARY KEY, tm TEXT NOT NULL) WITHOUT ROWID`,
+    `INSERT INTO ${t}_t (k, tm) SELECT k, min(tmdb) FROM ${t}_i WHERE tmdb IS NOT NULL GROUP BY k`,
+    `UPDATE ${t}_i SET tm = (SELECT tm FROM ${t}_t WHERE k = ${t}_i.k)`,
+    `UPDATE ${t}_i SET gk = CASE WHEN tm IS NULL THEN 'k' || k ELSE 't' || tm || '|' || IFNULL(gyear, '') END`,
+  ],
+  [
+    `CREATE TABLE ${t}_g (g INTEGER PRIMARY KEY, gk TEXT NOT NULL UNIQUE)`,
+    `INSERT INTO ${t}_g (gk) SELECT gk FROM ${t}_i GROUP BY gk ORDER BY min(rowid)`,
+    `UPDATE ${t}_i SET g = (SELECT g FROM ${t}_g WHERE gk = ${t}_i.gk)`,
+    `CREATE INDEX ${t}_ig ON ${t}_i(g)`,
+    `DROP TABLE ${t}_y`,
+    `DROP TABLE ${t}_t`,
+    `DROP TABLE ${t}_g`,
+  ],
+  // What each title shows: its most common spelling and year, its best version's poster and quality (D-133).
+  [
+    `CREATE TABLE ${t}_a (${TITLE_COLUMNS})`,
+    `INSERT INTO ${t}_a (g, title, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig)
+      SELECT g, ${mostCommon(t, 'title')}, ${mostCommon(t, 'year')},
+        (SELECT poster FROM ${t}_i x WHERE x.g = i.g AND poster IS NOT NULL ORDER BY score DESC, sid LIMIT 1),
+        max(rating),
+        (SELECT quality FROM ${t}_i x WHERE x.g = i.g AND quality IS NOT NULL ORDER BY qrank DESC, score DESC, sid LIMIT 1),
+        count(*), max(added), min(released), count(DISTINCT cat),
+        IFNULL(',' || group_concat(DISTINCT cat) || ',', ''),
+        IFNULL(',' || group_concat(DISTINCT CASE WHEN langs <> '' THEN substr(langs, 2, length(langs) - 2) END) || ',', ''),
+        IFNULL(',' || group_concat(DISTINCT CASE WHEN langs = '' THEN cat END) || ',', ''),
+        count(*) || '|' || sum(length(name)) || '|' || total(rating) || '|' || IFNULL(max(added), '') || '|' ||
+          count(DISTINCT cat) || '|' || sum(length(IFNULL(poster, '')))
+      FROM ${t}_i i GROUP BY g`,
+    `UPDATE ${t}_a SET nkey = (SELECT nkey FROM ${t}_i x WHERE x.g = ${t}_a.g AND x.title = ${t}_a.title LIMIT 1),
+      ckey = (SELECT ckey FROM ${t}_i x WHERE x.g = ${t}_a.g AND x.title = ${t}_a.title LIMIT 1),
+      released = IFNULL(released, year * 10000)`,
+    `CREATE UNIQUE INDEX ${t}_ag ON ${t}_a(g)`,
+  ],
+];
+
+/** After the ids: the titles newest first, each order's numbers (a sorted copy's row numbers) and the indexes. */
+const finish = (t: string): string[][] => [
+  [
+    `CREATE TABLE ${t} (${TITLE_COLUMNS}, a0 INTEGER, r1 INTEGER, r0 INTEGER, t0 INTEGER, t1 INTEGER)`,
+    `INSERT INTO ${t} (${TITLE_NAMES}) SELECT ${TITLE_NAMES} FROM ${t}_a ORDER BY ${'added IS NULL, added DESC, title, IFNULL(year, -1), id'}`,
+    `DROP TABLE ${t}_a`,
+    `CREATE UNIQUE INDEX ${t}_g ON ${t}(g)`,
+    `CREATE INDEX ${t}_id ON ${t}(id)`,
+  ],
+  [
+    `CREATE TABLE ${t}_c (cat TEXT NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (cat, m)) WITHOUT ROWID`,
+    `INSERT INTO ${t}_c (cat, m) SELECT DISTINCT i.cat, a.rowid FROM ${t}_i i JOIN ${t} a ON a.g = i.g WHERE i.cat IS NOT NULL`,
+  ],
   ...Object.values(ORDERS).map(({ column, by }) => [
     `CREATE TABLE ${t}_o (m INTEGER NOT NULL)`,
-    `INSERT INTO ${t}_o (m) SELECT m FROM ${t}_s ORDER BY ${by}`,
+    `INSERT INTO ${t}_o (m) SELECT rowid FROM ${t} ORDER BY ${by}`,
     `CREATE UNIQUE INDEX ${t}_om ON ${t}_o(m)`,
     `UPDATE ${t} SET ${column} = (SELECT rowid FROM ${t}_o WHERE m = ${t}.rowid)`,
     `DROP TABLE ${t}_o`,
     `CREATE INDEX ${t}_${column} ON ${t}(${column})`,
   ]),
-  [`DROP TABLE ${t}_s`, `CREATE UNIQUE INDEX ${t}_id ON ${t}(id)`],
 ];
 
-const drops = (t: string) => ['', '_d', '_c', '_s', '_o'].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
+const drops = (t: string) =>
+  ['', '_d', '_c', '_s', '_o', '_r', '_i', '_y', '_t', '_g', '_a'].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
 
 const placeholders = (count: number) => Array.from({ length: count }, () => '?').join(', ');
 /** ",a,b," : `instr(list, ",a,")` finds a whole entry. */
@@ -92,6 +184,9 @@ const listOf = (values: Iterable<string>) => {
   const text = [...values].join(',');
   return text ? `,${text},` : '';
 };
+const codesOf = (value: SqlValue | undefined) => (value ? String(value).split(',') : []);
+const textOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : String(value));
+const numberOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : Number(value));
 
 /** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063, D-067). */
 export const languageCodes = (languages: string | null | undefined) => [
@@ -113,12 +208,6 @@ export const toCard = (master: Master): MasterCard => ({
   variantCount: master.variants.length,
 });
 
-/**
- * The library in SQLite (D-121): lists, categories, languages, hidden categories and search are queries, so a start
- * reads nothing but a few rows, and a list reads only its page. The same answers as the in-memory library
- * (`directApiClient`), except that titles order by their UTF-8 bytes, not UTF-16 units (they differ only between
- * characters outside the BMP and U+E000–U+FFFF).
- */
 /** Table names from the clock, never the same twice in a run (the library and the channels share them). */
 let lastTable = 0;
 const newTable = () => {
@@ -126,17 +215,56 @@ const newTable = () => {
   return `lib${lastTable}`;
 };
 
+export interface LibraryBuildOptions {
+  /** SHA-1 hex of each text, all at once (TV/phone: native code, D-118); otherwise hashed here. */
+  hashIds?(texts: string[]): Promise<string[]>;
+  /** Names read so far, of the names not read before. */
+  onNames?(done: number, total: number): void;
+  /** Milliseconds per step, for the Log (D-116). */
+  onTimings?(timings: LibraryBuildTimings): void;
+  /** Milliseconds of parsing between breaks for the screen. */
+  sliceMs?: number;
+}
+
+export interface LibraryBuildTimings {
+  /** Saving the provider's items. */
+  items: number;
+  /** Reading the names not seen before, and how many. */
+  names: number;
+  newNames: number;
+  /** The grouping queries. */
+  grouping: number;
+  /** The titles' ids. */
+  ids: number;
+  /** The orders, indexes and categories. */
+  orders: number;
+}
+
+/**
+ * The library in SQLite (D-121): lists, categories, languages, hidden categories and search are queries, so a start
+ * reads nothing but a few rows, and a list reads only its page. Since D-133 the provider's items are saved as they come
+ * and grouped into titles by queries; only names not seen before are read (parsed) here. The same answers as the
+ * in-memory library (`directApiClient`), except that titles order by their UTF-8 bytes, not UTF-16 units (they differ
+ * only between characters outside the BMP and U+E000–U+FFFF).
+ */
 export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   let ready: Promise<void> | null = null;
-  /** Creates the table of contents once, and drops the tables of builds that never finished (the app was closed). */
+  /**
+   * Creates the table of contents and the names once, and drops the tables of builds that never finished (the app was
+   * closed) and the names read with older rules.
+   */
   const prepare = () =>
     (ready ??= (async () => {
-      await db.run([{ sql: META }]);
+      await db.run([{ sql: META }, { sql: NAMES_TABLE }]);
       const used = new Set((await db.query('SELECT tbl FROM library')).map((row) => String(row[0])));
       const orphans = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'"))
         .map((row) => String(row[0]))
         .filter((name) => !used.has(name.replace(/_[a-z]$/, '')));
-      if (orphans.length) await db.run(orphans.map((name) => ({ sql: `DROP TABLE IF EXISTS ${name}` })));
+      const oldNames = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'title_names_*'"))
+        .map((row) => String(row[0]))
+        .filter((name) => name !== NAMES);
+      if (orphans.length || oldNames.length)
+        await db.run([...orphans, ...oldNames].map((name) => ({ sql: `DROP TABLE IF EXISTS ${name}` })));
     })().catch((error: unknown) => {
       ready = null;
       throw error;
@@ -144,6 +272,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
   /** A filter's total is the same for every page and order: counted once per library and filter. */
   const totals = new Map<string, number>();
+
+  /** Runs each step as one call, with a break for the screen after each. */
+  const steps = async (list: string[][]) => {
+    for (const step of list) {
+      await db.run(step.map((sql) => ({ sql })));
+      await pause();
+    }
+  };
 
   return {
     /** What the database holds for the account (no titles are read). */
@@ -159,6 +295,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
           table: String(table),
           builtAt: String(builtAt),
           current: Number(rules) === NORMALIZER_RULES,
+          packed: Number(rules) < ITEM_RULES,
           count: Number(count),
           sorts: JSON.parse(String(sorts)) as LibrarySort[],
           prefixes: JSON.parse(String(prefixes)) as string[],
@@ -168,79 +305,89 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     },
 
     /**
-     * Saves a new library of a kind (newest first) beside the current one, then switches to it in one step: a start
-     * in between still finds the last complete library. Pauses between batches so the screen keeps running.
+     * Saves the provider's items of a kind and groups them into titles (D-133), beside the current library, then
+     * switches to it in one step: a start in between still finds the last complete library. Only names not seen
+     * before are read. Also says what changed against the last library (D-119).
      */
-    async save(account: string, kind: LibraryKind, builtAt: string, masters: Master[]): Promise<SqlLibraryKind> {
+    async build(
+      account: string,
+      kind: LibraryKind,
+      builtAt: string,
+      items: NormalizerItem[],
+      options: LibraryBuildOptions = {},
+    ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges | null }> {
       await prepare();
       const t = newTable();
-      const { packMaster, prefixes } = packer();
+      const timings: LibraryBuildTimings = { items: 0, names: 0, newNames: 0, grouping: 0, ids: 0, orders: 0 };
+      let stepStarted = Date.now();
+      const took = (step: Exclude<keyof LibraryBuildTimings, 'newNames'>) => {
+        timings[step] = Date.now() - stepStarted;
+        stepStarted = Date.now();
+      };
+      const old = (await db.query('SELECT tbl, rules FROM library WHERE account = ? AND kind = ?', [account, kind]))[0];
+      let count: number;
+      let added = false;
+      let released: boolean;
       try {
-        await db.run(tables(t).map((sql) => ({ sql })));
-        for (let start = 0; start < masters.length; start += WRITE_BATCH) {
+        await db.run([{ sql: `CREATE TABLE ${t}_r (${ITEM_COLUMNS})` }]);
+        for (let start = 0; start < items.length; start += WRITE_BATCH) {
           const rows: SqlValue[][] = [];
-          const data: SqlValue[][] = [];
-          const sorting: SqlValue[][] = [];
-          const categories: SqlValue[][] = [];
-          const end = Math.min(masters.length, start + WRITE_BATCH);
-          for (let index = start; index < end; index++) {
-            const master = masters[index]!;
-            const m = index + 1;
-            const cats = new Set<string>();
-            const hints = new Set<string>();
-            const codes = new Set<string>();
-            for (const variant of master.variants) {
-              if (variant.categoryId !== null) cats.add(variant.categoryId);
-              for (const code of variant.audioLanguages) codes.add(code);
-              for (const code of variant.subtitleLanguages) codes.add(code);
-              if (!variant.audioLanguages.length && !variant.subtitleLanguages.length && variant.categoryId !== null)
-                hints.add(variant.categoryId);
-            }
+          for (const item of items.slice(start, start + WRITE_BATCH)) {
+            const saved = savedItem(item);
+            if (!saved) continue;
+            added ||= saved.addedAt !== null;
             rows.push([
-              m,
-              master.id,
-              master.title.toLowerCase(),
-              master.normalizedKey,
-              cats.size,
-              listOf(cats),
-              listOf(codes),
-              listOf(hints),
+              saved.streamId,
+              saved.name,
+              saved.categoryId,
+              saved.posterUrl,
+              saved.rating,
+              saved.addedAt,
+              saved.released,
+              saved.containerExtension,
+              saved.tmdbId,
+              saved.releaseYear,
             ]);
-            data.push([m, JSON.stringify(packMaster(master))]);
-            sorting.push([m, master.id, master.title, master.year, master.addedAt, master.releaseKey]);
-            for (const cat of cats) categories.push([cat, m]);
           }
-          await db.run([
-            { sql: `INSERT INTO ${t} (rowid, id, lower, nkey, ncat, cats, langs, hints) VALUES (${placeholders(8)})`, rows },
-            { sql: `INSERT INTO ${t}_d (m, data) VALUES (?, ?)`, rows: data },
-            { sql: `INSERT INTO ${t}_s (m, id, title, year, added, released) VALUES (${placeholders(6)})`, rows: sorting },
-            { sql: `INSERT INTO ${t}_c (cat, m) VALUES (?, ?)`, rows: categories },
-          ]);
+          if (rows.length)
+            await db.run([
+              {
+                sql: `INSERT INTO ${t}_r (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear) VALUES (${placeholders(10)})`,
+                rows,
+              },
+            ]);
           await pause();
         }
-        for (const step of finish(t)) {
-          await db.run(step.map((sql) => ({ sql })));
-          await pause();
-        }
+        took('items');
+        await readNewNames(t, options, timings);
+        took('names');
+        await steps(grouping(t));
+        took('grouping');
+        count = await titleIds(t, account, kind, options.hashIds);
+        released = (await db.query(`SELECT 1 FROM ${t}_a WHERE released IS NOT NULL LIMIT 1`)).length > 0;
+        took('ids');
+        await steps(finish(t));
+        took('orders');
       } catch (error) {
         await db.run(drops(t).map((sql) => ({ sql }))).catch(() => undefined);
         throw error;
       }
+      options.onTimings?.(timings);
+      const changes = old ? await changesSince(String(old[0]), Number(old[1]) < ITEM_RULES, t, count).catch(() => null) : null;
       const sorts: LibrarySort[] = [];
-      if (masters.some((master) => master.addedAt !== null)) sorts.push('added');
+      if (added) sorts.push('added');
       sorts.push('title');
-      if (masters.some((master) => master.releaseKey !== null)) sorts.push('released');
-      const old = (await db.query('SELECT tbl FROM library WHERE account = ? AND kind = ?', [account, kind]))[0]?.[0];
+      if (released) sorts.push('released');
       await db.run([
         { sql: 'DELETE FROM library WHERE account = ? AND kind = ?', rows: [[account, kind]] },
         {
-          sql: 'INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, masters.length, JSON.stringify(sorts), JSON.stringify(prefixes)]],
+          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes) VALUES (?, ?, ?, ?, ?, ?, ?, '[]')",
+          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, count, JSON.stringify(sorts)]],
         },
       ]);
       // Lists still reading the old tables finish first; a start drops them if the app is closed before.
-      if (old) setTimeout(() => void db.run(drops(String(old)).map((sql) => ({ sql }))).catch(() => undefined), RETIRE_MS);
-      return { table: t, builtAt, current: true, count: masters.length, sorts, prefixes };
+      if (old) setTimeout(() => void db.run(drops(String(old[0])).map((sql) => ({ sql }))).catch(() => undefined), RETIRE_MS);
+      return { saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [] }, changes };
     },
 
     /** One page of a list: the same filters and orders as the in-memory library. */
@@ -281,47 +428,180 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const offset = Math.max(0, query.offset ?? 0);
       const limit = Math.min(500, Math.max(1, query.limit ?? 100));
       const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
-      const [ids, total] = await Promise.all([
-        db.query(`SELECT rowid FROM ${t}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
+      const columns = saved.packed ? 'rowid' : 'id, title, year, poster, rating, best, n';
+      const [rows, total] = await Promise.all([
+        db.query(`SELECT ${columns} FROM ${t}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
         where.length === 0
           ? saved.count
           : (totals.get(totalKey) ??
-            db.query(`SELECT COUNT(*) FROM ${t}${filter}`, params).then((rows) => {
-              const count = Number(rows[0]?.[0] ?? 0);
+            db.query(`SELECT COUNT(*) FROM ${t}${filter}`, params).then((counted) => {
+              const count = Number(counted[0]?.[0] ?? 0);
               if (totals.size > 200) totals.clear();
               totals.set(totalKey, count);
               return count;
             })),
       ]);
-      const masters = await read(
-        saved,
-        ids.map((row) => Number(row[0])),
-      );
-      return { total, items: masters.map(toCard), sorts: saved.sorts };
+      const items = saved.packed
+        ? (
+            await readPacked(
+              saved,
+              rows.map((row) => Number(row[0])),
+            )
+          ).map(toCard)
+        : rows.map(([id, title, year, poster, rating, best, n]): MasterCard => ({
+            id: String(id),
+            title: String(title),
+            year: numberOrNull(year),
+            posterUrl: textOrNull(poster),
+            rating: numberOrNull(rating),
+            bestQuality: textOrNull(best),
+            variantCount: Number(n),
+          }));
+      return { total, items, sorts: saved.sorts };
     },
 
     async get(saved: SqlLibraryKind, id: string): Promise<Master | null> {
-      const rows = await db.query(`SELECT data FROM ${saved.table}_d WHERE m = (SELECT rowid FROM ${saved.table} WHERE id = ?)`, [id]);
-      const data = rows[0]?.[0];
-      return typeof data === 'string' ? unpacker(saved.prefixes)(JSON.parse(data) as PackedMaster) : null;
-    },
-
-    /** Every title, newest first (an update reuses the unchanged ones, D-109). */
-    async all(saved: SqlLibraryKind): Promise<Master[]> {
-      const unpack = unpacker(saved.prefixes);
-      const masters: Master[] = [];
-      for (let after = 0; ;) {
-        const rows = await db.query(`SELECT m, data FROM ${saved.table}_d WHERE m > ? ORDER BY m LIMIT ?`, [after, READ_BATCH]);
-        for (const [, data] of rows) masters.push(unpack(JSON.parse(String(data)) as PackedMaster));
-        if (rows.length < READ_BATCH) return masters;
-        after = Number(rows[rows.length - 1]![0]);
-        await pause();
+      const t = saved.table;
+      if (saved.packed) {
+        const rows = await db.query(`SELECT data FROM ${t}_d WHERE m = (SELECT rowid FROM ${t} WHERE id = ?)`, [id]);
+        const data = rows[0]?.[0];
+        return typeof data === 'string' ? unpacker(saved.prefixes)(JSON.parse(data) as PackedMaster) : null;
       }
+      const head = (await db.query(`SELECT g, title, nkey, year, poster, rating, best, added, released FROM ${t} WHERE id = ?`, [id]))[0];
+      if (!head) return null;
+      const [g = null, title, nkey, year, poster, rating, best, addedAt, released] = head;
+      const items = await db.query(
+        `SELECT sid, name, cat, poster, rating, ext, title, nkey, nyear, quality, source, audio, atag, hdr, subs FROM ${t}_i WHERE g = ?`,
+        [g],
+      );
+      return {
+        id,
+        title: String(title),
+        normalizedKey: String(nkey),
+        year: numberOrNull(year),
+        posterUrl: textOrNull(poster),
+        rating: numberOrNull(rating),
+        bestQuality: textOrNull(best),
+        addedAt: numberOrNull(addedAt),
+        releaseKey: numberOrNull(released),
+        variants: versionsOf(
+          items.map(([sid, name, cat, itemPoster, itemRating, ext, clean, key, nyear, quality, source, audio, atag, hdr, subs]) => ({
+            item: {
+              id: String(sid),
+              name: String(name),
+              categoryId: textOrNull(cat),
+              posterUrl: textOrNull(itemPoster),
+              rating: numberOrNull(itemRating),
+              containerExtension: textOrNull(ext),
+            },
+            title: {
+              raw: String(name),
+              cleanTitle: String(clean),
+              key: String(key),
+              year: numberOrNull(nyear),
+              quality: textOrNull(quality),
+              source: textOrNull(source),
+              audioLanguages: codesOf(audio),
+              audioTag: textOrNull(atag),
+              isHdr: Number(hdr) === 1,
+              subtitleLanguages: codesOf(subs),
+            },
+          })),
+        ),
+      };
     },
   };
 
-  /** The titles with these row numbers, in this order. */
-  async function read(saved: SqlLibraryKind, rowids: number[]): Promise<Master[]> {
+  /** Reads the names no library had before (in slices, so the screen keeps running) and keeps what they say. */
+  async function readNewNames(t: string, options: LibraryBuildOptions, timings: LibraryBuildTimings) {
+    const today = Math.floor(Date.now() / 86_400_000);
+    const names = (
+      await db.query(`SELECT DISTINCT name FROM ${t}_r WHERE NOT EXISTS (SELECT 1 FROM ${NAMES} n WHERE n.name = ${t}_r.name)`)
+    ).map((row) => String(row[0]));
+    timings.newNames = names.length;
+    const sliceMs = options.sliceMs ?? 250;
+    let rows: SqlValue[][] = [];
+    let sliceStarted = Date.now();
+    for (let index = 0; index < names.length; index++) {
+      const name = names[index]!;
+      const title = parseTitle(name);
+      rows.push([
+        name,
+        title.cleanTitle,
+        title.key,
+        compactKey(title),
+        title.year,
+        title.quality,
+        title.source,
+        title.audioLanguages.join(','),
+        title.audioTag,
+        title.isHdr ? 1 : 0,
+        title.subtitleLanguages.join(','),
+        qualityScore(title),
+        title.quality ? qualityRank(title.quality) : 0,
+        listOf([...title.audioLanguages, ...title.subtitleLanguages]),
+        today,
+      ]);
+      const last = index === names.length - 1;
+      if (rows.length >= WRITE_BATCH || last) {
+        await db.run([
+          {
+            sql: `INSERT OR REPLACE INTO ${NAMES} (name, title, nkey, ckey, nyear, quality, source, audio, atag, hdr, subs, score, qrank,
+              langs, seen) VALUES (${placeholders(15)})`,
+            rows,
+          },
+        ]);
+        rows = [];
+      }
+      if (last || Date.now() - sliceStarted >= sliceMs) {
+        options.onNames?.(index + 1, names.length);
+        await pause();
+        sliceStarted = Date.now();
+      }
+    }
+    // Names seen today stay; names no update has seen for a while go.
+    await db.run([
+      { sql: `UPDATE ${NAMES} SET seen = ? WHERE seen < ? AND name IN (SELECT name FROM ${t}_r)`, rows: [[today, today]] },
+      { sql: `DELETE FROM ${NAMES} WHERE seen < ?`, rows: [[today - NAME_KEEP_DAYS]] },
+    ]);
+  }
+
+  /** Each title's id (the same as a title built in memory) and lower-case title; how many titles there are. */
+  async function titleIds(t: string, account: string, kind: LibraryKind, hashIds: LibraryBuildOptions['hashIds']) {
+    let count = 0;
+    for (let after = 0; ;) {
+      const rows = await db.query(`SELECT g, ckey, year, title FROM ${t}_a WHERE g > ? ORDER BY g LIMIT ?`, [after, READ_BATCH]);
+      const texts = rows.map(([, ckey, year]) => masterIdText(account, kind, String(ckey), numberOrNull(year)));
+      const hashed = hashIds ? await hashIds(texts) : texts.map(sha1Hex);
+      await db.run([
+        {
+          sql: `UPDATE ${t}_a SET id = ?, lower = ? WHERE g = ?`,
+          rows: rows.map(([g, , , title], index) => [hashed[index]!.slice(0, 20), String(title).toLowerCase(), g ?? null]),
+        },
+      ]);
+      count += rows.length;
+      await pause();
+      if (rows.length < READ_BATCH) return count;
+      after = Number(rows[rows.length - 1]![0]);
+    }
+  }
+
+  /**
+   * Titles added, changed and removed against the last library (D-119). Changed: a title with the same id whose
+   * versions, names, rating, categories or posters are not the same. A library saved before D-133 only tells added and
+   * removed.
+   */
+  async function changesSince(old: string, packed: boolean, t: string, count: number): Promise<LibraryChanges> {
+    const before = Number((await db.query(`SELECT COUNT(*) FROM ${old}`))[0]?.[0] ?? 0);
+    const kept = Number((await db.query(`SELECT COUNT(*) FROM ${t} WHERE id IN (SELECT id FROM ${old})`))[0]?.[0] ?? 0);
+    const changed = packed
+      ? 0
+      : Number((await db.query(`SELECT COUNT(*) FROM ${t} a JOIN ${old} b ON b.id = a.id WHERE a.sig <> b.sig`))[0]?.[0] ?? 0);
+    return { added: count - kept, changed, removed: Math.max(0, before - kept) };
+  }
+
+  /** Titles saved before D-133 with these row numbers, in this order. */
+  async function readPacked(saved: SqlLibraryKind, rowids: number[]): Promise<Master[]> {
     if (rowids.length === 0) return [];
     const rows = await db.query(`SELECT m, data FROM ${saved.table}_d WHERE m IN (${placeholders(rowids.length)})`, rowids);
     const unpack = unpacker(saved.prefixes);

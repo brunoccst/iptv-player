@@ -357,16 +357,6 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     }
   };
   const count = (data: StoredLibrary | null, kind: LibraryKind) => (data?.sql ? (data.sql[kind]?.count ?? 0) : (data?.[kind].length ?? 0));
-  /** Every title of a kind, newest first (for an update to reuse). */
-  const mastersOf = async (data: StoredLibrary, kind: LibraryKind): Promise<Master[]> => {
-    if (!data.sql) return data[kind];
-    const saved = data.sql[kind];
-    if (!saved || !sqlLibrary) return [];
-    const started = Date.now();
-    const masters = await sqlLibrary.all(saved);
-    appLog.info('library', `${kind}: read ${masters.length} saved titles from the database in ${Date.now() - started} ms`);
-    return masters;
-  };
   /** Kinds whose new library is being saved: their lists are not kept meanwhile (the snapshot would be ahead of the file). */
   const saving = new Set<LibraryKind>();
 
@@ -452,7 +442,40 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
-          const before = previous ? await mastersOf(previous, kind) : undefined;
+          if (sqlLibrary) {
+            // The database keeps the items and groups them itself; only new names are read here (D-133).
+            saving.add(kind);
+            try {
+              const { saved, changes } = await sqlLibrary.build(accountId, kind, queuedAt, items, {
+                hashIds: options.hashIds,
+                onNames: (done, total) =>
+                  (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor((0.8 * items.length * done) / total) }),
+                onTimings: (time) => {
+                  const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+                  appLog.info(
+                    'library',
+                    `${kind}: saved ${items.length} items in ${s(time.items)}, read ${time.newNames} new names in ${s(time.names)}, ` +
+                      `grouped in ${s(time.grouping)}, ids ${s(time.ids)}, orders ${s(time.orders)}`,
+                  );
+                },
+              });
+              appLog.info('library', `${kind}: ${saved.count} titles in ${Date.now() - groupStarted} ms`);
+              if (!current()) return;
+              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
+              library.status[kind] = {
+                ...library.status[kind],
+                jobStatus: 'done',
+                stage: null,
+                parsedCount: items.length,
+                finishedAt: now().toISOString(),
+                changes,
+              };
+            } finally {
+              saving.delete(kind);
+            }
+            return;
+          }
+          const before = previous && !previous.sql ? previous[kind] : undefined;
           let reused = '';
           let reusedMasters = 0;
           const masters = await buildMastersInChunks(accountId, kind, items, {
@@ -467,8 +490,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
               appLog.info(
                 'library',
-                `${kind}: grouping steps: names ${s(time.names)}, exact matches ${s(time.exact)}, similarity keys ${s(time.keys)}, ` +
-                  `similar names ${s(time.similar)}, TMDB ${s(time.tmdb)}, titles ${s(time.titles)}, ids ${s(time.ids)}, sorting ${s(time.sort)}, ` +
+                `${kind}: grouping steps: names ${s(time.names)}, keys ${s(time.keys)}, ` +
+                  `titles ${s(time.titles)}, ids ${s(time.ids)}, sorting ${s(time.sort)}, ` +
                   `waiting for the screen ${s(time.waiting)} (${time.breaks} breaks)`,
               );
             },
@@ -489,23 +512,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-120).
           saving.add(kind);
           try {
-            if (!sqlLibrary) await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
-            if (sqlLibrary) {
-              // Lists read the database: saved first, then shown (the last library shows meanwhile).
-              const saveStarted = Date.now();
-              const saved = await sqlLibrary.save(accountId, kind, queuedAt, newestFirst);
-              appLog.info('library', `${kind}: saved ${newestFirst.length} titles to the database in ${Date.now() - saveStarted} ms`);
-              if (!current()) return;
-              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
-            } else {
-              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
-              await writeText(
-                options.dataStorage,
-                libraryKey(accountId, kind),
-                () => packLibraryText(queuedAt, newestFirst, yieldToUi),
-                true,
-              ).catch(() => undefined);
-            }
+            await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
+            library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, [kind]: newestFirst };
+            await writeText(
+              options.dataStorage,
+              libraryKey(accountId, kind),
+              () => packLibraryText(queuedAt, newestFirst, yieldToUi),
+              true,
+            ).catch(() => undefined);
           } finally {
             saving.delete(kind);
           }
@@ -613,16 +627,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     try {
       const started = Date.now();
       const kinds = await database.open(accountId);
-      for (const kind of ['movie', 'series'] as const) {
-        if (kinds[kind]) continue;
-        const key = libraryKey(accountId, kind);
-        const saved = await readSavedLibrary(key);
-        if (!saved) continue;
-        const moveStarted = Date.now();
-        kinds[kind] = await database.save(accountId, kind, saved.builtAt, saved.masters);
-        appLog.info('storage', `${key}: moved ${saved.masters.length} titles into the database in ${Date.now() - moveStarted} ms`);
-        await Promise.resolve(options.dataStorage.removeItem(key)).catch(() => undefined);
-      }
+      // A file from before D-121 is not read: the provider's lists are saved and grouped again (D-133).
+      for (const kind of ['movie', 'series'] as const)
+        if (!kinds[kind]) void Promise.resolve(options.dataStorage.removeItem(libraryKey(accountId, kind))).catch(() => undefined);
       // The database answers at once: the snapshot of Home's lists (D-120) only served the first start, while the file
       // was moved in (D-122).
       void snapshot.forget(accountId);
