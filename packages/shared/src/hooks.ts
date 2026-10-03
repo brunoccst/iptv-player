@@ -18,6 +18,7 @@ import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t, tn } from './i18n/i18n';
 import { MAX_SEARCH_CHANNELS, MAX_SEARCH_PROGRAMMES } from './search/useSearchQuery';
+import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, type RecentChannel } from './playback/recentChannels';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
@@ -142,6 +143,13 @@ export function createAppHooks({
             (p.masterId === master.id || master.variants.some((v) => v.streamId === (kind === 'movie' ? p.itemId : p.seriesId))),
         ) ?? null,
     );
+
+  /** The active profile's recently watched channels, newest first (issue #122, D-129). */
+  const useRecentChannels = (limit = MAX_RECENT_CHANNELS): RecentChannel[] => {
+    const profileId = useSession((s) => s.activeProfileId);
+    const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.recentChannels : null));
+    return useMemo(() => (list ?? []).slice(0, limit), [list, limit]);
+  };
 
   return {
     useSession,
@@ -503,6 +511,48 @@ export function createAppHooks({
         };
       }, [query]);
       return found;
+    },
+
+    useRecentChannels,
+
+    /** Notes the playing live channel in the active profile's recent channels once it starts (issue #122). */
+    useNoteRecentChannel(target: PlayTarget) {
+      const profileId = useSession((s) => s.activeProfileId);
+      useEffect(() => {
+        if (target.kind !== 'live' || !profileId) return;
+        const prefs = stores.profilePrefs.getState();
+        void prefs.update(profileId, { recentChannels: addRecentChannel(prefs.prefs[profileId]?.recentChannels, recentChannelOf(target)) });
+        // A new channel, not a new object for the same one.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [target.kind, target.streamId, profileId]);
+    },
+
+    /**
+     * Home's live row (issue #122): the channels the profile watched last; until there are any, the first live
+     * category as before. `categoryId`: the category "See all" opens (none for recent channels).
+     */
+    useLiveHomeRow(enabled = true) {
+      const recent = useRecentChannels();
+      const categories = useAppStore(stores.catalog, (s) => s.categories.live?.data ?? null);
+      const first = categories?.[0] ?? null;
+      const channels = useAppStore(stores.catalog, (s) => (first ? (s.liveChannels[first.id]?.data ?? null) : null));
+      const fallback = recent.length === 0;
+      useEffect(() => {
+        if (!fallback || !enabled) return;
+        void stores.catalog
+          .getState()
+          .loadCategories('live')
+          .then((loaded) => {
+            if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
+          });
+      }, [fallback, enabled]);
+      if (!fallback) return { title: t('Recently watched channels'), channels: recent, categoryId: null, recent: true as const };
+      return {
+        title: first ? t('Live TV: {name}', { name: first.name }) : t('Live TV'),
+        channels: (channels ?? []) as RecentChannel[],
+        categoryId: first?.id ?? null,
+        recent: false as const,
+      };
     },
 
     useChannelSearch(query: string): LiveChannel[] | null {

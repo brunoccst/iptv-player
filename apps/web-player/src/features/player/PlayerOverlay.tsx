@@ -34,7 +34,7 @@ import {
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
-import { usePlayerTitle, useUi } from '../../hooks/stores';
+import { useNoteRecentChannel, usePlayerTitle, useUi } from '../../hooks/stores';
 import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
@@ -89,6 +89,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // versions for the in-player selector. Shared with the TV app (D-124).
   const revision = useUi((s) => s.libraryRevision);
   const { series, next, previous, variants } = usePlayerTitle(target, revision);
+  // Live: Home's first row lists the channels watched last (issue #122).
+  useNoteRecentChannel(target);
 
   const saveProgress = useCallback(() => {
     const video = videoRef.current;

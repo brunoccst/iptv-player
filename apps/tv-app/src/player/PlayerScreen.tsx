@@ -51,6 +51,8 @@ import {
   type VariantInfo,
   t,
   isFoundSubtitle,
+  recentChannelTarget,
+  type RecentChannel,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, appContext, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
@@ -58,13 +60,14 @@ import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
-import { useLibrary, usePlayerTitle } from '../hooks';
+import { useLibrary, useNoteRecentChannel, usePlayerTitle } from '../hooks';
 import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { colors, fonts, useSizes } from '../theme';
 import { savePlaybackProgress } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
+import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { sleepControl } from '../tv/SleepMode';
@@ -144,6 +147,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Open drawer and the tab it opened on; false = closed.
   const [drawer, setDrawer] = useState<DrawerTab | false>(false);
   const [guide, setGuide] = useState(false);
+  // Live TV, ↓: the channels watched last (issue #122).
+  const [recent, setRecent] = useState(false);
   // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, from the beginning, previous episode, ±10 s, next
   // episode, episodes, audio and subtitles), which the D-pad then walks through; Back or a few seconds without keys
   // return to the video (D-075, D-077).
@@ -161,6 +166,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
   // The episode lists of all versions of the series, merged (D-066), and a movie's versions; shared (D-124).
   const { series, next, previous, variants } = usePlayerTitle(target);
+  // Live: Home's first row and the ↓ strip list the channels watched last (issue #122).
+  useNoteRecentChannel(target);
 
   // The profile's subtitles and audio track (D-087): selected once per source, when its tracks are known; a pick in
   // the drawer becomes the choice every movie and series starts with.
@@ -429,7 +436,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const focusablesVisible = showSkipAhead || countdown !== null;
 
   useRemote(({ key, action }) => {
-    if (drawer || guide || error) return;
+    if (drawer || guide || recent || error) return;
     wake();
     // On the buttons the D-pad moves the focus and Select presses the focused button.
     if (tvButtons) return;
@@ -452,8 +459,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-101); on Live TV ↑ opens the guide.
-    if (key === 'down' && Platform.isTV) setButtons('play');
+    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-101); on Live TV ↑ opens the guide and ↓ the
+    // channels watched last, with the buttons one more ↓ away (issue #122).
+    if (key === 'down' && Platform.isTV && isLive) setRecent(true);
+    else if (key === 'down' && Platform.isTV) setButtons('play');
     else if (key === 'up' && isLive) setGuide(true);
     else if (key === 'up' && Platform.isTV) setButtons('back');
     else if (key === 'up' || key === 'down') setDrawer('audio');
@@ -469,6 +478,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (guide) setGuide(false);
+      else if (recent) setRecent(false);
       else if (drawer) setDrawer(false);
       else if (skipOpen) setSkipOpen(false);
       else if (buttons) setButtons(false);
@@ -476,7 +486,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return true;
     });
     return () => subscription.remove();
-  }, [guide, drawer, skipOpen, buttons]);
+  }, [guide, recent, drawer, skipOpen, buttons]);
 
   // Phones, live: swipe up anywhere on the video opens the guide overlay.
   const swipeEnabled = useRef(false);
@@ -493,6 +503,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     setGuide(false);
     if (channel.id === target.streamId) return;
     navStore.getState().replaceTop({ name: 'player', target: liveTarget(channel, programme?.title) });
+  };
+
+  const zapRecent = (channel: RecentChannel) => {
+    setRecent(false);
+    if (channel.id === target.streamId) return;
+    navStore.getState().replaceTop({ name: 'player', target: recentChannelTarget(channel) });
   };
 
   const switchVariant = (variant: VariantInfo) => {
@@ -570,7 +586,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028.
           On TV it steps aside while Skip ahead / Next episode buttons need the focus; phones keep it, so a tap on the video
           still shows the controls and the timeline while those buttons are up. */}
-      {!drawer && !guide && !(Platform.isTV && focusablesVisible) && !tvButtons && !error ? (
+      {!drawer && !guide && !recent && !(Platform.isTV && focusablesVisible) && !tvButtons && !error ? (
         <Pressable
           testID="player-focus"
           accessibilityLabel={t('Player')}
@@ -598,7 +614,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />
       ) : null}
 
-      {controls && !guide && !scrub && !error ? (
+      {controls && !guide && !recent && !scrub && !error ? (
         // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.
         <View style={styles.overlay} pointerEvents={Platform.isTV && !buttons ? 'none' : 'box-none'} testID="player-controls">
           <Gradient
@@ -839,6 +855,19 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
       {guide ? (
         <GuideOverlay channelId={target.streamId} categoryId={target.categoryId ?? null} onSelect={zap} onClose={() => setGuide(false)} />
+      ) : null}
+
+      {recent ? (
+        <RecentChannelsOverlay
+          channelId={target.streamId}
+          onSelect={zapRecent}
+          onMore={() => {
+            setRecent(false);
+            setButtons('play');
+            wake();
+          }}
+          onClose={() => setRecent(false)}
+        />
       ) : null}
 
       {drawer ? (
