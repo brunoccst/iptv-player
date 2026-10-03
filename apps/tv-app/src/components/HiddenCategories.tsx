@@ -16,7 +16,7 @@ import { focus } from './focus';
  * choice is applied when saved: it reloads every list.
  */
 export function HiddenCategories({ onClose }: { onClose(): void }) {
-  const { section, setSection, categories, error, profileName, isShown, anyHidden, toggle, showAll, save } = useHiddenCategories(onClose);
+  const { section, setSection, categories, error, profileName, isShown, allShown, toggle, toggleAll, save } = useHiddenCategories(onClose);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -46,6 +46,11 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
               keyExtractor={(category) => category.id}
               initialNumToRender={12}
               windowSize={5}
+              ListHeaderComponent={
+                categories.length ? (
+                  <CategoryRow name={t('Select all')} checked={allShown} onPress={toggleAll} testID="hidden-categories-all" />
+                ) : null
+              }
               ListEmptyComponent={<Text style={styles.hint}>{t('No categories.')}</Text>}
               renderItem={({ item }) => <CategoryRow name={item.name} checked={isShown(item.id)} onPress={() => toggle(item.id)} />}
             />
@@ -54,13 +59,6 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
           )}
           <View style={styles.actions}>
             <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="hidden-categories-save" />
-            <FocusButton
-              label={t('Show all')}
-              variant="ghost"
-              disabled={!anyHidden}
-              onPress={showAll}
-              testID="hidden-categories-show-all"
-            />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
           </View>
         </View>
@@ -69,14 +67,14 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
   );
 }
 
-function CategoryRow({ name, checked, onPress }: { name: string; checked: boolean; onPress(): void }) {
+function CategoryRow({ name, checked, onPress, testID }: { name: string; checked: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       accessibilityLabel={name}
-      testID={`hidden-category-${name}`}
+      testID={testID ?? `hidden-category-${name}`}
       onPress={onPress}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}

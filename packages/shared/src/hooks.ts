@@ -330,9 +330,13 @@ export function createAppHooks({
         ...lists,
         profileName,
         isShown: (id: string) => !hiddenHere.includes(id),
-        /** Some category of this section is hidden ("Show all" can undo it). */
-        anyHidden: hiddenHere.length > 0,
-        showAll: () => setHidden({ ...hidden, [lists.section]: [] }),
+        /**
+         * "Select all" (issue #120): checked while every category of the section is shown. Pressed, it shows all of
+         * them, or hides all of them when all were shown, so a few can then be picked one by one.
+         */
+        allShown: hiddenHere.length === 0,
+        toggleAll: () =>
+          setHidden({ ...hidden, [lists.section]: hiddenHere.length === 0 ? (lists.categories ?? []).map((c) => c.id) : [] }),
         toggle: (id: string) =>
           setHidden({ ...hidden, [lists.section]: hiddenHere.includes(id) ? hiddenHere.filter((c) => c !== id) : [...hiddenHere, id] }),
         async save() {

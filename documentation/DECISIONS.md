@@ -2086,6 +2086,18 @@ Decision (`stores/databaseStorage.ts`; TV, phone and desktop):
 - Without a database (a plain browser) nothing changes.
 - Tests: the move (and what stays), writes and removals, a read racing a write, a failing database, a backup and restore with the PIN; the direct client's tests run with the user data in the database; the desktop end-to-end test finds the profiles in `library.db`.
 
+## D-127
+
+**"Select all" in Categories shown** — 2026-09-30 (issue #120: "add select/unselect all, and then let me enable categories individually")
+
+Context: Categories shown (D-110) had a "Show all" button, but no way to hide a whole section at once. With hundreds of categories, keeping a few meant unchecking every other one by hand.
+
+Decision (shared `useHiddenCategories`, TV/phone and desktop):
+
+- A "Select all" checkbox heads the section's list. It is checked while every category of the section is shown. Pressed then, it unchecks them all, so the wanted ones can be checked one by one; pressed while some are hidden, it checks them all again. It replaces the "Show all" button.
+- It works per section (Movies, Series, Live TV), like the rest of the dialog, and is applied on Save.
+- Tests: the TV screen test unchecks all, checks one, saves (only that one shown), and checks all again.
+
 ## D-128
 
 **Presses in a row skip faster** — 2026-09-30 (issue #121: "the only way to skip is by 10 seconds … navigating with the scrubber seems impossible on TV using the remote")
