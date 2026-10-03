@@ -155,6 +155,45 @@ export const LANGUAGE_PREFIX: Table = {
  */
 export const IGNORED_PREFIX = new Set(['bl']);
 
+/**
+ * Acronyms that start real names ("UFC - 300", "BBC - Planet Earth"): kept although they look like a language not
+ * registered yet, which is dropped from the name (D-134). Lower case.
+ */
+export const KEPT_PREFIX = new Set([
+  'abc',
+  'aew',
+  'amc',
+  'atp',
+  'bbc',
+  'cbs',
+  'cia',
+  'cnn',
+  'csi',
+  'dc',
+  'fbi',
+  'fia',
+  'fx',
+  'hbo',
+  'itv',
+  'mlb',
+  'mls',
+  'mtv',
+  'nba',
+  'nbc',
+  'nfl',
+  'nhl',
+  'nsa',
+  'pbs',
+  'pga',
+  'ted',
+  'tna',
+  'tv',
+  'ufc',
+  'wta',
+  'wwe',
+  'wwf',
+]);
+
 export const AUDIO_TAG: Table = { dual: 'DUAL', multi: 'MULTI' };
 
 export const HDR = new Set(['hdr', 'dovi']);

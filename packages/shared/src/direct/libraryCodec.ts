@@ -9,9 +9,10 @@ export const LIBRARY_FORMAT = 3;
  * Version of the grouping and title rules the library was built with. A library from older rules still shows, but
  * counts as out of date, so it is rebuilt in the background (D-086: short tags in names, episode numbers; 3: Albanian and Kurdish prefixes;
  * 4: Greek, Ex-Yu, Punjabi and longer prefixes, D-107; 5: "PL = …" and "BL - …" prefixes, D-112;
- * 6: grouped by key, year and TMDB id only, no similar spellings, D-133).
+ * 6: grouped by key, year and TMDB id only, no similar spellings, D-133; 7: languages not in the tables yet dropped as
+ * prefixes, D-134).
  */
-export const NORMALIZER_RULES = 6;
+export const NORMALIZER_RULES = 7;
 
 type PackedVariant = [
   streamId: string,
