@@ -2098,6 +2098,20 @@ Decision (shared `useHiddenCategories`, TV/phone and desktop):
 - It works per section (Movies, Series, Live TV), like the rest of the dialog, and is applied on Save.
 - Tests: the TV screen test unchecks all, checks one, saves (only that one shown), and checks all again.
 
+## D-128
+
+**Presses in a row skip faster** — 2026-09-30 (issue #121: "the only way to skip is by 10 seconds … navigating with the scrubber seems impossible on TV using the remote")
+
+Context: on TV, a press of ←/→ skipped 10 s and holding scrubbed with growing speed (D-028). But some remotes report the arrows only when they are released (the app already turned such a release into a press), so holding never scrubs there: every press, however long, was 10 s.
+
+Decision (shared `RemoteSeekController`, TV and phone player):
+
+- Presses in a row go faster. The first press seeks 10 s at once, as before. Each further press within a second moves a preview on the progress bar instead, by a growing step: 10 s, 30 s, 30 s, 1 min, 1 min, 2 min, 2 min, then 5 min per press. The bar shows the preview time and the last step ("+2:00"). A second after the last press, the video jumps there once.
+- A press the other way continues from the preview with the smallest step (10 s), to fine-tune. A pause of a second ends the series; the next press is a plain 10 s seek.
+- ⏪/⏩ on remotes that have them work the same way. Holding still scrubs where the remote reports it, and continues from a series' preview.
+- Desktop: unchanged. A held arrow key repeats, and the timeline can be dragged.
+- Tests: the controller's steps, fine-tuning, pause, limits at the start and the end, holding after presses and closing with a preview pending; a player test with release-only arrows and ⏩ that checks the preview and the single jump.
+
 ## D-130
 
 **Search finds programmes of the TV guide** — 2026-10-03 (issue #119: "when I search for an event that is on live TV, I want the channel broadcasting (or about to broadcast) that event to appear")
