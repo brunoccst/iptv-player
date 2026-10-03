@@ -60,6 +60,18 @@ export function withKidsFilter(api: ApiClient, isKids: () => boolean, chosen: (s
         );
         return options?.limit === undefined ? list : list.slice(0, options.limit);
       },
+      // Kids: only programmes on channels of their categories.
+      ...(api.catalog.searchProgrammes
+        ? {
+            searchProgrammes: async (search: string, options?: { limit?: number }, signal?: AbortSignal) => {
+              const found = await api.catalog.searchProgrammes!(search, isKids() ? { ...options, limit: undefined } : options, signal);
+              if (!isKids()) return found;
+              const allowed = await allowedSet('live');
+              const list = found.filter((match) => match.channel.categoryId !== null && allowed.has(match.channel.categoryId));
+              return options?.limit === undefined ? list : list.slice(0, options.limit);
+            },
+          }
+        : {}),
       movies: async (categoryId, signal) => {
         const list = await api.catalog.movies(categoryId, signal);
         return isKids() ? inAllowed(list, await allowedSet('movies')) : list;

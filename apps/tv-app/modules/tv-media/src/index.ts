@@ -32,8 +32,18 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   takeLastCrash(): string | null;
   /** Java heap limit and use, and the device's RAM, in MB (D-113). */
   memoryInfo(): MemoryInfo;
-  /** Provider lists read on a background thread (D-115); see `ListReader` in @iptv/shared. */
-  openList(url: string, headers: Record<string, string>, timeoutMs: number, batchChars: number): Promise<{ id: number; status: number }>;
+  /**
+   * Provider lists read on a background thread (D-115); see `ListReader` in @iptv/shared. `guideFromMs` > 0: an XMLTV
+   * guide, cut into batches of the programmes that overlap [guideFromMs, guideToMs) (issue #119).
+   */
+  openList(
+    url: string,
+    headers: Record<string, string>,
+    timeoutMs: number,
+    batchChars: number,
+    guideFromMs: number,
+    guideToMs: number,
+  ): Promise<{ id: number; status: number }>;
   readList(id: number): Promise<ListPiece>;
   closeList(id: number): void;
   /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another (D-118). */

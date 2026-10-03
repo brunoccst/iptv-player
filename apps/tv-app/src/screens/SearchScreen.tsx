@@ -12,13 +12,14 @@ import {
   type SearchKind,
   t,
   useSearchQuery,
+  programmeWhen,
 } from '@iptv/shared';
 import { navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
 import { MasterCardItem, TvLines, useGridColumns } from './titles';
-import { useChannelSearch, usePagedLibrary } from '../hooks';
+import { useChannelSearch, usePagedLibrary, useProgrammeSearch } from '../hooks';
 
 const PAGE = 100;
 /** TV: smaller pages that load as the focus nears the end; only the lines near the focus stay mounted (D-095). */
@@ -69,6 +70,7 @@ export function SearchScreen() {
             {shows('movies') ? <SearchGrid key={`m-${query}`} section="movies" query={query} title={t('Movies')} /> : null}
             {shows('series') ? <SearchGrid key={`s-${query}`} section="series" query={query} title={t('Series')} /> : null}
             {shows('live') ? <ChannelResults key={`c-${query}`} query={query} alone={kind === 'live'} /> : null}
+            {shows('live') ? <ProgrammeResults key={`p-${query}`} query={query} /> : null}
           </>
         ) : null}
       </CenteringScrollView>
@@ -145,6 +147,32 @@ function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
                 target: liveTarget(channel),
               })
             }
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Programmes of the full TV guide with the search in their title, on now first; Select plays the channel (issue #119). */
+function ProgrammeResults({ query }: { query: string }) {
+  const found = useProgrammeSearch(query);
+  const sizes = useSizes();
+  if (!found?.length) return null;
+  const now = Date.now();
+  return (
+    <View style={styles.section} testID="row-programme-search">
+      <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{t('On TV')}</Text>
+      <View style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
+        {found.map(({ channel, programme }) => (
+          <PosterCard
+            key={`${channel.id}-${programme.start}`}
+            landscape
+            title={programme.title}
+            subtitle={`${channel.name} · ${programmeWhen(programme, now)}`}
+            posterUrl={channel.logoUrl}
+            badge={Date.parse(programme.start) <= now ? t('LIVE') : null}
+            onPress={() => navStore.getState().push({ name: 'player', target: liveTarget(channel, programme.title) })}
           />
         ))}
       </View>

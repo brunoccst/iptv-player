@@ -15,6 +15,8 @@ export const SEARCH_KINDS: { kind: SearchKind; label: () => string }[] = [
 export const SEARCH_BY_TITLE: LibrarySortChoice = { sort: 'title', order: 'asc' };
 /** Live channels shown for a search. */
 export const MAX_SEARCH_CHANNELS = 30;
+/** Programmes of the full guide shown by search (issue #119). */
+export const MAX_SEARCH_PROGRAMMES = 30;
 
 /**
  * The text to search for, from what is typed (both apps, D-124): waits until typing pauses, adapted to how fast the
