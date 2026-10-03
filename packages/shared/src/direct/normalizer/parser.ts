@@ -322,7 +322,11 @@ export function normalizeKey(title: string): string {
   return tokens.join(' ');
 }
 
-export const compactKey = (title: ParsedTitle) => title.key.replaceAll(' ', '');
+/**
+ * The key without spaces and without leading zeros in numbers ("Part 02" = "Part 2", D-133): what titles group on and
+ * what their ids are made of.
+ */
+export const compactKey = (title: ParsedTitle) => title.key.replace(/(^|\D)0+(?=\d)/g, '$1').replaceAll(' ', '');
 
 /** Every number in the key, also inside words ("EP197", "Part2"): episodes, scenes and sequels stay apart. */
 export const numberTokens = (title: ParsedTitle) =>

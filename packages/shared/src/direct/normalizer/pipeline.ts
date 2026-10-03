@@ -1,4 +1,4 @@
-import { groupTitles, groupTitlesAsync } from './matching';
+import { groupTitles } from './matching';
 import { compactKey, normalizeKey, parseTitle, parseYear, type ParsedTitle } from './parser';
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
@@ -59,7 +59,8 @@ export interface Master {
 
 const text = (value: unknown) => (value === null || value === undefined ? '' : String(value).trim());
 const optional = (value: unknown) => text(value) || null;
-const rank = (quality: string) => tags.QUALITY_RANK[quality] ?? 0;
+/** How good a quality tag is; the best one is the title's (`bestQuality`). */
+export const qualityRank = (quality: string) => tags.QUALITY_RANK[quality] ?? 0;
 /** Compares by code point; localeCompare would depend on the locale. */
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -79,70 +80,12 @@ export function tmdbId(item: NormalizerItem): string | null {
   return /^\d+$/.test(value) && /[1-9]/.test(value) ? value : null;
 }
 
-/**
- * Joins name groups that share a TMDB id, e.g. "La Casa de Papel" and "Money Heist" (D-065). A shared id only joins
- * groups whose years agree (or are unknown): providers sometimes reuse an id for a remake or get it wrong.
- */
-export function mergeByTmdb(groups: number[][], tmdbIds: (string | null)[], years: (number | null)[]): number[][] {
-  const parent = groups.map((_, index) => index);
-  const find = (index: number): number => {
-    while (parent[index] !== index) {
-      parent[index] = parent[parent[index]!]!;
-      index = parent[index]!;
-    }
-    return index;
-  };
-  const groupYears = groups.map((group) => new Set(group.flatMap((i) => (years[i] === null ? [] : [years[i]!]))));
-  const firstGroup = new Map<string, number>();
-  groups.forEach((group, index) => {
-    const ids = [...new Set(group.flatMap((i) => (tmdbIds[i] ? [tmdbIds[i]!] : [])))].sort(compare);
-    for (const id of ids) {
-      const other = firstGroup.get(id);
-      if (other === undefined) {
-        firstGroup.set(id, index);
-        continue;
-      }
-      const root = find(index);
-      const otherRoot = find(other);
-      const a = groupYears[root]!;
-      const b = groupYears[otherRoot]!;
-      if (root !== otherRoot && (a.size === 0 || b.size === 0 || [...a].some((year) => b.has(year)))) {
-        const low = Math.min(root, otherRoot);
-        const high = Math.max(root, otherRoot);
-        parent[high] = low;
-        groupYears[low] = new Set([...a, ...b]);
-      }
-    }
-  });
-  const merged = new Map<number, number[]>();
-  groups.forEach((group, index) => {
-    const root = find(index);
-    const list = merged.get(root);
-    if (list) list.push(...group);
-    else merged.set(root, [...group]);
-  });
-  return [...merged.values()].map((indexes) => indexes.sort((a, b) => a - b));
-}
-
-const byTmdb = (groups: number[][], usable: NormalizerItem[], parsed: ParsedTitle[]) =>
-  mergeByTmdb(
-    groups,
-    usable.map(tmdbId),
-    parsed.map((title) => title.year),
-  );
-
 /** Milliseconds per grouping step, without the breaks for the screen (D-116). */
 export interface GroupingTimings {
   /** Reading the names (or taking them from the last library). */
   names: number;
-  /** Matching: exact keys, and year-less titles joining a dated one. */
-  exact: number;
-  /** Matching: the keys for the similarity check. */
+  /** Grouping by key, year and TMDB id (D-133). */
   keys: number;
-  /** Matching: similar names within blocks. */
-  similar: number;
-  /** Joining groups that share a TMDB id. */
-  tmdb: number;
   /** Building the titles (or keeping unchanged ones). */
   titles: number;
   /** Hashing the new titles' ids, when done all at once (`hashIds`). */
@@ -157,8 +100,9 @@ type GroupingStep = Exclude<keyof GroupingTimings, 'waiting' | 'breaks'>;
 
 /**
  * Same result as `buildMasters`, but works in chunks and yields between them so the UI stays responsive, and
- * `onProgress(done, total)` reports how far it got (direct mode on TV/phone, D-038). `done` runs from 0 to `total`
- * across all steps: reading the names (first half), matching them (to 80 %), building the titles (the rest).
+ * `onProgress(done, total)` reports how far it got (D-038). `done` runs from 0 to `total` across all steps: reading the
+ * names (to 80 %), grouping them and building the titles (the rest). Only the library kept in memory (no database) is
+ * built here; the database groups its titles itself (D-133).
  *
  * It yields to the UI once `sliceMs` of work has passed, not after every chunk: on React Native each yield waits for
  * the next frame, and hundreds of them added seconds of idle time on a TV (D-093). 250 ms (it was 50): each break costs
@@ -206,10 +150,7 @@ export async function buildMastersInChunks(
   const total = usable.length;
   const timings: GroupingTimings = {
     names: 0,
-    exact: 0,
     keys: 0,
-    similar: 0,
-    tmdb: 0,
     titles: 0,
     ids: 0,
     sort: 0,
@@ -261,16 +202,11 @@ export async function buildMastersInChunks(
       names.push(fromName);
       parsed.push(withReleaseYear(fromName, item));
     }
-    await pause((0.5 * parsed.length) / total, 'names');
+    await pause((0.8 * parsed.length) / total, 'names');
   }
   work('names');
-  // Matching reports 0–0.1 for the exact keys (and year-less titles), to 0.2 for the similarity keys, then similar names.
-  const matched = await groupTitlesAsync(parsed, (done) =>
-    pause(0.5 + 0.3 * done, done <= 0.1 ? 'exact' : done <= 0.2 ? 'keys' : 'similar'),
-  );
-  work('similar');
-  const groups = byTmdb(matched, usable, parsed);
-  work('tmdb');
+  const groups = groupTitles(parsed, usable.map(tmdbId));
+  work('keys');
   const masters: Master[] = [];
   let reusedMasters = 0;
   // With `hashIds`, new titles get their ids afterwards, all in one go.
@@ -308,9 +244,7 @@ export async function buildMastersInChunks(
 
 function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], names: ParsedTitle[]): Master[] {
   const parsed = names.map((name, index) => withReleaseYear(name, usable[index]!));
-  return sortMasters(
-    byTmdb(groupTitles(parsed), usable, parsed).map((group) => masterOf(accountId, mediaKind, usable, parsed, group, names)),
-  );
+  return sortMasters(groupTitles(parsed, usable.map(tmdbId)).map((group) => masterOf(accountId, mediaKind, usable, parsed, group, names)));
 }
 
 const masterOf = (
@@ -435,11 +369,28 @@ export function releaseKey(releaseDate: string | null, year: number | null): num
 export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
   hashedId(masterIdText(accountId, mediaKind, key, year));
 
-/** What a master id is the SHA-1 of. */
-const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null) =>
+/** What a master id is the SHA-1 of (its first 20 hex digits). */
+export const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null) =>
   `${accountId}|${mediaKind}|${key}|${year ?? ''}`;
 
 const hashedId = (idText: string) => sha1Hex(idText).slice(0, 20);
+
+/** What the library database keeps of a provider item (D-133); null without an id or a name. */
+export function savedItem(item: NormalizerItem) {
+  if (!text(item.id) || !text(item.name)) return null;
+  return {
+    streamId: text(item.id),
+    name: String(item.name),
+    categoryId: optional(item.categoryId),
+    posterUrl: optional(item.posterUrl),
+    rating: typeof item.rating === 'number' ? item.rating : null,
+    addedAt: typeof item.addedAt === 'number' && item.addedAt > 0 ? Math.trunc(item.addedAt) : null,
+    released: releaseKey(optional(item.releaseDate), null),
+    releaseYear: parseYear(text(item.releaseDate).slice(0, 4)),
+    containerExtension: optional(item.containerExtension),
+    tmdbId: tmdbId(item),
+  };
+}
 
 /** The name's year, else the release date's. */
 function withReleaseYear(parsed: ParsedTitle, item: NormalizerItem): ParsedTitle {
@@ -456,17 +407,16 @@ function buildMaster(
   idOf: (idText: string) => string,
 ): Master {
   const built = items.map((item, index) => buildVariant(item, parsed[index]!, names[index]!.year));
-  const order = built
-    .map((_, index) => index)
-    .sort((a, b) => built[b]!.qualityScore - built[a]!.qualityScore || compare(built[a]!.streamId, built[b]!.streamId));
+  const order = variantOrder(built);
   const variants = dedupeLabels(order.map((index) => built[index]!));
   const ordered = order.map((index) => parsed[index]!);
 
-  // Most common spelling wins; ties go to the spelling seen first (best variant first).
-  const titleCounts = countInOrder(ordered.map((title) => title.cleanTitle));
-  const displayTitle = [...titleCounts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0];
-  const yearCounts = countInOrder(ordered.flatMap((title) => (title.year === null ? [] : [title.year])));
-  const year = yearCounts.size ? [...yearCounts].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0] : null;
+  // The most common spelling and year; ties go to the one with the best version, then the smallest stream id (the
+  // database's query picks the same, D-133).
+  const displayTitle = mostCommon(order.map((index) => ({ value: parsed[index]!.cleanTitle, variant: built[index]! })))!;
+  const year = mostCommon(
+    order.flatMap((index) => (parsed[index]!.year === null ? [] : [{ value: parsed[index]!.year!, variant: built[index]! }])),
+  );
   const canonical = ordered.find((title) => title.cleanTitle === displayTitle)!;
   const ratings = variants.flatMap((variant) => (variant.rating === null ? [] : [variant.rating]));
   const qualities = variants.flatMap((variant) => (variant.quality ? [variant.quality] : []));
@@ -480,7 +430,7 @@ function buildMaster(
     year,
     posterUrl: variants.find((variant) => variant.posterUrl)?.posterUrl ?? null,
     rating: ratings.length ? Math.max(...ratings) : null,
-    bestQuality: qualities.length ? qualities.reduce((best, quality) => (rank(quality) > rank(best) ? quality : best)) : null,
+    bestQuality: qualities.length ? qualities.reduce((best, quality) => (qualityRank(quality) > qualityRank(best) ? quality : best)) : null,
     addedAt: added.length ? Math.max(...added) : null,
     releaseKey: released.length ? Math.min(...released) : releaseKey(null, year),
     variants,
@@ -519,8 +469,44 @@ function dedupeLabels(variants: Variant[]): Variant[] {
   });
 }
 
-function countInOrder<T>(values: T[]): Map<T, number> {
-  const counts = new Map<T, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return counts;
+/** Best version first: quality score, then stream id. */
+const variantOrder = (variants: Variant[]) =>
+  variants
+    .map((_, index) => index)
+    .sort((a, b) => variants[b]!.qualityScore - variants[a]!.qualityScore || compare(variants[a]!.streamId, variants[b]!.streamId));
+
+/** The value most versions have; ties go to the best version's value, then the smallest stream id among its versions. */
+function mostCommon<T>(entries: { value: T; variant: Variant }[]): T | null {
+  const counts = new Map<T, { count: number; score: number; streamId: string }>();
+  for (const { value, variant } of entries) {
+    const known = counts.get(value);
+    if (!known) counts.set(value, { count: 1, score: variant.qualityScore, streamId: variant.streamId });
+    else {
+      known.count++;
+      known.score = Math.max(known.score, variant.qualityScore);
+      if (compare(variant.streamId, known.streamId) < 0) known.streamId = variant.streamId;
+    }
+  }
+  let best: T | null = null;
+  let bestOf: { count: number; score: number; streamId: string } | null = null;
+  for (const [value, of] of counts) {
+    if (
+      !bestOf ||
+      of.count > bestOf.count ||
+      (of.count === bestOf.count && (of.score > bestOf.score || (of.score === bestOf.score && compare(of.streamId, bestOf.streamId) < 0)))
+    ) {
+      best = value;
+      bestOf = of;
+    }
+  }
+  return best;
+}
+
+/**
+ * A title's versions from the database's rows (D-133), in the same order and with the same labels as a title built
+ * here: best first, identical labels numbered.
+ */
+export function versionsOf(rows: { item: NormalizerItem; title: ParsedTitle }[]): Variant[] {
+  const built = rows.map(({ item, title }) => buildVariant(item, title, title.year));
+  return dedupeLabels(variantOrder(built).map((index) => built[index]!));
 }

@@ -2140,3 +2140,23 @@ Decision (shared `xmltv.ts`, `createSqlGuide`, `searchProgrammes`; native `Xmltv
 - Both apps show them in search under "On TV" (All and Live TV filters): the programme, the channel and when ("Now · 20:00 – 21:00", "Tomorrow · …"), with the LIVE badge while on. Select plays the channel. Kids profiles only see programmes on channels of their categories.
 - A provider without a full guide (404) shows no programmes; the rest of search is unchanged.
 - Tests: the XMLTV reader (times and offsets, entities and CDATA, pieces cut anywhere, the window); the client in memory and in the database (ended, far-off and unknown-channel programmes left out, guide ids in another case, offline after a restart); the TV search screen; a web end-to-end test against the fake panel's XMLTV. The native filter was checked on the JVM.
+
+## D-133
+
+**Titles grouped by the database: keys and TMDB ids, no similar spellings** — 2026-10-03 (issue #134: "load the results of the server into the database, and do the grouping and indexing at the database - no more grouping via code"; owner chose "Keys + TMDB in SQL")
+
+Context: every daily update grouped the whole catalog in JavaScript (D-038, D-093, D-109, D-116, D-118): reading every name, matching similar spellings pair by pair, building and saving each title. With 160k movies that took minutes on a Chromecast and kept the app busy.
+
+Decision (`sqlLibrary.ts`, TV, phone and desktop):
+
+- **The provider's items go into the database as they come**, then queries group them into titles. Only names the database has not seen are read (parsed) in code, and what they say is kept per name (`title_names_<rules>`, shared by all accounts, forgotten after 30 days unseen). A daily update reads no names, or a few.
+- **Grouping rules** (the same in `groupTitles`, for the library kept in memory in a plain browser):
+  1. Same compact key and year ("Spider-Man" = "Spiderman", "Part 02" = "Part 2"; prefixes such as "EN - " or "FR - " are not part of the key). The compact key (spaces and leading zeros dropped) is worked out when a name is read and kept with it; the grouping itself is queries. A year-less item takes its key's year when the key has exactly one.
+  2. Each key takes the smallest TMDB id among its items; items with one group by that id and the year, so translated titles still join (D-065), only with the same year.
+  - **Dropped:** joining similar spellings ("Redemption" / "Redemtion"). They now show as separate titles.
+- **What a title shows** is worked out by queries: its most common spelling and year (ties: the best version's, then the smallest stream id), the best version's poster and quality, the highest rating, the newest date. A title's versions are read only when it is opened. Ids are the same as before (the SHA-1 of account, kind, key and year, hashed in code), so My List and progress stay with their titles, except titles whose grouping changed (similar spellings now apart) and titles with a leading zero in a number ("Part 02"), whose key lost it.
+- **What changed** (D-119) is counted by queries against the last library: added, removed, and changed (versions, names, rating, categories or poster).
+- **Older libraries** (saved as packed titles) still show until the new one is built; the title rules go to 6, so every library is rebuilt once. A library file from before D-121 is no longer moved in: it is removed and the lists downloaded again.
+- Each step is one call with a break for the screen in between. The SQL runs on SQLite 3.9 (checked on 3.9.1).
+- Measured on a PC (Node's SQLite, 160k made-up items): first build 9.6 s (2.8 s reading names), daily update 7.4 s (no names read).
+- Tests: the database's lists and details match the library in memory (600 items, some with TMDB ids); rules (TMDB, year-less, similar spellings apart); only new names are read on the next update; what changed; an older library still lists and opens; an unfinished build is dropped at start.
