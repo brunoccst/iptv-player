@@ -2111,3 +2111,17 @@ Decision (shared `RemoteSeekController`, TV and phone player):
 - ⏪/⏩ on remotes that have them work the same way. Holding still scrubs where the remote reports it, and continues from a series' preview.
 - Desktop: unchanged. A held arrow key repeats, and the timeline can be dragged.
 - Tests: the controller's steps, fine-tuning, pause, limits at the start and the end, holding after presses and closing with a preview pending; a player test with release-only arrows and ⏩ that checks the preview and the single jump.
+
+## D-129
+
+**Channels watched last: Home's live row and a strip on ↓ in the live player** — 2026-10-03 (issue #122; owner: "↓ opens the history, a second ↓ from the bottom goes on to the buttons")
+
+Context: Home's live row showed the first live category, which says little about what a profile watches. In the live player, ↓ opened the on-screen buttons (D-101); there was no quick way back to the channel watched before.
+
+Decision (shared `recentChannels.ts` and hooks `useRecentChannels`, `useNoteRecentChannel`, `useLiveHomeRow`):
+
+- Each profile keeps its last 20 channels, newest first, in its preferences on the device (in the database since D-126). A channel is noted when the player starts it, on TV, phone and desktop.
+- Home's live row, "Recently watched channels", lists them. Until the profile has watched a channel, the row shows the first live category as before (with its "See all" card); with history, that category is not downloaded at all.
+- TV, live channel: ↓ opens a see-through strip at the bottom with the last 10 channels; the playing one is marked and the previous one has the focus, so one Select goes back to it. ←/→ move, Select switches channel, ↑ or Back closes, and it closes by itself after 6 s without input, like the guide (D-058). ↓ again, below the channels, goes on to the player's buttons (Play/Pause, audio and subtitles), which ↓ opened before.
+- Movies and series keep ↓ for the buttons. Phones and desktop have no strip (no ↓ in their players); they get the Home row.
+- Tests: the list rules (newest first, once, at most 20); the player notes the channel, ↓ shows the strip with the previous channel focused, ↓ again reaches the buttons, Select switches channel, ↑/Back/time close it; Home lists recent channels without downloading the first category.
