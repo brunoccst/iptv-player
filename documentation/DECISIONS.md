@@ -2141,6 +2141,18 @@ Decision (shared `xmltv.ts`, `createSqlGuide`, `searchProgrammes`; native `Xmltv
 - A provider without a full guide (404) shows no programmes; the rest of search is unchanged.
 - Tests: the XMLTV reader (times and offsets, entities and CDATA, pieces cut anywhere, the window); the client in memory and in the database (ended, far-off and unknown-channel programmes left out, guide ids in another case, offline after a restart); the TV search screen; a web end-to-end test against the fake panel's XMLTV. The native filter was checked on the JVM.
 
+## D-132
+
+**Mark a season as watched** — 2026-10-03 (issue #132: "users may only have watched a few seasons … add a button to mark only a particular season as watched")
+
+Context: episodes could be marked one by one, or the whole series at once (D-082). Someone who had seen seasons 1 and 2 of three had to mark each episode.
+
+Decision (shared `isSeasonWatched`, `setSeasonWatched` and the "season" kind of `useWatchedToggle`; TV/phone and desktop):
+
+- The episode list's header has the round "Watched" button next to the season choice: an open eye when every episode of the shown season is watched, a closed one otherwise. Pressed, it marks every episode of that season watched, or not watched, in all versions (D-066). Other seasons stay as they were.
+- The series' cover tag and the tag next to its title follow as before: on only once every episode of every season is watched (D-082).
+- Tests: marking season 1 of two puts its episodes as watched and leaves the series untagged; pressing again removes them.
+
 ## D-133
 
 **Titles grouped by the database: keys and TMDB ids, no similar spellings** — 2026-10-03 (issue #134: "load the results of the server into the database, and do the grouping and indexing at the database - no more grouping via code"; owner chose "Keys + TMDB in SQL")

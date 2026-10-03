@@ -345,8 +345,10 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
 
   // One episode back to not watched: its tag and the series tag go.
   const count = await episodes.getByTestId('watched-tag').count();
+  // The whole season is watched: its button says so (issue #132).
+  await expect(episodes.getByRole('button', { name: 'Mark season as not watched' })).toBeVisible();
   // The row has Play and "…" (D-083); the episode's options are in its menu.
-  await expect(episodes.getByRole('button', { name: /^Mark / })).toHaveCount(0);
+  await expect(episodes.getByRole('button', { name: /^Mark (?!season)/ })).toHaveCount(0);
   await episodes
     .getByRole('button', { name: /^More options for / })
     .first()

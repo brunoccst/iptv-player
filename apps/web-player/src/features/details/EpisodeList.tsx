@@ -3,7 +3,9 @@ import {
   episodeLabel,
   episodeMenuItems,
   isEpisodeWatched,
+  isSeasonWatched,
   setEpisodeWatched,
+  setSeasonWatched,
   episodeInVersion,
   findEpisodeProgress,
   formatDuration,
@@ -18,6 +20,7 @@ import { stores, uiStore } from '../../appContext';
 import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
 import { useDownload } from '../../components/DownloadButton';
 import { Icon } from '../../components/Icon';
+import { WatchedButton } from '../../components/WatchedButton';
 import { WatchedTag } from '../../components/WatchedTag';
 import { useVlc } from '../../components/VlcButton';
 import { useProgress } from '../../hooks/stores';
@@ -67,6 +70,13 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
         ) : (
           <span className="muted">{season.name}</span>
         )}
+        {/* Only this season (issue #132). */}
+        <WatchedButton
+          kind="season"
+          watched={isSeasonWatched(progress, season)}
+          onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+          testID="season-watched-toggle"
+        />
       </div>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);

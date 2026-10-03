@@ -6,11 +6,13 @@ export function WatchedButton({
   kind,
   watched,
   onChange,
+  testID = 'details-watched-toggle',
 }: {
-  kind: 'movie' | 'series';
+  kind: 'movie' | 'series' | 'season';
   watched: boolean;
   onChange(watched: boolean): Promise<void>;
+  testID?: string;
 }) {
   const { icon, label, toggle } = useWatchedToggle(kind, watched, onChange);
-  return <IconButton icon={icon} label={label} testID="details-watched-toggle" onPress={toggle} />;
+  return <IconButton icon={icon} label={label} testID={testID} onPress={toggle} />;
 }
