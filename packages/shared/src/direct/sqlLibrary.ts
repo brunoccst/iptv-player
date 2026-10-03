@@ -1,5 +1,6 @@
 import type { LibraryListQuery } from '../api/apiClient';
-import type { LibraryPage, LibrarySort, LiveChannel, MasterCard } from '../api/types';
+import type { LibraryPage, LibrarySort, LiveChannel, MasterCard, ProgrammeMatch } from '../api/types';
+import type { GuideProgramme } from './xmltv';
 import { NORMALIZER_RULES, packer, unpacker, type PackedMaster } from './libraryCodec';
 import type { Master } from './normalizer/pipeline';
 
@@ -403,7 +404,7 @@ export function createSqlLiveChannels(db: SqlDatabase, library: SqlLibrary, paus
           ]);
           await pause();
         }
-        await db.run([{ sql: `CREATE INDEX ${t}_cat ON ${t}(cat)` }]);
+        await db.run([{ sql: `CREATE INDEX ${t}_cat ON ${t}(cat)` }, { sql: `CREATE INDEX ${t}_epg ON ${t}(lower(epg))` }]);
       } catch (error) {
         await db.run([{ sql: `DROP TABLE IF EXISTS ${t}` }]).catch(() => undefined);
         throw error;
@@ -478,3 +479,102 @@ export function createSqlLiveChannels(db: SqlDatabase, library: SqlLibrary, paus
 }
 
 export type SqlLive = ReturnType<typeof createSqlLiveChannels>;
+
+/** An account's TV guide in the database (issue #119, D-130). */
+export interface SqlGuide {
+  table: string;
+  builtAt: string;
+  count: number;
+}
+
+/**
+ * The provider's full TV guide in SQLite (issue #119, D-130): the programmes of the next day, saved as they are read
+ * from the (large) XMLTV reply, in a table beside the current one that replaces it in one step, like the channel list
+ * (kind "guide" in the same table of contents). Search finds programmes by title and the channels that show them.
+ */
+export function createSqlGuide(db: SqlDatabase, library: SqlLibrary) {
+  return {
+    async open(account: string): Promise<SqlGuide | null> {
+      await library.open(account);
+      const row = (await db.query("SELECT tbl, built_at, count FROM library WHERE account = ? AND kind = 'guide'", [account]))[0];
+      return row ? { table: String(row[0]), builtAt: String(row[1]), count: Number(row[2]) } : null;
+    },
+
+    /** A new guide: `add` its programmes in batches, then `finish` switches to it (or `abort` drops it). */
+    async begin(account: string) {
+      await library.open(account);
+      const t = newTable();
+      await db.run([
+        {
+          sql: `CREATE TABLE ${t} (ch TEXT NOT NULL, start INTEGER NOT NULL, stop INTEGER NOT NULL, title TEXT NOT NULL, lower TEXT NOT NULL)`,
+        },
+      ]);
+      let count = 0;
+      return {
+        async add(programmes: GuideProgramme[]) {
+          if (!programmes.length) return;
+          count += programmes.length;
+          await db.run([
+            {
+              sql: `INSERT INTO ${t} (ch, start, stop, title, lower) VALUES (${placeholders(5)})`,
+              rows: programmes.map((p): SqlValue[] => [p.channel.toLowerCase(), p.start, p.stop, p.title, p.title.toLowerCase()]),
+            },
+          ]);
+        },
+        async finish(builtAt: string): Promise<SqlGuide> {
+          await db.run([{ sql: `CREATE INDEX ${t}_ch ON ${t}(ch)` }]);
+          const old = (await db.query("SELECT tbl FROM library WHERE account = ? AND kind = 'guide'", [account]))[0]?.[0];
+          await db.run([
+            { sql: "DELETE FROM library WHERE account = ? AND kind = 'guide'", rows: [[account]] },
+            {
+              sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes) VALUES (?, 'guide', ?, ?, 0, ?, '[]', '[]')",
+              rows: [[account, t, builtAt, count]],
+            },
+          ]);
+          if (old) setTimeout(() => void db.run([{ sql: `DROP TABLE IF EXISTS ${String(old)}` }]).catch(() => undefined), RETIRE_MS);
+          return { table: t, builtAt, count };
+        },
+        async abort() {
+          await db.run([{ sql: `DROP TABLE IF EXISTS ${t}` }]).catch(() => undefined);
+        },
+      };
+    },
+
+    /**
+     * Programmes whose title contains `search` (any case) that have not ended at `now`, on the saved channels that
+     * show them: on now first, then by start time.
+     */
+    async search(saved: SqlGuide, live: SqlLiveChannels, search: string, now: number, limit: number): Promise<ProgrammeMatch[]> {
+      const needle = search.trim().toLowerCase();
+      if (!needle) return [];
+      const g = saved.table;
+      const l = live.table;
+      const rows = await db.query(
+        `SELECT g.title, g.start, g.stop, l.id, l.name, l.cat, l.num, l.logo, l.epg, l.catchup
+         FROM ${g} g JOIN ${l} l ON lower(l.epg) = g.ch
+         WHERE instr(g.lower, ?) > 0 AND g.stop > ?
+         ORDER BY (g.start > ?), g.start, l.rowid LIMIT ?`,
+        [needle, now, now, Math.max(1, limit)],
+      );
+      return rows.map(([title, start, stop, id, name, categoryId, number, logoUrl, epgChannelId, catchup]) => ({
+        channel: {
+          id: String(id),
+          name: String(name),
+          categoryId: categoryId === null ? null : String(categoryId),
+          number: number === null ? null : Number(number),
+          logoUrl: logoUrl === null ? null : String(logoUrl),
+          epgChannelId: epgChannelId === null ? null : String(epgChannelId),
+          hasCatchup: Number(catchup) === 1,
+        },
+        programme: {
+          title: String(title),
+          start: new Date(Number(start)).toISOString(),
+          end: new Date(Number(stop)).toISOString(),
+          description: null,
+        },
+      }));
+    },
+  };
+}
+
+export type SqlGuideStore = ReturnType<typeof createSqlGuide>;

@@ -52,7 +52,8 @@ export const appContext = createAppContext({
     dataStorage,
     userAgent: providerUserAgent,
     listReader: {
-      open: (url, headers, timeoutMs, batchChars) => TvMedia.openList(url, headers, timeoutMs, batchChars),
+      open: (url, headers, timeoutMs, batchChars, guide) =>
+        TvMedia.openList(url, headers, timeoutMs, batchChars, guide?.from ?? 0, guide?.to ?? 0),
       next: (id) => TvMedia.readList(id),
       close: (id) => TvMedia.closeList(id),
     },

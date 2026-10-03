@@ -31,6 +31,15 @@ export function createFakePanel() {
     stop_timestamp: String(nowSeconds + (startOffset + minutes) * 60),
   });
 
+  /** Full-guide programmes, minutes from now; `channel` is the guide id. */
+  const guide = [
+    { channel: 'NEWS', from: -30, to: 30, title: 'Evening News' },
+    { channel: 'NEWS', from: 30, to: 90, title: 'Late News' },
+    { channel: 'NEWS', from: -300, to: -240, title: 'Morning News' },
+    { channel: 'NEWS', from: 60 * 30, to: 60 * 31, title: 'News in two days' },
+    { channel: 'unknown', from: 0, to: 60, title: 'News on a channel the provider does not list' },
+  ];
+
   let accountStatus = 'Active';
   let expDate: string | null = null;
   const answer = (params: URLSearchParams): unknown => {
@@ -67,9 +76,22 @@ export function createFakePanel() {
     }
   };
 
+  /** The full guide (issue #119): channel ids in another case than the channel list, like real panels. */
+  const xmltvTime = (seconds: number) => `${new Date(seconds * 1000).toISOString().replace(/[-:T]/g, '').slice(0, 14)} +0000`;
+  const xmltv = () =>
+    [
+      '<?xml version="1.0" encoding="UTF-8"?><tv>',
+      ...guide.map(
+        (p) =>
+          `<programme start="${xmltvTime(nowSeconds + p.from * 60)}" stop="${xmltvTime(nowSeconds + p.to * 60)}" channel="${p.channel}"><title>${p.title}</title></programme>`,
+      ),
+      '</tv>',
+    ].join('\n');
+
   const fetch = (async (url: string) => {
     calls.push(url);
     if (down) throw new TypeError('Network request failed');
+    if (new URL(url).pathname.endsWith('/xmltv.php')) return new Response(xmltv(), { status: 200 });
     const params = new URL(url).searchParams;
     try {
       return new Response(JSON.stringify(answer(params)), { status: 200 });
@@ -82,6 +104,8 @@ export function createFakePanel() {
     fetch,
     calls,
     nowSeconds,
+    /** The full guide's programmes; tests add or remove entries. */
+    guide,
     /** The provider's movie list; tests add or remove entries to change what the next update finds. */
     movies,
     /** The provider's live channels. */

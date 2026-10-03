@@ -11,6 +11,7 @@ import type {
   LibraryChanges,
   LibraryStatusProgress,
   LiveChannel,
+  ProgrammeMatch,
   LoginRequest,
   MasterCard,
   MasterDetails,
@@ -29,7 +30,16 @@ import { appLog, errorMessage } from '../utils/logger';
 import { LIBRARY_FORMAT, packLibraryText, readLibraryText } from './libraryCodec';
 import { createListSnapshot } from './listSnapshot';
 import { createSqlCatalogCache } from './sqlCatalogCache';
-import { createSqlLibrary, createSqlLiveChannels, type SqlDatabase, type SqlLibraryKind, type SqlLiveChannels } from './sqlLibrary';
+import {
+  createSqlGuide,
+  createSqlLibrary,
+  createSqlLiveChannels,
+  type SqlDatabase,
+  type SqlGuide,
+  type SqlLibraryKind,
+  type SqlLiveChannels,
+} from './sqlLibrary';
+import type { GuideProgramme } from './xmltv';
 import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -103,6 +113,10 @@ const SHORT_EPG_LIMIT = 12;
 // Low on purpose: some providers treat bursts of guide requests as flooding (a 503 was seen at 4 in parallel).
 const SHORT_EPG_PARALLELISM = 2;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
+/** The full TV guide keeps the programmes of the next day, and is downloaded again after half a day (issue #119). */
+const GUIDE_WINDOW_MS = 24 * 3600_000;
+const GUIDE_REFRESH_MS = 12 * 3600_000;
+const PROGRAMME_SEARCH_LIMIT = 30;
 const SLOT_MS = 30 * 60_000;
 const MAX_PROFILES = 5;
 const MAX_PROFILE_NAME = 50;
@@ -775,6 +789,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         `live: ${channels.length} channels downloaded in ${downloaded - started} ms, saved to the database in ${Date.now() - downloaded} ms`,
       );
       if (credentials?.account.id === accountId) Object.assign(live, { accountId, saved, opening: Promise.resolve(saved) });
+      // The full guide follows the channel list: daily and with "Update library" (issue #119).
+      void refreshGuide();
     })()
       .catch((error: unknown) => appLog.error('library', `live: channel list failed: ${errorMessage(error)}`))
       .finally(() => (live.refreshing = null));
@@ -804,6 +820,112 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const current = live.saved ?? saved;
     if (!current || now().getTime() - Date.parse(current.builtAt) > LIBRARY_REFRESH_MS) void refreshLive();
     return current;
+  };
+
+  // ---- Full TV guide (issue #119, D-130): in the database with one, in memory without ----
+  const sqlGuide = options.libraryDb && sqlLibrary ? createSqlGuide(options.libraryDb, sqlLibrary) : null;
+  const guide: {
+    accountId: string | null;
+    saved: SqlGuide | null;
+    opening: Promise<SqlGuide | null> | null;
+    refreshing: Promise<void> | null;
+    memory: { programmes: GuideProgramme[]; builtAt: number } | null;
+  } = { accountId: null, saved: null, opening: null, refreshing: null, memory: null };
+
+  /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next day. */
+  const refreshGuide = (): Promise<void> => {
+    guide.refreshing ??= (async () => {
+      const { stored, client } = await session();
+      const accountId = stored.account.id;
+      const from = now().getTime();
+      const window = { from, to: from + GUIDE_WINDOW_MS };
+      const started = Date.now();
+      if (sqlGuide) {
+        const writer = await sqlGuide.begin(accountId);
+        let saved: SqlGuide;
+        try {
+          await client.guide(window, async (batch) => {
+            await writer.add(batch);
+            await yieldToUi();
+          });
+          saved = await writer.finish(now().toISOString());
+        } catch (error) {
+          await writer.abort();
+          throw error;
+        }
+        appLog.info('library', `guide: ${saved.count} programmes of the next day saved in ${Date.now() - started} ms`);
+        if (credentials?.account.id === accountId) Object.assign(guide, { accountId, saved, opening: Promise.resolve(saved) });
+        return;
+      }
+      const programmes: GuideProgramme[] = [];
+      await client.guide(window, async (batch) => void programmes.push(...batch));
+      appLog.info('library', `guide: ${programmes.length} programmes of the next day read in ${Date.now() - started} ms`);
+      if (credentials?.account.id === accountId) Object.assign(guide, { accountId, memory: { programmes, builtAt: from } });
+    })()
+      .catch((error: unknown) => appLog.warn('library', `guide: the full TV guide could not be read: ${errorMessage(error)}`))
+      .finally(() => (guide.refreshing = null));
+    return guide.refreshing;
+  };
+
+  /** The account's saved guide (read once); downloaded again in the background when missing or older than half a day. */
+  const savedGuide = async (): Promise<SqlGuide | null> => {
+    if (!sqlGuide) return null;
+    const { stored } = await session();
+    const accountId = stored.account.id;
+    if (guide.accountId !== accountId) {
+      Object.assign(guide, { accountId, saved: null, memory: null });
+      guide.opening = sqlGuide
+        .open(accountId)
+        .catch((error: unknown) => {
+          appLog.error('storage', `guide: could not be read from the database: ${errorMessage(error)}`);
+          return null;
+        })
+        .then((saved) => {
+          if (guide.accountId === accountId && !guide.saved) guide.saved = saved;
+          return saved;
+        });
+    }
+    const saved = await guide.opening;
+    if (guide.accountId !== accountId) return null;
+    const current = guide.saved ?? saved;
+    if (!current || now().getTime() - Date.parse(current.builtAt) > GUIDE_REFRESH_MS) void refreshGuide();
+    return current;
+  };
+
+  const searchProgrammes = async (search: string, options: { limit?: number } = {}): Promise<ProgrammeMatch[]> => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return [];
+    const limit = options.limit ?? PROGRAMME_SEARCH_LIMIT;
+    const at = now().getTime();
+    if (sqlGuide && sqlLive) {
+      const [saved, channels] = await Promise.all([savedGuide(), savedLive()]);
+      return saved && channels ? sqlGuide.search(saved, channels, needle, at, limit) : [];
+    }
+    // Without a database: the guide in memory, matched against the channel list.
+    const { stored } = await session();
+    if (guide.accountId !== stored.account.id) Object.assign(guide, { accountId: stored.account.id, memory: null });
+    // The first search waits for the guide (small without a database: a browser, for development and tests).
+    if (!guide.memory) await refreshGuide();
+    else if (at - guide.memory.builtAt > GUIDE_REFRESH_MS) void refreshGuide();
+    const memory = guide.memory;
+    if (!memory) return [];
+    const matching = memory.programmes.filter((p) => p.stop > at && p.title.toLowerCase().includes(needle));
+    if (!matching.length) return [];
+    const byGuideId = new Map<string, LiveChannel[]>();
+    for (const channel of await liveChannels(null)) {
+      // Guide ids match in any case (providers mix them).
+      const id = channel.epgChannelId?.toLowerCase();
+      if (id) byGuideId.set(id, [...(byGuideId.get(id) ?? []), channel]);
+    }
+    return matching
+      .sort((a, b) => Number(a.start > at) - Number(b.start > at) || a.start - b.start)
+      .flatMap((p) =>
+        (byGuideId.get(p.channel.toLowerCase()) ?? []).map((channel) => ({
+          channel,
+          programme: { title: p.title, start: new Date(p.start).toISOString(), end: new Date(p.stop).toISOString(), description: null },
+        })),
+      )
+      .slice(0, limit);
   };
 
   const liveChannels = async (categoryId?: string | null, signal?: AbortSignal, options: CatalogOptions = {}): Promise<LiveChannel[]> => {
@@ -1110,6 +1232,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         );
       },
       liveChannels,
+      searchProgrammes,
       async movies(categoryId?: string | null, signal?: AbortSignal) {
         const { stored, client } = await session();
         return cached(`movies:${stored.account.id}:${categoryId ?? ''}`, CATALOG_CACHE_MS, () => client.movies(categoryId, signal));
