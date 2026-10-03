@@ -305,6 +305,7 @@
   "Play Now": "Assistir agora",
   "Play on {tv}": "Assistir em {tv}",
   "Play on TV": "Assistir na TV",
+  "Play S{seasonNumber}:E{episodeNumber}": "Assistir S{seasonNumber}:E{episodeNumber}",
   "Playback": "Reprodução",
   "Player": "Player",
   "Player controls": "Controles do player",

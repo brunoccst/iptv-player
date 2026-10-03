@@ -110,7 +110,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-082).
-  const { variant, series, resume, allWatched, backdrop, play: playTarget } = useSeriesDetails(master);
+  const { variant, series, allWatched, backdrop, play: playTarget, playLabel, startSeason } = useSeriesDetails(master);
   if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
   const play = () => {
     if (playTarget) uiStore.getState().play(playTarget);
@@ -120,10 +120,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
     <>
       <DetailsHero backdrop={backdrop} title={master.title} watched={allWatched}>
         <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
-          <Icon name="play" />{' '}
-          {resume
-            ? t('Resume S{seasonNumber}:E{episodeNumber}', { seasonNumber: resume.seasonNumber, episodeNumber: resume.episodeNumber })
-            : t('Play')}
+          <Icon name="play" /> {playLabel}
         </button>
         <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
         <WatchlistButton section="series" title={master} />
@@ -175,7 +172,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           title={master.title}
           masterId={master.id}
           versionCount={master.variants.length}
-          initialSeason={resume?.seasonNumber ?? undefined}
+          initialSeason={startSeason ?? undefined}
         />
       ) : null}
     </>

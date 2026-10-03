@@ -305,6 +305,7 @@
   "Play Now": "Jetzt abspielen",
   "Play on {tv}": "Auf {tv} abspielen",
   "Play on TV": "Auf dem Fernseher abspielen",
+  "Play S{seasonNumber}:E{episodeNumber}": "Abspielen S{seasonNumber}:E{episodeNumber}",
   "Playback": "Wiedergabe",
   "Player": "Player",
   "Player controls": "Player-Steuerung",

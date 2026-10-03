@@ -2141,6 +2141,19 @@ Decision (shared `xmltv.ts`, `createSqlGuide`, `searchProgrammes`; native `Xmltv
 - A provider without a full guide (404) shows no programmes; the rest of search is unchanged.
 - Tests: the XMLTV reader (times and offsets, entities and CDATA, pieces cut anywhere, the window); the client in memory and in the database (ended, far-off and unknown-channel programmes left out, guide ids in another case, offline after a restart); the TV search screen; a web end-to-end test against the fake panel's XMLTV. The native filter was checked on the JVM.
 
+## D-131
+
+**A series' Play button goes on to the next episode not watched yet** — 2026-10-03 (issue #133: "If there's a newer episode … the Play button should start the newer, not-watched episode")
+
+Context: a series' details showed "Resume S1:E4" for the last episode with progress, even when that episode was finished and a new one had been released since.
+
+Decision (shared `seriesStart` and `seriesStartLabel`, used by `useSeriesDetails` on TV/phone and desktop):
+
+- An episode in progress: "Resume S1:E2", as before.
+- The last episode with progress is finished: Play starts the next episode in order (across seasons) that is not watched yet, "Play S1:E5", so a newly released episode is one press away. Episodes already watched after it are skipped. With none left, the button stays "Resume" on the last one, as before.
+- No progress: "Play", the first episode. The episode list opens on the season Play starts.
+- Tests: resume, next (including a newly released episode), skipping watched ones, first episode and no episodes.
+
 ## D-132
 
 **Mark a season as watched** — 2026-10-03 (issue #132: "users may only have watched a few seasons … add a button to mark only a particular season as watched")

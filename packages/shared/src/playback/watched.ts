@@ -6,7 +6,7 @@ import type { MergedEpisode, MergedSeries } from './seriesVersions';
 import type { LibraryStore } from '../stores/libraryStore';
 import { selectVariant } from '../stores/libraryStore';
 import type { ProgressState, ProgressStore } from '../stores/progressStore';
-import { continueWatchingEntries, isCompleted } from './rules';
+import { continueWatchingEntries, isCompleted, orderedEpisodes } from './rules';
 import { t } from '../i18n/i18n';
 import type { IconName } from '../design/icons';
 
@@ -212,6 +212,44 @@ export const isEpisodeWatched = (progress: Pick<ProgressState, 'items'>, episode
 export function allEpisodesWatched(progress: Pick<ProgressState, 'items'>, series: Pick<MergedSeries, 'seasons'>): boolean {
   const episodes = series.seasons.flatMap((season) => season.episodes);
   return episodes.length > 0 && episodes.every((episode) => isEpisodeWatched(progress, episode));
+}
+
+/**
+ * What a series' Play button starts (issue #133, D-131): the episode in progress; once that one is finished, the next
+ * episode not watched yet (a newly released one, say); otherwise the last one watched, as before; without any progress,
+ * the first episode.
+ */
+export type SeriesStart =
+  { kind: 'resume'; progress: ProgressDto } | { kind: 'next'; episode: MergedEpisode } | { kind: 'first'; episode: MergedEpisode };
+
+export function seriesStart(
+  progress: Pick<ProgressState, 'items'>,
+  series: Pick<MergedSeries, 'seasons'> | null,
+  resume: ProgressDto | null,
+): SeriesStart | null {
+  const episodes = series ? orderedEpisodes(series) : [];
+  if (resume) {
+    if (!isWatched(resume)) return { kind: 'resume', progress: resume };
+    const at = episodes.findIndex((episode) => episodeStreamIds(episode).includes(resume.itemId));
+    const next = at < 0 ? undefined : episodes.slice(at + 1).find((episode) => !isEpisodeWatched(progress, episode));
+    return next ? { kind: 'next', episode: next } : { kind: 'resume', progress: resume };
+  }
+  return episodes[0] ? { kind: 'first', episode: episodes[0] } : null;
+}
+
+/** The Play button's text for `seriesStart`: "Resume S1:E4", "Play S1:E5" or "Play". */
+export function seriesStartLabel(start: SeriesStart | null): string {
+  if (start?.kind === 'resume')
+    return t('Resume S{seasonNumber}:E{episodeNumber}', {
+      seasonNumber: start.progress.seasonNumber ?? '',
+      episodeNumber: start.progress.episodeNumber ?? '',
+    });
+  if (start?.kind === 'next')
+    return t('Play S{seasonNumber}:E{episodeNumber}', {
+      seasonNumber: start.episode.seasonNumber,
+      episodeNumber: start.episode.episodeNumber ?? '',
+    });
+  return t('Play');
 }
 
 /** What an episode's progress belongs to: the series title (for Continue Watching and the cover tag). */
