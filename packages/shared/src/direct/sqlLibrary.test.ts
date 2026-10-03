@@ -5,6 +5,7 @@ import { createFakePanel } from '../testing/fakePanel';
 import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { createDirectApiClient } from './directApiClient';
 import { buildMasters } from './normalizer/pipeline';
+import { packer } from './libraryCodec';
 import { createSqlLibrary } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
@@ -25,6 +26,8 @@ function catalog(count: number) {
     ...(random(4) === 0 ? {} : { added: String(1_700_000_000 + random(50) * 1000) }),
     ...(random(3) === 0 ? { rating: String(random(100) / 10) } : {}),
     ...(random(5) === 0 ? {} : { stream_icon: `http://img.test/p/${i}.jpg` }),
+    // Some share a TMDB id: those with the same year join (D-065, D-133).
+    ...(i % 5 === 0 ? { tmdb: String(500 + (i % 85)) } : {}),
   }));
 }
 
@@ -94,19 +97,103 @@ describe('library in SQLite (D-121)', () => {
 
   it('a start drops the tables of a build that never finished; the saved library stays', async () => {
     const db = createNodeSqlDatabase();
-    const masters = buildMasters('acc', 'movie', [{ id: 1, name: 'EN - Big Movie (2020)' }]);
-    await createSqlLibrary(db, async () => undefined).save('acc', 'movie', '2026-01-01T00:00:00Z', masters);
+    await createSqlLibrary(db, async () => undefined).build('acc', 'movie', '2026-01-01T00:00:00Z', [
+      { id: 1, name: 'EN - Big Movie (2020)' },
+    ]);
     // The app closed while saving the next build.
-    await db.run([{ sql: 'CREATE TABLE lib1 (id TEXT)' }, { sql: 'CREATE TABLE lib1_d (m INTEGER)' }]);
+    await db.run([{ sql: 'CREATE TABLE lib1 (id TEXT)' }, { sql: 'CREATE TABLE lib1_r (m INTEGER)' }]);
     const tables = async () => (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).map((row) => row[0]);
-    expect(await tables()).toContain('lib1_d');
+    expect(await tables()).toContain('lib1_r');
 
     const library = createSqlLibrary(db, async () => undefined);
     const saved = (await library.open('acc')).movie!;
     expect(await tables()).not.toContain('lib1');
-    expect(await tables()).not.toContain('lib1_d');
+    expect(await tables()).not.toContain('lib1_r');
     expect(await library.list(saved, {})).toMatchObject({ total: 1, items: [{ title: 'Big Movie', year: 2020 }] });
     expect(await library.open('other')).toEqual({});
+  });
+
+  it('groups by key, year and TMDB id, reads only new names, and says what changed (D-133)', async () => {
+    const db = createNodeSqlDatabase();
+    const library = createSqlLibrary(db, async () => undefined);
+    const items = [
+      { id: 1, name: 'EN - Money Heist (2017)', tmdbId: '71446', addedAt: 100 },
+      { id: 2, name: 'ES - La Casa de Papel (2017) 4K', addedAt: 300 },
+      { id: 3, name: 'La Casa de Papel (2017)', tmdbId: '71446', addedAt: 200 },
+      { id: 4, name: 'The Shawshank Redemption (1994)', addedAt: 50 },
+      { id: 5, name: 'The Shawshank Redemtion (1994) 720p' },
+      { id: 6, name: 'Inception HD', categoryId: '7' },
+      { id: 7, name: 'Inception (2010) 4K', categoryId: '8' },
+    ];
+    let newNames = -1;
+    const first = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items, { onTimings: (time) => (newNames = time.newNames) });
+    expect(newNames).toBe(7);
+    expect(first.changes).toBeNull();
+    const page = await library.list(first.saved, { sort: 'title' });
+    expect(page.items.map(({ title, year, variantCount }) => [title, year, variantCount])).toEqual([
+      ['Inception', 2010, 2],
+      ['La Casa de Papel', 2017, 3],
+      ['The Shawshank Redemption', 1994, 1],
+      ['The Shawshank Redemtion', 1994, 1],
+    ]);
+    // "La Casa de Papel" items take the TMDB id one of them has; "Money Heist" has the same id and year: one title.
+    // Similar spellings stay apart.
+    const expected = buildMasters('acc', 'movie', items);
+    expect(expected.map((master) => master.title).sort()).toEqual(page.items.map((card) => card.title));
+    for (const master of expected) expect(await library.get(first.saved, master.id)).toEqual(master);
+
+    // The next day: one name more, one gone, one changed rating; only the new name is read.
+    const next = [...items.slice(1), { id: 8, name: 'Dune (2021)' }].map((item) => (item.id === 7 ? { ...item, rating: 8 } : item));
+    const second = await library.build('acc', 'movie', '2026-01-02T00:00:00Z', next, { onTimings: (time) => (newNames = time.newNames) });
+    expect(newNames).toBe(1);
+    expect(second.changes).toEqual({ added: 1, changed: 2, removed: 0 });
+    expect((await library.open('acc')).movie).toMatchObject({ table: second.saved.table, count: 5, current: true, packed: false });
+  });
+
+  it('numbers group without their leading zeros, with the same id as in memory (D-133)', async () => {
+    const library = createSqlLibrary(createNodeSqlDatabase(), async () => undefined);
+    const items = [
+      { id: 1, name: 'Show Part 02 (2020)' },
+      { id: 2, name: 'EN - Show Part 2 (2020) 1080p' },
+      { id: 3, name: 'Show Part 3 (2020)' },
+    ];
+    const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items);
+    const page = await library.list(saved, { sort: 'title' });
+    expect(page.items.map(({ id, variantCount }) => [id, variantCount])).toEqual(
+      buildMasters('acc', 'movie', items).map((master) => [master.id, master.variants.length]),
+    );
+    expect(page.items.map((card) => card.variantCount)).toEqual([2, 1]);
+  });
+
+  it('a library saved before D-133 still lists and opens until the new one is built', async () => {
+    const db = createNodeSqlDatabase();
+    const library = createSqlLibrary(db, async () => undefined);
+    await library.open('acc');
+    const [master] = buildMasters('acc', 'movie', [{ id: 1, name: 'EN - Big Movie (2020) 4K', categoryId: '3' }]);
+    const { packMaster, prefixes } = packer();
+    await db.run([
+      {
+        sql: `CREATE TABLE lib5 (id TEXT NOT NULL, lower TEXT NOT NULL, nkey TEXT NOT NULL, ncat INTEGER NOT NULL, cats TEXT NOT NULL,
+          langs TEXT NOT NULL, hints TEXT NOT NULL, a0 INTEGER, r1 INTEGER, r0 INTEGER, t0 INTEGER, t1 INTEGER)`,
+      },
+      { sql: 'CREATE TABLE lib5_d (m INTEGER PRIMARY KEY, data TEXT NOT NULL)' },
+      { sql: 'CREATE TABLE lib5_c (cat TEXT NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (cat, m)) WITHOUT ROWID' },
+      { sql: "INSERT INTO lib5 VALUES (?, 'big movie', 'big movie', 1, ',3,', ',ENG,', '', 1, 1, 1, 1, 1)", rows: [[master!.id]] },
+      { sql: 'INSERT INTO lib5_d VALUES (1, ?)', rows: [[JSON.stringify(packMaster(master!))]] },
+      { sql: "INSERT INTO lib5_c VALUES ('3', 1)" },
+      {
+        sql: "INSERT INTO library VALUES ('acc', 'movie', 'lib5', '2025-01-01T00:00:00Z', 5, 1, '[\"title\"]', ?)",
+        rows: [[JSON.stringify(prefixes)]],
+      },
+    ]);
+    const saved = (await createSqlLibrary(db, async () => undefined).open('acc')).movie!;
+    expect(saved).toMatchObject({ current: false, packed: true });
+    expect(await library.list(saved, { categoryId: '3', language: 'ENG' })).toMatchObject({ total: 1, items: [{ title: 'Big Movie' }] });
+    expect(await library.get(saved, master!.id)).toEqual(master);
+    const built = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', [
+      { id: 1, name: 'EN - Big Movie (2020) 4K', categoryId: '3' },
+    ]);
+    expect(built.changes).toEqual({ added: 0, changed: 0, removed: 0 });
   });
 
   it('live channels: every list, guide page and search answers the same as without a database (D-123)', async () => {

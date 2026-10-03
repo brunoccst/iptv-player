@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { groupTitles, groupTitlesAsync, ratio } from './matching';
+import { groupTitles } from './matching';
 import { normalizeKey, parseTitle } from './parser';
 import { buildMasters, buildMastersInChunks, type GroupingTimings } from './pipeline';
 import { batchedSha1, sha1Hex } from './sha1';
@@ -84,30 +84,16 @@ describe('helpers', () => {
     expect(sha1Hex('abc')).toBe('a9993e364706816aba3e25717850c26c9cd0d89d');
     expect(sha1Hex('a'.repeat(1000))).toBe('291e9a6c66994949b57ba5e650361e98fc36b1ba');
   });
-
-  it('ratio matches rapidfuzz fuzz.ratio', () => {
-    expect(ratio('shawshankredemption', 'shawshankredemtion')).toBeCloseTo(97.297, 3);
-    expect(ratio('abc', '')).toBe(0);
-    expect(ratio('', '')).toBe(100);
-  });
 });
 
 describe('grouping large libraries (D-038)', () => {
-  it('the async version gives the same groups and pauses along the way', async () => {
-    const names = Array.from(
-      // Varied first letters (like real names) keep the fuzzy blocks small; enough titles to pause several times.
-      { length: 12_000 },
-      (_, i) =>
-        `${['EN - ', 'DE - ', ''][i % 3]}${String.fromCharCode(97 + (i % 26))}${String.fromCharCode(97 + (Math.floor(i / 26) % 26))} Title ${Math.floor(i / 676)} (${2000 + (i % 20)})`,
-    );
-    names.push('Spiderman (2002)', 'Spider-Man (2002)', 'Spider Mann (2002)', 'The Matrix', 'The Matrix (1999)');
-    const titles = names.map(parseTitle);
-    const pauses: number[] = [];
-    const groups = await groupTitlesAsync(titles, async (done) => void pauses.push(done));
-    expect(groups).toEqual(groupTitles(titles));
-    expect(pauses.length).toBeGreaterThan(3);
-    expect(pauses.every((done, index) => done >= 0 && done <= 1 && (index === 0 || done >= pauses[index - 1]!))).toBe(true);
-    expect(groups.find((group) => group.includes(names.indexOf('Spiderman (2002)')))?.length).toBe(3);
+  it('groups by TMDB id and year, else by key and year (D-133)', () => {
+    const names = ['Money Heist (2017)', 'La Casa de Papel (2017) 4K', 'La Casa de Papel (2017)', 'Money Heist (2021)', 'Dark (2017)'];
+    const groups = groupTitles(names.map(parseTitle), ['71446', '71446', null, '71446', null]);
+    // The key takes its smallest TMDB id: "La Casa de Papel" without one still joins; another year stays apart.
+    expect(groups).toEqual([[0, 1, 2], [3], [4]]);
+    // A year-less key takes its only year first, then joins by TMDB id.
+    expect(groupTitles(['Dune', 'Dune (2021)', 'Duna (2021)'].map(parseTitle), [null, '438631', '438631'])).toEqual([[0, 1, 2]]);
   });
 
   it('buildMastersInChunks reports progress up to the total and matches buildMasters', async () => {
@@ -170,7 +156,7 @@ describe('grouping large libraries (D-038)', () => {
     const elapsed = Date.now() - started;
     const time = timings as unknown as GroupingTimings;
     expect(time.breaks).toBeGreaterThan(10);
-    const steps = [time.names, time.exact, time.keys, time.similar, time.tmdb, time.titles, time.sort];
+    const steps = [time.names, time.keys, time.titles, time.sort];
     expect(steps.every((ms) => ms >= 0) && time.waiting >= 0).toBe(true);
     expect(steps.reduce((sum, ms) => sum + ms, 0) + time.waiting).toBeLessThanOrEqual(elapsed);
     expect(time.names + time.titles).toBeGreaterThan(0);

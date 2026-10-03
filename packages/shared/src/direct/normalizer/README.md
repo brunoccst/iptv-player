@@ -6,8 +6,8 @@ Groups the provider's listings into titles with versions (parser, tags, grouping
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tags.ts`            | Tag tables and quality ranks.                                                                                                                                                                         |
 | `parser.ts`          | `parseTitle`, `normalizeKey`, `parseYear`, `compactKey`, `numberTokens`.                                                                                                                              |
-| `matching.ts`        | `groupTitles` (typo-tolerant: years and numbers must match, short keys only exactly), `ratio` (same result as rapidfuzz `fuzz.ratio`).                                                                |
-| `pipeline.ts`        | `buildMasters`, `buildMastersInChunks` (yields every 500 titles, reports progress), `mergeByTmdb` (joins translated titles with the same TMDB id, D-065), `qualityScore`, `variantLabel`, `masterId`. |
+| `matching.ts` | `groupTitles`: same key and year, or same TMDB id and year (D-133); the database groups by the same rules. |
+| `pipeline.ts` | `buildMasters`, `buildMastersInChunks` (the library in memory; yields, reports progress), `savedItem` and `versionsOf` (the database's items and titles), `qualityScore`, `variantLabel`, `masterId`. |
 | `sha1.ts`            | `sha1Hex`, for stable master ids.                                                                                                                                                                     |
 | `normalizer.test.ts` | Runs the JSON cases in `cases/`.                                                                                                                                                                      |
 
