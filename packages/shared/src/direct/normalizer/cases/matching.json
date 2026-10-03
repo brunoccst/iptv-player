@@ -16,9 +16,9 @@
       "groups": 1
     },
     {
-      "name": "typos merge fuzzily",
+      "name": "typos stay apart: similar spellings no longer join (D-133)",
       "titles": ["The Shawshank Redemption (1994)", "The Shawshank Redemtion (1994) 720p"],
-      "groups": 1
+      "groups": 2
     },
     {
       "name": "sequels never merge",
@@ -71,9 +71,9 @@
       "groups": 4
     },
     {
-      "name": "leading zeros do not split a title",
+      "name": "leading zeros split a title: similar spellings no longer join (D-133)",
       "titles": ["Show Part 02 (2020)", "Show Part 2 (2020) 1080p"],
-      "groups": 1
+      "groups": 2
     }
   ]
 }
