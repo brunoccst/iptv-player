@@ -50,6 +50,7 @@ flowchart LR
 - [x] **Mark a season as watched** (issue #132, D-132): a "Watched" button next to the season choice marks every episode of that season watched or not watched.
 - [x] **"Select all" in Categories shown** (issue #120, D-127): one checkbox unchecks every category of a section, so a few can then be picked; pressed again, it shows them all.
 - [x] **Faster skipping on TV** (issue #121, D-128): presses of ←/→ (or ⏪/⏩) in a row move a preview on the progress bar by 10 s, 30 s, 1 min, 2 min, then 5 min, and the video jumps once they stop; works on remotes where holding does not.
+- [x] **Channels watched last** (issue #122, D-129): Home's live row lists the channels the profile watched last; on TV, ↓ in a live channel shows the last 10 in a strip (Select switches, ↓ again opens the player's buttons).
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.

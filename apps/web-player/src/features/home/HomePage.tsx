@@ -1,10 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { continueWatching, pageKey, watchlistCard, type LibrarySection, type MediaCategory, type ProgressDto, t } from '@iptv/shared';
+import {
+  continueWatching,
+  pageKey,
+  watchlistCard,
+  recentChannelTarget,
+  type LibrarySection,
+  type MediaCategory,
+  type ProgressDto,
+  t,
+} from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, type MenuPosition } from '../../components/CardMenu';
 import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
-import { continueMenuItems, useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
+import { continueMenuItems, useLiveHomeRow, useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
 import { usePagedLibrary } from '../../hooks/stores';
 import { progressTarget } from '../../ui/targets';
 import { Hero } from './Hero';
@@ -106,38 +115,20 @@ function MyListRow() {
   );
 }
 
+/** The channels the profile watched last; until there are any, the first live category (issue #122, D-129). */
 function LiveRow() {
-  const categories = useCatalog((s) => s.categories.live?.data ?? null);
-  const firstCategory = categories?.[0]?.id ?? null;
-  const channels = useCatalog((s) => (firstCategory ? (s.liveChannels[firstCategory]?.data ?? []) : []));
-
-  const load = () => {
-    void stores.catalog
-      .getState()
-      .loadCategories('live')
-      .then((loaded) => {
-        if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
-      });
-  };
-
+  const [visible, setVisible] = useState(false);
+  const row = useLiveHomeRow(visible);
   return (
-    <Row
-      title={categories?.[0] ? t('Live TV: {name}', { name: categories[0].name }) : t('Live TV')}
-      onVisible={load}
-      empty={t('No channels.')}
-    >
-      {channels.slice(0, ROW_SIZE).map((channel) => (
+    <Row title={row.title} onVisible={() => setVisible(true)} empty={t('No channels.')}>
+      {row.channels.slice(0, ROW_SIZE).map((channel) => (
         <PosterCard
           key={channel.id}
           landscape
           title={channel.name}
           posterUrl={channel.logoUrl}
           badge={t('LIVE')}
-          onSelect={() =>
-            uiStore
-              .getState()
-              .play({ kind: 'live', streamId: channel.id, container: 'm3u8', title: channel.name, posterUrl: channel.logoUrl })
-          }
+          onSelect={() => uiStore.getState().play(recentChannelTarget(channel))}
         />
       ))}
     </Row>
