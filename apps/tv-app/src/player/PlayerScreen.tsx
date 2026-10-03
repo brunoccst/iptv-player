@@ -155,7 +155,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [buttons, setButtons] = useState<false | 'play' | 'back'>(false);
   const tvButtons = Platform.isTV && !!buttons;
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
-  const [scrub, setScrub] = useState<{ preview: number; speed: number } | null>(null);
+  const [scrub, setScrub] = useState<{ preview: number; speed: number; step?: number; direction: SeekDirection } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
   const timeRef = useRef(0);
   const durationRef = useRef(0);
@@ -304,7 +304,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       seekTo(targetTime);
       setFlash({ direction, key: Date.now() });
     },
-    onScrub: (preview, speed) => setScrub({ preview, speed }),
+    onScrub: (preview, speed, direction, step) => setScrub({ preview, speed, step, direction }),
     onScrubEnd: (finalTime) => {
       setScrub(null);
       seekTo(finalTime);
@@ -466,8 +466,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     else if (key === 'up' && isLive) setGuide(true);
     else if (key === 'up' && Platform.isTV) setButtons('back');
     else if (key === 'up' || key === 'down') setDrawer('audio');
-    else if (key === 'rewind' && !isLive) seekTo(timeRef.current - SKIP_SECONDS);
-    else if (key === 'fastForward' && !isLive) seekTo(timeRef.current + SKIP_SECONDS);
+    // ⏪/⏩ like ←/→: presses in a row go faster (issue #121).
+    else if ((key === 'rewind' || key === 'fastForward') && !isLive) {
+      const direction: SeekDirection = key === 'rewind' ? 'back' : 'forward';
+      controller.current!.keyDown(direction);
+      controller.current!.keyUp(direction);
+    }
   });
 
   // Back: close the drawer or the skip options first (registered after the shell's handler, so it runs first).
@@ -606,7 +610,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {flash ? <TapFlash direction={flash.direction} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
-      {scrub ? <ScrubBar preview={scrub.preview} speed={scrub.speed} duration={duration} /> : null}
+      {scrub ? (
+        <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />
+      ) : null}
 
       {controls && !guide && !recent && !scrub && !error ? (
         // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.

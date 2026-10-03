@@ -9,6 +9,14 @@ export const SCRUB_BASE_SPEED = 10;
 export const SCRUB_DOUBLING_MS = 1500;
 export const SCRUB_MAX_SPEED = 640;
 
+/** Presses closer together than this continue a series of presses (issue #121); the video jumps this long after the last. */
+export const TAP_CHAIN_MS = 1000;
+/** Seconds each press of a series moves: two presses of each step, then 5 min per press. */
+const TAP_STEPS = [10, 10, 30, 30, 60, 60, 120, 120];
+const LAST_TAP_STEP = 300;
+/** How far the `count`-th press of a series in one direction moves (1-based). */
+export const tapStep = (count: number) => TAP_STEPS[count - 1] ?? LAST_TAP_STEP;
+
 export type SeekDirection = 'back' | 'forward';
 
 export interface RemoteSeekCallbacks {
@@ -16,8 +24,11 @@ export interface RemoteSeekCallbacks {
   getDuration(): number;
   /** Short press: seek immediately. */
   onTap(direction: SeekDirection, target: number): void;
-  /** Called every tick while scrubbing; UI shows the preview position, playback does not move yet. */
-  onScrub(previewTime: number, speed: number, direction: SeekDirection): void;
+  /**
+   * Called every tick while scrubbing, and on each press of a series after the first; the UI shows the preview
+   * position, playback does not move yet. `step`: the seconds a press of a series moved (none while holding).
+   */
+  onScrub(previewTime: number, speed: number, direction: SeekDirection, step?: number): void;
   /** Key released after scrubbing: seek once to the final preview position. */
   onScrubEnd(finalTime: number): void;
 }
@@ -46,6 +57,11 @@ export function scrubSpeed(heldMs: number): number {
 /**
  * D-pad Left/Right state machine for the TV player: tap = ±10 s, hold = accelerating scrub.
  * Android auto-repeats key-down while held; repeats are ignored. See DECISIONS.md#d-028.
+ *
+ * Presses in a row also go faster (issue #121, D-128): some remotes report arrows only on release, so holding never
+ * scrubs there. The first press seeks 10 s at once; each further press within `TAP_CHAIN_MS` moves the preview by a
+ * growing step (10 s, 30 s, 1 min, 2 min, then 5 min) and the video jumps there once the presses stop. A press the
+ * other way continues from the preview with the smallest step, to fine-tune.
  */
 export class RemoteSeekController {
   private direction: SeekDirection | null = null;
@@ -53,6 +69,9 @@ export class RemoteSeekController {
   private scrubTimer: unknown = null;
   private scrubStartedAt = 0;
   private preview = 0;
+  /** The current series of presses; `pending`: the preview has not been seeked to yet. */
+  private chain: { direction: SeekDirection; count: number; preview: number; pending: boolean } | null = null;
+  private chainTimer: unknown = null;
 
   constructor(
     private readonly callbacks: RemoteSeekCallbacks,
@@ -72,13 +91,12 @@ export class RemoteSeekController {
 
   keyUp(direction: SeekDirection) {
     if (this.direction !== direction) return;
-    const sign = direction === 'forward' ? 1 : -1;
     if (this.isScrubbing) {
       this.stopTimers();
       this.callbacks.onScrubEnd(this.preview);
     } else {
       this.stopTimers();
-      this.callbacks.onTap(direction, clampTime(this.callbacks.getTime() + sign * SKIP_SECONDS, this.callbacks.getDuration()));
+      this.tap(direction);
     }
     this.direction = null;
   }
@@ -86,12 +104,47 @@ export class RemoteSeekController {
   /** Abandons any press without seeking (e.g. player closed). */
   cancel() {
     this.stopTimers();
+    this.endChain();
     this.direction = null;
+  }
+
+  private tap(direction: SeekDirection) {
+    const sign = direction === 'forward' ? 1 : -1;
+    const duration = this.callbacks.getDuration();
+    const chain = this.chain;
+    if (this.chainTimer !== null) this.clock.clearTimeout(this.chainTimer);
+    if (!chain) {
+      const target = clampTime(this.callbacks.getTime() + sign * SKIP_SECONDS, duration);
+      this.callbacks.onTap(direction, target);
+      this.chain = { direction, count: 1, preview: target, pending: false };
+    } else {
+      const count = chain.direction === direction ? chain.count + 1 : 1;
+      const step = tapStep(count);
+      const from = chain.pending ? chain.preview : this.callbacks.getTime();
+      const preview = clampTime(from + sign * step, duration);
+      this.chain = { direction, count, preview, pending: true };
+      this.callbacks.onScrub(preview, step, direction, step);
+    }
+    this.chainTimer = this.clock.setTimeout(() => {
+      this.chainTimer = null;
+      const ended = this.chain;
+      this.chain = null;
+      if (ended?.pending) this.callbacks.onScrubEnd(ended.preview);
+    }, TAP_CHAIN_MS);
+  }
+
+  private endChain() {
+    if (this.chainTimer !== null) this.clock.clearTimeout(this.chainTimer);
+    this.chainTimer = null;
+    this.chain = null;
   }
 
   private beginScrub() {
     this.holdTimer = null;
-    this.preview = this.callbacks.getTime();
+    // Holding after a series of presses continues from its preview.
+    const chain = this.chain;
+    this.endChain();
+    this.preview = chain?.pending ? chain.preview : this.callbacks.getTime();
     this.scrubStartedAt = this.clock.now();
     this.scrubTimer = this.clock.setInterval(() => this.tick(), SCRUB_TICK_MS);
     this.tick();
