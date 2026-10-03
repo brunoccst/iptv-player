@@ -1,5 +1,5 @@
 import type { EpgListing } from '../api/types';
-import { intlLocale } from '../i18n/i18n';
+import { intlLocale, t } from '../i18n/i18n';
 
 /** Guide column width; guide windows start on a half hour. */
 export const EPG_SLOT_MINUTES = 30;
@@ -87,4 +87,16 @@ export function formatGuideTime(ms: number, locale?: string): string {
 /** "14:30 – 15:00". */
 export function formatProgrammeTime(programme: EpgListing, locale?: string): string {
   return `${formatGuideTime(Date.parse(programme.start), locale)} – ${formatGuideTime(Date.parse(programme.end), locale)}`;
+}
+
+/**
+ * When a programme found by search is on (issue #119): "Now · 14:30 – 15:00", "15:00 – 16:00", or "Tomorrow ·
+ * 08:00 – 09:00" for the next day.
+ */
+export function programmeWhen(programme: EpgListing, now: number, locale?: string): string {
+  const start = Date.parse(programme.start);
+  const time = formatProgrammeTime(programme, locale);
+  if (start <= now) return `${t('Now')} · ${time}`;
+  const day = (ms: number) => new Date(ms).toDateString();
+  return day(start) === day(now) ? time : `${t('Tomorrow')} · ${time}`;
 }

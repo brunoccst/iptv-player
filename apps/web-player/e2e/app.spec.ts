@@ -443,6 +443,19 @@ test('search: All, Movies, Series or Live TV shows only those results (D-108)', 
   await expect(grid('Big Test Movie')).toHaveCount(0);
 });
 
+test('search finds programmes of the TV guide and plays the channel that shows them (issue #119)', async ({ page }) => {
+  await page.getByPlaceholder('Titles, series').fill('Storm');
+  await expect(page.getByRole('heading', { name: 'On TV' })).toBeVisible();
+  const programme = page
+    .getByTestId('programme-results')
+    .getByRole('button', { name: /Storm Watch/ })
+    .first();
+  await expect(programme).toBeVisible();
+  await expect(page.getByTestId('programme-results')).toContainText('Test Weather');
+  await programme.click();
+  await expect(page.getByRole('heading', { name: 'Test Weather' })).toBeVisible();
+});
+
 test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subtitle, on and listed (D-111)', async ({ page }) => {
   const calls: string[] = [];
   const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' };

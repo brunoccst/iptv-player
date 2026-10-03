@@ -2126,6 +2126,21 @@ Decision (shared `recentChannels.ts` and hooks `useRecentChannels`, `useNoteRece
 - Movies and series keep ↓ for the buttons. Phones and desktop have no strip (no ↓ in their players); they get the Home row.
 - Tests: the list rules (newest first, once, at most 20); the player notes the channel, ↓ shows the strip with the previous channel focused, ↓ again reaches the buttons, Select switches channel, ↑/Back/time close it; Home lists recent channels without downloading the first category.
 
+## D-130
+
+**Search finds programmes of the TV guide** — 2026-10-03 (issue #119: "when I search for an event that is on live TV, I want the channel broadcasting (or about to broadcast) that event to appear")
+
+Context: the apps only had each channel's next few programmes (`get_short_epg`, one request per channel). With 20,000+ channels, a search over programme titles needs the provider's full guide (`xmltv.php`, XMLTV), which can be hundreds of MB for a week.
+
+Decision (shared `xmltv.ts`, `createSqlGuide`, `searchProgrammes`; native `XmltvFilter` on TV and phone):
+
+- The full guide is read as a stream and only the programmes of the next 24 hours are kept. On TV and phone, native code cuts the download into whole programmes and drops the others before they reach JavaScript; the desktop app reads the stream in JavaScript. Nothing holds the whole guide.
+- The programmes are saved in the library database (a new table beside the old one, switched in one step, kind "guide"), after the channel list: daily and with "Update library", and again when the saved guide is older than 12 hours. Without a database (a plain browser) the guide stays in memory.
+- Search matches programme titles (any case) that have not ended, and lists the channels that show them through the channels' guide id (matched in any case; indexed on `lower(epg)`, which SQLite 3.9 supports). Programmes on now come first, then by start time; at most 30.
+- Both apps show them in search under "On TV" (All and Live TV filters): the programme, the channel and when ("Now · 20:00 – 21:00", "Tomorrow · …"), with the LIVE badge while on. Select plays the channel. Kids profiles only see programmes on channels of their categories.
+- A provider without a full guide (404) shows no programmes; the rest of search is unchanged.
+- Tests: the XMLTV reader (times and offsets, entities and CDATA, pieces cut anywhere, the window); the client in memory and in the database (ended, far-off and unknown-channel programmes left out, guide ids in another case, offline after a restart); the TV search screen; a web end-to-end test against the fake panel's XMLTV. The native filter was checked on the JVM.
+
 ## D-131
 
 **A series' Play button goes on to the next episode not watched yet** — 2026-10-03 (issue #133: "If there's a newer episode … the Play button should start the newer, not-watched episode")

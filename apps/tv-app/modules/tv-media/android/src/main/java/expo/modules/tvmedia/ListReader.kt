@@ -18,10 +18,22 @@ internal object ListReader {
   private val lists = ConcurrentHashMap<Int, Reading>()
   private val ids = AtomicInteger(1)
 
-  /** Resolves with `{ id, status }` once the reply's status is known; rejects when the provider cannot be reached. */
-  fun open(url: String, headers: Map<String, String>, timeoutMs: Int, batchChars: Int, promise: Promise) {
+  /**
+   * Resolves with `{ id, status }` once the reply's status is known; rejects when the provider cannot be reached.
+   * [guideFromMs] > 0: the reply is an XMLTV guide; batches hold the programmes that overlap [guideFromMs, guideToMs)
+   * (issue #119, D-130).
+   */
+  fun open(
+    url: String,
+    headers: Map<String, String>,
+    timeoutMs: Int,
+    batchChars: Int,
+    guideFromMs: Long,
+    guideToMs: Long,
+    promise: Promise,
+  ) {
     val id = ids.getAndIncrement()
-    val reading = Reading(id, url, headers, timeoutMs, batchChars, promise)
+    val reading = Reading(id, url, headers, timeoutMs, batchChars, guideFromMs, guideToMs, promise)
     lists[id] = reading
     reading.start()
   }
@@ -49,6 +61,8 @@ internal object ListReader {
     private val headers: Map<String, String>,
     private val timeoutMs: Int,
     private val batchChars: Int,
+    private val guideFromMs: Long,
+    private val guideToMs: Long,
     private val opened: Promise,
   ) : Thread("list-reader-$id") {
     private val lock = Object()
@@ -68,6 +82,10 @@ internal object ListReader {
         opened.resolve(mapOf("id" to id, "status" to status))
         answered = true
         if (status !in 200..299) return
+        if (guideFromMs > 0) {
+          readGuide(response)
+          return
+        }
         val splitter = JsonArraySplitter(batchChars) { deliver(mapOf("kind" to "batch", "text" to it)) }
         InputStreamReader(response.inputStream, Charsets.UTF_8).use { reader ->
           val buffer = CharArray(64 * 1024)
@@ -94,6 +112,21 @@ internal object ListReader {
       } finally {
         connection?.disconnect()
       }
+    }
+
+    /** XMLTV: whole programmes in the window, in batches, then `{ kind: "end", chars }`. */
+    private fun readGuide(response: HttpURLConnection) {
+      val filter = XmltvFilter(batchChars, guideFromMs, guideToMs) { deliver(mapOf("kind" to "batch", "text" to it)) }
+      InputStreamReader(response.inputStream, Charsets.UTF_8).use { reader ->
+        val buffer = CharArray(64 * 1024)
+        while (!closed) {
+          val count = reader.read(buffer)
+          if (count < 0) break
+          filter.feed(buffer, count)
+        }
+      }
+      filter.finish()
+      deliver(mapOf("kind" to "end", "chars" to filter.chars.toDouble(), "seen" to filter.seen.toDouble()))
     }
 
     /** Follows redirects, also between http and https (HttpURLConnection alone does not). */

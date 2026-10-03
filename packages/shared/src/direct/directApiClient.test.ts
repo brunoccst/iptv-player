@@ -477,6 +477,39 @@ describe.each([
     },
   );
 
+  it('search finds programmes of the full guide on the channels that show them, on now first (issue #119)', async () => {
+    const { api, panel, storages } = setup();
+    await api.auth.login(login);
+    await libraryReady(api);
+    // The guide is read in the background: the first search may come before it.
+    const search = async (text: string) => {
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const found = await api.catalog.searchProgrammes!(text);
+        if (found.length) return found;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      return [];
+    };
+    const found = await search('NEWS');
+    // Ended, two days away and on an unknown channel: left out. Guide ids match the channel list in any case.
+    expect(found.map((m) => [m.channel.name, m.programme.title])).toEqual([
+      ['News', 'Evening News'],
+      ['News', 'Late News'],
+    ]);
+    expect(found[0]!.channel).toMatchObject({ id: '1', epgChannelId: 'news' });
+    expect(Date.parse(found[0]!.programme.start)).toBe((panel.nowSeconds - 30 * 60) * 1000);
+    expect(await api.catalog.searchProgrammes!('late', { limit: 1 })).toHaveLength(1);
+    expect(await api.catalog.searchProgrammes!('   ')).toEqual([]);
+    expect(panel.calls.filter((url) => url.includes('xmltv.php'))).toHaveLength(1);
+
+    if (useDatabase) {
+      // Saved: after a restart, offline, search still finds them.
+      panel.offline();
+      const restarted = setup(panel, storages);
+      expect((await restarted.api.catalog.searchProgrammes!('evening')).map((m) => m.programme.title)).toEqual(['Evening News']);
+    }
+  });
+
   it('returns direct provider URLs for playback', async () => {
     const { api } = setup();
     await api.auth.login(login);

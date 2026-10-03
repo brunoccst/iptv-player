@@ -134,6 +134,7 @@ export function createFakeApi(
     catalog: {
       categories: (section) => get(`/api/catalog/${section}/categories`),
       liveChannels: (categoryId) => get('/api/catalog/live/channels', { categoryId }),
+      searchProgrammes: (search, options) => get('/api/catalog/live/programmes', { search, limit: options?.limit?.toString() }),
       movies: (categoryId) => get('/api/catalog/movies', { categoryId }),
       movie: (movieId) => get(`/api/catalog/movies/${id(movieId)}`),
       series: (categoryId) => get('/api/catalog/series', { categoryId }),

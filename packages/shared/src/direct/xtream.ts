@@ -17,6 +17,7 @@ import { decodeMaybeBase64 } from './base64Text';
 import { NotAJsonArray, readJsonArray } from './jsonStream';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 import { t } from '../i18n/i18n';
+import { createXmltvReader, type GuideProgramme } from './xmltv';
 
 /** The provider's Xtream Codes API (D-011, D-038), turned into the app's types (`api/types.ts`). */
 export interface XtreamCredentials {
@@ -40,8 +41,17 @@ export interface XtreamAccountInfo {
  * finding the entries happen on another thread; JavaScript only parses batches of whole entries.
  */
 export interface ListReader {
-  /** Sends the request; resolves once the status is known. Rejects with `code` "ERR_LIST_TIMEOUT" or another code. */
-  open(url: string, headers: Record<string, string>, timeoutMs: number, batchChars: number): Promise<{ id: number; status: number }>;
+  /**
+   * Sends the request; resolves once the status is known. Rejects with `code` "ERR_LIST_TIMEOUT" or another code.
+   * `guide`: the reply is an XMLTV guide; batches hold whole programmes that overlap [from, to) (issue #119), then `end`.
+   */
+  open(
+    url: string,
+    headers: Record<string, string>,
+    timeoutMs: number,
+    batchChars: number,
+    guide?: { from: number; to: number },
+  ): Promise<{ id: number; status: number }>;
   /**
    * The next piece: `batch` (entries joined by commas, no brackets), then one of `end`, `whole` (not an array: the
    * whole text), `incomplete` (stopped before its "]") or `error`.
@@ -483,6 +493,101 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
         if (!start || !end || end <= start || !title?.trim()) return [];
         return [{ start, end, title, description: decodeMaybeBase64(str(item, 'description')) }];
       });
+    },
+
+    /**
+     * The provider's full TV guide (`xmltv.php`, issue #119): the programmes that overlap `window`, handed over in
+     * batches as they arrive (the whole guide can be hundreds of MB). TV/phone: cut natively, only the window reaches
+     * JavaScript. Resolves with how many were kept; 0 when the provider has no guide.
+     */
+    async guide(
+      window: { from: number; to: number },
+      onBatch: (programmes: GuideProgramme[]) => Promise<void>,
+      signal?: AbortSignal,
+    ): Promise<number> {
+      const operation = 'xmltv';
+      const started = Date.now();
+      let kept = 0;
+      let pending: GuideProgramme[] = [];
+      const reader = createXmltvReader(window, (programme) => pending.push(programme));
+      const flush = async () => {
+        if (!pending.length) return;
+        const batch = pending;
+        pending = [];
+        kept += batch.length;
+        await onBatch(batch);
+      };
+      const url = buildUrl('xmltv.php', {});
+      const guideHeaders = { ...headers(), Accept: 'application/xml, text/xml, */*' };
+      if (options.listReader) {
+        const native = options.listReader;
+        let id: number;
+        let status: number;
+        try {
+          ({ id, status } = await native.open(url, guideHeaders, timeoutMs, LIST_BATCH_CHARS, window));
+        } catch (error) {
+          throw connectFailure(operation, (error as { code?: string } | null)?.code === 'ERR_LIST_TIMEOUT', error);
+        }
+        const onAbort = () => native.close(id);
+        signal?.addEventListener('abort', onAbort);
+        try {
+          if (status === 404) return 0;
+          checkStatus(status, operation, started);
+          for (;;) {
+            const piece = await native.next(id);
+            if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
+            if (piece.kind === 'batch') {
+              reader.feed(piece.text);
+              await flush();
+              continue;
+            }
+            if (piece.kind === 'error')
+              throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+            appLog.info(
+              'provider',
+              `${operation}: HTTP ${status}, ${'chars' in piece ? piece.chars : 0} chars, ${kept} programmes kept in ${Date.now() - started} ms`,
+            );
+            return kept;
+          }
+        } finally {
+          signal?.removeEventListener('abort', onAbort);
+          native.close(id);
+        }
+      }
+      const fetchImpl = options.fetch ?? globalThis.fetch;
+      let response: Response;
+      try {
+        response = await fetchImpl(url, { headers: guideHeaders, signal });
+      } catch (error) {
+        if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
+        throw connectFailure(operation, false, error);
+      }
+      if (response.status === 404) return 0;
+      checkStatus(response.status, operation, started);
+      const body = response.body?.getReader();
+      let chars = 0;
+      if (body) {
+        const decoder = new TextDecoder();
+        for (;;) {
+          const { done, value } = await body.read();
+          if (done) break;
+          const text = decoder.decode(value, { stream: true });
+          chars += text.length;
+          reader.feed(text);
+          if (pending.length >= 2000) await flush();
+        }
+        reader.feed(decoder.decode());
+      } else {
+        const text = await response.text();
+        chars = text.length;
+        reader.feed(text);
+      }
+      await flush();
+      appLog.info(
+        'provider',
+        `${operation}: HTTP ${response.status}, ${chars} chars, ${kept} programmes kept in ${Date.now() - started} ms`,
+      );
+      return kept;
     },
 
     /** Direct provider URL on the portal address; `alternateUrls` holds the same stream on the announced stream server.
