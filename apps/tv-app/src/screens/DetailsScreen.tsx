@@ -35,6 +35,8 @@ import {
   type VariantInfo,
   t,
   tn,
+  isSeasonWatched,
+  setSeasonWatched,
 } from '@iptv/shared';
 import { api, navStore, stores } from '../appContext';
 import { DownloadButton, useDownload } from '../components/DownloadButton';
@@ -259,6 +261,13 @@ function Episodes({
         ) : (
           <Text style={styles.muted}>{season.name}</Text>
         )}
+        {/* Only this season (issue #132). */}
+        <WatchedButton
+          kind="season"
+          watched={isSeasonWatched(progress, season)}
+          onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+          testID="season-watched-toggle"
+        />
       </Centered>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);

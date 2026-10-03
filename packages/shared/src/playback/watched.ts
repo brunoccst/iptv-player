@@ -307,6 +307,25 @@ export async function noteSeriesWatched(prefs: ProfilePrefsStore, profileId: str
   });
 }
 
+/** Every episode of the season is watched (and there is at least one). */
+export const isSeasonWatched = (progress: Pick<ProgressState, 'items'>, season: { episodes: MergedEpisode[] }) =>
+  season.episodes.length > 0 && season.episodes.every((episode) => isEpisodeWatched(progress, episode));
+
+/**
+ * Marks every episode of one season watched or not watched (issue #132, D-132): only the seasons seen so far, while a
+ * later one is still to watch. The series' cover tag follows once its details show every episode watched (D-082).
+ */
+export async function setSeasonWatched(
+  progress: ProgressStore,
+  season: { episodes: MergedEpisode[] },
+  context: EpisodeContext,
+  watched: boolean,
+): Promise<void> {
+  const pending = season.episodes.filter((episode) => isEpisodeWatched(progress.getState(), episode) !== watched);
+  for (let start = 0; start < pending.length; start += 5)
+    await Promise.all(pending.slice(start, start + 5).map((episode) => setEpisodeWatched(progress, episode, context, watched)));
+}
+
 /** Marks every episode of a series title (all versions merged, D-066) watched or not watched, and updates the note. */
 export async function setSeriesWatched(
   deps: { api: Pick<ApiClient, 'catalog'>; library: LibraryStore; progress: ProgressStore; profilePrefs: ProfilePrefsStore },

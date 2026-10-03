@@ -2154,6 +2154,18 @@ Decision (shared `seriesStart` and `seriesStartLabel`, used by `useSeriesDetails
 - No progress: "Play", the first episode. The episode list opens on the season Play starts.
 - Tests: resume, next (including a newly released episode), skipping watched ones, first episode and no episodes.
 
+## D-132
+
+**Mark a season as watched** — 2026-10-03 (issue #132: "users may only have watched a few seasons … add a button to mark only a particular season as watched")
+
+Context: episodes could be marked one by one, or the whole series at once (D-082). Someone who had seen seasons 1 and 2 of three had to mark each episode.
+
+Decision (shared `isSeasonWatched`, `setSeasonWatched` and the "season" kind of `useWatchedToggle`; TV/phone and desktop):
+
+- The episode list's header has the round "Watched" button next to the season choice: an open eye when every episode of the shown season is watched, a closed one otherwise. Pressed, it marks every episode of that season watched, or not watched, in all versions (D-066). Other seasons stay as they were.
+- The series' cover tag and the tag next to its title follow as before: on only once every episode of every season is watched (D-082).
+- Tests: marking season 1 of two puts its episodes as watched and leaves the series untagged; pressing again removes them.
+
 ## D-133
 
 **Titles grouped by the database: keys and TMDB ids, no similar spellings** — 2026-10-03 (issue #134: "load the results of the server into the database, and do the grouping and indexing at the database - no more grouping via code"; owner chose "Keys + TMDB in SQL")

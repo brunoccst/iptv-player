@@ -185,4 +185,40 @@ describe('watched episodes and series (D-082)', () => {
     expect(screen.queryByTestId('details-watched')).toBeNull();
     expect(stores.profilePrefs.getState().prefs.p1?.watchedSeries).toEqual([]);
   });
+
+  it('marks one season watched or not watched; the other seasons stay as they were (issue #132)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/show', {
+      body: { id: 'show', title: 'Show', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('en', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/en', {
+      body: series('en', [
+        { number: 1, episodes: [episode('a1', 1, 1), episode('a2', 1, 2)] },
+        { number: 2, episodes: [episode('b1', 2, 1)] },
+      ]),
+    });
+    for (const id of ['a1', 'a2', 'b1']) {
+      backend.on('PUT', `/api/profiles/p1/progress/episode/${id}`, ({ body }) => ({
+        body: { kind: 'episode', itemId: id, updatedAt: '2026-10-03T00:00:00Z', ...(body as object) },
+      }));
+      backend.on('DELETE', `/api/profiles/p1/progress/episode/${id}`, { status: 204 });
+    }
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    await render(<DetailsScreen section="series" masterId="show" />);
+    await flush();
+    const toggle = () => screen.getByTestId('season-watched-toggle');
+
+    expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as watched');
+    await fireEvent.press(toggle());
+    await flush();
+    expect(backend.calls.filter((c) => c.method === 'PUT').map((c) => c.url.pathname.split('/').pop())).toEqual(['a1', 'a2']);
+    expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as not watched');
+    // Season 2 still to watch: the series is not watched.
+    expect(screen.queryByTestId('details-watched')).toBeNull();
+
+    await fireEvent.press(toggle());
+    await flush();
+    expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname.split('/').pop())).toEqual(['a1', 'a2']);
+    expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as watched');
+  });
 });
