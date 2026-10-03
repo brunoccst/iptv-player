@@ -367,10 +367,25 @@ export function parseTitle(raw: string): ParsedTitle {
 function stripPrefixes(text: string, found: Tags): string {
   for (let match = PREFIX.exec(text); match; match = PREFIX.exec(text)) {
     const body = match[1]!;
-    if (body !== body.toUpperCase() || !found.absorbCompound(body, true, true)) break;
+    if (body !== body.toUpperCase()) break;
+    if (!found.absorbCompound(body, true, true) && !isUnknownLanguagePrefix(match[0], body)) break;
     text = text.slice(match[0].length);
   }
   return text;
+}
+
+const UNKNOWN_LANGUAGE = /^[A-Z]{2,3}$/;
+
+/**
+ * A language not in the tables yet ("XY - Title", "|XY| Title", D-134): two or three capitals before " - " or between
+ * pipes. Dropped with no language, so the title joins its other versions. Not before ":" or "=" ("CSI: Miami",
+ * "E=MC2"), and not the acronyms in KEPT_PREFIX.
+ */
+function isUnknownLanguagePrefix(group: string, body: string): boolean {
+  if (!UNKNOWN_LANGUAGE.test(body) || tags.KEPT_PREFIX.has(body.toLowerCase())) return false;
+  const start = group.trimStart();
+  const end = group.trimEnd();
+  return end.endsWith('-') || end.endsWith('–') || (start.startsWith('|') && end.endsWith('|'));
 }
 
 function stripBrackets(text: string, found: Tags): { text: string; year: number | null } {
