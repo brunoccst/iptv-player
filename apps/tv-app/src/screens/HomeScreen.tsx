@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { continueWatching, watchlistCard, liveTarget, pageKey, progressTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
+import {
+  continueWatching,
+  watchlistCard,
+  pageKey,
+  recentChannelTarget,
+  progressTarget,
+  type MasterCard,
+  type ProgressDto,
+  t,
+} from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
@@ -8,7 +17,7 @@ import { Gradient } from '../components/Gradient';
 import { RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
-import { continueMenuItems, useCatalog, useHeroTitle, useLibrary, useProgress, useWatchlist } from '../hooks';
+import { continueMenuItems, useLiveHomeRow, useCatalog, useHeroTitle, useLibrary, useProgress, useWatchlist } from '../hooks';
 import { colors, useNavHeight, useSizes } from '../theme';
 
 import { LibraryBanner } from '../components/LibraryBanner';
@@ -210,29 +219,21 @@ function MyListRow() {
   );
 }
 
+/** The channels the profile watched last; until there are any, the first live category (issue #122, D-129). */
 function LiveRow() {
-  const categories = useCatalog((s) => s.categories.live?.data ?? []);
-  const first = categories[0]?.id ?? null;
-  const channels = useCatalog((s) => (first ? (s.liveChannels[first]?.data ?? []) : []));
-
-  useEffect(() => {
-    void stores.catalog
-      .getState()
-      .loadCategories('live')
-      .then((loaded) => {
-        if (loaded?.[0]) void stores.catalog.getState().loadLiveChannels(loaded[0].id);
-      });
-  }, []);
-
+  const row = useLiveHomeRow();
+  const { categoryId } = row;
   return (
     <Row
-      title={categories[0] ? t('Live TV: {name}', { name: categories[0].name }) : t('Live TV')}
-      items={channels.slice(0, LIVE_ROW_SIZE)}
+      title={row.title}
+      items={row.channels.slice(0, LIVE_ROW_SIZE)}
       keyOf={(c) => c.id}
       empty={t('No channels.')}
       testID="row-live"
       more={
-        channels.length > LIVE_ROW_SIZE ? { landscape: true, onPress: () => navStore.getState().openCategory('live', first) } : undefined
+        !row.recent && categoryId && row.channels.length > LIVE_ROW_SIZE
+          ? { landscape: true, onPress: () => navStore.getState().openCategory('live', categoryId) }
+          : undefined
       }
       render={(c) => (
         <PosterCard
@@ -240,7 +241,7 @@ function LiveRow() {
           title={c.name}
           posterUrl={c.logoUrl}
           badge={t('LIVE')}
-          onPress={() => navStore.getState().push({ name: 'player', target: liveTarget(c) })}
+          onPress={() => navStore.getState().push({ name: 'player', target: recentChannelTarget(c) })}
         />
       )}
     />

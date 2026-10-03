@@ -3,6 +3,7 @@ import type { CatalogSection } from '../api/types';
 import type { KeyValueStorage } from './storage';
 import { t } from '../i18n/i18n';
 import type { PlaybackChoices } from '../playback/playbackChoices';
+import type { RecentChannel } from '../playback/recentChannels';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
@@ -28,6 +29,8 @@ export interface ProfilePrefs {
   appLanguage?: string | null;
   /** The subtitles, audio track and version last picked: what every movie and series starts with (D-087). */
   playback?: PlaybackChoices | null;
+  /** Live channels watched, newest first (issue #122, D-129): Home's first live row and the live player's history. */
+  recentChannels?: RecentChannel[] | null;
 }
 
 export interface ProfilePrefsState {
