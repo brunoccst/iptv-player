@@ -40,6 +40,40 @@ describe('Search and Log pages (TV)', () => {
     expect(screen.getByTestId('row-series-search')).toHaveTextContent(/No titles found/);
   });
 
+  it('finds programmes of the TV guide, on now first; Select plays their channel (issue #119)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies', { body: { total: 0, items: [] } });
+    backend.on('GET', '/api/library/series', { body: { total: 0, items: [] } });
+    backend.on('GET', '/api/catalog/live/channels', { body: [] });
+    const now = Date.now();
+    const at = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
+    const sport = { id: '7', name: 'Sport 1', categoryId: '2', number: 7, logoUrl: null, epgChannelId: 'sport', hasCatchup: false };
+    backend.on('GET', '/api/catalog/live/programmes', ({ url }) => ({
+      body:
+        url.searchParams.get('search') === 'final'
+          ? [
+              { channel: sport, programme: { title: 'Cup Final', start: at(-20), end: at(40), description: null } },
+              { channel: sport, programme: { title: 'Cup Final Highlights', start: at(40), end: at(70), description: null } },
+            ]
+          : [],
+    }));
+    await render(<App />);
+    await flush();
+    await fireEvent.changeText(screen.getByTestId('nav-search'), 'final');
+    await flush(450);
+
+    const row = await screen.findByTestId('row-programme-search');
+    expect(within(row).getByText('On TV')).toBeTruthy();
+    expect(within(row).getAllByText('Cup Final').length).toBeGreaterThan(0);
+    expect(within(row).getByText(/^Sport 1 · Now · /)).toBeTruthy();
+    expect(within(row).getByText(/^Sport 1 · \d/)).toBeTruthy();
+    await fireEvent.press(within(row).getByTestId('card-Cup Final'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({
+      name: 'player',
+      target: { kind: 'live', streamId: '7', title: 'Sport 1', subtitle: 'Cup Final' },
+    });
+  });
+
   it('filters the results to movies, series or live channels; the title stays above them (D-108)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', { body: { total: 1, items: [card('m1', 'News of the World')] } });

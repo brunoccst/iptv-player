@@ -34,6 +34,12 @@ export interface EpgListing {
   title: string;
 }
 
+/** A programme of the full TV guide that matched a search, on a channel that shows it (issue #119). */
+export interface ProgrammeMatch {
+  channel: LiveChannel;
+  programme: EpgListing;
+}
+
 export type EpgStatus = 'ready' | 'refreshing' | 'unavailable';
 
 export interface Episode {

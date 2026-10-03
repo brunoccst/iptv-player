@@ -9,6 +9,7 @@ import type {
   MediaCategory,
   ProfileDto,
   ProgressDto,
+  ProgrammeMatch,
   VariantInfo,
 } from './api/types';
 import type { AppContext } from './appContext';
@@ -16,7 +17,7 @@ import { offlineAccess } from './playback/offlineAccess';
 import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t, tn } from './i18n/i18n';
-import { MAX_SEARCH_CHANNELS } from './search/useSearchQuery';
+import { MAX_SEARCH_CHANNELS, MAX_SEARCH_PROGRAMMES } from './search/useSearchQuery';
 import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, type RecentChannel } from './playback/recentChannels';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
@@ -492,6 +493,28 @@ export function createAppHooks({
           } else void removeFromContinueWatching(stores.progress, entry);
         },
       }));
+    },
+
+    /**
+     * Programmes of the full TV guide matching the search, on now first (issue #119): `[]` without a full guide, null
+     * while searching.
+     */
+    useProgrammeSearch(query: string): ProgrammeMatch[] | null {
+      const [found, setFound] = useState<ProgrammeMatch[] | null>(null);
+      useEffect(() => {
+        let cancelled = false;
+        const search = api.catalog.searchProgrammes;
+        if (!search) return setFound([]);
+        setFound(null);
+        search(query, { limit: MAX_SEARCH_PROGRAMMES }).then(
+          (list) => !cancelled && setFound(list),
+          () => !cancelled && setFound([]),
+        );
+        return () => {
+          cancelled = true;
+        };
+      }, [query]);
+      return found;
     },
 
     useRecentChannels,

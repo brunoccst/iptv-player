@@ -22,6 +22,7 @@ export const {
   useHiddenCategories,
   useLanguageSettings,
   useChannelSearch,
+  useProgrammeSearch,
   useWatchlistToggle,
   usePlayerTitle,
   useHeroTitle,

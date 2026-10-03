@@ -7,6 +7,7 @@ import type {
   LibrarySort,
   LibraryStatus,
   LiveChannel,
+  ProgrammeMatch,
   LoginRequest,
   LoginResponse,
   MasterDetails,
@@ -101,6 +102,11 @@ export interface ApiClient {
   catalog: {
     categories(section: CatalogSection, signal?: AbortSignal, options?: CatalogOptions): Promise<MediaCategory[]>;
     liveChannels(categoryId?: string | null, signal?: AbortSignal, options?: CatalogOptions): Promise<LiveChannel[]>;
+    /**
+     * Programmes of the full TV guide (now and the next day) whose title contains `search`, on the channels that show
+     * them, on now first (issue #119). Empty until the guide is saved; absent where there is no full guide.
+     */
+    searchProgrammes?(search: string, options?: { limit?: number }, signal?: AbortSignal): Promise<ProgrammeMatch[]>;
     movies(categoryId?: string | null, signal?: AbortSignal): Promise<MovieSummary[]>;
     movie(movieId: string, signal?: AbortSignal): Promise<MovieDetails>;
     series(categoryId?: string | null, signal?: AbortSignal): Promise<SeriesSummary[]>;
