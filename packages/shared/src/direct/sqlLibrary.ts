@@ -1,7 +1,7 @@
 import type { LibraryListQuery } from '../api/apiClient';
 import type { LibraryChanges, LibraryPage, LibrarySort, LiveChannel, MasterCard } from '../api/types';
 import { NORMALIZER_RULES, unpacker, type PackedMaster } from './libraryCodec';
-import { parseTitle } from './normalizer/parser';
+import { compactKey, parseTitle } from './normalizer/parser';
 import { masterIdText, qualityRank, qualityScore, savedItem, versionsOf, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 
@@ -50,7 +50,7 @@ const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
   count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, PRIMARY KEY (account, kind))`;
 
-const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL,
+const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL,
   nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
   score INTEGER NOT NULL, qrank INTEGER NOT NULL, langs TEXT NOT NULL, seen INTEGER NOT NULL) WITHOUT ROWID`;
 
@@ -78,10 +78,10 @@ const ORDERS: Record<string, { column: string; by: string }> = {
 const ITEM_COLUMNS = `sid TEXT NOT NULL, name TEXT NOT NULL, cat TEXT, poster TEXT, rating REAL, added INTEGER, released INTEGER,
   ext TEXT, tmdb TEXT, ryear INTEGER`;
 
-const TITLE_COLUMNS = `g INTEGER NOT NULL, id TEXT, lower TEXT, title TEXT NOT NULL, nkey TEXT, year INTEGER, poster TEXT,
+const TITLE_COLUMNS = `g INTEGER NOT NULL, id TEXT, lower TEXT, title TEXT NOT NULL, nkey TEXT, ckey TEXT, year INTEGER, poster TEXT,
   rating REAL, best TEXT, n INTEGER NOT NULL, added INTEGER, released INTEGER, ncat INTEGER NOT NULL, cats TEXT NOT NULL,
   langs TEXT NOT NULL, hints TEXT NOT NULL, sig TEXT NOT NULL`;
-const TITLE_NAMES = 'g, id, lower, title, nkey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig';
+const TITLE_NAMES = 'g, id, lower, title, nkey, ckey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig';
 
 /** The most common value among a title's items; ties go to its best item, then the smallest stream id (D-133). */
 const mostCommon = (t: string, column: string) =>
@@ -103,7 +103,7 @@ const grouping = (t: string): string[][] => [
     `INSERT INTO ${t}_i (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear, title, nkey, ckey, year, nyear,
       quality, source, audio, atag, hdr, subs, score, qrank, langs)
       SELECT r.sid, r.name, r.cat, r.poster, r.rating, r.added, r.released, r.ext, r.tmdb, r.ryear, n.title, n.nkey,
-        replace(n.nkey, ' ', ''), IFNULL(n.nyear, r.ryear), n.nyear, n.quality, n.source, n.audio, n.atag, n.hdr, n.subs,
+        n.ckey, IFNULL(n.nyear, r.ryear), n.nyear, n.quality, n.source, n.audio, n.atag, n.hdr, n.subs,
         n.score, n.qrank, n.langs
       FROM ${t}_r r JOIN ${NAMES} n ON n.name = r.name ORDER BY r.rowid`,
     `DROP TABLE ${t}_r`,
@@ -146,6 +146,7 @@ const grouping = (t: string): string[][] => [
           count(DISTINCT cat) || '|' || sum(length(IFNULL(poster, '')))
       FROM ${t}_i i GROUP BY g`,
     `UPDATE ${t}_a SET nkey = (SELECT nkey FROM ${t}_i x WHERE x.g = ${t}_a.g AND x.title = ${t}_a.title LIMIT 1),
+      ckey = (SELECT ckey FROM ${t}_i x WHERE x.g = ${t}_a.g AND x.title = ${t}_a.title LIMIT 1),
       released = IFNULL(released, year * 10000)`,
     `CREATE UNIQUE INDEX ${t}_ag ON ${t}_a(g)`,
   ],
@@ -528,6 +529,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         name,
         title.cleanTitle,
         title.key,
+        compactKey(title),
         title.year,
         title.quality,
         title.source,
@@ -544,8 +546,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       if (rows.length >= WRITE_BATCH || last) {
         await db.run([
           {
-            sql: `INSERT OR REPLACE INTO ${NAMES} (name, title, nkey, nyear, quality, source, audio, atag, hdr, subs, score, qrank,
-              langs, seen) VALUES (${placeholders(14)})`,
+            sql: `INSERT OR REPLACE INTO ${NAMES} (name, title, nkey, ckey, nyear, quality, source, audio, atag, hdr, subs, score, qrank,
+              langs, seen) VALUES (${placeholders(15)})`,
             rows,
           },
         ]);
@@ -568,8 +570,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   async function titleIds(t: string, account: string, kind: LibraryKind, hashIds: LibraryBuildOptions['hashIds']) {
     let count = 0;
     for (let after = 0; ;) {
-      const rows = await db.query(`SELECT g, nkey, year, title FROM ${t}_a WHERE g > ? ORDER BY g LIMIT ?`, [after, READ_BATCH]);
-      const texts = rows.map(([, nkey, year]) => masterIdText(account, kind, String(nkey).replaceAll(' ', ''), numberOrNull(year)));
+      const rows = await db.query(`SELECT g, ckey, year, title FROM ${t}_a WHERE g > ? ORDER BY g LIMIT ?`, [after, READ_BATCH]);
+      const texts = rows.map(([, ckey, year]) => masterIdText(account, kind, String(ckey), numberOrNull(year)));
       const hashed = hashIds ? await hashIds(texts) : texts.map(sha1Hex);
       await db.run([
         {

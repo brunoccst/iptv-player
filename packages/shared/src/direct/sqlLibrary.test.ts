@@ -150,6 +150,21 @@ describe('library in SQLite (D-121)', () => {
     expect((await library.open('acc')).movie).toMatchObject({ table: second.saved.table, count: 5, current: true, packed: false });
   });
 
+  it('numbers group without their leading zeros, with the same id as in memory (D-133)', async () => {
+    const library = createSqlLibrary(createNodeSqlDatabase(), async () => undefined);
+    const items = [
+      { id: 1, name: 'Show Part 02 (2020)' },
+      { id: 2, name: 'EN - Show Part 2 (2020) 1080p' },
+      { id: 3, name: 'Show Part 3 (2020)' },
+    ];
+    const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items);
+    const page = await library.list(saved, { sort: 'title' });
+    expect(page.items.map(({ id, variantCount }) => [id, variantCount])).toEqual(
+      buildMasters('acc', 'movie', items).map((master) => [master.id, master.variants.length]),
+    );
+    expect(page.items.map((card) => card.variantCount)).toEqual([2, 1]);
+  });
+
   it('a library saved before D-133 still lists and opens until the new one is built', async () => {
     const db = createNodeSqlDatabase();
     const library = createSqlLibrary(db, async () => undefined);

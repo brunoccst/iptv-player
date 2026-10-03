@@ -151,7 +151,7 @@ A master id derives from the group's most frequent spelling + year (D-017). If a
 
 **Matching blind spots** — logged 2026-09-23
 
-- Titles spelled differently ("Redemption" / "Redemtion", "Part 02" / "Part 2") stay apart: grouping needs the same key (D-133).
+- Titles spelled differently ("Redemption" / "Redemtion") stay apart: grouping needs the same key (D-133).
 - Translated titles ("La Casa de Papel" vs "Money Heist") merge only when the provider sends a TMDB id in its lists (D-065); many panels do not.
 - Only English leading articles are ignored in keys.
 - Unusual tags not in `tags.py` stay in the title and can split groups. Fix: add the token and a test case.

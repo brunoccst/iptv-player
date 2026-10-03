@@ -71,9 +71,9 @@
       "groups": 4
     },
     {
-      "name": "leading zeros split a title: similar spellings no longer join (D-133)",
+      "name": "leading zeros do not split a title",
       "titles": ["Show Part 02 (2020)", "Show Part 2 (2020) 1080p"],
-      "groups": 2
+      "groups": 1
     }
   ]
 }
