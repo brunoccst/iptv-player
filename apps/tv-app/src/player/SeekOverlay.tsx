@@ -43,14 +43,31 @@ export function TapFlash({ direction, flashKey, onDone }: { direction: SeekDirec
   );
 }
 
-/** Scrub preview: marker at the preview time, current speed multiplier. */
-export function ScrubBar({ preview, speed, duration }: { preview: number; speed: number; duration: number }) {
+/**
+ * Scrub preview: marker at the preview time, and the current speed multiplier while holding, or the last press's step
+ * ("+2:00") during presses in a row (issue #121).
+ */
+export function ScrubBar({
+  preview,
+  speed,
+  step,
+  direction,
+  duration,
+}: {
+  preview: number;
+  speed: number;
+  step?: number;
+  direction?: SeekDirection;
+  duration: number;
+}) {
   const percent = duration > 0 ? Math.min(100, (preview / duration) * 100) : 0;
   return (
     <View style={styles.scrub} testID="scrub-bar">
       <View style={styles.scrubHeader}>
         <Text style={styles.scrubTime}>{formatClock(preview)}</Text>
-        <Text style={styles.scrubSpeed}>×{Math.round(speed / SCRUB_BASE_SPEED)}</Text>
+        <Text style={styles.scrubSpeed} testID="scrub-step">
+          {step ? `${direction === 'back' ? '−' : '+'}${formatClock(step)}` : `×${Math.round(speed / SCRUB_BASE_SPEED)}`}
+        </Text>
       </View>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${percent}%` }]} />
