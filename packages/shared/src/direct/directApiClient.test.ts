@@ -233,9 +233,11 @@ describe.each([
       .entries()
       .slice(logged)
       .map((entry) => entry.message);
-    expect(
-      messages.filter((message) => /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/.test(message)),
-    ).toHaveLength(1);
+    // The database reads only names it has not seen (D-133); in memory, unchanged titles are kept as they were.
+    const reused = useDatabase
+      ? /^movie: saved 3 items in [\d.]+ s, read 0 new names in /
+      : /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/;
+    expect(messages.filter((message) => reused.test(message))).toHaveLength(1);
     expect(await restarted.library.list('movies')).toEqual(before);
   });
 
@@ -335,47 +337,53 @@ describe.each([
     expect(await restart().library.list('movies', { limit: 30 })).toEqual(updated);
   });
 
-  it.runIf(useDatabase)('moves a saved library file into the database once; then no start reads a file (D-121)', async () => {
-    // The app before D-121: the library in files.
-    databaseMode = false;
-    const first = setup();
-    databaseMode = true;
-    await first.api.auth.login(login);
-    await libraryReady(first.api);
-    const movies = await first.api.library.list('movies');
-    const series = await first.api.library.list('series', { categoryId: '20' });
-    const details = await first.api.library.get('movies', movies.items[1]!.id);
-    const fileKeys = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.library.'));
-    expect(fileKeys()).toHaveLength(2);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    const snapshots = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.snapshot.'));
-    expect(snapshots()).toHaveLength(1);
+  it.runIf(useDatabase)(
+    'a saved library file is not read: the database builds the library again; then no start reads a file (D-121, D-133)',
+    async () => {
+      // The app before D-121: the library in files.
+      databaseMode = false;
+      const first = setup();
+      databaseMode = true;
+      await first.api.auth.login(login);
+      await libraryReady(first.api);
+      const movies = await first.api.library.list('movies');
+      const series = await first.api.library.list('series', { categoryId: '20' });
+      const details = await first.api.library.get('movies', movies.items[1]!.id);
+      const fileKeys = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.library.'));
+      expect(fileKeys()).toHaveLength(2);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      const snapshots = () => [...first.storages.data.data.keys()].filter((key) => key.startsWith('direct.snapshot.'));
+      expect(snapshots()).toHaveLength(1);
 
-    // The update: the same storage, now with a database. The files are moved in, then removed.
-    const db = createNodeSqlDatabase();
-    const moved = setup(first.panel, { ...first.storages, db }).api;
-    expect(await moved.library.list('movies')).toEqual(movies);
-    expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
-    expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
-    expect(fileKeys()).toEqual([]);
-    // Home's snapshot (D-120) is not needed with a database (D-122).
-    expect(snapshots()).toEqual([]);
-    expect((await moved.library.status()).map((status) => [status.jobStatus, status.masterCount])).toEqual([
-      ['done', 2],
-      ['done', 1],
-    ]);
+      // The update: the same storage, now with a database. The files are removed and the lists downloaded again.
+      const db = createNodeSqlDatabase();
+      const moved = setup(first.panel, { ...first.storages, db }).api;
+      await moved.auth.me();
+      await moved.library.sync();
+      await libraryReady(moved);
+      expect(await moved.library.list('movies')).toEqual(movies);
+      expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
+      expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
+      expect(fileKeys()).toEqual([]);
+      // Home's snapshot (D-120) is not needed with a database (D-122).
+      expect(snapshots()).toEqual([]);
+      expect((await moved.library.status()).map((status) => [status.jobStatus, status.masterCount])).toEqual([
+        ['done', 2],
+        ['done', 1],
+      ]);
 
-    // Next start: nothing is read from files (a file read would never end here), everything answers.
-    const noFiles = {
-      ...first.storages.data,
-      getItem: (key: string) =>
-        key.startsWith('direct.library.') ? new Promise<string | null>(() => undefined) : first.storages.data.getItem(key),
-    };
-    const restarted = setup(first.panel, { secure: first.storages.secure, data: noFiles as typeof first.storages.data, db }).api;
-    expect(await restarted.library.list('movies', { search: 'big' })).toMatchObject({ total: 1 });
-    expect(await restarted.library.list('movies', { offset: 1, limit: 1 })).toMatchObject({ total: 2, items: [movies.items[1]] });
-    expect(await restarted.library.get('movies', movies.items[1]!.id)).toEqual(details);
-  });
+      // Next start: nothing is read from files (a file read would never end here), everything answers.
+      const noFiles = {
+        ...first.storages.data,
+        getItem: (key: string) =>
+          key.startsWith('direct.library.') ? new Promise<string | null>(() => undefined) : first.storages.data.getItem(key),
+      };
+      const restarted = setup(first.panel, { secure: first.storages.secure, data: noFiles as typeof first.storages.data, db }).api;
+      expect(await restarted.library.list('movies', { search: 'big' })).toMatchObject({ total: 1 });
+      expect(await restarted.library.list('movies', { offset: 1, limit: 1 })).toMatchObject({ total: 2, items: [movies.items[1]] });
+      expect(await restarted.library.get('movies', movies.items[1]!.id)).toEqual(details);
+    },
+  );
 
   it('keeps profiles on the device', async () => {
     const { api } = setup();
