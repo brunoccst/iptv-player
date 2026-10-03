@@ -164,10 +164,9 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-082).
-  const { variant, series, resume, allWatched, backdrop, play: playTarget } = useSeriesDetails(master);
+  const { variant, series, allWatched, backdrop, play: playTarget, playLabel, startSeason } = useSeriesDetails(master);
   if (!variant) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
-  const canResume = !!resume;
   const play = () => {
     if (playTarget) navStore.getState().push({ name: 'player', target: playTarget });
   };
@@ -176,11 +175,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
     <>
       <DetailsHero backdrop={backdrop} title={master.title} watched={allWatched}>
         <FocusButton
-          label={
-            canResume
-              ? t('Resume S{seasonNumber}:E{episodeNumber}', { seasonNumber: resume!.seasonNumber, episodeNumber: resume!.episodeNumber })
-              : t('Play')
-          }
+          label={playLabel}
           icon="play"
           variant="primary"
           hasTVPreferredFocus
@@ -218,7 +213,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           <ErrorText>{errorText(series.error)}</ErrorText>
         </View>
       ) : null}
-      {series.data ? <Episodes series={series.data} master={master} initialSeason={canResume ? resume!.seasonNumber : null} /> : null}
+      {series.data ? <Episodes series={series.data} master={master} initialSeason={startSeason} /> : null}
     </>
   );
 }

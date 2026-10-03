@@ -17,8 +17,11 @@ import {
   markEntryWatched,
   removeFromContinueWatching,
   setMovieWatched,
+  seriesStart,
+  seriesStartLabel,
   watchedRequest,
 } from './watched';
+import type { MergedEpisode, MergedSeries } from './seriesVersions';
 
 const config = { appName: 'T', appSlug: 't' };
 const entry = (itemId: string, position: number, extra: Partial<ProgressDto> = {}): ProgressDto => ({
@@ -254,5 +257,53 @@ describe('watched titles (D-081)', () => {
       expect(backend.calls.filter((c) => c.method === 'DELETE')).toHaveLength(2);
       expect(isSeriesWatched(stores.profilePrefs.getState().prefs, 'p1', 'show')).toBe(false);
     });
+  });
+});
+
+describe('what a series Play button starts (issue #133)', () => {
+  const episode = (id: string, season: number, number: number) =>
+    ({
+      id,
+      seasonNumber: season,
+      episodeNumber: number,
+      title: `Episode ${number}`,
+      seriesId: 's1',
+      versions: [{ seriesId: 's1', label: '', episode: { id } }],
+    }) as unknown as MergedEpisode;
+  const series = (count: number) =>
+    ({
+      seasons: [{ number: 1, episodes: Array.from({ length: count }, (_, i) => episode(`e${i + 1}`, 1, i + 1)) }],
+    }) as unknown as Pick<MergedSeries, 'seasons'>;
+  const seen = (id: string, number: number, position: number): ProgressDto =>
+    entry(id, position, { kind: 'episode', seriesId: 's1', seasonNumber: 1, episodeNumber: number, durationSeconds: 2400 });
+  const items = (...list: ProgressDto[]) => ({ items: { status: 'success' as const, data: list, error: null, updatedAt: 0 } });
+
+  it('resumes the episode in progress', () => {
+    const progress = seen('e2', 2, 600);
+    const start = seriesStart(items(progress), series(4), progress);
+    expect(start).toEqual({ kind: 'resume', progress });
+    expect(seriesStartLabel(start)).toBe('Resume S1:E2');
+  });
+
+  it('once the last one watched is finished, plays the next episode not watched yet, a new one too', () => {
+    const progress = seen('e4', 4, 2390);
+    expect(seriesStart(items(progress), series(4), progress)).toEqual({ kind: 'resume', progress });
+    // Episode 5 came out: Play starts it.
+    const start = seriesStart(items(progress), series(5), progress);
+    expect(start).toMatchObject({ kind: 'next', episode: { id: 'e5' } });
+    expect(seriesStartLabel(start)).toBe('Play S1:E5');
+  });
+
+  it('skips episodes already watched after the last one', () => {
+    const last = seen('e2', 2, 2390);
+    const start = seriesStart(items(last, seen('e3', 3, 2390)), series(4), last);
+    expect(start).toMatchObject({ kind: 'next', episode: { id: 'e4' } });
+  });
+
+  it('without progress, the first episode; without episodes, nothing', () => {
+    const start = seriesStart(items(), series(3), null);
+    expect(start).toMatchObject({ kind: 'first', episode: { id: 'e1' } });
+    expect(seriesStartLabel(start)).toBe('Play');
+    expect(seriesStart(items(), null, null)).toBeNull();
   });
 });

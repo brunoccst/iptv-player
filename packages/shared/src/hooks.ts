@@ -33,6 +33,8 @@ import {
   removeFromContinueWatching,
   isSeriesWatched,
   noteSeriesWatched,
+  seriesStart,
+  seriesStartLabel,
   setMovieWatched,
   setSeriesWatched,
 } from './playback/watched';
@@ -274,18 +276,26 @@ export function createAppHooks({
         if (merged && progressLoaded)
           void noteSeriesWatched(stores.profilePrefs, stores.progress.getState().profileId, master.id, allWatched);
       }, [merged, progressLoaded, allWatched, master.id]);
-      const first = merged?.seasons[0]?.episodes[0];
+      // In progress, else the next episode not watched yet (issue #133), else the first.
+      const progressItems = useProgress((s) => s.items);
+      const start = useMemo(() => seriesStart({ items: progressItems }, merged, resume), [progressItems, merged, resume]);
       return {
         variant,
         series: { ...versions, data: merged },
         resume,
         allWatched,
         backdrop: merged?.backdropUrls[0] ?? master.posterUrl,
-        play: resume
-          ? progressTarget(resume)
-          : first
-            ? episodeTarget({ title: master.title, masterId: master.id, seriesId: first.seriesId, posterUrl: master.posterUrl }, first)
-            : null,
+        playLabel: seriesStartLabel(start),
+        /** The season the episode list opens on: the one Play starts. */
+        startSeason: start ? (start.kind === 'resume' ? start.progress.seasonNumber : start.episode.seasonNumber) : null,
+        play: !start
+          ? null
+          : start.kind === 'resume'
+            ? progressTarget(start.progress)
+            : episodeTarget(
+                { title: master.title, masterId: master.id, seriesId: start.episode.seriesId, posterUrl: master.posterUrl },
+                start.episode,
+              ),
       };
     },
 

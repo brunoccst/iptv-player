@@ -2097,3 +2097,16 @@ Decision (shared `useHiddenCategories`, TV/phone and desktop):
 - A "Select all" checkbox heads the section's list. It is checked while every category of the section is shown. Pressed then, it unchecks them all, so the wanted ones can be checked one by one; pressed while some are hidden, it checks them all again. It replaces the "Show all" button.
 - It works per section (Movies, Series, Live TV), like the rest of the dialog, and is applied on Save.
 - Tests: the TV screen test unchecks all, checks one, saves (only that one shown), and checks all again.
+
+## D-131
+
+**A series' Play button goes on to the next episode not watched yet** — 2026-10-03 (issue #133: "If there's a newer episode … the Play button should start the newer, not-watched episode")
+
+Context: a series' details showed "Resume S1:E4" for the last episode with progress, even when that episode was finished and a new one had been released since.
+
+Decision (shared `seriesStart` and `seriesStartLabel`, used by `useSeriesDetails` on TV/phone and desktop):
+
+- An episode in progress: "Resume S1:E2", as before.
+- The last episode with progress is finished: Play starts the next episode in order (across seasons) that is not watched yet, "Play S1:E5", so a newly released episode is one press away. Episodes already watched after it are skipped. With none left, the button stays "Resume" on the last one, as before.
+- No progress: "Play", the first episode. The episode list opens on the season Play starts.
+- Tests: resume, next (including a newly released episode), skipping watched ones, first episode and no episodes.

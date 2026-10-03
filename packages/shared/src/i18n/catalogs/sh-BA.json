@@ -303,6 +303,7 @@
   "Play Now": "Pusti sada",
   "Play on {tv}": "Pusti na {tv}",
   "Play on TV": "Pusti na TV-u",
+  "Play S{seasonNumber}:E{episodeNumber}": "Pusti S{seasonNumber}:E{episodeNumber}",
   "Playback": "Reprodukcija",
   "Player": "Plejer",
   "playing": "reprodukuje se",
