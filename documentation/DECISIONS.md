@@ -2097,3 +2097,15 @@ Decision (shared `useHiddenCategories`, TV/phone and desktop):
 - A "Select all" checkbox heads the section's list. It is checked while every category of the section is shown. Pressed then, it unchecks them all, so the wanted ones can be checked one by one; pressed while some are hidden, it checks them all again. It replaces the "Show all" button.
 - It works per section (Movies, Series, Live TV), like the rest of the dialog, and is applied on Save.
 - Tests: the TV screen test unchecks all, checks one, saves (only that one shown), and checks all again.
+
+## D-132
+
+**Mark a season as watched** — 2026-10-03 (issue #132: "users may only have watched a few seasons … add a button to mark only a particular season as watched")
+
+Context: episodes could be marked one by one, or the whole series at once (D-082). Someone who had seen seasons 1 and 2 of three had to mark each episode.
+
+Decision (shared `isSeasonWatched`, `setSeasonWatched` and the "season" kind of `useWatchedToggle`; TV/phone and desktop):
+
+- The episode list's header has the round "Watched" button next to the season choice: an open eye when every episode of the shown season is watched, a closed one otherwise. Pressed, it marks every episode of that season watched, or not watched, in all versions (D-066). Other seasons stay as they were.
+- The series' cover tag and the tag next to its title follow as before: on only once every episode of every season is watched (D-082).
+- Tests: marking season 1 of two puts its episodes as watched and leaves the series untagged; pressing again removes them.

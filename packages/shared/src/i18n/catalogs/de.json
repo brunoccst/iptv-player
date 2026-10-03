@@ -213,6 +213,8 @@
   "Mark as not watched": "Als nicht gesehen markieren",
   "Mark as watched": "Als gesehen markieren",
   "Mark episode as watched": "Folge als gesehen markieren",
+  "Mark season as not watched": "Staffel als nicht gesehen markieren",
+  "Mark season as watched": "Staffel als gesehen markieren",
   "Mark series as not watched": "Serie als nicht gesehen markieren",
   "Mark series as watched": "Serie als gesehen markieren",
   "More channels ({count} of {totalChannels})": "Mehr Sender ({count} von {totalChannels})",

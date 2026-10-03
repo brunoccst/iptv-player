@@ -6,10 +6,12 @@ export function WatchedButton({
   kind,
   watched,
   onChange,
+  testID = 'details-watched-toggle',
 }: {
-  kind: 'movie' | 'series';
+  kind: 'movie' | 'series' | 'season';
   watched: boolean;
   onChange(watched: boolean): Promise<void>;
+  testID?: string;
 }) {
   const { icon, label, toggle } = useWatchedToggle(kind, watched, onChange);
   return (
@@ -19,7 +21,7 @@ export function WatchedButton({
       aria-pressed={watched}
       aria-label={label}
       title={label}
-      data-testid="details-watched-toggle"
+      data-testid={testID}
       onClick={toggle}
     >
       <Icon name={icon} size={20} />

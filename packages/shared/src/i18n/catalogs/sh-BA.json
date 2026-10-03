@@ -215,6 +215,8 @@
   "Mark as not watched": "Označi kao nepogledano",
   "Mark as watched": "Označi kao pogledano",
   "Mark episode as watched": "Označi epizodu kao pogledanu",
+  "Mark season as not watched": "Označi sezonu kao nepogledanu",
+  "Mark season as watched": "Označi sezonu kao pogledanu",
   "Mark series as not watched": "Označi seriju kao nepogledanu",
   "Mark series as watched": "Označi seriju kao pogledanu",
   "More channels ({count} of {totalChannels})": "Još kanala ({count} od {totalChannels})",

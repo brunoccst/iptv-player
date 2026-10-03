@@ -60,16 +60,20 @@ export const CATEGORY_SECTIONS: { section: CatalogSection; label: () => string }
  * The details panel's round "Watched" toggle (D-104): an open eye when watched, a closed one when not. For a series it
  * marks every episode. Presses while a change is still being saved are ignored.
  */
-export function useWatchedToggle(kind: 'movie' | 'series', watched: boolean, onChange: (watched: boolean) => Promise<void>) {
+export function useWatchedToggle(kind: 'movie' | 'series' | 'season', watched: boolean, onChange: (watched: boolean) => Promise<void>) {
   const busy = useRef(false);
   const label =
     kind === 'series'
       ? watched
         ? t('Mark series as not watched')
         : t('Mark series as watched')
-      : watched
-        ? t('Mark as not watched')
-        : t('Mark as watched');
+      : kind === 'season'
+        ? watched
+          ? t('Mark season as not watched')
+          : t('Mark season as watched')
+        : watched
+          ? t('Mark as not watched')
+          : t('Mark as watched');
   return {
     icon: watched ? ('eye' as const) : ('eyeOff' as const),
     label,
