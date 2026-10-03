@@ -7,6 +7,7 @@ import { playerState } from '../../test/tvMediaMock';
 import { appContext, navStore, stores } from '../appContext';
 import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
+import { RECENT_HIDE_MS } from './RecentChannelsOverlay';
 import { playbackErrorText, PlayerScreen } from './PlayerScreen';
 
 const movie: PlayTarget = { kind: 'movie', streamId: '55', container: 'mkv', title: 'Heat', subtitle: '4K' };
@@ -762,6 +763,63 @@ describe('PlayerScreen', () => {
       expect(screen.getByTestId('guide-overlay')).toBeTruthy();
       await fireEvent.press(screen.getByLabelText('Close guide'));
       expect(screen.queryByTestId('guide-overlay')).toBeNull();
+      jest.restoreAllMocks();
+    });
+
+    it('↓ shows the channels watched last; Select switches back; ↓ again reaches the buttons (issue #122)', async () => {
+      jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+      stubGuide();
+      const profileId = stores.session.getState().activeProfileId!;
+      await stores.profilePrefs.getState().update(profileId, {
+        recentChannels: [{ id: '8', name: 'Sports', logoUrl: null, categoryId: '1' }],
+      });
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      // Playing News made it the newest.
+      expect(stores.profilePrefs.getState().prefs[profileId]?.recentChannels?.map((c) => c.id)).toEqual(['7', '8']);
+
+      await act(async () => pressRemote('down', 'down'));
+      await flush();
+      expect(screen.getByTestId('recent-channels')).toBeTruthy();
+      expect(screen.getByTestId('recent-channel-7')).toHaveProp('accessibilityState', { selected: true });
+      // The previous channel has the focus: one Select goes back to it.
+      expect(screen.getByTestId('recent-channel-8')).toHaveProp('hasTVPreferredFocus', true);
+
+      // ↓ below the channels: the player's buttons.
+      await fireEvent(screen.getByTestId('recent-channels-more'), 'focus');
+      expect(screen.queryByTestId('recent-channels')).toBeNull();
+      expect(screen.getByTestId('player-controls')).toBeTruthy();
+      await act(async () => pressBack());
+
+      await act(async () => pressRemote('down', 'down'));
+      await flush();
+      await fireEvent.press(screen.getByTestId('recent-channel-8'));
+      expect(screen.queryByTestId('recent-channels')).toBeNull();
+      expect(navStore.getState().stack.at(-1)).toMatchObject({
+        name: 'player',
+        target: { kind: 'live', streamId: '8', title: 'Sports', categoryId: '1' },
+      });
+      jest.restoreAllMocks();
+    });
+
+    it('the channel strip closes with ↑, with Back, and by itself', async () => {
+      jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+      stubGuide();
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      await act(async () => pressRemote('down', 'down'));
+      expect(screen.getByTestId('recent-channels')).toBeTruthy();
+      await act(async () => pressRemote('up', 'down'));
+      expect(screen.queryByTestId('recent-channels')).toBeNull();
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+
+      await act(async () => pressRemote('down', 'down'));
+      await act(async () => pressBack());
+      expect(screen.queryByTestId('recent-channels')).toBeNull();
+
+      await act(async () => pressRemote('down', 'down'));
+      await act(async () => jest.advanceTimersByTime(RECENT_HIDE_MS + 100));
+      expect(screen.queryByTestId('recent-channels')).toBeNull();
       jest.restoreAllMocks();
     });
   });

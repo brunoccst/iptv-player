@@ -601,6 +601,29 @@ describe('App (TV)', () => {
     expect(screen.getByLabelText('News')).toHaveProp('accessibilityState', { selected: true });
   });
 
+  it('once channels were watched, the live row lists them instead of the first category (issue #122)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', parentId: null }] });
+    const profileId = stores.session.getState().activeProfileId!;
+    await stores.profilePrefs.getState().update(profileId, {
+      recentChannels: [
+        { id: '9', name: 'Movies HD', logoUrl: null, categoryId: '2' },
+        { id: '3', name: 'Kids TV', logoUrl: null, categoryId: '1' },
+      ],
+    });
+    await render(<App />);
+    await flush();
+
+    expect(await screen.findByText('Recently watched channels')).toBeTruthy();
+    expect(screen.queryByText('Live TV: News')).toBeNull();
+    expect(screen.queryByTestId('row-live-more')).toBeNull();
+    // The first category is not even downloaded.
+    expect(backend.calls.some((c) => c.url.pathname === '/api/catalog/live/channels')).toBe(false);
+    await fireEvent.press(screen.getByTestId('card-Kids TV'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { kind: 'live', streamId: '3', title: 'Kids TV' } });
+  });
+
   it('phones start below the status bar (rounded corners, camera cut-out); the player and TVs use the full screen', async () => {
     const backend = setupApp();
     stubLibrary(backend);

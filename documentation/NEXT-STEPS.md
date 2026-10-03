@@ -48,6 +48,7 @@ flowchart LR
 - [x] **Catalog data in the database** (D-125): categories, a movie's info, a series' episodes and a channel's programmes are saved in the database when first shown; later starts and offline use read them from there.
 - [x] **User data in the database** (D-126): profiles, progress, My List, settings and the PIN are in the database, moved once from the files; backup, restore and phone pairing read and write it. The sign-in stays in secure storage.
 - [x] **"Select all" in Categories shown** (issue #120, D-127): one checkbox unchecks every category of a section, so a few can then be picked; pressed again, it shows them all.
+- [x] **Channels watched last** (issue #122, D-129): Home's live row lists the channels the profile watched last; on TV, ↓ in a live channel shows the last 10 in a strip (Select switches, ↓ again opens the player's buttons).
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.
