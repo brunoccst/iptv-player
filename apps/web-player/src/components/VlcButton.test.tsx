@@ -47,7 +47,7 @@ describe('Open in VLC (desktop app, D-081)', () => {
     const { answeringUrl } = await import('./VlcButton');
     const probe =
       (status: number, text: string | null = null) =>
-      async () => ({ status, contentType: null, length: 10, host: null, text, hex: null, error: null });
+      async () => ({ status, contentType: null, length: 10, host: null, text, hex: null, error: null, codecs: [] });
     expect(await answeringUrl(['http://portal/a.mkv', 'http://streams/a.mkv'], probe(206))).toBe('http://portal/a.mkv');
     expect(await answeringUrl(['http://portal/a.m3u8', 'http://streams/a.m3u8'], probe(200, '#EXTM3U #EXT-X-VERSION:3'))).toBe(
       'http://portal/a.m3u8',

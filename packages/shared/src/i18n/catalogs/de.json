@@ -466,6 +466,8 @@
   "This title cannot be played.": "Dieser Titel kann nicht abgespielt werden.",
   "This title is no longer available.": "Dieser Titel ist nicht mehr verfügbar.",
   "This title is not available from the provider right now.": "Dieser Titel ist beim Anbieter gerade nicht verfügbar.",
+  "This title uses {codec} video, which this browser can't decode. Pick another version or watch it on the TV app.": "Dieser Titel nutzt {codec}-Video, das dieser Browser nicht dekodieren kann. Wähle eine andere Version oder schau ihn in der TV-App.",
+  "This title uses {codec} video, which this computer can't decode. Open it in VLC or pick another version.": "Dieser Titel nutzt {codec}-Video, das dieser Computer nicht dekodieren kann. Öffne ihn in VLC oder wähle eine andere Version.",
   "This TV is not connected to a network, so a phone cannot reach it.": "Dieser Fernseher ist mit keinem Netzwerk verbunden, daher kann ihn kein Handy erreichen.",
   "This version is only available as {container}, which this app can't play itself. Open it in VLC or pick another version.": "Diese Version gibt es nur als {container}, das diese App nicht selbst abspielen kann. Öffne sie in VLC oder wähle eine andere Version.",
   "This version is only available as {container}, which web browsers can't play. Pick another version or watch it on the TV app.": "Diese Version gibt es nur als {container}, das Webbrowser nicht abspielen können. Wähle eine andere Version oder schau sie in der TV-App.",

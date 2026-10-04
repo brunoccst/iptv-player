@@ -35,6 +35,7 @@ import { api, appContext, downloadsStore, stores, uiStore } from '../../appConte
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
 import { useVlc } from '../../components/VlcButton';
+import { desktop } from '../../desktop';
 import { useNoteRecentChannel, usePlayerTitle, useUi } from '../../hooks/stores';
 import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
@@ -44,7 +45,7 @@ import { EpisodesDrawer } from './EpisodesDrawer';
 import { GuidePanel } from './GuidePanel';
 import { FrameGrabber } from './frameGrabber';
 import { NextUp } from './NextUp';
-import { PlaybackEngine, PlaybackUnavailableError, type LoadedSource } from './playbackEngine';
+import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
 import { TracksMenu } from './TracksMenu';
 import { activeSubtitle, addSubtitle, audioTracks, removeAddedSubtitle, showSubtitle, subtitleTracks } from './tracks';
@@ -128,9 +129,17 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       const url = engine.attempted.at(-1);
       if (!url) return;
       void probeStream(url).then((probe) => {
-        if (controller.signal.aborted) return;
+        // Logged even when the player was closed meanwhile: the log is where the answer is needed.
         appLog.warn('player', `the provider answered ${describeProbe(probe)}`);
-        const text = probeMessage(probeHint(probe));
+        if (controller.signal.aborted) return;
+        const codec = probe.status >= 200 && probe.status < 300 ? undecodableVideoCodec(probe.codecs, video) : null;
+        const text = codec
+          ? desktop
+            ? t("This title uses {codec} video, which this computer can't decode. Open it in VLC or pick another version.", { codec })
+            : t("This title uses {codec} video, which this browser can't decode. Pick another version or watch it on the TV app.", {
+                codec,
+              })
+          : probeMessage(probeHint(probe));
         if (text) setError(text);
       });
     };
