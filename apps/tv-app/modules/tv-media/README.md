@@ -32,6 +32,8 @@ Tests replace this module with `test/tvMediaMock.tsx` (Jest `moduleNameMapper`).
 
 `ListReader.kt`, `JsonArraySplitter.kt` (D-115): provider lists downloaded on a background thread and cut into batches of whole entries (`openList`, `readList`, `closeList`); JavaScript parses each batch with `JSON.parse`.
 
-`Sha1Batch.kt` (D-118): `sha1Batch` hashes many title ids at once with `MessageDigest`.
+`ListItems.kt` (D-134): with `openList`'s `save` ("movie:lib1_r"), a movie or series list is not handed to JavaScript: each batch is read here, with the same fields as the JavaScript reader (`looseJson.ts`, `xtream.ts`, `pipeline.ts`; change them together), and saved by `LibraryDb.saveItems` into that library items table on the list's own thread. `readList` then gives only the end with the counts.
 
-`LibraryDb.kt` (D-121): the library database in Android's own SQLite (no library added to the APK). `dbRun(statementsJson)` runs statements with rows of parameters in one transaction; `dbQuery(sql, paramsJson)` answers rows as a JSON array of arrays. Writes and reads each have their own thread (write-ahead logging), and characters outside the BMP cross as JSON escapes both ways. All library logic is in `@iptv/shared` (`sqlLibrary.ts`).
+`Sha1Batch.kt` (D-118): `sha1Batch` hashes many title ids at once with `MessageDigest`, a large batch over every core (D-134).
+
+`LibraryDb.kt` (D-121): the library database in Android's own SQLite (no library added to the APK). `dbRun(statementsJson)` runs statements with rows of parameters in one transaction; `dbQuery(sql, paramsJson)` answers rows as a JSON array of arrays. Writes and reads each have their own thread (write-ahead logging), and characters outside the BMP cross as JSON escapes both ways. The connection that writes uses `synchronous = NORMAL`, a 16 MB cache and SQLite's helper threads for sorts, one per core (D-134). All library logic is in `@iptv/shared` (`sqlLibrary.ts`).

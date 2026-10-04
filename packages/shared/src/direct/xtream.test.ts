@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeMaybeBase64 } from './base64Text';
-import { createXtreamClient, normalizeServerUrl, type ListPiece, type ListReader } from './xtream';
+import { createXtreamClient, normalizeServerUrl, type ListPiece, type ListReader, type ListSave } from './xtream';
 
 const credentials = { serverUrl: 'http://panel.test:8080/', username: 'u s', password: 'p&w' };
 
@@ -294,13 +294,14 @@ describe('decodeMaybeBase64', () => {
 describe('lists read by native code (D-115)', () => {
   /** A fake native reader: serves `pieces` for any list and records what was opened and closed. */
   function nativeReader(pieces: ListPiece[], status = 200, fail?: { code: string; message: string }) {
-    const opened: { url: string; headers: Record<string, string>; timeoutMs: number; batchChars: number }[] = [];
+    const opened: { url: string; headers: Record<string, string>; timeoutMs: number; batchChars: number; save?: ListSave }[] = [];
     const closed: number[] = [];
     let at = 0;
     const reader: ListReader = {
-      open: async (url, headers, timeoutMs, batchChars) => {
+      saves: true,
+      open: async (url, headers, timeoutMs, batchChars, _guide, save) => {
         if (fail) throw Object.assign(new Error(fail.message), { code: fail.code });
-        opened.push({ url, headers, timeoutMs, batchChars });
+        opened.push({ url, headers, timeoutMs, batchChars, ...(save ? { save } : {}) });
         return { id: 7, status };
       },
       next: async () => pieces[at++] ?? { kind: 'error', message: 'no more' },
@@ -360,5 +361,33 @@ describe('lists read by native code (D-115)', () => {
     await expect(client(nativeReader([], 200, { code: 'ERR_LIST_CONNECT', message: 'Connection refused' }))).rejects.toThrow(
       'Could not connect to panel.test:8080 (Connection refused).',
     );
+  });
+
+  it('has native code save a movie or series list into the library database, with the usual messages (D-134)', async () => {
+    const saving = nativeReader([{ kind: 'end', chars: 1234, saved: 3, tmdb: 1 }]);
+    const client = createXtreamClient(credentials, { listReader: saving.reader });
+    expect(client.savesLists).toBe(true);
+    expect(await client.saveList('series', 'lib7_r')).toEqual({ saved: 3, tmdb: 1 });
+    expect(new URL(saving.opened[0]!.url).searchParams.get('action')).toBe('get_series');
+    expect(saving.opened[0]!.save).toEqual({ kind: 'series', table: 'lib7_r' });
+    expect(saving.closed).toEqual([7]);
+    // Not an array, or nothing: nothing saved, as when JavaScript reads it.
+    for (const text of ['{"1": {}}', '']) {
+      const whole = nativeReader([{ kind: 'whole', text, chars: text.length }]);
+      expect(await createXtreamClient(credentials, { listReader: whole.reader }).saveList('movie', 'lib7_r')).toEqual({
+        saved: 0,
+        tmdb: 0,
+      });
+    }
+    const save = (native: ReturnType<typeof nativeReader>) =>
+      createXtreamClient(credentials, { listReader: native.reader }).saveList('movie', 'x');
+    await expect(save(nativeReader([{ kind: 'whole', text: '<html>busy</html>', chars: 17 }]))).rejects.toThrow('not JSON');
+    await expect(save(nativeReader([{ kind: 'incomplete', text: '{"stream_id":2', chars: 50 }]))).rejects.toThrow('not JSON');
+    await expect(save(nativeReader([{ kind: 'error', message: 'disk full' }]))).rejects.toThrow('Could not connect to panel.test:8080');
+    await expect(save(nativeReader([], 401))).rejects.toThrow('Provider rejected the credentials.');
+    // A reader that cannot save is never asked to.
+    const plain = createXtreamClient(credentials, { listReader: { ...saving.reader, saves: false } });
+    expect(plain.savesLists).toBe(false);
+    await expect(plain.saveList('movie', 'x')).rejects.toThrow();
   });
 });

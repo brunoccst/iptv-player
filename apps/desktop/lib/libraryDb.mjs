@@ -1,6 +1,7 @@
 // The library database of the desktop app (D-121): SQLite built into Electron's Node, so the app carries no database
 // library. The page sends SQL with parameters as JSON and gets rows back as JSON, the same two calls as the TV app's
 // native module; all library logic is in @iptv/shared (sqlLibrary.ts).
+import { availableParallelism } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 
 /** Opens `file` on first use. `run` and `query` take and give JSON text, like the TV app's `dbRun` and `dbQuery`. */
@@ -10,6 +11,11 @@ export function openLibraryDb(file) {
     if (!db) {
       db = new DatabaseSync(file);
       db.exec('PRAGMA journal_mode = WAL');
+      // For big library updates (D-134): safe with WAL (a power cut can lose the last commit, never the database), a
+      // larger page cache, and helper threads for SQLite's sorts, one per core.
+      db.exec('PRAGMA synchronous = NORMAL');
+      db.exec('PRAGMA cache_size = -16384');
+      db.exec(`PRAGMA threads = ${availableParallelism()}`);
     }
     return db;
   };

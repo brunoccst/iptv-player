@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { LibraryListQuery } from '../api/apiClient';
 import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { createDirectApiClient } from './directApiClient';
-import { buildMasters } from './normalizer/pipeline';
+import { buildMasters, type NormalizerItem } from './normalizer/pipeline';
 import { packer } from './libraryCodec';
-import { createSqlLibrary } from './sqlLibrary';
+import { createSqlLibrary, type SqlLibraryKind } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
@@ -182,7 +182,7 @@ describe('library in SQLite (D-121)', () => {
       { sql: 'INSERT INTO lib5_d VALUES (1, ?)', rows: [[JSON.stringify(packMaster(master!))]] },
       { sql: "INSERT INTO lib5_c VALUES ('3', 1)" },
       {
-        sql: "INSERT INTO library VALUES ('acc', 'movie', 'lib5', '2025-01-01T00:00:00Z', 5, 1, '[\"title\"]', ?)",
+        sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes) VALUES ('acc', 'movie', 'lib5', '2025-01-01T00:00:00Z', 5, 1, '[\"title\"]', ?)",
         rows: [[JSON.stringify(prefixes)]],
       },
     ]);
@@ -254,5 +254,176 @@ describe('library in SQLite (D-121)', () => {
       expect({ query, grid: await database.epg.grid(query) }).toEqual({ query, grid: await memory.epg.grid(query) });
     // Every list, search and guide page came from the database: the list was downloaded once.
     expect(channelLists()).toBe(1);
+  });
+
+  describe('updates only what changed (D-134)', () => {
+    type Item = NormalizerItem & { id: number };
+    const items = (count: number): Item[] =>
+      catalog(count).map((entry, index) => ({
+        id: entry.stream_id,
+        name: entry.name,
+        categoryId: entry.category_id,
+        posterUrl: entry.stream_icon ?? null,
+        rating: entry.rating === undefined ? null : Number(entry.rating),
+        addedAt: entry.added === undefined ? null : Number(entry.added),
+        containerExtension: 'mkv',
+        tmdbId: entry.tmdb ?? null,
+        releaseDate: index % 13 === 0 ? `20${10 + (index % 9)}-0${1 + (index % 8)}-1${index % 9}` : null,
+      }));
+
+    /** Every title in row order (without the internal group number), its versions, and the category pages. */
+    async function contents(
+      db: ReturnType<typeof createNodeSqlDatabase>,
+      library: ReturnType<typeof createSqlLibrary>,
+      saved: SqlLibraryKind,
+    ) {
+      const t = saved.table;
+      const titles = await db.query(
+        `SELECT id, lower, title, nkey, ckey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig FROM ${t} ORDER BY rowid`,
+      );
+      const categories = await db.query(`SELECT c.cat, a.id FROM ${t}_c c JOIN ${t} a ON a.rowid = c.m ORDER BY c.cat, a.rowid`);
+      const details = [];
+      for (const [id] of titles) details.push(await library.get(saved, String(id)));
+      const lists = [];
+      for (const [sort, order] of [
+        ['added', 'desc'],
+        ['added', 'asc'],
+        ['title', 'asc'],
+        ['title', 'desc'],
+        ['released', 'desc'],
+        ['released', 'asc'],
+      ] as const)
+        for (const query of [
+          { sort, order, limit: 500 },
+          { sort, order, categoryId: '3', offset: 2, limit: 20 },
+          { sort, order, search: 'love' },
+        ])
+          lists.push(await library.list(saved, query));
+      return { count: saved.count, sorts: saved.sorts, titles, categories, details, lists };
+    }
+
+    it('builds the same library as a whole new build, whatever changed', async () => {
+      const before = items(900);
+      const after: Item[] = before
+        .filter((_, index) => index % 37 !== 5)
+        .map((item, index) => {
+          if (index % 41 === 3) return { ...item, name: `${String(item.name)} Reloaded` };
+          if (index % 43 === 4) return { ...item, rating: 9.5, posterUrl: `http://img.test/new/${item.id}.jpg` };
+          if (index % 47 === 6) return { ...item, tmdbId: '777' };
+          if (index % 53 === 7) return { ...item, addedAt: 1_800_000_000 };
+          if (index % 59 === 8) return { ...item, categoryId: '42' };
+          return item;
+        });
+      after.push(
+        // The same TMDB id and year as an unchanged item: joins its title.
+        {
+          id: 9001,
+          name: 'Totally Different Name (2019)',
+          tmdbId: before.find((item) => item.tmdbId && /2019/.test(String(item.name)))!.tmdbId!,
+        },
+        // A year-less version of a title with one year; a key that had no year gets one.
+        { id: 9002, name: String(before[10]!.name).replace(/ \(\d{4}\).*| \d{4}$/, '') },
+        { id: 9003, name: 'Brand New (2024) 4K', categoryId: '3', addedAt: 1_900_000_000 },
+        // A stream id twice.
+        { ...before[20]! },
+      );
+      const make = () => {
+        const db = createNodeSqlDatabase();
+        return { db, library: createSqlLibrary(db, async () => undefined) };
+      };
+      const updated = make();
+      await updated.library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
+      let changedKeys: number | null = null;
+      const second = await updated.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after, {
+        onTimings: (time) => (changedKeys = time.changedKeys),
+      });
+      expect(changedKeys).toBeGreaterThan(0);
+      expect(second.changes!.added + second.changes!.changed + second.changes!.removed).toBeGreaterThan(0);
+      const fresh = make();
+      const whole = await fresh.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
+      expect(await contents(updated.db, updated.library, second.saved)).toEqual(await contents(fresh.db, fresh.library, whole.saved));
+
+      // And back: the titles that were removed come back, the duplicate goes.
+      const third = await updated.library.build('acc', 'movie', '2026-01-03T00:00:00Z', before);
+      const again = make();
+      const original = await again.library.build('acc', 'movie', '2026-01-03T00:00:00Z', before);
+      expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
+    }, 60_000);
+
+    it('keeps the library when nothing changed, and only moves its date', async () => {
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const list = items(300);
+      const first = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', list);
+      const fractions: number[] = [];
+      let changedKeys: number | null = null;
+      const second = await library.build('acc', 'movie', '2026-01-02T00:00:00Z', [...list].reverse(), {
+        onProgress: (fraction) => fractions.push(fraction),
+        onTimings: (time) => (changedKeys = time.changedKeys),
+      });
+      expect(changedKeys).toBe(0);
+      expect(second.changes).toEqual({ added: 0, changed: 0, removed: 0 });
+      expect(second.saved).toEqual({ ...first.saved, builtAt: '2026-01-02T00:00:00Z' });
+      expect((await library.open('acc')).movie).toEqual(second.saved);
+      expect(fractions.at(-1)).toBe(1);
+      // No table of the unfinished build is left.
+      const tables = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'")).map((row) =>
+        String(row[0]),
+      );
+      expect(tables.filter((name) => !name.startsWith(first.saved.table))).toEqual([]);
+    });
+
+    it('reports progress up to the end', async () => {
+      const library = createSqlLibrary(createNodeSqlDatabase(), async () => undefined);
+      const fractions: number[] = [];
+      await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items(200), { onProgress: (fraction) => fractions.push(fraction) });
+      expect(fractions.length).toBeGreaterThan(10);
+      expect(fractions).toEqual([...fractions].sort((a, b) => a - b));
+      expect(fractions.at(-1)).toBe(1);
+    });
+
+    it('makes an order the first time a list asks for it, and answers the same before and after', async () => {
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items(300));
+      const orderTables = async () =>
+        (await db.query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB '${saved.table}_o*'`)).map((row) =>
+          String(row[0]),
+        );
+      expect(await orderTables()).toEqual([]);
+      const query = { sort: 'title', order: 'desc', categoryId: '2', limit: 30, offset: 3 } as const;
+      const sorted = await library.list(saved, query);
+      await vi.waitFor(async () => expect(await orderTables()).toEqual([`${saved.table}_ot1`]));
+      expect(saved.orders).toEqual(['t1']);
+      expect(await library.list(saved, query)).toEqual(sorted);
+      // A later start knows it is made; orders asked for together are all kept.
+      expect((await createSqlLibrary(db, async () => undefined).open('acc')).movie!.orders).toEqual(['t1']);
+      await Promise.all([library.list(saved, { sort: 'title', order: 'asc' }), library.list(saved, { sort: 'released', order: 'desc' })]);
+      await vi.waitFor(() => expect(saved.orders).toHaveLength(3));
+      expect((await createSqlLibrary(db, async () => undefined).open('acc')).movie!.orders).toEqual(['t1', 't0', 'r1']);
+    });
+
+    it('starts from a library whose orders are columns (built before D-134)', async () => {
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const list = items(200);
+      const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', list);
+      // What a build before D-134 left: an order number per title, and no orders in the table of contents.
+      await db.run([
+        { sql: `ALTER TABLE ${saved.table} ADD COLUMN t0 INTEGER` },
+        { sql: `CREATE TABLE o (m INTEGER NOT NULL)` },
+        { sql: `INSERT INTO o (m) SELECT rowid FROM ${saved.table} ORDER BY title, IFNULL(year, -1), id` },
+        { sql: `UPDATE ${saved.table} SET t0 = (SELECT rowid FROM o WHERE m = ${saved.table}.rowid)` },
+        { sql: 'DROP TABLE o' },
+        { sql: 'UPDATE library SET orders = NULL' },
+      ]);
+      const old = (await library.open('acc')).movie!;
+      expect(old.orders).toBeNull();
+      const byTitle = await library.list(old, { sort: 'title', order: 'asc', limit: 500 });
+      expect(byTitle).toEqual(await library.list(saved, { sort: 'title', order: 'asc', limit: 500 }));
+      const next = await library.build('acc', 'movie', '2026-01-02T00:00:00Z', [...list, { id: 5, name: 'New One (2020)' }]);
+      expect(next.changes).toEqual({ added: 1, changed: 0, removed: 0 });
+      expect((await library.list(next.saved, { sort: 'title', order: 'asc', limit: 500 })).total).toBe(byTitle.total + 1);
+    });
   });
 });
