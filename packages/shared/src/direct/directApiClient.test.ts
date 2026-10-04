@@ -220,7 +220,7 @@ describe.each([
     expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
   });
 
-  it('with a database, live channels and the guide wait until the library is updated (D-134)', async () => {
+  it('with a database, live channels and the guide wait until the library is updated (D-135)', async () => {
     if (!useDatabase) return;
     const panel = createFakePanel();
     let release!: () => void;
@@ -277,7 +277,7 @@ describe.each([
     }
   });
 
-  it('native code saves the movie and series lists straight into the database (D-134)', async () => {
+  it('native code saves the movie and series lists straight into the database (D-135)', async () => {
     if (!useDatabase) return;
     const panel = createFakePanel();
     const storages = newStorages();

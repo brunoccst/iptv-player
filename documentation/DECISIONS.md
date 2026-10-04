@@ -2188,6 +2188,21 @@ Decision (`sqlLibrary.ts`, TV, phone and desktop):
 
 ## D-134
 
+**Language prefixes not in the tables yet are dropped too** — 2026-10-03 (asked by owner: "will a language that we haven't registered yet also be grouped?")
+
+Context: a leading group ("FR - ", "|EN| ") was only dropped from a name when it was a known tag (D-107, D-112). "XY - The Matrix (1999)" from a language not in the tables kept "XY" in its name and key, so it stood apart from its other versions unless the provider gave TMDB ids (D-133).
+
+Decision (shared `parser.ts`, `tags.ts`):
+
+- A leading group of **two or three capitals** before " - " (or "–"), or between pipes ("|XY| "), is dropped from the name even when it is not a known language. It adds no language (the code is unknown), and the title joins its other versions by key and year.
+- Not before ":" or "=" ("CSI: Miami", "E=MC2" stay titles); not in lower or mixed case ("Xy - "); not four letters or more.
+- Acronyms that start real names stay (`KEPT_PREFIX`: UFC, WWE, NBA, NFL, BBC, HBO, CSI, FBI and other sports leagues and channels).
+- Known prefixes work as before and still set the language. Registering a new language in `tags.ts` is still worth it, so its titles show the language.
+- The title rules go to 7, so every library is rebuilt once and every name read again.
+- Tests: parser cases (dropped with " - ", pipes, before a known prefix; kept: KEPT_PREFIX, ":", mixed case, four letters) and a grouping case where "XY - ", "|KZ| ", "FR - " and no prefix make one title.
+
+## D-135
+
 **Library updates: only what changed, lists saved by native code, live channels and guide afterwards** — 2026-10-04 (owner, with a TV log: "Update library" took 5 min for 160k movies and 50k series; owner chose all six proposed changes, "use all the cores" and "keep the items in native code")
 
 Context: the log showed the downloads took about a minute and the grouping four: movies 211 s (saving the items 51 s, grouping 77 s, ids 21 s, orders 53 s), series 48 s, which waited 3 min for movies. The library had been built six minutes earlier and no name was new: the whole catalog was grouped again for nothing. The channel list and the full guide were saved at the same time, through the same database writer and JavaScript thread.

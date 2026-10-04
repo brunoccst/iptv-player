@@ -36,7 +36,7 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
    * Provider lists read on a background thread (D-115); see `ListReader` in @iptv/shared. `guideFromMs` > 0: an XMLTV
    * guide, cut into batches of the programmes that overlap [guideFromMs, guideToMs) (issue #119). `save`
    * ("movie:lib1_r", else empty): a movie or series list saved into that library items table; only its end comes back
-   * (D-134).
+   * (D-135).
    */
   openList(
     url: string,
@@ -49,7 +49,7 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   ): Promise<{ id: number; status: number }>;
   readList(id: number): Promise<ListPiece>;
   closeList(id: number): void;
-  /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another, over every core (D-118, D-134). */
+  /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another, over every core (D-118, D-135). */
   sha1Batch(texts: string): Promise<string>;
   /** The library database (D-121): `[{ sql, rows? }]` as JSON, run in one transaction. */
   dbRun(statements: string): Promise<void>;

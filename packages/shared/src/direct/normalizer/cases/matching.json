@@ -11,6 +11,11 @@
       "groups": 1
     },
     {
+      "name": "a language prefix not in the tables yet still merges (D-134)",
+      "titles": ["XY - The Matrix (1999)", "|KZ| The Matrix (1999) 4K", "FR - The Matrix (1999)", "The Matrix (1999)"],
+      "groups": 1
+    },
+    {
       "name": "spacing and punctuation differences merge",
       "titles": ["Spider-Man: No Way Home (2021)", "Spiderman No Way Home (2021) 4K"],
       "groups": 1

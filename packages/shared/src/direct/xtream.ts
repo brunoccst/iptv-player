@@ -54,7 +54,7 @@ export interface ListReader {
     save?: ListSave,
   ): Promise<{ id: number; status: number }>;
   /**
-   * True when `open` takes `save` (D-134): native code reads each movie or series entry itself and writes it straight
+   * True when `open` takes `save` (D-135): native code reads each movie or series entry itself and writes it straight
    * into the library database's items table, so the list never comes to JavaScript.
    */
   saves?: boolean;
@@ -67,7 +67,7 @@ export interface ListReader {
   close(id: number): void;
 }
 
-/** Where native code saves a list (D-134): a library items table (`sqlLibrary`'s `${table}_r` columns). */
+/** Where native code saves a list (D-135): a library items table (`sqlLibrary`'s `${table}_r` columns). */
 export interface ListSave {
   kind: 'movie' | 'series';
   table: string;
@@ -315,7 +315,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
   };
 
   /**
-   * A movie or series list saved into the library database by native code (D-134): the same messages as `getList`.
+   * A movie or series list saved into the library database by native code (D-135): the same messages as `getList`.
    * Resolves with how many entries were saved and how many have a TMDB id.
    */
   const saveNatively = async (
@@ -509,11 +509,11 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       };
     },
 
-    /** True when `saveList` can save lists straight into the library database (native code, D-134). */
+    /** True when `saveList` can save lists straight into the library database (native code, D-135). */
     savesLists: !!options.listReader?.saves,
 
     /**
-     * The whole movie or series list saved by native code into `table` (a library items table, D-134), never coming
+     * The whole movie or series list saved by native code into `table` (a library items table, D-135), never coming
      * to JavaScript; only when `savesLists`.
      */
     async saveList(kind: ListSave['kind'], table: string, signal?: AbortSignal): Promise<{ saved: number; tmdb: number }> {

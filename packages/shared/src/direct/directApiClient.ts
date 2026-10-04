@@ -420,7 +420,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
       // "Update library" also refreshes the categories (D-125), and the saved channel list once the library is done
-      // (D-123, D-134): saving 20k+ channels and the full guide at the same time slowed the library down.
+      // (D-123, D-135): saving 20k+ channels and the full guide at the same time slowed the library down.
       for (const key of [...cache.keys()]) if (key.startsWith(`categories:${accountId}:`)) cache.delete(key);
       void catalogDb?.forget(accountId, 'categories:').catch(() => undefined);
       const current = () => credentials?.account.id === accountId;
@@ -443,7 +443,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
       const database = sqlLibrary;
       if (database) {
-        // The database groups each kind as soon as its list is in, both at once (D-134): their steps take turns, so
+        // The database groups each kind as soon as its list is in, both at once (D-135): their steps take turns, so
         // series, usually far fewer, no longer wait for 100k movies. With native code the list is saved while it
         // downloads and never comes to JavaScript.
         const build = async (kind: LibraryKind): Promise<void> => {
@@ -831,7 +831,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     refreshing: Promise<void> | null;
   } = { accountId: null, saved: null, opening: null, refreshing: null };
 
-  /** A library update running now; the channel list and the guide wait for it, so they do not slow it down (D-134). */
+  /** A library update running now; the channel list and the guide wait for it, so they do not slow it down (D-135). */
   const afterLibrary = () => (library.running ?? Promise.resolve()).catch(() => undefined);
 
   /**

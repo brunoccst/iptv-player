@@ -48,7 +48,7 @@ export const appContext = createAppContext({
   config: appConfig,
   storage: secureStorage,
   // Lists are read by native code on another thread (D-115): in JavaScript it took minutes on a Chromecast. Movie and
-  // series lists go from the download straight into the library database (D-134).
+  // series lists go from the download straight into the library database (D-135).
   direct: {
     dataStorage,
     userAgent: providerUserAgent,

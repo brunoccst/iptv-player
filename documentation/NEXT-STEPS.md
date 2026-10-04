@@ -54,6 +54,7 @@ flowchart LR
 - [x] **Play the next episode** (issue #133, D-131): once the last episode watched is finished, a series' Play button starts the next one not watched yet (a new one, say): "Play S1:E5".
 - [x] **Mark a season as watched** (issue #132, D-132): a "Watched" button next to the season choice marks every episode of that season watched or not watched.
 - [x] **Grouping in the database** (issue #134, D-133): the provider's lists are saved as they come and grouped by queries (same key and year, or same TMDB id and year); only new names are read. Similar spellings no longer join.
+- [x] **Unknown language prefixes** (D-134): "XY - Title" or "|XY| Title" from a language not registered yet groups with the title's other versions; acronyms such as "UFC - " or "BBC - " stay in the name.
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.

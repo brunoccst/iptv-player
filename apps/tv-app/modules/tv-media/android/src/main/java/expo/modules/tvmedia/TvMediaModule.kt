@@ -55,7 +55,7 @@ class TvMediaModule : Module() {
     /**
      * Provider lists read on a background thread (D-115): `openList` resolves with `{ id, status }`, `readList` with
      * the next batch of whole entries (then the end), `closeList` stops and frees the download. `save` ("movie:lib1_r",
-     * else empty): the list is saved into that library items table instead, and only its end comes back (D-134).
+     * else empty): the list is saved into that library items table instead, and only its end comes back (D-135).
      */
     AsyncFunction("openList") {
       url: String,

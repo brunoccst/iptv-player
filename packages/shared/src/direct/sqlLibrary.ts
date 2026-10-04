@@ -33,8 +33,8 @@ export interface SqlLibraryKind {
   sorts: LibrarySort[];
   prefixes: string[];
   /**
-   * The orders made so far, each a table of row numbers (`${table}_o<column>`, D-134); null for a library that keeps
-   * them as columns (built before D-134).
+   * The orders made so far, each a table of row numbers (`${table}_o<column>`, D-135); null for a library that keeps
+   * them as columns (built before D-135).
    */
   orders: string[] | null;
 }
@@ -65,7 +65,7 @@ const NEWEST_FIRST = 'added IS NULL, added DESC, title, IFNULL(year, -1), id';
 
 /**
  * The other list orders (D-049): missing values last, then title, year and id. Each is a table of row numbers in that
- * order, made the first time a list asks for it (D-134); libraries built before D-134 keep a number per title instead.
+ * order, made the first time a list asks for it (D-135); libraries built before D-135 keep a number per title instead.
  */
 const ORDERS: Record<string, { column: string; by: string }> = {
   'added|asc': { column: 'a0', by: 'added IS NULL, added, title, IFNULL(year, -1), id' },
@@ -82,7 +82,7 @@ const ORDERS: Record<string, { column: string; by: string }> = {
  *   and `hints` are lists like ",10,11,": the title's categories, its audio and subtitle languages, and the categories
  *   of its versions without a language (the category hint, D-086).
  * - `${t}_c`: title by category, for category pages and Kids profiles.
- * - `${t}_o<column>`: one per order other than newest first, once asked for (D-134).
+ * - `${t}_o<column>`: one per order other than newest first, once asked for (D-135).
  * While building: `_r` (the items as downloaded), `_x`, `_k` (what changed), `_p`, `_y`, `_t`, `_g` (grouping), `_a` and
  * `_e` (the new titles and their ids).
  */
@@ -99,13 +99,13 @@ const mostCommon = (t: string, column: string) =>
   `(SELECT ${column} FROM ${t}_i x WHERE x.g = i.g AND ${column} IS NOT NULL GROUP BY ${column}
     ORDER BY count(*) DESC, max(score) DESC, min(sid) LIMIT 1)`;
 
-/** The columns an item is compared on with the last library's (D-134): what the provider sent, as saved. */
+/** The columns an item is compared on with the last library's (D-135): what the provider sent, as saved. */
 const SAME_ITEM = ['name', 'cat', 'poster', 'rating', 'added', 'released', 'ext', 'tmdb', 'ryear']
   .map((c) => `x.${c} IS r.${c}`)
   .join(' AND ');
 
 /**
- * What changed against the last library `o` (D-134): `${t}_x` pairs each new item with an old one that is the same
+ * What changed against the last library `o` (D-135): `${t}_x` pairs each new item with an old one that is the same
  * (each old and each new item at most once, so repeated stream ids count), and `${t}_k` holds the compact keys of every
  * item that is not paired, old or new. Only titles with those keys can come out different.
  */
@@ -131,7 +131,7 @@ const comparing = (t: string, o: string): string[][] => [
  * The same rules as `groupTitles` (the library in memory).
  *
  * The rules are worked out in a narrow table (`_p`), and the items are written once with their title (`g`). With the
- * last library `o` (D-134), only the items whose compact key changed are grouped again: an item's group depends only on
+ * last library `o` (D-135), only the items whose compact key changed are grouped again: an item's group depends only on
  * the items with its key. The others keep their group and title number; a title whose group gained or lost an item
  * gets a new number above `base` (the last library's highest) and is built again, like every new title.
  */
@@ -208,7 +208,7 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
 
 /**
  * After the ids (`_e`): the titles newest first (the row order), the last library's unchanged titles copied as they
- * were, and the categories. The other orders are made when a list first asks for them (D-134).
+ * were, and the categories. The other orders are made when a list first asks for them (D-135).
  */
 const finishing = (t: string, o: string | null, base: number): string[][] => {
   const built = TITLE_NAMES.split(', ')
@@ -293,7 +293,7 @@ const newTable = () => {
 export interface LibraryBuildOptions {
   /** SHA-1 hex of each text, all at once (TV/phone: native code, D-118); otherwise hashed here. */
   hashIds?(texts: string[]): Promise<string[]>;
-  /** How far the build is, from 0 to 1, over all its steps (D-134). */
+  /** How far the build is, from 0 to 1, over all its steps (D-135). */
   onProgress?(fraction: number): void;
   /** Milliseconds per step, for the Log (D-116). */
   onTimings?(timings: LibraryBuildTimings): void;
@@ -302,12 +302,12 @@ export interface LibraryBuildOptions {
 }
 
 export interface LibraryBuildTimings {
-  /** Saving the provider's items (0 when native code saved them while downloading, D-134). */
+  /** Saving the provider's items (0 when native code saved them while downloading, D-135). */
   items: number;
   /** Reading the names not seen before, and how many. */
   names: number;
   newNames: number;
-  /** Comparing with the last library, and how many compact keys changed (null: nothing to compare with, D-134). */
+  /** Comparing with the last library, and how many compact keys changed (null: nothing to compare with, D-135). */
   compare: number;
   changedKeys: number | null;
   /** The grouping queries. */
@@ -319,19 +319,19 @@ export interface LibraryBuildTimings {
   titles: number;
 }
 
-/** Items native code already saved in a library's items table (`createItems`, D-134). */
+/** Items native code already saved in a library's items table (`createItems`, D-135). */
 export interface SavedItems {
   table: string;
 }
 
-/** Share of the progress bar each part of a build takes (D-134): reading new names, then the queries. */
+/** Share of the progress bar each part of a build takes (D-135): reading new names, then the queries. */
 const PROGRESS_ITEMS = 0.1;
 const PROGRESS_NAMES = 0.4;
 
 /**
  * The library in SQLite (D-121): lists, categories, languages, hidden categories and search are queries, so a start
  * reads nothing but a few rows, and a list reads only its page. Since D-133 the provider's items are saved as they come
- * and grouped into titles by queries; only names not seen before are read (parsed) here. Since D-134 an update groups
+ * and grouped into titles by queries; only names not seen before are read (parsed) here. Since D-135 an update groups
  * again only what changed, and stops early when nothing did. The same answers as the in-memory library
  * (`directApiClient`), except that titles order by their UTF-8 bytes, not UTF-16 units (they differ only between
  * characters outside the BMP and U+E000–U+FFFF).
@@ -345,7 +345,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   const prepare = () =>
     (ready ??= (async () => {
       await db.run([{ sql: META }, { sql: NAMES_TABLE }]);
-      // The orders column came with D-134; libraries from before keep their orders as columns (null).
+      // The orders column came with D-135; libraries from before keep their orders as columns (null).
       const columns = (await db.query('PRAGMA table_info(library)')).map((row) => String(row[1]));
       if (!columns.includes('orders')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN orders TEXT' }]);
       const used = new Set((await db.query('SELECT tbl FROM library')).map((row) => String(row[0])));
@@ -364,7 +364,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
   /** A filter's total is the same for every page and order: counted once per library and filter. */
   const totals = new Map<string, number>();
-  /** Orders being made, per library table and column (D-134). */
+  /** Orders being made, per library table and column (D-135). */
   const makingOrders = new Map<string, Promise<void>>();
 
   /** Runs each step as one call, with a break for the screen after each; `done` after each step. */
@@ -391,7 +391,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     orders: orders === null || orders === undefined ? null : (JSON.parse(String(orders)) as string[]),
   });
 
-  /** A new library's name, with its items table (`${t}_r`) ready for the provider's items (D-134). */
+  /** A new library's name, with its items table (`${t}_r`) ready for the provider's items (D-135). */
   const createItems = async (): Promise<string> => {
     await prepare();
     const t = newTable();
@@ -432,7 +432,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   };
 
   /**
-   * Makes an order's table of row numbers (D-134), once; lists use it from then on. One order at a time, so each
+   * Makes an order's table of row numbers (D-135), once; lists use it from then on. One order at a time, so each
    * writes the full list of made orders into the table of contents.
    */
   let ordersQueue: Promise<void> = Promise.resolve();
@@ -486,7 +486,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
      * Saves the provider's items of a kind (or takes the ones native code saved, `SavedItems`) and groups them into
      * titles (D-133), beside the current library, then switches to it in one step: a start in between still finds the
      * last complete library. Only names not seen before are read, and only titles whose items changed are built again
-     * (D-134); when nothing changed, the current library stays and only its date moves. Also says what changed against
+     * (D-135); when nothing changed, the current library stays and only its date moves. Also says what changed against
      * the last library (D-119).
      */
     async build(
@@ -524,7 +524,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         took('items');
         await readNewNames(t, options, timings, progress(PROGRESS_ITEMS, PROGRESS_NAMES));
         took('names');
-        // The last library is a starting point when its items were saved with the same title rules (D-134).
+        // The last library is a starting point when its items were saved with the same title rules (D-135).
         const previous = last && last.current && !last.packed && (await tableExists(`${last.table}_i`)) ? last.table : null;
         if (previous) {
           await steps(comparing(t, previous));
@@ -611,8 +611,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const sort = query.sort ?? 'added';
       const order = query.order ?? (sort === 'title' ? 'asc' : 'desc');
       const filter = where.length ? ` WHERE ${where.join(' AND ')}` : '';
-      // Newest first is the row order. Another order: its table of row numbers when made (D-134), else sorted here
-      // while it is made; libraries from before D-134 keep it as a column.
+      // Newest first is the row order. Another order: its table of row numbers when made (D-135), else sorted here
+      // while it is made; libraries from before D-135 keep it as a column.
       const wanted = ORDERS[`${sort}|${order}`];
       let from = `${t} a`;
       let orderBy = 'a.rowid';

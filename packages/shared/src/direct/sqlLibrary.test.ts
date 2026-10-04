@@ -256,7 +256,7 @@ describe('library in SQLite (D-121)', () => {
     expect(channelLists()).toBe(1);
   });
 
-  describe('updates only what changed (D-134)', () => {
+  describe('updates only what changed (D-135)', () => {
     type Item = NormalizerItem & { id: number };
     const items = (count: number): Item[] =>
       catalog(count).map((entry, index) => ({
@@ -403,12 +403,12 @@ describe('library in SQLite (D-121)', () => {
       expect((await createSqlLibrary(db, async () => undefined).open('acc')).movie!.orders).toEqual(['t1', 't0', 'r1']);
     });
 
-    it('starts from a library whose orders are columns (built before D-134)', async () => {
+    it('starts from a library whose orders are columns (built before D-135)', async () => {
       const db = createNodeSqlDatabase();
       const library = createSqlLibrary(db, async () => undefined);
       const list = items(200);
       const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', list);
-      // What a build before D-134 left: an order number per title, and no orders in the table of contents.
+      // What a build before D-135 left: an order number per title, and no orders in the table of contents.
       await db.run([
         { sql: `ALTER TABLE ${saved.table} ADD COLUMN t0 INTEGER` },
         { sql: `CREATE TABLE o (m INTEGER NOT NULL)` },

@@ -363,7 +363,7 @@ describe('lists read by native code (D-115)', () => {
     );
   });
 
-  it('has native code save a movie or series list into the library database, with the usual messages (D-134)', async () => {
+  it('has native code save a movie or series list into the library database, with the usual messages (D-135)', async () => {
     const saving = nativeReader([{ kind: 'end', chars: 1234, saved: 3, tmdb: 1 }]);
     const client = createXtreamClient(credentials, { listReader: saving.reader });
     expect(client.savesLists).toBe(true);

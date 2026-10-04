@@ -11,7 +11,7 @@ export function openLibraryDb(file) {
     if (!db) {
       db = new DatabaseSync(file);
       db.exec('PRAGMA journal_mode = WAL');
-      // For big library updates (D-134): safe with WAL (a power cut can lose the last commit, never the database), a
+      // For big library updates (D-135): safe with WAL (a power cut can lose the last commit, never the database), a
       // larger page cache, and helper threads for SQLite's sorts, one per core.
       db.exec('PRAGMA synchronous = NORMAL');
       db.exec('PRAGMA cache_size = -16384');

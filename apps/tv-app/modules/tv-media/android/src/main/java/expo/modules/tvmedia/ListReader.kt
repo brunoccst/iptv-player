@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * kept the one JavaScript thread busy for about two minutes on a Chromecast. At most [READY] batches wait, so memory
  * stays at a few MB whatever the list's size.
  *
- * A movie or series list can instead be saved here (D-134): each batch is read by [ListItems] and written straight into
+ * A movie or series list can instead be saved here (D-135): each batch is read by [ListItems] and written straight into
  * a library items table on this thread, while the next part downloads, and only the counts go to JavaScript. Each list
  * has its own thread, so the lists (and the cores) work side by side.
  */
@@ -23,7 +23,7 @@ internal object ListReader {
   private val lists = ConcurrentHashMap<Int, Reading>()
   private val ids = AtomicInteger(1)
 
-  /** Where a list is saved (D-134): `kind` is "movie" or "series", `table` a library items table (`lib…_r`). */
+  /** Where a list is saved (D-135): `kind` is "movie" or "series", `table` a library items table (`lib…_r`). */
   class Save(val context: Context, val kind: String, val table: String)
 
   /** `"movie:lib123_r"` from JavaScript; empty for a list read in JavaScript. */
@@ -41,7 +41,7 @@ internal object ListReader {
   /**
    * Resolves with `{ id, status }` once the reply's status is known; rejects when the provider cannot be reached.
    * [guideFromMs] > 0: the reply is an XMLTV guide; batches hold the programmes that overlap [guideFromMs, guideToMs)
-   * (issue #119, D-130). [save]: the list is saved, and the one piece is its end with the counts (D-134).
+   * (issue #119, D-130). [save]: the list is saved, and the one piece is its end with the counts (D-135).
    */
   fun open(
     url: String,

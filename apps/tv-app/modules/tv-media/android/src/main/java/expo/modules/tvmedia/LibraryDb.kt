@@ -16,10 +16,10 @@ import java.util.concurrent.Executors
  *
  * - Writes run on one thread and reads on another; with write-ahead logging a list is not held up by an update being
  *   saved. Each call is one transaction, begun and ended on its thread (Android ties transactions to threads).
- * - Settings for big updates (D-134): `synchronous = NORMAL` (safe with write-ahead logging: a power cut can lose the
+ * - Settings for big updates (D-135): `synchronous = NORMAL` (safe with write-ahead logging: a power cut can lose the
  *   last commit, never the database), a larger page cache, and helper threads for SQLite's sorts (indexes, ORDER BY,
  *   GROUP BY), one per core, where the device's SQLite has them.
- * - A movie or series list is saved by its reader's thread ([saveItems], D-134), never through JavaScript.
+ * - A movie or series list is saved by its reader's thread ([saveItems], D-135), never through JavaScript.
  * - Characters outside the BMP (emoji) are written as JSON escapes both ways: Expo hands text across as modified
  *   UTF-8, which would garble them (see [JsonArraySplitter]).
  */
@@ -42,7 +42,7 @@ internal object LibraryDb {
     }
 
   /**
-   * Settings of the connection that writes (D-134). A setting the device's SQLite does not know is skipped: the
+   * Settings of the connection that writes (D-135). A setting the device's SQLite does not know is skipped: the
    * database works without it, only slower.
    */
   private fun configure(database: SQLiteDatabase) {
@@ -69,7 +69,7 @@ internal object LibraryDb {
 
   /**
    * Saves movie or series entries into a library items table (`sqlLibrary.ts`, `_r`) in one transaction, on the
-   * calling thread: the list's reader (D-134). Throws when the database fails; the list then ends with an error.
+   * calling thread: the list's reader (D-135). Throws when the database fails; the list then ends with an error.
    */
   fun saveItems(context: Context, table: String, entries: List<SavedEntry>) {
     if (entries.isEmpty()) return

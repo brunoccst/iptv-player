@@ -7,7 +7,7 @@ import java.util.concurrent.Executors
 /**
  * SHA-1 of many texts at once, for title ids (D-118): in JavaScript on a TV (no JIT) it took about a minute for 110k
  * titles. `texts` are separated by "\n"; the result is their 40-character hex digests, one after another. A large
- * batch is split over every core (D-134).
+ * batch is split over every core (D-135).
  */
 internal object Sha1Batch {
   private const val HEX = "0123456789abcdef"

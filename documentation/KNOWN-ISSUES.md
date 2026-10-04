@@ -300,7 +300,7 @@ In direct mode (D-038) profiles, progress and the library live on each device. C
 
 Title parsing runs in chunks of 500 with a yield between them, but the grouping pass itself runs in one go on the JavaScript thread. On a catalog with tens of thousands of titles the TV can stutter briefly after sign-in and every 24 h. Home shows per-kind progress (downloading, grouping N of M). Movies and series download in parallel; on a phone the download is usually the slow part. The cached library keeps later starts fast.
 
-Update 2026-10-04 ([D-134](./DECISIONS.md#d-134)): with the database (TV, phone, desktop) the grouping is queries, and an update groups only what changed; an unchanged list stops after the comparison. On TV and phone the movie and series lists are read and saved by native code and never reach JavaScript. What still runs on the JavaScript thread: parsing names never seen before, in slices (on a first build, every name: 150k names take minutes on a TV).
+Update 2026-10-04 ([D-135](./DECISIONS.md#d-134)): with the database (TV, phone, desktop) the grouping is queries, and an update groups only what changed; an unchanged list stops after the comparison. On TV and phone the movie and series lists are read and saved by native code and never reach JavaScript. What still runs on the JavaScript thread: parsing names never seen before, in slices (on a first build, every name: 150k names take minutes on a TV).
 
 ## KI-036
 

@@ -342,6 +342,56 @@
       "note": "only a leading prefix group in capitals"
     },
     {
+      "raw": "XY - The Matrix (1999)",
+      "title": "The Matrix",
+      "languages": [],
+      "year": 1999,
+      "note": "a language not in the tables yet: dropped, no language (D-134)"
+    },
+    {
+      "raw": "|KZ| Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": [],
+      "year": 2026,
+      "note": "between pipes too"
+    },
+    {
+      "raw": "XY – FR - Backrooms (2026)",
+      "title": "Backrooms",
+      "languages": ["FRE"],
+      "year": 2026,
+      "note": "then a known prefix"
+    },
+    {
+      "raw": "UFC - 300 Pereira vs Hill (2024)",
+      "title": "UFC - 300 Pereira vs Hill",
+      "year": 2024,
+      "note": "acronyms in KEPT_PREFIX stay"
+    },
+    {
+      "raw": "BBC - Planet Earth (2006)",
+      "title": "BBC - Planet Earth",
+      "year": 2006
+    },
+    {
+      "raw": "CSI: Miami (2002)",
+      "title": "CSI: Miami",
+      "year": 2002,
+      "note": "not before ':'"
+    },
+    {
+      "raw": "Xy - Backrooms (2026)",
+      "title": "Xy - Backrooms",
+      "year": 2026,
+      "note": "only capitals"
+    },
+    {
+      "raw": "ABCD - Backrooms (2026)",
+      "title": "ABCD - Backrooms",
+      "year": 2026,
+      "note": "two or three letters only"
+    },
+    {
       "raw": "PUNJABI - Backrooms (2026)",
       "title": "Backrooms",
       "languages": ["PAN"],
