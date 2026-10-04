@@ -6,6 +6,7 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
+import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -75,6 +76,9 @@ internal object ListReader {
   }
 
   private const val READY = 2
+  /** Bytes that end a field, or stand for a missing one, in a list's fingerprint (D-138). */
+  private const val FIELD_END: Byte = 1
+  private const val MISSING: Byte = 2
   /** Characters of a batch that is not JSON shown in the message. */
   private const val PREVIEW_CHARS = 200
   private const val MAX_REDIRECTS = 5
@@ -144,12 +148,14 @@ internal object ListReader {
     }
 
     /**
-     * A movie or series list saved batch by batch into [Save.table], then `{ kind: "end", chars, saved, tmdb }`; a
-     * reply that is not an array ends as when it is read in JavaScript.
+     * A movie or series list saved batch by batch into [Save.table], then `{ kind: "end", chars, saved, tmdb,
+     * fingerprint }`; a reply that is not an array ends as when it is read in JavaScript. The fingerprint is a SHA-1 of
+     * every saved field in the list's order: the same list as last time needs no comparing (D-138).
      */
     private fun saveList(response: HttpURLConnection, save: Save) {
       var saved = 0
       var tmdb = 0
+      val digest = MessageDigest.getInstance("SHA-1")
       var broken: String? = null
       val entries = ArrayList<SavedEntry>()
       val splitter = JsonArraySplitter(batchChars) { batch ->
@@ -162,6 +168,7 @@ internal object ListReader {
           return@JsonArraySplitter
         }
         LibraryDb.saveItems(save.context, save.table, entries)
+        for (entry in entries) fingerprint(digest, entry)
         saved += entries.size
         tmdb += entries.count { it.tmdbId != null }
       }
@@ -181,11 +188,41 @@ internal object ListReader {
       deliver(
         when (val end = splitter.finish()) {
           is JsonArraySplitter.End.Complete ->
-            mapOf("kind" to "end", "chars" to chars, "saved" to saved.toDouble(), "tmdb" to tmdb.toDouble())
+            mapOf(
+              "kind" to "end",
+              "chars" to chars,
+              "saved" to saved.toDouble(),
+              "tmdb" to tmdb.toDouble(),
+              "fingerprint" to "n1:" + digest.digest().joinToString("") { "%02x".format(it) },
+            )
           is JsonArraySplitter.End.Whole -> mapOf("kind" to "whole", "text" to end.text, "chars" to chars)
           is JsonArraySplitter.End.Incomplete -> mapOf("kind" to "incomplete", "text" to end.preview, "chars" to chars)
         },
       )
+    }
+
+    /** Adds an entry's saved fields to [digest]; a field ends with 1, a missing one is 2 (D-138). */
+    private fun fingerprint(digest: MessageDigest, entry: SavedEntry) {
+      val fields = listOf(
+        entry.streamId,
+        entry.name,
+        entry.categoryId,
+        entry.posterUrl,
+        entry.rating?.toString(),
+        entry.addedAt?.toString(),
+        entry.released?.toString(),
+        entry.containerExtension,
+        entry.tmdbId,
+        entry.releaseYear?.toString(),
+      )
+      for (field in fields) {
+        if (field == null) {
+          digest.update(MISSING)
+        } else {
+          digest.update(field.toByteArray(Charsets.UTF_8))
+          digest.update(FIELD_END)
+        }
+      }
     }
 
     /** XMLTV: whole programmes in the window, in batches, then `{ kind: "end", chars }`. */

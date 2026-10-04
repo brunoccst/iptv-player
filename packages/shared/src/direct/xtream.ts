@@ -67,6 +67,16 @@ export interface ListReader {
   close(id: number): void;
 }
 
+/**
+ * A list native code saved (D-135): how many entries, how many with a TMDB id, and a fingerprint of what was saved
+ * (D-138; null when the native code is older).
+ */
+export interface SavedList {
+  saved: number;
+  tmdb: number;
+  fingerprint: string | null;
+}
+
 /** Where native code saves a list (D-135): a library items table (`sqlLibrary`'s `${table}_r` columns). */
 export interface ListSave {
   kind: 'movie' | 'series';
@@ -76,7 +86,7 @@ export interface ListSave {
 export type ListPiece =
   | { kind: 'batch'; text: string }
   /** With `save`: how many entries were saved, and how many of them have a TMDB id. */
-  | { kind: 'end'; chars: number; saved?: number; tmdb?: number }
+  | { kind: 'end'; chars: number; saved?: number; tmdb?: number; fingerprint?: string }
   | { kind: 'whole'; text: string; chars: number }
   | { kind: 'incomplete'; text: string; chars: number }
   | { kind: 'error'; message: string };
@@ -318,12 +328,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
    * A movie or series list saved into the library database by native code (D-135): the same messages as `getList`.
    * Resolves with how many entries were saved and how many have a TMDB id.
    */
-  const saveNatively = async (
-    reader: ListReader,
-    action: string,
-    save: ListSave,
-    signal?: AbortSignal,
-  ): Promise<{ saved: number; tmdb: number }> => {
+  const saveNatively = async (reader: ListReader, action: string, save: ListSave, signal?: AbortSignal): Promise<SavedList> => {
     const operation = action;
     const started = Date.now();
     const aborted = () => new ApiError(0, 'aborted', 'Request was cancelled.');
@@ -348,6 +353,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       if (piece.kind === 'incomplete' || piece.kind === 'batch') throw notJson(operation, piece.text);
       let saved = 0;
       let tmdb = 0;
+      let fingerprint: string | null = null;
       if (piece.kind === 'whole') {
         // Not an array (an empty reply is an empty list): nothing to save, as `getList` finds no entries in it.
         const text = piece.text.trim();
@@ -361,9 +367,10 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       } else {
         saved = piece.saved ?? 0;
         tmdb = piece.tmdb ?? 0;
+        fingerprint = piece.fingerprint ?? null;
       }
       appLog.info('provider', `${operation}: HTTP ${status}, ${piece.chars} chars, ${saved} entries saved in ${Date.now() - started} ms`);
-      return { saved, tmdb };
+      return { saved, tmdb, fingerprint };
     } finally {
       signal?.removeEventListener('abort', onAbort);
       reader.close(id);
@@ -516,7 +523,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
      * The whole movie or series list saved by native code into `table` (a library items table, D-135), never coming
      * to JavaScript; only when `savesLists`.
      */
-    async saveList(kind: ListSave['kind'], table: string, signal?: AbortSignal): Promise<{ saved: number; tmdb: number }> {
+    async saveList(kind: ListSave['kind'], table: string, signal?: AbortSignal): Promise<SavedList> {
       if (!options.listReader?.saves) throw new Error('Lists cannot be saved here.');
       return saveNatively(options.listReader, kind === 'movie' ? 'get_vod_streams' : 'get_series', { kind, table }, signal);
     },

@@ -364,10 +364,10 @@ describe('lists read by native code (D-115)', () => {
   });
 
   it('has native code save a movie or series list into the library database, with the usual messages (D-135)', async () => {
-    const saving = nativeReader([{ kind: 'end', chars: 1234, saved: 3, tmdb: 1 }]);
+    const saving = nativeReader([{ kind: 'end', chars: 1234, saved: 3, tmdb: 1, fingerprint: 'n1:abc' }]);
     const client = createXtreamClient(credentials, { listReader: saving.reader });
     expect(client.savesLists).toBe(true);
-    expect(await client.saveList('series', 'lib7_r')).toEqual({ saved: 3, tmdb: 1 });
+    expect(await client.saveList('series', 'lib7_r')).toEqual({ saved: 3, tmdb: 1, fingerprint: 'n1:abc' });
     expect(new URL(saving.opened[0]!.url).searchParams.get('action')).toBe('get_series');
     expect(saving.opened[0]!.save).toEqual({ kind: 'series', table: 'lib7_r' });
     expect(saving.closed).toEqual([7]);
@@ -377,6 +377,7 @@ describe('lists read by native code (D-115)', () => {
       expect(await createXtreamClient(credentials, { listReader: whole.reader }).saveList('movie', 'lib7_r')).toEqual({
         saved: 0,
         tmdb: 0,
+        fingerprint: null,
       });
     }
     const save = (native: ReturnType<typeof nativeReader>) =>

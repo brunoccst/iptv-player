@@ -419,6 +419,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
+      // A guide still downloading would share the connection with the lists: it stops, and comes again after the
+      // channel list that follows this update (D-138).
+      guide.stop?.abort();
       // "Update library" also refreshes the categories (D-125), and the saved channel list once the library is done
       // (D-123, D-135): saving 20k+ channels and the full guide at the same time slowed the library down.
       for (const key of [...cache.keys()]) if (key.startsWith(`categories:${accountId}:`)) cache.delete(key);
@@ -455,7 +458,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             if (client.savesLists) {
               table = await database.createItems();
               const savedList = await client.saveList(kind, `${table}_r`);
-              source = { table };
+              source = { table, fingerprint: savedList.fingerprint };
               itemCount = savedList.saved;
               withTmdb = savedList.tmdb;
             } else {
@@ -479,6 +482,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
                   (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor(itemCount * fraction) }),
                 onTimings: (time) => {
                   const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+                  if (time.sameList) {
+                    appLog.info('library', `${kind}: the same list as last time, nothing to compare`);
+                    return;
+                  }
                   appLog.info(
                     'library',
                     `${kind}: ${Array.isArray(source) ? `saved ${itemCount} items in ${s(time.items)}, ` : ''}read ${time.newNames} new names in ` +
@@ -894,8 +901,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     saved: SqlGuide | null;
     opening: Promise<SqlGuide | null> | null;
     refreshing: Promise<void> | null;
+    /** Stops a guide download that is saving into the database (D-138). */
+    stop: AbortController | null;
     memory: { programmes: GuideProgramme[]; builtAt: number } | null;
-  } = { accountId: null, saved: null, opening: null, refreshing: null, memory: null };
+  } = { accountId: null, saved: null, opening: null, refreshing: null, stop: null, memory: null };
 
   /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next day. */
   const refreshGuide = (): Promise<void> => {
@@ -909,16 +918,28 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       const started = Date.now();
       if (sqlGuide) {
         const writer = await sqlGuide.begin(accountId);
+        const stop = (guide.stop = new AbortController());
         let saved: SqlGuide;
         try {
-          await client.guide(window, async (batch) => {
-            await writer.add(batch);
-            await yieldToUi();
-          });
+          await client.guide(
+            window,
+            async (batch) => {
+              await writer.add(batch);
+              await yieldToUi();
+            },
+            stop.signal,
+          );
+          if (stop.signal.aborted) throw new Error('stopped');
           saved = await writer.finish(now().toISOString());
         } catch (error) {
           await writer.abort();
+          if (stop.signal.aborted) {
+            appLog.info('library', 'guide: stopped for the library update; downloaded again after it');
+            return;
+          }
           throw error;
+        } finally {
+          if (guide.stop === stop) guide.stop = null;
         }
         appLog.info('library', `guide: ${saved.count} programmes of the next day saved in ${Date.now() - started} ms`);
         if (credentials?.account.id === accountId) Object.assign(guide, { accountId, saved, opening: Promise.resolve(saved) });
