@@ -489,7 +489,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
                       (time.changedKeys === 0
                         ? 'unchanged'
                         : `grouped in ${s(time.grouping)}, ${time.builtTitles} titles built, ids ${s(time.ids)}, ` +
-                          `titles ${s(time.titles)}`),
+                          `titles ${s(time.titles)}${time.inPlace ? ' (updated in place)' : ''}`),
                   );
                 },
               });
