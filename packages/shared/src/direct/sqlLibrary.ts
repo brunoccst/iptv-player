@@ -37,6 +37,8 @@ export interface SqlLibraryKind {
    * them as columns (built before D-135).
    */
   orders: string[] | null;
+  /** A fingerprint of the provider's list it was built from (D-138): the same list again needs no comparing. */
+  fingerprint: string | null;
 }
 
 /** Rows written per statement batch (one native call). */
@@ -61,7 +63,10 @@ const NAMES = `title_names_${NORMALIZER_RULES}`;
 
 const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
-  count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, orders TEXT, PRIMARY KEY (account, kind))`;
+  count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, orders TEXT, fp TEXT, PRIMARY KEY (account, kind))`;
+
+/** The day each account's movie or series names were last marked as seen (D-138): once a day is enough. */
+const NAMES_SEEN = `CREATE TABLE IF NOT EXISTS names_seen (list TEXT PRIMARY KEY, day INTEGER NOT NULL) WITHOUT ROWID`;
 
 const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL,
   nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
@@ -361,6 +366,42 @@ export const toCard = (master: Master): MasterCard => ({
   variantCount: master.variants.length,
 });
 
+/**
+ * A fingerprint of a list's items as they are saved, in order (D-138): a 64-bit hash of every field and how many items
+ * were saved (desktop and browser; TV and phone make theirs in native code).
+ */
+export function listFingerprint(items: NormalizerItem[]): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  let count = 0;
+  for (const item of items) {
+    const saved = savedItem(item);
+    if (!saved) continue;
+    count++;
+    const text = JSON.stringify([
+      saved.streamId,
+      saved.name,
+      saved.categoryId,
+      saved.posterUrl,
+      saved.rating,
+      saved.addedAt,
+      saved.released,
+      saved.containerExtension,
+      saved.tmdbId,
+      saved.releaseYear,
+    ]);
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 2654435761);
+      h2 = Math.imul(h2 ^ c, 1597334677);
+    }
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  const hex = (h: number) => (h >>> 0).toString(16).padStart(8, '0');
+  return `j1:${hex(h2)}${hex(h1)}:${count}`;
+}
+
 /** Table names from the clock, never the same twice in a run (the library and the channels share them). */
 let lastTable = 0;
 const newTable = () => {
@@ -380,6 +421,8 @@ export interface LibraryBuildOptions {
 }
 
 export interface LibraryBuildTimings {
+  /** The same list as the last library's (its fingerprint, D-138): nothing was read or compared. */
+  sameList: boolean;
   /** Few items changed: the last library was updated in place (D-137). */
   inPlace: boolean;
   /** Saving the provider's items (0 when native code saved them while downloading, D-135). */
@@ -402,6 +445,8 @@ export interface LibraryBuildTimings {
 /** Items native code already saved in a library's items table (`createItems`, D-135). */
 export interface SavedItems {
   table: string;
+  /** A fingerprint of the list (D-138); null when native code does not make one. */
+  fingerprint?: string | null;
 }
 
 /** Share of the progress bar each part of a build takes (D-135): reading new names, then the queries. */
@@ -424,10 +469,11 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
    */
   const prepare = () =>
     (ready ??= (async () => {
-      await db.run([{ sql: META }, { sql: NAMES_TABLE }]);
-      // The orders column came with D-135; libraries from before keep their orders as columns (null).
+      await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }]);
+      // The orders column came with D-135 (libraries from before keep their orders as columns: null), fp with D-138.
       const columns = (await db.query('PRAGMA table_info(library)')).map((row) => String(row[1]));
       if (!columns.includes('orders')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN orders TEXT' }]);
+      if (!columns.includes('fp')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN fp TEXT' }]);
       const used = new Set((await db.query('SELECT tbl FROM library')).map((row) => String(row[0])));
       const orphans = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'"))
         .map((row) => String(row[0]))
@@ -459,8 +505,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   const tableExists = async (name: string) =>
     (await db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", [name])).length > 0;
 
-  const KIND_COLUMNS = 'kind, tbl, built_at, rules, count, sorts, prefixes, orders';
-  const kindOf = ([, table, builtAt, rules, count, sorts, prefixes, orders]: SqlValue[]): SqlLibraryKind => ({
+  const KIND_COLUMNS = 'kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp';
+  const kindOf = ([, table, builtAt, rules, count, sorts, prefixes, orders, fp]: SqlValue[]): SqlLibraryKind => ({
     table: String(table),
     builtAt: String(builtAt),
     current: Number(rules) === NORMALIZER_RULES,
@@ -469,10 +515,9 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     sorts: JSON.parse(String(sorts)) as LibrarySort[],
     prefixes: JSON.parse(String(prefixes)) as string[],
     orders: orders === null || orders === undefined ? null : (JSON.parse(String(orders)) as string[]),
+    fingerprint: textOrNull(fp),
   });
 
-  /** The day each kind's names were last marked as seen (D-137). */
-  const namesSeen = new Map<LibraryKind, number>();
   /** Libraries being built: tables of replaced ones are not dropped meanwhile (D-137). */
   const building = new Set<string>();
   const retiring: string[] = [];
@@ -480,13 +525,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   /**
    * Drops the tables of a replaced library, channel list or guide once the lists still reading them are done (D-137):
    * one table per call, and none while a library is being built, so an update does not wait for a big drop to finish.
-   * A start drops what is left if the app is closed before.
+   * A start drops what is left if the app is closed before. What an update worked out goes at once (`afterMs` 0, D-138):
+   * the update is done without waiting for it.
    */
-  const retire = (t: string) =>
+  const retire = (t: string, afterMs = RETIRE_MS) =>
     setTimeout(() => {
       retiring.push(t);
       void sweep();
-    }, RETIRE_MS);
+    }, afterMs);
   const sweep = async () => {
     if (sweeping) return;
     sweeping = true;
@@ -621,8 +667,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       options: LibraryBuildOptions = {},
     ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges | null }> {
       await prepare();
-      const t = Array.isArray(source) ? await createItems() : source.table;
       const timings: LibraryBuildTimings = {
+        sameList: false,
         inPlace: false,
         items: 0,
         names: 0,
@@ -642,12 +688,28 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const progress = (from: number, to: number) => (fraction: number) => options.onProgress?.(from + (to - from) * fraction);
       const old = (await db.query(`SELECT ${KIND_COLUMNS} FROM library WHERE account = ? AND kind = ?`, [account, kind]))[0];
       const last = old ? kindOf(old) : null;
+      // The same list as the last library's (D-138): nothing to read or compare; the library stays, its date moves.
+      const fingerprint = Array.isArray(source) ? listFingerprint(source) : (source.fingerprint ?? null);
+      if (fingerprint && last?.fingerprint === fingerprint && last.current && !last.packed && (await tableExists(`${last.table}_i`))) {
+        if (!Array.isArray(source)) {
+          building.delete(source.table);
+          retire(source.table, 0);
+        }
+        await markSeen(account, kind, `${last.table}_i`);
+        await db.run([{ sql: 'UPDATE library SET built_at = ? WHERE account = ? AND kind = ?', rows: [[builtAt, account, kind]] }]);
+        timings.sameList = true;
+        timings.changedKeys = 0;
+        options.onProgress?.(1);
+        options.onTimings?.(timings);
+        return { saved: { ...last, builtAt }, changes: { added: 0, changed: 0, removed: 0 } };
+      }
+      const t = Array.isArray(source) ? await createItems() : source.table;
       let count: number;
       let base = 0;
       try {
         if (Array.isArray(source)) await saveItems(t, source, progress(0, PROGRESS_ITEMS));
         took('items');
-        await readNewNames(t, kind, options, timings, progress(PROGRESS_ITEMS, PROGRESS_NAMES));
+        await readNewNames(t, account, kind, options, timings, progress(PROGRESS_ITEMS, PROGRESS_NAMES));
         took('names');
         // The last library is a starting point when its items were saved with the same title rules (D-135).
         const previous = last && last.current && !last.packed && (await tableExists(`${last.table}_i`)) ? last.table : null;
@@ -657,12 +719,15 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
           took('compare');
           if (timings.changedKeys === 0) {
             await db.run([
-              ...drops(t).map((sql) => ({ sql })),
-              { sql: 'UPDATE library SET built_at = ? WHERE account = ? AND kind = ?', rows: [[builtAt, account, kind]] },
+              {
+                sql: 'UPDATE library SET built_at = ?, fp = ? WHERE account = ? AND kind = ?',
+                rows: [[builtAt, fingerprint, account, kind]],
+              },
             ]);
+            retire(t, 0);
             options.onProgress?.(1);
             options.onTimings?.(timings);
-            return { saved: { ...last!, builtAt }, changes: { added: 0, changed: 0, removed: 0 } };
+            return { saved: { ...last!, builtAt, fingerprint }, changes: { added: 0, changed: 0, removed: 0 } };
           }
           base = Number((await db.query(`SELECT IFNULL(MAX(g), 0) FROM ${previous}_i`))[0]?.[0] ?? 0);
         }
@@ -688,7 +753,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         queryProgress((GROUPED_KEYS + rest.length + 1) / total);
         took('ids');
         if (timings.inPlace) {
-          const updated = await updateInPlace(t, last!, account, kind, builtAt, timings.builtTitles);
+          const updated = await updateInPlace(t, last!, account, kind, builtAt, timings.builtTitles, fingerprint);
           took('titles');
           options.onProgress?.(1);
           options.onTimings?.(timings);
@@ -709,13 +774,16 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       await db.run([
         { sql: 'DELETE FROM library WHERE account = ? AND kind = ?', rows: [[account, kind]] },
         {
-          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes, orders) VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]')",
-          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, count, JSON.stringify(sorts)]],
+          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp) VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?)",
+          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, count, JSON.stringify(sorts), fingerprint]],
         },
       ]);
       // Lists still reading the old tables finish first; a start drops them if the app is closed before.
       if (last) retire(last.table);
-      return { saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [], orders: [] }, changes };
+      return {
+        saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [], orders: [], fingerprint },
+        changes,
+      };
     },
 
     /** One page of a list: the same filters and orders as the in-memory library. */
@@ -857,7 +925,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
   /**
    * Swaps the titles worked out in `t` into the last library in one step (D-137), says what changed against it, and drops
-   * what was worked out.
+   * what was worked out in the background (D-138).
    */
   async function updateInPlace(
     t: string,
@@ -866,6 +934,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     kind: LibraryKind,
     builtAt: string,
     built: number,
+    fingerprint: string | null,
   ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges }> {
     const o = last.table;
     const number = async (sql: string) => Number((await db.query(sql))[0]?.[0] ?? 0);
@@ -885,18 +954,16 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     await db.run([
       ...applying(t, o, orders).map((sql) => ({ sql })),
       {
-        sql: 'UPDATE library SET built_at = ?, count = ?, orders = ? WHERE account = ? AND kind = ?',
-        rows: [[builtAt, count, JSON.stringify(orders.map(({ column }) => column)), account, kind]],
+        sql: 'UPDATE library SET built_at = ?, count = ?, orders = ?, fp = ? WHERE account = ? AND kind = ?',
+        rows: [[builtAt, count, JSON.stringify(orders.map(({ column }) => column)), fingerprint, account, kind]],
       },
     ]);
     for (const key of totals.keys()) if (key.startsWith(`${o}|`)) totals.delete(key);
     const sorts = await sortsOf(o);
-    await db.run([
-      ...drops(t).map((sql) => ({ sql })),
-      { sql: 'UPDATE library SET sorts = ? WHERE account = ? AND kind = ?', rows: [[JSON.stringify(sorts), account, kind]] },
-    ]);
+    await db.run([{ sql: 'UPDATE library SET sorts = ? WHERE account = ? AND kind = ?', rows: [[JSON.stringify(sorts), account, kind]] }]);
+    retire(t, 0);
     return {
-      saved: { ...last, builtAt, count, sorts, orders: orders.map(({ column }) => column) },
+      saved: { ...last, builtAt, count, sorts, orders: orders.map(({ column }) => column), fingerprint },
       changes: { added: built - known, changed, removed: Math.max(0, gone - known) },
     };
   }
@@ -914,6 +981,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   /** Reads the names no library had before (in slices, so the screen keeps running) and keeps what they say. */
   async function readNewNames(
     t: string,
+    account: string,
     kind: LibraryKind,
     options: LibraryBuildOptions,
     timings: LibraryBuildTimings,
@@ -964,13 +1032,22 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         sliceStarted = Date.now();
       }
     }
-    // Names seen today stay; names no update has seen for a while go. Once a day per kind is enough (D-137).
-    if (namesSeen.get(kind) === today) return;
+    await markSeen(account, kind, `${t}_r`);
+  }
+
+  /**
+   * Names seen today stay; names no update has seen for a while go. Once a day per account and kind (D-138): `table`
+   * holds the list's names.
+   */
+  async function markSeen(account: string, kind: LibraryKind, table: string) {
+    const today = Math.floor(Date.now() / 86_400_000);
+    const list = `${account}|${kind}`;
+    if (Number((await db.query('SELECT day FROM names_seen WHERE list = ?', [list]))[0]?.[0] ?? -1) === today) return;
     await db.run([
-      { sql: `UPDATE ${NAMES} SET seen = ? WHERE seen < ? AND name IN (SELECT name FROM ${t}_r)`, rows: [[today, today]] },
+      { sql: `UPDATE ${NAMES} SET seen = ? WHERE seen < ? AND name IN (SELECT name FROM ${table})`, rows: [[today, today]] },
       { sql: `DELETE FROM ${NAMES} WHERE seen < ?`, rows: [[today - NAME_KEEP_DAYS]] },
+      { sql: 'INSERT OR REPLACE INTO names_seen (list, day) VALUES (?, ?)', rows: [[list, today]] },
     ]);
-    namesSeen.set(kind, today);
   }
 
   /**

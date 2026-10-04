@@ -2248,3 +2248,18 @@ Decision (`sqlLibrary.ts`):
 - **Names are marked as seen once a day per kind**: a second update the same day skips that pass over every name.
 - The Log says "(updated in place)" after the titles step.
 - Measured on a PC (Node's SQLite, 160k made-up movies, 4 names changed): the update after the download 4.0 s → 1.5 s; grouping and titles 2.6 s → 0.3 s. On the TV that part was 34 s of the 43 s. The download stays: the whole list comes every time.
+
+## D-138
+
+**The same list as last time is known by its fingerprint; leftovers go in the background; a guide download makes way for an update** — 2026-10-04 (owner, with a Chromecast log after D-137: "Update library" with no changes took 72 s; owner chose all three proposed changes)
+
+Context: the 39 s wait was gone (D-137), but an unchanged update still did work after each download: movies 12 s (new names 2.3 s, comparing 5.7 s, about 4 s dropping the 160k downloaded rows), series 7.7 s; right after a start the movies took 23 s (the once-a-day name pass ran again: it was kept in memory). The downloads took 51 s and 59 s instead of 37 s and 46 s because the full TV guide (64 MB) from the start's update was downloading at the same time.
+
+Decision (`sqlLibrary.ts`, `directApiClient.ts`, `xtream.ts`; native `ListReader`):
+
+- **List fingerprints.** While native code saves a movie or series list it also makes a SHA-1 of every saved field, in order (`n1:…`); desktop and the browser make a 64-bit hash of the same fields (`j1:…`). The library keeps the fingerprint of the list it was built from (new `fp` column in the table of contents). An update whose list has the same fingerprint stops at once: nothing is read or compared, the library stays and only its date moves; the Log says "the same list as last time, nothing to compare". A different fingerprint (another order, one field changed, older native code without one) goes through the comparison as before (D-135, D-137), which then keeps the new fingerprint.
+- **What an update worked out is dropped in the background**: the downloaded rows and the comparison tables of an unchanged update, an update in place or the same list, through the same queue as replaced libraries (D-137), so the update is done without waiting for it.
+- **Names are marked as seen once a day per account and kind, kept in the database** (`names_seen`): a restart no longer repeats it.
+- **"Update library" stops a guide still downloading**: the lists get the whole connection, and the guide downloads again after the channel list that follows the update (Log: "guide: stopped for the library update; downloaded again after it").
+- Tests: the same list again (in JavaScript and as saved by native code) is not read and keeps the library; another order or another list is compared and keeps its fingerprint; the native saved table is dropped in the background; a guide download is stopped by an update and downloaded again after it.
+- Expected on the Chromecast for an unchanged update: about a second after each download instead of 8–12 s, and the downloads without the guide beside them (37 s and 46 s in the log). What remains is the download itself.

@@ -56,6 +56,7 @@ flowchart LR
 - [x] **Grouping in the database** (issue #134, D-133): the provider's lists are saved as they come and grouped by queries (same key and year, or same TMDB id and year); only new names are read. Similar spellings no longer join.
 - [x] **Unknown language prefixes** (D-134): "XY - Title" or "|XY| Title" from a language not registered yet groups with the title's other versions; acronyms such as "UFC - " or "BBC - " stay in the name.
 - [x] **Faster library updates** (D-137): an update with few changes updates the library in place instead of copying it, and old tables are no longer dropped while an update runs.
+- [x] **Unchanged lists skip the comparison** (D-138): a list with the same fingerprint as last time needs no reading or comparing; leftovers are dropped in the background, and "Update library" stops a guide download that would share the connection.
 - [x] **Menu focus, Show all, "PL = …", "BL - …"** (requested 2026-09-29, D-112): the avatar menu keeps the D-pad until Back; "Show all" keeps the category box on screen; "PL = Title" is read as Polish; "BL - Title" (Bollywood) drops the prefix without a language.
 - [x] **Automatic subtitles** (issue #103, D-111): with the user's OpenSubtitles API key, a movie or episode without subtitles in a preferred language gets one downloaded and turned on; set up under avatar → App → Automatic subtitles.
 - [x] **Categories shown** (issue #104, D-110): avatar → Profiles → Categories shown hides categories from browsing (bars, lists, Home, Live TV, guide) per profile; search still finds them.

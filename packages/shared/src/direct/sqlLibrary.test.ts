@@ -6,7 +6,7 @@ import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { createDirectApiClient } from './directApiClient';
 import { buildMasters, type NormalizerItem } from './normalizer/pipeline';
 import { packer } from './libraryCodec';
-import { createSqlLibrary, type SqlLibraryKind } from './sqlLibrary';
+import { createSqlLibrary, listFingerprint, type LibraryBuildTimings, type SqlLibraryKind } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
@@ -271,6 +271,12 @@ describe('library in SQLite (D-121)', () => {
         releaseDate: index % 13 === 0 ? `20${10 + (index % 9)}-0${1 + (index % 8)}-1${index % 9}` : null,
       }));
 
+    /** Library tables other than those of `table` (what builds worked out, dropped in the background). */
+    const leftovers = async (db: ReturnType<typeof createNodeSqlDatabase>, table: string) =>
+      (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'"))
+        .map((row) => String(row[0]))
+        .filter((name) => !name.startsWith(table));
+
     /**
      * Every title newest first (without the internal group number; an update in place adds titles at the end, D-137), its
      * versions, and the category pages.
@@ -348,6 +354,7 @@ describe('library in SQLite (D-121)', () => {
       expect(inPlace).toBe(true);
       expect(second.saved.table).toBe(first.saved.table);
       expect(second.saved.orders).toEqual(['n1', 't0']);
+      expect(second.saved.fingerprint).toBe(listFingerprint(after));
       expect(second.changes!.added + second.changes!.changed + second.changes!.removed).toBeGreaterThan(0);
       const fresh = make();
       const whole = await fresh.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
@@ -358,11 +365,8 @@ describe('library in SQLite (D-121)', () => {
       const again = make();
       const original = await again.library.build('acc', 'movie', '2026-01-03T00:00:00Z', before);
       expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
-      // Nothing is left of what the updates worked out.
-      const tables = (await updated.db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'")).map((row) =>
-        String(row[0]),
-      );
-      expect(tables.filter((name) => !name.startsWith(first.saved.table))).toEqual([]);
+      // Nothing is left of what the updates worked out, once it is dropped in the background (D-138).
+      await vi.waitFor(async () => expect(await leftovers(updated.db, first.saved.table)).toEqual([]));
     }, 60_000);
 
     it('builds a new library beside the last one when many items changed (D-137)', async () => {
@@ -394,14 +398,76 @@ describe('library in SQLite (D-121)', () => {
       });
       expect(changedKeys).toBe(0);
       expect(second.changes).toEqual({ added: 0, changed: 0, removed: 0 });
-      expect(second.saved).toEqual({ ...first.saved, builtAt: '2026-01-02T00:00:00Z' });
+      // The list in another order has another fingerprint: it was compared, and the new fingerprint is kept (D-138).
+      expect(second.saved).toEqual({ ...first.saved, builtAt: '2026-01-02T00:00:00Z', fingerprint: listFingerprint([...list].reverse()) });
+      expect(second.saved.fingerprint).not.toBe(first.saved.fingerprint);
       expect((await library.open('acc')).movie).toEqual(second.saved);
       expect(fractions.at(-1)).toBe(1);
       // No table of the unfinished build is left.
-      const tables = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'")).map((row) =>
-        String(row[0]),
+      await vi.waitFor(async () => expect(await leftovers(db, first.saved.table)).toEqual([]));
+    });
+
+    it('knows the same list again by its fingerprint: nothing is read or compared (D-138)', async () => {
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const list = items(300);
+      const first = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', list);
+      expect(first.saved.fingerprint).toBe(listFingerprint(list));
+      let timings: LibraryBuildTimings | null = null;
+      const again = await library.build(
+        'acc',
+        'movie',
+        '2026-01-02T00:00:00Z',
+        list.map((item) => ({ ...item })),
+        {
+          onTimings: (time) => (timings = time),
+        },
       );
-      expect(tables.filter((name) => !name.startsWith(first.saved.table))).toEqual([]);
+      expect(timings).toMatchObject({ sameList: true, newNames: 0, compare: 0, changedKeys: 0 });
+      expect(again.saved).toEqual({ ...first.saved, builtAt: '2026-01-02T00:00:00Z' });
+      expect(again.changes).toEqual({ added: 0, changed: 0, removed: 0 });
+      expect((await library.open('acc')).movie).toEqual(again.saved);
+
+      // Saved by native code with its fingerprint: the same once more, then another list is compared as before.
+      const saveNative = async (fingerprint: string, rows: Item[]) => {
+        const table = await library.createItems();
+        await db.run([
+          {
+            sql: `INSERT INTO ${table}_r (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+            rows: rows.map((item) => [
+              String(item.id),
+              String(item.name),
+              item.categoryId ?? null,
+              null,
+              null,
+              null,
+              null,
+              'mkv',
+              null,
+              null,
+            ]),
+          },
+        ]);
+        return { table, fingerprint };
+      };
+      const native = await library.build('acc', 'movie', '2026-01-03T00:00:00Z', await saveNative('n1:aaa', list.slice(0, 50)));
+      expect(native.saved.fingerprint).toBe('n1:aaa');
+      const unneeded = await saveNative('n1:aaa', list.slice(0, 50));
+      const nativeAgain = await library.build('acc', 'movie', '2026-01-04T00:00:00Z', unneeded, {
+        onTimings: (time) => (timings = time),
+      });
+      expect(timings!.sameList).toBe(true);
+      expect(nativeAgain.saved).toEqual({ ...native.saved, builtAt: '2026-01-04T00:00:00Z' });
+      // The list saved for nothing is dropped in the background.
+      const tablesOf = async (table: string) =>
+        (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB ?", [`${table}*`])).length;
+      await vi.waitFor(async () => expect(await tablesOf(unneeded.table)).toBe(0));
+      const other = await library.build('acc', 'movie', '2026-01-05T00:00:00Z', await saveNative('n1:bbb', list.slice(0, 60)), {
+        onTimings: (time) => (timings = time),
+      });
+      expect(timings!.sameList).toBe(false);
+      expect(other.saved.count).toBeGreaterThan(native.saved.count);
+      expect(other.saved.fingerprint).toBe('n1:bbb');
     });
 
     it('reports progress up to the end', async () => {

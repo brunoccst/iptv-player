@@ -304,6 +304,8 @@ Update 2026-10-04 ([D-135](./DECISIONS.md#d-134)): with the database (TV, phone,
 
 Update 2026-10-04 ([D-137](./DECISIONS.md#d-137)): an update with few changes swaps the changed titles into the library instead of copying it, and old tables are no longer dropped while an update runs. What an update still always does: download both whole lists (the provider has no "changes since"; about 40 s on a Chromecast for 160k movies and 50k series) and compare them with the saved items.
 
+Update 2026-10-04 ([D-138](./DECISIONS.md#d-138)): a list that is the same as last time (by its fingerprint) is no longer compared; the update then takes about as long as the downloads.
+
 ## KI-036
 
 **Direct mode: shorter guide, credentials in stream URLs** — logged 2026-09-24

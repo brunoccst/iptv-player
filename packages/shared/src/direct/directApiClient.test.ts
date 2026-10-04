@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { ApiClient, LibraryListQuery } from '../api/apiClient';
 import type { LibraryStatusProgress } from '../api/types';
 import { createMemoryStorage } from '../stores/storage';
@@ -277,6 +277,47 @@ describe.each([
     }
   });
 
+  it('"Update library" stops a guide still downloading, and downloads it again after the library (D-138)', async () => {
+    if (!useDatabase) return;
+    const panel = createFakePanel();
+    const guides: { aborted: boolean }[] = [];
+    const fetch = (async (url: string, init?: RequestInit) => {
+      if (url.includes('xmltv.php') && guides.length === 0) {
+        // The first guide download hangs until it is stopped.
+        const guide = { aborted: false };
+        guides.push(guide);
+        return new Promise<Response>((_resolve, reject) =>
+          init?.signal?.addEventListener('abort', () => {
+            guide.aborted = true;
+            reject(new DOMException('aborted', 'AbortError'));
+          }),
+        );
+      }
+      if (url.includes('xmltv.php')) guides.push({ aborted: false });
+      return panel.fetch(url, init);
+    }) as typeof globalThis.fetch;
+    const { api } = setup({ ...panel, fetch });
+    await api.auth.login(login);
+    await libraryReady(api);
+    await vi.waitFor(() => expect(guides).toHaveLength(1));
+    const logged = new Set(appLog.entries());
+    await api.library.sync();
+    await vi.waitFor(() => expect(guides[0]!.aborted).toBe(true));
+    await libraryReady(api);
+    await vi.waitFor(() => expect(guides).toHaveLength(2));
+    expect(guides[1]!.aborted).toBe(false);
+    const messages = appLog
+      .entries()
+      .filter((entry) => !logged.has(entry))
+      .map((entry) => entry.message);
+    expect(messages).toContain('guide: stopped for the library update; downloaded again after it');
+    await vi.waitFor(() =>
+      expect(
+        appLog.entries().some((entry) => !logged.has(entry) && /^guide: \d+ programmes of the next day saved/.test(entry.message)),
+      ).toBe(true),
+    );
+  });
+
   it('native code saves the movie and series lists straight into the database (D-135)', async () => {
     if (!useDatabase) return;
     const panel = createFakePanel();
@@ -390,9 +431,9 @@ describe.each([
       .entries()
       .filter((entry) => !logged.has(entry))
       .map((entry) => entry.message);
-    // The database reads only names it has not seen (D-133); in memory, unchanged titles are kept as they were.
+    // The database knows the same list by its fingerprint (D-138); in memory, unchanged titles are kept as they were.
     const reused = useDatabase
-      ? /^movie: saved 3 items in [\d.]+ s, read 0 new names in /
+      ? /^movie: the same list as last time, nothing to compare$/
       : /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/;
     expect(messages.filter((message) => reused.test(message))).toHaveLength(1);
     expect(await restarted.library.list('movies')).toEqual(before);
