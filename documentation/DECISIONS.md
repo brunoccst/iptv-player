@@ -2264,3 +2264,11 @@ Decision (`sqlLibrary.ts`, `directApiClient.ts`, `xtream.ts`; native `ListReader
 - **"Update library" stops a guide still downloading**: the lists get the whole connection, and the guide downloads again after the channel list that follows the update (Log: "guide: stopped for the library update; downloaded again after it").
 - Tests: the same list again (in JavaScript and as saved by native code) is not read and keeps the library; another order or another list is compared and keeps its fingerprint; the native saved table is dropped in the background; a guide download is stopped by an update and downloaded again after it.
 - Expected on the Chromecast for an unchanged update: about a second after each download instead of 8–12 s, and the downloads without the guide beside them (37 s and 46 s in the log). What remains is the download itself.
+
+## D-139
+
+**Desktop Live TV: the page fits the window; the categories and the guide scroll on their own** — 2026-10-04 (requested by owner)
+
+Context: in the desktop app (and the web player), the whole Live TV page scrolled, so the category list and the guide's time header scrolled out of sight. The TV/phone app already keeps the category list and the guide to the screen's height (D-103).
+
+Decision (`LiveTvPage.tsx`, `pages.css`): the Live TV page is as tall as the window. The category list and the guide each fill the rest of its height and scroll on their own; the guide's time header and channel column stay put while it scrolls. The toolbar, banners, programme details and "More channels" stay above or below the guide. Narrow windows (720 px or less) keep the scrolling page with category chips on one line.

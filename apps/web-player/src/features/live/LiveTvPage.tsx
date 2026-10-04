@@ -67,7 +67,7 @@ export function LiveTvPage() {
   };
 
   return (
-    <div className="page">
+    <div className="page page--live">
       <h1 className="page__title">{t('Live TV')}</h1>
       <div className="live">
         <nav className="live__categories" aria-label={t('Channel categories')}>
