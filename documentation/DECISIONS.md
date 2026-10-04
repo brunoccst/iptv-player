@@ -2272,3 +2272,15 @@ Decision (`sqlLibrary.ts`, `directApiClient.ts`, `xtream.ts`; native `ListReader
 Context: in the desktop app (and the web player), the whole Live TV page scrolled, so the category list and the guide's time header scrolled out of sight. The TV/phone app already keeps the category list and the guide to the screen's height (D-103).
 
 Decision (`LiveTvPage.tsx`, `pages.css`): the Live TV page is as tall as the window. The category list and the guide each fill the rest of its height and scroll on their own; the guide's time header and channel column stay put while it scrolls. The toolbar, banners, programme details and "More channels" stay above or below the guide. Narrow windows (720 px or less) keep the scrolling page with category chips on one line.
+
+## D-140
+
+**TV Live TV: the guide scrolls on its own; Down stays in the guide; Up from the toolbar goes to the nav** — 2026-10-04 (requested by owner)
+
+Context: on the TV's Live TV page, the guide made the whole page scroll (the category list already scrolled on its own, D-103). Holding Down in the guide jumped to the category list once it reached the last channel. Up from "Earlier", "Now" or "Later" went to a category scrolled out of sight above them instead of the top bar: Android picks the nearest focusable view above, and those categories were closer than the nav.
+
+Decision (`LiveScreen.tsx`, `TopNav.tsx`, `FocusButton.tsx`):
+
+- The page is as tall as the screen and does not scroll. The category list and the channels each scroll on their own; the toolbar, banners and programme details stay above the guide, and the time header stays put while the channels scroll under it. Scrolling near the last channel loads the next ones; "More channels" is at the end of the list. Phones keep the scrolling page.
+- Down at the last channel (or at "More channels") stays in the guide (`trapFocusDown`).
+- Up from "Earlier", "Now" and "Later" goes to the current page's link in the nav ("Live TV"), via `nextFocusUp`. The nav publishes that link (`useNavFocusTarget`).
