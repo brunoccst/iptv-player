@@ -14,7 +14,11 @@ const master = {
   posterUrl: null,
   rating: 8,
   bestQuality: '4K',
-  variants: [variant('101', '4K · ENG'), variant('102', '1080p', 'mp4'), variant('103', 'CAM', 'mp4')],
+  variants: [
+    { ...variant('101', '4K · ENG'), quality: '4K', audioLanguages: ['ENG'] },
+    { ...variant('102', '1080p', 'mp4'), quality: '1080p' },
+    { ...variant('103', 'CAM', 'mp4'), source: 'CAM' },
+  ],
 };
 
 async function flush() {

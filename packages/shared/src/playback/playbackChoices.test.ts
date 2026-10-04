@@ -11,10 +11,12 @@ import {
   pickTrack,
   trackLabel,
   audioTrackLabels,
+  bestVariant,
   playbackChoices,
   preferredVariant,
   rememberPlayback,
   usesPlaybackChoices,
+  versionLanguages,
 } from './playbackChoices';
 
 const variant = (streamId: string, audioLanguages: string[], quality: string | null) =>
@@ -91,6 +93,41 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(preferredVariant(variants, null)).toBeNull();
   });
 
+  it('mark as best only the highest quality; equally good versions go by language, else none is (D-136)', () => {
+    const sameQuality = [variant('alb', ['ALB'], '1080p'), variant('en', ['ENG'], '1080p')];
+    expect(bestVariant(sameQuality, ['ENG'])?.streamId).toBe('en');
+    expect(bestVariant(sameQuality, ['GER', 'ALB', 'ENG'])?.streamId).toBe('alb');
+    expect(bestVariant(sameQuality, ['GER'])).toBeNull();
+    expect(bestVariant(sameQuality, [])).toBeNull();
+    // A better quality is the best, whatever its language.
+    const better = [variant('alb-4k', ['ALB'], '4K'), variant('en', ['ENG'], '1080p')];
+    expect(bestVariant(better, ['ENG'])?.streamId).toBe('alb-4k');
+    // Only the versions sharing the highest quality count.
+    const three = [variant('alb-4k', ['ALB'], '4K'), variant('ger-4k', ['GER'], '4K'), variant('en', ['ENG'], '1080p')];
+    expect(bestVariant(three, ['ENG', 'GER'])?.streamId).toBe('ger-4k');
+    expect(bestVariant(three, ['ENG'])).toBeNull();
+    expect(bestVariant([variant('one', ['ALB'], 'SD')], [])?.streamId).toBe('one');
+  });
+
+  it("order the languages: the profile's, then the app's (D-136)", () => {
+    expect(versionLanguages(['ALB'], 'en')).toEqual(['ALB', 'ENG']);
+    expect(versionLanguages([], 'pt-BR')).toEqual(['POR']);
+    expect(versionLanguages(['GER'], 'de')).toEqual(['GER']);
+    expect(versionLanguages([], 'sh-BA')).toEqual(['EXYU']);
+  });
+
+  it('follow the open profile and the app language (D-136)', async () => {
+    const { stores } = app();
+    await stores.session.getState().restore();
+    setUiLanguage('en');
+    expect(stores.library.getState().versionLanguages).toEqual(['ENG']);
+    setUiLanguage('de');
+    expect(stores.library.getState().versionLanguages).toEqual(['GER']);
+    await stores.profilePrefs.getState().update('p1', { languages: ['ALB'] });
+    expect(stores.library.getState().versionLanguages).toEqual(['ALB', 'GER']);
+    setUiLanguage('en');
+  });
+
   it("a version picked in one title is where the others start; a title's own pick wins", async () => {
     const { stores } = app();
     await stores.session.getState().restore();
@@ -99,7 +136,8 @@ describe('playback choices for every movie and series (D-087)', () => {
       variants: [variant('h-de', ['GER'], '4K'), variant('h-en-hd', ['ENG'], '1080p'), variant('h-en-4k', ['ENG'], '4K')],
     } as MasterDetails;
     const up = { id: 'up', variants: [variant('u-de', ['GER'], '1080p'), variant('u-en', ['ENG'], '1080p')] } as MasterDetails;
-    expect(selectVariant(stores.library.getState(), heat)?.streamId).toBe('h-de');
+    // Two 4K versions: the app's language (English) picks the best one (D-136).
+    expect(selectVariant(stores.library.getState(), heat)?.streamId).toBe('h-en-4k');
 
     chooseVersion(stores, 'heat', heat.variants[2]!);
     expect(playbackChoices(stores).version).toEqual({ languages: ['ENG'], quality: '4K' });
@@ -110,7 +148,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(selectVariant(stores.library.getState(), up)?.streamId).toBe('u-de');
 
     // Another profile has its own choices.
-    const coco = { id: 'coco', variants: [variant('c-de', ['GER'], '4K'), variant('c-en', ['ENG'], '4K')] } as MasterDetails;
+    const coco = { id: 'coco', variants: [variant('c-de', ['GER'], '4K'), variant('c-en', ['ENG'], '1080p')] } as MasterDetails;
     expect(selectVariant(stores.library.getState(), coco)?.streamId).toBe('c-en');
     stores.session.getState().selectProfile('p2');
     expect(selectVariant(stores.library.getState(), coco)?.streamId).toBe('c-de');

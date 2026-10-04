@@ -14,6 +14,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
+  bestVariant,
   chooseVersion,
   episodeInVersion,
   episodeTarget,
@@ -402,8 +403,9 @@ function EpisodeMenu({
   );
 }
 
-/** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first. */
+/** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first; "(best)" only when one is (D-136). */
 function VariantSelect({ master, value }: { master: MasterDetails; value: VariantInfo }) {
+  const best = useLibrary((s) => bestVariant(master.variants, s.versionLanguages));
   if (master.variants.length < 2) return null;
   return (
     <Centered style={styles.variant}>
@@ -411,9 +413,9 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
       <Select
         label={t('Version / Stream Quality')}
         value={value.streamId}
-        options={master.variants.map((variant, index) => ({
+        options={master.variants.map((variant) => ({
           value: variant.streamId,
-          label: `${variant.label}${index === 0 ? ` (${t('best')})` : ''}`,
+          label: `${variant.label}${variant === best ? ` (${t('best')})` : ''}`,
         }))}
         onChange={(streamId) => {
           const picked = master.variants.find((variant) => variant.streamId === streamId);

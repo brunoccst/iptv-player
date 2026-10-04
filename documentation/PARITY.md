@@ -31,7 +31,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click |
 | Player: audio, subtitles, versions, episodes | ✅ | ✅ | ✅ | TV/phone: Audio, Subtitles, Episodes buttons on the player bar (↑/↓ open the bar on TV, D-101, D-102) · web: buttons |
 | Player pauses when the headphones go away (D-092) | ✅ | ✅ | ✅ | TV: Bluetooth headphones · phone: wired or Bluetooth · desktop: an output device removed |
-| Last picked subtitles, audio and version are every title's default (D-087) | ✅ | ✅ | ✅ | matched by language (versions: same quality first), per profile |
+| Last picked subtitles, audio and version are every title's default (D-087) | ✅ | ✅ | ✅ | matched by language (versions: same quality first), per profile; with none, the best version: highest quality, then the profile's or app's language (D-136) |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log |
 | Category chips on one line with Show all / Show less; expanded, a full-width box that scrolls on its own (D-085, D-091) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) |
 | Focused item kept in the middle of the screen (D-094) | ✅ | ➖ | ➖ | TV only: phones and computers scroll by touch, wheel or keyboard |

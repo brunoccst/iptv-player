@@ -2219,3 +2219,16 @@ Decision (`sqlLibrary.ts`, `directApiClient.ts`, `xtream.ts`; native `ListItems`
 - **Progress runs to the end.** The bar covers every step (names, then each query step), not only reading names, so it no longer stops at 80 %. The Log lists the comparison and how many titles were built.
 - The table of contents gets an `orders` column (added to older databases at start).
 - Measured on a PC (Node's SQLite, 160k made-up movies): daily update with 0.5 % changed 8.2 s → 3.7 s, unchanged 8.4 s → 1.5 s, first build 13.4 s → 11.4 s. On the TV the saving (51 s in the log) now happens during the download, and an unchanged list skips the grouping.
+
+## D-136
+
+**"(best)" only for the highest quality; equally good versions go by language** — 2026-10-04 (issue #141: "When an item has two versions like ALB and EN, the first one gets the \"(best)\" tag")
+
+Context: versions are listed best first (quality, then stream id), and the version picker tagged the first one "(best)". With versions of the same quality ("1080p · ALB", "1080p · ENG"), the stream id decided, so Albanian was "best" and played by default for an English speaker.
+
+Decision (shared `bestVariant` and `versionLanguages`, the library store's `versionLanguages`; TV, phone, web and desktop):
+
+- **The best version is the one with the highest quality** (quality, source and HDR, as the version order). The list keeps its order.
+- **When several share the highest quality**, quality says nothing: the best is the first of them with audio in one of the profile's languages (the content language filter, D-063), then in the app's language (D-084: English → ENG, Portuguese → POR, German → GER, Serbo-Croatian → EXYU). None of them in those languages: no version is tagged "(best)".
+- A title starts with the version picked for it, else the profile's last version choice (D-087), else this best version, else the first.
+- Tests: the best among equal and unequal qualities, by language order, none; the languages follow the profile and the app language; the TV details screen tags the English one of two 1080p versions.
