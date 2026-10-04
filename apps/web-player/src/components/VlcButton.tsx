@@ -1,4 +1,14 @@
-import { appLog, errorMessage, selectActiveProfile, tvPlaybackAttempts, type PlayTarget, t } from '@iptv/shared';
+import {
+  appLog,
+  errorMessage,
+  probeStream,
+  selectActiveProfile,
+  tvPlaybackAttempts,
+  type PlaybackInfoWithAlternates,
+  type PlayTarget,
+  type StreamProbe,
+  t,
+} from '@iptv/shared';
 import { api, stores } from '../appContext';
 import { desktop } from '../desktop';
 import { useSession } from '../hooks/stores';
@@ -42,7 +52,8 @@ export async function openInVlc(target: PlayTarget): Promise<string | null> {
   const [step] = tvPlaybackAttempts(target.kind, target.container);
   if (!step) return t('This title cannot be played.');
   try {
-    const { url } = await api.playback.get(target.kind, target.streamId, step.container);
+    const playback: PlaybackInfoWithAlternates = await api.playback.get(target.kind, target.streamId, step.container);
+    const url = await answeringUrl([playback.url, ...(playback.alternateUrls ?? [])]);
     const title = target.kind === 'episode' && target.subtitle ? `${target.title} · ${target.subtitle}` : target.title;
     const result = await desktop.openInVlc(url, title);
     appLog.info('player', `VLC (${result}): ${target.kind} ${target.streamId}`);
@@ -51,4 +62,23 @@ export async function openInVlc(target: PlayTarget): Promise<string | null> {
     appLog.warn('player', `VLC failed: ${errorMessage(error)}`);
     return t('The stream could not be opened in VLC.');
   }
+}
+
+/**
+ * VLC gets one address: with a stream server from the login reply (D-038), the first address that answers with a
+ * video or playlist, else the portal's. Without one, no extra request.
+ */
+export async function answeringUrl(urls: string[], probe: (url: string) => Promise<StreamProbe> = probeStream): Promise<string> {
+  if (urls.length <= 1) return urls[0]!;
+  for (const url of urls) {
+    const answer = await probe(url);
+    if (looksLikeMedia(answer)) return url;
+    appLog.info('player', `VLC: skipping ${new URL(url).host}, HTTP ${answer.status}${answer.error ? ` (${answer.error})` : ''}`);
+  }
+  return urls[0]!;
+}
+
+function looksLikeMedia(probe: StreamProbe): boolean {
+  if (probe.error || probe.status < 200 || probe.status >= 300 || probe.length === 0) return false;
+  return probe.text === null || probe.text.startsWith('#EXTM3U');
 }

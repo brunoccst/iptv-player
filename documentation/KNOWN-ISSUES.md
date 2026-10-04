@@ -376,3 +376,5 @@ Fix: the fuzzy pass only compares titles with the same prefix, year and numbers 
 **The desktop app plays only what Chromium plays** — logged 2026-09-26
 
 The desktop app (D-071) uses the web player, so it has the same limits: MKV-only titles, HEVC on some computers, and Dolby Digital/DTS audio do not play (the player says so and suggests another version). The TV app and external players such as VLC play them. A lasting fix would hand such titles to an installed VLC or mpv, or embed libmpv.
+
+Update 2026-10-04: Electron's Chromium plays MKV with H.264/AAC, so the desktop app no longer blames the container when an MKV fails; it asks the provider what it sent (D-074) and logs why each address failed. When a title fails, the error offers **Open in VLC** (D-081).

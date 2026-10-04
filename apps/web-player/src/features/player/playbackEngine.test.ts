@@ -104,6 +104,47 @@ describe('PlaybackEngine', () => {
     expect((error as PlaybackUnavailableError).unsupportedFormat).toBe(true);
   });
 
+  it('does not blame MKV in the desktop app, which plays it: the provider is asked instead (KI-045)', async () => {
+    const { client } = api({ mkv: 'http://r/movie.mkv' });
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      client,
+      fakeHls() as never,
+      true,
+    );
+
+    const error = await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null).catch((e: unknown) => e);
+
+    expect((error as PlaybackUnavailableError).unsupportedFormat).toBe(false);
+    expect((error as Error).message).toMatch(/couldn't be played/);
+  });
+
+  it('tries the stream server from the login reply when the portal address fails, like the TV app (D-038)', async () => {
+    const get = vi.fn(async (_kind: string, _id: string, container?: string | null) => ({
+      url: `http://portal/movie.${container}`,
+      alternateUrls: [`http://streams/movie.${container}`],
+      container: container ?? '',
+      isLive: false,
+      deliveryMode: 'direct',
+    }));
+    const engine = new PlaybackEngine(
+      fakeVideo((url) => url.startsWith('http://streams/')),
+      { playback: { get } } as unknown as ApiClient,
+      fakeHls() as never,
+    );
+
+    await expect(engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null)).resolves.toMatchObject({
+      url: 'http://streams/movie.mp4',
+      engine: 'file',
+    });
+    expect(engine.attempted).toEqual([
+      'http://portal/movie.m3u8',
+      'http://streams/movie.m3u8',
+      'http://portal/movie.mp4',
+      'http://streams/movie.mp4',
+    ]);
+  });
+
   it('remembers the addresses it tried, so the player can ask the provider what it sent (D-074)', async () => {
     const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://r/bad.mp4' });
     const engine = new PlaybackEngine(
