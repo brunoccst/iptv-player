@@ -37,13 +37,15 @@ export function staticFile(root, requestPath) {
 /**
  * Response headers for a request from the app page to another address (the IPTV provider): allowed for the app
  * (CORS), whatever the provider sends. The page is a normal web page, and providers do not send CORS headers.
+ * Any origin (`*`), not the app's: after a redirect to another host (portal → stream server, as most panels do), the
+ * browser sends the request as origin `null`, and only `*` matches that. The page never sends credentials (KI-045).
  */
-export function withCors(responseHeaders, appOrigin) {
+export function withCors(responseHeaders) {
   const headers = {};
   for (const [name, value] of Object.entries(responseHeaders ?? {})) {
     if (!name.toLowerCase().startsWith('access-control-')) headers[name] = value;
   }
-  headers['Access-Control-Allow-Origin'] = [appOrigin];
+  headers['Access-Control-Allow-Origin'] = ['*'];
   headers['Access-Control-Allow-Methods'] = ['GET, HEAD, OPTIONS'];
   headers['Access-Control-Allow-Headers'] = ['*'];
   headers['Access-Control-Expose-Headers'] = ['*'];

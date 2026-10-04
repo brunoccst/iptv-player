@@ -97,7 +97,7 @@ function prepareSession() {
   });
   session.defaultSession.webRequest.onHeadersReceived(external, (details, callback) => {
     if (isApp(details.url)) return callback({});
-    const answer = { responseHeaders: withCors(details.responseHeaders, appOrigin) };
+    const answer = { responseHeaders: withCors(details.responseHeaders) };
     // Providers do not answer CORS preflights; the page never sends anything that needs one, but just in case.
     if (details.method === 'OPTIONS') answer.statusLine = 'HTTP/1.1 204 No Content';
     callback(answer);

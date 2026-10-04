@@ -28,6 +28,7 @@ Log in to the app with server `http://localhost:8090`, username `demo`, password
 | `/player_api.php?action=get_short_epg&stream_id=&limit=` | Next programmes, base64 titles (like real panels). |
 | `/xmltv.php` | XMLTV guide for now −3 h … +24 h. Channel ids lower-cased (catalog has `KIDS.test`) to exercise case-insensitive matching. |
 | `/movie|series/{u}/{p}/{id}.m3u8` | `302` → `/media/<name>/index.m3u8` (fMP4 HLS). `404` for items with `noHls`. |
+| Stream redirects asked as `localhost:<port>` | Go to `http://127.0.0.1:<port>/…`: another host, like a panel's stream server (KI-045). |
 | `/movie|series/{u}/{p}/{id}.{ext}` | `302` → progressive file. Supports `Range`. |
 | `/live/{u}/{p}/{id}.m3u8` | `302` → sliding 5-segment live playlist (looping media). |
 | `/img/{poster|backdrop|still|logo}/{id}.svg` | Generated artwork. Catalog URLs use the request's host. |

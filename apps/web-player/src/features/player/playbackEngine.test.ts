@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '@iptv/shared';
 import type { DownloadRecord } from '../../offline/types';
-import { PlaybackEngine, PlaybackUnavailableError } from './playbackEngine';
+import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec } from './playbackEngine';
 
 /** Minimal <video>: setting src fires loadedmetadata or error depending on `playable`. */
 function fakeVideo(playable: (url: string) => boolean) {
@@ -175,5 +175,17 @@ describe('PlaybackEngine', () => {
       offline: true,
     });
     expect(get).not.toHaveBeenCalled();
+  });
+});
+
+describe('undecodableVideoCodec (KI-045)', () => {
+  const video = (supported: string[]) =>
+    ({ canPlayType: (type: string) => (supported.some((s) => type.includes(s)) ? 'probably' : '') }) as never;
+
+  it('names HEVC when this computer cannot decode it, and nothing when it can', () => {
+    expect(undecodableVideoCodec(['hevc', 'eac3'], video([]))).toBe('HEVC (H.265)');
+    expect(undecodableVideoCodec(['hevc', 'eac3'], video(['hvc1']))).toBeNull();
+    expect(undecodableVideoCodec(['h264', 'ac3'], video([]))).toBeNull();
+    expect(undecodableVideoCodec(['mpeg2'], video(['hvc1', 'mp4v']))).toBe('MPEG-2');
   });
 });

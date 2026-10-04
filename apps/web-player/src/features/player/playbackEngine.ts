@@ -33,6 +33,22 @@ export class PlaybackUnavailableError extends Error {
   }
 }
 
+/** Video codecs a probe can name, as `canPlayType` asks about them; mpeg2 has no browser decoder at all. */
+const VIDEO_CODEC_TYPES: Record<string, { label: string; type: string | null }> = {
+  hevc: { label: 'HEVC (H.265)', type: 'video/mp4; codecs="hvc1.1.6.L93.B0"' },
+  mpeg4: { label: 'MPEG-4 (Xvid/DivX)', type: 'video/mp4; codecs="mp4v.20.9"' },
+  mpeg2: { label: 'MPEG-2', type: null },
+};
+
+/** The first video codec in `codecs` this computer cannot decode (its display name), else null (KI-045). */
+export function undecodableVideoCodec(codecs: string[], video: Pick<HTMLVideoElement, 'canPlayType'>): string | null {
+  for (const codec of codecs) {
+    const known = VIDEO_CODEC_TYPES[codec];
+    if (known && (!known.type || video.canPlayType(known.type) === '')) return known.label;
+  }
+  return null;
+}
+
 type HlsFactory = Pick<typeof Hls, 'isSupported' | 'Events' | 'ErrorTypes'> & { new (config?: Partial<HlsConfig>): Hls };
 
 const ATTACH_TIMEOUT_MS = 20_000;
@@ -152,7 +168,9 @@ export class PlaybackEngine {
         if (!data.fatal) return;
         if (!loaded) {
           clearTimeout(timer);
-          reject(new Error(`${data.type}: ${data.details}`));
+          // The HTTP status says whether the provider refused (403, 404) or nothing answered (0).
+          const status = data.response ? ` (HTTP ${data.response.code})` : '';
+          reject(new Error(`${data.type}: ${data.details}${status}`));
           return;
         }
         // Standard hls.js recovery: retry network, recover media once or twice, then give up.
@@ -182,7 +200,9 @@ export class PlaybackEngine {
       };
       const onError = () => {
         cleanup();
-        reject(new Error(`Media error ${video.error?.code ?? ''}`.trim()));
+        // Chromium's text tells a refused or broken answer from a codec it cannot decode (KI-045).
+        const detail = video.error?.message ? ` (${video.error.message})` : '';
+        reject(new Error(`Media error ${video.error?.code ?? ''}`.trim() + detail));
       };
       const onAbort = () => {
         cleanup();

@@ -470,6 +470,8 @@
   "This title cannot be played.": "Ovaj naslov se ne može reproducirati.",
   "This title is no longer available.": "Ovaj naslov više nije dostupan.",
   "This title is not available from the provider right now.": "Ovaj naslov trenutno nije dostupan kod provajdera.",
+  "This title uses {codec} video, which this browser can't decode. Pick another version or watch it on the TV app.": "Ovaj naslov koristi {codec} video, koji ovaj preglednik ne može dekodirati. Odaberi drugu verziju ili ga gledaj u aplikaciji za TV.",
+  "This title uses {codec} video, which this computer can't decode. Open it in VLC or pick another version.": "Ovaj naslov koristi {codec} video, koji ovaj računar ne može dekodirati. Otvori ga u VLC-u ili odaberi drugu verziju.",
   "This TV is not connected to a network, so a phone cannot reach it.": "Ovaj TV nije povezan na mrežu, pa ga telefon ne može dosegnuti.",
   "This version is only available as {container}, which this app can't play itself. Open it in VLC or pick another version.": "Ova verzija je dostupna samo kao {container}, što ova aplikacija ne može sama reproducirati. Otvori je u VLC-u ili odaberi drugu verziju.",
   "This version is only available as {container}, which web browsers can't play. Pick another version or watch it on the TV app.": "Ova verzija je dostupna samo kao {container}, što preglednici ne mogu reproducirati. Odaberi drugu verziju ili je gledaj u aplikaciji za TV.",
