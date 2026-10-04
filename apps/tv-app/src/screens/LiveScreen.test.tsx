@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Dimensions, Platform, ScrollView } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 import { navStore } from '../appContext';
 import { setupApp } from '../../test/utils';
+import { TopNav } from '../components/TopNav';
 import { LiveScreen } from './LiveScreen';
 
 const NOW = Date.parse('2026-09-23T12:10:00Z');
@@ -15,6 +16,12 @@ const channel = (id: string, name: string) => ({
   epgChannelId: null,
   hasCatchup: false,
 });
+
+/** The guide page's width, and the height left for the guide under the toolbar (TV and wide screens). */
+async function layoutGuide() {
+  await fireEvent(screen.getByTestId('guide-page'), 'layout', { nativeEvent: { layout: { width: 920, height: 600 } } });
+  await fireEvent(screen.getByTestId('guide-area'), 'layout', { nativeEvent: { layout: { width: 920, height: 400 } } });
+}
 
 async function flush() {
   await act(async () => {
@@ -32,6 +39,7 @@ describe('LiveScreen (guide)', () => {
   it('lays out the grid, describes the focused programme and plays the channel on select (TV)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
+    navStore.getState().goSection('live');
     const requests: URL[] = [];
     backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });
     backend.on('GET', '/api/epg', ({ url }) => {
@@ -59,7 +67,7 @@ describe('LiveScreen (guide)', () => {
 
     await render(<LiveScreen />);
     await flush();
-    await fireEvent(screen.getByTestId('guide-page'), 'layout', { nativeEvent: { layout: { width: 920, height: 300 } } });
+    await layoutGuide();
     await flush();
 
     expect(requests[0]!.searchParams.get('from')).toBe('2026-09-23T12:00:00.000Z');
@@ -107,7 +115,7 @@ describe('LiveScreen (guide)', () => {
 
     await render(<LiveScreen />);
     await flush();
-    await fireEvent(screen.getByTestId('guide-page'), 'layout', { nativeEvent: { layout: { width: 920, height: 300 } } });
+    await layoutGuide();
     await flush();
     expect(screen.queryByTestId('guide-info')).toBeNull();
 
@@ -153,30 +161,62 @@ describe('LiveScreen (guide)', () => {
     expect(screen.getByText('Downloading the TV guide…')).toBeTruthy();
   });
 
-  it('TV: the category list fits the screen, and focusing a category scrolls the page to the top (D-103)', async () => {
+  it('TV: the page fits the screen; the guide scrolls on its own, keeps Down and sends Up to the nav (D-140)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
+    navStore.getState().goSection('live');
+    const requests: URL[] = [];
     backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });
-    backend.on('GET', '/api/epg', ({ url }) => ({
-      body: {
-        status: 'ready',
-        updatedAt: at(0),
-        from: url.searchParams.get('from'),
-        to: at(120),
-        totalChannels: 1,
-        channels: [{ channel: channel('1', 'News HD'), programmes: [] }],
-      },
-    }));
-    const scrollTo = jest.spyOn(ScrollView.prototype as unknown as { scrollTo(): void }, 'scrollTo');
-    await render(<LiveScreen />);
+    backend.on('GET', '/api/epg', ({ url }) => {
+      requests.push(url);
+      return {
+        body: {
+          status: 'ready',
+          updatedAt: at(0),
+          from: url.searchParams.get('from'),
+          to: at(120),
+          totalChannels: 2,
+          // One channel per page: the first, then the second.
+          channels: [
+            url.searchParams.get('offset') && url.searchParams.get('offset') !== '0'
+              ? { channel: channel('2', 'Sports'), programmes: [] }
+              : { channel: channel('1', 'News HD'), programmes: [] },
+          ],
+        },
+      };
+    });
+    await render(
+      <>
+        <TopNav />
+        <LiveScreen />
+      </>,
+    );
+    await flush();
+    await layoutGuide();
     await flush();
 
-    // The list starts 180 px down the page: it may be as tall as the rest of the screen, and scrolls on its own.
-    await fireEvent(screen.getByTestId('live-body'), 'layout', { nativeEvent: { layout: { x: 0, y: 180, width: 1280, height: 900 } } });
-    expect(screen.getByTestId('live-categories')).toHaveStyle({ maxHeight: Dimensions.get('window').height - 180 - 24 });
+    // The page itself does not scroll: the category list and the channels do, each on its own.
+    expect(screen.getByTestId('live-screen').type).not.toBe('RCTScrollView');
+    expect(screen.getByTestId('live-categories')).toBeTruthy();
+    const channels = screen.getByTestId('guide-channels');
+    expect(within(channels).getByLabelText('Watch News HD')).toBeTruthy();
+    expect(within(channels).getByText('More channels (1 of 2)')).toBeTruthy();
+    expect(screen.getByTestId('guide')).toHaveStyle({ height: 400 });
 
-    scrollTo.mockClear();
-    await fireEvent(screen.getByLabelText('All channels'), 'focus');
-    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: true });
+    // Down at the last channel stays in the guide instead of jumping to a category.
+    expect(screen.getByTestId('guide-trap').props.trapFocusDown).toBe(true);
+
+    // Up from Earlier/Now/Later goes to "Live TV" in the nav.
+    // (The test renderer has no native view tags: a view given as the target comes out as null, none as undefined.)
+    expect(screen.getByTestId('guide-earlier').props.nextFocusUp).toBeNull();
+    expect(screen.getByTestId('guide-later').props.nextFocusUp).toBeNull();
+
+    // Scrolling the channels to the end loads the next ones.
+    const before = requests.length;
+    await fireEvent.scroll(channels, {
+      nativeEvent: { layoutMeasurement: { height: 400 }, contentOffset: { y: 0 }, contentSize: { height: 450 } },
+    });
+    await flush();
+    expect(requests.length).toBeGreaterThan(before);
   });
 });

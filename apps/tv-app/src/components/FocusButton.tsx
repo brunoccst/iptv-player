@@ -1,5 +1,5 @@
 import { useState, type ReactNode, useRef } from 'react';
-import { StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, type FocusDestination, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { useCenterFocus, type Measurable } from './CenterScroll';
@@ -21,6 +21,8 @@ interface FocusButtonProps {
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
   onFocus?(): void;
+  /** TV: the view that Up goes to, instead of the nearest one. */
+  nextFocusUp?: FocusDestination;
 }
 
 const TEXT: Record<Variant, string> = { primary: '#000', secondary: colors.strong, accent: colors.strong, ghost: colors.text };
@@ -38,6 +40,7 @@ export function FocusButton({
   accessibilityLabel,
   style,
   onFocus,
+  nextFocusUp,
 }: FocusButtonProps) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.06);
@@ -55,6 +58,7 @@ export function FocusButton({
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       hasTVPreferredFocus={hasTVPreferredFocus}
+      nextFocusUp={nextFocusUp}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TVFocusGuideView, View } from 'react-native';
 import { avatarColor, selectActiveProfile, t } from '@iptv/shared';
 import { navStore } from '../appContext';
@@ -18,6 +18,21 @@ const LINKS: { section: Section; label: () => string }[] = [
   { section: 'mylist', label: () => t('My List') },
   { section: 'downloads', label: () => t('My Downloads') },
 ];
+
+/** The current page's link in the nav, for a page that sends Up there itself (`nextFocusUp`). */
+let navTarget: View | null = null;
+const navTargetListeners = new Set<() => void>();
+function setNavTarget(target: View | null) {
+  if (navTarget === target) return;
+  navTarget = target;
+  navTargetListeners.forEach((listener) => listener());
+}
+const subscribeNavTarget = (listener: () => void) => {
+  navTargetListeners.add(listener);
+  return () => navTargetListeners.delete(listener);
+};
+/** TV: Up from the top of a page lands on the current page's link in the nav, not on whatever is nearest. */
+export const useNavFocusTarget = (): View | undefined => useSyncExternalStore(subscribeNavTarget, () => navTarget) ?? undefined;
 
 /**
  * Top navigation, same as the web `TopNav`: brand, page links, search box, account avatar (opens `AccountMenu`).
@@ -223,8 +238,21 @@ function NavPressable({
   children(focused: boolean): React.ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
+  const self = useRef<View>(null);
+  // The current page's link is where Up from the page goes (useNavFocusTarget). The avatar is "selected" while the
+  // menu is open, but it is not a page link.
+  const pageLink = selected && !plain;
+  useEffect(() => {
+    if (!pageLink) return;
+    const link = self.current;
+    setNavTarget(link);
+    return () => {
+      if (navTarget === link) setNavTarget(null);
+    };
+  }, [pageLink]);
   return (
     <Pressable
+      ref={self}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}

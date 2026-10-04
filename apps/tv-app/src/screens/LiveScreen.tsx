@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   Image,
   Platform,
@@ -6,8 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
+  TVFocusGuideView,
   View,
+  type NativeScrollEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -34,6 +35,7 @@ import { navStore, stores } from '../appContext';
 import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
+import { useNavFocusTarget } from '../components/TopNav';
 import { useCatalog, useNav } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
@@ -74,10 +76,8 @@ export function LiveScreen() {
   const [pages, setPages] = useState(1);
   const [selected, setSelected] = useState<Selection | null>(null);
   const [pageWidth, setPageWidth] = useState(0);
-  // Where the category list starts in the page, to fit it to the screen (D-103).
-  const [listTop, setListTop] = useState(0);
-  const { height: windowHeight } = useWindowDimensions();
-  const page = useRef<ScrollView>(null);
+  // Height left for the guide (time header and channels) under the toolbar and the programme details.
+  const [guideHeight, setGuideHeight] = useState(0);
   const guide = useEpgGuide(stores.epg, { categoryId, from, hours: HOURS }, pages);
   const sizes = useSizes();
   const navH = useNavHeight();
@@ -87,6 +87,8 @@ export function LiveScreen() {
   const compact = useCompact();
   const channelWidth = compact ? 64 : CHANNEL_WIDTH;
   const timelineWidth = Math.max(MIN_TIMELINE, pageWidth - channelWidth);
+  // TV: Up from Earlier/Now/Later goes to the nav, not to a category scrolled out of sight above them.
+  const navUp = useNavFocusTarget();
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories('live');
@@ -103,28 +105,40 @@ export function LiveScreen() {
   const described = selected ?? (Platform.isTV && first ? { channel: first.channel, programme: programmeAt(first.programmes, now) } : null);
   const nowAt = nowFraction(now, from, to);
   const moreChannels = guide.rows.length < guide.totalChannels;
-  const toTop = () => {
-    if (Platform.isTV) page.current?.scrollTo({ y: 0, animated: true });
+  // Near the end of the channels (the page on phones, the guide elsewhere), the next ones load.
+  const loadMoreNearEnd = ({ layoutMeasurement, contentOffset, contentSize }: NativeScrollEvent) => {
+    if (moreChannels && !guide.loading && layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) setPages(pages + 1);
   };
 
-  return (
-    <ScrollView
-      ref={page}
-      style={styles.screen}
-      testID="live-screen"
-      contentContainerStyle={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter, paddingBottom: 60 }}
-      onScroll={(event) => {
-        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        if (moreChannels && !guide.loading && layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) setPages(pages + 1);
-      }}
-      scrollEventThrottle={200}
-    >
+  const rows = guide.rows.map((row, index) => (
+    <GuideRow
+      key={row.channel.id}
+      row={row}
+      from={from}
+      to={to}
+      now={now}
+      width={timelineWidth}
+      preferred={index === 0}
+      compact={compact}
+      // Only this row's selection: moving focus re-renders two rows, not the whole guide.
+      selected={selected?.channel.id === row.channel.id ? selected : null}
+      onSelect={setSelected}
+    />
+  ));
+  const more = moreChannels ? (
+    <FocusButton
+      label={t('More channels ({count} of {totalChannels})', { count: guide.rows.length, totalChannels: guide.totalChannels })}
+      variant="secondary"
+      disabled={guide.loading}
+      style={styles.more}
+      onPress={() => setPages(pages + 1)}
+    />
+  ) : null;
+
+  const content = (
+    <>
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Live TV')}</Text>
-      <View
-        style={[styles.live, compact && styles.liveCompact]}
-        testID="live-body"
-        onLayout={(event) => setListTop(event.nativeEvent.layout.y)}
-      >
+      <View style={[styles.live, compact ? styles.liveCompact : styles.liveFill]} testID="live-body">
         {compact ? (
           // Phones (portrait): the same expandable chips as Movies/Series.
           <ChipBar
@@ -136,18 +150,11 @@ export function LiveScreen() {
             ]}
           />
         ) : (
-          // The list fits the screen and scrolls on its own. Taller than the screen, Android scrolled the whole page to
-          // show it when a category got the focus: its top went under the top bar ("All channels" hidden) and the first
-          // channel was cut in half. The categories sit at the top of the page, so focusing one scrolls the page there
-          // (TV, D-103).
-          <ScrollView
-            style={[styles.categories, listTop > 0 ? { maxHeight: Math.max(200, windowHeight - listTop - 24) } : null]}
-            accessibilityLabel={t('Channel categories')}
-            testID="live-categories"
-          >
-            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} onFocus={toTop} />
+          // The page fits the screen; the list and the guide each scroll on their own (D-103, D-140).
+          <ScrollView style={styles.categories} accessibilityLabel={t('Channel categories')} testID="live-categories">
+            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} />
             {categories.map((c) => (
-              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} onFocus={toTop} />
+              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
             ))}
           </ScrollView>
         )}
@@ -159,14 +166,23 @@ export function LiveScreen() {
               variant="ghost"
               disabled={from - STEP_MS < nowSlot - MIN_BACK_MS}
               onPress={() => setFrom(from - STEP_MS)}
+              nextFocusUp={navUp}
+              testID="guide-earlier"
             />
-            <FocusButton label={t('Now')} variant="secondary" disabled={from === nowSlot} onPress={() => setFrom(nowSlot)} />
+            <FocusButton
+              label={t('Now')}
+              variant="secondary"
+              disabled={from === nowSlot}
+              onPress={() => setFrom(nowSlot)}
+              nextFocusUp={navUp}
+            />
             <FocusButton
               label={`${t('Later')} ▶`}
               variant="ghost"
               disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS}
               onPress={() => setFrom(from + STEP_MS)}
               testID="guide-later"
+              nextFocusUp={navUp}
             />
             <Text style={styles.day}>
               {new Date(from).toLocaleDateString(intlLocale(), { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -183,47 +199,71 @@ export function LiveScreen() {
 
           {guide.loading && guide.rows.length === 0 ? (
             <Loading />
-          ) : pageWidth > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
-              <View style={[styles.guide, { width: channelWidth + timelineWidth }]} testID="guide">
-                <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
-                {guide.rows.map((row, index) => (
-                  <GuideRow
-                    key={row.channel.id}
-                    row={row}
-                    from={from}
-                    to={to}
-                    now={now}
-                    width={timelineWidth}
-                    preferred={index === 0}
-                    compact={compact}
-                    // Only this row's selection: moving focus re-renders two rows, not the whole guide.
-                    selected={selected?.channel.id === row.channel.id ? selected : null}
-                    onSelect={setSelected}
-                  />
-                ))}
-                {nowAt != null ? (
-                  <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
-                ) : null}
-              </View>
-            </ScrollView>
-          ) : null}
-          {moreChannels ? (
-            <FocusButton
-              label={t('More channels ({count} of {totalChannels})', { count: guide.rows.length, totalChannels: guide.totalChannels })}
-              variant="secondary"
-              disabled={guide.loading}
-              style={styles.more}
-              onPress={() => setPages(pages + 1)}
-            />
-          ) : null}
+          ) : compact ? (
+            pageWidth > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
+                <View style={[styles.guide, { width: channelWidth + timelineWidth }]} testID="guide">
+                  <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
+                  {rows}
+                  {nowAt != null ? (
+                    <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
+                  ) : null}
+                </View>
+              </ScrollView>
+            ) : null
+          ) : (
+            // The rest of the screen; the time header stays put while the channels scroll under it.
+            <View style={styles.guideArea} testID="guide-area" onLayout={(e) => setGuideHeight(e.nativeEvent.layout.height)}>
+              {pageWidth > 0 && guideHeight > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
+                  <View style={[styles.guide, { width: channelWidth + timelineWidth, height: guideHeight }]} testID="guide">
+                    <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
+                    {/* TV: Down at the last channel (or "More channels") stays in the guide; Android otherwise jumped
+                        to the nearest category below, on the left. */}
+                    <TVFocusGuideView trapFocusDown={Platform.isTV} style={styles.channels} testID="guide-trap">
+                      <ScrollView
+                        testID="guide-channels"
+                        onScroll={(event) => loadMoreNearEnd(event.nativeEvent)}
+                        scrollEventThrottle={200}
+                      >
+                        {rows}
+                        {more}
+                      </ScrollView>
+                    </TVFocusGuideView>
+                    {nowAt != null ? (
+                      <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
+                    ) : null}
+                  </View>
+                </ScrollView>
+              ) : null}
+            </View>
+          )}
+          {compact ? more : null}
         </View>
       </View>
+    </>
+  );
+
+  const padding = { paddingTop: navH + 24, paddingHorizontal: sizes.gutter };
+  // Phones: the whole page scrolls. Elsewhere it fits the screen and only the category list and the guide scroll.
+  return compact ? (
+    <ScrollView
+      style={styles.screen}
+      testID="live-screen"
+      contentContainerStyle={[padding, { paddingBottom: 60 }]}
+      onScroll={(event) => loadMoreNearEnd(event.nativeEvent)}
+      scrollEventThrottle={200}
+    >
+      {content}
     </ScrollView>
+  ) : (
+    <View style={[styles.screen, padding, { paddingBottom: 24 }]} testID="live-screen">
+      {content}
+    </View>
   );
 }
 
-function CategoryItem({ label, active, onPress, onFocus }: { label: string; active: boolean; onPress(): void; onFocus?(): void }) {
+function CategoryItem({ label, active, onPress }: { label: string; active: boolean; onPress(): void }) {
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -231,10 +271,7 @@ function CategoryItem({ label, active, onPress, onFocus }: { label: string; acti
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      onFocus={() => {
-        setFocused(true);
-        onFocus?.();
-      }}
+      onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       style={[styles.category, active && styles.categoryActive, focused && styles.categoryFocused]}
     >
@@ -423,6 +460,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
   live: { flexDirection: 'row', gap: 24 },
+  liveFill: { flex: 1, minHeight: 0 },
   categories: { width: CATEGORY_WIDTH, flexGrow: 0 },
   liveCompact: { flexDirection: 'column', gap: 12 },
   category: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
@@ -430,7 +468,9 @@ const styles = StyleSheet.create({
   categoryFocused: { borderColor: 'transparent', backgroundColor: focus.fill },
   categoryText: { color: colors.text, fontSize: fonts.body },
   categoryTextActive: { color: colors.strong, fontWeight: '700' },
-  page: { flex: 1, minWidth: 0 },
+  page: { flex: 1, minWidth: 0, minHeight: 0 },
+  guideArea: { flex: 1, minHeight: 0 },
+  channels: { flex: 1, minHeight: 0 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 },
   day: { color: colors.muted, fontSize: fonts.body, marginLeft: 'auto' },
   banner: {
