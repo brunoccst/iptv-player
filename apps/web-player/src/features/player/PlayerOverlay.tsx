@@ -34,6 +34,7 @@ import {
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
+import { useVlc } from '../../components/VlcButton';
 import { useNoteRecentChannel, usePlayerTitle, useUi } from '../../hooks/stores';
 import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
@@ -66,6 +67,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [source, setSource] = useState<LoadedSource | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
+  // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (KI-045, D-081).
+  const [unsupportedFormat, setUnsupportedFormat] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -84,6 +87,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [, setTracksVersion] = useState(0);
 
   const isLive = target.kind === 'live';
+  const vlc = useVlc();
 
   // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066); a movie's
   // versions for the in-player selector. Shared with the TV app (D-124).
@@ -115,6 +119,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     const controller = new AbortController();
     setStatus('loading');
     setError(null);
+    setUnsupportedFormat(false);
     setNextDismissed(false);
     setPanel(null);
     // What the provider sent instead of a video (an error page such as "max connections"), in the log and, when
@@ -200,7 +205,9 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         if (controller.signal.aborted) return;
         setError(loadError instanceof Error ? loadError.message : String(loadError));
         setStatus('error');
-        if (!(loadError instanceof PlaybackUnavailableError && loadError.unsupportedFormat)) explain();
+        const unsupported = loadError instanceof PlaybackUnavailableError && loadError.unsupportedFormat;
+        setUnsupportedFormat(unsupported);
+        if (!unsupported) explain();
       },
     );
 
@@ -554,10 +561,33 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       {status === 'error' ? (
         <div className="player__center">
           <div className="player__message" role="alert">
-            <p>{error}</p>
-            <button type="button" className="button button--primary" onClick={close}>
-              {t('Go back')}
-            </button>
+            <p>
+              {unsupportedFormat && vlc
+                ? t(
+                    "This version is only available as {container}, which this app can't play itself. Open it in VLC or pick another version.",
+                    {
+                      container: (target.container ?? '').toUpperCase(),
+                    },
+                  )
+                : error}
+            </p>
+            <div className="player__message-actions">
+              {vlc ? (
+                <button
+                  type="button"
+                  className="button button--primary"
+                  onClick={() => {
+                    vlc(target);
+                    close();
+                  }}
+                >
+                  {t('Open in VLC')}
+                </button>
+              ) : null}
+              <button type="button" className={vlc ? 'button' : 'button button--primary'} onClick={close}>
+                {t('Go back')}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

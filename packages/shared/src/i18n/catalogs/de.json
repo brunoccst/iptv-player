@@ -467,6 +467,7 @@
   "This title is no longer available.": "Dieser Titel ist nicht mehr verfügbar.",
   "This title is not available from the provider right now.": "Dieser Titel ist beim Anbieter gerade nicht verfügbar.",
   "This TV is not connected to a network, so a phone cannot reach it.": "Dieser Fernseher ist mit keinem Netzwerk verbunden, daher kann ihn kein Handy erreichen.",
+  "This version is only available as {container}, which this app can't play itself. Open it in VLC or pick another version.": "Diese Version gibt es nur als {container}, das diese App nicht selbst abspielen kann. Öffne sie in VLC oder wähle eine andere Version.",
   "This version is only available as {container}, which web browsers can't play. Pick another version or watch it on the TV app.": "Diese Version gibt es nur als {container}, das Webbrowser nicht abspielen können. Wähle eine andere Version oder schau sie in der TV-App.",
   "This version is signed with a different key than the installed app, so Android cannot install it over it. Back up your data (account menu → Back up data), uninstall the app, install the new version, then restore the backup.": "Diese Version ist mit einem anderen Schlüssel signiert als die installierte App, daher kann Android sie nicht darüber installieren. Sichere deine Daten (Kontomenü → Daten sichern), deinstalliere die App, installiere die neue Version und stelle dann die Sicherung wieder her.",
   "Titles and categories keep the names your provider gives them.": "Titel und Kategorien behalten die Namen, die dein Anbieter ihnen gibt.",

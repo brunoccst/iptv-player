@@ -879,6 +879,7 @@ Storage on TV: credentials in expo-secure-store; profiles, progress and the libr
 - Library files use a compact array format (`libraryCodec.ts`, about a third of plain JSON, 85 MB before). Old files are deleted, not migrated.
 - Background refresh every 24 h instead of 12 h: grouping a big catalog takes about 2 minutes on a phone.
 - Playback falls back to the stream server named in the login reply (`server_info`) when the portal address fails. Some panels answer API calls on one host and streams on another.
+  Update 2026-10-04: the web player (and so the desktop app) does the same; before, it tried only the portal address, so on such panels every title failed on the computer and played on the TV.
 
 Update 2026-09-28: "My server" and the backend are removed; direct mode is the only mode ([D-088](#d-088)).
 

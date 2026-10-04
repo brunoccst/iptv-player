@@ -471,6 +471,7 @@
   "This title is no longer available.": "Ovaj naslov više nije dostupan.",
   "This title is not available from the provider right now.": "Ovaj naslov trenutno nije dostupan kod provajdera.",
   "This TV is not connected to a network, so a phone cannot reach it.": "Ovaj TV nije povezan na mrežu, pa ga telefon ne može dosegnuti.",
+  "This version is only available as {container}, which this app can't play itself. Open it in VLC or pick another version.": "Ova verzija je dostupna samo kao {container}, što ova aplikacija ne može sama reproducirati. Otvori je u VLC-u ili odaberi drugu verziju.",
   "This version is only available as {container}, which web browsers can't play. Pick another version or watch it on the TV app.": "Ova verzija je dostupna samo kao {container}, što preglednici ne mogu reproducirati. Odaberi drugu verziju ili je gledaj u aplikaciji za TV.",
   "This version is signed with a different key than the installed app, so Android cannot install it over it. Back up your data (account menu → Back up data), uninstall the app, install the new version, then restore the backup.": "Ova verzija je potpisana drugim ključem od instalirane aplikacije, pa je Android ne može instalirati preko nje. Napravi kopiju podataka (meni računa → Napravi kopiju podataka), deinstaliraj aplikaciju, instaliraj novu verziju, pa vrati kopiju.",
   "Titles and categories keep the names your provider gives them.": "Naslovi i kategorije zadržavaju imena koja im daje tvoj provajder.",

@@ -1,5 +1,14 @@
 import Hls, { type HlsConfig } from 'hls.js';
-import { isBrowserNativeContainer, webPlaybackAttempts, type ApiClient, type PlaybackKind, t } from '@iptv/shared';
+import {
+  appLog,
+  isBrowserNativeContainer,
+  webPlaybackAttempts,
+  type ApiClient,
+  type PlaybackInfoWithAlternates,
+  type PlaybackKind,
+  t,
+} from '@iptv/shared';
+import { desktop } from '../../desktop';
 import { offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
 
 export interface EngineSource {
@@ -39,6 +48,8 @@ export class PlaybackEngine {
     private readonly video: HTMLVideoElement,
     private readonly api: ApiClient,
     private readonly HlsClass: HlsFactory = Hls,
+    /** The desktop app's Chromium plays MKV (H.264/AAC), so there a failed MKV is a provider problem (KI-045). */
+    private readonly playsMatroska = !!desktop,
   ) {}
 
   get hls(): Hls | null {
@@ -60,21 +71,36 @@ export class PlaybackEngine {
     const failures: string[] = [];
     for (const attempt of webPlaybackAttempts(source.kind, source.container)) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+      let playback: PlaybackInfoWithAlternates;
       try {
-        const playback = await this.api.playback.get(source.kind, source.streamId, attempt.container, signal);
-        const loaded: LoadedSource = { url: playback.url, engine: attempt.engine, offline: false };
-        this.attempted.push(playback.url);
-        await this.attach(loaded, signal);
-        return loaded;
+        playback = await this.api.playback.get(source.kind, source.streamId, attempt.container, signal);
       } catch (error) {
         if (signal?.aborted) throw error;
         failures.push(`${attempt.container}: ${error instanceof Error ? error.message : String(error)}`);
-        this.detach();
+        continue;
+      }
+      // Some panels answer the API on the portal and serve streams only on the stream server from the login reply:
+      // that address is tried next, like the TV app (D-038).
+      for (const url of [playback.url, ...(playback.alternateUrls ?? [])]) {
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        try {
+          const loaded: LoadedSource = { url, engine: attempt.engine, offline: false };
+          this.attempted.push(url);
+          await this.attach(loaded, signal);
+          return loaded;
+        } catch (error) {
+          if (signal?.aborted) throw error;
+          const where = url === playback.url ? '' : ' (stream server)';
+          failures.push(`${attempt.container}${where}: ${error instanceof Error ? error.message : String(error)}`);
+          this.detach();
+        }
       }
     }
 
     const container = (source.container ?? '').toUpperCase();
-    const unsupported = source.kind !== 'live' && !!source.container && !isBrowserNativeContainer(source.container);
+    const playable = isBrowserNativeContainer(source.container) || (this.playsMatroska && container === 'MKV');
+    const unsupported = source.kind !== 'live' && !!source.container && !playable;
+    appLog.warn('player', `${source.kind} ${source.streamId} did not load: ${failures.join('; ')}`);
     throw new PlaybackUnavailableError(
       unsupported
         ? t(
