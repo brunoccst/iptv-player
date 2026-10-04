@@ -180,12 +180,24 @@ appId: ${APP_ID}
     visible:
       id: "guide-now-301"
     timeout: 60000
-- scrollUntilVisible:
-    element:
-      id: "guide-now-304"
-    direction: DOWN
-    timeout: 20000
+# Only the channels scroll, not the page (D-140): the remote's Down moves through them (focus starts on the first).
+- repeat:
+    while:
+      notVisible:
+        id: "guide-now-304"
+    times: 8
+    commands:
+      - pressKey: Remote Dpad Down
+- assertVisible:
+    id: "guide-now-304"
 - takeScreenshot: 05b-guide
+- repeat:
+    while:
+      notVisible:
+        id: "guide-now-301"
+    times: 8
+    commands:
+      - pressKey: Remote Dpad Up
 - tapOn:
     id: "guide-now-301"
 - extendedWaitUntil:
