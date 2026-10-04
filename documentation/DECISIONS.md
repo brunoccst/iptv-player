@@ -2232,3 +2232,19 @@ Decision (shared `bestVariant` and `versionLanguages`, the library store's `vers
 - **When several share the highest quality**, quality says nothing: the best is the first of them with audio in one of the profile's languages (the content language filter, D-063), then in the app's language (D-084: English → ENG, Portuguese → POR, German → GER, Serbo-Croatian → EXYU). None of them in those languages: no version is tagged "(best)".
 - A title starts with the version picked for it, else the profile's last version choice (D-087), else this best version, else the first.
 - Tests: the best among equal and unequal qualities, by language order, none; the languages follow the profile and the app language; the TV details screen tags the English one of two 1080p versions.
+
+## D-137
+
+**Small library updates change the library in place; old tables are dropped without holding up an update** — 2026-10-04 (owner, with a Chromecast log: "Update library" right after the first build took over two minutes with no new movies or series)
+
+Context: the log showed three parts. The lists only started downloading 39 s after the update began: the database's one writer was dropping the library replaced a minute earlier (the old pre-D-133 library, 111k titles, in one call). The two downloads took 35 s and 43 s (76 and 54 million characters; the provider has no "changes since"). Series were unchanged and took 6 s. Movies had 3 changed names and took 43 s: grouping 20 s and titles 14 s, because an update still copied the whole library (160k items, 96k titles, every category row, sorted again) into new tables, and dropped the old ones a minute later.
+
+Decision (`sqlLibrary.ts`):
+
+- **In place when few items changed.** When at most 20 % of the items are grouped again, the changed groups' items and titles are worked out beside the library (as in D-135), then swapped into the current library in one transaction: their old titles, items and category rows go, the new ones come in. Nothing else is copied, and there is no old library to drop. More changes, a library from before D-135 (orders as columns) or a first build: a new library is built beside it, as before.
+- **Newest first becomes an order table after an update in place.** The new titles are added at the end, so the row order is no longer newest first; that order gets its own table of row numbers (`_on1`), like the other orders (D-135). Every order already made is made again in the same transaction, so a list never reads a stale order.
+- **Items keep the new list's order**, so a title's categories and languages read the same as after a whole build. Tests check updates in place (and back) against a whole new build of the same items, an order made before an update, and the build beside for many changes.
+- **Old tables are dropped one table per call, and not while a library is being built** (also the replaced channel list and guide). An update no longer waits for a whole old library to be dropped; at most for the one table being dropped when it starts.
+- **Names are marked as seen once a day per kind**: a second update the same day skips that pass over every name.
+- The Log says "(updated in place)" after the titles step.
+- Measured on a PC (Node's SQLite, 160k made-up movies, 4 names changed): the update after the download 4.0 s → 1.5 s; grouping and titles 2.6 s → 0.3 s. On the TV that part was 34 s of the 43 s. The download stays: the whole list comes every time.

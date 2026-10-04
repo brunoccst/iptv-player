@@ -271,7 +271,10 @@ describe('library in SQLite (D-121)', () => {
         releaseDate: index % 13 === 0 ? `20${10 + (index % 9)}-0${1 + (index % 8)}-1${index % 9}` : null,
       }));
 
-    /** Every title in row order (without the internal group number), its versions, and the category pages. */
+    /**
+     * Every title newest first (without the internal group number; an update in place adds titles at the end, D-137), its
+     * versions, and the category pages.
+     */
     async function contents(
       db: ReturnType<typeof createNodeSqlDatabase>,
       library: ReturnType<typeof createSqlLibrary>,
@@ -279,9 +282,9 @@ describe('library in SQLite (D-121)', () => {
     ) {
       const t = saved.table;
       const titles = await db.query(
-        `SELECT id, lower, title, nkey, ckey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig FROM ${t} ORDER BY rowid`,
+        `SELECT id, lower, title, nkey, ckey, year, poster, rating, best, n, added, released, ncat, cats, langs, hints, sig FROM ${t} ORDER BY added IS NULL, added DESC, title, IFNULL(year, -1), id`,
       );
-      const categories = await db.query(`SELECT c.cat, a.id FROM ${t}_c c JOIN ${t} a ON a.rowid = c.m ORDER BY c.cat, a.rowid`);
+      const categories = await db.query(`SELECT c.cat, a.id FROM ${t}_c c JOIN ${t} a ON a.rowid = c.m ORDER BY c.cat, a.id`);
       const details = [];
       for (const [id] of titles) details.push(await library.get(saved, String(id)));
       const lists = [];
@@ -332,12 +335,19 @@ describe('library in SQLite (D-121)', () => {
         return { db, library: createSqlLibrary(db, async () => undefined) };
       };
       const updated = make();
-      await updated.library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
+      const first = await updated.library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
+      // An order made before the update is made again with it (D-137).
+      await updated.library.list(first.saved, { sort: 'title', order: 'asc' });
+      await vi.waitFor(() => expect(first.saved.orders).toEqual(['t0']));
       let changedKeys: number | null = null;
+      let inPlace = false;
       const second = await updated.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after, {
-        onTimings: (time) => (changedKeys = time.changedKeys),
+        onTimings: (time) => ({ changedKeys, inPlace } = time),
       });
       expect(changedKeys).toBeGreaterThan(0);
+      expect(inPlace).toBe(true);
+      expect(second.saved.table).toBe(first.saved.table);
+      expect(second.saved.orders).toEqual(['n1', 't0']);
       expect(second.changes!.added + second.changes!.changed + second.changes!.removed).toBeGreaterThan(0);
       const fresh = make();
       const whole = await fresh.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
@@ -348,7 +358,28 @@ describe('library in SQLite (D-121)', () => {
       const again = make();
       const original = await again.library.build('acc', 'movie', '2026-01-03T00:00:00Z', before);
       expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
+      // Nothing is left of what the updates worked out.
+      const tables = (await updated.db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'")).map((row) =>
+        String(row[0]),
+      );
+      expect(tables.filter((name) => !name.startsWith(first.saved.table))).toEqual([]);
     }, 60_000);
+
+    it('builds a new library beside the last one when many items changed (D-137)', async () => {
+      const before = items(600);
+      const after = before.map((item, index) => (index % 3 === 0 ? { ...item, name: `${String(item.name)} Again` } : item));
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const first = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
+      let inPlace: boolean | null = null;
+      const second = await library.build('acc', 'movie', '2026-01-02T00:00:00Z', after, { onTimings: (time) => (inPlace = time.inPlace) });
+      expect(inPlace).toBe(false);
+      expect(second.saved.table).not.toBe(first.saved.table);
+      const fresh = createNodeSqlDatabase();
+      const freshLibrary = createSqlLibrary(fresh, async () => undefined);
+      const whole = await freshLibrary.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
+      expect(await contents(db, library, second.saved)).toEqual(await contents(fresh, freshLibrary, whole.saved));
+    });
 
     it('keeps the library when nothing changed, and only moves its date', async () => {
       const db = createNodeSqlDatabase();

@@ -302,6 +302,8 @@ Title parsing runs in chunks of 500 with a yield between them, but the grouping 
 
 Update 2026-10-04 ([D-135](./DECISIONS.md#d-134)): with the database (TV, phone, desktop) the grouping is queries, and an update groups only what changed; an unchanged list stops after the comparison. On TV and phone the movie and series lists are read and saved by native code and never reach JavaScript. What still runs on the JavaScript thread: parsing names never seen before, in slices (on a first build, every name: 150k names take minutes on a TV).
 
+Update 2026-10-04 ([D-137](./DECISIONS.md#d-137)): an update with few changes swaps the changed titles into the library instead of copying it, and old tables are no longer dropped while an update runs. What an update still always does: download both whole lists (the provider has no "changes since"; about 40 s on a Chromecast for 160k movies and 50k series) and compare them with the saved items.
+
 ## KI-036
 
 **Direct mode: shorter guide, credentials in stream URLs** — logged 2026-09-24
