@@ -54,7 +54,8 @@ class TvMediaModule : Module() {
 
     /**
      * Provider lists read on a background thread (D-115): `openList` resolves with `{ id, status }`, `readList` with
-     * the next batch of whole entries (then the end), `closeList` stops and frees the download.
+     * the next batch of whole entries (then the end), `closeList` stops and frees the download. `save` ("movie:lib1_r",
+     * else empty): the list is saved into that library items table instead, and only its end comes back (D-135).
      */
     AsyncFunction("openList") {
       url: String,
@@ -63,9 +64,11 @@ class TvMediaModule : Module() {
       batchChars: Int,
       guideFromMs: Double,
       guideToMs: Double,
+      save: String,
       promise: Promise,
       ->
-      ListReader.open(url, headers, timeoutMs, batchChars, guideFromMs.toLong(), guideToMs.toLong(), promise)
+      val target = ListReader.save(context, save)
+      ListReader.open(url, headers, timeoutMs, batchChars, guideFromMs.toLong(), guideToMs.toLong(), target, promise)
     }
 
     AsyncFunction("readList") { id: Int, promise: Promise ->

@@ -34,6 +34,7 @@ import {
   createSqlGuide,
   createSqlLibrary,
   createSqlLiveChannels,
+  type SavedItems,
   type SqlDatabase,
   type SqlGuide,
   type SqlLibraryKind,
@@ -418,30 +419,119 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       for (const kind of ['movie', 'series'] as const)
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
-      // "Update library" also refreshes the saved channel list (D-123) and the categories (D-125).
-      if (sqlLive) void refreshLive();
+      // "Update library" also refreshes the categories (D-125), and the saved channel list once the library is done
+      // (D-123, D-135): saving 20k+ channels and the full guide at the same time slowed the library down.
       for (const key of [...cache.keys()]) if (key.startsWith(`categories:${accountId}:`)) cache.delete(key);
       void catalogDb?.forget(accountId, 'categories:').catch(() => undefined);
       const current = () => credentials?.account.id === accountId;
-      // Both lists download at once (the slow part on a phone). Grouping runs one kind at a time (one JS thread), in
-      // the order the lists arrive and the smaller first when both are in: series, usually far fewer, no longer wait
-      // for 100k movies to be grouped (D-093).
       const started = Date.now();
-      const arrived: Partial<Record<LibraryKind, { items?: NormalizerItem[]; error?: unknown; seconds: number }>> = {};
-      const downloads = {
-        movie: client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null, addedAt: unixSeconds(m.addedAt) }))),
-        series: client
-          .series()
-          .then((list) => list.map((s) => ({ ...s, containerExtension: null, addedAt: unixSeconds(s.lastModifiedAt) }))),
+      const seconds = () => Math.round((Date.now() - started) / 1000);
+      const download = (kind: LibraryKind): Promise<NormalizerItem[]> =>
+        kind === 'movie'
+          ? client.movies().then((list) => list.map((m) => ({ ...m, releaseDate: null, addedAt: unixSeconds(m.addedAt) })))
+          : client.series().then((list) => list.map((s) => ({ ...s, containerExtension: null, addedAt: unixSeconds(s.lastModifiedAt) })));
+      const failed = (kind: LibraryKind, error: unknown) => {
+        appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
+        library.status[kind] = {
+          ...library.status[kind],
+          jobStatus: 'failed',
+          stage: null,
+          finishedAt: now().toISOString(),
+          error: error instanceof Error ? error.message : 'Library sync failed.',
+        };
       };
+
+      const database = sqlLibrary;
+      if (database) {
+        // The database groups each kind as soon as its list is in, both at once (D-135): their steps take turns, so
+        // series, usually far fewer, no longer wait for 100k movies. With native code the list is saved while it
+        // downloads and never comes to JavaScript.
+        const build = async (kind: LibraryKind): Promise<void> => {
+          let table: string | null = null;
+          try {
+            let source: NormalizerItem[] | SavedItems;
+            let itemCount: number;
+            let withTmdb: number;
+            if (client.savesLists) {
+              table = await database.createItems();
+              const savedList = await client.saveList(kind, `${table}_r`);
+              source = { table };
+              itemCount = savedList.saved;
+              withTmdb = savedList.tmdb;
+            } else {
+              const items = await download(kind);
+              source = items;
+              itemCount = items.length;
+              withTmdb = items.filter((item) => tmdbId(item)).length;
+            }
+            appLog.info(
+              'library',
+              `${kind}: ${itemCount} items ${table ? 'downloaded and saved' : 'downloaded'} in ${seconds()} s, ${withTmdb} with a TMDB id`,
+            );
+            const groupStarted = Date.now();
+            library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount, parsedCount: 0 };
+            // The database keeps the items and groups them itself; only new names are read here (D-133).
+            saving.add(kind);
+            try {
+              const built = database.build(accountId, kind, queuedAt, source, {
+                hashIds: options.hashIds,
+                onProgress: (fraction) =>
+                  (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor(itemCount * fraction) }),
+                onTimings: (time) => {
+                  const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+                  appLog.info(
+                    'library',
+                    `${kind}: ${Array.isArray(source) ? `saved ${itemCount} items in ${s(time.items)}, ` : ''}read ${time.newNames} new names in ` +
+                      `${s(time.names)}, ` +
+                      (time.changedKeys === null
+                        ? 'nothing to compare with, '
+                        : `compared in ${s(time.compare)} (${time.changedKeys} changed title keys), `) +
+                      (time.changedKeys === 0
+                        ? 'unchanged'
+                        : `grouped in ${s(time.grouping)}, ${time.builtTitles} titles built, ids ${s(time.ids)}, ` +
+                          `titles ${s(time.titles)}`),
+                  );
+                },
+              });
+              table = null; // The build drops its tables if it fails.
+              const { saved, changes } = await built;
+              appLog.info('library', `${kind}: ${saved.count} titles in ${Date.now() - groupStarted} ms`);
+              if (!current()) return;
+              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
+              library.status[kind] = {
+                ...library.status[kind],
+                jobStatus: 'done',
+                stage: null,
+                parsedCount: itemCount,
+                finishedAt: now().toISOString(),
+                changes,
+              };
+            } finally {
+              saving.delete(kind);
+            }
+          } catch (error) {
+            if (table) void database.discard(table);
+            failed(kind, error);
+          }
+        };
+        await Promise.all([build('movie'), build('series')]);
+        if (current()) void refreshLive(false);
+        return;
+      }
+
+      // Without a database, in memory: both lists download at once (the slow part on a phone). Grouping runs one kind
+      // at a time (one JS thread), in the order the lists arrive and the smaller first when both are in: series,
+      // usually far fewer, no longer wait for 100k movies to be grouped (D-093).
+      const arrived: Partial<Record<LibraryKind, { items?: NormalizerItem[]; error?: unknown; seconds: number }>> = {};
+      const downloads = { movie: download('movie'), series: download('series') };
       const settle = (kind: LibraryKind) =>
         downloads[kind].then(
           (items) => {
-            arrived[kind] = { items, seconds: Math.round((Date.now() - started) / 1000) };
+            arrived[kind] = { items, seconds: seconds() };
             if (library.status[kind].stage === 'downloading')
               library.status[kind] = { ...library.status[kind], stage: 'waiting', itemCount: items.length };
           },
-          (error: unknown) => void (arrived[kind] = { error, seconds: Math.round((Date.now() - started) / 1000) }),
+          (error: unknown) => void (arrived[kind] = { error, seconds: seconds() }),
         );
       const settled = { movie: settle('movie'), series: settle('series') };
       const grouping = new Set<LibraryKind>();
@@ -456,39 +546,6 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           );
           const groupStarted = Date.now();
           library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount: items.length, parsedCount: 0 };
-          if (sqlLibrary) {
-            // The database keeps the items and groups them itself; only new names are read here (D-133).
-            saving.add(kind);
-            try {
-              const { saved, changes } = await sqlLibrary.build(accountId, kind, queuedAt, items, {
-                hashIds: options.hashIds,
-                onNames: (done, total) =>
-                  (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor((0.8 * items.length * done) / total) }),
-                onTimings: (time) => {
-                  const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
-                  appLog.info(
-                    'library',
-                    `${kind}: saved ${items.length} items in ${s(time.items)}, read ${time.newNames} new names in ${s(time.names)}, ` +
-                      `grouped in ${s(time.grouping)}, ids ${s(time.ids)}, orders ${s(time.orders)}`,
-                  );
-                },
-              });
-              appLog.info('library', `${kind}: ${saved.count} titles in ${Date.now() - groupStarted} ms`);
-              if (!current()) return;
-              library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
-              library.status[kind] = {
-                ...library.status[kind],
-                jobStatus: 'done',
-                stage: null,
-                parsedCount: items.length,
-                finishedAt: now().toISOString(),
-                changes,
-              };
-            } finally {
-              saving.delete(kind);
-            }
-            return;
-          }
           const before = previous && !previous.sql ? previous[kind] : undefined;
           let reused = '';
           let reusedMasters = 0;
@@ -545,14 +602,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             changes: changesSince(before, masters, reusedMasters),
           };
         } catch (error) {
-          appLog.error('library', `${kind}: sync failed: ${errorMessage(error)}`);
-          library.status[kind] = {
-            ...library.status[kind],
-            jobStatus: 'failed',
-            stage: null,
-            finishedAt: now().toISOString(),
-            error: error instanceof Error ? error.message : 'Library sync failed.',
-          };
+          failed(kind, error);
         }
         await yieldToUi();
       };
@@ -781,10 +831,17 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     refreshing: Promise<void> | null;
   } = { accountId: null, saved: null, opening: null, refreshing: null };
 
-  /** Downloads the whole channel list and saves it in the database (one at a time). */
-  const refreshLive = (): Promise<void> => {
+  /** A library update running now; the channel list and the guide wait for it, so they do not slow it down (D-135). */
+  const afterLibrary = () => (library.running ?? Promise.resolve()).catch(() => undefined);
+
+  /**
+   * Downloads the whole channel list and saves it in the database (one at a time), after a library update that is
+   * running (`waitForLibrary`: false from the end of that update itself).
+   */
+  const refreshLive = (waitForLibrary = true): Promise<void> => {
     if (!sqlLive) return Promise.resolve();
     live.refreshing ??= (async () => {
+      if (waitForLibrary) await afterLibrary();
       const { stored, client } = await session();
       const accountId = stored.account.id;
       const started = Date.now();
@@ -825,7 +882,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const saved = await live.opening;
     if (live.accountId !== accountId) return null;
     const current = live.saved ?? saved;
-    if (!current || now().getTime() - Date.parse(current.builtAt) > LIBRARY_REFRESH_MS) void refreshLive();
+    // A first list is wanted now; a refresh can wait for a library update.
+    if (!current || now().getTime() - Date.parse(current.builtAt) > LIBRARY_REFRESH_MS) void refreshLive(!!current);
     return current;
   };
 
@@ -842,6 +900,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next day. */
   const refreshGuide = (): Promise<void> => {
     guide.refreshing ??= (async () => {
+      // Saved in the database, it waits for a library update (in memory there is nothing to save).
+      if (sqlGuide) await afterLibrary();
       const { stored, client } = await session();
       const accountId = stored.account.id;
       const from = now().getTime();
@@ -940,7 +1000,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     let saved = await savedLive();
     // Every channel, not saved yet: one download fills the database, which then answers (not two downloads).
     if (!saved && !categoryId && sqlLive) {
-      await refreshLive();
+      await refreshLive(false);
       saved = live.saved;
     }
     if (saved && sqlLive) return (await sqlLive.list(saved, { categoryId, search: options.search, limit: options.limit })).channels;

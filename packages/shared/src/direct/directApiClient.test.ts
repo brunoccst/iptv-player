@@ -8,6 +8,8 @@ import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { withUserDatabase } from '../stores/databaseStorage';
 import { createDirectApiClient } from './directApiClient';
 import type { SqlDatabase } from './sqlLibrary';
+import { savedItem, type NormalizerItem } from './normalizer/pipeline';
+import { createXtreamClient, type ListPiece, type ListReader } from './xtream';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
 
@@ -218,6 +220,161 @@ describe.each([
     expect((await api.library.status()).find((item) => item.mediaKind === 'movie')).toMatchObject({ itemCount: 3, parsedCount: 3 });
   });
 
+  it('with a database, live channels and the guide wait until the library is updated (D-135)', async () => {
+    if (!useDatabase) return;
+    const panel = createFakePanel();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const asked: string[] = [];
+    const fetch = (async (url: string, init?: RequestInit) => {
+      asked.push(new URL(url).searchParams.get('action') ?? new URL(url).pathname);
+      if (url.includes('action=get_vod_streams')) await gate;
+      return panel.fetch(url, init);
+    }) as typeof globalThis.fetch;
+    const { api, storages } = setup({ ...panel, fetch });
+    await api.auth.login(login);
+    // A screen asks for live channels while the movies download: a first list is wanted now, not after the library.
+    expect(await api.catalog.liveChannels(null)).toHaveLength(panel.channels.length);
+    const lists = () => asked.filter((action) => action === 'get_live_streams').length;
+    expect(lists()).toBe(1);
+    release();
+    await libraryReady(api);
+    // The update refreshes the saved channels and the guide once the library is done (D-123, issue #119).
+    for (let attempt = 0; attempt < 100 && !asked.includes('/xmltv.php'); attempt++) await new Promise((r) => setTimeout(r, 5));
+    expect(lists()).toBe(2);
+    expect(asked.indexOf('/xmltv.php')).toBeGreaterThan(asked.lastIndexOf('get_vod_streams'));
+
+    // A day later, after a restart: a screen asks for live channels during an update. The saved list answers, and
+    // its refresh waits for the update (once, with the update's own).
+    let hold!: () => void;
+    const held = new Promise<void>((resolve) => (hold = resolve));
+    clockShiftMs = 2 * 24 * 3600_000;
+    try {
+      const before = lists();
+      const { api: restarted } = setup(
+        {
+          ...panel,
+          fetch: (async (url: string, init?: RequestInit) => {
+            asked.push(new URL(url).searchParams.get('action') ?? new URL(url).pathname);
+            if (url.includes('action=get_vod_streams')) await held;
+            return panel.fetch(url, init);
+          }) as typeof globalThis.fetch,
+        },
+        storages,
+      );
+      await restarted.auth.me();
+      await restarted.library.sync();
+      expect(await restarted.catalog.liveChannels(null)).toHaveLength(panel.channels.length);
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(lists()).toBe(before);
+      hold();
+      await libraryReady(restarted);
+      for (let attempt = 0; attempt < 100 && lists() === before; attempt++) await new Promise((r) => setTimeout(r, 5));
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(lists()).toBe(before + 1);
+    } finally {
+      clockShiftMs = 0;
+    }
+  });
+
+  it('native code saves the movie and series lists straight into the database (D-135)', async () => {
+    if (!useDatabase) return;
+    const panel = createFakePanel();
+    const storages = newStorages();
+    const asked: string[] = [];
+    const saves: { kind: string; table: string }[] = [];
+    // A fake native reader: lists it is asked to save go into the items table, as the TV's code does.
+    const pieces = new Map<number, ListPiece[]>();
+    let nextId = 1;
+    const reader: ListReader = {
+      saves: true,
+      open: async (url, _headers, _timeoutMs, _batchChars, _guide, save) => {
+        asked.push(new URL(url).searchParams.get('action') ?? '');
+        const id = nextId++;
+        const text = await (await panel.fetch(url)).text();
+        if (!save) {
+          pieces.set(id, [
+            { kind: 'batch', text: text.slice(1, -1) },
+            { kind: 'end', chars: text.length },
+          ]);
+          return { id, status: 200 };
+        }
+        saves.push(save);
+        const plain = createXtreamClient(
+          { serverUrl: 'http://panel.test:8080/', username: 'demo', password: 'demo' },
+          { fetch: panel.fetch },
+        );
+        const items: NormalizerItem[] =
+          save.kind === 'movie'
+            ? (await plain.movies()).map((m) => ({ ...m, releaseDate: null, addedAt: m.addedAt ? Date.parse(m.addedAt) / 1000 : null }))
+            : (await plain.series()).map((x) => ({
+                ...x,
+                containerExtension: null,
+                addedAt: x.lastModifiedAt ? Date.parse(x.lastModifiedAt) / 1000 : null,
+              }));
+        const rows = items.flatMap((item) => {
+          const saved = savedItem(item);
+          return saved
+            ? [
+                [
+                  saved.streamId,
+                  saved.name,
+                  saved.categoryId,
+                  saved.posterUrl,
+                  saved.rating,
+                  saved.addedAt,
+                  saved.released,
+                  saved.containerExtension,
+                  saved.tmdbId,
+                  saved.releaseYear,
+                ],
+              ]
+            : [];
+        });
+        await storages.db!.run([
+          {
+            sql: `INSERT INTO ${save.table} (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+            rows,
+          },
+        ]);
+        pieces.set(id, [{ kind: 'end', chars: text.length, saved: rows.length, tmdb: 0 }]);
+        return { id, status: 200 };
+      },
+      next: async (id) => pieces.get(id)?.shift() ?? { kind: 'error', message: 'closed' },
+      close: (id) => void pieces.delete(id),
+    };
+    const kept = withUserDatabase({ secure: storages.secure, data: storages.data }, storages.db);
+    const api = createDirectApiClient({
+      appName: 'Test',
+      secureStorage: kept.secure,
+      dataStorage: kept.data,
+      fetch: panel.fetch,
+      listReader: reader,
+      now: () => new Date(panel.nowSeconds * 1000 + 5 * 60_000),
+      snapshotSaveMs: 0,
+      libraryDb: storages.db,
+    });
+    const logged = new Set(appLog.entries());
+    await api.auth.login(login);
+    const statuses = await libraryReady(api);
+    expect(saves.map((save) => save.kind).sort()).toEqual(['movie', 'series']);
+    expect(statuses.map(({ mediaKind, jobStatus, itemCount }) => [mediaKind, jobStatus, itemCount])).toEqual([
+      ['movie', 'done', 3],
+      ['series', 'done', 1],
+    ]);
+    const messages = appLog
+      .entries()
+      .filter((entry) => !logged.has(entry))
+      .map((entry) => entry.message);
+    expect(messages.some((message) => /^movie: 3 items downloaded and saved in \d+ s/.test(message))).toBe(true);
+    // The same library as when the lists come to JavaScript.
+    const plain = setup(panel).api;
+    await plain.auth.login(login);
+    await libraryReady(plain);
+    for (const section of ['movies', 'series'] as const)
+      expect(await api.library.list(section, { limit: 500 })).toEqual(await plain.library.list(section, { limit: 500 }));
+  });
+
   it('Refresh library reuses the saved titles that did not change, after a restart too (D-109)', async () => {
     const first = setup();
     await first.api.auth.login(login);
@@ -225,13 +382,13 @@ describe.each([
     const before = await first.api.library.list('movies');
 
     const restarted = setup(first.panel, first.storages).api;
-    const logged = appLog.entries().length;
+    const logged = new Set(appLog.entries());
     await restarted.auth.me();
     await restarted.library.sync();
     await libraryReady(restarted);
     const messages = appLog
       .entries()
-      .slice(logged)
+      .filter((entry) => !logged.has(entry))
       .map((entry) => entry.message);
     // The database reads only names it has not seen (D-133); in memory, unchanged titles are kept as they were.
     const reused = useDatabase

@@ -47,13 +47,15 @@ const { secure: secureStorage, data: dataStorage } = withUserDatabase({ secure: 
 export const appContext = createAppContext({
   config: appConfig,
   storage: secureStorage,
-  // Lists are read by native code on another thread (D-115): in JavaScript it took minutes on a Chromecast.
+  // Lists are read by native code on another thread (D-115): in JavaScript it took minutes on a Chromecast. Movie and
+  // series lists go from the download straight into the library database (D-135).
   direct: {
     dataStorage,
     userAgent: providerUserAgent,
     listReader: {
-      open: (url, headers, timeoutMs, batchChars, guide) =>
-        TvMedia.openList(url, headers, timeoutMs, batchChars, guide?.from ?? 0, guide?.to ?? 0),
+      saves: true,
+      open: (url, headers, timeoutMs, batchChars, guide, save) =>
+        TvMedia.openList(url, headers, timeoutMs, batchChars, guide?.from ?? 0, guide?.to ?? 0, save ? `${save.kind}:${save.table}` : ''),
       next: (id) => TvMedia.readList(id),
       close: (id) => TvMedia.closeList(id),
     },

@@ -1,5 +1,6 @@
 package expo.modules.tvmedia
 
+import android.content.Context
 import expo.modules.kotlin.Promise
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
@@ -13,15 +14,34 @@ import java.util.concurrent.atomic.AtomicInteger
  * (D-115). JavaScript only parses each batch: turning 200 MB of bytes into text and finding the entries in JavaScript
  * kept the one JavaScript thread busy for about two minutes on a Chromecast. At most [READY] batches wait, so memory
  * stays at a few MB whatever the list's size.
+ *
+ * A movie or series list can instead be saved here (D-135): each batch is read by [ListItems] and written straight into
+ * a library items table on this thread, while the next part downloads, and only the counts go to JavaScript. Each list
+ * has its own thread, so the lists (and the cores) work side by side.
  */
 internal object ListReader {
   private val lists = ConcurrentHashMap<Int, Reading>()
   private val ids = AtomicInteger(1)
 
+  /** Where a list is saved (D-135): `kind` is "movie" or "series", `table` a library items table (`lib…_r`). */
+  class Save(val context: Context, val kind: String, val table: String)
+
+  /** `"movie:lib123_r"` from JavaScript; empty for a list read in JavaScript. */
+  fun save(context: Context, text: String): Save? {
+    if (text.isEmpty()) return null
+    val kind = text.substringBefore(':')
+    val table = text.substringAfter(':')
+    require(kind == "movie" || kind == "series") { "unknown list kind $kind" }
+    require(TABLE.matches(table)) { "not a library items table: $table" }
+    return Save(context, kind, table)
+  }
+
+  private val TABLE = Regex("lib[0-9]+_r")
+
   /**
    * Resolves with `{ id, status }` once the reply's status is known; rejects when the provider cannot be reached.
    * [guideFromMs] > 0: the reply is an XMLTV guide; batches hold the programmes that overlap [guideFromMs, guideToMs)
-   * (issue #119, D-130).
+   * (issue #119, D-130). [save]: the list is saved, and the one piece is its end with the counts (D-135).
    */
   fun open(
     url: String,
@@ -30,16 +50,18 @@ internal object ListReader {
     batchChars: Int,
     guideFromMs: Long,
     guideToMs: Long,
+    save: Save?,
     promise: Promise,
   ) {
     val id = ids.getAndIncrement()
-    val reading = Reading(id, url, headers, timeoutMs, batchChars, guideFromMs, guideToMs, promise)
+    val reading = Reading(id, url, headers, timeoutMs, batchChars, guideFromMs, guideToMs, save, promise)
     lists[id] = reading
     reading.start()
   }
 
   /**
-   * The next piece: `{ kind: "batch", text }`, then one of `{ kind: "end", chars }`, `{ kind: "whole", text, chars }`
+   * The next piece: `{ kind: "batch", text }`, then one of `{ kind: "end", chars }` (saved: also `saved`, `tmdb`),
+   * `{ kind: "whole", text, chars }`
    * (not an array), `{ kind: "incomplete", text }` (stopped before its "]") or `{ kind: "error", message }`.
    */
   fun next(id: Int, promise: Promise) {
@@ -53,6 +75,8 @@ internal object ListReader {
   }
 
   private const val READY = 2
+  /** Characters of a batch that is not JSON shown in the message. */
+  private const val PREVIEW_CHARS = 200
   private const val MAX_REDIRECTS = 5
 
   private class Reading(
@@ -63,6 +87,7 @@ internal object ListReader {
     private val batchChars: Int,
     private val guideFromMs: Long,
     private val guideToMs: Long,
+    private val save: Save?,
     private val opened: Promise,
   ) : Thread("list-reader-$id") {
     private val lock = Object()
@@ -84,6 +109,10 @@ internal object ListReader {
         if (status !in 200..299) return
         if (guideFromMs > 0) {
           readGuide(response)
+          return
+        }
+        if (save != null) {
+          saveList(response, save)
           return
         }
         val splitter = JsonArraySplitter(batchChars) { deliver(mapOf("kind" to "batch", "text" to it)) }
@@ -112,6 +141,51 @@ internal object ListReader {
       } finally {
         connection?.disconnect()
       }
+    }
+
+    /**
+     * A movie or series list saved batch by batch into [Save.table], then `{ kind: "end", chars, saved, tmdb }`; a
+     * reply that is not an array ends as when it is read in JavaScript.
+     */
+    private fun saveList(response: HttpURLConnection, save: Save) {
+      var saved = 0
+      var tmdb = 0
+      var broken: String? = null
+      val entries = ArrayList<SavedEntry>()
+      val splitter = JsonArraySplitter(batchChars) { batch ->
+        if (broken != null || closed) return@JsonArraySplitter
+        entries.clear()
+        try {
+          ListItems.read(batch, save.kind) { entries.add(it) }
+        } catch (error: IllegalArgumentException) {
+          broken = batch.take(PREVIEW_CHARS)
+          return@JsonArraySplitter
+        }
+        LibraryDb.saveItems(save.context, save.table, entries)
+        saved += entries.size
+        tmdb += entries.count { it.tmdbId != null }
+      }
+      InputStreamReader(response.inputStream, Charsets.UTF_8).use { reader ->
+        val buffer = CharArray(64 * 1024)
+        while (!closed && broken == null) {
+          val count = reader.read(buffer)
+          if (count < 0 || !splitter.feed(buffer, count)) break
+        }
+      }
+      val chars = splitter.chars.toDouble()
+      val text = broken
+      if (text != null) {
+        deliver(mapOf("kind" to "incomplete", "text" to text, "chars" to chars))
+        return
+      }
+      deliver(
+        when (val end = splitter.finish()) {
+          is JsonArraySplitter.End.Complete ->
+            mapOf("kind" to "end", "chars" to chars, "saved" to saved.toDouble(), "tmdb" to tmdb.toDouble())
+          is JsonArraySplitter.End.Whole -> mapOf("kind" to "whole", "text" to end.text, "chars" to chars)
+          is JsonArraySplitter.End.Incomplete -> mapOf("kind" to "incomplete", "text" to end.preview, "chars" to chars)
+        },
+      )
     }
 
     /** XMLTV: whole programmes in the window, in batches, then `{ kind: "end", chars }`. */
