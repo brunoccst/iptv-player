@@ -339,7 +339,7 @@ function sortMasters(masters: Master[]): Master[] {
   return keyed.map(({ master }) => master);
 }
 
-export function qualityScore(title: ParsedTitle): number {
+export function qualityScore(title: Pick<ParsedTitle, 'quality' | 'source' | 'isHdr'>): number {
   let score = title.quality ? (tags.QUALITY_RANK[title.quality] ?? tags.UNKNOWN_QUALITY_RANK) : tags.UNKNOWN_QUALITY_RANK;
   score += title.source ? (tags.SOURCE_ADJUSTMENT[title.source] ?? 0) : 0;
   score += title.isHdr ? 5 : 0;

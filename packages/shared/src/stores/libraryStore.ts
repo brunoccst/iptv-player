@@ -13,7 +13,7 @@ import type {
 } from '../api/types';
 import { createResourceLoader, emptyResource, toApiError, type LoadOptions, type Resource } from './resource';
 import { t } from '../i18n/i18n';
-import { preferredVariant, type VersionChoice } from '../playback/playbackChoices';
+import { bestVariant, preferredVariant, type VersionChoice } from '../playback/playbackChoices';
 
 /** Deduplicated library (master cards + variants) and the user's "Version / Stream Quality" choices. */
 export interface LibraryState {
@@ -24,6 +24,8 @@ export interface LibraryState {
   selectedVariants: Record<string, string>;
   /** The open profile's version choice (D-087): language and quality titles start with when none was picked. */
   preferredVersion: VersionChoice | null;
+  /** The open profile's languages, then the app's: which of equally good versions is the best (D-136). */
+  versionLanguages: string[];
   syncing: boolean;
   syncError: ApiError | null;
   /**
@@ -42,6 +44,7 @@ export interface LibraryState {
   dismissRefreshNotice(): void;
   selectVariant(masterId: string, streamId: string): void;
   setPreferredVersion(choice: VersionChoice | null): void;
+  setVersionLanguages(languages: string[]): void;
   chooseSort(section: LibrarySection, choice: LibrarySortChoice): void;
   /** Drops cached pages/details (library re-processed). Keeps status and variant choices. */
   invalidate(): void;
@@ -155,6 +158,7 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
       status: emptyResource(),
       selectedVariants: {},
       preferredVersion: null,
+      versionLanguages: [],
       syncing: false,
       syncError: null,
       refreshNotice: null,
@@ -192,6 +196,8 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
 
       setPreferredVersion: (preferredVersion) => set({ preferredVersion }),
 
+      setVersionLanguages: (versionLanguages) => set({ versionLanguages }),
+
       chooseSort: (section, choice) => set({ sortChoices: { ...get().sortChoices, [section]: choice } }),
 
       invalidate: () => {
@@ -221,17 +227,18 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
 export type LibraryStore = ReturnType<typeof createLibraryStore>;
 
 /**
- * The chosen variant; else the one matching the profile's version choice (D-087); else the best one (variants are ordered
- * variants best-first).
+ * The chosen variant; else the one matching the profile's version choice (D-087); else the best one (D-136); else the
+ * first (variants are ordered best-first).
  */
 export function selectVariant(
-  state: Pick<LibraryState, 'selectedVariants'> & Partial<Pick<LibraryState, 'preferredVersion'>>,
+  state: Pick<LibraryState, 'selectedVariants'> & Partial<Pick<LibraryState, 'preferredVersion' | 'versionLanguages'>>,
   details: MasterDetails,
 ): VariantInfo | null {
   const chosen = state.selectedVariants[details.id];
   return (
     details.variants.find((variant) => variant.streamId === chosen) ??
     preferredVariant(details.variants, state.preferredVersion) ??
+    bestVariant(details.variants, state.versionLanguages ?? []) ??
     details.variants[0] ??
     null
   );

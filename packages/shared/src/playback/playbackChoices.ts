@@ -1,6 +1,7 @@
 import type { VariantInfo } from '../api/types';
+import { qualityScore } from '../direct/normalizer/pipeline';
 import { LANGUAGE_LONG, LANGUAGE_SHORT } from '../direct/normalizer/tags';
-import { intlLocale, t } from '../i18n/i18n';
+import { intlLocale, t, type UiLanguage } from '../i18n/i18n';
 import { languageNames, type ProfilePrefs, type ProfilePrefsStore } from '../stores/profilePrefsStore';
 
 /**
@@ -76,6 +77,32 @@ export function preferredVariant<V extends Pick<VariantInfo, 'audioLanguages' | 
     : variants;
   if (candidates.length === 0) return null;
   return candidates.find(sameQuality) ?? (choice.languages.length ? candidates[0]! : null);
+}
+
+/** The audio language tag of each app language (D-136). */
+const UI_LANGUAGE_TAG: Record<UiLanguage, string> = { en: 'ENG', 'pt-BR': 'POR', de: 'GER', 'sh-BA': 'EXYU' };
+
+/** The languages that pick the best of equally good versions (D-136): the profile's languages, then the app's. */
+export const versionLanguages = (profile: readonly string[], app: UiLanguage): string[] => [...new Set([...profile, UI_LANGUAGE_TAG[app]])];
+
+/**
+ * The version marked "best" (D-136): the one with the highest quality (quality, source, HDR). When several share it,
+ * quality says nothing, so the first of them in one of `languages` (in that order); null when none is.
+ */
+export function bestVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'>>(
+  variants: V[],
+  languages: readonly string[],
+): V | null {
+  if (variants.length < 2) return variants[0] ?? null;
+  const scores = variants.map((variant) => qualityScore(variant));
+  const top = Math.max(...scores);
+  const tied = variants.filter((_, index) => scores[index] === top);
+  if (tied.length === 1) return tied[0]!;
+  for (const wanted of languages) {
+    const match = tied.find((variant) => variant.audioLanguages.some((language) => same(language, wanted)));
+    if (match) return match;
+  }
+  return null;
 }
 
 interface ChoiceStores {

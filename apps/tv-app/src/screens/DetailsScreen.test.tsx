@@ -222,3 +222,28 @@ describe('watched episodes and series (D-082)', () => {
     expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as watched');
   });
 });
+
+describe('movie details: the best version (D-136)', () => {
+  it('equally good versions: the one in the app language is the best and starts, not the first', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m', {
+      body: {
+        id: 'm',
+        title: 'Movie',
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: '1080p',
+        variants: [
+          { ...variant('alb', '1080p · ALB'), quality: '1080p', audioLanguages: ['ALB'] },
+          { ...variant('en', '1080p · ENG'), quality: '1080p', audioLanguages: ['ENG'] },
+        ],
+      },
+    });
+
+    await render(<DetailsScreen section="movies" masterId="m" />);
+    await flush();
+    expect(screen.getByText('1080p · ENG (best)')).toBeTruthy();
+    expect(screen.queryByText('1080p · ALB (best)')).toBeNull();
+  });
+});

@@ -13,12 +13,13 @@ import { createLibraryStore, type LibraryStore } from './stores/libraryStore';
 import { createPinStore, type PinStore } from './stores/pinStore';
 import { createPlayerStore, type PlayerStore } from './stores/playerStore';
 import { createProfilePrefsStore, profileLanguages, type ProfilePrefsStore } from './stores/profilePrefsStore';
-import { playbackChoicesOf } from './playback/playbackChoices';
+import { playbackChoicesOf, versionLanguages } from './playback/playbackChoices';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 import { createUiLanguage, type UiLanguageControl } from './i18n/uiLanguage';
+import { i18nStore } from './i18n/i18n';
 import { createSubtitleService, type SubtitleService } from './subtitles/openSubtitles';
 
 export interface AppContext {
@@ -193,6 +194,16 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   followVersion();
   profilePrefs.subscribe(followVersion);
   session.subscribe(followVersion);
+
+  // The profile's languages, then the app's, pick the best of equally good versions (D-136).
+  const followLanguages = () => {
+    const languages = versionLanguages(profileLanguages(activePrefs()), i18nStore.getState().language);
+    if (languages.join(',') !== library.getState().versionLanguages.join(',')) library.getState().setVersionLanguages(languages);
+  };
+  followLanguages();
+  profilePrefs.subscribe(followLanguages);
+  session.subscribe(followLanguages);
+  i18nStore.subscribe(followLanguages);
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {
