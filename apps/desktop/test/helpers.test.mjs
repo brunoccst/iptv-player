@@ -33,9 +33,10 @@ test('serves only files inside the web folder', () => {
 
 test('lets the app read provider answers and sends them as a player', () => {
   const origin = 'http://127.0.0.1:47831';
-  assert.deepEqual(withCors({ 'Content-Type': ['video/mp2t'], 'access-control-allow-origin': ['https://x'] }, origin), {
+  // `*`: a stream redirected to another host arrives with origin `null`, which the app's own origin does not match.
+  assert.deepEqual(withCors({ 'Content-Type': ['video/mp2t'], 'access-control-allow-origin': ['https://x'] }), {
     'Content-Type': ['video/mp2t'],
-    'Access-Control-Allow-Origin': [origin],
+    'Access-Control-Allow-Origin': ['*'],
     'Access-Control-Allow-Methods': ['GET, HEAD, OPTIONS'],
     'Access-Control-Allow-Headers': ['*'],
     'Access-Control-Expose-Headers': ['*'],

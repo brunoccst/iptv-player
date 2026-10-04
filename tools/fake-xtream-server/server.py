@@ -421,6 +421,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def redirect(self, location: str) -> None:
+        # Real panels send streams to another host (the stream server). Asked as localhost, redirect to 127.0.0.1:
+        # another origin, so the apps meet the cross-host redirect too (the browser then sends origin `null`, KI-045).
+        host = self.headers.get("Host", "")
+        if location.startswith("/") and host.startswith("localhost:"):
+            location = f"http://127.0.0.1:{host.split(':', 1)[1]}{location}"
         self.send_response(HTTPStatus.FOUND)
         self.send_header("Location", location)
         self.send_header("Content-Length", "0")
