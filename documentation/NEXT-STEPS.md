@@ -116,7 +116,7 @@ flowchart LR
 - [x] **Step 9 — Phone app** (requested 2026-09-24, closed 2026-09-25 by owner: nothing further planned): touch UI on the same shared code, direct mode by default.
   - [x] Player: full-screen landscape, double tap ±10 s, timeline drag, screen stays on; details panel sized for phones (PR #8, D-046).
   - [x] Home rows: 10 titles and a "See all" arrow card (D-043).
-- [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README.
+- [x] **Legal notes for Germany** (requested 2026-09-25): section in the root README; since 2026-10-05 in [LEGAL-NOTES.md](LEGAL-NOTES.md), with a short version in the README.
 - [x] **Offline anti-piracy hardening** (deferred 2026-09-23, done 2026-09-25, D-050): encrypted Android downloads, downloads tied to the account, 30-day online check. KI-002 stays open (web has no DRM).
 - [x] **Library sort** (requested 2026-09-25, D-049): Movies/Series can be sorted by date added (default, newest first), name or release date, each ascending or descending, when the provider has that data.
 - [x] **UI stress tests** (requested 2026-09-24, PR #10, D-048): fill the fake panel with very large categories (e.g. thousands of titles in one category, many categories and channels) and scroll to the end on phone, TV and web, to find the point where the UI slows down (frame drops, memory, load time), then fix what shows up.
