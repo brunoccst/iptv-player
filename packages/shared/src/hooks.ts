@@ -398,12 +398,12 @@ export function createAppHooks({
     },
 
     /** Live channels whose name matches a search, hidden categories included (D-110); null until they arrive. */
-    /** The details panel's round "My List" toggle (D-055): plus to add, check when saved. */
+    /** The details panel's round "My List" toggle (D-055): a bookmark, outlined to add, filled when saved (issue #157). */
     useWatchlistToggle(section: LibrarySection, title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>) {
       const saved = useAppStore(stores.watchlist, (s) => isOnWatchlist(s, section, title.id));
       return {
         saved,
-        icon: saved ? ('check' as const) : ('plus' as const),
+        icon: saved ? ('bookmark' as const) : ('bookmarkOutline' as const),
         label: saved ? t('Remove {title} from My List', { title: title.title }) : t('Add {title} to My List', { title: title.title }),
         hint: saved ? t('Remove from My List') : t('Add to My List'),
         toggle: () => void stores.watchlist.getState().toggle(section, title),
@@ -472,6 +472,8 @@ export function createAppHooks({
       const versions = item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null;
       return {
         watched,
+        /** On My List: the cover carries a bookmark at its top right (issue #157). */
+        onList,
         // Only cinema copies (CAM, TS, …) say so before a 4K (D-141).
         badge: item.lowSource ?? (item.bestQuality === '4K' ? '4K' : null),
         subtitle: [item.year, versions].filter(Boolean).join(' · ') || null,

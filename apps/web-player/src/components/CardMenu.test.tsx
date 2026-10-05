@@ -18,6 +18,13 @@ describe('card menu (right-click, D-079)', () => {
     expect(onMenu).toHaveBeenLastCalledWith({ x: 12, y: 12 });
   });
 
+  it('a title on My List carries a bookmark on its cover (issue #157)', () => {
+    const { rerender } = render(<PosterCard title="Movie" onSelect={() => undefined} />);
+    expect(screen.queryByRole('img', { name: 'On My List' })).toBeNull();
+    rerender(<PosterCard title="Movie" onList onSelect={() => undefined} />);
+    expect(screen.getByRole('img', { name: 'On My List' }).closest('.card__art')).not.toBeNull();
+  });
+
   it('cards without a menu keep the browser menu', () => {
     render(<PosterCard title="Movie" onSelect={() => undefined} />);
     const card = screen.getByRole('button', { name: 'Movie' }).closest('article')!;

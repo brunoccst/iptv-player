@@ -7,7 +7,7 @@ import { useTitleCard } from '../../hooks/stores';
 
 /**
  * Poster card for one deduplicated title. Opens the details modal; a right-click opens its menu (Go to details, Mark as
- * (not) watched, D-081). Finished movies and fully watched series (D-082) carry the "Watched" tag.
+ * (not) watched, D-081). Finished movies and fully watched series (D-082) carry the "Watched" tag; titles on My List a bookmark (issue #157).
  * Memoized: loading the next grid page then renders only the new cards, not the thousands already shown.
  */
 export const MasterCard = memo(function MasterCard({ section, item }: { section: LibrarySection; item: MasterCardData }) {
@@ -21,6 +21,7 @@ export const MasterCard = memo(function MasterCard({ section, item }: { section:
         posterUrl={item.posterUrl}
         badge={card.badge}
         watched={card.watched}
+        onList={card.onList}
         subtitle={card.subtitle}
         onSelect={openDetails}
         onMenu={setMenu}

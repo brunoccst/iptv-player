@@ -39,7 +39,7 @@ const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
 /**
- * Web `MasterCard`: poster, quality badge ("4K", or "CAM"/"TS" when only cinema copies, D-141), "year · N versions", "Watched" tag on finished movies and fully watched series (D-082); opens the details panel.
+ * Web `MasterCard`: poster, quality badge ("4K", or "CAM"/"TS" when only cinema copies, D-141), "year · N versions", "Watched" tag on finished movies and fully watched series (D-082), a bookmark on titles on My List (issue #157); opens the details panel.
  * Holding OK (a long touch on phones) opens its menu: Go to details, Mark as (not) watched (D-081).
  */
 export function MasterCardItem({
@@ -66,6 +66,7 @@ export function MasterCardItem({
         reserveSubtitle
         badge={card.badge}
         watched={card.watched}
+        onList={card.onList}
         subtitle={card.subtitle}
         onPress={openDetails}
         onLongPress={() => setMenu(true)}
