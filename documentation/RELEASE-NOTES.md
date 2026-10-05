@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Whole episode descriptions on the phone** (2026-10-05, issue #160): an episode's description still stops after two lines with "…"; a touch on it shows all of it, another touch folds it again.
 - **Season "Watched" button on the left** (2026-10-05, issue #159): it sits just left of the season choice, like an episode's tag, with the same spacing as the other buttons.
 - **Bookmark for My List** (2026-10-05, issue #157): a title on My List has a bookmark at the top right of its cover; the details button is a bookmark too, filled when the title is saved.
 - **Cinema copies on covers** (2026-10-05, D-141, issue #151): a title whose versions are all cinema copies says so on its cover, where "4K" goes: "CAM", "TS", "TC" or "SCR".
@@ -49,6 +50,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Whole episode descriptions** (2026-10-05, issue #160): an episode's description stops after two lines with "…"; a click on it shows all of it, another click folds it again.
 - **Season "Watched" button on the left** (2026-10-05, issue #159): it sits just left of the season choice, like an episode's tag, with the same spacing as the other buttons.
 - **Bookmark for My List** (2026-10-05, issue #157): a title on My List has a bookmark at the top right of its cover; the details button is a bookmark too, filled when the title is saved.
 - **The account menu stays open** (2026-10-05, issue #155): moving the mouse off it no longer closes it; a click elsewhere or Escape does.

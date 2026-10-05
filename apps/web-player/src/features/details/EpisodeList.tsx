@@ -25,6 +25,7 @@ import { WatchedTag } from '../../components/WatchedTag';
 import { useVlc } from '../../components/VlcButton';
 import { useProgress } from '../../hooks/stores';
 import { downloadTarget, episodeTarget } from '../../ui/targets';
+import { EpisodePlot } from './EpisodePlot';
 
 interface EpisodeListProps {
   /** All versions' episodes, merged (D-066). */
@@ -112,7 +113,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
             </button>
             <div>
               <p className="episode__title">{episode.title}</p>
-              <p className="episode__plot">{[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}</p>
+              <EpisodePlot text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')} />
               {listed.versions.length > 1 ? (
                 <select
                   className="select select--small"

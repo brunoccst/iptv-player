@@ -15,7 +15,7 @@ const episode = (id: string, seasonNumber: number, episodeNumber: number) => ({
   seasonNumber,
   episodeNumber,
   title: `${id} title`,
-  plot: null,
+  plot: null as string | null,
   durationSeconds: 2400,
   stillUrl: null,
   containerExtension: 'mkv',
@@ -229,6 +229,29 @@ describe('watched episodes and series (D-082)', () => {
     await flush();
     expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname.split('/').pop())).toEqual(['a1', 'a2']);
     expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as watched');
+  });
+});
+
+describe('episode description (issue #160)', () => {
+  it('shows two lines; a touch shows all of it, another touch folds it again', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/long', {
+      body: { id: 'long', title: 'Long', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('lp', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/lp', {
+      body: series('lp', [{ number: 1, episodes: [{ ...episode('a1', 1, 1), plot: 'A long plot that goes on and on.' }] }]),
+    });
+    await render(<DetailsScreen section="series" masterId="long" />);
+    await flush();
+    const plot = () => screen.getByText(/A long plot that goes on and on\./);
+
+    expect(await screen.findByText(/A long plot that goes on and on\./)).toHaveProp('numberOfLines', 2);
+    // Not a D-pad stop: Play stays the first thing focused in an episode (D-083).
+    expect(screen.getByTestId('plot-a1')).toHaveProp('focusable', false);
+    await fireEvent.press(screen.getByTestId('plot-a1'));
+    expect(plot().props.numberOfLines).toBeUndefined();
+    await fireEvent.press(screen.getByTestId('plot-a1'));
+    expect(plot()).toHaveProp('numberOfLines', 2);
   });
 });
 

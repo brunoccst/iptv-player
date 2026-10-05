@@ -333,9 +333,10 @@ function Episodes({
                 <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
                   {episode.title}
                 </Text>
-                <Text style={styles.episodePlot} numberOfLines={2}>
-                  {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
-                </Text>
+                <EpisodePlot
+                  text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+                  testID={`plot-${episode.id}`}
+                />
                 {listed.versions.length === 1 && master.variants.length > 1 ? (
                   <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
                 ) : null}
@@ -357,6 +358,28 @@ function Episodes({
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * An episode's length and plot: two lines, then "…"; a touch shows all of it and the row grows, another touch folds it
+ * again (issue #160). Not focusable, so Play stays the first thing the D-pad lands on in an episode.
+ */
+function EpisodePlot({ text, testID }: { text: string; testID: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Pressable
+      onPress={() => setOpen((current) => !current)}
+      focusable={false}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityHint={open ? t('Show less') : t('Show more')}
+      testID={testID}
+    >
+      <Text style={styles.episodePlot} numberOfLines={open ? undefined : 2}>
+        {text}
+      </Text>
+    </Pressable>
   );
 }
 
