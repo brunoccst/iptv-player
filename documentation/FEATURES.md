@@ -52,6 +52,10 @@ While the library is being organized, or when the device is offline, a banner fl
 
 A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
 
+### Continue Watching
+
+Home's first row: movies and episodes started but not finished, with how far you got. A card plays from where you stopped, over the title's details page, so Back from the player shows the movie's or the series' details rather than Home (issue #166).
+
 ### Movies and Series
 
 A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049).

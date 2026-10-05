@@ -106,8 +106,13 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await seek(page, 90);
   await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(89);
 
-  // Right-click on a Continue Watching card: its options (holding OK on TV, D-078, D-079).
+  // Started from Continue Watching, Back shows the series' details rather than Home (issue #166).
   await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(dialog.getByLabel('Version / Stream Quality')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  // Right-click on a Continue Watching card: its options (holding OK on TV, D-078, D-079).
   await page.getByRole('button', { name: 'Home' }).click();
   const continueRow = page.getByRole('region', { name: 'Continue Watching' });
   await continueRow.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });

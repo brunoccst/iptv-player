@@ -25,7 +25,7 @@ import { selectActiveProfile } from './stores/sessionStore';
 import { chooseVersion } from './playback/playbackChoices';
 import { loadSeriesVersions, mergeSeriesVersions, playerSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
 import { nextEpisode, previousEpisode } from './playback/rules';
-import { episodeTarget, movieTarget, progressTarget, type PlayTarget } from './playback/targets';
+import { episodeTarget, movieTarget, progressDetails, progressTarget, type PlayTarget } from './playback/targets';
 import {
   allEpisodesWatched,
   cardMenuItems,
@@ -499,8 +499,10 @@ export function createAppHooks({
         id: item.id,
         label: item.label,
         run: () => {
-          if (item.id === 'details') openDetails(entry.kind === 'episode' ? 'series' : 'movies', entry.masterId!);
-          else if (item.id === 'watched') void markEntryWatched(stores.progress, entry);
+          if (item.id === 'details') {
+            const details = progressDetails(entry);
+            if (details) openDetails(details.section, details.masterId);
+          } else if (item.id === 'watched') void markEntryWatched(stores.progress, entry);
           else if (item.id === 'mylist-add' || item.id === 'mylist-remove') {
             if (listed) void stores.watchlist.getState().toggle(listed.section, listed.card);
           } else void removeFromContinueWatching(stores.progress, entry);
