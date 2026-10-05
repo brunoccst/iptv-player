@@ -89,19 +89,55 @@ describe('one episode list per series (D-066)', () => {
 
   it('each episode can play in another version', () => {
     const first = mergeSeriesVersions([en, ge])!.seasons[0]!.episodes[0]!;
-    expect(episodeInVersion(first, 'ge')).toMatchObject({ id: 'ge-1', seriesId: 'ge', versions: first.versions });
+    expect(episodeInVersion(first, 'ge-1')).toMatchObject({ id: 'ge-1', seriesId: 'ge', versions: first.versions });
     expect(episodeInVersion(first, 'unknown')).toBe(first);
   });
 
-  it('keeps episodes without a number, and duplicate numbers within one version, separate', () => {
+  it('keeps episodes without a number, and different episodes with one number in one version, separate', () => {
     const odd: SeriesVersion = {
       seriesId: 'x',
       label: 'X',
-      details: details('x', { 0: [episode('special', 0, null)], 1: [episode('x-1', 1, 1), episode('x-1b', 1, 1)] }),
+      details: details('x', {
+        0: [episode('special', 0, null)],
+        1: [episode('x-1', 1, 1, { title: 'Pilot' }), episode('x-1b', 1, 1, { title: 'The Return' })],
+      }),
     };
     const merged = mergeSeriesVersions([odd, { ...odd, seriesId: 'y', label: 'Y' }])!;
     expect(merged.seasons[0]!.episodes.map((e) => e.id)).toEqual(['special', 'special']);
     expect(ids(merged.seasons[1]!.episodes)).toEqual(['x-1[X,Y]', 'x-1b[X]', 'x-1b[Y]']);
+  });
+
+  it('another copy of an episode in one version joins its row as one more version, not another row', () => {
+    const plain: SeriesVersion = {
+      seriesId: 'en',
+      label: 'ENG',
+      details: details('en', { 1: [episode('en-3', 1, 3, { title: 'EN - The Pitt - S01E03 - 9:00 A.M.' }), episode('en-4', 1, 4)] }),
+    };
+    const multiSub: SeriesVersion = {
+      seriesId: 'sub',
+      label: 'ENG (3)',
+      details: details('sub', {
+        1: [
+          episode('sub-3', 1, 3, { title: 'EN - The Pitt [MULTI-SUB] - S01E03 - 9:00 A.M.' }),
+          episode('sub-3b', 1, 3, { title: 'EN - The Pitt [MULTI-SUB] - S01E03 - 9:00 A.M.' }),
+          // Same title, no SxxEyy: also a copy.
+          episode('sub-4', 1, 4),
+          episode('sub-4b', 1, 4, { title: ' episode 4 ' }),
+          // Titles naming the same episode in different words.
+          episode('sub-5', 1, 5, { title: 'Show S1 E5' }),
+          episode('sub-5b', 1, 5, { title: 'Show [MULTI-SUB] - S01E05 - 11:00 A.M.' }),
+        ],
+      }),
+    };
+    const merged = mergeSeriesVersions([plain, multiSub])!;
+    expect(ids(merged.seasons[0]!.episodes)).toEqual([
+      'en-3[ENG,ENG (3),ENG (3) #2]',
+      'en-4[ENG,ENG (3),ENG (3) #2]',
+      'sub-5[ENG (3),ENG (3) #2]',
+    ]);
+    // Next-up does not play episode 3 twice; the copy plays from the episode's version picker.
+    expect(nextEpisode(merged, 'en-3')).toMatchObject({ id: 'en-4' });
+    expect(episodeInVersion(merged.seasons[0]!.episodes[0]!, 'sub-3b')).toMatchObject({ id: 'sub-3b', seriesId: 'sub' });
   });
 
   it('finds saved progress from any version', () => {

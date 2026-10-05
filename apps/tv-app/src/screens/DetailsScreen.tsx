@@ -233,7 +233,7 @@ function Episodes({
   initialSeason: number | null | undefined;
 }) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
-  // Per-episode version choice (first episode id → series id), for this visit of the page.
+  // Per-episode version choice (first episode id → the chosen version's episode id), for this visit of the page.
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
@@ -321,9 +321,9 @@ function Episodes({
               <Select
                 compact
                 label={t('Version of {title}', { title: episode.title })}
-                value={episode.seriesId}
-                options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
-                onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
+                value={episode.id}
+                options={listed.versions.map((v) => ({ value: v.episode.id, label: v.label }))}
+                onChange={(episodeId) => setChosen((current) => ({ ...current, [listed.id]: episodeId }))}
                 testID={`episode-${listed.id}-version`}
                 {...episodeFocus(listed.id)}
               />
