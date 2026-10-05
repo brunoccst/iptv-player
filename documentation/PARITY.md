@@ -16,7 +16,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 |---------|-------------|---------------|---------------------------------|
 | Focused / hovered card | grows 8 %, light ring, soft white glow | pressed state | same as TV on hover and keyboard focus |
 | Rows | room above and below so the ring and glow are not cut | same | same |
-| Top nav, account menu | Profiles · Library & devices · App | same | same groups |
+| Top nav, account menu | Profiles · Library & devices · App | same | same groups; a click elsewhere or Escape closes it, not the mouse leaving ([Account menu](FEATURES.md#account-menu)) |
 | Dialogs | panel in the middle | same | same (Escape or a click outside closes) |
 
 ## Features

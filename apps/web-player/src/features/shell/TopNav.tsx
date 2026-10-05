@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
@@ -48,6 +48,7 @@ export function TopNav() {
     setMenuOpen(open);
     setGroup(null);
   };
+  const menu = useRef<HTMLDivElement>(null);
   const [pinSettings, setPinSettings] = useState(false);
   const [backup, setBackup] = useState(false);
   const [language, setLanguage] = useState(false);
@@ -66,6 +67,30 @@ export function TopNav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // The open menu stays open while the mouse moves off it; a click elsewhere or Escape closes it (issue #155).
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => {
+      setMenuOpen(false);
+      setGroup(null);
+    };
+    const onPointer = (event: MouseEvent) => {
+      if (!menu.current?.contains(event.target as Node)) close();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      close();
+      menu.current?.querySelector<HTMLButtonElement>('.menu__avatar')?.focus();
+    };
+    window.addEventListener('mousedown', onPointer, true);
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('mousedown', onPointer, true);
+      window.removeEventListener('keydown', onKey, true);
+    };
+  }, [menuOpen]);
 
   return (
     <header className={`nav${solid || view !== 'home' ? ' nav--solid' : ''}`}>
@@ -96,7 +121,7 @@ export function TopNav() {
           value={search}
           onChange={(e) => ui.setSearch(e.target.value)}
         />
-        <div className="menu">
+        <div className="menu" ref={menu}>
           <button
             type="button"
             className="menu__avatar"
@@ -109,7 +134,7 @@ export function TopNav() {
             {profile?.name.charAt(0).toUpperCase()}
           </button>
           {menuOpen ? (
-            <div className="menu__list" role="menu" onMouseLeave={() => toggleMenu(false)}>
+            <div className="menu__list" role="menu">
               {group && !kids ? (
                 <>
                   {/* The group's name with a back arrow: back to the main list. */}

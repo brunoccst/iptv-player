@@ -184,6 +184,10 @@ After pairing, the phone app starts a title on the TV (D-044, D-061).
 
 ## App
 
+### Account menu
+
+The avatar at the top right opens it: other profiles, then the groups Profiles, Library & devices and App, each opening in place with a back arrow, and Sign out (D-079). On desktop it stays open while the mouse moves off it; a click elsewhere, the avatar again or Escape closes it (issue #155).
+
 ### About
 
 The installed version (MAJOR.MINOR.PATCH, D-070), the commit and date it was built from, and how the app connects. Account menu → App → About.
