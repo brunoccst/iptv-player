@@ -47,6 +47,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **The account menu stays open** (2026-10-05, issue #155): moving the mouse off it no longer closes it; a click elsewhere or Escape does.
 - **Cinema copies on covers** (2026-10-05, D-141, issue #151): a title whose versions are all cinema copies says so on its cover, where "4K" goes: "CAM", "TS", "TC" or "SCR".
 - **Library banner at the bottom; roomier About and Log** (2026-10-05, D-142, issue #150): the offline and "organizing your library" banner floats over the content at the bottom, with progress per kind, as on TV.
 - **Playback fixes** (2026-10-04, KI-045): streams that the provider redirects to another server play again (they were blocked); the player tries the provider's stream server when the portal fails, as the TV app does; MKV with H.264 / AAC is no longer refused; a video the computer cannot decode (HEVC without a decoder, MPEG-4 / Xvid, MPEG-2) gets its own message, and the error offers Open in VLC.
