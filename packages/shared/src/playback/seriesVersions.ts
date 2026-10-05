@@ -93,11 +93,17 @@ export function mergeSeriesVersions(versions: SeriesVersion[], preferredSeriesId
       const seen = new Set<string>();
       for (const episode of season.episodes) {
         let key = episode.episodeNumber == null ? `id:${version.seriesId}:${episode.id}` : `e:${episode.episodeNumber}`;
-        // The same number twice in one version (a provider mistake): keep both.
-        if (seen.has(key)) key = `id:${version.seriesId}:${episode.id}`;
+        let label = version.label;
+        if (seen.has(key)) {
+          // The same number twice in one version (a provider mistake). Another copy of the same episode becomes one
+          // more choice in its version picker; two different episodes stay separate.
+          const copies = entry.episodes.get(key)!.filter((v) => v.seriesId === version.seriesId);
+          if (copies.some((copy) => sameEpisode(copy.episode, episode))) label = `${version.label} #${copies.length + 1}`;
+          else key = `id:${version.seriesId}:${episode.id}`;
+        }
         seen.add(key);
         const list = entry.episodes.get(key) ?? [];
-        list.push({ seriesId: version.seriesId, label: version.label, episode });
+        list.push({ seriesId: version.seriesId, label, episode });
         entry.episodes.set(key, list);
       }
     }
@@ -122,6 +128,21 @@ export function mergeSeriesVersions(versions: SeriesVersion[], preferredSeriesId
   };
 }
 
+/** "S01E03" or "S1 E3" in an episode title. */
+const EPISODE_MARK = /\bS(\d{1,3})\s*E(\d{1,4})\b/i;
+
+/**
+ * Whether two entries with the same number in one version are copies of one episode: the same title, or titles that
+ * name the same season and episode ("Show - S01E03 - 9:00 A.M.").
+ */
+function sameEpisode(a: Episode, b: Episode): boolean {
+  const title = (episode: Episode) => episode.title.trim().toLowerCase();
+  if (title(a) && title(a) === title(b)) return true;
+  const markA = EPISODE_MARK.exec(a.title);
+  const markB = EPISODE_MARK.exec(b.title);
+  return !!markA && !!markB && Number(markA[1]) === Number(markB[1]) && Number(markA[2]) === Number(markB[2]);
+}
+
 function mergeEpisode(versions: EpisodeVersion[]): MergedEpisode {
   const [first] = versions as [EpisodeVersion];
   const pick = <K extends 'plot' | 'stillUrl' | 'durationSeconds'>(key: K) =>
@@ -139,9 +160,12 @@ function mergeEpisode(versions: EpisodeVersion[]): MergedEpisode {
 // Same order as `orderedEpisodes`.
 const byNumber = (a: MergedEpisode, b: MergedEpisode) => (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0);
 
-/** The episode as it plays in one of its versions (the per-episode version choice). */
-export function episodeInVersion(episode: MergedEpisode, seriesId: string | null | undefined): MergedEpisode {
-  const version = episode.versions.find((v) => v.seriesId === seriesId);
+/**
+ * The episode as it plays in one of its versions (the per-episode version choice), by that version's episode id: one
+ * version can have two copies of an episode.
+ */
+export function episodeInVersion(episode: MergedEpisode, episodeId: string | null | undefined): MergedEpisode {
+  const version = episode.versions.find((v) => v.episode.id === episodeId);
   if (!version || version === episode.versions[0]) return episode;
   return { ...version.episode, seriesId: version.seriesId, versions: episode.versions };
 }

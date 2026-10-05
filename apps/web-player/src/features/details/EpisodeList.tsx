@@ -39,7 +39,7 @@ interface EpisodeListProps {
 
 export function EpisodeList({ series, title, masterId, versionCount, initialSeason }: EpisodeListProps) {
   const [seasonNumber, setSeasonNumber] = useState(initialSeason ?? series.seasons[0]?.number ?? 1);
-  // Per-episode version choice (listed episode id → series id), for this visit of the page.
+  // Per-episode version choice (listed episode id → the chosen version's episode id), for this visit of the page.
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
@@ -118,11 +118,11 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                 <select
                   className="select select--small"
                   aria-label={t('Version of {title}', { title: episode.title })}
-                  value={episode.seriesId}
+                  value={episode.id}
                   onChange={(e) => setChosen((current) => ({ ...current, [listed.id]: e.target.value }))}
                 >
                   {listed.versions.map((v) => (
-                    <option key={v.seriesId} value={v.seriesId}>
+                    <option key={v.episode.id} value={v.episode.id}>
                       {v.label}
                     </option>
                   ))}
