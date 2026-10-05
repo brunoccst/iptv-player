@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Platform } from 'react-native';
+import { Animated, Platform } from 'react-native';
 import { navStore, stores } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
@@ -305,6 +305,35 @@ describe('episode description rolls on TV (issue #160)', () => {
     expect(screen.queryByTestId('plot-r2-rolling')).toBeNull();
     await act(async () => void jest.advanceTimersByTime(1500));
     expect(screen.getByTestId('plot-r2-rolling')).toBeTruthy();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('a long description is not squeezed into the two lines: it keeps its height and rolls through it', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/long', {
+      body: { id: 'long', title: 'Long', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('lg', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/lg', {
+      body: series('lg', [{ number: 1, episodes: [{ ...episode('l1', 1, 1), plot: 'A long plot. '.repeat(20) }] }]),
+    });
+    await render(<DetailsScreen section="series" masterId="long" />);
+    await flush();
+    await screen.findByTestId('plot-l1');
+
+    const timing = jest.spyOn(Animated, 'timing');
+    jest.useFakeTimers();
+    await act(async () => void fireEvent(screen.getByTestId('episode-l1'), 'focus'));
+    await act(async () => void jest.advanceTimersByTime(1600));
+    const window = screen.getByTestId('plot-l1-rolling');
+    const text = within(window).getByText(/A long plot/);
+    // The text lies outside the window's layout, so Android measures all of it (five lines here), not two.
+    expect(text).toHaveStyle({ position: 'absolute' });
+    await act(async () => void fireEvent(text, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 95 } } }));
+    expect(window).toHaveStyle({ height: 38, overflow: 'hidden' });
+    // It rolls through the three lines past the window, a line every 3 s.
+    expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: -57, duration: 9000 }));
     jest.useRealTimers();
     jest.restoreAllMocks();
   });

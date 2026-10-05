@@ -432,9 +432,14 @@ function EpisodePlot({ text, testID, rolling = false }: { text: string; testID: 
   }, [started, height, offset]);
   if (started && !open)
     return (
-      <View style={styles.plotWindow} testID={`${testID}-rolling`}>
+      // The window's height is set rather than capped: a capped parent squeezes the text to two lines on Android, so
+      // it measured no more to roll through and only lost its "…". Laid out on its own, the text keeps its full height.
+      <View
+        style={[styles.plotWindow, { height: Math.min(height || 2 * PLOT_LINE_HEIGHT, 2 * PLOT_LINE_HEIGHT) }]}
+        testID={`${testID}-rolling`}
+      >
         <Animated.Text
-          style={[styles.episodePlot, { transform: [{ translateY: offset }] }]}
+          style={[styles.episodePlot, styles.plotRolling, { transform: [{ translateY: offset }] }]}
           onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
         >
           {text}
@@ -663,7 +668,8 @@ const styles = StyleSheet.create({
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
   episodePlot: { color: colors.muted, fontSize: 13.6, lineHeight: PLOT_LINE_HEIGHT },
   // Two lines of the plot; the rolling text slides inside it (issue #160).
-  plotWindow: { maxHeight: 2 * PLOT_LINE_HEIGHT, overflow: 'hidden' },
+  plotWindow: { overflow: 'hidden' },
+  plotRolling: { position: 'absolute', top: 0, left: 0, right: 0 },
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   episodeActionsCompact: { marginTop: 8 },
 });
