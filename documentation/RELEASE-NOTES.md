@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **No more doubled episodes** (2026-10-05, D-146): when the provider lists the same episode twice in one version ("S01E03" twice), it shows once; the second copy is a choice in the episode's version picker.
 - **Back from Continue Watching shows the details** (2026-10-05, issue #166): a movie or episode started from Home's Continue Watching row goes back to its details page, not Home.
 - **Languages in order of preference** (2026-10-05, D-145, issue #163): in the content language filter, the order you tick languages in is their priority, shown as a number next to each; versions follow it.
 - **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.
@@ -53,6 +54,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **No more doubled episodes** (2026-10-05, D-146): when the provider lists the same episode twice in one version ("S01E03" twice), it shows once; the second copy is a choice in the episode's version picker.
 - **Back from Continue Watching shows the details** (2026-10-05, issue #166): a movie or episode started from Home's Continue Watching row goes back to its details page, not Home.
 - **Languages in order of preference** (2026-10-05, D-145, issue #163): in the content language filter, the order you tick languages in is their priority, shown as a number next to each; versions follow it.
 - **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.

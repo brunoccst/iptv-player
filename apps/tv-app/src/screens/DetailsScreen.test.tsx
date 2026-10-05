@@ -80,6 +80,47 @@ describe('series details: one episode list for all versions (D-066)', () => {
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'ge-1', seriesId: 'ge' } });
   });
 
+  it('a second copy of an episode in one version is a choice in its version picker, not another row', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/show', {
+      body: {
+        id: 'show',
+        title: 'Show',
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: null,
+        variants: [variant('en', 'ENG'), variant('sub', 'ENG (2)')],
+      },
+    });
+    backend.on('GET', '/api/catalog/series/en', {
+      body: series('en', [{ number: 1, episodes: [{ ...episode('en-3', 1, 3), title: 'Show - S01E03 - 9:00 A.M.' }] }]),
+    });
+    // The provider lists episode 3 twice in the subtitled version.
+    backend.on('GET', '/api/catalog/series/sub', {
+      body: series('sub', [
+        {
+          number: 1,
+          episodes: [
+            { ...episode('sub-3', 1, 3), title: 'Show [MULTI-SUB] - S01E03 - 9:00 A.M.' },
+            { ...episode('sub-3b', 1, 3), title: 'Show [MULTI-SUB] - S01E03 - 9:00 A.M.' },
+          ],
+        },
+      ]),
+    });
+
+    await render(<DetailsScreen section="series" masterId="show" />);
+    await flush();
+    const list = within(screen.getByTestId('episodes'));
+    expect(list.getAllByText(/S01E03/)).toHaveLength(1);
+    expect(list.queryByText(/^Only in/)).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('episode-en-3-version'));
+    await fireEvent.press(screen.getByLabelText('ENG (2) #2'));
+    await fireEvent.press(screen.getByTestId('episode-sub-3b'));
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'sub-3b', seriesId: 'sub' } });
+  });
+
   it('TV: entering an episode from above lands on Play (first in the row), not on the nearest button', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();

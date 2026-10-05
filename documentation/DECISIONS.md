@@ -2347,3 +2347,16 @@ Decision (TV, phone, web and desktop `LanguageSettings`; shared `useLanguageSett
 - **The order the languages are ticked in is their priority.** Each ticked language shows its number ("✓ 1. German" on TV and phone, "☑ 1. English" on web and desktop, like the OpenSubtitles languages, D-111); unticking one moves the later ones up, ticking it again puts it last. A line under the description says so.
 - **Every feature that reads the profile's languages follows the order:** the version a title starts with (D-144), which of equally good versions is "(best)" (D-136). The filter itself shows a title in any of them, so the order does not change which titles are shown. A change of order alone is saved and reloads the lists, like any other change.
 - Tests: TV shows the numbers and keeps the order; web numbers the boxes and moves later languages up when one is unticked; shared tests of D-144 and D-136 already cover the order.
+
+## D-146
+
+**Two copies of an episode in one version are one row** — 2026-10-05 (owner, on a TV screenshot: "Why did you put the ep. 3 twice in here?")
+
+Context: D-066 merges a series' versions by season and episode number, and keeps two episodes with the same number in one version apart in case they are different episodes. "EN - The Pitt [MULTI-SUB]" lists S01E03 twice, so the second copy got its own row ("Only in ENG (3)") and next-up played episode 3 twice.
+
+Decision (shared `mergeSeriesVersions`; TV, phone, web and desktop):
+
+- **Another entry with the same number in one version that is the same episode joins that episode's row** as one more choice in its version picker, labelled with the version and its copy number ("ENG (3) #2"). It is the same episode when the titles are equal (ignoring case and outer spaces) or both name the same season and episode ("S01E03", "S1 E3").
+- Two different titles without matching SxxEyy keep their own rows, as before (D-066).
+- The per-episode version picker now picks by the version's episode id, not its series id, since one version can hold two copies.
+- Tests: shared merge (equal titles, the same SxxEyy, different episodes stay separate, next-up skips the copy); the TV details screen shows one row and plays the copy picked.
