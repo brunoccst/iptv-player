@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ProgressDto } from '@iptv/shared';
-import { downloadTarget, episodeTarget, progressTarget } from './targets';
+import { downloadTarget, episodeTarget, playFromContinue, progressTarget } from './targets';
+import { createUiStore } from './uiStore';
 
 describe('targets', () => {
   it('episode target carries series context for next-up and progress', () => {
@@ -49,5 +50,36 @@ describe('targets', () => {
 
   it('live channels cannot become download targets', () => {
     expect(() => downloadTarget({ kind: 'live', streamId: '1', container: 'm3u8', title: 'News' })).toThrow();
+  });
+});
+
+describe('playFromContinue (issue #166)', () => {
+  const progress = {
+    containerExtension: 'mkv',
+    durationSeconds: 3600,
+    episodeNumber: null,
+    itemId: '7',
+    kind: 'movie',
+    masterId: 'm1',
+    positionSeconds: 600,
+    posterUrl: null,
+    seasonNumber: null,
+    seriesId: null,
+    title: 'A',
+    updatedAt: '2026-10-05T00:00:00Z',
+  };
+
+  it('plays over the details page, so closing the player shows it', () => {
+    const ui = createUiStore(null);
+    playFromContinue(ui, progress);
+    expect(ui.getState()).toMatchObject({ details: { section: 'movies', masterId: 'm1' }, playing: { streamId: '7', startAt: 600 } });
+    ui.getState().stopPlayback();
+    expect(ui.getState()).toMatchObject({ view: 'home', details: { masterId: 'm1' }, playing: null });
+  });
+
+  it('plays straight from Home without a details page', () => {
+    const ui = createUiStore(null);
+    playFromContinue(ui, { ...progress, masterId: null });
+    expect(ui.getState()).toMatchObject({ details: null, playing: { streamId: '7' } });
   });
 });

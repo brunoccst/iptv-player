@@ -1,4 +1,4 @@
-import type { Episode, LiveChannel, MasterDetails, PlaybackKind, ProgressDto, VariantInfo } from '../api/types';
+import type { Episode, LibrarySection, LiveChannel, MasterDetails, PlaybackKind, ProgressDto, VariantInfo } from '../api/types';
 import { episodeLabel } from './rules';
 
 /** Everything a player needs to start, switch versions, save progress and find the next episode. */
@@ -80,6 +80,15 @@ export function progressTarget(progress: ProgressDto): PlayTarget {
     episodeNumber: progress.episodeNumber,
     startAt: progress.positionSeconds,
   };
+}
+
+/**
+ * The details page a "Continue watching" entry belongs to: the movie, or the episode's series. Playing from the row
+ * opens it under the player, so Back lands there rather than on Home (issue #166). Null without a library title.
+ */
+export function progressDetails(progress: ProgressDto): { section: LibrarySection; masterId: string } | null {
+  if (!progress.masterId) return null;
+  return { section: progress.kind === 'episode' ? 'series' : 'movies', masterId: progress.masterId };
 }
 
 /** Stable id shared by web and TV download stores. */

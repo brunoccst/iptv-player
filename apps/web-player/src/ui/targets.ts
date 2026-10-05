@@ -1,5 +1,6 @@
-import type { PlayTarget } from '@iptv/shared';
+import { progressDetails, progressTarget, type PlayTarget, type ProgressDto } from '@iptv/shared';
 import type { DownloadTarget } from '../offline/types';
+import type { UiStore } from './uiStore';
 
 export { episodeTarget, movieTarget, progressTarget } from '@iptv/shared';
 
@@ -22,4 +23,11 @@ export function downloadTarget(target: PlayTarget, durationSeconds?: number | nu
 
 export function playTargetFromDownload(record: DownloadTarget): PlayTarget {
   return { ...record, kind: record.kind };
+}
+
+/** Plays a "Continue watching" entry over its details page, so Back from the player lands there (issue #166). */
+export function playFromContinue(ui: UiStore, entry: ProgressDto) {
+  const details = progressDetails(entry);
+  if (details) ui.getState().openDetails(details);
+  ui.getState().play(progressTarget(entry));
 }
