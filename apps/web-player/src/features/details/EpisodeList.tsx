@@ -54,29 +54,32 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
     <section className="episodes" aria-label={t('Episodes')}>
       <div className="episodes__header">
         <h3>{t('Episodes')}</h3>
-        {series.seasons.length > 1 ? (
-          <select
-            className="select"
-            aria-label={t('Season')}
-            value={season.number}
-            onChange={(e) => setSeasonNumber(Number(e.target.value))}
-          >
-            {series.seasons.map((s) => (
-              <option key={s.number} value={s.number}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="muted">{season.name}</span>
-        )}
-        {/* Only this season (issue #132). */}
-        <WatchedButton
-          kind="season"
-          watched={isSeasonWatched(progress, season)}
-          onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
-          testID="season-watched-toggle"
-        />
+        {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
+        <div className="episodes__season">
+          {/* Only this season (issue #132). */}
+          <WatchedButton
+            kind="season"
+            watched={isSeasonWatched(progress, season)}
+            onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+            testID="season-watched-toggle"
+          />
+          {series.seasons.length > 1 ? (
+            <select
+              className="select"
+              aria-label={t('Season')}
+              value={season.number}
+              onChange={(e) => setSeasonNumber(Number(e.target.value))}
+            >
+              {series.seasons.map((s) => (
+                <option key={s.number} value={s.number}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="muted">{season.name}</span>
+          )}
+        </div>
       </div>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);

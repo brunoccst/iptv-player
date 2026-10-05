@@ -86,7 +86,7 @@ Poster, description, versions, Play, My List and a Watched toggle for the movie 
 
 ### Seasons and episodes
 
-A season choice with a "Watched" button that marks the whole season watched or not (D-132). Each episode row shows Play, "…" and its version; "…" (TV: hold OK on Play; phone: long touch; desktop: right-click) offers Mark as watched / not watched, Download, Play on TV and Open in another player (D-082, D-083).
+A season choice with a "Watched" button on its left that marks the whole season watched or not (D-132, issue #159). Each episode row shows Play, "…" and its version; "…" (TV: hold OK on Play; phone: long touch; desktop: right-click) offers Mark as watched / not watched, Download, Play on TV and Open in another player (D-082, D-083).
 
 ## Player
 

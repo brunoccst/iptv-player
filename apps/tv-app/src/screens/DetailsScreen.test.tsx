@@ -208,6 +208,15 @@ describe('watched episodes and series (D-082)', () => {
     await flush();
     const toggle = () => screen.getByTestId('season-watched-toggle');
 
+    // On the left of the season choice, in the same group as it (issue #159).
+    let group = toggle().parent;
+    while (group && within(group).queryByTestId('season-select') === null) group = group.parent;
+    const order = within(group!)
+      .getAllByTestId(/^season-/)
+      .map((node) => node.props.testID)
+      .filter((id, index, ids) => ids.indexOf(id) === index);
+    expect(order.slice(0, 2)).toEqual(['season-watched-toggle', 'season-select']);
+
     expect(toggle()).toHaveProp('accessibilityLabel', 'Mark season as watched');
     await fireEvent.press(toggle());
     await flush();

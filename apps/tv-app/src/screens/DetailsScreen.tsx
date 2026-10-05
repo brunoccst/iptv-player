@@ -250,25 +250,28 @@ function Episodes({
     <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel={t('Episodes')}>
       <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
-        {series.seasons.length > 1 ? (
-          <Select
-            compact
-            label={t('Season')}
-            value={String(season.number)}
-            options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
-            onChange={(value) => setSeasonNumber(Number(value))}
-            testID="season-select"
+        {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
+        <View style={styles.seasonChoice}>
+          {/* Only this season (issue #132). */}
+          <WatchedButton
+            kind="season"
+            watched={isSeasonWatched(progress, season)}
+            onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+            testID="season-watched-toggle"
           />
-        ) : (
-          <Text style={styles.muted}>{season.name}</Text>
-        )}
-        {/* Only this season (issue #132). */}
-        <WatchedButton
-          kind="season"
-          watched={isSeasonWatched(progress, season)}
-          onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
-          testID="season-watched-toggle"
-        />
+          {series.seasons.length > 1 ? (
+            <Select
+              compact
+              label={t('Season')}
+              value={String(season.number)}
+              options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
+              onChange={(value) => setSeasonNumber(Number(value))}
+              testID="season-select"
+            />
+          ) : (
+            <Text style={styles.muted}>{season.name}</Text>
+          )}
+        </View>
       </Centered>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);
@@ -541,6 +544,7 @@ const styles = StyleSheet.create({
   episodesCompact: { paddingHorizontal: 16 },
   episodesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   episodesTitle: { color: colors.strong, fontSize: 22.4, fontWeight: '700' },
+  seasonChoice: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   episode: {
     flexDirection: 'row',
     alignItems: 'center',

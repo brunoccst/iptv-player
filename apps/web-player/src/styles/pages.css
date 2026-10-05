@@ -441,6 +441,13 @@
   color: var(--color-text-strong);
 }
 
+/* The season's Watched button, then the season choice (issue #159). */
+.episodes__season {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .episodes__header .select {
   width: auto;
   min-height: 40px;
