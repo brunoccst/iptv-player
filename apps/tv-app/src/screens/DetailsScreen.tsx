@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Platform,
   Pressable,
@@ -238,6 +240,24 @@ function Episodes({
   const compact = useCompact();
   // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
+  // TV: the episode whose buttons have the D-pad focus, so its description can roll. Moving between its own buttons
+  // blurs one and focuses the next; the short wait keeps that from counting as leaving the episode.
+  const [focusedEpisode, setFocusedEpisode] = useState<string | null>(null);
+  const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => clearTimeout(leaving.current ?? undefined), []);
+  const episodeFocus = (id: string) =>
+    Platform.isTV
+      ? {
+          onFocus: () => {
+            clearTimeout(leaving.current ?? undefined);
+            setFocusedEpisode(id);
+          },
+          onBlur: () => {
+            clearTimeout(leaving.current ?? undefined);
+            leaving.current = setTimeout(() => setFocusedEpisode((current) => (current === id ? null : current)), 100);
+          },
+        }
+      : {};
   if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
   const context = (episode: MergedEpisode) => ({
     title: master.title,
@@ -286,6 +306,7 @@ function Episodes({
               onPress={play}
               onLongPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}`}
+              {...episodeFocus(listed.id)}
             />
             {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
             <IconButton
@@ -293,6 +314,7 @@ function Episodes({
               label={t('More options for {title}', { title: episode.title })}
               onPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}-more`}
+              {...episodeFocus(listed.id)}
             />
             {/* After the buttons, so Play is the first thing focused in an episode. */}
             {listed.versions.length > 1 ? (
@@ -303,6 +325,7 @@ function Episodes({
                 options={listed.versions.map((v) => ({ value: v.seriesId, label: v.label }))}
                 onChange={(seriesId) => setChosen((current) => ({ ...current, [listed.id]: seriesId }))}
                 testID={`episode-${listed.id}-version`}
+                {...episodeFocus(listed.id)}
               />
             ) : null}
           </View>
@@ -336,6 +359,7 @@ function Episodes({
                 <EpisodePlot
                   text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
                   testID={`plot-${episode.id}`}
+                  rolling={focusedEpisode === listed.id}
                 />
                 {listed.versions.length === 1 && master.variants.length > 1 ? (
                   <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
@@ -361,12 +385,62 @@ function Episodes({
   );
 }
 
+/** TV: how long an episode keeps the focus before its description starts rolling, and how fast it rolls (issue #160). */
+const PLOT_ROLL_DELAY_MS = 1500;
+const PLOT_LINE_MS = 3000;
+const PLOT_END_HOLD_MS = 3000;
+const PLOT_LINE_HEIGHT = 19;
+
 /**
  * An episode's length and plot: two lines, then "…"; a touch shows all of it and the row grows, another touch folds it
  * again (issue #160). Not focusable, so Play stays the first thing the D-pad lands on in an episode.
+ * TV: while one of the episode's buttons keeps the focus (`rolling`), after a short wait the text slides up inside the
+ * same two lines, a line at a time at reading pace, rests at the end, then starts again from the top.
  */
-function EpisodePlot({ text, testID }: { text: string; testID: string }) {
+function EpisodePlot({ text, testID, rolling = false }: { text: string; testID: string; rolling?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [height, setHeight] = useState(0);
+  const offset = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!rolling) {
+      setStarted(false);
+      return;
+    }
+    const timer = setTimeout(() => setStarted(true), PLOT_ROLL_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [rolling]);
+  useEffect(() => {
+    offset.setValue(0);
+    const distance = height - 2 * PLOT_LINE_HEIGHT;
+    if (!started || distance <= 0) return;
+    const roll = Animated.loop(
+      Animated.sequence([
+        Animated.timing(offset, {
+          toValue: -distance,
+          duration: (distance / PLOT_LINE_HEIGHT) * PLOT_LINE_MS,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.delay(PLOT_END_HOLD_MS),
+        Animated.timing(offset, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.delay(PLOT_ROLL_DELAY_MS),
+      ]),
+    );
+    roll.start();
+    return () => roll.stop();
+  }, [started, height, offset]);
+  if (started && !open)
+    return (
+      <View style={styles.plotWindow} testID={`${testID}-rolling`}>
+        <Animated.Text
+          style={[styles.episodePlot, { transform: [{ translateY: offset }] }]}
+          onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
+        >
+          {text}
+        </Animated.Text>
+      </View>
+    );
   return (
     <Pressable
       onPress={() => setOpen((current) => !current)}
@@ -587,7 +661,9 @@ const styles = StyleSheet.create({
   titleTag: { marginTop: -4, marginBottom: 10 },
   episodeText: { flex: 1 },
   episodeTitle: { color: colors.strong, fontWeight: '700', fontSize: fonts.body, marginBottom: 4 },
-  episodePlot: { color: colors.muted, fontSize: 13.6 },
+  episodePlot: { color: colors.muted, fontSize: 13.6, lineHeight: PLOT_LINE_HEIGHT },
+  // Two lines of the plot; the rolling text slides inside it (issue #160).
+  plotWindow: { maxHeight: 2 * PLOT_LINE_HEIGHT, overflow: 'hidden' },
   episodeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   episodeActionsCompact: { marginTop: 8 },
 });

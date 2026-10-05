@@ -18,6 +18,8 @@ export function Select({
   onChange,
   testID,
   compact,
+  onFocus,
+  onBlur,
 }: {
   label: string;
   value: string;
@@ -26,6 +28,8 @@ export function Select({
   testID?: string;
   /** `width: auto` (season picker) instead of full width. */
   compact?: boolean;
+  onFocus?(): void;
+  onBlur?(): void;
 }) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -42,8 +46,12 @@ export function Select({
         onFocus={() => {
           setFocused(true);
           centering.center();
+          onFocus?.();
         }}
-        onBlur={() => setFocused(false)}
+        onBlur={() => {
+          setFocused(false);
+          onBlur?.();
+        }}
         style={[styles.box, compact ? styles.compact : styles.full, focused && styles.focused]}
       >
         <Text style={[styles.value, compact && styles.valueCompact]} numberOfLines={1}>
