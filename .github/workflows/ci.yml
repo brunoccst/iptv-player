@@ -72,6 +72,9 @@ jobs:
       # Every app has each feature, or the backlog says when it will (documentation/PARITY.md, D-080).
       - name: App parity table
         run: npm run lint:parity
+      # Every app's version has release notes (documentation/RELEASE-NOTES.md, D-143).
+      - name: Release notes
+        run: npm run lint:release-notes
       # Every text of the app is translated into each language (packages/shared/src/i18n, D-084).
       - name: Translations
         run: npm run lint:i18n
