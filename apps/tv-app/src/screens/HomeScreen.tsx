@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import {
-  continueWatching,
-  watchlistCard,
-  pageKey,
-  recentChannelTarget,
-  progressTarget,
-  type MasterCard,
-  type ProgressDto,
-  t,
-} from '@iptv/shared';
+import { continueWatching, watchlistCard, pageKey, recentChannelTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
+import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
@@ -182,7 +174,7 @@ function ContinueWatchingRow() {
             posterUrl={p.posterUrl}
             progress={p.positionSeconds / p.durationSeconds}
             subtitle={subtitleOf(p)}
-            onPress={() => navStore.getState().push({ name: 'player', target: progressTarget(p) })}
+            onPress={() => playFromContinue(navStore, p)}
             onLongPress={() => setMenuFor(p)}
           />
         )}

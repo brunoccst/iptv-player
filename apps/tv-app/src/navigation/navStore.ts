@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import type { LibrarySection, PlayTarget } from '@iptv/shared';
+import { progressDetails, progressTarget, type LibrarySection, type PlayTarget, type ProgressDto } from '@iptv/shared';
 
 /** Same pages as the web top nav, plus Log (account menu). */
 export type Section = 'home' | 'search' | 'movies' | 'series' | 'live' | 'mylist' | 'downloads' | 'log';
@@ -103,3 +103,10 @@ export const currentSection = (state: NavState): Section => {
   const root = state.stack[0];
   return root?.name === 'section' ? root.section : 'home';
 };
+
+/** Plays a "Continue watching" entry over its details page, so Back from the player lands there (issue #166). */
+export function playFromContinue(nav: NavStore, entry: ProgressDto) {
+  const details = progressDetails(entry);
+  if (details) nav.getState().push({ name: 'details', ...details });
+  nav.getState().push({ name: 'player', target: progressTarget(entry) });
+}

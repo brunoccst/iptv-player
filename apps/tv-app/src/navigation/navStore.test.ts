@@ -1,4 +1,4 @@
-import { createNavStore, currentRoute } from './navStore';
+import { createNavStore, currentRoute, playFromContinue } from './navStore';
 
 describe('nav store', () => {
   it('pushes, replaces and pops; root cannot be popped', () => {
@@ -47,5 +47,38 @@ describe('nav store: web-style navigation', () => {
     expect(nav.getState().back()).toBe(true);
     expect(nav.getState().menuOpen).toBe(false);
     expect(nav.getState().stack).toHaveLength(2);
+  });
+});
+
+describe('nav store: Continue watching (issue #166)', () => {
+  const progress = {
+    containerExtension: 'mkv',
+    durationSeconds: 3600,
+    episodeNumber: 2,
+    itemId: 'e2',
+    kind: 'episode',
+    masterId: 's1',
+    positionSeconds: 600,
+    posterUrl: null,
+    seasonNumber: 1,
+    seriesId: '9',
+    title: 'Show',
+    updatedAt: '2026-10-05T00:00:00Z',
+  };
+
+  it('plays over the details page, so Back from the player lands there', () => {
+    const nav = createNavStore();
+    playFromContinue(nav, progress);
+    expect(currentRoute(nav.getState())).toMatchObject({ name: 'player', target: { streamId: 'e2', startAt: 600 } });
+    expect(nav.getState().back()).toBe(true);
+    expect(currentRoute(nav.getState())).toEqual({ name: 'details', section: 'series', masterId: 's1' });
+    expect(nav.getState().back()).toBe(true);
+    expect(currentRoute(nav.getState())).toEqual({ name: 'section', section: 'home' });
+  });
+
+  it('plays straight from Home when the entry has no details page', () => {
+    const nav = createNavStore();
+    playFromContinue(nav, { ...progress, kind: 'movie', masterId: null });
+    expect(nav.getState().stack.map((route) => route.name)).toEqual(['section', 'player']);
   });
 });
