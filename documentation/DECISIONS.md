@@ -2335,3 +2335,15 @@ Decision (shared `startingVariant`, the library store's `profileLanguages`; TV, 
 - A title with no version in the profile's languages starts as before: the last version choice (D-087), else the best version (D-136), else the first. The app's language does not override quality; it only orders equally good versions (D-136).
 - A version picked for a title is still that title's choice. "(best)" still marks the highest quality (D-136), so it may sit on a version in another language than the one selected.
 - Tests: the profile's language beats a better quality and a last choice in another language; the last choice's quality inside the profile's language; the first of the profile's languages; no match falls back; the TV details screen starts with the English 1080p version next to an Albanian 4K one.
+
+## D-145
+
+**The profile's languages are in order of preference: the order they are ticked in** — 2026-10-05 (owner, on issue #163: "the order that the user selects each language affect the priority order. The checkbox must show the order number. This also affects the pre-selected version in the drop-down and any other features that involve the languages.")
+
+Context: the content language filter (D-063, D-067) kept the languages in the order they were ticked, and D-136 and D-144 already read them in that order, but nothing showed it, so it looked like a plain set.
+
+Decision (TV, phone, web and desktop `LanguageSettings`; shared `useLanguageSettings`):
+
+- **The order the languages are ticked in is their priority.** Each ticked language shows its number ("✓ 1. German" on TV and phone, "☑ 1. English" on web and desktop, like the OpenSubtitles languages, D-111); unticking one moves the later ones up, ticking it again puts it last. A line under the description says so.
+- **Every feature that reads the profile's languages follows the order:** the version a title starts with (D-144), which of equally good versions is "(best)" (D-136). The filter itself shows a title in any of them, so the order does not change which titles are shown. A change of order alone is saved and reloads the lists, like any other change.
+- Tests: TV shows the numbers and keeps the order; web numbers the boxes and moves later languages up when one is unticked; shared tests of D-144 and D-136 already cover the order.

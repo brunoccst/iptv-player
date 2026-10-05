@@ -47,7 +47,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | My List, search, category pages | ✅ | ✅ | ✅ | | [Watchlist](FEATURES.md#watchlist) · [Search](FEATURES.md#titles-channels-and-programmes) · [Movies and Series](FEATURES.md#movies-and-series) |
 | Automatic subtitles from OpenSubtitles (D-111) | ✅ | ✅ | ✅ | avatar → App → Automatic subtitles; user's own API key | [Automatic subtitles](FEATURES.md#automatic-subtitles) |
 | Categories shown: hide categories from browsing, search still finds them (D-110) | ✅ | ✅ | ✅ | avatar → Profiles | [Categories shown](FEATURES.md#categories-shown) |
-| Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
+| Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | languages numbered in the order ticked, which is their priority (D-145) | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
 | Backup and restore | ✅ | ✅ | ✅ | | [Backup and restore](FEATURES.md#backup-and-restore) |
 | Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) |
 | Play on TV from the phone (D-044) | ✅ receives | ✅ sends | ➖ | | [Play on TV](FEATURES.md#play-on-tv) |

@@ -164,7 +164,7 @@ An optional PIN locks leaving a Kids profile and managing profiles (D-054).
 
 ### Content language filter
 
-Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063, D-067, D-086).
+Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063, D-067, D-086). The order the languages are ticked in is their priority, shown as a number next to each ("1. English", "2. German"); unticking one moves the later ones up. A title starts with its version in the first of them it has, and the order decides which of equally good versions is "(best)" (D-145, D-144, D-136).
 
 ### Categories shown
 

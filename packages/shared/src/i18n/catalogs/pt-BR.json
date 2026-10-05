@@ -439,6 +439,7 @@
   "The last profile cannot be deleted.": "O último perfil não pode ser excluído.",
   "The library could not be updated: {error}": "Não foi possível atualizar a biblioteca: {error}",
   "The new version is still being published. Try again in a few minutes.": "A nova versão ainda está sendo publicada. Tente de novo em alguns minutos.",
+  "The order you tick them in is their priority: a title starts with its version in the first of them that it has.": "A ordem em que você os marca é a prioridade deles: um título começa com a versão no primeiro deles que ele tiver.",
   "The password must have at least {count} characters.": "A senha precisa ter pelo menos {count} caracteres.",
   "The PIN must be 4 digits.": "O PIN precisa ter 4 dígitos.",
   "The PINs did not match. Start again.": "Os PINs não coincidem. Comece de novo.",

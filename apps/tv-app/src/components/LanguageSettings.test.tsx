@@ -29,7 +29,10 @@ describe('account menu → Content language filter (D-063, D-067, D-086)', () =>
     await fireEvent.press(screen.getByTestId('language-POR'));
     await fireEvent.press(screen.getByTestId('language-ENG'));
     await fireEvent.press(screen.getByTestId('language-POR'));
-    expect(screen.getByText('✓ German')).toBeTruthy();
+    // The order they are ticked in is their priority, shown as a number (D-145): unticking Portuguese moves English up.
+    expect(screen.getByText('✓ 1. German')).toBeTruthy();
+    expect(screen.getByText('✓ 2. English')).toBeTruthy();
+    expect(screen.getByText('Portuguese')).toBeTruthy();
     // Toggling only ticks: nothing is saved or reloaded until the dialog closes (a reload per toggle stalled the TV).
     await flush();
     expect(backend.calls.length).toBe(requestsBefore);
