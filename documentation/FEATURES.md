@@ -144,6 +144,8 @@ Finds movies, series, live channels and programmes of the TV guide on now or in 
 
 A watchlist per profile: add from details or the card menu; it has a Home row and its own page (D-055).
 
+A title on My List carries a bookmark at the top right of its cover. The details button is the same bookmark: outlined when the title is not on My List, filled when it is (issue #157).
+
 ## Downloads
 
 ### Offline downloads

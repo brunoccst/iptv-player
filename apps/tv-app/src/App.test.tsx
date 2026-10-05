@@ -221,7 +221,7 @@ describe('App (TV)', () => {
     expect(screen.queryByTestId('details-watched')).toBeNull();
   });
 
-  it('card menu: Add to My List and Remove from My List (D-104)', async () => {
+  it('card menu: Add to My List and Remove from My List; the cover carries a bookmark while saved (D-104, issue #157)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     backend.on('GET', '/api/profiles/p1/watchlist', { body: [] });
@@ -236,17 +236,20 @@ describe('App (TV)', () => {
     await flush();
     await screen.findAllByTestId('card-Big Test Movie');
     const card = () => screen.getAllByTestId('card-Big Test Movie').at(-1)!;
+    expect(screen.queryByTestId('card-Big Test Movie-mylist')).toBeNull();
 
     await fireEvent(card(), 'longPress');
     await fireEvent.press(screen.getByTestId('card-menu-mylist-add'));
     await flush();
     expect(backend.calls.some((c) => c.method === 'PUT' && c.url.pathname === '/api/profiles/p1/watchlist/movies/m1')).toBe(true);
+    expect(screen.getAllByTestId('card-Big Test Movie-mylist').length).toBeGreaterThan(0);
 
     await fireEvent(card(), 'longPress');
     expect(within(screen.getByTestId('card-menu')).getByText('Remove from My List')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('card-menu-mylist-remove'));
     await flush();
     expect(backend.calls.some((c) => c.method === 'DELETE' && c.url.pathname === '/api/profiles/p1/watchlist/movies/m1')).toBe(true);
+    expect(screen.queryByTestId('card-Big Test Movie-mylist')).toBeNull();
   });
 
   it('Continue Watching: holding OK opens the card menu; Remove clears the unfinished episodes of the series (D-078)', async () => {

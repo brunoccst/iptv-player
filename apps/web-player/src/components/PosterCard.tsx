@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
+import { t } from '@iptv/shared';
 import { menuPosition, type MenuPosition } from './CardMenu';
+import { Icon } from './Icon';
 import { WatchedTag } from './WatchedTag';
 
 export interface PosterCardProps {
@@ -11,6 +13,8 @@ export interface PosterCardProps {
   progress?: number;
   /** "Watched" tag at the bottom right of the cover (D-081). */
   watched?: boolean;
+  /** On My List: a bookmark at the top right of the cover (issue #157). */
+  onList?: boolean;
   landscape?: boolean;
   actions?: ReactNode;
   onSelect(): void;
@@ -25,6 +29,7 @@ export function PosterCard({
   badge,
   progress,
   watched,
+  onList,
   landscape,
   actions,
   onSelect,
@@ -51,6 +56,11 @@ export function PosterCard({
             <span className="card__fallback">{title}</span>
           )}
           {badge ? <span className="card__badge">{badge}</span> : null}
+          {onList ? (
+            <span className="card__mylist" role="img" aria-label={t('On My List')}>
+              <Icon name="bookmark" size={16} />
+            </span>
+          ) : null}
           {watched ? <WatchedTag className="card__watched" /> : null}
           {progress !== undefined ? (
             <span className="card__progress">

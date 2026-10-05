@@ -2,7 +2,7 @@ import type { LibrarySection, MasterCard } from '@iptv/shared';
 import { useWatchlistToggle } from '../hooks/stores';
 import { Icon } from './Icon';
 
-/** Round "My List" toggle on the details panel (D-055): plus to add, check when saved. Logic shared (D-124). */
+/** Round "My List" toggle on the details panel (D-055): a bookmark, outlined to add, filled when saved (issue #157). Logic shared (D-124). */
 export function WatchlistButton({
   section,
   title,
