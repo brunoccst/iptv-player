@@ -15,7 +15,7 @@ import { PosterCard } from '../../components/PosterCard';
 import { Row } from '../../components/Row';
 import { continueMenuItems, useLiveHomeRow, useCatalog, useLibrary, useProgress, useUi, useWatchlist } from '../../hooks/stores';
 import { usePagedLibrary } from '../../hooks/stores';
-import { progressTarget } from '../../ui/targets';
+import { playFromContinue } from '../../ui/targets';
 import { Hero } from './Hero';
 import { MasterCard } from './MasterCard';
 
@@ -80,7 +80,7 @@ function ContinueWatchingRow() {
           posterUrl={item.posterUrl}
           progress={item.positionSeconds / item.durationSeconds}
           subtitle={subtitleOf(item)}
-          onSelect={() => uiStore.getState().play(progressTarget(item))}
+          onSelect={() => playFromContinue(uiStore, item)}
           onMenu={(position) => setMenu({ item, position })}
         />
       ))}

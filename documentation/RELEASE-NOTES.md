@@ -17,6 +17,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 #### Latest
 
 - **Episode descriptions roll on TV again** (2026-10-05, issue #160): on the TV a long description now rolls up through the rest of its text, instead of only losing its "…" and cutting off the last word.
+- **Back from Continue Watching shows the details** (2026-10-05, issue #166): a movie or episode started from Home's Continue Watching row goes back to its details page, not Home.
 - **Languages in order of preference** (2026-10-05, D-145, issue #163): in the content language filter, the order you tick languages in is their priority, shown as a number next to each; versions follow it.
 - **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.
 - **Whole episode descriptions** (2026-10-05, issue #160): an episode's description still stops after two lines with "…". On the phone a touch on it shows all of it, another touch folds it again; on TV, after a moment on one of the episode's buttons, the description slowly rolls up through the rest of the text.
@@ -53,6 +54,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Back from Continue Watching shows the details** (2026-10-05, issue #166): a movie or episode started from Home's Continue Watching row goes back to its details page, not Home.
 - **Languages in order of preference** (2026-10-05, D-145, issue #163): in the content language filter, the order you tick languages in is their priority, shown as a number next to each; versions follow it.
 - **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.
 - **Whole episode descriptions** (2026-10-05, issue #160): an episode's description stops after two lines with "…"; a click on it shows all of it, another click folds it again.
