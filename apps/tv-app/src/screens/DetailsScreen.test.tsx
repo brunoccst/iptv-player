@@ -334,3 +334,29 @@ describe('movie details: the best version (D-136)', () => {
     expect(screen.queryByText('1080p · ALB (best)')).toBeNull();
   });
 });
+
+describe('movie details: the version a title starts with (D-144)', () => {
+  it("starts with the best version in the profile's language, even when another language has a better one", async () => {
+    const backend = setupApp();
+    await act(async () => void (await stores.profilePrefs.getState().update('p1', { languages: ['ENG'] })));
+    backend.on('GET', '/api/library/movies/m', {
+      body: {
+        id: 'm',
+        title: 'Movie',
+        year: 2020,
+        posterUrl: null,
+        rating: null,
+        bestQuality: '4K',
+        variants: [
+          { ...variant('alb', '4K · ALB'), quality: '4K', audioLanguages: ['ALB'] },
+          { ...variant('en-720', '720p · ENG'), quality: '720p', audioLanguages: ['ENG'] },
+          { ...variant('en', '1080p · ENG'), quality: '1080p', audioLanguages: ['ENG'] },
+        ],
+      },
+    });
+
+    await render(<DetailsScreen section="movies" masterId="m" />);
+    await flush();
+    expect(screen.getByTestId('variant-button').props.accessibilityLabel).toBe('Version / Stream Quality: 1080p · ENG');
+  });
+});

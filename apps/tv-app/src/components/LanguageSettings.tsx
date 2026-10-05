@@ -8,7 +8,7 @@ import { FocusButton } from './FocusButton';
 
 /**
  * Account menu → Content language filter (D-063, D-067, D-086): only titles with audio or subtitles in one of the chosen languages, for the
- * active profile. Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
+ * active profile. The order they are ticked in is their priority (D-145). Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
  * while a filter is on. Select toggles a language; "All languages" clears the choice. The choice is applied once, when
  * the dialog closes: applying it reloads every list, so doing that on each toggle would stall the TV.
  */
@@ -25,6 +25,9 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
               'Show only titles in one of these languages: from the title\'s name ("EN - …", "SUB ITA"), else from its category\'s name. Titles in a category without a language are always shown. Each profile has its own choice.',
             )}
           </Text>
+          <Text style={styles.text}>
+            {t('The order you tick them in is their priority: a title starts with its version in the first of them that it has.')}
+          </Text>
           <ScrollView contentContainerStyle={styles.list}>
             <FocusButton
               label={`${chosen.length === 0 ? '✓ ' : ''}${t('All languages')}`}
@@ -34,11 +37,13 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
               onPress={() => allLanguages()}
             />
             {Object.entries(languageNames()).map(([code, label]) => {
-              const on = chosen.includes(code);
+              // The order the languages were ticked in is their priority (D-145): "✓ 1. English".
+              const rank = chosen.indexOf(code);
+              const on = rank >= 0;
               return (
                 <FocusButton
                   key={code}
-                  label={`${on ? '✓ ' : ''}${label}`}
+                  label={`${on ? `✓ ${rank + 1}. ` : ''}${label}`}
                   variant={on ? 'primary' : 'ghost'}
                   hasTVPreferredFocus={on && code === chosen[0]}
                   testID={`language-${code}`}

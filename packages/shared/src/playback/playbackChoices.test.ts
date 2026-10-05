@@ -15,6 +15,7 @@ import {
   playbackChoices,
   preferredVariant,
   rememberPlayback,
+  startingVariant,
   usesPlaybackChoices,
   versionLanguages,
 } from './playbackChoices';
@@ -109,6 +110,26 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(bestVariant([variant('one', ['ALB'], 'SD')], [])?.streamId).toBe('one');
   });
 
+  it("start with the best version in the profile's languages, then the version choice, then the best (D-144)", () => {
+    const versions = [variant('alb-4k', ['ALB'], '4K'), variant('en-720', ['ENG'], '720p'), variant('en-1080', ['ENG'], '1080p')];
+    const start = (profileLanguages: string[], choice: { languages: string[]; quality: string | null } | null = null) =>
+      startingVariant(versions, { profileLanguages, choice, languages: [...profileLanguages, 'ENG'] })?.streamId;
+    // Issue #163: English chosen, an Albanian and an English version: English, in its best quality.
+    expect(start(['ENG'])).toBe('en-1080');
+    // The quality last picked, in the profile's language.
+    expect(start(['ENG'], { languages: ['ENG'], quality: '720p' })).toBe('en-720');
+    // A version last picked in another language does not beat the profile's language.
+    expect(start(['ENG'], { languages: ['ALB'], quality: '4K' })).toBe('en-1080');
+    expect(start(['ENG'], { languages: [], quality: '4K' })).toBe('en-1080');
+    // The first of the profile's languages the title has.
+    expect(start(['GER', 'ALB', 'ENG'])).toBe('alb-4k');
+    // None in the profile's languages: the version choice, then the best.
+    expect(start(['GER'], { languages: ['ENG'], quality: '720p' })).toBe('en-720');
+    expect(start(['GER'])).toBe('alb-4k');
+    expect(start([])).toBe('alb-4k');
+    expect(startingVariant([], { profileLanguages: ['ENG'], choice: null, languages: [] })).toBeNull();
+  });
+
   it("order the languages: the profile's, then the app's (D-136)", () => {
     expect(versionLanguages(['ALB'], 'en')).toEqual(['ALB', 'ENG']);
     expect(versionLanguages([], 'pt-BR')).toEqual(['POR']);
@@ -125,6 +146,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(stores.library.getState().versionLanguages).toEqual(['GER']);
     await stores.profilePrefs.getState().update('p1', { languages: ['ALB'] });
     expect(stores.library.getState().versionLanguages).toEqual(['ALB', 'GER']);
+    expect(stores.library.getState().profileLanguages).toEqual(['ALB']);
     setUiLanguage('en');
   });
 

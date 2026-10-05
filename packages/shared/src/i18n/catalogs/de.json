@@ -439,6 +439,7 @@
   "The last profile cannot be deleted.": "Das letzte Profil kann nicht gelöscht werden.",
   "The library could not be updated: {error}": "Die Mediathek konnte nicht aktualisiert werden: {error}",
   "The new version is still being published. Try again in a few minutes.": "Die neue Version wird noch veröffentlicht. Versuche es in ein paar Minuten erneut.",
+  "The order you tick them in is their priority: a title starts with its version in the first of them that it has.": "Die Reihenfolge, in der du sie ankreuzt, ist ihr Vorrang: Ein Titel startet mit seiner Version in der ersten davon, die er hat.",
   "The password must have at least {count} characters.": "Das Passwort muss mindestens {count} Zeichen haben.",
   "The PIN must be 4 digits.": "Die PIN muss 4 Ziffern haben.",
   "The PINs did not match. Start again.": "Die PINs stimmen nicht überein. Fang von vorne an.",

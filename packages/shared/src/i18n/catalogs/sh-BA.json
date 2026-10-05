@@ -443,6 +443,7 @@
   "The last profile cannot be deleted.": "Posljednji profil se ne može obrisati.",
   "The library could not be updated: {error}": "Biblioteka se nije mogla ažurirati: {error}",
   "The new version is still being published. Try again in a few minutes.": "Nova verzija se još objavljuje. Pokušaj ponovo za nekoliko minuta.",
+  "The order you tick them in is their priority: a title starts with its version in the first of them that it has.": "Redoslijed u kojem ih označiš je njihov prioritet: naslov počinje svojom verzijom na prvom od njih koji ima.",
   "The password must have at least {count} characters.": "Lozinka mora imati najmanje {count} znakova.",
   "The PIN must be 4 digits.": "PIN mora imati 4 cifre.",
   "The PINs did not match. Start again.": "PIN-ovi se ne podudaraju. Počni ispočetka.",

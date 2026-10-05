@@ -105,6 +105,33 @@ export function bestVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'qual
   return null;
 }
 
+/**
+ * The version a title starts with when none was picked for it (D-144). In the profile's languages (the first one the
+ * title has a version in): the quality of the profile's version choice, else the highest quality. A title with no
+ * version in them: the profile's version choice (D-087), else the best version (D-136), else the first.
+ */
+export function startingVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'>>(
+  variants: V[],
+  {
+    profileLanguages,
+    choice,
+    languages,
+  }: { profileLanguages: readonly string[]; choice: VersionChoice | null | undefined; languages: readonly string[] },
+): V | null {
+  for (const wanted of profileLanguages) {
+    const inLanguage = variants.filter((variant) => variant.audioLanguages.some((language) => same(language, wanted)));
+    if (inLanguage.length === 0) continue;
+    return (choice && inLanguage.find((variant) => same(variant.quality, choice.quality))) || highestQuality(inLanguage);
+  }
+  return preferredVariant(variants, choice) ?? bestVariant(variants, languages) ?? variants[0] ?? null;
+}
+
+/** The first of the versions with the highest quality (quality, source, HDR). */
+function highestQuality<V extends Pick<VariantInfo, 'quality' | 'source' | 'isHdr'>>(variants: V[]): V {
+  const scores = variants.map((variant) => qualityScore(variant));
+  return variants[scores.indexOf(Math.max(...scores))]!;
+}
+
 interface ChoiceStores {
   session: { getState(): { activeProfileId: string | null } };
   profilePrefs: ProfilePrefsStore;

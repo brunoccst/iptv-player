@@ -197,8 +197,11 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
 
   // The profile's languages, then the app's, pick the best of equally good versions (D-136).
   const followLanguages = () => {
-    const languages = versionLanguages(profileLanguages(activePrefs()), i18nStore.getState().language);
+    const profile = profileLanguages(activePrefs());
+    const languages = versionLanguages(profile, i18nStore.getState().language);
     if (languages.join(',') !== library.getState().versionLanguages.join(',')) library.getState().setVersionLanguages(languages);
+    // A title starts with its best version in one of the profile's languages (D-144).
+    if (profile.join(',') !== library.getState().profileLanguages.join(',')) library.getState().setProfileLanguages(profile);
   };
   followLanguages();
   profilePrefs.subscribe(followLanguages);

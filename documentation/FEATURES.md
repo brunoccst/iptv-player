@@ -36,7 +36,7 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 ### Version choice and "(best)"
 
-A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). The version last picked becomes every title's default, matched by language and quality (D-087).
+A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-144, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.
 
 ### Library updates
 
@@ -164,7 +164,7 @@ An optional PIN locks leaving a Kids profile and managing profiles (D-054).
 
 ### Content language filter
 
-Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063, D-067, D-086).
+Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063, D-067, D-086). The order the languages are ticked in is their priority, shown as a number next to each ("1. English", "2. German"); unticking one moves the later ones up. A title starts with its version in the first of them it has, and the order decides which of equally good versions is "(best)" (D-145, D-144, D-136).
 
 ### Categories shown
 
