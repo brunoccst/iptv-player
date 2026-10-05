@@ -2308,3 +2308,17 @@ Decision (`LibraryBanner.tsx`, `components.css`):
 
 - The banner (offline, organizing with per-kind progress from `describeLibraryProgress`, empty library) is fixed at the bottom of Home and Movies/Series, between the side gutters, over the content, as on TV.
 - About and Log are padded like the other dialogs (32 px); their heading leaves room for the close button.
+
+## D-143
+
+**Every release carries release notes; the features are described in FEATURES.md** — 2026-10-05 (requested by owner: "every new release must contain release notes with the latest features")
+
+Context: every build on `main` is published to the `tv-apk` and `desktop` prereleases (D-037, D-071) with one generated line (version, commit, build), which the apps read their version from (D-062, D-070, D-073). Nothing said what was new, and no page described what the apps do; PARITY.md only lists which app has what.
+
+Decision (`documentation/RELEASE-NOTES.md`, `documentation/FEATURES.md`, `scripts/release-notes.mjs`, `tv-apk.yml`, `desktop.yml`, `ci.yml`):
+
+- **RELEASE-NOTES.md** has a part per app (TV and phone app, Desktop app) and in it a `### MAJOR.MINOR` section per version line, newest first, with **Latest** (one line per change people notice, newest first, with its date and decision or issue) and what came earlier in that line. PATCH builds share their line's section, since every merge to `main` is a release.
+- **Every release carries it.** `tv-apk.yml` and `desktop.yml` add the section of the build's MAJOR.MINOR under "What's new in X.Y", after the generated line; that line stays first, so the apps' version regexes still read it (they take the first match). Both workflows stop before building when the section is missing or empty.
+- **CI checks it** (`npm run lint:release-notes`, in *Lint and format*): each app has a non-empty section for the MAJOR.MINOR in its `package.json`. Raising MAJOR.MINOR therefore needs its notes in the same pull request.
+- **FEATURES.md** describes each feature (what it does, how it is reached, its decisions); PARITY.md links each row to it (*Described in*).
+- A pull request that adds or changes something people see or use updates FEATURES.md, its PARITY.md row and the release notes (pull request template, `CLAUDE.md`). A change people do not notice (tooling, tests, refactors) needs no note.

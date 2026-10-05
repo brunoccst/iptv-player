@@ -55,6 +55,8 @@ jobs:
           name="$(node scripts/app-version.mjs apps/desktop/package.json)"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "### Desktop app $name" >> "$GITHUB_STEP_SUMMARY"
+          # Every release has notes (documentation/RELEASE-NOTES.md, D-143): fail before the builds without them.
+          node scripts/release-notes.mjs desktop "$name" > /dev/null
 
   build:
     name: Build (${{ matrix.os }})
@@ -121,6 +123,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # The release notes and the script that picks this version's section (D-143).
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            documentation/RELEASE-NOTES.md
+            scripts/release-notes.mjs
+          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@v4
         with:
           path: installers
@@ -133,6 +142,8 @@ jobs:
         run: |
           ls -la installers
           notes="Desktop app ${VERSION}. Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), build ${GITHUB_RUN_NUMBER}. Windows: *-setup.exe, macOS: *.dmg (Intel and Apple silicon), Linux: *.AppImage or *.deb. Not code-signed: Windows asks via SmartScreen (More info → Run anyway), macOS via System Settings → Privacy & Security → Open Anyway."
+          # What's new in this version line, after the line above that the apps read the version from (D-143).
+          notes="${notes}"$'\n\n'"## What's new in ${VERSION%.*}"$'\n\n'"$(node scripts/release-notes.mjs desktop "$VERSION")"
           gh release view desktop > /dev/null 2>&1 || gh release create desktop --prerelease --title "Desktop app" --notes "$notes" --target "$GITHUB_SHA"
           # Installers first, then the update feeds (latest*.yml name the installers), then the notes: apps read the
           # version from the feeds (Windows, AppImage) or the notes (macOS, deb), never before the files are there.

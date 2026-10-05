@@ -71,6 +71,8 @@ jobs:
           name="$(node scripts/app-version.mjs)"
           echo "APP_VERSION_NAME=$name" >> "$GITHUB_ENV"
           echo "### Version $name (build $APP_ANDROID_VERSION_CODE)" >> "$GITHUB_STEP_SUMMARY"
+          # Every release has notes (documentation/RELEASE-NOTES.md, D-143): fail before the build without them.
+          node scripts/release-notes.mjs tv "$name" > /dev/null
 
       - name: Prebuild Android project
         working-directory: apps/tv-app
@@ -123,6 +125,8 @@ jobs:
           signed="$([ -n "${ANDROID_KEYSTORE_FILE:-}" ] && echo 'release key' || echo 'debug key (no signing secrets)')"
           # "version N" (the build number) stays: apps before D-070 only read that.
           notes="TV app ${APP_VERSION_NAME}. Built from ${GITHUB_SHA::7} (${GITHUB_EVENT_NAME}), version ${APP_ANDROID_VERSION_CODE}, signed with the ${signed}, FFmpeg audio: ${IPTV_FFMPEG_AUDIO}."
+          # What's new in this version line, after the line above that the apps read the version from (D-143).
+          notes="${notes}"$'\n\n'"## What's new in ${APP_VERSION_NAME%.*}"$'\n\n'"$(node scripts/release-notes.mjs tv "$APP_VERSION_NAME")"
           gh release view tv-apk > /dev/null 2>&1 || gh release create tv-apk --prerelease --title "TV APK" --notes "$notes" --target "$GITHUB_SHA"
           # APK first, then the notes: apps read the version from the notes (self-update, D-062).
           gh release upload tv-apk tv.apk --clobber

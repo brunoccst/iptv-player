@@ -128,7 +128,7 @@ providers do not let web pages read their answers.
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
-| [`documentation`](./documentation) | `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`, `PARITY.md` (what each app has and how it is reached). |
+| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
 
@@ -165,7 +165,7 @@ npm run test:e2e
 Lint and format (CI runs the same checks; the Python part needs `pip install ruff`):
 
 ```bash
-npm run lint                # ESLint + Prettier, app parity, translations, Ruff (check only)
+npm run lint                # ESLint + Prettier, app parity, release notes, translations, Ruff (check only)
 npm run format              # apply Prettier and Ruff fixes
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format commits in blame
 ```
@@ -184,6 +184,7 @@ Precedence (low → high): `.env` → `.env.local` → real environment variable
 | File | Purpose |
 |------|---------|
 | `LICENSE` | MIT No Attribution (`MIT-0`). |
+| `CLAUDE.md` | Rules every change follows (features, parity, release notes, translations), read by Claude Code. |
 | `package.json` | npm workspaces, root scripts, `react-native` → `react-native-tvos` override. |
 | `ruff.toml` | Ruff settings for the Python tools (fake panel, `scripts/*.py`). |
 | `turbo.json` | Turborepo task pipeline. |
