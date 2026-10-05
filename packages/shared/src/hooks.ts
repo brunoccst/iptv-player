@@ -472,7 +472,8 @@ export function createAppHooks({
       const versions = item.variantCount > 1 ? tn('{count} version', '{count} versions', item.variantCount) : null;
       return {
         watched,
-        badge: item.bestQuality === '4K' ? '4K' : null,
+        // Only cinema copies (CAM, TS, …) say so before a 4K (D-141).
+        badge: item.lowSource ?? (item.bestQuality === '4K' ? '4K' : null),
         subtitle: [item.year, versions].filter(Boolean).join(' · ') || null,
         menuItems: () =>
           cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched, onList }).map((entry) => ({

@@ -264,6 +264,8 @@ export const ROMAN_NUMERALS: Table = {
 
 export const QUALITY_RANK: Record<string, number> = { '4K': 400, '1080p': 300, '720p': 200, SD: 100 };
 export const UNKNOWN_QUALITY_RANK = 150;
+/** Copies made in or from cinemas; a title with only these gets their tag on its cover (D-141). Least bad first. */
+export const LOW_SOURCES = ['SCR', 'TC', 'TS', 'CAM'];
 export const SOURCE_ADJUSTMENT: Record<string, number> = {
   CAM: -300,
   TS: -250,

@@ -61,6 +61,14 @@ const text = (value: unknown) => (value === null || value === undefined ? '' : S
 const optional = (value: unknown) => text(value) || null;
 /** How good a quality tag is; the best one is the title's (`bestQuality`). */
 export const qualityRank = (quality: string) => tags.QUALITY_RANK[quality] ?? 0;
+/**
+ * The cover tag of a title whose versions are all cinema copies (CAM, TS, …): the least bad of them; otherwise null
+ * (D-141). A version without a source tag counts as a good one.
+ */
+export function lowSourceOf(sources: (string | null)[]): string | null {
+  if (sources.length === 0 || sources.some((source) => source === null || !tags.LOW_SOURCES.includes(source))) return null;
+  return tags.LOW_SOURCES.find((source) => sources.includes(source)) ?? null;
+}
 /** Compares by code point; localeCompare would depend on the locale. */
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 

@@ -25,6 +25,8 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 |---------|----|-------|---------------|-------------------|
 | Card menu: Go to details, Mark as (not) watched (movies, series), Add to / Remove from My List; Continue Watching: remove (D-078, D-081, D-082, D-104) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) |
 | "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series; an eye since D-104 |
+| Quality tag on covers (top left): "4K", or "CAM" / "TS" / "TC" / "SCR" when every version is a cinema copy (D-141) | ✅ | ✅ | ✅ | |
+| Library banner (offline, organizing with per-kind progress) floats at the bottom over the content (D-142) | ✅ | ✅ | ✅ | Home, Movies, Series |
 | Details: Watched toggle for the movie or the whole series (D-104) | ✅ | ✅ | ✅ | eye button next to My List |
 | Episode options in series details: Mark as (not) watched, Download, Play on TV, Open in another player (D-082, D-083) | ✅ | ✅ | ✅ | row: Play, "…", version · "…" or TV: hold OK on Play · phone: long touch · web: right-click the episode |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click |

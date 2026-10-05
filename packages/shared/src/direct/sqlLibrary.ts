@@ -3,8 +3,18 @@ import type { LibraryChanges, LibraryPage, LibrarySort, LiveChannel, MasterCard,
 import type { GuideProgramme } from './xmltv';
 import { NORMALIZER_RULES, unpacker, type PackedMaster } from './libraryCodec';
 import { compactKey, parseTitle } from './normalizer/parser';
-import { masterIdText, qualityRank, qualityScore, savedItem, versionsOf, type Master, type NormalizerItem } from './normalizer/pipeline';
+import {
+  lowSourceOf,
+  masterIdText,
+  qualityRank,
+  qualityScore,
+  savedItem,
+  versionsOf,
+  type Master,
+  type NormalizerItem,
+} from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
+import * as tags from './normalizer/tags';
 
 export type SqlValue = string | number | null;
 
@@ -126,6 +136,14 @@ const TITLE_NAMES = 'g, id, lower, title, nkey, ckey, year, poster, rating, best
 const mostCommon = (t: string, column: string) =>
   `(SELECT ${column} FROM ${t}_i x WHERE x.g = i.g AND ${column} IS NOT NULL GROUP BY ${column}
     ORDER BY count(*) DESC, max(score) DESC, min(sid) LIMIT 1)`;
+
+/** A title's (`a`) cinema-copy tag, as `lowSourceOf` (D-141): null unless every item has one; then the least bad. */
+const lowSource = (t: string) => {
+  const low = tags.LOW_SOURCES.map((source) => `'${source}'`).join(', ');
+  const rank = tags.LOW_SOURCES.map((source, index) => `WHEN '${source}' THEN ${index}`).join(' ');
+  return `CASE WHEN EXISTS (SELECT 1 FROM ${t}_i x WHERE x.g = a.g AND (x.source IS NULL OR x.source NOT IN (${low}))) THEN NULL
+    ELSE (SELECT source FROM ${t}_i x WHERE x.g = a.g ORDER BY CASE source ${rank} END LIMIT 1) END`;
+};
 
 /** The columns an item is compared on with the last library's (D-135): what the provider sent, as saved. */
 const SAME_ITEM = ['name', 'cat', 'poster', 'rating', 'added', 'released', 'ext', 'tmdb', 'ryear']
@@ -363,6 +381,7 @@ export const toCard = (master: Master): MasterCard => ({
   posterUrl: master.posterUrl,
   rating: master.rating,
   bestQuality: master.bestQuality,
+  lowSource: lowSourceOf(master.variants.map((variant) => variant.source)),
   variantCount: master.variants.length,
 });
 
@@ -839,7 +858,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const offset = Math.max(0, query.offset ?? 0);
       const limit = Math.min(500, Math.max(1, query.limit ?? 100));
       const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
-      const columns = saved.packed ? 'a.rowid' : 'a.id, a.title, a.year, a.poster, a.rating, a.best, a.n';
+      const columns = saved.packed ? 'a.rowid' : `a.id, a.title, a.year, a.poster, a.rating, a.best, a.n, ${lowSource(t)}`;
       const [rows, total] = await Promise.all([
         db.query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
         where.length === 0
@@ -859,13 +878,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
               rows.map((row) => Number(row[0])),
             )
           ).map(toCard)
-        : rows.map(([id, title, year, poster, rating, best, n]): MasterCard => ({
+        : rows.map(([id, title, year, poster, rating, best, n, low]): MasterCard => ({
             id: String(id),
             title: String(title),
             year: numberOrNull(year),
             posterUrl: textOrNull(poster),
             rating: numberOrNull(rating),
             bestQuality: textOrNull(best),
+            lowSource: textOrNull(low),
             variantCount: Number(n),
           }));
       return { total, items, sorts: saved.sorts };

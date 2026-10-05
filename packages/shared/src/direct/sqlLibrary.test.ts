@@ -15,7 +15,7 @@ function catalog(count: number) {
   let seed = 11;
   const random = (n: number) => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % n;
   const prefixes = ['EN - ', 'DE - ', 'FR - ', '', '', 'IT - ', 'MULTI - '];
-  const tails = [' (2019)', ' 2021', ' [4K]', ' SUB ITA', '', ' (1999) HDR', ' ENG-GER', ''];
+  const tails = [' (2019)', ' 2021', ' [4K]', ' SUB ITA', '', ' (1999) HDR', ' ENG-GER', '', ' HDTS', ' CAM (2019)', ' TC'];
   const words = ['Über', 'Love', 'night', 'Dark', 'city', '東京', 'war 😀', 'The Last', 'amor', 'Zeta', 'ábaco', 'Moon'];
   return Array.from({ length: count }, (_, i) => ({
     stream_id: 1000 + i,
@@ -90,6 +90,8 @@ describe('library in SQLite (D-121)', () => {
     }
     const everything = await memory.library.list('movies', { limit: 500 });
     expect(everything.total).toBeGreaterThan(100);
+    // Some titles have only cinema copies (D-141).
+    expect(new Set(everything.items.map((card) => card.lowSource))).toEqual(new Set([null, 'CAM', 'TS', 'TC']));
     for (const card of everything.items.slice(0, 60))
       expect(await database.library.get('movies', card.id)).toEqual(await memory.library.get('movies', card.id));
     expect(await database.library.status()).toEqual(await memory.library.status());
