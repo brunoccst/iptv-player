@@ -98,6 +98,8 @@ export interface LoginResponse {
 export interface MasterCard {
   bestQuality: null | string;
   id: string;
+  /** "CAM", "TS", "TC" or "SCR" when every version is such a copy (D-141); missing in cards kept from before. */
+  lowSource?: null | string;
   posterUrl: null | string;
   rating: null | number;
   title: string;

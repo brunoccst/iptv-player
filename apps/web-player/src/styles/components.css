@@ -443,6 +443,37 @@
   font-size: 0.9rem;
 }
 
+/* Offline, "organizing your library" and empty library: float at the bottom over the content, as on TV (D-142). */
+.banner--floating {
+  position: fixed;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: 16px;
+  z-index: 50;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  background: rgb(20 20 20 / 95%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
+.banner--progress {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.banner__line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.banner__detail {
+  margin-left: 32px;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
 /* The result of a "Refresh library" (D-119): floats at the bottom of any page. */
 .banner--notice {
   position: fixed;
@@ -456,12 +487,19 @@
 }
 
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
-/* About and Log (account menu → App, D-079). */
+/* About and Log (account menu → App, D-079); padded like the other dialogs (D-142). */
 .about,
 .log {
   display: grid;
   gap: 14px;
   min-width: min(520px, 80vw);
+  padding: 32px;
+}
+
+.about h2,
+.log h2 {
+  margin: 0;
+  padding-right: 40px;
 }
 
 .about__rows {

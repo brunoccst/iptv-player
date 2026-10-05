@@ -2284,3 +2284,27 @@ Decision (`LiveScreen.tsx`, `TopNav.tsx`, `FocusButton.tsx`):
 - The page is as tall as the screen and does not scroll. The category list and the channels each scroll on their own; the toolbar, banners and programme details stay above the guide, and the time header stays put while the channels scroll under it. Scrolling near the last channel loads the next ones; "More channels" is at the end of the list. Phones keep the scrolling page.
 - Down at the last channel (or at "More channels") stays in the guide (`trapFocusDown`).
 - Up from "Earlier", "Now" and "Later" goes to the current page's link in the nav ("Live TV"), via `nextFocusUp`. The nav publishes that link (`useNavFocusTarget`).
+
+## D-141
+
+**Covers of titles with only cinema copies say so: "CAM", "TS", "TC" or "SCR"** — 2026-10-05 (requested by owner, issue #151)
+
+Context: a cover showed "4K" when a title had a 4K version, but nothing when every version was a cinema copy (CAM, HDTS, …), so people opened a new film to find only bad copies.
+
+Decision (`pipeline.ts` `lowSourceOf`, `sqlLibrary.ts`, `directApiClient.ts`, `hooks.ts` `useTitleCard`):
+
+- A title whose versions all have a cinema source tag (`LOW_SOURCES` in `tags.ts`: SCR, TC, TS, CAM; HDTS reads as TS, HDCAM as CAM) gets the least bad of them on its cover, where "4K" goes (top left). One version that is better or has no source tag (most names have none) and there is no tag.
+- The cinema tag comes before "4K": a 4K CAM is still a CAM.
+- `MasterCard.lowSource` carries it. The library in memory and older saved libraries work it out from the versions; the database works it out per page from the title's items (`${t}_i`), so saved libraries need no rebuild. Cards kept from before (My List, the last run's answers, D-120) have none until they are read again.
+- Same on TV, phone and web/desktop: they all draw the card's `badge`.
+
+## D-142
+
+**Desktop: the library banner floats at the bottom like on TV; About and Log have room at the sides** — 2026-10-05 (requested by owner, issue #150)
+
+Context: in the desktop app (and the web player), the offline / "organizing your library" banner sat between the hero and My List and pushed the rows down; the TV/phone app floats it at the bottom over the content, with one progress line per kind. The About and Log dialogs had no padding, so their text touched the panel's edges.
+
+Decision (`LibraryBanner.tsx`, `components.css`):
+
+- The banner (offline, organizing with per-kind progress from `describeLibraryProgress`, empty library) is fixed at the bottom of Home and Movies/Series, between the side gutters, over the content, as on TV.
+- About and Log are padded like the other dialogs (32 px); their heading leaves room for the close button.

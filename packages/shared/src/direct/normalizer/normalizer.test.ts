@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { groupTitles } from './matching';
 import { normalizeKey, parseTitle } from './parser';
-import { buildMasters, buildMastersInChunks, type GroupingTimings } from './pipeline';
+import { buildMasters, buildMastersInChunks, lowSourceOf, type GroupingTimings } from './pipeline';
 import { batchedSha1, sha1Hex } from './sha1';
 import { packLibrary, unpackLibrary } from '../libraryCodec';
 
@@ -238,5 +238,27 @@ describe('updates reuse the last library (D-109)', () => {
     expect(updated).toEqual(previous);
     // Every name; every title except the one with a release date.
     expect(counts).toEqual({ names: today.length, masters: previous.length - 1 });
+  });
+});
+
+describe('lowSourceOf (D-141)', () => {
+  it('names the least bad cinema copy when every version is one', () => {
+    expect(lowSourceOf(['CAM'])).toBe('CAM');
+    expect(lowSourceOf(['CAM', 'TS', 'CAM'])).toBe('TS');
+    expect(lowSourceOf(['TC', 'SCR'])).toBe('SCR');
+  });
+
+  it('is null when one version is better or has no source tag', () => {
+    expect(lowSourceOf(['CAM', 'WEB'])).toBeNull();
+    expect(lowSourceOf(['TS', null])).toBeNull();
+    expect(lowSourceOf([])).toBeNull();
+  });
+
+  it('reads HDTS and HDCAM from the names', () => {
+    const [master] = buildMasters('acc', 'movie', [
+      { id: '1', name: 'EN - New Film (2026) HDTS' },
+      { id: '2', name: 'DE - New Film (2026) HDCAM' },
+    ]);
+    expect(lowSourceOf(master!.variants.map((variant) => variant.source))).toBe('TS');
   });
 });

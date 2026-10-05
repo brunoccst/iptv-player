@@ -41,7 +41,7 @@ import {
   type SqlLiveChannels,
 } from './sqlLibrary';
 import type { GuideProgramme } from './xmltv';
-import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
+import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
@@ -793,6 +793,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     posterUrl: master.posterUrl,
     rating: master.rating,
     bestQuality: master.bestQuality,
+    lowSource: lowSourceOf(master.variants.map((variant) => variant.source)),
     variantCount: master.variants.length,
   });
 
