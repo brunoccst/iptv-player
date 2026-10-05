@@ -255,6 +255,61 @@ describe('episode description (issue #160)', () => {
   });
 });
 
+describe('episode description rolls on TV (issue #160)', () => {
+  it('after a moment on an episode its description rolls; moving between its buttons keeps it, leaving stops it', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/roll', {
+      body: { id: 'roll', title: 'Roll', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('rl', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/rl', {
+      body: series('rl', [
+        {
+          number: 1,
+          episodes: [
+            { ...episode('r1', 1, 1), plot: 'First plot.' },
+            { ...episode('r2', 1, 2), plot: 'Second plot.' },
+          ],
+        },
+      ]),
+    });
+    await render(<DetailsScreen section="series" masterId="roll" />);
+    await flush();
+    await screen.findByTestId('plot-r1');
+
+    jest.useFakeTimers();
+    await act(async () => void fireEvent(screen.getByTestId('episode-r1'), 'focus'));
+    await act(async () => void jest.advanceTimersByTime(1000));
+    // Not yet: it waits a moment on the episode first.
+    expect(screen.queryByTestId('plot-r1-rolling')).toBeNull();
+    await act(async () => void jest.advanceTimersByTime(600));
+    expect(screen.getByTestId('plot-r1-rolling')).toHaveTextContent('40m · First plot.');
+    expect(screen.queryByTestId('plot-r2-rolling')).toBeNull();
+
+    // Play → "…" in the same episode: it keeps rolling.
+    await act(async () => {
+      fireEvent(screen.getByTestId('episode-r1'), 'blur');
+      fireEvent(screen.getByTestId('episode-r1-more'), 'focus');
+      jest.advanceTimersByTime(500);
+    });
+    expect(screen.getByTestId('plot-r1-rolling')).toBeTruthy();
+
+    // On to the next episode: the first one is two lines again; the next one rolls after its own wait.
+    await act(async () => {
+      fireEvent(screen.getByTestId('episode-r1-more'), 'blur');
+      fireEvent(screen.getByTestId('episode-r2'), 'focus');
+      jest.advanceTimersByTime(200);
+    });
+    expect(screen.queryByTestId('plot-r1-rolling')).toBeNull();
+    expect(screen.getByTestId('plot-r1')).toBeTruthy();
+    expect(screen.queryByTestId('plot-r2-rolling')).toBeNull();
+    await act(async () => void jest.advanceTimersByTime(1500));
+    expect(screen.getByTestId('plot-r2-rolling')).toBeTruthy();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+});
+
 describe('movie details: the best version (D-136)', () => {
   it('equally good versions: the one in the app language is the best and starts, not the first', async () => {
     const backend = setupApp();

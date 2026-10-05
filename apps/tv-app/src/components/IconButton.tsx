@@ -14,6 +14,8 @@ export function IconButton({
   plain,
   hasTVPreferredFocus,
   focusable,
+  onFocus,
+  onBlur,
   testID,
 }: {
   icon: IconName;
@@ -28,6 +30,8 @@ export function IconButton({
   hasTVPreferredFocus?: boolean;
   /** `false` keeps it out of D-pad focus (player controls are driven by the remote keys instead). */
   focusable?: boolean;
+  onFocus?(): void;
+  onBlur?(): void;
   testID?: string;
 }) {
   const [focused, setFocused] = useState(false);
@@ -41,8 +45,14 @@ export function IconButton({
       focusable={focusable}
       onPress={onPress}
       onLongPress={onLongPress}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      onFocus={() => {
+        setFocused(true);
+        onFocus?.();
+      }}
+      onBlur={() => {
+        setFocused(false);
+        onBlur?.();
+      }}
     >
       <Animated.View
         style={[
