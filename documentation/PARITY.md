@@ -29,6 +29,8 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Quality tag on covers (top left): "4K", or "CAM" / "TS" / "TC" / "SCR" when every version is a cinema copy (D-141) | ✅ | ✅ | ✅ | | [Quality tag](FEATURES.md#quality-tag) |
 | Library banner (offline, organizing with per-kind progress) floats at the bottom over the content (D-142) | ✅ | ✅ | ✅ | Home, Movies, Series | [Library banner](FEATURES.md#library-banner) |
 | Details: Watched toggle for the movie or the whole series (D-104) | ✅ | ✅ | ✅ | eye button next to My List | [Movie and series details](FEATURES.md#movie-and-series-details) |
+| Mark a season watched or not watched (D-132) | ✅ | ✅ | ✅ | eye button just left of the season choice (issue #159) | [Seasons and episodes](FEATURES.md#seasons-and-episodes) |
+| Whole episode description on demand (issue #160) | ➖ | ✅ | ✅ | two lines, then "…"; touch or click the description to show or fold it · TV: not a D-pad stop, so Play stays first in the row (D-083) | [Seasons and episodes](FEATURES.md#seasons-and-episodes) |
 | Episode options in series details: Mark as (not) watched, Download, Play on TV, Open in another player (D-082, D-083) | ✅ | ✅ | ✅ | row: Play, "…", version · "…" or TV: hold OK on Play · phone: long touch · web: right-click the episode | [Seasons and episodes](FEATURES.md#seasons-and-episodes) |
 | Player: from the beginning, previous / next episode | ✅ | ✅ | ✅ | TV: ↓ to the buttons · phone and web: tap or click | [Playback controls](FEATURES.md#playback-controls) |
 | Player: ±10 s, Skip ahead, next-up | ✅ | ✅ | ✅ | TV: ←/→ and hold to scrub · phone: double tap · web: ←/→ keys, click | [Playback controls](FEATURES.md#playback-controls) |

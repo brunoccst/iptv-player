@@ -250,25 +250,28 @@ function Episodes({
     <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel={t('Episodes')}>
       <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
-        {series.seasons.length > 1 ? (
-          <Select
-            compact
-            label={t('Season')}
-            value={String(season.number)}
-            options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
-            onChange={(value) => setSeasonNumber(Number(value))}
-            testID="season-select"
+        {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
+        <View style={styles.seasonChoice}>
+          {/* Only this season (issue #132). */}
+          <WatchedButton
+            kind="season"
+            watched={isSeasonWatched(progress, season)}
+            onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+            testID="season-watched-toggle"
           />
-        ) : (
-          <Text style={styles.muted}>{season.name}</Text>
-        )}
-        {/* Only this season (issue #132). */}
-        <WatchedButton
-          kind="season"
-          watched={isSeasonWatched(progress, season)}
-          onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
-          testID="season-watched-toggle"
-        />
+          {series.seasons.length > 1 ? (
+            <Select
+              compact
+              label={t('Season')}
+              value={String(season.number)}
+              options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
+              onChange={(value) => setSeasonNumber(Number(value))}
+              testID="season-select"
+            />
+          ) : (
+            <Text style={styles.muted}>{season.name}</Text>
+          )}
+        </View>
       </Centered>
       {season.episodes.map((listed) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);
@@ -330,9 +333,10 @@ function Episodes({
                 <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
                   {episode.title}
                 </Text>
-                <Text style={styles.episodePlot} numberOfLines={2}>
-                  {[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
-                </Text>
+                <EpisodePlot
+                  text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+                  testID={`plot-${episode.id}`}
+                />
                 {listed.versions.length === 1 && master.variants.length > 1 ? (
                   <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
                 ) : null}
@@ -354,6 +358,28 @@ function Episodes({
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * An episode's length and plot: two lines, then "…"; a touch shows all of it and the row grows, another touch folds it
+ * again (issue #160). Not focusable, so Play stays the first thing the D-pad lands on in an episode.
+ */
+function EpisodePlot({ text, testID }: { text: string; testID: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Pressable
+      onPress={() => setOpen((current) => !current)}
+      focusable={false}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityHint={open ? t('Show less') : t('Show more')}
+      testID={testID}
+    >
+      <Text style={styles.episodePlot} numberOfLines={open ? undefined : 2}>
+        {text}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -541,6 +567,7 @@ const styles = StyleSheet.create({
   episodesCompact: { paddingHorizontal: 16 },
   episodesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   episodesTitle: { color: colors.strong, fontSize: 22.4, fontWeight: '700' },
+  seasonChoice: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   episode: {
     flexDirection: 'row',
     alignItems: 'center',
