@@ -36,7 +36,7 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 ### Version choice and "(best)"
 
-A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). The version last picked becomes every title's default, matched by language and quality (D-087).
+A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-144, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.
 
 ### Library updates
 

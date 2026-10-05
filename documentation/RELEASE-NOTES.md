@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.
 - **Whole episode descriptions** (2026-10-05, issue #160): an episode's description still stops after two lines with "…". On the phone a touch on it shows all of it, another touch folds it again; on TV, after a moment on one of the episode's buttons, the description slowly rolls up through the rest of the text.
 - **Season "Watched" button on the left** (2026-10-05, issue #159): it sits just left of the season choice, like an episode's tag, with the same spacing as the other buttons.
 - **Bookmark for My List** (2026-10-05, issue #157): a title on My List has a bookmark at the top right of its cover; the details button is a bookmark too, filled when the title is saved.
@@ -50,6 +51,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Titles start in your language** (2026-10-05, D-144, issue #163): a title with a version in the profile's language starts with the best of those, even when another language has a better quality.
 - **Whole episode descriptions** (2026-10-05, issue #160): an episode's description stops after two lines with "…"; a click on it shows all of it, another click folds it again.
 - **Season "Watched" button on the left** (2026-10-05, issue #159): it sits just left of the season choice, like an episode's tag, with the same spacing as the other buttons.
 - **Bookmark for My List** (2026-10-05, issue #157): a title on My List has a bookmark at the top right of its cover; the details button is a bookmark too, filled when the title is saved.

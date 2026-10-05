@@ -2322,3 +2322,16 @@ Decision (`documentation/RELEASE-NOTES.md`, `documentation/FEATURES.md`, `script
 - **CI checks it** (`npm run lint:release-notes`, in *Lint and format*): each app has a non-empty section for the MAJOR.MINOR in its `package.json`. Raising MAJOR.MINOR therefore needs its notes in the same pull request.
 - **FEATURES.md** describes each feature (what it does, how it is reached, its decisions); PARITY.md links each row to it (*Described in*).
 - A pull request that adds or changes something people see or use updates FEATURES.md, its PARITY.md row and the release notes (pull request template, `CLAUDE.md`). A change people do not notice (tooling, tests, refactors) needs no note.
+
+## D-144
+
+**A title starts with its best version in the profile's language** — 2026-10-05 (issue #163: "English is selected as preferred language … a movie that has ALB and EN versions … ALB is pre-selected")
+
+Context: a title started with the version picked for it, else the profile's last version choice (D-087), else the best version (D-136). The profile's language (D-063) only decided between versions of the same quality, so an Albanian version in a better quality (or with a source or HDR tag) started instead of the English one. A last choice without a language ("1080p") or in another language also beat the profile's language.
+
+Decision (shared `startingVariant`, the library store's `profileLanguages`; TV, phone, web and desktop):
+
+- **A title with a version in the profile's languages starts with one of those**: in the first of the profile's languages it has, the quality of the profile's last version choice, else the highest quality (quality, source, HDR).
+- A title with no version in the profile's languages starts as before: the last version choice (D-087), else the best version (D-136), else the first. The app's language does not override quality; it only orders equally good versions (D-136).
+- A version picked for a title is still that title's choice. "(best)" still marks the highest quality (D-136), so it may sit on a version in another language than the one selected.
+- Tests: the profile's language beats a better quality and a last choice in another language; the last choice's quality inside the profile's language; the first of the profile's languages; no match falls back; the TV details screen starts with the English 1080p version next to an Albanian 4K one.
