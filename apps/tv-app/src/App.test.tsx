@@ -86,6 +86,21 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('hero-play')).toBeTruthy();
   });
 
+  it('TV Home: Left at Play and Right at More Info stay in the hero; they used to drop to a row below (D-152)', async () => {
+    const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    stubLibrary(setupApp());
+    await render(<App />);
+    await flush();
+    const play = await screen.findByTestId('hero-play');
+    const actions = screen.getByTestId('hero-actions');
+    expect(actions.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
+    expect(actions.props.trapFocusUp).toBeFalsy();
+    expect(actions.props.trapFocusDown).toBeFalsy();
+    expect(within(actions).getByTestId('hero-info')).toBeTruthy();
+    expect(within(actions).getByTestId('hero-play')).toBe(play);
+    isTV.mockRestore();
+  });
+
   it('rows shown before the first library status stay; they reload only after an update (D-120)', async () => {
     const backend = setupApp();
     stubLibrary(backend);

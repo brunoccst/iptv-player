@@ -5,6 +5,7 @@ import { stores } from '../appContext';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { FocusRow } from '../components/FocusRow';
 
 export const pinMessage = (result: PinResult) =>
   result === 'locked' ? t('Too many wrong tries. Try again in a minute.') : result === 'wrong' ? t('Wrong PIN.') : null;
@@ -46,11 +47,11 @@ export function PinPad({ title, submit, onClose }: { title: string; submit(pin: 
             ))}
           </View>
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <View style={styles.keys}>
+          <FocusRow style={styles.keys}>
             {KEYS.map((key, index) => (
               <Key key={key} value={key} first={index === 0} onPress={() => void press(key)} />
             ))}
-          </View>
+          </FocusRow>
         </View>
       </View>
     </Modal>

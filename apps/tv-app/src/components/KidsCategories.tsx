@@ -9,6 +9,7 @@ import { ErrorText } from './Feedback';
 import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { FocusRow } from '../components/FocusRow';
 
 /**
  * Profile editor → Choose categories (D-064): the categories a Kids profile may see, per section. Starts from the
@@ -22,7 +23,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
       <View style={styles.scrim}>
         <View style={styles.panel} testID="kids-categories">
           <Text style={styles.title}>{t('Categories for {name}', { name })}</Text>
-          <View style={styles.sections}>
+          <FocusRow style={styles.sections}>
             {CATEGORY_SECTIONS.map((s) => (
               <Chip
                 key={s.section}
@@ -32,7 +33,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
                 testID={`kids-section-${s.section}`}
               />
             ))}
-          </View>
+          </FocusRow>
           <Text style={styles.hint}>
             {chosen ? t('Chosen by you.') : t('Automatic: categories whose names say they are for kids.')}{' '}
             {t('Only checked categories are shown.')}
@@ -48,11 +49,11 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
           ) : error ? null : (
             <ActivityIndicator color={colors.accent} />
           )}
-          <View style={styles.actions}>
+          <FocusRow style={styles.actions}>
             <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="kids-categories-save" />
             <FocusButton label={t('Automatic')} variant="ghost" disabled={!chosen} onPress={automatic} testID="kids-categories-automatic" />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-          </View>
+          </FocusRow>
         </View>
       </View>
     </Modal>

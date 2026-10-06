@@ -74,6 +74,8 @@ Above the grid, the categories sit on one line with "Show all" / "Show less"; ex
 
 On TV the focused title is kept in the middle of the screen on every page, so you always see where you are (D-094 to D-099). Phones and computers scroll by touch, wheel or keyboard instead.
 
+On TV, ← and → only move along the row you are in (a row of cards, the Home banner's Play and More Info, a row of buttons or chips) and stop at its ends; ↑ and ↓ change rows (D-069, D-152). On Live TV, ← from a channel still goes to the category list beside the guide.
+
 ## Covers and cards
 
 ### Card menu

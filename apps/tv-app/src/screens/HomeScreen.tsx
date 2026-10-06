@@ -6,7 +6,7 @@ import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
-import { RowFocus } from '../components/FocusRow';
+import { FocusRow, RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { continueMenuItems, useLiveHomeRow, useCatalog, useHeroTitle, useLibrary, useProgress, useWatchlist } from '../hooks';
@@ -289,7 +289,8 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             {meta.data.plot}
           </Text>
         ) : null}
-        <View style={styles.heroActions}>
+        {/* Left at Play and Right at More Info stop there; they used to drop to the first row (D-152). */}
+        <FocusRow style={styles.heroActions} testID="hero-actions">
           <FocusButton
             label={t('Play')}
             icon="play"
@@ -306,7 +307,7 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             testID="hero-info"
             onPress={() => navStore.getState().push({ name: 'details', section: 'movies', masterId: featured.id })}
           />
-        </View>
+        </FocusRow>
       </View>
     </View>
   );

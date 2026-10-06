@@ -9,6 +9,7 @@ import { ErrorText } from './Feedback';
 import { FocusButton } from './FocusButton';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { FocusRow } from '../components/FocusRow';
 
 /**
  * Account menu → Profiles → Categories shown (D-110): the categories this profile browses, per section. An unchecked
@@ -23,7 +24,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       <View style={styles.scrim}>
         <View style={styles.panel} testID="hidden-categories">
           <Text style={styles.title}>{profileName ? t('Categories shown to {name}', { name: profileName }) : t('Categories shown')}</Text>
-          <View style={styles.sections}>
+          <FocusRow style={styles.sections}>
             {CATEGORY_SECTIONS.map((s) => (
               <Chip
                 key={s.section}
@@ -33,7 +34,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
                 testID={`hidden-section-${s.section}`}
               />
             ))}
-          </View>
+          </FocusRow>
           <Text style={styles.hint}>
             {t('Unchecked categories are left out of browsing: the category bar, the lists, Home and the guide. Search still finds them.')}
           </Text>
@@ -57,10 +58,10 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
           ) : error ? null : (
             <ActivityIndicator color={colors.accent} />
           )}
-          <View style={styles.actions}>
+          <FocusRow style={styles.actions}>
             <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="hidden-categories-save" />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-          </View>
+          </FocusRow>
         </View>
       </View>
     </Modal>

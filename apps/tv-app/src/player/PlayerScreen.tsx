@@ -71,6 +71,7 @@ import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
+import { FocusRow } from '../components/FocusRow';
 
 const PROGRESS_SAVE_MS = 10_000;
 
@@ -678,7 +679,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 ) : null}
               </View>
             )}
-            <View style={styles.controls}>
+            <FocusRow style={styles.controls}>
               <IconButton
                 icon={paused ? 'play' : 'pause'}
                 label={paused ? t('Play') : t('Pause')}
@@ -807,7 +808,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   }}
                 />
               ) : null}
-            </View>
+            </FocusRow>
           </View>
         </View>
       ) : null}
@@ -815,7 +816,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {showSkipAhead ? (
         <View style={[styles.corner, { right: sizes.gutter }]} testID="skip-ahead-panel">
           {skipOpen ? (
-            <View style={styles.skipOptions} accessibilityLabel={t('Skip ahead by')}>
+            <FocusRow style={styles.skipOptions} accessibilityLabel={t('Skip ahead by')}>
               {SKIP_AHEAD_OPTIONS.map((seconds, index) => (
                 <FocusButton
                   key={seconds}
@@ -831,7 +832,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   }}
                 />
               ))}
-            </View>
+            </FocusRow>
           ) : null}
           <FocusButton
             label={t('Skip ahead')}
@@ -852,10 +853,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           <Text style={styles.nextTitle}>
             {episodeLabel(next)} · {next.title}
           </Text>
-          <View style={styles.row}>
+          <FocusRow style={styles.row}>
             <FocusButton label={t('Play Now')} variant="primary" hasTVPreferredFocus onPress={playNext} testID="play-next" />
             <FocusButton label={t('Cancel')} onPress={() => setNextDismissed(true)} />
-          </View>
+          </FocusRow>
         </View>
       ) : null}
 

@@ -11,6 +11,7 @@ import { usePinGate } from '../components/PinPad';
 import { useProfileEditor, useProfilePicker } from '../hooks';
 import { colors, fonts, radius } from '../theme';
 import { focus } from '../components/focus';
+import { FocusRow } from '../components/FocusRow';
 
 export { avatarColor };
 
@@ -24,7 +25,7 @@ export function ProfilesScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.center}>
       <Text style={[styles.heading, { fontSize: fluid(width, 29, 4, 54) }]}>{managing ? t('Manage Profiles') : t("Who's watching?")}</Text>
-      <View style={[styles.grid, { gap: fluid(width, 12, 2, 28) }]}>
+      <FocusRow style={[styles.grid, { gap: fluid(width, 12, 2, 28) }]}>
         {profiles.map((profile, index) => (
           <ProfileTile
             key={profile.id}
@@ -38,8 +39,8 @@ export function ProfilesScreen() {
           />
         ))}
         {canAdd ? <ProfileTile name="Add Profile" size={tile} add onPress={add} /> : null}
-      </View>
-      <View style={styles.actions}>
+      </FocusRow>
+      <FocusRow style={styles.actions}>
         <FocusButton
           label={managing ? t('Done') : t('Manage Profiles')}
           variant="ghost"
@@ -47,7 +48,7 @@ export function ProfilesScreen() {
           testID="profiles-manage"
         />
         <FocusButton label={t('Sign out')} variant="ghost" onPress={confirmSignOut} testID="profiles-sign-out" />
-      </View>
+      </FocusRow>
       {editing ? <ProfileEditor profile={editing === 'new' ? null : editing} onClose={closeEditor} /> : null}
       {dialog}
     </ScrollView>
@@ -144,7 +145,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             />
           </View>
           <Text style={styles.label}>{t('Colour')}</Text>
-          <View style={styles.swatches}>
+          <FocusRow style={styles.swatches}>
             {avatarColors.map((option) => (
               <Pressable
                 key={option}
@@ -155,7 +156,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
                 style={[styles.swatch, { backgroundColor: option }, option === color && styles.swatchSelected]}
               />
             ))}
-          </View>
+          </FocusRow>
           <Pressable
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isKids }}
@@ -187,7 +188,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             />
           ) : null}
           {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
-          <View style={styles.editorActions}>
+          <FocusRow style={styles.editorActions}>
             <FocusButton
               label={t('Save')}
               variant="primary"
@@ -199,7 +200,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
               <FocusButton label={t('Delete Profile')} icon="trash" variant="ghost" disabled={busy} onPress={() => void remove()} />
             ) : null}
             <FocusButton label={t('Cancel')} variant="ghost" onPress={close} />
-          </View>
+          </FocusRow>
         </View>
       </ScrollView>
       {languages && profile ? (

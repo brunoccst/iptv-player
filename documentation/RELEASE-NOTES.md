@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **On TV, ←/→ stay in the row** (2026-10-06, D-152): ← and → only move along the row you are in, and stop at its ends; ↑ and ↓ change rows. On Home, ← at the banner's Play and → at More Info no longer drop to the row below; the same goes for row titles, the player's buttons, Search, My List, Profiles, Downloads and the settings dialogs.
 - **"Who's watching?" every time** (2026-10-06, D-151): opening the app asks who is watching, like Netflix; an account with one profile opens it directly. The TV's own sleep screen is gone: while browsing, the TV's screensaver and power settings apply again (a video playing still keeps the screen on).
 - **Skips add up** (2026-10-06, D-150): presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min, now also with the on-screen ±10 s buttons and with quick taps on a phone; with the remote's ←/→ the second press already skips 30 s, not 10 s again.
 - **Episode list on TV: ↑/↓ go straight up or down** (2026-10-06, D-149): in a series' episode list, ↑ and ↓ move to the same button of the episode above or below, so from "…" you reach the next episode's "…", not its Play button.

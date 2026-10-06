@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Platform, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, Share, StyleSheet, Text } from 'react-native';
 import { appLog, t } from '@iptv/shared';
 import { appConfig } from '../config';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, useSizes, useNavHeight } from '../theme';
+import { FocusRow } from '../components/FocusRow';
 
 const PREVIEW_LINES = 150;
 
@@ -34,7 +35,7 @@ export function LogScreen() {
     >
       <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Log')}</Text>
       <Text style={styles.hint}>{t('Share this with support when something goes wrong. Usernames and passwords are hidden.')}</Text>
-      <View style={styles.actions}>
+      <FocusRow style={styles.actions}>
         <FocusButton label={t('Share log')} variant="primary" hasTVPreferredFocus onPress={share} testID="log-share" />
         <FocusButton
           label={t('Clear log')}
@@ -45,7 +46,7 @@ export function LogScreen() {
           }}
           testID="log-clear"
         />
-      </View>
+      </FocusRow>
       {entries.slice(-PREVIEW_LINES).map((entry, index) => (
         <Text
           key={`${entry.at}-${index}`}

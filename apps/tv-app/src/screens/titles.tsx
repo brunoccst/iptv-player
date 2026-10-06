@@ -421,7 +421,7 @@ function SortBar({
   const { gutter } = useSizes();
   const options = LIBRARY_SORT_OPTIONS.filter((option) => sorts.includes(option.sort));
   return (
-    <View style={[styles.sortBar, { paddingHorizontal: gutter }]}>
+    <FocusRow style={[styles.sortBar, { paddingHorizontal: gutter }]}>
       <Text style={[styles.muted, styles.noShrink]}>{t('Sort by')}</Text>
       <Select
         compact
@@ -434,7 +434,7 @@ function SortBar({
           if (choice) onChange({ sort: choice.sort, order: choice.order });
         }}
       />
-    </View>
+    </FocusRow>
   );
 }
 

@@ -8,6 +8,7 @@ import { IconButton } from '../components/IconButton';
 import type { TvDownload } from '../downloads/downloadsStore';
 import { useDownloads, useOfflineAccess } from '../hooks';
 import { colors, fonts, radius, useSizes, useNavHeight } from '../theme';
+import { FocusRow } from '../components/FocusRow';
 
 /**
  * Same as the web "My Downloads": list of downloads with progress bar and round Play/Pause/Resume/Delete buttons.
@@ -77,7 +78,7 @@ function DownloadItem({ record, first, playable }: { record: TvDownload; first: 
           </View>
         ) : null}
       </View>
-      <View style={styles.actions}>
+      <FocusRow style={styles.actions}>
         {record.state === 'completed' ? (
           playable ? (
             <IconButton
@@ -99,7 +100,7 @@ function DownloadItem({ record, first, playable }: { record: TvDownload; first: 
           />
         )}
         <IconButton icon="trash" label={t('Delete {title}', { title })} onPress={() => remove(record.id)} />
-      </View>
+      </FocusRow>
     </View>
   );
 }

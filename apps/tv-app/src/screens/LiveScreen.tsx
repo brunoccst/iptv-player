@@ -39,6 +39,7 @@ import { useNavFocusTarget } from '../components/TopNav';
 import { useCatalog, useNav } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
+import { FocusRow } from '../components/FocusRow';
 
 /** Same 3-hour window as the web guide (DECISIONS.md#d-031). */
 const HOURS = 3;
@@ -160,7 +161,7 @@ export function LiveScreen() {
         )}
 
         <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
-          <View style={styles.toolbar}>
+          <FocusRow leftOpen style={styles.toolbar}>
             <FocusButton
               label={`◀ ${t('Earlier')}`}
               variant="ghost"
@@ -187,7 +188,7 @@ export function LiveScreen() {
             <Text style={styles.day}>
               {new Date(from).toLocaleDateString(intlLocale(), { weekday: 'long', month: 'short', day: 'numeric' })}
             </Text>
-          </View>
+          </FocusRow>
 
           {guide.status === 'refreshing' ? <Text style={styles.banner}>{t('Downloading the TV guide…')}</Text> : null}
           {guide.status === 'unavailable' ? (
@@ -317,7 +318,7 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
   const { channel, programmes } = row;
   const cells = layoutGuideRow(programmes, from, to);
   return (
-    <View style={styles.row}>
+    <FocusRow leftOpen style={styles.row}>
       <GuideCellButton
         style={[styles.channel, compact && styles.channelCompact]}
         testID={`guide-channel-${channel.id}`}
@@ -381,7 +382,7 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
           );
         })}
       </View>
-    </View>
+    </FocusRow>
   );
 });
 
