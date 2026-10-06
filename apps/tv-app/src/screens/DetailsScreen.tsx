@@ -50,6 +50,7 @@ import { WatchlistButton } from '../components/WatchlistButton';
 import { ErrorText, errorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { FocusRow } from '../components/FocusRow';
+import { alignedColumn, useFocusGrid } from '../components/focusGrid';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
 import { Select } from '../components/Select';
@@ -258,7 +259,20 @@ function Episodes({
           },
         }
       : {};
+  // TV: Up/Down go to the same button of the episode above or below (Play, "…", version), not Play or the button the
+  // episode last had focused.
+  const grid = useFocusGrid();
   if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
+  const columns = (listed: MergedEpisode) => (listed.versions.length > 1 ? 3 : 2);
+  const neighbour = (index: number, column: number) => {
+    const other = season.episodes[index];
+    return other ? grid.at(`${other.id}:${alignedColumn(column, columns(other))}`) : undefined;
+  };
+  const cell = (index: number, column: number) => ({
+    focusRef: grid.ref(`${season.episodes[index]!.id}:${column}`),
+    nextFocusUp: neighbour(index - 1, column),
+    nextFocusDown: neighbour(index + 1, column),
+  });
   const context = (episode: MergedEpisode) => ({
     title: master.title,
     masterId: master.id,
@@ -293,7 +307,7 @@ function Episodes({
           )}
         </View>
       </Centered>
-      {season.episodes.map((listed) => {
+      {season.episodes.map((listed, index) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);
         const target = episodeTarget(context(episode), episode);
         const saved = findEpisodeProgress(progress, episode);
@@ -307,6 +321,7 @@ function Episodes({
               onLongPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}`}
               {...episodeFocus(listed.id)}
+              {...cell(index, 0)}
             />
             {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
             <IconButton
@@ -315,8 +330,8 @@ function Episodes({
               onPress={() => setMenuFor(episode)}
               testID={`episode-${episode.id}-more`}
               {...episodeFocus(listed.id)}
+              {...cell(index, 1)}
             />
-            {/* After the buttons, so Play is the first thing focused in an episode. */}
             {listed.versions.length > 1 ? (
               <Select
                 compact
@@ -326,14 +341,15 @@ function Episodes({
                 onChange={(episodeId) => setChosen((current) => ({ ...current, [listed.id]: episodeId }))}
                 testID={`episode-${listed.id}-version`}
                 {...episodeFocus(listed.id)}
+                {...cell(index, 2)}
               />
             ) : null}
           </View>
         );
         return (
-          // Entering an episode from above or below lands on Play, and the episode moves to the middle of the screen.
+          // A focused episode moves to the middle of the screen.
           <Centered key={listed.id}>
-            <FocusRow autoFocus style={[styles.episode, compact && styles.episodeCompact]}>
+            <FocusRow style={[styles.episode, compact && styles.episodeCompact]}>
               {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
               <Pressable
                 style={[styles.still, compact && styles.stillCompact]}

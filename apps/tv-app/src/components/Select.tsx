@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useCenterOnFocus } from './CenterScroll';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type FocusDestination } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
@@ -20,6 +20,9 @@ export function Select({
   compact,
   onFocus,
   onBlur,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
 }: {
   label: string;
   value: string;
@@ -30,16 +33,31 @@ export function Select({
   compact?: boolean;
   onFocus?(): void;
   onBlur?(): void;
+  /** The box's view, e.g. for a neighbour's `nextFocusUp`/`nextFocusDown`. */
+  focusRef?: (view: View | null) => void;
+  /** TV: the views that Up/Down go to, instead of the nearest ones. */
+  nextFocusUp?: FocusDestination;
+  nextFocusDown?: FocusDestination;
 }) {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const current = options.find((option) => option.value === value);
   const centering = useCenterOnFocus();
+  // Kept the same between renders: a new one would hand `focusRef` null and the view again on every render.
+  const ref = useCallback(
+    (view: View | null) => {
+      (centering.ref as { current: unknown }).current = view;
+      focusRef?.(view);
+    },
+    [centering.ref, focusRef],
+  );
   return (
     <>
       <Pressable
-        ref={centering.ref}
+        ref={ref}
         testID={testID}
+        nextFocusUp={nextFocusUp}
+        nextFocusDown={nextFocusDown}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current?.label ?? ''}`}
         onPress={() => setOpen(true)}

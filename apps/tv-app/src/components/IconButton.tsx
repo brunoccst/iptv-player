@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Animated, Pressable, StyleSheet } from 'react-native';
+import { Animated, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
 import { focus, useFocusScale } from './focus';
 import { Icon, type IconName } from './Icon';
 
@@ -17,6 +17,9 @@ export function IconButton({
   onFocus,
   onBlur,
   testID,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
 }: {
   icon: IconName;
   label: string;
@@ -33,16 +36,24 @@ export function IconButton({
   onFocus?(): void;
   onBlur?(): void;
   testID?: string;
+  /** The button's view, e.g. for a neighbour's `nextFocusUp`/`nextFocusDown`. */
+  focusRef?: (view: View | null) => void;
+  /** TV: the views that Up/Down go to, instead of the nearest ones. */
+  nextFocusUp?: FocusDestination;
+  nextFocusDown?: FocusDestination;
 }) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.12);
   return (
     <Pressable
+      ref={focusRef}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
       hasTVPreferredFocus={hasTVPreferredFocus}
       focusable={focusable}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
       onPress={onPress}
       onLongPress={onLongPress}
       onFocus={() => {
