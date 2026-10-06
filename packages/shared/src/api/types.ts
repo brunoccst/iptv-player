@@ -246,6 +246,8 @@ export interface WatchlistDto {
   section: LibrarySection;
   title: string;
   year: null | number;
+  /** Read from the library when the list loads, not saved: the cover's quality badge (4K, TS…) and versions. */
+  quality?: Pick<MasterCard, 'bestQuality' | 'lowSource' | 'rating' | 'variantCount'>;
 }
 
 export interface WatchlistRequest {

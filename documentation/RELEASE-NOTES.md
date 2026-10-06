@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Quality tag on My List** (2026-10-06, D-141): titles on My List, in its Home row and on its page, show "4K" or "CAM" / "TS" / "TC" / "SCR" on their cover like everywhere else.
 - **Continue watching on the TV home screen** (2026-10-06, D-147, issue #165): on Android TV and Google TV, the movies and episodes you are in the middle of show in the home screen's "Continue watching" row; choosing one plays from where you stopped.
 - **Episode descriptions roll on TV again** (2026-10-05, issue #160): on the TV a long description now rolls up through the rest of its text, instead of only losing its "…" and cutting off the last word.
 - **No more doubled episodes** (2026-10-05, D-146): when the provider lists the same episode twice in one version ("S01E03" twice), it shows once; the second copy is a choice in the episode's version picker.
@@ -56,6 +57,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Quality tag on My List** (2026-10-06, D-141): titles on My List, in its Home row and on its page, show "4K" or "CAM" / "TS" / "TC" / "SCR" on their cover like everywhere else.
 - **No more doubled episodes** (2026-10-05, D-146): when the provider lists the same episode twice in one version ("S01E03" twice), it shows once; the second copy is a choice in the episode's version picker.
 - **Back from Continue Watching shows the details** (2026-10-05, issue #166): a movie or episode started from Home's Continue Watching row goes back to its details page, not Home.
 - **Languages in order of preference** (2026-10-05, D-145, issue #163): in the content language filter, the order you tick languages in is their priority, shown as a number next to each; versions follow it.

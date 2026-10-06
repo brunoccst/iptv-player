@@ -86,6 +86,8 @@ An eye at the bottom right of the cover, and in details, for watched movies and 
 
 At the top left of the cover: "4K" when a version is 4K, or "CAM", "TS", "TC" or "SCR" when every version is a cinema copy, so you know before opening it (D-141).
 
+Titles on My List (its Home row and its page) carry the same tag: it is read from the library when the list loads.
+
 ## Details
 
 ### Movie and series details

@@ -211,9 +211,15 @@ test('My List: save a title from its details and find it on the My List page', a
   await expect(details.getByRole('button', { name: 'Remove Big Test Movie from My List' })).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('Escape');
 
+  // Saved titles keep their cover's quality tag, in the Home row and on the My List page.
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  const row = page.getByRole('region', { name: 'My List' });
+  await expect(row.getByRole('button', { name: 'Big Test Movie' }).locator('.card__badge')).toHaveText('4K');
   await page.getByRole('button', { name: 'My List', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'My List' })).toBeVisible();
-  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  const saved = page.locator('.grid').getByRole('button', { name: 'Big Test Movie' });
+  await expect(saved.locator('.card__badge')).toHaveText('4K');
+  await saved.click();
   await page.getByRole('dialog').getByRole('button', { name: 'Remove Big Test Movie from My List' }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByText('Add movies and series with the + button')).toBeVisible();
