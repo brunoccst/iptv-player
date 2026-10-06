@@ -2376,3 +2376,16 @@ Decision (`src/tv/watchNext.ts`, `modules/tv-media` `WatchNext.kt`; TV only):
 - **Opening one:** the row's intent opens the app's launcher activity with the entry's id (profile, kind, item) as an extra; JS takes it at start (`takeWatchNextOpen`) or as `onWatchNextOpen` while running. Once that profile's progress is loaded, the title plays over its details page like the Home card (issue #166). A title of another profile, or one no longer in Continue Watching (the playlist changed, it was finished elsewhere), opens Home.
 - **Removed on the home screen:** a row the person removed there (no longer browsable) is not added back until the title is watched again.
 - No new texts. Tests: the entries, the plan (insert, update, remove, a removed row stays away), the sync after the delay and at the profile picker, opening a title from the row at start and while running, another profile's title, a title no longer there.
+
+## D-148
+
+**TV: Up/Down in the episode list go to the button straight above or below** — 2026-10-06 (owner: "up and down always move the focus to the item directly below or above the currently focused item. Left and right must be the same.")
+
+Context: each episode row was a focus guide with `autoFocus` (D-069 update, 2026-09-26), so entering a row from above or below landed on Play, or on the button that row had focused last. From "…", ↓ went to the next episode's Play, and ↑ came back to the previous episode's "…".
+
+Decision (`components/focusGrid.ts`, `DetailsScreen` `Episodes`; TV only):
+
+- The rows no longer use `autoFocus`. Each episode button (Play, "…", version) sets `nextFocusUp`/`nextFocusDown` to the same button of the episode above or below. An episode without a version picker takes Up/Down from the picker on its "…" (`alignedColumn`).
+- The first episode's Up and the last one's Down are left to Android's focus search (the season choice above; the panel traps the rest, D-075). Left/Right stay inside the row as before (D-069).
+- Tests: the destinations of Play, "…" and the version picker between three episodes, one of them without a picker.
+
