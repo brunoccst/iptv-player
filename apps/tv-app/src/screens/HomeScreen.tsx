@@ -6,7 +6,7 @@ import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
 import { FocusButton } from '../components/FocusButton';
 import { Gradient } from '../components/Gradient';
-import { RowFocus } from '../components/FocusRow';
+import { FocusRow, RowFocus } from '../components/FocusRow';
 import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { continueMenuItems, useLiveHomeRow, useCatalog, useHeroTitle, useLibrary, useProgress, useWatchlist } from '../hooks';
@@ -119,7 +119,12 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
               setShownRows((count) => (count < rows.length ? count + TV_ROWS_AHEAD : count));
           }}
         >
-          {loading ? <LibraryLoading /> : <Hero candidates={featured} />}
+          {loading ? (
+            <LibraryLoading />
+          ) : (
+            // Up from the first row lands on Play: show the whole banner, Android left it scrolled off (D-152).
+            <Hero candidates={featured} onFocus={() => scroll.current?.scrollTo({ y: 0, animated: true })} />
+          )}
           {rows.slice(0, shownRows).map(renderRow)}
           <View style={styles.bottom} />
         </ScrollView>
@@ -255,7 +260,7 @@ function LibraryLoading() {
 }
 
 /** Web `.hero`: featured movie backdrop with the two shades, big title, plot, Play and More Info. */
-function Hero({ candidates }: { candidates: MasterCard[] }) {
+function Hero({ candidates, onFocus }: { candidates: MasterCard[]; onFocus?(): void }) {
   const { featured, meta, play, backdrop } = useHeroTitle(candidates);
   const { width, height } = useWindowDimensions();
   const sizes = useSizes();
@@ -289,13 +294,15 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             {meta.data.plot}
           </Text>
         ) : null}
-        <View style={styles.heroActions}>
+        {/* Left at Play and Right at More Info stop there; they used to drop to the first row (D-152). */}
+        <FocusRow style={styles.heroActions} testID="hero-actions">
           <FocusButton
             label={t('Play')}
             icon="play"
             variant="primary"
             hasTVPreferredFocus
             testID="hero-play"
+            onFocus={onFocus}
             disabled={!play}
             onPress={() => play && navStore.getState().push({ name: 'player', target: play })}
           />
@@ -304,9 +311,10 @@ function Hero({ candidates }: { candidates: MasterCard[] }) {
             icon="info"
             variant="secondary"
             testID="hero-info"
+            onFocus={onFocus}
             onPress={() => navStore.getState().push({ name: 'details', section: 'movies', masterId: featured.id })}
           />
-        </View>
+        </FocusRow>
       </View>
     </View>
   );

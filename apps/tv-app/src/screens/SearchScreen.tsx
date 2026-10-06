@@ -89,11 +89,11 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   const lines = Array.from({ length: Math.ceil(page.items.length / columns) }, (_, i) => page.items.slice(i * columns, (i + 1) * columns));
 
   const renderLine = (line: (typeof lines)[number]) => (
-    <View key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
+    <FocusRow key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
       {line.map((item) => (
         <MasterCardItem key={item.id} section={section} item={item} width={itemWidth} />
       ))}
-    </View>
+    </FocusRow>
   );
 
   return (
@@ -133,7 +133,7 @@ function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
   return (
     <View style={styles.section} testID="row-live-search">
       <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{t('Live TV')}</Text>
-      <View style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
+      <FocusRow style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
         {channels.map((channel) => (
           <PosterCard
             key={channel.id}
@@ -149,7 +149,7 @@ function ChannelResults({ query, alone }: { query: string; alone: boolean }) {
             }
           />
         ))}
-      </View>
+      </FocusRow>
     </View>
   );
 }
@@ -163,7 +163,7 @@ function ProgrammeResults({ query }: { query: string }) {
   return (
     <View style={styles.section} testID="row-programme-search">
       <Text style={[styles.heading, { fontSize: sizes.rowTitle, marginHorizontal: sizes.gutter }]}>{t('On TV')}</Text>
-      <View style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
+      <FocusRow style={[styles.line, { paddingHorizontal: sizes.gutter, flexWrap: 'wrap' }]}>
         {found.map(({ channel, programme }) => (
           <PosterCard
             key={`${channel.id}-${programme.start}`}
@@ -175,7 +175,7 @@ function ProgrammeResults({ query }: { query: string }) {
             onPress={() => navStore.getState().push({ name: 'player', target: liveTarget(channel, programme.title) })}
           />
         ))}
-      </View>
+      </FocusRow>
     </View>
   );
 }

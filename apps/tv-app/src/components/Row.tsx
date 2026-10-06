@@ -26,13 +26,13 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
   const sizes = useSizes();
   return (
     <View style={[styles.row, { marginBottom: sizes.rowGap }]} testID={testID} accessibilityLabel={title}>
-      <View style={[styles.header, { marginHorizontal: sizes.gutter }]}>
+      <FocusRow style={[styles.header, { marginHorizontal: sizes.gutter }]}>
         {onTitlePress ? (
           <TitleLink title={title} fontSize={sizes.rowTitle} onPress={onTitlePress} testID={testID && `${testID}-open`} />
         ) : (
           <Text style={[styles.title, { fontSize: sizes.rowTitle }]}>{title}</Text>
         )}
-      </View>
+      </FocusRow>
       {items.length === 0 ? (
         loading ? (
           <ActivityIndicator

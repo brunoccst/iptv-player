@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { FocusRow, RowFocus } from './FocusRow';
 import { PosterCard } from './PosterCard';
@@ -30,6 +30,43 @@ describe('focus rows (TV)', () => {
     while (scroll && scroll.props.horizontal === undefined) scroll = scroll.parent;
     expect(scroll?.props.horizontal).toBe(true);
     expect(scroll?.props.scrollEnabled).not.toBe(false);
+  });
+
+  it('a row title link keeps Left/Right too: Right used to drop to the second card below (D-152)', async () => {
+    await render(
+      <Row
+        title="Drama"
+        items={['a', 'b']}
+        keyOf={(id) => id}
+        render={(id) => <PosterCard title={id} onPress={() => undefined} />}
+        onTitlePress={() => undefined}
+        testID="row"
+      />,
+    );
+    let node = screen.getByTestId('row-open').parent;
+    while (node && node.props.trapFocusRight !== true) node = node.parent;
+    expect(node?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
+    // The title's own group, not the cards' one.
+    expect(within(node!).queryByTestId('card-a')).toBeNull();
+  });
+
+  it('leftOpen: Right stops at the end, Left may leave the start (the guide’s rows beside the categories)', async () => {
+    await render(
+      <FocusRow leftOpen testID="line">
+        <PosterCard title="Heat" onPress={() => undefined} />
+      </FocusRow>,
+    );
+    expect(screen.getByTestId('line').props).toMatchObject({ trapFocusLeft: false, trapFocusRight: true });
+  });
+
+  it('is a plain view off TV', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    await render(
+      <FocusRow testID="line">
+        <PosterCard title="Heat" onPress={() => undefined} />
+      </FocusRow>,
+    );
+    expect(screen.getByTestId('line').props.trapFocusRight).toBeUndefined();
   });
 
   it('a focused card asks the page to centre its row', async () => {

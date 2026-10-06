@@ -2430,3 +2430,15 @@ Decision:
 - A reload during a session (after pairing or restoring a backup, `AppContext.reload()`) keeps the profile (`restore({ keepProfile: true })`).
 - A title chosen in the TV home screen's "Continue watching" row (D-147) plays once its profile is picked; another profile opens Home.
 
+
+## D-152
+
+**TV: Left/Right stay in their row everywhere, the Home banner's buttons included** — 2026-10-06 (owner: "Throughout the whole app, moving left or right should only move the focus on the row you're in. To go to a row below or above, one must press up or down.")
+
+Context: D-069 made the rows of cards, the chips, the details buttons and the episode rows `FocusRow`s, but other horizontal groups were left to Android's focus search, which goes to the nearest item in that direction even in another row. On Home, Left at the banner's Play and Right at More Info dropped to the first row.
+
+Decision (TV only; `FocusRow` is a plain view elsewhere):
+- These groups are now `FocusRow`s too: Home's banner (Play, More Info), a row's title link ("Drama ›", whose Right went to the second card below), the Movies/Series sort choice, the lines of Search and My List, the season's Watched and season choice, the player's buttons, Skip ahead's choices and next-up's Play Now / Cancel, the drawer's tabs, the Downloads buttons, the Log buttons, the profile tiles and the profile editor's colours and buttons, the PIN pad, and the buttons and choices of the subtitle, category and Kids dialogs.
+- Live TV keeps D-069's exception: Left from the guide's channel, or from Earlier, still goes to the category list beside it. Right stops at the end of a channel's row (it used to jump to another channel's programme past a gap with no guide) and after Later. `FocusRow leftOpen` traps Right only.
+- Home: Up from the first row (Continue Watching, My List) put the focus on Play but left the banner scrolled off, so a second Up was needed to see it. Focusing Play or More Info now scrolls Home back to the top (owner, same day).
+- Tests: the Home banner (and its scroll to the top), a row's title link, `leftOpen`, and a plain view off TV.

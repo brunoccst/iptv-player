@@ -44,6 +44,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | EAR versions are labelled "ENG (EAR)"; the plain English version comes first (D-148) | ✅ | ✅ | ✅ | version selector in details and the player; in the profile's languages | [Version choice and "(best)"](FEATURES.md#version-choice-and-best) |
 | Why a stream failed (provider's answer, D-074) | ✅ | ✅ | ✅ | in the error and the log | [Playback errors](FEATURES.md#playback-errors) |
 | Category chips on one line with Show all / Show less; expanded, a full-width box that scrolls on its own (D-085, D-091) | ✅ | ✅ | ✅ | TV: ↓ to the button · phone: tap · web: click (the wheel scrolls the line) | [Category chips](FEATURES.md#category-chips) |
+| TV: ←/→ stay in the row you are in and stop at its ends; ↑/↓ change rows (D-069, D-152) | ✅ | ➖ | ➖ | TV only: phones and computers have no D-pad · Live TV: ← from the guide goes to the category list | [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) |
 | Focused item kept in the middle of the screen (D-094) | ✅ | ➖ | ➖ | TV only: phones and computers scroll by touch, wheel or keyboard | [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) |
 | Live TV guide page | ✅ | ✅ | ✅ | | [TV guide](FEATURES.md#tv-guide) |
 | Guide over the playing channel (D-058, D-081) | ✅ | ✅ | ✅ | TV: ↑ · phone and web: Guide button · web: also G (↑/↓ are the volume) | [Guide over the playing channel](FEATURES.md#guide-over-the-playing-channel) |

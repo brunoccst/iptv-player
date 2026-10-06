@@ -285,7 +285,7 @@ function Episodes({
       <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
         {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
-        <View style={styles.seasonChoice}>
+        <FocusRow style={styles.seasonChoice}>
           {/* Only this season (issue #132). */}
           <WatchedButton
             kind="season"
@@ -305,7 +305,7 @@ function Episodes({
           ) : (
             <Text style={styles.muted}>{season.name}</Text>
           )}
-        </View>
+        </FocusRow>
       </Centered>
       {season.episodes.map((listed, index) => {
         const episode = episodeInVersion(listed, chosen[listed.id]);

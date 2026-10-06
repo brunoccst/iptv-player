@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TVFocusGuideView, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TVFocusGuideView } from 'react-native';
 import { audioTrackLabels, episodeLabel, trackLabel, type MergedEpisode, type MergedSeries, type VariantInfo, t } from '@iptv/shared';
 import type { PlayerTrack } from '../../modules/tv-media';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts, spacing } from '../theme';
+import { FocusRow } from '../components/FocusRow';
 
 export type DrawerTab = 'audio' | 'subtitles' | 'versions' | 'episodes';
 
@@ -36,7 +37,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
 
   return (
     <TVFocusGuideView style={styles.drawer} trapFocusUp trapFocusDown trapFocusLeft trapFocusRight testID="quick-drawer">
-      <View style={styles.tabs}>
+      <FocusRow style={styles.tabs}>
         {tabs.map((entry) => (
           <FocusButton
             key={entry.id}
@@ -47,7 +48,7 @@ export function QuickDrawer({ tracks, variants, currentStreamId, series, onTrack
             onFocus={() => setTab(entry.id)}
           />
         ))}
-      </View>
+      </FocusRow>
       <ScrollView contentContainerStyle={styles.options}>
         {tab === 'audio' ? (
           audio.length === 0 ? (

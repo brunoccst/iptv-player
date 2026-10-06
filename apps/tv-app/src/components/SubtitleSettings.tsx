@@ -5,6 +5,7 @@ import { appContext } from '../appContext';
 import { colors, fonts } from '../theme';
 import { Field } from './Field';
 import { FocusButton } from './FocusButton';
+import { FocusRow } from '../components/FocusRow';
 
 /**
  * Account menu → App → Automatic subtitles (D-111, issue #103): OpenSubtitles.com downloads a subtitle when a movie or
@@ -62,7 +63,7 @@ export function SubtitleSettings({ onClose }: { onClose(): void }) {
               compact
             />
             <Text style={styles.text}>{t('Languages, in order of preference:')}</Text>
-            <View style={styles.languages}>
+            <FocusRow style={styles.languages}>
               {Object.entries(subtitleLanguageNames()).map(([code, name]) => {
                 const rank = draft.languages.indexOf(code);
                 return (
@@ -75,12 +76,12 @@ export function SubtitleSettings({ onClose }: { onClose(): void }) {
                   />
                 );
               })}
-            </View>
+            </FocusRow>
           </ScrollView>
-          <View style={styles.actions}>
+          <FocusRow style={styles.actions}>
             <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="subtitle-settings-save" />
             <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-          </View>
+          </FocusRow>
         </View>
       </View>
     </Modal>

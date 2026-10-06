@@ -1,9 +1,10 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { CenteringScrollView } from '../components/CenterScroll';
 import { watchlistCard, t } from '@iptv/shared';
 import { useWatchlist } from '../hooks';
 import { colors, useNavHeight, useSizes } from '../theme';
 import { MasterCardItem, useGridColumns } from './titles';
+import { FocusRow } from '../components/FocusRow';
 
 /** Web "My List": titles the active profile saved, newest first (D-055). */
 export function MyListScreen() {
@@ -30,7 +31,7 @@ export function MyListScreen() {
         </Text>
       ) : (
         lines.map((line, row) => (
-          <View key={row} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
+          <FocusRow key={row} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
             {line.map((item, column) => (
               <MasterCardItem
                 key={`${item.section}-${item.masterId}`}
@@ -40,7 +41,7 @@ export function MyListScreen() {
                 hasTVPreferredFocus={row === 0 && column === 0}
               />
             ))}
-          </View>
+          </FocusRow>
         ))
       )}
     </CenteringScrollView>
