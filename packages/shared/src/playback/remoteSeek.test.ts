@@ -139,7 +139,7 @@ describe('RemoteSeekController', () => {
       ]);
       vi.advanceTimersByTime(TAP_CHAIN_MS);
       expect(events.at(-1)).toBe('end:1220');
-      // 10 s, 30 s, 1 min, 2 min, then 5 min (D-148).
+      // 10 s, 30 s, 1 min, 2 min, then 5 min (D-149).
       expect([1, 2, 3, 4, 5, 20].map(tapStep)).toEqual([10, 30, 60, 120, 300, 300]);
     });
 
@@ -184,7 +184,7 @@ describe('RemoteSeekController', () => {
   });
 });
 
-describe('SkipStreak (D-148)', () => {
+describe('SkipStreak (D-149)', () => {
   it('presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause starts again at 10 s', () => {
     let now = 0;
     const streak = new SkipStreak(() => now);

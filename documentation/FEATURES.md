@@ -38,6 +38,8 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-144, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.
 
+An "EAR" version (English audio with Arabic subtitles in the picture, D-107) is labelled "ENG (EAR)" and the plain English one "ENG". When English is one of the profile's languages, a title with both starts with the plain English one, whatever their quality; of equally good versions, the plain one is "(best)" (D-148).
+
 ### Library updates
 
 The library is built on the first sign-in and kept on the device; the app starts from it at once (D-117, D-120). The account menu → Library & devices → Update library downloads the provider's lists again and changes only what changed; a list identical to the last one is not compared at all (D-109, D-119, D-135, D-137, D-138). A message then says how many titles were added, changed and removed. Live channels and the TV guide are downloaded daily and after an update (D-123, D-130).
@@ -102,7 +104,7 @@ A season choice with a "Watched" button on its left that marks the whole season 
 
 ### Playback controls
 
-Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042, D-100). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128, D-148). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-101). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046, D-097). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps) and mouse; hovering over the timeline shows preview frames (D-023).
+Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042, D-100). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128, D-149). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-101). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046, D-097). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps) and mouse; hovering over the timeline shows preview frames (D-023).
 
 ### Audio, subtitles, versions and episodes
 

@@ -2379,6 +2379,19 @@ Decision (`src/tv/watchNext.ts`, `modules/tv-media` `WatchNext.kt`; TV only):
 
 ## D-148
 
+**EAR versions: the plain English version comes first, and EAR is labelled "ENG (EAR)"** — 2026-10-06 (owner: "a title that has two versions, EAR (English audio with Arabic subtitles in the video which can't be turned off) and EN, should always prioritize EN if the user selected it as a language … EN should be the default named \"ENG\", while EAR should be named \"ENG (EAR)\"")
+
+Context: an "EAR" version counts as English with Arabic subtitles (D-107), so a title with an EAR and an EN version had two "ENG" versions. Identical labels are numbered, so the version selector showed "ENG" and "ENG (2)", and the EAR one could be the one a title started with.
+
+Decision (shared `parser.ts` `isEnglishArabic`, `pipeline.ts` `variantLabel`, `playbackChoices.ts`; TV, phone, web and desktop):
+
+- **Label:** a version whose name has "EAR" shows its English audio as "ENG (EAR)" ("1080p · ENG (EAR)"); the plain English one stays "ENG". Read from the provider's name when the versions are listed, so libraries need no rebuild.
+- **Starting version:** in the profile's languages (D-144), versions with subtitles in the picture are left out when the title has another version in that language, whatever their quality and whatever quality was last picked. A title with only the EAR version in English starts with it.
+- **"(best)":** of equally good versions in a language (D-136), the plain one is the best.
+- Tests: the labels of an EAR and an EN version; the starting version (lower-quality EN over EAR, EAR when it is the only English one) and "(best)".
+
+## D-149
+
 **Skips add up everywhere: 10 s, 30 s, 1 min, 2 min, then 5 min** — 2026-10-06 (owner: "the multiple skip button press (+10 or -10 seconds) are not cumulative (e.g.: one press +10, two presses +30, three presses +1 min, etc.) like I requested some time ago")
 
 Context: D-128 made presses in a row of the remote's ←/→ (and ⏪/⏩) go faster, but each step came twice (10, 10, 30, 30, 1 min, 1 min, …), so the second press skipped 10 s again and the series felt flat. The on-screen ±10 s buttons, double taps on phones and the keys and buttons on web and desktop always skipped 10 s.

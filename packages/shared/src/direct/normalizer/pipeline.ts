@@ -1,5 +1,5 @@
 import { groupTitles } from './matching';
-import { compactKey, normalizeKey, parseTitle, parseYear, type ParsedTitle } from './parser';
+import { compactKey, isEnglishArabic, normalizeKey, parseTitle, parseYear, type ParsedTitle } from './parser';
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
 
@@ -359,7 +359,10 @@ export function variantLabel(title: ParsedTitle, containerExtension: string | nu
     title.quality,
     title.source && ['CAM', 'TS', 'TC', 'SCR', 'REMUX'].includes(title.source) ? title.source : null,
     title.isHdr ? 'HDR' : null,
-    title.audioLanguages.join('/') || null,
+    // An "EAR" version reads "ENG (EAR)", so it stands apart from the plain English one (D-148).
+    (isEnglishArabic(title.raw) ? title.audioLanguages.map((code) => (code === 'ENG' ? 'ENG (EAR)' : code)) : title.audioLanguages).join(
+      '/',
+    ) || null,
     title.audioTag,
   ];
   return parts.filter(Boolean).join(' · ') || (containerExtension || 'Standard').toUpperCase();
