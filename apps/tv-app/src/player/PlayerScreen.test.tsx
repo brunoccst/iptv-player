@@ -264,12 +264,12 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('fastForward', 'down'));
     expect(screen.getByTestId('scrub-step')).toHaveTextContent('+5:00');
     await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
-    // 110 + 30 + 60 + 120 + 300 (D-149)
+    // 110 + 30 + 60 + 120 + 300 (D-150)
     expect(playerState.seeks).toEqual([110_000, 620_000]);
     expect(screen.queryByTestId('scrub-bar')).toBeNull();
   });
 
-  it('the ±10 s buttons skip further when pressed in a row: 10 s, 30 s, 1 min (D-149)', async () => {
+  it('the ±10 s buttons skip further when pressed in a row: 10 s, 30 s, 1 min (D-150)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
     await render(<PlayerScreen target={movie} />);
@@ -937,7 +937,7 @@ describe('PlayerScreen', () => {
       expect(playerState.seeks.at(-1)).toBe(30_000);
     });
 
-    it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-149)', async () => {
+    it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-150)', async () => {
       const backend = setupApp();
       backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
       await render(<PlayerScreen target={movie} />);

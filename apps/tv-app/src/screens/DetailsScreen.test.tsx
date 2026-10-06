@@ -4,6 +4,12 @@ import { navStore, stores } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
 
+// The test renderer has no native tags: a button's `nextFocusUp`/`nextFocusDown` becomes the testID it points to.
+jest.mock('react-native/Libraries/Components/TV/tagForComponentOrHandle', () => ({
+  __esModule: true,
+  default: (component?: { props?: { testID?: string } } | null) => component?.props?.testID,
+}));
+
 async function flush() {
   await act(async () => {
     for (let i = 0; i < 40; i++) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -121,7 +127,7 @@ describe('series details: one episode list for all versions (D-066)', () => {
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'sub-3b', seriesId: 'sub' } });
   });
 
-  it('TV: entering an episode from above lands on Play (first in the row), not on the nearest button', async () => {
+  it('TV: Up/Down go to the same button of the episode above or below, not to Play', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
     backend.on('GET', '/api/library/series/show', {
@@ -135,8 +141,13 @@ describe('series details: one episode list for all versions (D-066)', () => {
         variants: [variant('en', 'ENG'), variant('ge', 'GER')],
       },
     });
-    backend.on('GET', '/api/catalog/series/en', { body: series('en', [{ number: 1, episodes: [episode('en-1', 1, 1)] }]) });
-    backend.on('GET', '/api/catalog/series/ge', { body: series('ge', [{ number: 1, episodes: [episode('ge-1', 1, 1)] }]) });
+    // Episode 2 is only in German, so it has no version picker.
+    backend.on('GET', '/api/catalog/series/en', {
+      body: series('en', [{ number: 1, episodes: [episode('en-1', 1, 1), episode('en-3', 1, 3)] }]),
+    });
+    backend.on('GET', '/api/catalog/series/ge', {
+      body: series('ge', [{ number: 1, episodes: [episode('ge-1', 1, 1), episode('ge-2', 1, 2), episode('ge-3', 1, 3)] }]),
+    });
     await render(<DetailsScreen section="series" masterId="show" />);
     await flush();
     // The D-pad stays in the panel in every direction: the page behind is never reached (D-075).
@@ -146,17 +157,26 @@ describe('series details: one episode list for all versions (D-066)', () => {
       trapFocusLeft: true,
       trapFocusRight: true,
     });
+    // Left/Right stay in the episode's row, which no longer sends Up/Down to Play (D-069, D-149).
+    let row = screen.getByTestId('episode-en-1').parent;
+    while (row && row.props.trapFocusRight !== true) row = row.parent;
+    expect(row?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
+    expect(row?.props.autoFocus).toBeFalsy();
 
-    const play = screen.getByTestId('episode-en-1');
-    let row = play.parent;
-    while (row && row.props.autoFocus !== true) row = row.parent;
-    expect(row?.props).toMatchObject({ autoFocus: true, trapFocusLeft: true, trapFocusRight: true });
-    // Play comes before the version picker, so it is the row's first focusable item.
-    const ids = within(row!)
-      .getAllByTestId(/^episode-en-1/)
-      .map((node) => node.props.testID);
-    expect(ids[0]).toBe('episode-en-1');
-    expect(ids).toContain('episode-en-1-version');
+    const up = (testID: string) => screen.getByTestId(testID).props.nextFocusUp;
+    const down = (testID: string) => screen.getByTestId(testID).props.nextFocusDown;
+    // "…" goes to the next episode's "…", Play to Play, both ways.
+    expect(down('episode-en-1-more')).toBe('episode-ge-2-more');
+    expect(up('episode-ge-2-more')).toBe('episode-en-1-more');
+    expect(down('episode-en-1')).toBe('episode-ge-2');
+    expect(up('episode-en-3')).toBe('episode-ge-2');
+    // A version picker over an episode without one goes to its "…"; from below, "…" goes up to "…".
+    expect(down('episode-en-1-version')).toBe('episode-ge-2-more');
+    expect(up('episode-en-3-version')).toBe('episode-ge-2-more');
+    expect(up('episode-en-3-more')).toBe('episode-ge-2-more');
+    // The first episode's Up and the last one's Down are left to the D-pad (the season choice above, nothing below).
+    expect(up('episode-en-1-more')).toBeFalsy();
+    expect(down('episode-en-3-more')).toBeFalsy();
     jest.restoreAllMocks();
   });
 });

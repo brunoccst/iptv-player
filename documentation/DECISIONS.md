@@ -2392,6 +2392,18 @@ Decision (shared `parser.ts` `isEnglishArabic`, `pipeline.ts` `variantLabel`, `p
 
 ## D-149
 
+**TV: Up/Down in the episode list go to the button straight above or below** — 2026-10-06 (owner: "up and down always move the focus to the item directly below or above the currently focused item. Left and right must be the same.")
+
+Context: each episode row was a focus guide with `autoFocus` (D-069 update, 2026-09-26), so entering a row from above or below landed on Play, or on the button that row had focused last. From "…", ↓ went to the next episode's Play, and ↑ came back to the previous episode's "…".
+
+Decision (`components/focusGrid.ts`, `DetailsScreen` `Episodes`; TV only):
+
+- The rows no longer use `autoFocus`. Each episode button (Play, "…", version) sets `nextFocusUp`/`nextFocusDown` to the same button of the episode above or below. An episode without a version picker takes Up/Down from the picker on its "…" (`alignedColumn`).
+- The first episode's Up and the last one's Down are left to Android's focus search (the season choice above; the panel traps the rest, D-075). Left/Right stay inside the row as before (D-069).
+- Tests: the destinations of Play, "…" and the version picker between three episodes, one of them without a picker.
+
+## D-150
+
 **Skips add up everywhere: 10 s, 30 s, 1 min, 2 min, then 5 min** — 2026-10-06 (owner: "the multiple skip button press (+10 or -10 seconds) are not cumulative (e.g.: one press +10, two presses +30, three presses +1 min, etc.) like I requested some time ago")
 
 Context: D-128 made presses in a row of the remote's ←/→ (and ⏪/⏩) go faster, but each step came twice (10, 10, 30, 30, 1 min, 1 min, …), so the second press skipped 10 s again and the series felt flat. The on-screen ±10 s buttons, double taps on phones and the keys and buttons on web and desktop always skipped 10 s.

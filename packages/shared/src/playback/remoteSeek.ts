@@ -11,7 +11,7 @@ export const SCRUB_MAX_SPEED = 640;
 
 /** Presses closer together than this continue a series of presses (issue #121); the video jumps this long after the last. */
 export const TAP_CHAIN_MS = 1000;
-/** Seconds each press of a series moves: 10 s, 30 s, 1 min, 2 min, then 5 min per press (D-149). */
+/** Seconds each press of a series moves: 10 s, 30 s, 1 min, 2 min, then 5 min per press (D-150). */
 const TAP_STEPS = [10, 30, 60, 120];
 const LAST_TAP_STEP = 300;
 /** How far the `count`-th press of a series in one direction moves (1-based). */
@@ -20,7 +20,7 @@ export const tapStep = (count: number) => TAP_STEPS[count - 1] ?? LAST_TAP_STEP;
 export type SeekDirection = 'back' | 'forward';
 
 /**
- * Presses in a row for skip buttons and gestures that seek at once (D-149): the on-screen ±10 s buttons, double taps
+ * Presses in a row for skip buttons and gestures that seek at once (D-150): the on-screen ±10 s buttons, double taps
  * on phones, the arrow keys and buttons on web and desktop. A press in the same direction within `TAP_CHAIN_MS` of the
  * last moves the next step of `tapStep` (10 s, 30 s, 1 min, 2 min, then 5 min); the other way or after a pause starts
  * again at 10 s.
@@ -85,7 +85,7 @@ export function scrubSpeed(heldMs: number): number {
  *
  * Presses in a row also go faster (issue #121, D-128): some remotes report arrows only on release, so holding never
  * scrubs there. The first press seeks 10 s at once; each further press within `TAP_CHAIN_MS` moves the preview by a
- * growing step (30 s, 1 min, 2 min, then 5 min; D-149) and the video jumps there once the presses stop. A press the
+ * growing step (30 s, 1 min, 2 min, then 5 min; D-150) and the video jumps there once the presses stop. A press the
  * other way continues from the preview with the smallest step, to fine-tune.
  */
 export class RemoteSeekController {

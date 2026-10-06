@@ -253,7 +253,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     if (video) video.currentTime = clampTime(seconds, video.duration);
   }, []);
 
-  // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-149); a held key's repeats stay at 10 s.
+  // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-150); a held key's repeats stay at 10 s.
   const skipStreak = useRef(new SkipStreak()).current;
   const skip = useCallback(
     (side: 'back' | 'forward', repeat = false) => {

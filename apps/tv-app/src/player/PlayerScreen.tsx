@@ -313,7 +313,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   });
   useEffect(() => () => controller.current?.cancel(), []);
 
-  // The ±10 s buttons and double taps: presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-149).
+  // The ±10 s buttons and double taps: presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-150).
   const skipStreak = useRef(new SkipStreak()).current;
   const skipPress = useCallback(
     (direction: SeekDirection) => {
@@ -360,7 +360,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   }, []);
 
   // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead, and further
-  // quick taps there skip further (D-149).
+  // quick taps there skip further (D-150).
   const lastTap = useRef<{ at: number; side: SeekDirection | null; controls: boolean } | null>(null);
   /**
    * Logs what the provider sent instead of a video (the first bytes, credentials masked). After the last attempt a
