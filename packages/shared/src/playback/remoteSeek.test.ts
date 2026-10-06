@@ -3,6 +3,7 @@ import {
   HOLD_THRESHOLD_MS,
   RemoteSeekController,
   SCRUB_DOUBLING_MS,
+  SkipStreak,
   SCRUB_MAX_SPEED,
   TAP_CHAIN_MS,
   scrubSpeed,
@@ -129,16 +130,17 @@ describe('RemoteSeekController', () => {
       press(controller, 'forward', 7);
       expect(events).toEqual([
         'tap:forward:110',
-        'preview:120:10',
-        'preview:150:30',
-        'preview:180:30',
-        'preview:240:60',
-        'preview:300:60',
-        'preview:420:120',
+        'preview:140:30',
+        'preview:200:60',
+        'preview:320:120',
+        'preview:620:300',
+        'preview:920:300',
+        'preview:1220:300',
       ]);
       vi.advanceTimersByTime(TAP_CHAIN_MS);
-      expect(events.at(-1)).toBe('end:420');
-      expect([7, 8, 9, 20].map(tapStep)).toEqual([120, 120, 300, 300]);
+      expect(events.at(-1)).toBe('end:1220');
+      // 10 s, 30 s, 1 min, 2 min, then 5 min (D-148).
+      expect([1, 2, 3, 4, 5, 20].map(tapStep)).toEqual([10, 30, 60, 120, 300, 300]);
     });
 
     it('a press the other way fine-tunes from the preview with the smallest step', () => {
@@ -146,7 +148,8 @@ describe('RemoteSeekController', () => {
       press(controller, 'forward', 4);
       press(controller, 'back');
       vi.advanceTimersByTime(TAP_CHAIN_MS);
-      expect(events.slice(-2)).toEqual(['preview:170:10', 'end:170']);
+      // 110 + 30 + 60 + 120 = 320, then back 10.
+      expect(events.slice(-2)).toEqual(['preview:310:10', 'end:310']);
     });
 
     it('a pause ends the series: the next press is a plain 10 s seek again', () => {
@@ -161,11 +164,11 @@ describe('RemoteSeekController', () => {
       const { controller, events } = setup(9_900, 9_950);
       press(controller, 'forward', 3);
       press(controller, 'back', 1);
-      expect(events).toEqual(['tap:forward:9910', 'preview:9920:10', 'preview:9950:30', 'preview:9940:10']);
+      expect(events).toEqual(['tap:forward:9910', 'preview:9940:30', 'preview:9950:60', 'preview:9940:10']);
       vi.advanceTimersByTime(TAP_CHAIN_MS);
       const start = setup(15, 10_000);
       press(start.controller, 'back', 3);
-      expect(start.events).toEqual(['tap:back:5', 'preview:0:10', 'preview:0:30']);
+      expect(start.events).toEqual(['tap:back:5', 'preview:0:30', 'preview:0:60']);
     });
 
     it('holding after presses scrubs on from their preview; closing the player drops a pending preview', () => {
@@ -173,10 +176,27 @@ describe('RemoteSeekController', () => {
       press(controller, 'forward', 3);
       controller.keyDown('forward');
       vi.advanceTimersByTime(HOLD_THRESHOLD_MS);
-      expect(events.at(-1)).toBe('scrub:151:10');
+      expect(events.at(-1)).toBe('scrub:201:10');
       controller.cancel();
       vi.advanceTimersByTime(TAP_CHAIN_MS * 2);
       expect(events.some((e) => e.startsWith('end'))).toBe(false);
     });
+  });
+});
+
+describe('SkipStreak (D-148)', () => {
+  it('presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause starts again at 10 s', () => {
+    let now = 0;
+    const streak = new SkipStreak(() => now);
+    const press = (direction: 'back' | 'forward', after = TAP_CHAIN_MS / 2) => {
+      now += after;
+      return streak.press(direction);
+    };
+    expect([1, 2, 3, 4, 5, 6].map(() => press('forward'))).toEqual([10, 30, 60, 120, 300, 300]);
+    expect(press('back')).toBe(10);
+    expect(press('back')).toBe(30);
+    expect(press('back', TAP_CHAIN_MS)).toBe(10);
+    streak.reset();
+    expect(press('back')).toBe(10);
   });
 });

@@ -4,11 +4,22 @@ import { SCRUB_BASE_SPEED, SKIP_SECONDS, formatClock, type SeekDirection } from 
 import { colors, fonts, safe } from '../theme';
 
 /**
- * Animated circle shown on a D-pad tap or a double tap: "−10" left, "+10" right. `flashKey` restarts the animation;
+ * Animated circle shown on a D-pad tap, a ±10 s button or a double tap: "−10" left, "+10" right, or the longer step of
+ * presses in a row ("+0:30", D-148). `flashKey` restarts the animation;
  * `onDone` runs once it has faded out. It never takes touches: faded out but left on screen, it swallowed the next
  * double taps on phones (D-097).
  */
-export function TapFlash({ direction, flashKey, onDone }: { direction: SeekDirection; flashKey: number; onDone?(): void }) {
+export function TapFlash({
+  direction,
+  seconds = SKIP_SECONDS,
+  flashKey,
+  onDone,
+}: {
+  direction: SeekDirection;
+  seconds?: number;
+  flashKey: number;
+  onDone?(): void;
+}) {
   const progress = useRef(new Animated.Value(0)).current;
   const done = useRef(onDone);
   done.current = onDone;
@@ -35,9 +46,9 @@ export function TapFlash({ direction, flashKey, onDone }: { direction: SeekDirec
       ]}
     >
       <Text style={styles.flashArrow}>{direction === 'back' ? '◀◀' : '▶▶'}</Text>
-      <Text style={styles.flashText}>
+      <Text style={styles.flashText} testID="tap-flash-seconds">
         {direction === 'back' ? '−' : '+'}
-        {SKIP_SECONDS}
+        {seconds < 60 ? seconds : formatClock(seconds)}
       </Text>
     </Animated.View>
   );

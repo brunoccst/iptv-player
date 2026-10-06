@@ -2376,3 +2376,17 @@ Decision (`src/tv/watchNext.ts`, `modules/tv-media` `WatchNext.kt`; TV only):
 - **Opening one:** the row's intent opens the app's launcher activity with the entry's id (profile, kind, item) as an extra; JS takes it at start (`takeWatchNextOpen`) or as `onWatchNextOpen` while running. Once that profile's progress is loaded, the title plays over its details page like the Home card (issue #166). A title of another profile, or one no longer in Continue Watching (the playlist changed, it was finished elsewhere), opens Home.
 - **Removed on the home screen:** a row the person removed there (no longer browsable) is not added back until the title is watched again.
 - No new texts. Tests: the entries, the plan (insert, update, remove, a removed row stays away), the sync after the delay and at the profile picker, opening a title from the row at start and while running, another profile's title, a title no longer there.
+
+## D-148
+
+**Skips add up everywhere: 10 s, 30 s, 1 min, 2 min, then 5 min** — 2026-10-06 (owner: "the multiple skip button press (+10 or -10 seconds) are not cumulative (e.g.: one press +10, two presses +30, three presses +1 min, etc.) like I requested some time ago")
+
+Context: D-128 made presses in a row of the remote's ←/→ (and ⏪/⏩) go faster, but each step came twice (10, 10, 30, 30, 1 min, 1 min, …), so the second press skipped 10 s again and the series felt flat. The on-screen ±10 s buttons, double taps on phones and the keys and buttons on web and desktop always skipped 10 s.
+
+Decision (shared `tapStep` and `SkipStreak` in `remoteSeek.ts`):
+
+- The n-th press of a series skips 10 s, 30 s, 1 min, 2 min, then 5 min for each further press. A series is presses in the same direction less than a second apart (`TAP_CHAIN_MS`); the other way or a pause starts again at 10 s.
+- TV ←/→ and ⏪/⏩ keep D-128's preview: the first press seeks at once, the next ones move the preview by these steps and the video jumps once they stop. A press the other way still fine-tunes the preview by 10 s.
+- The TV and phone ±10 s buttons, phone double taps (and further quick taps on the same side), and web/desktop ←/→ and ±10 s buttons seek at once by the step (`SkipStreak`). The flash says how far: "+10", "+30", "+1:00".
+- Web and desktop: a held arrow key's repeats stay 10 s each, so holding does not race to 5-minute jumps.
+- No new texts (the buttons' names stay "Forward 10 seconds" / "Back 10 seconds"). Tests: the steps and `SkipStreak`; TV buttons and phone taps in a row; the web e2e presses → three times.

@@ -9,6 +9,7 @@ import {
   probeStream,
   NEXT_UP_COUNTDOWN_SECONDS,
   SKIP_SECONDS,
+  SkipStreak,
   clampTime,
   findProgress,
   formatClock,
@@ -84,7 +85,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // "Skip ahead" options (30 s … 3 min) open under the button; the button or Escape closes them.
   const [skipOpen, setSkipOpen] = useState(false);
   const [nextDismissed, setNextDismissed] = useState(false);
-  const [flash, setFlash] = useState<{ side: 'back' | 'forward'; key: number } | null>(null);
+  const [flash, setFlash] = useState<{ side: 'back' | 'forward'; key: number; seconds: number } | null>(null);
   const [, setTracksVersion] = useState(0);
 
   const isLive = target.kind === 'live';
@@ -252,14 +253,17 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     if (video) video.currentTime = clampTime(seconds, video.duration);
   }, []);
 
+  // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-148); a held key's repeats stay at 10 s.
+  const skipStreak = useRef(new SkipStreak()).current;
   const skip = useCallback(
-    (delta: number) => {
+    (side: 'back' | 'forward', repeat = false) => {
       const video = videoRef.current;
       if (!video) return;
-      seekTo(video.currentTime + delta);
-      setFlash({ side: delta < 0 ? 'back' : 'forward', key: Date.now() });
+      const seconds = repeat ? SKIP_SECONDS : skipStreak.press(side);
+      seekTo(video.currentTime + (side === 'back' ? -seconds : seconds));
+      setFlash({ side, key: Date.now(), seconds });
     },
-    [seekTo],
+    [seekTo, skipStreak],
   );
 
   const togglePlay = useCallback(() => {
@@ -324,10 +328,10 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
             togglePlay();
             return true;
           case 'ArrowLeft':
-            if (!isLive) skip(-SKIP_SECONDS);
+            if (!isLive) skip('back', event.repeat);
             return true;
           case 'ArrowRight':
-            if (!isLive) skip(SKIP_SECONDS);
+            if (!isLive) skip('forward', event.repeat);
             return true;
           case 'ArrowUp':
             if (video) video.volume = Math.min(1, video.volume + 0.1);
@@ -421,7 +425,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       {flash ? (
         <div key={flash.key} className={`skip-flash skip-flash--${flash.side}`}>
           {flash.side === 'back' ? '−' : '+'}
-          {SKIP_SECONDS}s
+          {flash.seconds < 60 ? `${flash.seconds}s` : formatClock(flash.seconds)}
         </div>
       ) : null}
 
@@ -472,10 +476,10 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                     <Icon name="previous" size={30} />
                   </button>
                 ) : null}
-                <button type="button" className="player__control" onClick={() => skip(-SKIP_SECONDS)} aria-label={t('Back 10 seconds')}>
+                <button type="button" className="player__control" onClick={() => skip('back')} aria-label={t('Back 10 seconds')}>
                   <Icon name="rewind10" size={32} />
                 </button>
-                <button type="button" className="player__control" onClick={() => skip(SKIP_SECONDS)} aria-label={t('Forward 10 seconds')}>
+                <button type="button" className="player__control" onClick={() => skip('forward')} aria-label={t('Forward 10 seconds')}>
                   <Icon name="forward10" size={32} />
                 </button>
                 {next ? (

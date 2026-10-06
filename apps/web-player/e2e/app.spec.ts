@@ -78,6 +78,12 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await page.getByRole('button', { name: 'Skip ahead 2 minutes' }).click();
   await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(124);
 
+  // → three times in a row skips 10 s, 30 s, then 1 min (D-148).
+  const beforeSkips = await videoTime(page);
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.skip-flash')).toHaveText('+1:00');
+  await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(beforeSkips + 100);
+
   await page.getByRole('button', { name: 'Back', exact: true }).click();
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Home' }).click();
