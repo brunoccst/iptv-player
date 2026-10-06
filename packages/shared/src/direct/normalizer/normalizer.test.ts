@@ -78,6 +78,19 @@ describe('sort keys (shared cases)', () => {
   });
 });
 
+describe('version labels', () => {
+  it('label the EAR version "ENG (EAR)" and the plain English one "ENG" (D-148)', () => {
+    const [master] = buildMasters('acc', 'movie', [
+      { id: '1', name: 'EAR - Backrooms (2026)' },
+      { id: '2', name: 'EN - Backrooms (2026)' },
+    ]);
+    expect(master!.variants.map(({ streamId, label }) => ({ streamId, label }))).toEqual([
+      { streamId: '1', label: 'ENG (EAR)' },
+      { streamId: '2', label: 'ENG' },
+    ]);
+  });
+});
+
 describe('helpers', () => {
   it('sha1Hex matches known digests', () => {
     expect(sha1Hex('')).toBe('da39a3ee5e6b4b0d3255bfef95601890afd80709');

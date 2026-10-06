@@ -157,7 +157,7 @@ describe('series details: one episode list for all versions (D-066)', () => {
       trapFocusLeft: true,
       trapFocusRight: true,
     });
-    // Left/Right stay in the episode's row, which no longer sends Up/Down to Play (D-069, D-148).
+    // Left/Right stay in the episode's row, which no longer sends Up/Down to Play (D-069, D-149).
     let row = screen.getByTestId('episode-en-1').parent;
     while (row && row.props.trapFocusRight !== true) row = row.parent;
     expect(row?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });

@@ -2379,6 +2379,19 @@ Decision (`src/tv/watchNext.ts`, `modules/tv-media` `WatchNext.kt`; TV only):
 
 ## D-148
 
+**EAR versions: the plain English version comes first, and EAR is labelled "ENG (EAR)"** — 2026-10-06 (owner: "a title that has two versions, EAR (English audio with Arabic subtitles in the video which can't be turned off) and EN, should always prioritize EN if the user selected it as a language … EN should be the default named \"ENG\", while EAR should be named \"ENG (EAR)\"")
+
+Context: an "EAR" version counts as English with Arabic subtitles (D-107), so a title with an EAR and an EN version had two "ENG" versions. Identical labels are numbered, so the version selector showed "ENG" and "ENG (2)", and the EAR one could be the one a title started with.
+
+Decision (shared `parser.ts` `isEnglishArabic`, `pipeline.ts` `variantLabel`, `playbackChoices.ts`; TV, phone, web and desktop):
+
+- **Label:** a version whose name has "EAR" shows its English audio as "ENG (EAR)" ("1080p · ENG (EAR)"); the plain English one stays "ENG". Read from the provider's name when the versions are listed, so libraries need no rebuild.
+- **Starting version:** in the profile's languages (D-144), versions with subtitles in the picture are left out when the title has another version in that language, whatever their quality and whatever quality was last picked. A title with only the EAR version in English starts with it.
+- **"(best)":** of equally good versions in a language (D-136), the plain one is the best.
+- Tests: the labels of an EAR and an EN version; the starting version (lower-quality EN over EAR, EAR when it is the only English one) and "(best)".
+
+## D-149
+
 **TV: Up/Down in the episode list go to the button straight above or below** — 2026-10-06 (owner: "up and down always move the focus to the item directly below or above the currently focused item. Left and right must be the same.")
 
 Context: each episode row was a focus guide with `autoFocus` (D-069 update, 2026-09-26), so entering a row from above or below landed on Play, or on the button that row had focused last. From "…", ↓ went to the next episode's Play, and ↑ came back to the previous episode's "…".
@@ -2388,4 +2401,3 @@ Decision (`components/focusGrid.ts`, `DetailsScreen` `Episodes`; TV only):
 - The rows no longer use `autoFocus`. Each episode button (Play, "…", version) sets `nextFocusUp`/`nextFocusDown` to the same button of the episode above or below. An episode without a version picker takes Up/Down from the picker on its "…" (`alignedColumn`).
 - The first episode's Up and the last one's Down are left to Android's focus search (the season choice above; the panel traps the rest, D-075). Left/Right stay inside the row as before (D-069).
 - Tests: the destinations of Play, "…" and the version picker between three episodes, one of them without a picker.
-

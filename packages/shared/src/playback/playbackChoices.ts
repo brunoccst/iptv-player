@@ -1,5 +1,6 @@
 import type { VariantInfo } from '../api/types';
 import { qualityScore } from '../direct/normalizer/pipeline';
+import { isEnglishArabic } from '../direct/normalizer/parser';
 import { LANGUAGE_LONG, LANGUAGE_SHORT } from '../direct/normalizer/tags';
 import { intlLocale, t, type UiLanguage } from '../i18n/i18n';
 import { languageNames, type ProfilePrefs, type ProfilePrefsStore } from '../stores/profilePrefsStore';
@@ -79,6 +80,15 @@ export function preferredVariant<V extends Pick<VariantInfo, 'audioLanguages' | 
   return candidates.find(sameQuality) ?? (choice.languages.length ? candidates[0]! : null);
 }
 
+/** A version with subtitles in the picture that cannot be turned off ("EAR", D-148). */
+const burnedIn = (variant: Partial<Pick<VariantInfo, 'rawTitle'>>) => isEnglishArabic(variant.rawTitle ?? '');
+
+/** The versions without subtitles in the picture, when there are any (D-148). */
+const withoutBurnedIn = <V extends Partial<Pick<VariantInfo, 'rawTitle'>>>(variants: V[]): V[] => {
+  const clean = variants.filter((variant) => !burnedIn(variant));
+  return clean.length ? clean : variants;
+};
+
 /** The audio language tag of each app language (D-136). */
 const UI_LANGUAGE_TAG: Record<UiLanguage, string> = { en: 'ENG', 'pt-BR': 'POR', de: 'GER', 'sh-BA': 'EXYU' };
 
@@ -89,17 +99,16 @@ export const versionLanguages = (profile: readonly string[], app: UiLanguage): s
  * The version marked "best" (D-136): the one with the highest quality (quality, source, HDR). When several share it,
  * quality says nothing, so the first of them in one of `languages` (in that order); null when none is.
  */
-export function bestVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'>>(
-  variants: V[],
-  languages: readonly string[],
-): V | null {
+export function bestVariant<
+  V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'> & Partial<Pick<VariantInfo, 'rawTitle'>>,
+>(variants: V[], languages: readonly string[]): V | null {
   if (variants.length < 2) return variants[0] ?? null;
   const scores = variants.map((variant) => qualityScore(variant));
   const top = Math.max(...scores);
   const tied = variants.filter((_, index) => scores[index] === top);
   if (tied.length === 1) return tied[0]!;
   for (const wanted of languages) {
-    const match = tied.find((variant) => variant.audioLanguages.some((language) => same(language, wanted)));
+    const match = withoutBurnedIn(tied.filter((variant) => variant.audioLanguages.some((language) => same(language, wanted))))[0];
     if (match) return match;
   }
   return null;
@@ -107,10 +116,13 @@ export function bestVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'qual
 
 /**
  * The version a title starts with when none was picked for it (D-144). In the profile's languages (the first one the
- * title has a version in): the quality of the profile's version choice, else the highest quality. A title with no
- * version in them: the profile's version choice (D-087), else the best version (D-136), else the first.
+ * title has a version in), leaving out versions with subtitles in the picture when it has others ("EAR", D-148): the
+ * quality of the profile's version choice, else the highest quality. A title with no version in them: the profile's
+ * version choice (D-087), else the best version (D-136), else the first.
  */
-export function startingVariant<V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'>>(
+export function startingVariant<
+  V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'> & Partial<Pick<VariantInfo, 'rawTitle'>>,
+>(
   variants: V[],
   {
     profileLanguages,
@@ -119,7 +131,7 @@ export function startingVariant<V extends Pick<VariantInfo, 'audioLanguages' | '
   }: { profileLanguages: readonly string[]; choice: VersionChoice | null | undefined; languages: readonly string[] },
 ): V | null {
   for (const wanted of profileLanguages) {
-    const inLanguage = variants.filter((variant) => variant.audioLanguages.some((language) => same(language, wanted)));
+    const inLanguage = withoutBurnedIn(variants.filter((variant) => variant.audioLanguages.some((language) => same(language, wanted))));
     if (inLanguage.length === 0) continue;
     return (choice && inLanguage.find((variant) => same(variant.quality, choice.quality))) || highestQuality(inLanguage);
   }

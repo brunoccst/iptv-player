@@ -91,6 +91,9 @@ const MAYBE_SUBTITLES = /sub|leg|vos/i;
 /** "EAR": English audio with Arabic subtitles burned into the picture (D-107). Capitals only: "ear" is a word. */
 const ENGLISH_ARABIC = /\bEAR\b/g;
 
+/** True for an "EAR" version: English audio with Arabic subtitles in the picture that cannot be turned off (D-148). */
+export const isEnglishArabic = (raw: string) => raw.includes('EAR') && /\bEAR\b/.test(raw);
+
 function extractSubtitles(raw: string): { text: string; languages: string[] } {
   const found: string[] = [];
   let text = raw;
