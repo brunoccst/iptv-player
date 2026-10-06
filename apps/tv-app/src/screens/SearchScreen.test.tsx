@@ -45,6 +45,28 @@ describe('Search and Log pages (TV)', () => {
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [] } });
     backend.on('GET', '/api/library/series', { body: { total: 0, items: [] } });
     backend.on('GET', '/api/catalog/live/channels', { body: [] });
+    // Midday, so the programme after the one on now starts the same day ("Tomorrow · …" otherwise, from 23:20 on).
+    const midday = new Date();
+    midday.setHours(12, 0, 0, 0);
+    jest.useFakeTimers({
+      now: midday,
+      doNotFake: [
+        'nextTick',
+        'setImmediate',
+        'clearImmediate',
+        'setInterval',
+        'clearInterval',
+        'setTimeout',
+        'clearTimeout',
+        'queueMicrotask',
+        'requestAnimationFrame',
+        'cancelAnimationFrame',
+        'requestIdleCallback',
+        'cancelIdleCallback',
+        'hrtime',
+        'performance',
+      ],
+    });
     const now = Date.now();
     const at = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
     const sport = { id: '7', name: 'Sport 1', categoryId: '2', number: 7, logoUrl: null, epgChannelId: 'sport', hasCatchup: false };
@@ -72,6 +94,7 @@ describe('Search and Log pages (TV)', () => {
       name: 'player',
       target: { kind: 'live', streamId: '7', title: 'Sport 1', subtitle: 'Cup Final' },
     });
+    jest.useRealTimers();
   });
 
   it('filters the results to movies, series or live channels; the title stays above them (D-108)', async () => {
