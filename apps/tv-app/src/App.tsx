@@ -21,7 +21,6 @@ import { SearchScreen } from './screens/SearchScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
-import { SleepMode } from './tv/SleepMode';
 import { useOpenWatchNext, useWatchNextLaunch, useWatchNextSync } from './tv/watchNext';
 import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
@@ -84,7 +83,6 @@ export function App() {
       </View>
       <PairingDialogHost />
       <UpdateDialog />
-      {Platform.isTV ? <SleepMode /> : null}
     </View>
   );
 }

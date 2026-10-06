@@ -80,8 +80,6 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   deviceName(): string;
   /** Closes the app like "Force stop": leaves the recent apps and ends the process. */
   closeApp(): Promise<void>;
-  /** Keeps the screen on while the app is open (sleep mode, D-068). */
-  setKeepScreenOn(on: boolean): Promise<void>;
   /** Self-update (D-062). */
   installedVersion(): { versionCode: number; versionName: string | null };
   downloadUpdate(url: string, sha256: string | null): Promise<string>;

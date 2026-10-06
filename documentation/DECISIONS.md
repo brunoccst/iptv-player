@@ -1292,6 +1292,8 @@ Alternatives: a repeated query parameter (`language=ENG&language=GER`; the comma
 
 **TV sleep mode instead of the system screensaver** — 2026-09-26 (requested by owner)
 
+> Removed 2026-10-06 (D-151).
+
 Problem: with the app left open, the Chromecast's screensaver started after a while. That sends the app to the background, and on a TV with little memory Android closes it (a 160k-title library is large). The next button press then restarted the app from scratch.
 
 Decision:
@@ -2415,3 +2417,16 @@ Decision (shared `tapStep` and `SkipStreak` in `remoteSeek.ts`):
 - The TV and phone ±10 s buttons, phone double taps (and further quick taps on the same side), and web/desktop ←/→ and ±10 s buttons seek at once by the step (`SkipStreak`). The flash says how far: "+10", "+30", "+1:00".
 - Web and desktop: a held arrow key's repeats stay 10 s each, so holding does not race to 5-minute jumps.
 - No new texts (the buttons' names stay "Forward 10 seconds" / "Back 10 seconds"). Tests: the steps and `SkipStreak`; TV buttons and phone taps in a row; the web e2e presses → three times.
+
+## D-151
+
+**No TV sleep mode; "Who's watching?" every time the app opens** — 2026-10-06 (owner: "Remove the sleep mode. Make sure to always ask "Who's watching" when opening the app.")
+
+Context: D-068 kept the TV screen on and showed the app's own sleep screen, so the system screensaver would not send the app to the background, where Android may close it and the next press restarts it. Netflix and Prime Video do not do that: the screensaver and the TV's power settings apply while browsing, and after a restart they ask who is watching.
+
+Decision:
+- Sleep mode is gone (`SleepMode.tsx`, `TvMedia.setKeepScreenOn`). While browsing, the TV's own screensaver and power settings apply. The player still keeps the screen on while a video plays (D-046), on TV and phone.
+- Opening the app (TV, phone, desktop, and every page load on the web) shows "Who's watching?", also when Android closed the app in the background. The saved session (`restore()`) no longer brings back the last profile. An account with a single profile opens it directly, as after sign-in.
+- A reload during a session (after pairing or restoring a backup, `AppContext.reload()`) keeps the profile (`restore({ keepProfile: true })`).
+- A title chosen in the TV home screen's "Continue watching" row (D-147) plays once its profile is picked; another profile opens Home.
+

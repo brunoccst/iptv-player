@@ -53,6 +53,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Automatic subtitles from OpenSubtitles (D-111) | ✅ | ✅ | ✅ | avatar → App → Automatic subtitles; user's own API key | [Automatic subtitles](FEATURES.md#automatic-subtitles) |
 | Categories shown: hide categories from browsing, search still finds them (D-110) | ✅ | ✅ | ✅ | avatar → Profiles | [Categories shown](FEATURES.md#categories-shown) |
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | languages numbered in the order ticked, which is their priority (D-145) | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
+| "Who's watching?" every time the app opens (D-151) | ✅ | ✅ | ✅ | an account with one profile opens it directly; web: every page load | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
 | Backup and restore | ✅ | ✅ | ✅ | | [Backup and restore](FEATURES.md#backup-and-restore) |
 | Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) |
 | Play on TV from the phone (D-044) | ✅ receives | ✅ sends | ➖ | | [Play on TV](FEATURES.md#play-on-tv) |
@@ -60,7 +61,6 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | About (version, build, connection) | ✅ | ✅ | ✅ | account menu → App | [About](FEATURES.md#about) |
 | Diagnostics log | ✅ share | ✅ share | ✅ save or copy | account menu → App → Log | [Diagnostics log](FEATURES.md#diagnostics-log) |
 | App updates | ✅ | ✅ | ✅ desktop · ➖ browser (always current) | | [App updates](FEATURES.md#app-updates) |
-| Sleep mode (own screen saver, D-068) | ✅ | ➖ | ➖ | | [Sleep mode (TV)](FEATURES.md#sleep-mode-tv) |
 | Audio decoder choice (FFmpeg, D-059) | ✅ | ✅ | ➖ | browsers decode themselves | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) |
 | MKV / AC3 files | ✅ | ✅ | ➖ | browsers cannot play them; the app says so | [Playback errors](FEATURES.md#playback-errors) |
 | Timeline preview frames | ➖ (scrub bar) | ➖ | ✅ | hover over the timeline | [Playback controls](FEATURES.md#playback-controls) |

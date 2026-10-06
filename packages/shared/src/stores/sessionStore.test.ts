@@ -47,9 +47,34 @@ describe('session store', () => {
 
     await session.getState().restore();
 
-    expect(session.getState()).toMatchObject({ status: 'authenticated', activeProfileId: 'p2', offline: false });
-    expect(selectActiveProfile(session.getState())?.id).toBe('p2');
+    // Opening the app asks "Who's watching?" again (D-151).
+    expect(session.getState()).toMatchObject({ status: 'authenticated', activeProfileId: null, offline: false });
+    expect(session.getState().profiles.map((p) => p.id)).toEqual(['p1', 'p2']);
     expect(backend.calls[0]!.headers.Authorization).toBe('Bearer tok');
+    expect(JSON.parse(storage.data.get(SESSION_STORAGE_KEY)!)).toMatchObject({ activeProfileId: null });
+  });
+
+  it('restore with keepProfile (reload mid-session) keeps the chosen profile', async () => {
+    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [profile('old')], activeProfileId: 'p2' }));
+    backend.on('GET', '/api/auth/me', { body: account });
+    backend.on('GET', '/api/profiles', { body: [profile('p1'), profile('p2')] });
+    const session = create();
+
+    await session.getState().restore({ keepProfile: true });
+
+    expect(session.getState()).toMatchObject({ status: 'authenticated', activeProfileId: 'p2' });
+    expect(selectActiveProfile(session.getState())?.id).toBe('p2');
+  });
+
+  it('restore opens the only profile of an account directly', async () => {
+    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [profile('p1')], activeProfileId: null }));
+    backend.on('GET', '/api/auth/me', { body: account });
+    backend.on('GET', '/api/profiles', { body: [profile('p1')] });
+    const session = create();
+
+    await session.getState().restore();
+
+    expect(session.getState().activeProfileId).toBe('p1');
   });
 
   it('restore with a revoked token signs out and clears storage', async () => {
@@ -65,14 +90,19 @@ describe('session store', () => {
   });
 
   it('restore while the provider is unreachable keeps cached session in offline mode', async () => {
-    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [profile('p1')], activeProfileId: 'p1' }));
+    storage.data.set(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 'tok', account, profiles: [profile('p1'), profile('p2')], activeProfileId: 'p1' }),
+    );
     backend.on('GET', '/api/auth/me', { networkError: true });
     backend.on('GET', '/api/profiles', { networkError: true });
     const session = create();
 
     await session.getState().restore();
 
-    expect(session.getState()).toMatchObject({ status: 'authenticated', offline: true, activeProfileId: 'p1' });
+    // Offline too, the cached profiles are offered (D-151).
+    expect(session.getState()).toMatchObject({ status: 'authenticated', offline: true, activeProfileId: null });
+    expect(session.getState().profiles).toHaveLength(2);
   });
 
   it('records when the account was last confirmed online (gates downloads, D-050)', async () => {

@@ -143,7 +143,6 @@ export const TvMedia = {
     throw new Error('no library database in tests');
   },
   closeApp: async () => void nativeState.calls.push('close-app'),
-  setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
   watchNextRows: async (): Promise<WatchNextRow[]> => nativeState.watchNext.map(({ entry: _entry, ...row }) => row),
   applyWatchNext: async (json: string) => {
     const plan = JSON.parse(json) as {
