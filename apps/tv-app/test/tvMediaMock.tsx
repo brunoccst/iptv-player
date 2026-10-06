@@ -1,6 +1,13 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import { View } from 'react-native';
-import type { ExternalPlayerResult, NativeDownload, TvPlayerViewProps, TvPlayerViewRef } from '../modules/tv-media/src/types-only';
+import type {
+  ExternalPlayerResult,
+  NativeDownload,
+  TvPlayerViewProps,
+  TvPlayerViewRef,
+  WatchNextEntry,
+  WatchNextRow,
+} from '../modules/tv-media/src/types-only';
 import { sha1Hex } from '../../../packages/shared/src/direct/normalizer/sha1';
 
 export type * from '../modules/tv-media/src/types-only';
@@ -42,6 +49,14 @@ export const nativeState = {
   canInstall: true,
   updateVerdict: 'ok' as 'ok' | 'not-newer' | 'other-app' | 'other-key',
   updateListeners: new Set<(event: { bytes: number; total: number }) => void>(),
+  /** The home screen's "Continue watching" rows of the app (D-147), the title the app was started from, and listeners. */
+  watchNext: [] as (WatchNextRow & { entry: WatchNextEntry })[],
+  watchNextLaunch: null as string | null,
+  watchNextListeners: new Set<(event: { id: string }) => void>(),
+  /** Chooses a title in the home screen's row while the app runs. */
+  openWatchNext(id: string) {
+    this.watchNextListeners.forEach((listener) => listener({ id }));
+  },
   /** Delivers a request to the running pairing server, like a phone on the network would. */
   pairingRequest(body: string): Promise<{ status: number; body: string }> {
     const id = `req-${this.pairingReplies.size + 1}-${Date.now()}`;
@@ -71,11 +86,23 @@ export const nativeState = {
     this.canInstall = true;
     this.updateVerdict = 'ok';
     this.updateListeners.clear();
+    this.watchNext = [];
+    this.watchNextLaunch = null;
+    this.watchNextListeners.clear();
   },
 };
 
 const lists = new Map<number, string>();
 let nextListId = 1;
+let nextWatchNextRow = 1;
+const watchNextRow = (entry: WatchNextEntry, rowId: number) => ({
+  rowId,
+  id: entry.id,
+  browsable: true,
+  positionMs: entry.positionMs,
+  lastEngagementMs: entry.lastEngagementMs,
+  entry,
+});
 
 export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
@@ -117,18 +144,41 @@ export const TvMedia = {
   },
   closeApp: async () => void nativeState.calls.push('close-app'),
   setKeepScreenOn: async (on: boolean) => void nativeState.calls.push(`keep-screen-on:${on}`),
+  watchNextRows: async (): Promise<WatchNextRow[]> => nativeState.watchNext.map(({ entry: _entry, ...row }) => row),
+  applyWatchNext: async (json: string) => {
+    const plan = JSON.parse(json) as {
+      insert: WatchNextEntry[];
+      update: { rowId: number; entry: WatchNextEntry }[];
+      remove: number[];
+    };
+    nativeState.calls.push(`watch-next:+${plan.insert.length}~${plan.update.length}-${plan.remove.length}`);
+    nativeState.watchNext = nativeState.watchNext
+      .filter((row) => !plan.remove.includes(row.rowId))
+      .map((row) => {
+        const change = plan.update.find((u) => u.rowId === row.rowId);
+        return change ? watchNextRow(change.entry, row.rowId) : row;
+      })
+      .concat(plan.insert.map((entry) => watchNextRow(entry, nextWatchNextRow++)));
+  },
+  takeWatchNextOpen: () => {
+    const id = nativeState.watchNextLaunch;
+    nativeState.watchNextLaunch = null;
+    return id;
+  },
   addListener: ((
-    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress',
-    listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void),
+    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress' | 'onWatchNextOpen',
+    listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void) | ((event: { id: string }) => void),
   ) => {
     const set = (
-      event === 'onPairingRequest'
-        ? nativeState.pairingListeners
-        : event === 'onRemoteRequest'
-          ? nativeState.remoteListeners
-          : event === 'onUpdateProgress'
-            ? nativeState.updateListeners
-            : nativeState.listeners
+      event === 'onWatchNextOpen'
+        ? nativeState.watchNextListeners
+        : event === 'onPairingRequest'
+          ? nativeState.pairingListeners
+          : event === 'onRemoteRequest'
+            ? nativeState.remoteListeners
+            : event === 'onUpdateProgress'
+              ? nativeState.updateListeners
+              : nativeState.listeners
     ) as Set<typeof listener>;
     set.add(listener);
     return { remove: () => set.delete(listener) };
@@ -136,6 +186,7 @@ export const TvMedia = {
     (event: 'onDownloadsChanged', listener: Listener): { remove(): void };
     (event: 'onPairingRequest' | 'onRemoteRequest', listener: PairingListener): { remove(): void };
     (event: 'onUpdateProgress', listener: (event: { bytes: number; total: number }) => void): { remove(): void };
+    (event: 'onWatchNextOpen', listener: (event: { id: string }) => void): { remove(): void };
   },
   startPairing: () => {
     nativeState.pairingRunning = true;

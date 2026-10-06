@@ -2360,3 +2360,19 @@ Decision (shared `mergeSeriesVersions`; TV, phone, web and desktop):
 - Two different titles without matching SxxEyy keep their own rows, as before (D-066).
 - The per-episode version picker now picks by the version's episode id, not its series id, since one version can hold two copies.
 - Tests: shared merge (equal titles, the same SxxEyy, different episodes stay separate, next-up skips the copy); the TV details screen shows one row and plays the copy picked.
+
+## D-147
+
+**Continue Watching on the Android TV / Google TV home screen through the Watch Next API** — 2026-10-06 (issue #165; owner: "Start it now.")
+
+Context: Google TV's home screen shows a "Continue watching" row with titles other apps are in the middle of. Apps fill it through the platform's Watch Next API (`TvContract.WatchNextPrograms`, Android 8+, Android TV and Google TV) or Google's newer Engage SDK. Google's "For you" and "Top picks" rows and the hero carousel are filled from Google's catalog partners and are not open to apps; the titles here come from each person's own provider, so catalog matching is impossible anyway.
+
+Decision (`src/tv/watchNext.ts`, `modules/tv-media` `WatchNext.kt`; TV only):
+
+- **Watch Next, not the Engage SDK.** It is part of Android (no library, no Play services, no Google sign-up or allowlisting), works on Android TV and on Google TV, and suits an APK installed from GitHub (D-062). The Engage SDK can come later if Google TV stops reading Watch Next.
+- **What is published:** the active profile's Continue Watching (`continueWatching`, one entry per series), movies and episodes only, up to 10, with the position, the length, the time it was last watched and the provider's cover (the app icon when there is none). JS works out what to insert, update and remove (`watchNextPlan`, tested); native code only reads and writes the app's own rows.
+- **When:** 10 s after the active profile's progress changes (saves come every few seconds while a title plays). Finished titles and titles removed from Continue Watching leave the row.
+- **Profiles:** the system row is not per profile, so it holds the active profile's titles only. Another profile replaces them; the profile picker and signing out empty it.
+- **Opening one:** the row's intent opens the app's launcher activity with the entry's id (profile, kind, item) as an extra; JS takes it at start (`takeWatchNextOpen`) or as `onWatchNextOpen` while running. Once that profile's progress is loaded, the title plays over its details page like the Home card (issue #166). A title of another profile, or one no longer in Continue Watching (the playlist changed, it was finished elsewhere), opens Home.
+- **Removed on the home screen:** a row the person removed there (no longer browsable) is not added back until the title is watched again.
+- No new texts. Tests: the entries, the plan (insert, update, remove, a removed row stays away), the sync after the delay and at the profile picker, opening a title from the row at start and while running, another profile's title, a title no longer there.

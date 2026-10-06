@@ -5,6 +5,8 @@
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <!-- Self-update (D-062): hand a newer APK from the GitHub release to the system installer; the user confirms. -->
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+  <!-- Home screen "Continue watching" on Android TV and Google TV (Watch Next, D-147). -->
+  <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
 
   <!-- External players (D-057): Android 11+ only lists apps the manifest declares interest in. -->
   <queries>

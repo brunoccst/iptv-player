@@ -90,3 +90,25 @@ export type ListPiece =
   | { kind: 'whole'; text: string; chars: number }
   | { kind: 'incomplete'; text: string; chars: number }
   | { kind: 'error'; message: string };
+
+/** A title for the home screen's "Continue watching" row (Watch Next, D-147). `id` comes back when it is chosen. */
+export interface WatchNextEntry {
+  id: string;
+  type: 'movie' | 'episode';
+  title: string;
+  season: number | null;
+  episode: number | null;
+  posterUrl: string | null;
+  positionMs: number;
+  durationMs: number;
+  lastEngagementMs: number;
+}
+
+/** A row this app put in the home screen's "Continue watching"; `browsable` false once the person removed it there. */
+export interface WatchNextRow {
+  rowId: number;
+  id: string | null;
+  browsable: boolean;
+  positionMs: number;
+  lastEngagementMs: number;
+}

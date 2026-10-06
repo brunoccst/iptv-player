@@ -24,6 +24,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Feature | TV | Phone | Web / desktop | How it is reached | Described in |
 |---------|----|-------|---------------|-------------------|--------------|
 | Continue Watching plays over the title's details page: Back from the player shows them, not Home (issue #166) | ✅ | ✅ | ✅ | Home's Continue Watching row; Back or the player's ← | [Continue Watching](FEATURES.md#continue-watching) |
+| Continue watching on the TV home screen: the active profile's Continue Watching in the system row, a choice plays from where it stopped (issue #165, D-147) | ✅ Android TV, Google TV | ➖ | ➖ | the system home screen's "Continue watching" row; phones and computers have no such row | [Continue watching on the TV home screen](FEATURES.md#continue-watching-on-the-tv-home-screen) |
 | Card menu: Go to details, Mark as (not) watched (movies, series), Add to / Remove from My List; Continue Watching: remove (D-078, D-081, D-082, D-104) | ✅ | ✅ | ✅ | TV: hold OK · phone: long touch · web: right-click, menu key or Shift+F10 (a long touch where the browser reports it) | [Card menu](FEATURES.md#card-menu) |
 | "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series; an eye since D-104 | [Watched tag](FEATURES.md#watched-tag) |
 | My List bookmark on covers (top right) and on the details button, filled when saved (issue #157) | ✅ | ✅ | ✅ | title cards on Home, Movies, Series, Search and My List | [Watchlist](FEATURES.md#watchlist) |
