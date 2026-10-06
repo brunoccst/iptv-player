@@ -130,6 +130,23 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(startingVariant([], { profileLanguages: ['ENG'], choice: null, languages: [] })).toBeNull();
   });
 
+  it('prefer the plain English version over the EAR one (D-148)', () => {
+    const named = (streamId: string, rawTitle: string, quality: string | null) =>
+      ({ ...variant(streamId, ['ENG'], quality), rawTitle }) as VariantInfo;
+    const ear = named('ear', 'EAR - Backrooms (2026) 1080p', '1080p');
+    const en = named('en', 'EN - Backrooms (2026) 720p', '720p');
+    const alb = variant('alb', ['ALB'], '1080p');
+    const options = (profileLanguages: string[]) => ({ profileLanguages, choice: null, languages: [...profileLanguages, 'ENG'] });
+    // English chosen: the plain English version, even in a lower quality, and whatever the quality last picked.
+    expect(startingVariant([ear, en, alb], options(['ENG']))?.streamId).toBe('en');
+    expect(startingVariant([ear, en], { ...options(['ENG']), choice: { languages: ['ENG'], quality: '1080p' } })?.streamId).toBe('en');
+    // Only the EAR version in English: that one.
+    expect(startingVariant([ear, alb], options(['ENG']))?.streamId).toBe('ear');
+    // Equally good versions: the plain English one is the best.
+    const en1080 = named('en-1080', 'EN - Backrooms (2026) 1080p', '1080p');
+    expect(bestVariant([ear, en1080], ['ENG'])?.streamId).toBe('en-1080');
+  });
+
   it("order the languages: the profile's, then the app's (D-136)", () => {
     expect(versionLanguages(['ALB'], 'en')).toEqual(['ALB', 'ENG']);
     expect(versionLanguages([], 'pt-BR')).toEqual(['POR']);
