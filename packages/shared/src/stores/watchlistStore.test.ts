@@ -10,7 +10,7 @@ const heat = { id: 'm1', title: 'Heat', year: 1995, posterUrl: null };
 async function setup(saved: object[] = []) {
   const backend = createFakeBackend();
   backend.on('GET', '/api/auth/me', { body: account });
-  backend.on('GET', '/api/profiles', { body: [profile('p1')] });
+  backend.on('GET', '/api/profiles', { body: [profile('p1'), profile('p2')] });
   backend.on('GET', '/api/profiles/p1/progress', { body: [] });
   backend.on('GET', '/api/profiles/p1/watchlist', { body: saved });
   const storage = createMemoryStorage({

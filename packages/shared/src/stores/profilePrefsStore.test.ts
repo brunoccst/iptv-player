@@ -38,6 +38,7 @@ describe('profile preferences', () => {
       backend,
     });
     await stores.session.getState().restore();
+    stores.session.getState().selectProfile('p1');
     const lastLanguage = () => backend.calls.at(-1)?.url.searchParams.get('language') ?? null;
 
     await stores.library.getState().loadPage('movies');

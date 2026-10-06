@@ -32,7 +32,11 @@ export interface SessionState {
   /** Last time login or restore reached the provider. Gates downloads (D-050). */
   lastOnlineAt: string | null;
 
-  restore(): Promise<void>;
+  /**
+   * Loads the saved session. Opening the app asks "Who's watching?" again unless the account has a single profile
+   * (D-151); `keepProfile` keeps the saved choice (a reload after pairing or a backup restore, mid-session).
+   */
+  restore(options?: { keepProfile?: boolean }): Promise<void>;
   login(request: LoginRequest): Promise<boolean>;
   logout(): Promise<void>;
   /** Clears the session locally after a call answered 401 (signed out). */
@@ -92,19 +96,24 @@ export function createSessionStore({
       busy: false,
       error: null,
 
-      async restore() {
+      async restore({ keepProfile = false } = {}) {
         set({ status: 'restoring', error: null });
-        const snapshot = parseSnapshot(await storage.getItem(SESSION_STORAGE_KEY));
-        if (!snapshot) {
+        const saved = parseSnapshot(await storage.getItem(SESSION_STORAGE_KEY));
+        if (!saved) {
           set({ status: 'anonymous', ...signedOut() });
           return;
         }
+        const snapshot = keepProfile ? saved : { ...saved, activeProfileId: onlyProfile(saved.profiles) };
 
         // Sessions saved before D-050 start their offline window now.
         set({ ...snapshot, lastOnlineAt: snapshot.lastOnlineAt ?? now().toISOString(), offline: false });
         try {
           const [account, profiles] = await Promise.all([api.auth.me(), api.profiles.list()]);
-          const activeProfileId = profiles.some((p) => p.id === snapshot.activeProfileId) ? snapshot.activeProfileId : null;
+          const activeProfileId = keepProfile
+            ? profiles.some((p) => p.id === snapshot.activeProfileId)
+              ? snapshot.activeProfileId
+              : null
+            : onlyProfile(profiles);
           set({ status: 'authenticated', account, profiles, activeProfileId, lastOnlineAt: now().toISOString() });
           await persist();
         } catch (error) {
@@ -124,7 +133,7 @@ export function createSessionStore({
         set({ busy: true, error: null });
         try {
           const response = await api.auth.login(request);
-          const activeProfileId = response.profiles.length === 1 ? response.profiles[0]!.id : null;
+          const activeProfileId = onlyProfile(response.profiles);
           set({
             status: 'authenticated',
             token: response.token,
@@ -210,6 +219,9 @@ export function createSessionStore({
 }
 
 export type SessionStore = ReturnType<typeof createSessionStore>;
+
+/** With a single profile there is nobody to ask "Who's watching?". */
+const onlyProfile = (profiles: ProfileDto[]): string | null => (profiles.length === 1 ? profiles[0]!.id : null);
 
 export const selectActiveProfile = (state: SessionState): ProfileDto | null =>
   state.profiles.find((profile) => profile.id === state.activeProfileId) ?? null;

@@ -170,6 +170,8 @@ Download movies and episodes to watch without a connection; My Downloads lists t
 
 Several profiles per account, each with its own progress, My List, settings and languages. A Kids profile only shows children's categories (from their names, or the ones a parent picks) and has a smaller account menu (D-053, D-064).
 
+Every time the app opens it asks "Who's watching?"; an account with a single profile opens it directly (D-151).
+
 ### Parental PIN
 
 An optional PIN locks leaving a Kids profile and managing profiles (D-054).
@@ -213,10 +215,6 @@ What the app did, with the provider's answers (passwords masked), timings and na
 ### App updates
 
 The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. Account menu → App → Check for updates. Each release says what is new (D-143).
-
-### Sleep mode (TV)
-
-After 10 idle minutes the TV app shows its own sleep screen instead of the system screensaver, which would send it to the background (D-068).
 
 ### Close the app (TV and phone)
 

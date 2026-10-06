@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **"Who's watching?" every time** (2026-10-06, D-151): opening the app asks who is watching, like Netflix; an account with one profile opens it directly. The TV's own sleep screen is gone: while browsing, the TV's screensaver and power settings apply again (a video playing still keeps the screen on).
 - **Skips add up** (2026-10-06, D-150): presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min, now also with the on-screen ±10 s buttons and with quick taps on a phone; with the remote's ←/→ the second press already skips 30 s, not 10 s again.
 - **Episode list on TV: ↑/↓ go straight up or down** (2026-10-06, D-149): in a series' episode list, ↑ and ↓ move to the same button of the episode above or below, so from "…" you reach the next episode's "…", not its Play button.
 - **English before EAR** (2026-10-06, D-148): a title with an EAR version (English audio, Arabic subtitles in the picture) and a plain English one starts with the English one when English is one of your languages; the version list calls them "ENG" and "ENG (EAR)" instead of "ENG" and "ENG (2)".
@@ -60,6 +61,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **"Who's watching?" every time** (2026-10-06, D-151): opening the app asks who is watching; an account with one profile opens it directly.
 - **Skips add up** (2026-10-06, D-150): presses in a row of → / ← or of the ±10 s buttons skip 10 s, 30 s, 1 min, 2 min, then 5 min; holding a key still skips 10 s at a time.
 - **English before EAR** (2026-10-06, D-148): a title with an EAR version (English audio, Arabic subtitles in the picture) and a plain English one starts with the English one when English is one of your languages; the version list calls them "ENG" and "ENG (EAR)" instead of "ENG" and "ENG (2)".
 - **Quality tag on My List** (2026-10-06, D-141): titles on My List, in its Home row and on its page, show "4K" or "CAM" / "TS" / "TC" / "SCR" on their cover like everywhere else.

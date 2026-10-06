@@ -244,7 +244,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     player.getState().close();
     progress.getState().reset();
     watchlist.getState().reset();
-    await session.getState().restore();
+    await session.getState().restore({ keepProfile: true });
     // restore() keeps the same profile id when nothing changed, so the subscription above may not load it.
     const profileId = session.getState().activeProfileId;
     if (profileId) {

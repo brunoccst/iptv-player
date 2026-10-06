@@ -157,6 +157,7 @@ describe('playback choices for every movie and series (D-087)', () => {
   it('follow the open profile and the app language (D-136)', async () => {
     const { stores } = app();
     await stores.session.getState().restore();
+    stores.session.getState().selectProfile('p1');
     setUiLanguage('en');
     expect(stores.library.getState().versionLanguages).toEqual(['ENG']);
     setUiLanguage('de');
@@ -170,6 +171,7 @@ describe('playback choices for every movie and series (D-087)', () => {
   it("a version picked in one title is where the others start; a title's own pick wins", async () => {
     const { stores } = app();
     await stores.session.getState().restore();
+    stores.session.getState().selectProfile('p1');
     const heat = {
       id: 'heat',
       variants: [variant('h-de', ['GER'], '4K'), variant('h-en-hd', ['ENG'], '1080p'), variant('h-en-4k', ['ENG'], '4K')],
@@ -198,6 +200,7 @@ describe('playback choices for every movie and series (D-087)', () => {
   it('subtitles and audio are kept for the open profile and survive a restart', async () => {
     const { stores, storage } = app();
     await stores.session.getState().restore();
+    stores.session.getState().selectProfile('p1');
     rememberPlayback(stores, { subtitles: { language: 'en', label: 'English' } });
     rememberPlayback(stores, { audio: { language: 'en', label: 'English 5.1' } });
     expect(playbackChoices(stores)).toEqual({
@@ -213,6 +216,7 @@ describe('playback choices for every movie and series (D-087)', () => {
       backend: createFakeBackend(),
     });
     await again.stores.session.getState().restore();
+    again.stores.session.getState().selectProfile('p1');
     await again.stores.profilePrefs.getState().load();
     expect(playbackChoices(again.stores).audio).toEqual({ language: 'en', label: 'English 5.1' });
   });
