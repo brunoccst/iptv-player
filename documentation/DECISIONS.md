@@ -2401,3 +2401,17 @@ Decision (`components/focusGrid.ts`, `DetailsScreen` `Episodes`; TV only):
 - The rows no longer use `autoFocus`. Each episode button (Play, "…", version) sets `nextFocusUp`/`nextFocusDown` to the same button of the episode above or below. An episode without a version picker takes Up/Down from the picker on its "…" (`alignedColumn`).
 - The first episode's Up and the last one's Down are left to Android's focus search (the season choice above; the panel traps the rest, D-075). Left/Right stay inside the row as before (D-069).
 - Tests: the destinations of Play, "…" and the version picker between three episodes, one of them without a picker.
+
+## D-150
+
+**Skips add up everywhere: 10 s, 30 s, 1 min, 2 min, then 5 min** — 2026-10-06 (owner: "the multiple skip button press (+10 or -10 seconds) are not cumulative (e.g.: one press +10, two presses +30, three presses +1 min, etc.) like I requested some time ago")
+
+Context: D-128 made presses in a row of the remote's ←/→ (and ⏪/⏩) go faster, but each step came twice (10, 10, 30, 30, 1 min, 1 min, …), so the second press skipped 10 s again and the series felt flat. The on-screen ±10 s buttons, double taps on phones and the keys and buttons on web and desktop always skipped 10 s.
+
+Decision (shared `tapStep` and `SkipStreak` in `remoteSeek.ts`):
+
+- The n-th press of a series skips 10 s, 30 s, 1 min, 2 min, then 5 min for each further press. A series is presses in the same direction less than a second apart (`TAP_CHAIN_MS`); the other way or a pause starts again at 10 s.
+- TV ←/→ and ⏪/⏩ keep D-128's preview: the first press seeks at once, the next ones move the preview by these steps and the video jumps once they stop. A press the other way still fine-tunes the preview by 10 s.
+- The TV and phone ±10 s buttons, phone double taps (and further quick taps on the same side), and web/desktop ←/→ and ±10 s buttons seek at once by the step (`SkipStreak`). The flash says how far: "+10", "+30", "+1:00".
+- Web and desktop: a held arrow key's repeats stay 10 s each, so holding does not race to 5-minute jumps.
+- No new texts (the buttons' names stay "Forward 10 seconds" / "Back 10 seconds"). Tests: the steps and `SkipStreak`; TV buttons and phone taps in a row; the web e2e presses → three times.

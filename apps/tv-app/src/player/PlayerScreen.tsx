@@ -21,6 +21,7 @@ import {
   errorMessage,
   NEXT_UP_COUNTDOWN_SECONDS,
   RemoteSeekController,
+  SkipStreak,
   SKIP_SECONDS,
   clampTime,
   fluid,
@@ -154,7 +155,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // return to the video (D-075, D-077).
   const [buttons, setButtons] = useState<false | 'play' | 'back'>(false);
   const tvButtons = Platform.isTV && !!buttons;
-  const [flash, setFlash] = useState<{ direction: SeekDirection; key: number } | null>(null);
+  const [flash, setFlash] = useState<{ direction: SeekDirection; key: number; seconds?: number } | null>(null);
   const [scrub, setScrub] = useState<{ preview: number; speed: number; step?: number; direction: SeekDirection } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
   const timeRef = useRef(0);
@@ -312,6 +313,17 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   });
   useEffect(() => () => controller.current?.cancel(), []);
 
+  // The ±10 s buttons and double taps: presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-150).
+  const skipStreak = useRef(new SkipStreak()).current;
+  const skipPress = useCallback(
+    (direction: SeekDirection) => {
+      const seconds = skipStreak.press(direction);
+      seekTo(timeRef.current + (direction === 'forward' ? seconds : -seconds));
+      setFlash({ direction, key: Date.now(), seconds });
+    },
+    [skipStreak, seekTo],
+  );
+
   // Controls stay up while loading or paused; they hide CONTROLS_HIDE_MS after the last key once playing.
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playing = ready && !paused;
@@ -347,7 +359,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     return () => void ScreenOrientation.unlockAsync().catch(() => undefined);
   }, []);
 
-  // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead.
+  // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead, and further
+  // quick taps there skip further (D-150).
   const lastTap = useRef<{ at: number; side: SeekDirection | null; controls: boolean } | null>(null);
   /**
    * Logs what the provider sent instead of a video (the first bytes, credentials masked). After the last attempt a
@@ -370,8 +383,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     if (side && previous && previous.side === side && now - previous.at < DOUBLE_TAP_MS) {
       // Keep the controls as they were before the first tap.
       setControls(previous.controls);
-      seekTo(timeRef.current + (side === 'forward' ? SKIP_SECONDS : -SKIP_SECONDS));
-      setFlash({ direction: side, key: now });
+      skipPress(side);
       lastTap.current = { at: now, side, controls: previous.controls };
       return;
     }
@@ -609,7 +621,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
-      {flash ? <TapFlash direction={flash.direction} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
+      {flash ? <TapFlash direction={flash.direction} seconds={flash.seconds} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
       {scrub ? (
         <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />
       ) : null}
@@ -715,7 +727,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     focusable={!Platform.isTV || !!buttons}
                     size={44}
                     iconSize={28}
-                    onPress={() => seekTo(timeRef.current - SKIP_SECONDS)}
+                    onPress={() => skipPress('back')}
                   />
                   <IconButton
                     icon="forward10"
@@ -724,7 +736,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                     focusable={!Platform.isTV || !!buttons}
                     size={44}
                     iconSize={28}
-                    onPress={() => seekTo(timeRef.current + SKIP_SECONDS)}
+                    onPress={() => skipPress('forward')}
                   />
                   {next ? (
                     <IconButton

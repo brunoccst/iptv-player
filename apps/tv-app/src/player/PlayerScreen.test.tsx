@@ -260,13 +260,38 @@ describe('PlayerScreen', () => {
     }
     expect(playerState.seeks).toEqual([110_000]);
     expect(screen.getByTestId('scrub-bar')).toBeTruthy();
-    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+0:30');
+    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+2:00');
     await act(async () => pressRemote('fastForward', 'down'));
-    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+1:00');
+    expect(screen.getByTestId('scrub-step')).toHaveTextContent('+5:00');
     await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
-    // 110 + 10 + 30 + 30 + 60
-    expect(playerState.seeks).toEqual([110_000, 240_000]);
+    // 110 + 30 + 60 + 120 + 300 (D-150)
+    expect(playerState.seeks).toEqual([110_000, 620_000]);
     expect(screen.queryByTestId('scrub-bar')).toBeNull();
+  });
+
+  it('the ±10 s buttons skip further when pressed in a row: 10 s, 30 s, 1 min (D-150)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(1000, 6000);
+
+    const forward = () => fireEvent.press(screen.getByLabelText('Forward 10 seconds'));
+    await act(async () => forward());
+    await act(async () => jest.advanceTimersByTime(300));
+    await act(async () => forward());
+    await act(async () => jest.advanceTimersByTime(300));
+    await act(async () => forward());
+    expect(playerState.seeks).toEqual([1_010_000, 1_040_000, 1_100_000]);
+    expect(screen.getByTestId('tap-flash-seconds')).toHaveTextContent('+1:00');
+    await act(async () => jest.advanceTimersByTime(300));
+    // The other way starts again at 10 s; so does a pause.
+    await act(async () => fireEvent.press(screen.getByLabelText('Back 10 seconds')));
+    await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
+    await act(async () => fireEvent.press(screen.getByLabelText('Back 10 seconds')));
+    expect(playerState.seeks.slice(3)).toEqual([1_090_000, 1_080_000]);
+    expect(screen.getByTestId('tap-flash-seconds')).toHaveTextContent('−10');
   });
 
   it('a release-only → (what the emulator reports) still skips 10 s; a release-only ↓ opens the drawer', async () => {
@@ -910,6 +935,25 @@ describe('PlayerScreen', () => {
       await act(async () => jest.advanceTimersByTime(100));
       await act(async () => tap(width * 0.1));
       expect(playerState.seeks.at(-1)).toBe(30_000);
+    });
+
+    it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-150)', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      await progress(100, 6000);
+      const { width } = Dimensions.get('window');
+      const tap = (x: number) => fireEvent.press(screen.getByTestId('player-focus'), { nativeEvent: { locationX: x } });
+
+      await act(async () => tap(width * 0.9));
+      for (let i = 0; i < 3; i++) {
+        await act(async () => jest.advanceTimersByTime(200));
+        await act(async () => tap(width * 0.9));
+      }
+      expect(playerState.seeks).toEqual([110_000, 140_000, 200_000]);
+      expect(screen.getByTestId('tap-flash-seconds')).toHaveTextContent('+1:00');
     });
   });
 });
