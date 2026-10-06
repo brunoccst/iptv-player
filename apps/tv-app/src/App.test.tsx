@@ -654,6 +654,42 @@ describe('App (TV)', () => {
     isTV.mockRestore();
   });
 
+  it("a title chosen in the TV home screen's Continue watching row plays from where it stopped (issue #165, D-147)", async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/playback/movie/101', { body: playback('http://relay/101.mp4', 'mp4') });
+    const movie = {
+      kind: 'movie',
+      itemId: '101',
+      masterId: 'm1',
+      seriesId: null,
+      seasonNumber: null,
+      episodeNumber: null,
+      title: 'Big Test Movie',
+      posterUrl: null,
+      containerExtension: 'mp4',
+      positionSeconds: 1200,
+      durationSeconds: 6000,
+      updatedAt: '2026-10-01T10:00:00Z',
+    };
+    backend.on('GET', '/api/profiles/p1/progress', { body: [movie] });
+    await act(async () => void (await stores.progress.getState().load('p1', { force: true })));
+    const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    // The app is started from the row.
+    nativeState.watchNextLaunch = JSON.stringify(['p1', 'movie', '101']);
+    await render(<App />);
+    await flush();
+    expect(navStore.getState().stack.map((route) => route.name)).toEqual(['section', 'details', 'player']);
+    expect(playerState.props?.source).toMatchObject({ startPositionMs: 1_200_000 });
+
+    // Chosen again while the app runs: Back from the player still lands on the details page.
+    await act(async () => navStore.getState().goSection('series'));
+    await act(async () => nativeState.openWatchNext(JSON.stringify(['p1', 'movie', '101'])));
+    await flush();
+    expect(navStore.getState().stack.map((route) => route.name)).toEqual(['section', 'details', 'player']);
+    isTV.mockRestore();
+  });
+
   it('Playback lets the user choose which audio decoders come first; the player gets the choice (D-059)', async () => {
     const backend = setupApp();
     stubLibrary(backend);

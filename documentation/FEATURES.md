@@ -56,6 +56,10 @@ A featured title at the top, then rows: Continue Watching, My List, the [channel
 
 Home's first row: movies and episodes started but not finished, with how far you got. A card plays from where you stopped, over the title's details page, so Back from the player shows the movie's or the series' details rather than Home (issue #166).
 
+### Continue watching on the TV home screen
+
+Android TV and Google TV (Chromecast with Google TV) show the active profile's Continue Watching in the system home screen's "Continue watching" row (Watch Next), up to 10 titles, newest first, with the provider's cover (else the app icon) and how far you got. Choosing one opens the app and plays from where you stopped, over the title's details page, like the card on Home. The row follows a few seconds after playback stops; a finished title or one removed from Continue Watching leaves it. The row is not per profile: switching profiles replaces the titles, the profile picker and signing out empty it. A title of another profile, or one no longer in Continue Watching, opens Home. A title removed in the home screen's own menu stays away until it is watched again. Live channels are not added. Google's "For you" and "Top picks" rows and the hero carousel are filled by Google from its catalog partners; apps cannot add to them (issue #165, D-147).
+
 ### Movies and Series
 
 A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049).

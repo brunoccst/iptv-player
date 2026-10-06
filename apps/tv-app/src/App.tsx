@@ -22,6 +22,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
 import { SleepMode } from './tv/SleepMode';
+import { useOpenWatchNext, useWatchNextLaunch, useWatchNextSync } from './tv/watchNext';
 import { pairedTv, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
@@ -43,6 +44,9 @@ export function App() {
   const topInset = fullScreen ? 0 : (SystemBars.currentHeight ?? 0);
   // TVs play what a paired phone sends (D-061).
   useRemoteServer(Platform.isTV && status === 'authenticated');
+  // The home screen's "Continue watching" row on Android TV and Google TV (issue #165, D-147).
+  useWatchNextSync(Platform.isTV);
+  useWatchNextLaunch(Platform.isTV);
 
   useEffect(() => {
     void stores.session.getState().restore();
@@ -136,6 +140,8 @@ function Shell() {
   const categoryId = useNav((s) => s.categoryId);
   const processing = useLibraryWatcher();
   const shown = useShownSection(section);
+  // A title chosen in the TV home screen's "Continue watching" row plays once its profile is loaded (D-147).
+  useOpenWatchNext();
 
   // The Log screen then shows which page was opened before a stall (D-093).
   useEffect(() => appLog.info('nav', `opened ${section}${categoryId ? ` (category ${categoryId})` : ''}`), [section, categoryId]);

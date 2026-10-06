@@ -37,13 +37,18 @@ class TvMediaModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("TvMedia")
-    Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress")
+    Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress", "onWatchNextOpen")
 
     OnCreate {
       // First, so a native crash from here on is in the next run's Log (D-113).
       CrashLog.install(context)
       DownloadCenter.init(context)
       DownloadCenter.addListener(downloadsListener)
+    }
+
+    // A title chosen in the home screen's "Continue watching" row while the app runs (D-147).
+    OnNewIntent { intent ->
+      WatchNext.take(intent)?.let { sendEvent("onWatchNextOpen", mapOf("id" to it)) }
     }
 
     OnDestroy {
@@ -271,6 +276,21 @@ class TvMediaModule : Module() {
     AsyncFunction("installUpdate") { path: String ->
       AppUpdater.install(context, appContext.currentActivity, path)
     }.runOnQueue(Queues.MAIN)
+
+    /** Home screen "Continue watching" on Android TV and Google TV (DECISIONS.md#d-147): the app's rows. */
+    AsyncFunction("watchNextRows") {
+      WatchNext.rows(context)
+    }
+
+    /** Inserts, updates and removes rows as src/tv/watchNext.ts planned (JSON). */
+    AsyncFunction("applyWatchNext") { plan: String ->
+      WatchNext.apply(context, plan)
+    }
+
+    /** The id of the row the app was started from, once. */
+    Function("takeWatchNextOpen") {
+      WatchNext.takeOpen(appContext.currentActivity)
+    }
 
     /** Sign-out and account change (DECISIONS.md#d-050). */
     Function("removeAllDownloads") {

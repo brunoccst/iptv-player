@@ -8,6 +8,7 @@ import type {
   TvPlayerViewProps,
   TvPlayerViewRef,
   UpdateCheck,
+  WatchNextRow,
 } from './types-only';
 
 export * from './types-only';
@@ -20,6 +21,8 @@ type TvMediaEvents = {
   onRemoteRequest(event: { id: string; body: string }): void;
   /** Self-update download progress (D-062). `total` is -1 when unknown. */
   onUpdateProgress(event: { bytes: number; total: number }): void;
+  /** A title of this app was chosen in the home screen's "Continue watching" row while the app runs (D-147). */
+  onWatchNextOpen(event: { id: string }): void;
 };
 
 declare class TvMediaModule extends NativeModule<TvMediaEvents> {
@@ -87,6 +90,12 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   openInstallSettings(): void;
   /** Opens the Android installer on top of the app (D-070). */
   installUpdate(path: string): Promise<void>;
+  /** Android TV / Google TV home screen "Continue watching" (Watch Next, D-147): this app's rows; none on phones. */
+  watchNextRows(): Promise<WatchNextRow[]>;
+  /** Applies `{ insert: WatchNextEntry[], update: { rowId, entry }[], remove: rowId[] }` (JSON) to those rows. */
+  applyWatchNext(plan: string): Promise<void>;
+  /** The id of the title the app was opened with from that row, once; null otherwise. */
+  takeWatchNextOpen(): string | null;
   /** Phone: scans a QR code with Google's code scanner; null when cancelled. */
   scanQrCode(): Promise<string | null>;
 }
