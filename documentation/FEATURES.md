@@ -38,6 +38,8 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-136). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-144, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.
 
+An "EAR" version (English audio with Arabic subtitles in the picture, D-107) is labelled "ENG (EAR)" and the plain English one "ENG". When English is one of the profile's languages, a title with both starts with the plain English one, whatever their quality; of equally good versions, the plain one is "(best)" (D-148).
+
 ### Library updates
 
 The library is built on the first sign-in and kept on the device; the app starts from it at once (D-117, D-120). The account menu → Library & devices → Update library downloads the provider's lists again and changes only what changed; a list identical to the last one is not compared at all (D-109, D-119, D-135, D-137, D-138). A message then says how many titles were added, changed and removed. Live channels and the TV guide are downloaded daily and after an update (D-123, D-130).
