@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Alert, Platform, StatusBar, type AlertButton } from 'react-native';
+import { Alert, Platform, ScrollView, StatusBar, type AlertButton } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import { BACKUP_FORMAT, createMemoryStorage, exportUserData } from '@iptv/shared';
 import { navStore, playbackSettings, stores } from './appContext';
@@ -86,7 +86,7 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('hero-play')).toBeTruthy();
   });
 
-  it('TV Home: Left at Play and Right at More Info stay in the hero; they used to drop to a row below (D-152)', async () => {
+  it('TV Home: Left at Play and Right at More Info stay in the hero, and focusing them shows the whole banner (D-152)', async () => {
     const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     stubLibrary(setupApp());
     await render(<App />);
@@ -98,6 +98,15 @@ describe('App (TV)', () => {
     expect(actions.props.trapFocusDown).toBeFalsy();
     expect(within(actions).getByTestId('hero-info')).toBeTruthy();
     expect(within(actions).getByTestId('hero-play')).toBe(play);
+
+    // Up from the first row lands on Play: the page scrolls back to the top to show the banner.
+    const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+    await fireEvent(play, 'focus');
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: true });
+    scrollTo.mockClear();
+    await fireEvent(screen.getByTestId('hero-info'), 'focus');
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 0, animated: true });
+    scrollTo.mockRestore();
     isTV.mockRestore();
   });
 
