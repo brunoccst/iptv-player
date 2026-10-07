@@ -266,4 +266,9 @@ describe('topRated (issue #188)', () => {
     expect(top.some((item) => item.id === 'm110')).toBe(false);
     expect(topRated([card(1, null), card(2, 0)])).toEqual([]);
   });
+
+  it('leaves out a perfect score (100 %), usually a niche title with one review (D-161)', () => {
+    const top = topRated([card(1, 10), card(2, 9.96), card(3, 9.9), card(4, 8)]);
+    expect(top.map((item) => item.id)).toEqual(['m3', 'm4']);
+  });
 });
