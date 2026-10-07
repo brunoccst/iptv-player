@@ -22,7 +22,7 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 # Down walks the rows (the page follows the focus) to the stress row, below the fold: the first row with stress titles
-# (the movie rows are Action, 4K Movies, Drama, then "Stress Test (huge)").
+# ("Top rated movies" since D-153, which lists stress titles too).
 - repeat:
     while:
       notVisible:
