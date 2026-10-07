@@ -21,19 +21,23 @@ appId: ${APP_ID}
     visible:
       id: "home-screen"
     timeout: 60000
-# Down walks the rows (the page follows the focus) to the stress row, below the fold: the first row with stress titles
-# ("Top rated movies" since D-153, which lists stress titles too).
+# Down walks the rows (the page follows the focus) to the stress row, below the fold: the first category row with
+# stress titles. "Top rated movies" lists stress titles too but holds 10 and has no "See all" (D-157), so it is skipped.
 - repeat:
     while:
       notVisible:
         id: "card-Stress Movie .*"
         focused: true
+        childOf:
+          id: "row-movies-(?!top-rated).*"
     times: 25
     commands:
       - pressKey: Remote Dpad Down
 - assertVisible:
     id: "card-Stress Movie .*"
     focused: true
+    childOf:
+      id: "row-movies-(?!top-rated).*"
 # First card of the row.
 - repeat:
     times: 12
