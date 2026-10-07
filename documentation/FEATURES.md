@@ -46,13 +46,13 @@ The library is built on the first sign-in and kept on the device; the app starts
 
 ### Library banner
 
-While the library is being organized, or when the device is offline, a banner floats at the bottom over Home, Movies and Series, with the progress per kind (movies, series, channels) (D-117, D-142).
+While the library is being organized, or when the device is offline, a banner floats at the bottom over Home, Movies and Series, with the progress of movies and of series (D-117, D-142).
 
 ## Browsing
 
 ### Home
 
-A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), "Top rated of the 100 newest movies" and "Top rated of the 100 newest series" (the 25 best rated, by the provider's ratings, among the 100 titles added last, leaving out a perfect 100 % score, usually a niche title with one review; the app's own rows, so no "See all"; D-153, D-160, D-161, issue #188) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122). On desktop, hovering over a row shows ‹ and › arrows that scroll it; the ‹ arrow is hidden while the row is at its beginning and the › arrow at its end, so a row that fits has neither (D-159).
+A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), "Top rated of the 100 newest movies" and "Top rated of the 100 newest series" (the 25 best rated, by the provider's ratings, among the 100 titles added last, leaving out a perfect 100 % score, usually a niche title with one review; the app's own rows, so no "See all"; D-153, D-160, D-161, issue #188) and the provider's categories. On TV and phone a row shows 10 titles and a "See all" card that opens the category's page (D-043); on desktop a row loads 30 titles at a time, more as you scroll it, and its title opens the category's page. On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122). On desktop, hovering over a row shows ‹ and › arrows that scroll it; the ‹ arrow is hidden while the row is at its beginning and the › arrow at its end, so a row that fits has neither (D-159).
 
 ### Continue Watching
 
@@ -156,7 +156,7 @@ Each profile keeps its last 20 channels. Home's live row lists them; on TV, ↓ 
 
 ### Titles, channels and programmes
 
-Finds movies, series, live channels and programmes of the TV guide on now or in the next day; a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Results load in pages as you move down; TV filters them by All, Movies, Series or Live TV (D-095, D-108).
+Finds movies, series, live channels and programmes of the TV guide on now or in the next day; a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-095, D-108).
 
 ## My List
 
@@ -216,7 +216,7 @@ The avatar at the top right opens it: other profiles, then the groups Profiles, 
 
 ### About
 
-The installed version (MAJOR.MINOR.PATCH, D-070), the commit and date it was built from, and how the app connects. Account menu → App → About.
+The installed version (MAJOR.MINOR.PATCH, D-070) and the commit and date it was built from; TV and phone also show whether Dolby / DTS audio is included and the Android version, the desktop app which system it is built for. Account menu → App → About.
 
 ### Diagnostics log
 
