@@ -2514,3 +2514,11 @@ Decision (`DetailsScreen`, TV and phone app):
 - Desktop: not yet (⏳, `Parity: Landscape details layout on desktop`).
 - Tests: a movie's parts in the two columns, a series' episodes on the right with the focus openings, portrait unchanged.
 
+## D-159
+
+**Desktop row arrows hide at the row's ends** — 2026-10-07 (Bruno: "the left and right arrow in the "home" page for desktop should be invisible if the list is at the beginning or end, respectively.")
+
+Decision (`Row`, web player and desktop app):
+- The ‹ arrow is not shown while the row is scrolled to its beginning, the › arrow not while it is at its end (1 px of slack for zoomed screens); a row whose cards all fit has neither. The row checks again on scroll, when cards are added (next page) and when the window is resized.
+- TV and phone: no arrows (➖).
+- Tests: `Row.test.tsx` (arrows at the beginning, middle and end; none when the cards fit).

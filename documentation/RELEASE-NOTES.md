@@ -70,6 +70,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Row arrows only where they lead somewhere** (2026-10-07, D-159): on Home, a row's ‹ arrow is hidden while the row is at its beginning and its › arrow once it reaches the end; a row that fits on the screen shows neither.
 - **Top rated shows what is new** (2026-10-07, D-157, issue #188): the "Top rated movies" and "Top rated series" rows on Home show the 10 best rated of the titles added last, instead of the best of all time, and have no "See all".
 - **Same name, different film** (2026-10-07, D-156, issue #187): two films with the same name and year, such as the two "The Odyssey" of 2026, are no longer shown as one title when your provider gives them different TMDB ids. The library is rebuilt once after the update.
 - **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
