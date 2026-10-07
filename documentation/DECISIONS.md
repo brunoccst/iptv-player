@@ -2541,3 +2541,12 @@ Decision (`topRated` in `libraryStore`, every app; changes D-160):
 - A title whose rating the details show as 100 % (the provider's 0–10 rating, rounded the same way: 9.95 and up) is not in the Top rated rows. The row takes the next best instead, still 25 out of the 100 titles added last.
 - Only the Home rows: Movies and Series sorted by "Highest rated" keep them.
 - Tests: `topRated` leaves out 10 and 9.96, keeps 9.9.
+
+## D-162
+
+**Every feature has a technical explanation** — 2026-10-07 (Bruno: "Include the technical explanation of each feature in a new document. It must always match the `FEATURES.md`." and "Make sure to explain using Mermaid graphs and keep things simple and short. Only state facts, no need for decisions.")
+
+Decision (documentation):
+- [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) has the same `##` and `###` headings as [FEATURES.md](FEATURES.md), in the same order. Each feature links to its FEATURES.md section and has a Mermaid graph, a few facts (no decision numbers) and a `**Code:**` line naming the files to read first.
+- `npm run lint:features` (CI *Lint and format*) fails when a heading is missing, extra or out of order, a section has no link, graph, explanation or code line, or a code path does not exist.
+- A pull request that changes FEATURES.md, or how a feature works, updates its section there (CLAUDE.md, the pull request template).

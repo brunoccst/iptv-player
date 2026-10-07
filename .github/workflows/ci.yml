@@ -72,6 +72,9 @@ jobs:
       # Every app has each feature, or the backlog says when it will (documentation/PARITY.md, D-080).
       - name: App parity table
         run: npm run lint:parity
+      # Every feature has its technical explanation (documentation/FEATURES-TECHNICAL.md, D-162).
+      - name: Technical features
+        run: npm run lint:features
       # Every app's version has release notes (documentation/RELEASE-NOTES.md, D-143).
       - name: Release notes
         run: npm run lint:release-notes
