@@ -17,11 +17,21 @@ interface RowProps {
   loadingMore?: boolean;
 }
 
-/** Horizontal scrolling row with arrow buttons. */
+/** Horizontal scrolling row with arrow buttons; each arrow is hidden while the row is at that end (D-159). */
 export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd, loadingMore }: RowProps) {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(!onVisible);
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(true);
+
+  const updateEnds = () => {
+    const element = track.current;
+    if (!element) return;
+    // 1 px of slack: zoomed screens report fractional scroll positions.
+    setAtStart(element.scrollLeft <= 1);
+    setAtEnd(element.scrollLeft + element.clientWidth >= element.scrollWidth - 1);
+  };
 
   useEffect(() => {
     if (seen || !root.current) return;
@@ -48,12 +58,22 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seen]);
 
+  const hasChildren = Array.isArray(children) ? children.length > 0 : !!children;
+
+  // The ends change when cards are added (next page) or the window is resized.
+  useEffect(updateEnds);
+  useEffect(() => {
+    const element = track.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateEnds);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasChildren]);
+
   const scroll = (direction: 1 | -1) => {
     const element = track.current;
     if (element) element.scrollBy({ left: direction * element.clientWidth * 0.8 });
   };
-
-  const hasChildren = Array.isArray(children) ? children.length > 0 : !!children;
 
   return (
     <section className="row" ref={root} aria-label={title}>
@@ -68,19 +88,22 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
       </h2>
       {hasChildren ? (
         <div className="row__viewport">
-          <button
-            type="button"
-            className="row__arrow row__arrow--left"
-            onClick={() => scroll(-1)}
-            aria-label={t('Scroll {title} left', { title })}
-          >
-            <Icon name="chevronLeft" size={36} />
-          </button>
+          {atStart ? null : (
+            <button
+              type="button"
+              className="row__arrow row__arrow--left"
+              onClick={() => scroll(-1)}
+              aria-label={t('Scroll {title} left', { title })}
+            >
+              <Icon name="chevronLeft" size={36} />
+            </button>
+          )}
           <div
             className="row__track"
             ref={track}
             onScroll={(event) => {
               const element = event.currentTarget;
+              updateEnds();
               if (onNearEnd && element.scrollLeft + element.clientWidth >= element.scrollWidth - element.clientWidth) onNearEnd();
             }}
           >
@@ -91,14 +114,16 @@ export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd
               </div>
             ) : null}
           </div>
-          <button
-            type="button"
-            className="row__arrow row__arrow--right"
-            onClick={() => scroll(1)}
-            aria-label={t('Scroll {title} right', { title })}
-          >
-            <Icon name="chevronRight" size={36} />
-          </button>
+          {atEnd ? null : (
+            <button
+              type="button"
+              className="row__arrow row__arrow--right"
+              onClick={() => scroll(1)}
+              aria-label={t('Scroll {title} right', { title })}
+            >
+              <Icon name="chevronRight" size={36} />
+            </button>
+          )}
         </div>
       ) : (
         <div className="row__empty muted">{empty}</div>

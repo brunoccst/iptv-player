@@ -123,7 +123,7 @@ export const LIBRARY_SORT_OPTIONS: (LibrarySortChoice & { label: string })[] = [
 ];
 
 /**
- * Home's "Top rated" rows (D-153, D-159, issue #188): the 25 best rated (the provider's rating) among the 100 titles added
+ * Home's "Top rated" rows (D-153, D-160, issue #188): the 25 best rated (the provider's rating) among the 100 titles added
  * last. A row of the app's own, not a list of the provider's: no "See all".
  */
 export const TOP_RATED_POOL = 100;
