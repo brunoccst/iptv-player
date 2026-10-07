@@ -73,6 +73,7 @@ import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
+import { LevelBar, usePlayerSwipes } from './TouchLevels';
 import { FocusRow } from '../components/FocusRow';
 
 const PROGRESS_SAVE_MS = 10_000;
@@ -133,8 +134,9 @@ const MEDIA_KEYS = new Set(['playPause', 'play', 'pause', 'stop', 'rewind', 'fas
 
 /**
  * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-075), ↑ the same
- * buttons on Back (D-101), Select play/pause, Back close. Live: ↑ opens the guide overlay (phones: swipe up or the
- * Guide button). See DECISIONS.md#d-028, #d-058.
+ * buttons on Back (D-101), Select play/pause, Back close. Live: ↑ opens the guide overlay (phones: swipe up in the
+ * middle or the Guide button). Phones: slides on the left/right third set brightness/volume (D-155). See
+ * DECISIONS.md#d-028, #d-058.
  */
 export function PlayerScreen({ target }: { target: PlayTarget }) {
   const playerRef = useRef<TvPlayerViewRef>(null);
@@ -536,16 +538,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     return () => subscription.remove();
   }, [guide, recent, drawer, skipOpen, buttons]);
 
-  // Phones, live: swipe up anywhere on the video opens the guide overlay.
-  const swipeEnabled = useRef(false);
-  swipeEnabled.current = isLive && !Platform.isTV && !guide && !drawer && !error;
-  const swipe = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (_, gesture) =>
-        swipeEnabled.current && gesture.dy < -40 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 2,
-      onPanResponderGrant: () => setGuide(true),
-    }),
-  ).current;
+  // Phones: slide up/down on the left third for brightness, the right third for volume; live: swipe up in the middle
+  // opens the guide overlay (D-155).
+  const swipe = usePlayerSwipes(!Platform.isTV && !guide && !drawer && !recent && !error, isLive ? () => setGuide(true) : null);
 
   const zap = (channel: LiveChannel, programme: EpgListing | null) => {
     setGuide(false);
@@ -657,6 +652,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
+      {swipe.level && !error ? <LevelBar kind={swipe.level.kind} value={swipe.level.value} /> : null}
       {flash ? <TapFlash direction={flash.direction} seconds={flash.seconds} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
       {scrub ? (
         <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />

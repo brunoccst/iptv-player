@@ -94,6 +94,14 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   applyWatchNext(plan: string): Promise<void>;
   /** The id of the title the app was opened with from that row, once; null otherwise. */
   takeWatchNextOpen(): string | null;
+  /** Phone player (issue #184, D-155): the app window's screen brightness, 0–1 (the system's while none is set). */
+  brightness(): number;
+  /** Sets the window's brightness (at least 1 %); a value below 0 gives it back to the system. */
+  setBrightness(level: number): Promise<void>;
+  /** The media volume, 0–1. */
+  volume(): number;
+  /** Sets the media volume to its nearest step, without the system's volume panel; returns the new volume, 0–1. */
+  setVolume(level: number): number;
   /** Phone: scans a QR code with Google's code scanner; null when cancelled. */
   scanQrCode(): Promise<string | null>;
 }

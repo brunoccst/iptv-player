@@ -2468,3 +2468,16 @@ Decision (`tv/colourKeys.tsx`, TV app):
 - Blue: on a live channel, the guide over it; elsewhere Live TV.
 - `ColourKeys` is mounted once with the signed-in shell; the player handles Red, Green and Blue itself. A dot in the key's colour sits on the button it also presses: My List in details (red), the player's Audio (green) and Guide (blue), the search box (yellow), Live TV in the nav (blue). TV only.
 - Tests: each key outside and inside the player, Yellow from details, the dots on TV only.
+
+## D-155
+
+**Phone player: brightness and volume by sliding on the video** — 2026-10-07 (issue #184: "adjust brightness on mobile by sliding an invisible slider up/down on the left side. Volume for right.")
+
+Decision (`player/TouchLevels.tsx`, TV and phone app; `TvMedia.brightness/setBrightness/volume/setVolume`):
+- A vertical slide (at least twice as tall as it is wide) that starts on the left third of the video sets the brightness, on the right third the media volume. Thirds, like the double tap to skip (D-097), so the middle stays free: on a live channel a swipe up there still opens the guide (D-058), which before took a swipe up anywhere.
+- A slide over 60 % of the screen's height goes from 0 to 100 %. Slides that start in the top or bottom 8 % are left to the system (notifications, navigation bar). Nothing happens while the guide, the drawer, the channel strip or an error is on screen.
+- A bar on that side (icon, level, percent) shows while sliding and for a second after the finger lifts.
+- Brightness is the app window's own (`screenBrightness`, at least 1 % so the screen never goes black), not the system setting: no extra permission, and the phone's brightness comes back when the player closes. The next player of the same run starts with the chosen brightness, so a series does not jump back between episodes.
+- Volume is the system's media volume (`STREAM_MUSIC`) in its own steps, set without the system's volume panel; the bar shows the step it landed on.
+- TV: none (the remote's volume keys). Web and desktop: none (mouse and keyboard; ↑/↓ already set the volume).
+- Tests: both sides, the bar's second, slides that do not count (middle, sideways, top edge), the brightness given back and re-applied, and the live guide swipe in the middle.

@@ -1,11 +1,15 @@
 package expo.modules.tvmedia
 
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.provider.Settings
+import android.view.WindowManager
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
@@ -235,6 +239,44 @@ class TvMediaModule : Module() {
       // A moment for the task to go away first, then end the process.
       Handler(Looper.getMainLooper()).postDelayed({ Process.killProcess(Process.myPid()) }, 300)
     }.runOnQueue(Queues.MAIN)
+
+    /**
+     * Phone player (issue #184, D-155): the screen brightness of the app's window, 0–1. While the app sets none it is
+     * the system's (its 0–255 setting).
+     */
+    Function("brightness") {
+      val own = appContext.currentActivity?.window?.attributes?.screenBrightness ?: -1f
+      if (own >= 0f) own.toDouble()
+      else Settings.System.getInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128) / 255.0
+    }
+
+    /** Sets the window's brightness (at least 1 %, so the screen never goes black); below 0 gives it back to the system. */
+    AsyncFunction("setBrightness") { level: Double ->
+      appContext.currentActivity?.window?.let { window ->
+        val attributes = window.attributes
+        attributes.screenBrightness =
+          if (level < 0) WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE else level.coerceIn(0.01, 1.0).toFloat()
+        window.attributes = attributes
+      }
+    }.runOnQueue(Queues.MAIN)
+
+    /** Phone player (issue #184, D-155): the media volume, 0–1. */
+    Function("volume") {
+      val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    }
+
+    /** Sets the media volume to the nearest of its steps, without the system's volume panel; returns the new volume. */
+    Function("setVolume") { level: Double ->
+      val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+      val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+      try {
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, Math.round(level.coerceIn(0.0, 1.0) * max).toInt(), 0)
+      } catch (_: SecurityException) {
+        // Do Not Disturb can refuse it; the volume stays as it was.
+      }
+      audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / max
+    }
 
     /** Self-update (DECISIONS.md#d-062): installed version code and name. */
     Function("installedVersion") {

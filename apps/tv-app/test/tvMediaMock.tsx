@@ -53,6 +53,11 @@ export const nativeState = {
   watchNext: [] as (WatchNextRow & { entry: WatchNextEntry })[],
   watchNextLaunch: null as string | null,
   watchNextListeners: new Set<(event: { id: string }) => void>(),
+  /** Phone player (D-155): the window's brightness (-1: the system's, which is `systemBrightness`) and the media volume in steps. */
+  brightness: -1,
+  systemBrightness: 0.5,
+  volumeStep: 5,
+  volumeSteps: 15,
   /** Chooses a title in the home screen's row while the app runs. */
   openWatchNext(id: string) {
     this.watchNextListeners.forEach((listener) => listener({ id }));
@@ -89,6 +94,9 @@ export const nativeState = {
     this.watchNext = [];
     this.watchNextLaunch = null;
     this.watchNextListeners.clear();
+    this.brightness = -1;
+    this.systemBrightness = 0.5;
+    this.volumeStep = 5;
   },
 };
 
@@ -141,6 +149,15 @@ export const TvMedia = {
   },
   dbQuery: async () => {
     throw new Error('no library database in tests');
+  },
+  brightness: () => (nativeState.brightness >= 0 ? nativeState.brightness : nativeState.systemBrightness),
+  setBrightness: async (level: number) => {
+    nativeState.brightness = level < 0 ? -1 : Math.min(1, Math.max(0.01, level));
+  },
+  volume: () => nativeState.volumeStep / nativeState.volumeSteps,
+  setVolume: (level: number) => {
+    nativeState.volumeStep = Math.round(Math.min(1, Math.max(0, level)) * nativeState.volumeSteps);
+    return nativeState.volumeStep / nativeState.volumeSteps;
   },
   closeApp: async () => void nativeState.calls.push('close-app'),
   watchNextRows: async (): Promise<WatchNextRow[]> => nativeState.watchNext.map(({ entry: _entry, ...row }) => row),

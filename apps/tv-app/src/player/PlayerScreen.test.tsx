@@ -3,7 +3,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import { Dimensions, Platform } from 'react-native';
 import { appLog, HOLD_THRESHOLD_MS, TAP_CHAIN_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
-import { playerState } from '../../test/tvMediaMock';
+import { nativeState, playerState } from '../../test/tvMediaMock';
 import { appContext, navStore, stores } from '../appContext';
 import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
@@ -80,6 +80,56 @@ function stubShow(backend: ReturnType<typeof setupApp>) {
       ],
     },
   });
+}
+
+/** A one-finger slide on the player screen from (x0, y0) through `points`, then lifted (PanResponder's touch history). */
+async function slide(x0: number, y0: number, points: [number, number][]) {
+  const handlers = screen.getByTestId('player-screen').props;
+  let previous: [number, number, number] = [x0, y0, 1];
+  const event = (x: number, y: number, t: number) => {
+    const [px, py, pt] = previous;
+    previous = [x, y, t];
+    return {
+      nativeEvent: { touches: [{}], changedTouches: [{}], pageX: x, pageY: y, locationX: x, locationY: y, timestamp: t },
+      touchHistory: {
+        numberActiveTouches: 1,
+        indexOfSingleActiveTouch: 0,
+        mostRecentTimeStamp: t,
+        touchBank: [
+          {
+            touchActive: true,
+            startPageX: x0,
+            startPageY: y0,
+            startTimeStamp: 1,
+            currentPageX: x,
+            currentPageY: y,
+            currentTimeStamp: t,
+            previousPageX: px,
+            previousPageY: py,
+            previousTimeStamp: pt,
+          },
+        ],
+      },
+    };
+  };
+  await act(async () => handlers.onStartShouldSetResponderCapture(event(x0, y0, 1)));
+  let granted = false;
+  let t = 1;
+  for (const [x, y] of points) {
+    t += 16;
+    const move = event(x, y, t);
+    await act(async () => {
+      if (granted) handlers.onResponderMove(move);
+      else if (handlers.onMoveShouldSetResponderCapture(move)) {
+        granted = true;
+        handlers.onResponderGrant(move);
+      }
+    });
+  }
+  await act(async () => {
+    if (granted) handlers.onResponderRelease(event(previous[0], previous[1], t + 16));
+  });
+  return granted;
 }
 
 describe('PlayerScreen', () => {
@@ -998,6 +1048,69 @@ describe('PlayerScreen', () => {
       await act(async () => jest.advanceTimersByTime(100));
       await act(async () => tap(width * 0.1));
       expect(playerState.seeks.at(-1)).toBe(30_000);
+    });
+
+    it('slides on the left third set the brightness, on the right third the volume; the bar goes a second after (issue #184)', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      const view = await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      const { width, height } = Dimensions.get('window');
+      const middle = height / 2;
+      // Up by 30 % of the height: +50 %.
+      expect(
+        await slide(width * 0.1, middle, [
+          [width * 0.1, middle - 20],
+          [width * 0.1, middle - 20 - height * 0.3],
+        ]),
+      ).toBe(true);
+      expect(nativeState.brightness).toBe(1);
+      expect(screen.getByTestId('level-brightness')).toBeTruthy();
+      expect(screen.getByTestId('level-percent')).toHaveTextContent('100%');
+      await act(async () => jest.advanceTimersByTime(900));
+      expect(screen.getByTestId('level-brightness')).toBeTruthy();
+      await act(async () => jest.advanceTimersByTime(200));
+      expect(screen.queryByTestId('level-brightness')).toBeNull();
+
+      // Down by 12 % of the height: 5/15 − 20 % → 2/15 (the volume's steps).
+      await slide(width * 0.9, middle, [
+        [width * 0.9, middle + 20],
+        [width * 0.9, middle + 20 + height * 0.12],
+      ]);
+      expect(nativeState.volumeStep).toBe(2);
+      expect(screen.getByTestId('level-percent')).toHaveTextContent('13%');
+      expect(playerState.seeks).toEqual([]);
+
+      // Not in the middle, not sideways, not from the screen's top edge.
+      expect(await slide(width / 2, middle, [[width / 2, middle - 100]])).toBe(false);
+      expect(await slide(width * 0.1, middle, [[width * 0.1 + 100, middle - 30]])).toBe(false);
+      expect(await slide(width * 0.9, 5, [[width * 0.9, 100]])).toBe(false);
+
+      // The system's brightness comes back when the player closes; the next player starts with the chosen one.
+      await view.unmount();
+      expect(nativeState.brightness).toBe(-1);
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      expect(nativeState.brightness).toBe(1);
+    });
+
+    it('live: a swipe up in the middle opens the guide, on the sides it sets brightness or volume (D-155)', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/live/7', { body: playback('http://relay/7.m3u8', 'm3u8') });
+      backend.on('GET', '/api/epg', { body: { status: 'ready', totalChannels: 0, from: null, to: null, updatedAt: null, channels: [] } });
+      await render(<PlayerScreen target={{ kind: 'live', streamId: '7', container: 'm3u8', title: 'News', categoryId: '1' }} />);
+      await flush();
+      const { width, height } = Dimensions.get('window');
+      await slide(width * 0.9, height / 2, [
+        [width * 0.9, height / 2 - 20],
+        [width * 0.9, height / 2 - 120],
+      ]);
+      expect(screen.queryByTestId('guide-overlay')).toBeNull();
+      expect(nativeState.volumeStep).toBeGreaterThan(5);
+      await slide(width / 2, height / 2, [[width / 2, height / 2 - 60]]);
+      await flush();
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
     });
 
     it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-150)', async () => {
