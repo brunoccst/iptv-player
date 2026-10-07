@@ -64,6 +64,14 @@ const PANEL_TOP = 32;
 
 const CenterFocus = createContext<((view: View | null) => void) | null>(null);
 
+/**
+ * Wide landscape screens (TV, a phone on its side) show the details in two columns over the whole screen: title,
+ * buttons and description fixed on the left, the episodes (movies: cast and the other facts) on the right, which alone
+ * scrolls (issue #186, D-158). Portrait screens keep the panel that scrolls as a whole.
+ */
+const SPLIT_MIN_WIDTH = 700;
+const SplitLayout = createContext(false);
+
 /** A part of the panel that scrolls to the middle of the screen when something in it gets focus (TV). */
 function Centered({ children, style, testID }: { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
   const center = useContext(CenterFocus);
@@ -79,15 +87,15 @@ function Centered({ children, style, testID }: { children: ReactNode; style?: St
 export function DetailsScreen({ section, masterId }: { section: LibrarySection; masterId: string }) {
   const resource = useLibrary((s) => s.details[`${section}|${masterId}`]);
   const revision = useNav((s) => s.libraryRevision);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   useEffect(() => {
     void stores.library.getState().loadDetails(section, masterId);
   }, [section, masterId, revision]);
 
   const close = () => navStore.getState().back();
+  const split = width > height && width >= SPLIT_MIN_WIDTH;
   // A focused part (version, season, an episode) scrolls to the middle of the screen, not just into view at the edge.
-  const { height } = useWindowDimensions();
   const scroll = useRef<ScrollView>(null);
   const panel = useRef<View>(null);
   const center = (view: View | null) => {
@@ -96,27 +104,37 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
       scroll.current?.scrollTo({ y: Math.max(0, PANEL_TOP + y - (height - h) / 2), animated: true }),
     );
   };
+  const content = resource?.data ? (
+    section === 'movies' ? (
+      <MovieDetails master={resource.data} />
+    ) : (
+      <SeriesDetailsView master={resource.data} />
+    )
+  ) : resource?.status === 'error' ? (
+    <View style={styles.padded}>
+      <ErrorText>{errorText(resource.error)}</ErrorText>
+    </View>
+  ) : (
+    <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel={t('Loading')} />
+  );
+  if (split)
+    return (
+      <FocusTrap style={styles.overlay} testID="details-screen">
+        <View style={styles.splitScreen} testID="details-split">
+          <SplitLayout.Provider value>{content}</SplitLayout.Provider>
+          <View style={styles.close}>
+            <IconButton icon="close" label={t('Close')} iconSize={24} onPress={close} testID="details-close" />
+          </View>
+        </View>
+      </FocusTrap>
+    );
   return (
     // TV: the D-pad stays in the panel; the page behind it is never reached (D-075).
     <FocusTrap style={styles.overlay} testID="details-screen">
       <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel={t('Close details')} />
       <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
         <View ref={panel} style={[styles.panel, { width: Math.min(850, width - 32) }]}>
-          <CenterFocus.Provider value={Platform.isTV ? center : null}>
-            {resource?.data ? (
-              section === 'movies' ? (
-                <MovieDetails master={resource.data} />
-              ) : (
-                <SeriesDetailsView master={resource.data} />
-              )
-            ) : resource?.status === 'error' ? (
-              <View style={styles.padded}>
-                <ErrorText>{errorText(resource.error)}</ErrorText>
-              </View>
-            ) : (
-              <ActivityIndicator size="large" color={colors.accent} style={styles.loading} accessibilityLabel={t('Loading')} />
-            )}
-          </CenterFocus.Provider>
+          <CenterFocus.Provider value={Platform.isTV ? center : null}>{content}</CenterFocus.Provider>
           <View style={styles.close}>
             <IconButton icon="close" label={t('Close')} iconSize={24} onPress={close} testID="details-close" />
           </View>
@@ -131,40 +149,43 @@ function MovieDetails({ master }: { master: MasterDetails }) {
   if (!variant || !target || !play) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
   return (
-    <>
-      <DetailsHero backdrop={backdrop} title={master.title} watched={watched}>
-        <FocusButton
-          label={canResume ? t('Resume') : t('Play')}
-          icon="play"
-          variant="primary"
-          hasTVPreferredFocus
-          testID="details-play"
-          onPress={() => navStore.getState().push({ name: 'player', target: play })}
-        />
-        <DownloadButton target={target} />
-        <PlayOnTvButton target={play} testID="details-play-on-tv" />
-        <ExternalPlayerButton target={target} testID="details-external" />
-        <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
-        <WatchlistButton section="movies" title={master} />
-      </DetailsHero>
-      <Body
-        main={
-          <>
-            <Facts year={master.year} rating={rating} quality={variant.quality} runtime={duration} />
-            <Text style={styles.text}>{meta.data?.plot ?? (meta.loading ? '' : t('No description.'))}</Text>
-            <VariantSelect master={master} value={variant} />
-          </>
-        }
-        side={
-          <>
-            <Fact label={t('Cast')} value={meta.data?.cast} />
-            <Fact label={t('Genres')} value={meta.data?.genre} />
-            <Fact label={t('Director')} value={meta.data?.director} />
-            <Fact label={t('Source')} value={variant.rawTitle} />
-          </>
-        }
-      />
-    </>
+    <DetailsLayout
+      backdrop={backdrop}
+      title={master.title}
+      watched={watched}
+      actions={
+        <>
+          <FocusButton
+            label={canResume ? t('Resume') : t('Play')}
+            icon="play"
+            variant="primary"
+            hasTVPreferredFocus
+            testID="details-play"
+            onPress={() => navStore.getState().push({ name: 'player', target: play })}
+          />
+          <DownloadButton target={target} />
+          <PlayOnTvButton target={play} testID="details-play-on-tv" />
+          <ExternalPlayerButton target={target} testID="details-external" />
+          <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
+          <WatchlistButton section="movies" title={master} />
+        </>
+      }
+      main={
+        <>
+          <Facts year={master.year} rating={rating} quality={variant.quality} runtime={duration} />
+          <Text style={styles.text}>{meta.data?.plot ?? (meta.loading ? '' : t('No description.'))}</Text>
+          <VariantSelect master={master} value={variant} />
+        </>
+      }
+      side={
+        <>
+          <Fact label={t('Cast')} value={meta.data?.cast} />
+          <Fact label={t('Genres')} value={meta.data?.genre} />
+          <Fact label={t('Director')} value={meta.data?.director} />
+          <Fact label={t('Source')} value={variant.rawTitle} />
+        </>
+      }
+    />
   );
 }
 
@@ -178,49 +199,56 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
   };
 
   return (
-    <>
-      <DetailsHero backdrop={backdrop} title={master.title} watched={allWatched}>
-        <FocusButton
-          label={playLabel}
-          icon="play"
-          variant="primary"
-          hasTVPreferredFocus
-          disabled={!series.data}
-          onPress={play}
-          testID="details-play"
-        />
-        <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
-        <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
-        <WatchlistButton section="series" title={master} />
-      </DetailsHero>
-      <Body
-        main={
-          <>
-            <Facts
-              year={master.year}
-              rating={master.rating}
-              quality={variant.quality}
-              extra={series.data ? tn('{count} Season', '{count} Seasons', series.data.seasons.length) : null}
-            />
-            <Text style={styles.text}>{series.data?.summary.plot ?? ''}</Text>
-            <VariantSelect master={master} value={variant} />
-          </>
-        }
-        side={
-          <>
-            <Fact label={t('Cast')} value={series.data?.cast} />
-            <Fact label={t('Genres')} value={series.data?.summary.genre} />
-          </>
-        }
-      />
-      {series.loading ? <ActivityIndicator color={colors.accent} style={styles.padded} /> : null}
-      {series.error ? (
-        <View style={styles.padded}>
-          <ErrorText>{errorText(series.error)}</ErrorText>
-        </View>
-      ) : null}
-      {series.data ? <Episodes series={series.data} master={master} initialSeason={startSeason} /> : null}
-    </>
+    <DetailsLayout
+      backdrop={backdrop}
+      title={master.title}
+      watched={allWatched}
+      actions={
+        <>
+          <FocusButton
+            label={playLabel}
+            icon="play"
+            variant="primary"
+            hasTVPreferredFocus
+            disabled={!series.data}
+            onPress={play}
+            testID="details-play"
+          />
+          <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
+          <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
+          <WatchlistButton section="series" title={master} />
+        </>
+      }
+      main={
+        <>
+          <Facts
+            year={master.year}
+            rating={master.rating}
+            quality={variant.quality}
+            extra={series.data ? tn('{count} Season', '{count} Seasons', series.data.seasons.length) : null}
+          />
+          <Text style={styles.text}>{series.data?.summary.plot ?? ''}</Text>
+          <VariantSelect master={master} value={variant} />
+        </>
+      }
+      side={
+        <>
+          <Fact label={t('Cast')} value={series.data?.cast} />
+          <Fact label={t('Genres')} value={series.data?.summary.genre} />
+        </>
+      }
+      list={
+        <>
+          {series.loading ? <ActivityIndicator color={colors.accent} style={styles.padded} /> : null}
+          {series.error ? (
+            <View style={styles.padded}>
+              <ErrorText>{errorText(series.error)}</ErrorText>
+            </View>
+          ) : null}
+          {series.data ? <Episodes series={series.data} master={master} initialSeason={startSeason} /> : null}
+        </>
+      }
+    />
   );
 }
 
@@ -262,6 +290,8 @@ function Episodes({
   // TV: Up/Down go to the same button of the episode above or below (Play, "…", version), not Play or the button the
   // episode last had focused.
   const grid = useFocusGrid();
+  // Landscape: Left from an episode's first button goes back to the buttons in the left column (D-158).
+  const split = useContext(SplitLayout);
   if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
   const columns = (listed: MergedEpisode) => (listed.versions.length > 1 ? 3 : 2);
   const neighbour = (index: number, column: number) => {
@@ -285,7 +315,7 @@ function Episodes({
       <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
         {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
-        <FocusRow style={styles.seasonChoice}>
+        <FocusRow style={styles.seasonChoice} leftOpen={split}>
           {/* Only this season (issue #132). */}
           <WatchedButton
             kind="season"
@@ -349,7 +379,7 @@ function Episodes({
         return (
           // A focused episode moves to the middle of the screen.
           <Centered key={listed.id}>
-            <FocusRow style={[styles.episode, compact && styles.episodeCompact]}>
+            <FocusRow style={[styles.episode, compact && styles.episodeCompact]} leftOpen={split}>
               {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
               <Pressable
                 style={[styles.still, compact && styles.stillCompact]}
@@ -548,6 +578,113 @@ function VariantSelect({ master, value }: { master: MasterDetails; value: Varian
   );
 }
 
+/** The details' parts, stacked in the panel (portrait) or in two columns (landscape, D-158). */
+function DetailsLayout({
+  backdrop,
+  title,
+  watched,
+  actions,
+  main,
+  side,
+  list,
+}: {
+  backdrop: string | null | undefined;
+  title: string;
+  watched?: boolean;
+  actions: ReactNode;
+  main: ReactNode;
+  side: ReactNode;
+  /** Series: the episodes, under the rest in portrait, the right column in landscape. */
+  list?: ReactNode;
+}) {
+  const split = useContext(SplitLayout);
+  if (split)
+    return <SplitDetails backdrop={backdrop} title={title} watched={watched} actions={actions} main={main} side={side} list={list} />;
+  return (
+    <>
+      <DetailsHero backdrop={backdrop} title={title} watched={watched}>
+        {actions}
+      </DetailsHero>
+      <Body main={main} side={side} />
+      {list}
+    </>
+  );
+}
+
+/**
+ * Landscape (issue #186, D-158): the backdrop behind the whole screen; on the left the title, the buttons right under
+ * it, the facts, description and version; on the right the episodes, which scroll on their own (a focused one moves to
+ * the middle on TV), or a movie's cast, genres, director and source. The left column scrolls only when it does not fit
+ * (a phone on its side). TV: Right from the last button goes to the episodes, Left from an episode comes back.
+ */
+function SplitDetails({
+  backdrop,
+  title,
+  watched,
+  actions,
+  main,
+  side,
+  list,
+}: {
+  backdrop: string | null | undefined;
+  title: string;
+  watched?: boolean;
+  actions: ReactNode;
+  main: ReactNode;
+  side: ReactNode;
+  list?: ReactNode;
+}) {
+  const { width, height } = useWindowDimensions();
+  const scroll = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const center = (view: View | null) => {
+    if (!view || !content.current) return;
+    view.measureLayout(content.current, (_x, y, _w, h) =>
+      scroll.current?.scrollTo({ y: Math.max(0, SPLIT_PAD + y - (height - h) / 2), animated: true }),
+    );
+  };
+  return (
+    <View style={styles.split}>
+      {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      <Gradient
+        angle={90}
+        stops={[
+          { offset: 0, color: colors.surface, opacity: 0.97 },
+          { offset: 0.45, color: colors.surface, opacity: 0.88 },
+          { offset: 1, color: colors.surface, opacity: 0.6 },
+        ]}
+      />
+      <ScrollView
+        style={[styles.splitLeft, { width: Math.round(width * 0.42) }]}
+        contentContainerStyle={styles.splitLeftContent}
+        testID="details-left"
+      >
+        <Text style={[styles.title, { fontSize: fluid(width, 24, 2.6, 40) }]} accessibilityRole="header">
+          {title}
+        </Text>
+        {watched ? <WatchedTag style={styles.titleTag} testID="details-watched" /> : null}
+        <FocusRow style={[styles.actions, styles.splitActions]} rightOpen>
+          {actions}
+        </FocusRow>
+        {main}
+        {list ? <View style={[styles.side, styles.splitSide]}>{side}</View> : null}
+      </ScrollView>
+      <ScrollView
+        ref={scroll}
+        style={styles.splitRight}
+        contentContainerStyle={[styles.splitRightContent, !list && styles.splitRightCentered]}
+        testID="details-right"
+      >
+        <View ref={content}>
+          <CenterFocus.Provider value={Platform.isTV ? center : null}>
+            {list ?? <View style={styles.side}>{side}</View>}
+          </CenterFocus.Provider>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 function DetailsHero({
   backdrop,
   title,
@@ -629,7 +766,20 @@ function Facts({
   );
 }
 
+/** Space above and below the columns in landscape (the close button sits in the top one). */
+const SPLIT_PAD = 24;
+
 const styles = StyleSheet.create({
+  splitScreen: { flex: 1, backgroundColor: colors.surface },
+  split: { flex: 1, flexDirection: 'row' },
+  splitLeft: { flexGrow: 0 },
+  splitLeftContent: { paddingTop: SPLIT_PAD + 16, paddingBottom: SPLIT_PAD, paddingLeft: 48, paddingRight: 24 },
+  splitActions: { marginBottom: 20 },
+  splitSide: { marginTop: 20 },
+  splitRight: { flex: 1 },
+  // Room at the top for the close button.
+  splitRightContent: { paddingTop: SPLIT_PAD + 48, paddingBottom: SPLIT_PAD, paddingRight: 16 },
+  splitRightCentered: { flexGrow: 1, justifyContent: 'center', paddingLeft: 24, paddingRight: 48 },
   overlay: { ...StyleSheet.absoluteFill, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)' },
   scroll: { alignItems: 'center', paddingVertical: PANEL_TOP, paddingHorizontal: 16 },
   panel: { overflow: 'hidden', borderRadius: 8, backgroundColor: colors.surface, elevation: 12 },
