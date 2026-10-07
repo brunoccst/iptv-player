@@ -2520,8 +2520,9 @@ Decision (`DetailsScreen`, TV and phone app):
 
 Decision (`Row`, web player and desktop app):
 - The ‹ arrow is not shown while the row is scrolled to its beginning, the › arrow not while it is at its end (1 px of slack for zoomed screens); a row whose cards all fit has neither. The row checks again on scroll, when cards are added (next page) and when the window is resized.
+- The track's snap positions are offset by the gutter (`scroll-padding-inline`), so the first card snaps in line with the row title at scroll position 0. Without it the cards snapped one gutter in, the row never read as "at its beginning" and the ‹ arrow stayed (reported by Bruno on the desktop app).
 - TV and phone: no arrows (➖).
-- Tests: `Row.test.tsx` (arrows at the beginning, middle and end; none when the cards fit).
+- Tests: `Row.test.tsx` (arrows at the beginning, middle and end; none when the cards fit); e2e on a narrow window: no ‹ at first, ‹ after ›, gone again after ‹.
 
 ## D-160
 
