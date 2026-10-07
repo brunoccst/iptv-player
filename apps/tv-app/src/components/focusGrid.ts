@@ -30,3 +30,8 @@ export function useFocusGrid() {
   };
   return { ref, at: (key: string): View | undefined => views.current.get(key) };
 }
+
+/** TV: puts the focus on `view` (react-native-tvos `requestTVFocus`), e.g. a page further down a list. */
+export function moveFocus(view: View | undefined) {
+  (view as unknown as { requestTVFocus?(): void } | undefined)?.requestTVFocus?.();
+}

@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Image,
   Platform,
@@ -40,6 +40,9 @@ import { useCatalog, useNav } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
 import { FocusRow } from '../components/FocusRow';
+import { CenteringScrollView, useCenterFocus, type Measurable } from '../components/CenterScroll';
+import { moveFocus, useFocusGrid } from '../components/focusGrid';
+import { useRemote } from '../tv/remote';
 
 /** Same 3-hour window as the web guide (DECISIONS.md#d-031). */
 const HOURS = 3;
@@ -152,12 +155,7 @@ export function LiveScreen() {
           />
         ) : (
           // The page fits the screen; the list and the guide each scroll on their own (D-103, D-140).
-          <ScrollView style={styles.categories} accessibilityLabel={t('Channel categories')} testID="live-categories">
-            <CategoryItem label={t('All channels')} active={categoryId === null} onPress={() => chooseCategory(null)} />
-            {categories.map((c) => (
-              <CategoryItem key={c.id} label={c.name} active={categoryId === c.id} onPress={() => chooseCategory(c.id)} />
-            ))}
-          </ScrollView>
+          <CategoryList categories={categories} categoryId={categoryId} onChoose={chooseCategory} navUp={navUp} />
         )}
 
         <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
@@ -264,16 +262,127 @@ export function LiveScreen() {
   );
 }
 
-function CategoryItem({ label, active, onPress }: { label: string; active: boolean; onPress(): void }) {
+/** Categories that Channel +/− skip at once: a screenful, less one so the last one stays in sight. */
+export function categoryPage(viewport: number, itemHeight: number): number {
+  if (viewport <= 0 || itemHeight <= 0) return 5;
+  return Math.max(1, Math.floor(viewport / itemHeight) - 1);
+}
+
+/**
+ * The category list beside the guide. TV: ↑/↓ move exactly one category and the list keeps the focused one in the
+ * middle; Android's scroll view no longer scrolls on its own first, which skipped like a page down (D-098). ↓ stops at
+ * the last category, ↑ from the first goes to the nav. Channel +/− move a page up or down (issue #179).
+ */
+function CategoryList({
+  categories,
+  categoryId,
+  onChoose,
+  navUp,
+}: {
+  categories: { id: string; name: string }[];
+  categoryId: string | null;
+  onChoose(id: string | null): void;
+  navUp: View | undefined;
+}) {
+  const grid = useFocusGrid();
+  const focused = useRef<number | null>(null);
+  const viewport = useRef(0);
+  const itemHeight = useRef(0);
+  const items = [{ id: null as string | null, name: t('All channels') }, ...categories];
+  const last = items.length - 1;
+
+  useRemote(({ key, action }) => {
+    if ((key !== 'channelUp' && key !== 'channelDown') || action === 'up' || focused.current === null) return;
+    const page = categoryPage(viewport.current, itemHeight.current);
+    const target = Math.max(0, Math.min(last, focused.current + (key === 'channelDown' ? page : -page)));
+    moveFocus(grid.at(String(target)));
+  });
+
+  return (
+    <CenteringScrollView
+      onlyCentering
+      style={styles.categories}
+      accessibilityLabel={t('Channel categories')}
+      testID="live-categories"
+      onLayout={(event) => (viewport.current = event.nativeEvent.layout.height)}
+    >
+      {items.map((item, index) => (
+        <CategoryItem
+          key={item.id ?? 'all'}
+          testID={`live-category-${index}`}
+          label={item.name}
+          active={categoryId === item.id}
+          onPress={() => onChoose(item.id)}
+          focusRef={grid.ref(String(index))}
+          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+          onFocus={() => (focused.current = index)}
+          onBlur={() => {
+            if (focused.current === index) focused.current = null;
+          }}
+          onLayout={index === 0 ? (height) => (itemHeight.current = height) : undefined}
+        />
+      ))}
+    </CenteringScrollView>
+  );
+}
+
+interface CategoryItemProps {
+  testID?: string;
+  label: string;
+  active: boolean;
+  onPress(): void;
+  focusRef?: (view: View | null) => void;
+  nextFocusUp?: View;
+  nextFocusDown?: View;
+  onFocus?(): void;
+  onBlur?(): void;
+  onLayout?(height: number): void;
+}
+
+function CategoryItem({
+  testID,
+  label,
+  active,
+  onPress,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
+  onFocus,
+  onBlur,
+  onLayout,
+}: CategoryItemProps) {
   const [focused, setFocused] = useState(false);
+  const centerFocus = useCenterFocus();
+  const self = useRef<View | null>(null);
+  // Stable, so the focus grid does not redraw on every render.
+  const ref = useCallback(
+    (view: View | null) => {
+      self.current = view;
+      focusRef?.(view);
+    },
+    [focusRef],
+  );
   return (
     <Pressable
+      ref={ref}
+      testID={testID}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
+      onFocus={() => {
+        setFocused(true);
+        centerFocus?.(self.current as unknown as Measurable);
+        onFocus?.();
+      }}
+      onBlur={() => {
+        setFocused(false);
+        onBlur?.();
+      }}
+      onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
       style={[styles.category, active && styles.categoryActive, focused && styles.categoryFocused]}
     >
       <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{label}</Text>

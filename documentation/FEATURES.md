@@ -136,7 +136,7 @@ Hands a movie or episode to another player app with the provider's User-Agent: V
 
 ### TV guide
 
-The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The categories and the guide each scroll on their own; the time header and channel column stay put (D-031, D-032, D-103, D-139, D-140). Selecting a channel plays it.
+The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The categories and the guide each scroll on their own; the time header and channel column stay put (D-031, D-032, D-103, D-139, D-140). Selecting a channel plays it. TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179).
 
 ### Guide over the playing channel
 
