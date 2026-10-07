@@ -124,16 +124,20 @@ export const LIBRARY_SORT_OPTIONS: (LibrarySortChoice & { label: string })[] = [
 
 /**
  * Home's "Top rated" rows (D-153, D-160, issue #188): the 25 best rated (the provider's rating) among the 100 titles added
- * last. A row of the app's own, not a list of the provider's: no "See all".
+ * last. A row of the app's own, not a list of the provider's: no "See all". A perfect score (shown as 100 %) is left out:
+ * it is usually a niche title just out with a single review (D-161).
  */
 export const TOP_RATED_POOL = 100;
 export const TOP_RATED_COUNT = 25;
+
+/** A rating the details show as 100 % (the provider's 0–10 scale, rounded like `{percent}% rating`). */
+const isPerfectRating = (rating: number) => Math.round(rating * 10) >= 100;
 
 /** The "Top rated" row's titles out of the newest ones (`TOP_RATED_POOL`, newest first): rated ones, highest first. */
 export function topRated(newest: MasterCard[]): MasterCard[] {
   return newest
     .slice(0, TOP_RATED_POOL)
-    .filter((card) => (card.rating ?? 0) > 0)
+    .filter((card) => (card.rating ?? 0) > 0 && !isPerfectRating(card.rating!))
     .sort((a, b) => b.rating! - a.rating!)
     .slice(0, TOP_RATED_COUNT);
 }

@@ -2531,3 +2531,12 @@ Decision (every app; changes D-157):
 - The rows are called "Top rated of the {count} newest movies" and "Top rated of the {count} newest series", `{count}` filled from `TOP_RATED_POOL` (100), so the title follows the pool if it changes. "Newest" is the library's added-last order.
 - A row shows the 25 best rated (`TOP_RATED_COUNT`) instead of 10; still no "See all".
 - Tests: `topRated` keeps 25; the TV Home row shows the new title.
+
+## D-161
+
+**Top rated rows leave out perfect scores** — 2026-10-07 (Bruno: "Exclude items where the rating is 100% - these are usually very niched items that just released and have 1 review.")
+
+Decision (`topRated` in `libraryStore`, every app; changes D-160):
+- A title whose rating the details show as 100 % (the provider's 0–10 rating, rounded the same way: 9.95 and up) is not in the Top rated rows. The row takes the next best instead, still 25 out of the 100 titles added last.
+- Only the Home rows: Movies and Series sorted by "Highest rated" keep them.
+- Tests: `topRated` leaves out 10 and 9.96, keeps 9.9.

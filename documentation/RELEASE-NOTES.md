@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.
 - **Top rated rows say what they hold** (2026-10-07, D-160): the Top rated rows on Home are now called "Top rated of the 100 newest movies" and "Top rated of the 100 newest series", and show 25 titles instead of 10.
 - **Details side by side on TV** (2026-10-07, D-158, issue #186): on the TV, and on a phone held sideways, a movie's or series' details fill the screen in two columns: the title, Play and the other buttons, and the description stay on the left; a series' episodes scroll on the right. A movie's page fits on one screen, without scrolling to reach Play or Download.
 - **Top rated shows what is new** (2026-10-07, D-157, issue #188): the "Top rated movies" and "Top rated series" rows on Home show the 10 best rated of the titles added last, instead of the best of all time, and have no "See all".
@@ -71,6 +72,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.
 - **Top rated rows say what they hold** (2026-10-07, D-160): the Top rated rows on Home are now called "Top rated of the 100 newest movies" and "Top rated of the 100 newest series", and show 25 titles instead of 10.
 - **Row arrows only where they lead somewhere** (2026-10-07, D-159): on Home, a row's ‹ arrow is hidden while the row is at its beginning and its › arrow once it reaches the end; a row that fits on the screen shows neither.
 - **Top rated shows what is new** (2026-10-07, D-157, issue #188): the "Top rated movies" and "Top rated series" rows on Home show the 10 best rated of the titles added last, instead of the best of all time, and have no "See all".
