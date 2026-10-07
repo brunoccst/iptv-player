@@ -4,7 +4,7 @@ import { account, createFakeBackend } from '../testing/fakeBackend';
 import type { MasterDetails } from '../api/types';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
-import { describeLibraryProgress, describeLibraryRefresh, isLibraryProcessing, pageKey, selectVariant } from './libraryStore';
+import { describeLibraryProgress, describeLibraryRefresh, isLibraryProcessing, pageKey, selectVariant, topRated } from './libraryStore';
 
 const config = { appName: 'Test', appSlug: 'test' };
 
@@ -238,5 +238,30 @@ describe('describeLibraryProgress', () => {
         status('series', { jobStatus: 'failed', error: 'HTTP 500' }),
       ]),
     ).toEqual(['Movies: grouping 900 titles…', 'Series: failed (HTTP 500)']);
+  });
+});
+
+describe('topRated (issue #188)', () => {
+  const card = (id: number, rating: number | null) => ({
+    id: `m${id}`,
+    title: `Movie ${id}`,
+    year: 2026,
+    posterUrl: null,
+    rating,
+    bestQuality: null,
+    variantCount: 1,
+  });
+
+  it('the 10 best rated of the 100 titles added last, highest first; unrated ones never', () => {
+    // Newest first: 120 titles, ratings 1…9 repeating; one unrated and one 0 among the newest.
+    const newest = Array.from({ length: 120 }, (_, i) => card(i, i === 0 ? null : i === 1 ? 0 : (i % 9) + 1));
+    newest[110] = card(110, 10);
+    const top = topRated(newest);
+    expect(top).toHaveLength(10);
+    expect(top.map((item) => item.rating)).toEqual([9, 9, 9, 9, 9, 9, 9, 9, 9, 9]);
+    // Ties keep the newest first; the 10 from beyond the 100 newest is not in.
+    expect(top[0]!.id).toBe('m8');
+    expect(top.some((item) => item.id === 'm110')).toBe(false);
+    expect(topRated([card(1, null), card(2, 0)])).toEqual([]);
   });
 });

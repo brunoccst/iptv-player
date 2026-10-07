@@ -559,7 +559,7 @@ describe('App (TV)', () => {
     backend.on('GET', '/api/library/series', {
       body: {
         total: 1,
-        items: [{ id: 's1', title: 'Show A', year: 2021, posterUrl: null, rating: null, bestQuality: null, variantCount: 1 }],
+        items: [{ id: 's1', title: 'Show A', year: 2021, posterUrl: null, rating: 7.5, bestQuality: null, variantCount: 1 }],
       },
     });
     const categoryRows = () =>
@@ -568,7 +568,7 @@ describe('App (TV)', () => {
     await flush();
 
     // Continue Watching, My List, Live TV and Top rated movies: no category row yet, and none of their titles asked for.
-    const topMovies = await screen.findByTestId('row-movies-all-rating');
+    const topMovies = await screen.findByTestId('row-movies-top-rated');
     expect(screen.queryByTestId('row-series-all')).toBeNull();
     expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
     expect(categoryRows()).toHaveLength(0);
@@ -576,13 +576,14 @@ describe('App (TV)', () => {
     // The focus on Top rated movies: the two rows below it (Top rated series, Series) are built.
     await act(async () => fireEvent(within(topMovies).getByTestId('card-Big Test Movie'), 'focus'));
     await flush();
-    expect(screen.getByTestId('row-series-all-rating')).toBeTruthy();
-    // The Top rated rows ask for the provider's rating, highest first (D-153).
-    const rated = backend.calls.filter((call) => call.url.searchParams.get('sort') === 'rating');
-    expect(rated.map((call) => [call.url.pathname, call.url.searchParams.get('order')])).toEqual([
-      ['/api/library/movies', 'desc'],
-      ['/api/library/series', 'desc'],
+    expect(screen.getByTestId('row-series-top-rated')).toBeTruthy();
+    // The Top rated rows ask for the 100 titles added last and show the best rated of them, without "See all" (#188).
+    const pools = backend.calls.filter((call) => call.url.searchParams.get('limit') === '100');
+    expect(pools.map((call) => [call.url.pathname, call.url.searchParams.get('sort'), call.url.searchParams.get('order')])).toEqual([
+      ['/api/library/movies', 'added', 'desc'],
+      ['/api/library/series', 'added', 'desc'],
     ]);
+    expect(screen.queryByTestId('row-movies-top-rated-open')).toBeNull();
     const seriesCard = within(screen.getByTestId('row-series-all')).getByTestId('card-Show A');
     expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
 

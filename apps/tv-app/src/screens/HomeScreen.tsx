@@ -1,15 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import {
-  continueWatching,
-  watchlistCard,
-  pageKey,
-  recentChannelTarget,
-  TOP_RATED_SORT,
-  type MasterCard,
-  type ProgressDto,
-  t,
-} from '@iptv/shared';
+import { continueWatching, watchlistCard, pageKey, recentChannelTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
@@ -22,7 +13,7 @@ import { continueMenuItems, useLiveHomeRow, useCatalog, useHeroTitle, useLibrary
 import { colors, useNavHeight, useSizes } from '../theme';
 
 import { LibraryBanner } from '../components/LibraryBanner';
-import { MasterCardItem, TitleRow } from './titles';
+import { MasterCardItem, TitleRow, TopRatedRow } from './titles';
 
 /** Movies the hero picks its featured title from. */
 const HERO_CANDIDATES = 30;
@@ -72,9 +63,9 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     { key: 'continue', render: () => <ContinueWatchingRow /> },
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
-    // The provider's best-rated titles (D-153, issue #181).
-    { key: 'top-movies', render: () => <TitleRow section="movies" sort={TOP_RATED_SORT} title={t('Top rated movies')} /> },
-    { key: 'top-series', render: () => <TitleRow section="series" sort={TOP_RATED_SORT} title={t('Top rated series')} /> },
+    // The best-rated titles added last (D-153, issue #181, #188).
+    { key: 'top-movies', render: () => <TopRatedRow section="movies" title={t('Top rated movies')} /> },
+    { key: 'top-series', render: () => <TopRatedRow section="series" title={t('Top rated series')} /> },
     { key: 'series', render: () => <TitleRow section="series" title={t('Series')} /> },
     ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
       key: `m-${category.id}`,

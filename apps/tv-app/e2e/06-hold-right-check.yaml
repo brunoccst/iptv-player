@@ -3,7 +3,7 @@
 appId: ${APP_ID}
 ---
 - takeScreenshot: 31-hold-right-end
-# The first row with stress titles: "Top rated movies" since D-153, before it the stress category's row.
+# The stress category's row (the walk skipped "Top rated movies", which has no "See all" since D-157).
 - assertVisible:
     id: "row-movies-.*-more"
     focused: true
