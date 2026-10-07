@@ -244,6 +244,8 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     player.getState().close();
     progress.getState().reset();
     watchlist.getState().reset();
+    // Pairing and backups write preferences and subtitle settings too (D-162).
+    await Promise.all([profilePrefs.getState().load(), subtitles.settings.getState().load()]);
     await session.getState().restore({ keepProfile: true });
     // restore() keeps the same profile id when nothing changed, so the subscription above may not load it.
     const profileId = session.getState().activeProfileId;

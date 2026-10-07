@@ -202,6 +202,8 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 
 The TV and desktop app show a QR code (sign-in page, or account menu → Library & devices → Sync with phone); the phone app scans it (account menu → Library & devices → Connect a TV or computer). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060, D-072).
 
+Each profile's settings go along and end up the same on both devices (D-162): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the phone's wins; watched series and recent channels are joined. A parental PIN already set on the TV or computer stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
+
 ### Play on TV
 
 After pairing, the phone app starts a title on the TV (D-044, D-061).
