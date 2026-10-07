@@ -66,7 +66,7 @@ providers do not let web pages read their answers.
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
-| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
+| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `FEATURES-TECHNICAL.md` (how each feature works in the code), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
 
 ## Prerequisites
 
