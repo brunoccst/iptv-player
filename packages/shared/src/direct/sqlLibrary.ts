@@ -123,9 +123,9 @@ const ITEM_COLUMNS = `sid TEXT NOT NULL, name TEXT NOT NULL, cat TEXT, poster TE
 /** The items with what the parser read from their names and their title (`g`): `${t}_i`. */
 const GROUPED_COLUMNS = `${ITEM_COLUMNS}, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL, year INTEGER,
   nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
-  score INTEGER NOT NULL, qrank INTEGER NOT NULL, langs TEXT NOT NULL, gyear INTEGER, k TEXT, tm TEXT, gk TEXT, g INTEGER`;
+  score INTEGER NOT NULL, qrank INTEGER NOT NULL, langs TEXT NOT NULL, gyear INTEGER, k TEXT, tm TEXT, gk TEXT, sx TEXT, g INTEGER`;
 const GROUPED_NAMES = `sid, name, cat, poster, rating, added, released, ext, tmdb, ryear, title, nkey, ckey, year, nyear,
-  quality, source, audio, atag, hdr, subs, score, qrank, langs, gyear, k, tm, gk, g`;
+  quality, source, audio, atag, hdr, subs, score, qrank, langs, gyear, k, tm, gk, sx, g`;
 /** A downloaded item (`r`) with what the parser read from its name (`n`): the grouped columns up to `langs`. */
 const READ_ITEM = `r.sid, r.name, r.cat, r.poster, r.rating, r.added, r.released, r.ext, r.tmdb, r.ryear, n.title, n.nkey,
   n.ckey, IFNULL(n.nyear, r.ryear), n.nyear, n.quality, n.source, n.audio, n.atag, n.hdr, n.subs, n.score, n.qrank, n.langs`;
@@ -176,7 +176,8 @@ const comparing = (t: string, o: string): string[][] => [
  * Grouping (D-133), one step per call so no call holds the database (on desktop: the main process) for long:
  * 1. Same compact key (the key without spaces) and year. A year-less item takes its key's year when the key has
  *    exactly one.
- * 2. Each key takes the smallest TMDB id among its items; items with one group by it and the year instead (D-065).
+ * 2. Items with a TMDB id group by it and the year instead (D-065), so two works of one name and year stay apart
+ *    (D-156); an item without one takes its key's id when the key has exactly one.
  * The same rules as `groupTitles` (the library in memory).
  *
  * The rules are worked out in a narrow table (`_p`), and the items are written once with their title (`g`). With the
@@ -187,7 +188,7 @@ const comparing = (t: string, o: string): string[][] => [
 const grouping = (t: string, o: string | null, base: number): string[][] => [
   [
     `CREATE TABLE ${t}_p (pid INTEGER PRIMARY KEY, ckey TEXT NOT NULL, year INTEGER, tmdb TEXT, gyear INTEGER, k TEXT, tm TEXT,
-      gk TEXT)`,
+      gk TEXT, sx TEXT)`,
     `INSERT INTO ${t}_p (pid, ckey, year, tmdb) SELECT r.rowid, n.ckey, IFNULL(n.nyear, r.ryear), r.tmdb
       FROM ${t}_r r JOIN ${NAMES} n ON n.name = r.name${o ? ` WHERE n.ckey IN (SELECT ckey FROM ${t}_k)` : ''}`,
   ],
@@ -199,10 +200,15 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
     `UPDATE ${t}_p SET k = ckey || '|' || IFNULL(gyear, '')`,
   ],
   [
-    `CREATE TABLE ${t}_t (k TEXT PRIMARY KEY, tm TEXT NOT NULL) WITHOUT ROWID`,
-    `INSERT INTO ${t}_t (k, tm) SELECT k, min(tmdb) FROM ${t}_p WHERE tmdb IS NOT NULL GROUP BY k`,
-    `UPDATE ${t}_p SET tm = (SELECT tm FROM ${t}_t WHERE k = ${t}_p.k)`,
+    // Each key's smallest TMDB id and how many it has.
+    `CREATE TABLE ${t}_t (k TEXT PRIMARY KEY, lo TEXT NOT NULL, n INTEGER NOT NULL) WITHOUT ROWID`,
+    `INSERT INTO ${t}_t (k, lo, n) SELECT k, min(tmdb), count(DISTINCT tmdb) FROM ${t}_p WHERE tmdb IS NOT NULL GROUP BY k`,
+    `UPDATE ${t}_p SET tm = IFNULL(tmdb, (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k AND n = 1))`,
     `UPDATE ${t}_p SET gk = CASE WHEN tm IS NULL THEN 'k' || k ELSE 't' || tm || '|' || IFNULL(gyear, '') END`,
+    // What the item adds to its title's id (D-156, as titleGroups): another TMDB id than its key's smallest, or "-"
+    // without one in a key with several.
+    `UPDATE ${t}_p SET sx = CASE WHEN tm IS NULL THEN CASE WHEN EXISTS (SELECT 1 FROM ${t}_t WHERE k = ${t}_p.k) THEN '-' ELSE '' END
+      WHEN tm > (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k) THEN tm ELSE '' END`,
   ],
   [
     `CREATE TABLE ${t}_g (g INTEGER PRIMARY KEY, gk TEXT NOT NULL UNIQUE)`,
@@ -216,9 +222,9 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
     `INSERT INTO ${t}_i (${GROUPED_NAMES})
       SELECT ${READ_ITEM}, ${
         o
-          ? `IFNULL(p.gyear, x.gyear), IFNULL(p.k, x.k), IFNULL(p.tm, x.tm), IFNULL(p.gk, x.gk),
+          ? `IFNULL(p.gyear, x.gyear), IFNULL(p.k, x.k), IFNULL(p.tm, x.tm), IFNULL(p.gk, x.gk), IFNULL(p.sx, x.sx),
         IFNULL((SELECT g FROM ${t}_g WHERE gk = IFNULL(p.gk, x.gk)) + ${base}, x.g)`
-          : `p.gyear, p.k, p.tm, p.gk, (SELECT g FROM ${t}_g WHERE gk = p.gk)`
+          : `p.gyear, p.k, p.tm, p.gk, p.sx, (SELECT g FROM ${t}_g WHERE gk = p.gk)`
       }
       FROM ${t}_r r JOIN ${NAMES} n ON n.name = r.name LEFT JOIN ${t}_p p ON p.pid = r.rowid${
         o ? ` LEFT JOIN ${t}_x m ON p.pid IS NULL AND m.rid = r.rowid LEFT JOIN ${o}_i x ON x.rowid = m.oid` : ''
@@ -296,7 +302,7 @@ const inPlace = (t: string, o: string, base: number): string[][] => [
     // The changed items, and the items whose key did not change but whose group did (it gained or lost an item): those
     // keep what they were, in their group's new number. In the order of the new list, as a whole build has them.
     `INSERT INTO ${t}_i (${GROUPED_NAMES}, rid)
-      SELECT ${READ_ITEM}, p.gyear, p.k, p.tm, p.gk, (SELECT g FROM ${t}_g WHERE gk = p.gk) + ${base}, r.rowid AS rid
+      SELECT ${READ_ITEM}, p.gyear, p.k, p.tm, p.gk, p.sx, (SELECT g FROM ${t}_g WHERE gk = p.gk) + ${base}, r.rowid AS rid
         FROM ${t}_p p JOIN ${t}_r r ON r.rowid = p.pid JOIN ${NAMES} n ON n.name = r.name
       UNION ALL
       SELECT ${GROUPED_NAMES.replace(/\bg$/, '')} (SELECT g FROM ${t}_g WHERE gk = x.gk) + ${base}, m.rid
@@ -1082,9 +1088,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   async function titleIds(t: string, account: string, kind: LibraryKind, hashIds: LibraryBuildOptions['hashIds']) {
     let count = 0;
     for (let after = 0; ;) {
-      const rows = await db.query(`SELECT g, ckey, year, title FROM ${t}_a WHERE g > ? ORDER BY g LIMIT ?`, [after, READ_BATCH]);
+      const rows = await db.query(
+        `SELECT g, ckey, year, title, (SELECT max(sx) FROM ${t}_i x WHERE x.g = a.g) FROM ${t}_a a WHERE g > ? ORDER BY g LIMIT ?`,
+        [after, READ_BATCH],
+      );
       if (rows.length === 0) return count;
-      const texts = rows.map(([, ckey, year]) => masterIdText(account, kind, String(ckey), numberOrNull(year)));
+      const texts = rows.map(([, ckey, year, , suffix]) =>
+        masterIdText(account, kind, String(ckey), numberOrNull(year), suffix ? String(suffix) : ''),
+      );
       const hashed = hashIds ? await hashIds(texts) : texts.map(sha1Hex);
       await db.run([
         {

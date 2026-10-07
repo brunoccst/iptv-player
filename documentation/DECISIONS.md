@@ -2481,3 +2481,16 @@ Decision (`player/TouchLevels.tsx`, TV and phone app; `TvMedia.brightness/setBri
 - Volume is the system's media volume (`STREAM_MUSIC`) in its own steps, set without the system's volume panel; the bar shows the step it landed on.
 - TV: none (the remote's volume keys). Web and desktop: none (mouse and keyboard; ↑/↓ already set the volume).
 - Tests: both sides, the bar's second, slides that do not count (middle, sideways, top edge), the brightness given back and re-applied, and the live guide swipe in the middle.
+
+## D-156
+
+**Titles of one name and year with different TMDB ids stay apart** — 2026-10-07 (issue #187: two films named "The Odyssey" came out in 2026, by Christopher Nolan and by Marcel Walz; "make sure to also check the director")
+
+Context: grouping (D-133) gave each name and year the smallest TMDB id among its items, so two works of one name and year became one title even when the provider told them apart by TMDB id. The provider's movie and series lists carry no director: only a title's details (`get_vod_info`, one request per item) do, and reading those for a whole catalog is not possible. The TMDB id is the list's way to tell works apart.
+
+Decision (`titleGroups` and the library database's grouping, every app):
+- An item with a TMDB id groups by its own id and year. An item without one takes its key's id when the key has exactly one, as before; when the key has several, it stays a title of its own (which film it is cannot be told from the list).
+- Ids: two titles of one name and year would get the same id (account, kind, key, year). The title of the key's smallest TMDB id keeps that id, so My List and progress stay with the title the whole key was before; the others add their TMDB id to the id text, and the id-less one "-".
+- The grouping rules go to 8, so every library is rebuilt once.
+- Tests: grouping cases (two ids apart, id-less with several ids, id-less with one); the database and the library in memory give the same titles and ids.
+

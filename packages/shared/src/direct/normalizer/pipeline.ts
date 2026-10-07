@@ -1,4 +1,4 @@
-import { groupTitles } from './matching';
+import { titleGroups } from './matching';
 import { compactKey, isEnglishArabic, normalizeKey, parseTitle, parseYear, type ParsedTitle } from './parser';
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
@@ -213,7 +213,7 @@ export async function buildMastersInChunks(
     await pause((0.8 * parsed.length) / total, 'names');
   }
   work('names');
-  const groups = groupTitles(parsed, usable.map(tmdbId));
+  const groups = titleGroups(parsed, usable.map(tmdbId));
   work('keys');
   const masters: Master[] = [];
   let reusedMasters = 0;
@@ -227,10 +227,11 @@ export async function buildMastersInChunks(
       }
     : hashedId;
   for (let start = 0; start < groups.length; start += chunkSize) {
-    for (const group of groups.slice(start, start + chunkSize)) {
-      const same = unchangedMaster(reuse, usable, group);
+    for (const { members, idSuffix } of groups.slice(start, start + chunkSize)) {
+      // A title of a name and year with others is built again (its id may have changed, D-156).
+      const same = idSuffix ? null : unchangedMaster(reuse, usable, members);
       if (same) reusedMasters++;
-      const master = same ?? masterOf(accountId, mediaKind, usable, parsed, group, names, idOf);
+      const master = same ?? masterOf(accountId, mediaKind, usable, parsed, members, names, idOf, idSuffix);
       if (hashIds && !same) needIds.push(master);
       masters.push(master);
     }
@@ -252,7 +253,11 @@ export async function buildMastersInChunks(
 
 function assemble(accountId: string, mediaKind: string, usable: NormalizerItem[], names: ParsedTitle[]): Master[] {
   const parsed = names.map((name, index) => withReleaseYear(name, usable[index]!));
-  return sortMasters(groupTitles(parsed, usable.map(tmdbId)).map((group) => masterOf(accountId, mediaKind, usable, parsed, group, names)));
+  return sortMasters(
+    titleGroups(parsed, usable.map(tmdbId)).map(({ members, idSuffix }) =>
+      masterOf(accountId, mediaKind, usable, parsed, members, names, hashedId, idSuffix),
+    ),
+  );
 }
 
 const masterOf = (
@@ -263,6 +268,7 @@ const masterOf = (
   group: number[],
   names: ParsedTitle[],
   idOf: (idText: string) => string = hashedId,
+  idSuffix = '',
 ) =>
   buildMaster(
     accountId,
@@ -271,6 +277,7 @@ const masterOf = (
     group.map((index) => parsed[index]!),
     group.map((index) => names[index]!),
     idOf,
+    idSuffix,
   );
 
 /** What an update can take from the last library (D-109). */
@@ -377,12 +384,15 @@ export function releaseKey(releaseDate: string | null, year: number | null): num
 }
 
 /** Stable across re-syncs while the group's key and year stay the same. Saved libraries and progress refer to it. */
-export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null) =>
-  hashedId(masterIdText(accountId, mediaKind, key, year));
+export const masterId = (accountId: string, mediaKind: string, key: string, year: number | null, idSuffix = '') =>
+  hashedId(masterIdText(accountId, mediaKind, key, year, idSuffix));
 
-/** What a master id is the SHA-1 of (its first 20 hex digits). */
-export const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null) =>
-  `${accountId}|${mediaKind}|${key}|${year ?? ''}`;
+/**
+ * What a master id is the SHA-1 of (its first 20 hex digits). `idSuffix` keeps two titles of one name and year apart
+ * (D-156, `titleGroups`); empty for every other title, whose id stays what it was.
+ */
+export const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null, idSuffix = '') =>
+  `${accountId}|${mediaKind}|${key}|${year ?? ''}${idSuffix ? `|${idSuffix}` : ''}`;
 
 const hashedId = (idText: string) => sha1Hex(idText).slice(0, 20);
 
@@ -416,6 +426,7 @@ function buildMaster(
   parsed: ParsedTitle[],
   names: ParsedTitle[],
   idOf: (idText: string) => string,
+  idSuffix: string,
 ): Master {
   const built = items.map((item, index) => buildVariant(item, parsed[index]!, names[index]!.year));
   const order = variantOrder(built);
@@ -435,7 +446,7 @@ function buildMaster(
   const released = items.flatMap((item) => releaseKey(optional(item.releaseDate), null) ?? []);
 
   return {
-    id: idOf(masterIdText(accountId, mediaKind, compactKey(canonical), year)),
+    id: idOf(masterIdText(accountId, mediaKind, compactKey(canonical), year, idSuffix)),
     title: displayTitle,
     normalizedKey: canonical.key,
     year,

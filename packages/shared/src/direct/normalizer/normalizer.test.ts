@@ -48,8 +48,8 @@ describe('normalizeKey (shared cases)', () => {
 });
 
 describe('groupTitles (shared cases)', () => {
-  const cases = (load('matching') as { groups: { name: string; titles: string[]; groups: number }[] }).groups;
-  it.each(cases)('$name', ({ titles, groups }) => expect(groupTitles(titles.map(parseTitle))).toHaveLength(groups));
+  const cases = (load('matching') as { groups: { name: string; titles: string[]; tmdb?: (string | null)[]; groups: number }[] }).groups;
+  it.each(cases)('$name', ({ titles, tmdb, groups }) => expect(groupTitles(titles.map(parseTitle), tmdb)).toHaveLength(groups));
 });
 
 describe('buildMasters (shared cases)', () => {
