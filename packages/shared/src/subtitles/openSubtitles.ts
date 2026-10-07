@@ -188,6 +188,7 @@ export function createSubtitleService({ secureStorage, dataStorage, fetch: fetch
     async load() {
       try {
         const saved = JSON.parse((await secureStorage.getItem(SUBTITLE_SETTINGS_KEY)) ?? 'null') as Partial<SubtitleSettings> | null;
+        session = null;
         set({ settings: { ...DEFAULT_SUBTITLE_SETTINGS, ...(saved ?? {}) }, loaded: true });
       } catch {
         set({ settings: DEFAULT_SUBTITLE_SETTINGS, loaded: true });

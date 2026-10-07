@@ -5,14 +5,25 @@ import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
 import { seal, unseal } from './sealed';
+import {
+  mergePrefsByProfile,
+  mergeSubtitleSettings,
+  PROFILE_PREFS_KEY,
+  prefsFor,
+  readPrefs,
+  savePrefs,
+  SUBTITLE_SETTINGS_KEY,
+} from './settings';
 import type { RemoteOffer } from './remote';
 import { t } from '../i18n/i18n';
+import type { ProfilePrefs } from '../stores/profilePrefsStore';
 
 /**
  * Phone-to-TV pairing (D-060). The TV shows a QR code with its address on the home network and a one-time key. The
  * phone app scans it and sends its sign-in and media data (profiles, progress, My List), encrypted with that key. The
  * TV signs in with it (when signed out) or merges it (same account), and answers with the merged media data, so both
- * devices end up with the same lists. Device settings (the audio decoder choice) are never sent.
+ * devices end up with the same lists. The profiles' preferences and the automatic-subtitles settings go along too
+ * (D-162, `settings.ts`). Device settings (the audio decoder choice) are never sent.
  */
 export const PAIRING_PATH = '/pair';
 const QR_PREFIX = 'IPTVPAIR:1:';
@@ -46,7 +57,18 @@ interface PairingRequest {
 }
 /** What the TV answers. */
 type PairingReply =
-  { ok: true; mode: PairingMode; data: Record<string, string>; remote?: RemoteOffer } | { ok: false; error: PairingError };
+  | { ok: true; mode: PairingMode; data: Record<string, string>; settings?: PairedSettings; remote?: RemoteOffer }
+  | { ok: false; error: PairingError };
+/**
+ * The merged settings (D-162), apart from `data` so an older phone, which writes `data` as it is, never replaces its
+ * preferences of other accounts with this account's.
+ */
+interface PairedSettings {
+  /** Preferences by merged profile id. */
+  prefs: Record<string, ProfilePrefs>;
+  /** Automatic subtitles (`SubtitleSettings` as stored), or null when neither device has them. */
+  subtitles: string | null;
+}
 
 /** Result on either side, for the UI. `remote`: the remote-play key both devices keep (D-061). */
 export type PairingResult = { ok: true; mode: PairingMode; accountName: string; remote?: RemoteOffer } | { ok: false; error: PairingError };
@@ -202,6 +224,19 @@ export async function acceptPairing(
   for (const [entryKey, value] of Object.entries(entries)) await dataStorage.setItem(entryKey, value);
   const profiles = merged.profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids }));
 
+  // Settings (D-162): each profile's preferences and the automatic subtitles.
+  const renamed = [...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId);
+  const prefs = mergePrefsByProfile(
+    readPrefs(data[PROFILE_PREFS_KEY]),
+    readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)),
+    localIds,
+    merged.profiles.map(({ id }) => id),
+  );
+  await savePrefs(dataStorage, prefs, renamed);
+  const localSubtitles = await storages.secure.getItem(SUBTITLE_SETTINGS_KEY);
+  const subtitles = mergeSubtitleSettings(secure[SUBTITLE_SETTINGS_KEY], localSubtitles);
+  if (subtitles !== null && subtitles !== localSubtitles) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, subtitles);
+
   const pinKey = pinStorageKey(accountId);
   if (mode === 'login') {
     // The phone's sign-in, then the profile picker (who is watching on this TV is not the phone's choice).
@@ -221,7 +256,7 @@ export async function acceptPairing(
 
   const accountName = phoneSession.account?.username ?? t('your account');
   const { remote } = options;
-  return reply({ ok: true, mode, data: entries, remote }, { ok: true, mode, accountName, remote });
+  return reply({ ok: true, mode, data: entries, settings: { prefs, subtitles }, remote }, { ok: true, mode, accountName, remote });
 }
 
 /**
@@ -235,7 +270,7 @@ export async function sendPairing(
 ): Promise<Extract<PairingResult, { ok: true }>> {
   let contents: UserDataContents;
   try {
-    // Only sign-in and media keys: device settings (settingsKeys, e.g. the audio decoder) stay on each device.
+    // Sign-in and media keys; device settings (settingsKeys, e.g. the audio decoder) stay on each device.
     contents = await collectUserData({ secure: storages.secure, data: storages.data });
   } catch {
     throw new PairingFailure('not-signed-in');
@@ -243,6 +278,14 @@ export async function sendPairing(
   const session = parseJson<Session>(contents.secure[SESSION_STORAGE_KEY] ?? null);
   const accountId = session?.account?.id;
   if (!session || !accountId) throw new PairingFailure('not-signed-in');
+
+  // Settings that follow the account (D-162): this account's profile preferences and the automatic subtitles.
+  const dataStorage = storages.data ?? storages.secure;
+  const profileIds = (parseJson<ProfileDto[]>(contents.data[profilesKey(accountId)] ?? null) ?? session.profiles ?? []).map(({ id }) => id);
+  const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);
+  if (prefs) contents.data[PROFILE_PREFS_KEY] = prefs;
+  const subtitles = await storages.secure.getItem(SUBTITLE_SETTINGS_KEY);
+  if (subtitles !== null) contents.secure[SUBTITLE_SETTINGS_KEY] = subtitles;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 30_000);
@@ -263,8 +306,11 @@ export async function sendPairing(
   if (!reply) throw new PairingFailure('wrong-code');
   if (!reply.ok) throw new PairingFailure(reply.error);
 
-  const dataStorage = storages.data ?? storages.secure;
   for (const [key, value] of Object.entries(reply.data)) await dataStorage.setItem(key, value);
+  if (reply.settings) {
+    await savePrefs(dataStorage, reply.settings.prefs);
+    if (reply.settings.subtitles !== null) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, reply.settings.subtitles);
+  }
   const profiles = parseJson<ProfileDto[]>(reply.data[profilesKey(accountId)] ?? null);
   if (profiles) {
     const updated = { ...session, profiles: profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids })) };
