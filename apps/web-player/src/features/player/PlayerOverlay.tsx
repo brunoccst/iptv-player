@@ -317,6 +317,38 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   }, [saveProgress]);
 
   // Keyboard shortcuts.
+  // Media keys (keyboards, headsets; issue #178): the browser hands them to the media session.
+  useEffect(() => {
+    const session = typeof navigator === 'undefined' ? undefined : navigator.mediaSession;
+    if (!session) return;
+    const actions: [MediaSessionAction, () => void][] = [
+      ['play', () => void videoRef.current?.play()],
+      ['pause', () => videoRef.current?.pause()],
+      ['stop', close],
+      ['seekbackward', () => !isLive && skip('back')],
+      ['seekforward', () => !isLive && skip('forward')],
+    ];
+    for (const [action, handler] of actions) {
+      try {
+        session.setActionHandler(action, () => {
+          handler();
+          wake();
+        });
+      } catch {
+        // An action this browser does not support.
+      }
+    }
+    return () => {
+      for (const [action] of actions) {
+        try {
+          session.setActionHandler(action, null);
+        } catch {
+          // As above.
+        }
+      }
+    };
+  }, [skip, close, isLive]);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
