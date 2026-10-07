@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { continueWatching, watchlistCard, pageKey, recentChannelTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
+import {
+  continueWatching,
+  watchlistCard,
+  pageKey,
+  recentChannelTarget,
+  type MasterCard,
+  type ProgressDto,
+  t,
+  TOP_RATED_POOL,
+} from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
@@ -64,8 +73,14 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
     // The best-rated titles added last (D-153, issue #181, #188).
-    { key: 'top-movies', render: () => <TopRatedRow section="movies" title={t('Top rated movies')} /> },
-    { key: 'top-series', render: () => <TopRatedRow section="series" title={t('Top rated series')} /> },
+    {
+      key: 'top-movies',
+      render: () => <TopRatedRow section="movies" title={t('Top rated of the {count} newest movies', { count: TOP_RATED_POOL })} />,
+    },
+    {
+      key: 'top-series',
+      render: () => <TopRatedRow section="series" title={t('Top rated of the {count} newest series', { count: TOP_RATED_POOL })} />,
+    },
     { key: 'series', render: () => <TitleRow section="series" title={t('Series')} /> },
     ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
       key: `m-${category.id}`,

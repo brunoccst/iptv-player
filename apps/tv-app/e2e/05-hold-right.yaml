@@ -22,8 +22,8 @@ appId: ${APP_ID}
       id: "home-screen"
     timeout: 60000
 # Down walks the rows (the page follows the focus) to the stress row, below the fold: the first category row with
-# stress titles. "Top rated movies" comes first with stress titles too (they all have a rating) but holds 10 and has no
-# "See all" (D-157), so the walk goes once past it and on to the next row with stress titles.
+# stress titles. "Top rated movies" comes first with stress titles too (they all have a rating) but holds 25 and has no
+# "See all" (D-157, D-160), so the walk goes once past it and on to the next row with stress titles.
 - repeat:
     while:
       notVisible:

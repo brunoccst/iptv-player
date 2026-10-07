@@ -584,6 +584,8 @@ describe('App (TV)', () => {
       ['/api/library/series', 'added', 'desc'],
     ]);
     expect(screen.queryByTestId('row-movies-top-rated-open')).toBeNull();
+    // Their titles say how many were looked at and in which order (D-160).
+    expect(within(topMovies).getByText('Top rated of the 100 newest movies')).toBeTruthy();
     const seriesCard = within(screen.getByTestId('row-series-all')).getByTestId('card-Show A');
     expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
 

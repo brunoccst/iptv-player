@@ -252,15 +252,17 @@ describe('topRated (issue #188)', () => {
     variantCount: 1,
   });
 
-  it('the 10 best rated of the 100 titles added last, highest first; unrated ones never', () => {
+  it('the 25 best rated of the 100 titles added last, highest first; unrated ones never', () => {
     // Newest first: 120 titles, ratings 1…9 repeating; one unrated and one 0 among the newest.
     const newest = Array.from({ length: 120 }, (_, i) => card(i, i === 0 ? null : i === 1 ? 0 : (i % 9) + 1));
     newest[110] = card(110, 10);
     const top = topRated(newest);
-    expect(top).toHaveLength(10);
-    expect(top.map((item) => item.rating)).toEqual([9, 9, 9, 9, 9, 9, 9, 9, 9, 9]);
+    expect(top).toHaveLength(25);
+    // 11 nines among the 100 newest (8, 17, …, 98), then the eights, newest first.
+    expect(top.map((item) => item.rating)).toEqual([...Array(11).fill(9), ...Array(11).fill(8), 7, 7, 7]);
     // Ties keep the newest first; the 10 from beyond the 100 newest is not in.
     expect(top[0]!.id).toBe('m8');
+    expect(top[11]!.id).toBe('m7');
     expect(top.some((item) => item.id === 'm110')).toBe(false);
     expect(topRated([card(1, null), card(2, 0)])).toEqual([]);
   });

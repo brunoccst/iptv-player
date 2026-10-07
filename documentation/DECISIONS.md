@@ -2522,3 +2522,12 @@ Decision (`Row`, web player and desktop app):
 - The ‹ arrow is not shown while the row is scrolled to its beginning, the › arrow not while it is at its end (1 px of slack for zoomed screens); a row whose cards all fit has neither. The row checks again on scroll, when cards are added (next page) and when the window is resized.
 - TV and phone: no arrows (➖).
 - Tests: `Row.test.tsx` (arrows at the beginning, middle and end; none when the cards fit).
+
+## D-160
+
+**Top rated rows named for what they hold, 25 titles** — 2026-10-07 (Bruno: "The "top rated" categories must be renamed to something that reflects a) how many entries are being looked up and 2) the order it took from. […] Also, expand the list to 25 entries.")
+
+Decision (every app; changes D-157):
+- The rows are called "Top rated of the {count} newest movies" and "Top rated of the {count} newest series", `{count}` filled from `TOP_RATED_POOL` (100), so the title follows the pool if it changes. "Newest" is the library's added-last order.
+- A row shows the 25 best rated (`TOP_RATED_COUNT`) instead of 10; still no "See all".
+- Tests: `topRated` keeps 25; the TV Home row shows the new title.
