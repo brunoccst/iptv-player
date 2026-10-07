@@ -79,6 +79,24 @@
       "name": "leading zeros do not split a title",
       "titles": ["Show Part 02 (2020)", "Show Part 2 (2020) 1080p"],
       "groups": 1
+    },
+    {
+      "name": "one name and year, two TMDB ids: two titles (issue #187, D-156)",
+      "titles": ["The Odyssey (2026)", "EN - The Odyssey (2026) 4K", "The Odyssey (2026)"],
+      "tmdb": ["1033127", "1033127", "1499711"],
+      "groups": 2
+    },
+    {
+      "name": "without a TMDB id, a title stays apart when its key has several (D-156)",
+      "titles": ["The Odyssey (2026)", "The Odyssey (2026)", "The Odyssey (2026) HD"],
+      "tmdb": ["1033127", "1499711", null],
+      "groups": 3
+    },
+    {
+      "name": "without a TMDB id, a title takes its key's only one",
+      "titles": ["Heat (1995)", "Heat (1995) 4K", "Heat 1995 FR"],
+      "tmdb": ["949", null, null],
+      "groups": 1
     }
   ]
 }

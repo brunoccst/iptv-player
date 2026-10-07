@@ -4,7 +4,8 @@ import { createMemoryStorage } from '../stores/storage';
 import { createFakePanel } from '../testing/fakePanel';
 import { createNodeSqlDatabase } from '../testing/nodeSqlDatabase';
 import { createDirectApiClient } from './directApiClient';
-import { buildMasters, type NormalizerItem } from './normalizer/pipeline';
+import { compactKey, parseTitle } from './normalizer/parser';
+import { buildMasters, masterId, type NormalizerItem } from './normalizer/pipeline';
 import { packer } from './libraryCodec';
 import { createSqlLibrary, listFingerprint, type LibraryBuildTimings, type SqlLibraryKind } from './sqlLibrary';
 
@@ -113,6 +114,36 @@ describe('library in SQLite (D-121)', () => {
     expect(await tables()).not.toContain('lib1_r');
     expect(await library.list(saved, {})).toMatchObject({ total: 1, items: [{ title: 'Big Movie', year: 2020 }] });
     expect(await library.open('other')).toEqual({});
+  });
+
+  it('two works of one name and year with different TMDB ids stay two titles, like the library in memory (issue #187, D-156)', async () => {
+    const db = createNodeSqlDatabase();
+    const library = createSqlLibrary(db, async () => undefined);
+    const items = [
+      { id: 1, name: 'The Odyssey (2026)', tmdbId: '1033127', addedAt: 100 },
+      { id: 2, name: 'EN - The Odyssey (2026) 4K', tmdbId: '1033127', addedAt: 110 },
+      { id: 3, name: 'The Odyssey (2026)', tmdbId: '1499711', addedAt: 120 },
+      // No id: the key has two, so it is a title of its own.
+      { id: 4, name: 'The Odyssey (2026) HD', addedAt: 130 },
+      // No id: the key has only one, so it joins it.
+      { id: 5, name: 'Heat (1995)', tmdbId: '949' },
+      { id: 6, name: 'Heat (1995) 4K' },
+    ];
+    const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items);
+    const page = await library.list(saved, { sort: 'title' });
+    expect(page.items.map(({ title, variantCount }) => `${title} ${variantCount}`).sort()).toEqual([
+      'Heat 2',
+      'The Odyssey 1',
+      'The Odyssey 1',
+      'The Odyssey 2',
+    ]);
+    // Each title has its own id; the first TMDB id keeps the id the whole key had before.
+    const expected = buildMasters('acc', 'movie', items);
+    expect(new Set(expected.map((master) => master.id)).size).toBe(4);
+    expect(expected.find((master) => master.variants.some((variant) => variant.streamId === '1'))!.id).toBe(
+      masterId('acc', 'movie', compactKey(parseTitle('The Odyssey (2026)')), 2026),
+    );
+    for (const master of expected) expect(await library.get(saved, master.id)).toEqual(master);
   });
 
   it('groups by key, year and TMDB id, reads only new names, and says what changed (D-133)', async () => {

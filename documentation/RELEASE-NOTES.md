@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Same name, different film** (2026-10-07, D-156, issue #187): two films with the same name and year, such as the two "The Odyssey" of 2026, are no longer shown as one title when your provider gives them different TMDB ids. The library is rebuilt once after the update.
 - **Brightness and volume by sliding on a phone** (2026-10-07, D-155, issue #184): while watching on a phone, slide up or down on the left side of the video for brightness and on the right side for volume. A bar shows the level while you slide and goes a second after you let go. The brightness is the player's own: the phone's comes back when you close it. On a live channel, swipe up in the middle to open the guide.
 - **The remote's colour keys do something** (2026-10-07, D-154, issue #180): Red adds the title you are on to My List (or takes it off), Green opens audio and subtitles while watching (elsewhere it resumes your latest title), Yellow starts a search, Blue opens the guide on a live channel or Live TV. Small coloured dots show which button each key presses.
 - **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
@@ -67,6 +68,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Same name, different film** (2026-10-07, D-156, issue #187): two films with the same name and year, such as the two "The Odyssey" of 2026, are no longer shown as one title when your provider gives them different TMDB ids. The library is rebuilt once after the update.
 - **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
 - **Media keys** (2026-10-07, issue #178): a keyboard's or headset's play, pause, stop, back and forward keys control the player.
 - **"Who's watching?" every time** (2026-10-06, D-151): opening the app asks who is watching; an account with one profile opens it directly.

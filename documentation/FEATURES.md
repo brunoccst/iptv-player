@@ -32,7 +32,7 @@ A file, encrypted with a password of your choice, with the sign-in, profiles, pa
 
 ### Title grouping
 
-The provider lists each language, quality and copy of a title separately. The apps group them into one title with several versions: by the cleaned name and year, or by the TMDB id and year (D-065, D-133). Language prefixes such as "EN - ", "|DE| ", "PL = " or "GR - " are read as the version's language, also ones not registered yet (D-089, D-107, D-112, D-134). A series has one episode list across all its versions (D-066). The grouping runs in a database on the device (SQLite on TV, phone and desktop, D-121).
+The provider lists each language, quality and copy of a title separately. The apps group them into one title with several versions: by the cleaned name and year, or by the TMDB id and year (D-065, D-133). Two films of one name and year with different TMDB ids ("The Odyssey" 2026 by Christopher Nolan and by Marcel Walz) stay two titles; a copy without a TMDB id then stays apart from both, since the provider's lists do not say who directed it (issue #187, D-156). Language prefixes such as "EN - ", "|DE| ", "PL = " or "GR - " are read as the version's language, also ones not registered yet (D-089, D-107, D-112, D-134). A series has one episode list across all its versions (D-066). The grouping runs in a database on the device (SQLite on TV, phone and desktop, D-121).
 
 ### Version choice and "(best)"
 
