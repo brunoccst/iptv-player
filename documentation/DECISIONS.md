@@ -2454,3 +2454,17 @@ Decision:
 - Home shows "Top rated movies" and "Top rated series" after the Live TV row, on every app. The row title and the arrow card open Movies or Series sorted by rating.
 - No trending row: it needs an outside list (TMDB's are free, but only with an API key of the user's own, like OpenSubtitles, D-111). The owner chose the provider's ratings only.
 - Tests: the in-memory and SQLite libraries give the same lists in both rating orders; the TV Home asks for the rated rows.
+
+## D-154
+
+**TV: the remote's colour keys** — 2026-10-07 (issue #180; the owner approved the proposed mapping in the project thread)
+
+Context: many TV remotes have red, green, yellow and blue keys. react-native-tvos already reports them (`red`, `green`, `yellow`, `blue`), so no native code is needed. The Google TV voice remote and others have none, so each key only adds a shortcut.
+
+Decision (`tv/colourKeys.tsx`, TV app):
+- Red: the focused cover's title (`MasterCardItem` registers it on focus), else the details page's title (its My List button), goes on My List or comes off. In the player: the movie or series playing, with a short notice ("Added to My List" / "Removed from My List"); nothing on live channels.
+- Green: in the player, the audio and subtitles panel; elsewhere the first title of Continue Watching plays, over its details (issue #166).
+- Yellow: from anywhere (details and the player close), the nav's search box starts typing (`navStore.openSearch`).
+- Blue: on a live channel, the guide over it; elsewhere Live TV.
+- `ColourKeys` is mounted once with the signed-in shell; the player handles Red, Green and Blue itself. A dot in the key's colour sits on the button it also presses: My List in details (red), the player's Audio (green) and Guide (blue), the search box (yellow), Live TV in the nav (blue). TV only.
+- Tests: each key outside and inside the player, Yellow from details, the dots on TV only.

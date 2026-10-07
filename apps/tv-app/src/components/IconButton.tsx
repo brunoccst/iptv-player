@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Animated, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
 import { focus, useFocusScale } from './focus';
 import { Icon, type IconName } from './Icon';
+import { ColourDot, type ColourKey } from '../tv/colourKeys';
 
 /** Web `.icon-button`: round, translucent, white ring; focus fills it white (dark icon), grows it and adds a glow. */
 export function IconButton({
@@ -20,6 +21,7 @@ export function IconButton({
   focusRef,
   nextFocusUp,
   nextFocusDown,
+  colourKey,
 }: {
   icon: IconName;
   label: string;
@@ -41,6 +43,8 @@ export function IconButton({
   /** TV: the views that Up/Down go to, instead of the nearest ones. */
   nextFocusUp?: FocusDestination;
   nextFocusDown?: FocusDestination;
+  /** TV: the remote's colour key that also presses it, shown as a dot (D-154). */
+  colourKey?: ColourKey;
 }) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.12);
@@ -76,6 +80,7 @@ export function IconButton({
       >
         <Icon name={icon} size={iconSize} color={focused && !plain ? focus.onSolid : undefined} />
       </Animated.View>
+      {colourKey ? <ColourDot colour={colourKey} /> : null}
     </Pressable>
   );
 }

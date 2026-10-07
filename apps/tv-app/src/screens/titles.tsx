@@ -32,6 +32,7 @@ import { Row } from '../components/Row';
 import { Select } from '../components/Select';
 import { colors, useSizes } from '../theme';
 import { usePagedLibrary } from '../hooks';
+import { blurTitle, focusTitle } from '../tv/colourKeys';
 
 /** Home rows show only the first titles; the arrow card at the end opens the category page. */
 const ROW_SIZE = 10;
@@ -70,6 +71,9 @@ export function MasterCardItem({
         subtitle={card.subtitle}
         onPress={openDetails}
         onLongPress={() => setMenu(true)}
+        // The remote's Red key adds the focused title to My List (D-154).
+        onFocus={() => focusTitle({ section, card: item })}
+        onBlur={() => blurTitle(item.id)}
       />
       {menu ? (
         <CardMenu

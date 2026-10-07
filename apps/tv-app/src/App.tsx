@@ -5,6 +5,7 @@ import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBar
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { LibraryNotice } from './components/LibraryBanner';
+import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
 import { currentRoute, currentSection, type Section } from './navigation/navStore';
@@ -78,7 +79,10 @@ export function App() {
         ) : !activeProfileId ? (
           <ProfilesScreen />
         ) : (
-          <Shell />
+          <>
+            <Shell />
+            <ColourKeys />
+          </>
         )}
       </View>
       <PairingDialogHost />

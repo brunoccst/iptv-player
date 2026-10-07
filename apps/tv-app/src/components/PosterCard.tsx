@@ -31,6 +31,7 @@ export interface PosterCardProps {
   /** Holding OK on TV (a long touch on phones), e.g. the card's options menu (D-078). */
   onLongPress?(): void;
   onFocus?(): void;
+  onBlur?(): void;
 }
 
 /** Web `.card`: art (2:3 or 16:9) + title/subtitle on the surface colour; focus grows it smoothly with a soft light ring and glow. */
@@ -50,6 +51,7 @@ export function PosterCard({
   onPress,
   onLongPress,
   onFocus,
+  onBlur,
 }: PosterCardProps) {
   const [focused, setFocused] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -75,7 +77,10 @@ export function PosterCard({
         centerFocus?.(self.current);
         onFocus?.();
       }}
-      onBlur={() => setFocused(false)}
+      onBlur={() => {
+        setFocused(false);
+        onBlur?.();
+      }}
       style={[styles.card, { width: cardSize }, focused && styles.focused, { transform: [{ scale }] }]}
     >
       <View style={[styles.art, { aspectRatio: landscape ? 16 / 9 : 2 / 3 }]}>

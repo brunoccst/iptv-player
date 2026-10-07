@@ -9,6 +9,7 @@ import { colors, fonts, radius, useCompact, useNavHeight, useSizes } from '../th
 import { Gradient } from './Gradient';
 import { focus } from './focus';
 import { Icon } from './Icon';
+import { ColourDot } from '../tv/colourKeys';
 
 const LINKS: { section: Section; label: () => string }[] = [
   { section: 'home', label: () => t('Home') },
@@ -65,7 +66,11 @@ export function TopNav() {
       onPress={() => navStore.getState().goSection(link.section)}
     >
       {(focused) => (
-        <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label()}</Text>
+        <>
+          <Text style={[styles.link, section === link.section && styles.linkActive, focused && styles.linkFocused]}>{link.label()}</Text>
+          {/* The remote's Blue key opens Live TV (D-154). */}
+          {link.section === 'live' ? <ColourDot colour="blue" style={styles.dot} /> : null}
+        </>
       )}
     </NavPressable>
   ));
@@ -147,6 +152,13 @@ function SearchBox({ value, width }: { value: string; width: number }) {
   useEffect(() => {
     if (editing) input.current?.focus();
   }, [editing]);
+  // The remote's Yellow key (D-154).
+  const requested = useNav((s) => s.searchRequested);
+  useEffect(() => {
+    if (!requested) return;
+    navStore.getState().searchOpened();
+    setEditing(true);
+  }, [requested]);
 
   const field = (
     <TextInput
@@ -198,6 +210,8 @@ function SearchBox({ value, width }: { value: string; width: number }) {
         style={[styles.search, { width }, focused && styles.searchFocused]}
       >
         {field}
+        {/* The remote's Yellow key starts typing here (D-154). */}
+        <ColourDot colour="yellow" style={styles.dot} />
       </Pressable>
       {value ? <TvClearButton /> : null}
     </View>
@@ -268,6 +282,7 @@ function NavPressable({
 }
 
 const styles = StyleSheet.create({
+  dot: { top: 2, right: 2 },
   tvSearch: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   clear: {
     width: 40,

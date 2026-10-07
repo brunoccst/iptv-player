@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **The remote's colour keys do something** (2026-10-07, D-154, issue #180): Red adds the title you are on to My List (or takes it off), Green opens audio and subtitles while watching (elsewhere it resumes your latest title), Yellow starts a search, Blue opens the guide on a live channel or Live TV. Small coloured dots show which button each key presses.
 - **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
 - **Live TV categories: one step at a time** (2026-10-07, issue #179): on the TV, ↑ and ↓ in the category list move exactly one category, and the list scrolls to keep it in the middle instead of jumping a page; Channel + and Channel − move a page up or down.
 - **The remote's media keys always work in the player** (2026-10-07, issue #178): Play/Pause, Play, Pause, ⏪ and ⏩ now also work while the player's buttons, the audio and subtitles panel, the guide or Skip ahead are on screen; Stop closes the player.

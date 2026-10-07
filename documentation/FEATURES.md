@@ -76,6 +76,10 @@ On TV the focused title is kept in the middle of the screen on every page, so yo
 
 On TV, ← and → only move along the row you are in (a row of cards, the Home banner's Play and More Info, a row of buttons or chips) and stop at its ends; ↑ and ↓ change rows (D-069, D-152). On Live TV, ← from a channel still goes to the category list beside the guide.
 
+### Colour keys (TV)
+
+Remotes with red, green, yellow and blue keys: **Red** adds the focused title (a cover, the details page, the movie or series playing) to My List or takes it off; **Green** opens audio and subtitles in the player, elsewhere it plays the first title of Continue Watching; **Yellow** starts a search from anywhere; **Blue** opens the guide over a live channel, elsewhere Live TV. A small dot in the key's colour marks the button it also presses (My List in details, the player's Audio and Guide, the search box, Live TV in the nav). Remotes without colour keys reach all of this the usual way (D-154, issue #180).
+
 ## Covers and cards
 
 ### Card menu
