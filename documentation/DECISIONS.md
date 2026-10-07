@@ -2494,3 +2494,12 @@ Decision (`titleGroups` and the library database's grouping, every app):
 - The grouping rules go to 8, so every library is rebuilt once.
 - Tests: grouping cases (two ids apart, id-less with several ids, id-less with one); the database and the library in memory give the same titles and ids.
 
+## D-157
+
+**Home's Top rated rows: the best of what was added last, 10 titles** — 2026-10-07 (issue #188: "must only show 10 items (so no "Show all" button, since they are a category that we created, not the provider). It also must only display the top rated recently added items instead of "all time".")
+
+Decision (`topRated` in `libraryStore`, every app; changes D-153):
+- A Top rated row reads the 100 titles added last (the library's newest-first order) and shows the 10 with the highest provider rating, ties newest first. Titles without a rating (or 0) are left out; a row with none hides.
+- No "See all" card and no link on the row title: the row is the app's own, not a provider category. Movies and Series keep "Highest rated" in Sort by.
+- Tests: `topRated` (pool, order, unrated left out); the TV Home asks for the newest 100 and shows no "See all".
+

@@ -29,7 +29,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | "Watched" tag on covers (bottom right) and in details (D-081, D-082) | ✅ | ✅ | ✅ | movies, episodes, fully watched series; an eye since D-104 | [Watched tag](FEATURES.md#watched-tag) |
 | My List bookmark on covers (top right) and on the details button, filled when saved (issue #157) | ✅ | ✅ | ✅ | title cards on Home, Movies, Series, Search and My List | [Watchlist](FEATURES.md#watchlist) |
 | Quality tag on covers (top left): "4K", or "CAM" / "TS" / "TC" / "SCR" when every version is a cinema copy (D-141) | ✅ | ✅ | ✅ | also on My List, its Home row and its page | [Quality tag](FEATURES.md#quality-tag) |
-| Home: Top rated movies and Top rated series rows from the provider's ratings; the row title or "See all" opens the list sorted by rating (D-153, issue #181) | ✅ | ✅ | ✅ | Home, after Live TV · Movies/Series: Sort by "Highest rated" | [Home](FEATURES.md#home) |
+| Home: Top rated movies and Top rated series rows: the 10 best rated (provider's ratings) of the 100 titles added last, no "See all" (D-153, issues #181, #188) | ✅ | ✅ | ✅ | Home, after Live TV · Movies/Series: Sort by "Highest rated" | [Home](FEATURES.md#home) |
 | Library banner (offline, organizing with per-kind progress) floats at the bottom over the content (D-142) | ✅ | ✅ | ✅ | Home, Movies, Series | [Library banner](FEATURES.md#library-banner) |
 | Details: Watched toggle for the movie or the whole series (D-104) | ✅ | ✅ | ✅ | eye button next to My List | [Movie and series details](FEATURES.md#movie-and-series-details) |
 | Mark a season watched or not watched (D-132) | ✅ | ✅ | ✅ | eye button just left of the season choice (issue #159) | [Seasons and episodes](FEATURES.md#seasons-and-episodes) |

@@ -402,6 +402,10 @@ test('Home row titles take the mouse over their whole text, above the cards’ h
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   const link = page.getByRole('button', { name: 'Open Action' });
   await link.scrollIntoViewIfNeeded();
+  // Rows load as they come near the screen and grow when they do: measure once the ones around it are in.
+  await expect(page.getByRole('button', { name: 'Scroll Action right' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Scroll Series right', exact: true })).toBeAttached();
+  await link.scrollIntoViewIfNeeded();
   const box = (await link.boundingBox())!;
   for (const [fx, fy] of [
     [0.1, 0.2],

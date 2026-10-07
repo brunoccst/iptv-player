@@ -4,9 +4,10 @@ import {
   pageKey,
   watchlistCard,
   recentChannelTarget,
-  TOP_RATED_SORT,
+  DEFAULT_LIBRARY_SORT,
+  TOP_RATED_POOL,
+  topRated,
   type LibrarySection,
-  type LibrarySortChoice,
   type MediaCategory,
   type ProgressDto,
   t,
@@ -46,9 +47,9 @@ export function HomePage({ banner }: { banner: ReactNode }) {
         <ContinueWatchingRow />
         <MyListRow />
         <LiveRow />
-        {/* The provider's best-rated titles (D-153, issue #181). */}
-        <LibraryRow key={`top-movies-${revision}`} section="movies" sort={TOP_RATED_SORT} title={t('Top rated movies')} />
-        <LibraryRow key={`top-series-${revision}`} section="series" sort={TOP_RATED_SORT} title={t('Top rated series')} />
+        {/* The best-rated titles added last (D-153, issue #181, #188). */}
+        <TopRatedRow key={`top-movies-${revision}`} section="movies" title={t('Top rated movies')} />
+        <TopRatedRow key={`top-series-${revision}`} section="series" title={t('Top rated series')} />
         <LibraryRow key={`all-series-${revision}`} section="series" title={t('Series')} />
         {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
           <LibraryRow key={`m-${category.id}-${revision}`} section="movies" category={category} title={category.name} />
@@ -140,30 +141,33 @@ function LiveRow() {
   );
 }
 
-function LibraryRow({
-  section,
-  category,
-  title,
-  sort,
-}: {
-  section: LibrarySection;
-  category?: MediaCategory;
-  title: string;
-  /** A row in another order (Top rated, D-153); its title opens the list in it. */
-  sort?: LibrarySortChoice;
-}) {
+/** "Top rated": the 10 best rated of the titles added last; the app's own row, so its title opens nothing (issue #188). */
+function TopRatedRow({ section, title }: { section: LibrarySection; title: string }) {
   const [visible, setVisible] = useState(false);
-  const page = usePagedLibrary(section, { categoryId: category?.id, sort }, ROW_SIZE, visible);
+  const page = usePagedLibrary(section, { sort: DEFAULT_LIBRARY_SORT }, TOP_RATED_POOL, visible);
+  const items = topRated(page.items);
+  // Only the first page is read: the row hides once it is in and has no rated title.
+  if (!page.loadingFirst && !page.error && items.length === 0) return null;
+
+  return (
+    <Row title={title} onVisible={() => setVisible(true)} empty={page.error ? t('Could not load this row.') : ' '}>
+      {items.map((item) => (
+        <MasterCard key={item.id} section={section} item={item} />
+      ))}
+    </Row>
+  );
+}
+
+function LibraryRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
+  const [visible, setVisible] = useState(false);
+  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE, visible);
   if (page.done && page.items.length === 0) return null;
 
   return (
     <Row
       title={title}
       onVisible={() => setVisible(true)}
-      onTitleClick={() => {
-        if (sort) stores.library.getState().chooseSort(section, sort);
-        uiStore.getState().openCategory(section, category?.id ?? null);
-      }}
+      onTitleClick={() => uiStore.getState().openCategory(section, category?.id ?? null)}
       onNearEnd={page.loadMore}
       loadingMore={page.loadingMore}
       empty={page.error ? t('Could not load this row.') : ' '}

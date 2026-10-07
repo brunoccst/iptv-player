@@ -12,7 +12,10 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import {
+  DEFAULT_LIBRARY_SORT,
   LIBRARY_SORT_OPTIONS,
+  TOP_RATED_POOL,
+  topRated,
   sortChoiceKey,
   type LibrarySection,
   type LibrarySort,
@@ -21,7 +24,7 @@ import {
   type MediaCategory,
   t,
 } from '@iptv/shared';
-import { navStore, stores } from '../appContext';
+import { navStore } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useTitleCard } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -87,34 +90,39 @@ export function MasterCardItem({
 }
 
 /** Home row: the first 10 titles of a section/category. The title and the arrow card open Movies/Series on that category. */
-export function TitleRow({
-  section,
-  category,
-  title,
-  sort,
-}: {
-  section: LibrarySection;
-  category?: MediaCategory;
-  title: string;
-  /** A row in another order (Top rated, D-153); "See all" opens the list in it. */
-  sort?: LibrarySortChoice;
-}) {
-  const page = usePagedLibrary(section, { categoryId: category?.id, sort }, ROW_SIZE);
+export function TitleRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
+  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE);
   if (page.done && page.items.length === 0) return null;
-  const open = () => {
-    if (sort) stores.library.getState().chooseSort(section, sort);
-    navStore.getState().openCategory(section, category?.id ?? null);
-  };
+  const open = () => navStore.getState().openCategory(section, category?.id ?? null);
   return (
     <Row
       title={title}
       items={page.items}
       keyOf={(item) => item.id}
-      testID={`row-${section}-${category?.id ?? 'all'}${sort ? `-${sort.sort}` : ''}`}
+      testID={`row-${section}-${category?.id ?? 'all'}`}
       loading={page.loadingFirst}
       empty={page.error ? t('Could not load this row.') : ' '}
       onTitlePress={open}
       more={page.hasMore ? { onPress: open } : undefined}
+      render={(item) => <MasterCardItem section={section} item={item} />}
+    />
+  );
+}
+
+/** "Top rated": the 10 best rated of the titles added last; the app's own row, so no "See all" (D-153, issue #188). */
+export function TopRatedRow({ section, title }: { section: LibrarySection; title: string }) {
+  const page = usePagedLibrary(section, { sort: DEFAULT_LIBRARY_SORT }, TOP_RATED_POOL);
+  const items = topRated(page.items);
+  // Only the first page is read: the row hides once it is in and has no rated title.
+  if (!page.loadingFirst && !page.error && items.length === 0) return null;
+  return (
+    <Row
+      title={title}
+      items={items}
+      keyOf={(item) => item.id}
+      testID={`row-${section}-top-rated`}
+      loading={page.loadingFirst}
+      empty={page.error ? t('Could not load this row.') : ' '}
       render={(item) => <MasterCardItem section={section} item={item} />}
     />
   );
