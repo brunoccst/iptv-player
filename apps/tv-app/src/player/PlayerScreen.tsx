@@ -126,6 +126,8 @@ const BUTTONS_HIDE_MS = 8000;
 const DOUBLE_TAP_MS = 300;
 /** How long a notice (e.g. the subtitle OpenSubtitles added, D-111) stays up. */
 const NOTICE_MS = 4000;
+/** The remote's media keys, as react-native-tvos names them. */
+const MEDIA_KEYS = new Set(['playPause', 'play', 'pause', 'stop', 'rewind', 'fastForward']);
 
 /**
  * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-075), ↑ the same
@@ -443,6 +445,26 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const focusablesVisible = showSkipAhead || countdown !== null;
 
   useRemote(({ key, action }) => {
+    // The remote's media keys work whatever is open: the buttons, a drawer, the guide, Skip ahead (issue #178).
+    // react-native-tvos reports them on release only, like Select. ⏪/⏩ like ←/→: presses in a row go faster (#121).
+    if (MEDIA_KEYS.has(key)) {
+      if (key === 'stop') {
+        if (action !== 'down') navStore.getState().back();
+        return;
+      }
+      if (error) return;
+      wake();
+      if (key === 'rewind' || key === 'fastForward') {
+        if (action === 'up' || isLive) return;
+        const direction: SeekDirection = key === 'rewind' ? 'back' : 'forward';
+        controller.current!.keyDown(direction);
+        controller.current!.keyUp(direction);
+      } else if (action !== 'down') {
+        if (key === 'playPause') setPaused((p) => !p);
+        else setPaused(key === 'pause');
+      }
+      return;
+    }
     if (drawer || guide || recent || error) return;
     wake();
     // On the buttons the D-pad moves the focus and Select presses the focused button.
@@ -460,9 +482,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       }
       return;
     }
-    // react-native-tvos reports select/playPause on release only (like a click); other keys on press.
-    if (key === 'select' || key === 'playPause') {
-      if (action !== 'down' && (key === 'playPause' || !focusablesVisible)) setPaused((p) => !p);
+    // react-native-tvos reports select on release only (like a click); other keys on press.
+    if (key === 'select') {
+      if (action !== 'down' && !focusablesVisible) setPaused((p) => !p);
       return;
     }
     if (action === 'up') return;
@@ -473,12 +495,6 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     else if (key === 'up' && isLive) setGuide(true);
     else if (key === 'up' && Platform.isTV) setButtons('back');
     else if (key === 'up' || key === 'down') setDrawer('audio');
-    // ⏪/⏩ like ←/→: presses in a row go faster (issue #121).
-    else if ((key === 'rewind' || key === 'fastForward') && !isLive) {
-      const direction: SeekDirection = key === 'rewind' ? 'back' : 'forward';
-      controller.current!.keyDown(direction);
-      controller.current!.keyUp(direction);
-    }
   });
 
   // Back: close the drawer or the skip options first (registered after the shell's handler, so it runs first).

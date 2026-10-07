@@ -3,7 +3,20 @@ import { Platform } from 'react-native';
 import { navStore } from '../appContext';
 import { setupApp } from '../../test/utils';
 import { TopNav } from '../components/TopNav';
-import { LiveScreen } from './LiveScreen';
+import { pressRemote } from '../../test/remoteMock';
+import { LiveScreen, categoryPage } from './LiveScreen';
+
+// The test renderer has no native tags: a category's `nextFocusUp`/`nextFocusDown` becomes the testID it points to.
+jest.mock('react-native/Libraries/Components/TV/tagForComponentOrHandle', () => ({
+  __esModule: true,
+  default: (component?: { props?: { testID?: string } } | null) => component?.props?.testID,
+}));
+jest.mock('../components/focusGrid', () => ({
+  ...jest.requireActual('../components/focusGrid'),
+  moveFocus: jest.fn(),
+}));
+const moveFocus = jest.requireMock<{ moveFocus: jest.Mock }>('../components/focusGrid').moveFocus;
+const focusedTo = () => moveFocus.mock.calls.map(([view]: [{ props?: { testID?: string } } | undefined]) => view?.props?.testID);
 
 const NOW = Date.parse('2026-09-23T12:10:00Z');
 const at = (minutes: number) => new Date(Date.parse('2026-09-23T12:00:00Z') + minutes * 60_000).toISOString();
@@ -207,9 +220,8 @@ describe('LiveScreen (guide)', () => {
     expect(screen.getByTestId('guide-trap').props.trapFocusDown).toBe(true);
 
     // Up from Earlier/Now/Later goes to "Live TV" in the nav.
-    // (The test renderer has no native view tags: a view given as the target comes out as null, none as undefined.)
-    expect(screen.getByTestId('guide-earlier').props.nextFocusUp).toBeNull();
-    expect(screen.getByTestId('guide-later').props.nextFocusUp).toBeNull();
+    expect(screen.getByTestId('guide-earlier').props.nextFocusUp).toBe('nav-live');
+    expect(screen.getByTestId('guide-later').props.nextFocusUp).toBe('nav-live');
 
     // Scrolling the channels to the end loads the next ones.
     const before = requests.length;
@@ -218,5 +230,51 @@ describe('LiveScreen (guide)', () => {
     });
     await flush();
     expect(requests.length).toBeGreaterThan(before);
+  });
+
+  it('TV: ↑/↓ move one category, the list centers instead of scrolling itself; Channel +/− page (issue #179)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    moveFocus.mockClear();
+    const backend = setupApp();
+    navStore.getState().goSection('live');
+    const categories = Array.from({ length: 20 }, (_, i) => ({ id: String(i + 1), name: `Category ${i + 1}`, kind: 'live' }));
+    backend.on('GET', '/api/catalog/live/categories', { body: categories });
+    backend.on('GET', '/api/epg', {
+      body: { status: 'ready', updatedAt: at(0), from: at(0), to: at(180), totalChannels: 0, channels: [] },
+    });
+    await render(<LiveScreen />);
+    await flush();
+
+    // Android's scroll view does not scroll on ↑/↓ by itself; the focused category is centered instead.
+    expect(screen.getByTestId('live-categories').props.scrollEnabled).toBe(false);
+    // ↑/↓ go to the category straight above or below; ↓ stays on the last one.
+    const item = (index: number) => screen.getByTestId(`live-category-${index}`);
+    expect(item(3).props.nextFocusUp).toBe('live-category-2');
+    expect(item(3).props.nextFocusDown).toBe('live-category-4');
+    expect(item(20).props.nextFocusDown).toBe('live-category-20');
+
+    // Channel −: a page down (a 300 dp list of 50 dp categories: 5 at a time); Channel +: a page up.
+    await fireEvent(screen.getByTestId('live-categories'), 'layout', { nativeEvent: { layout: { height: 300 } } });
+    await fireEvent(item(0), 'layout', { nativeEvent: { layout: { height: 50 } } });
+    await fireEvent(item(3), 'focus');
+    await act(async () => pressRemote('channelDown', 'up'));
+    expect(focusedTo()).toEqual(['live-category-8']);
+    // Never past either end.
+    await fireEvent(item(18), 'focus');
+    await act(async () => pressRemote('channelDown', 'up'));
+    await fireEvent(item(2), 'focus');
+    await act(async () => pressRemote('channelUp', 'up'));
+    expect(focusedTo()).toEqual(['live-category-8', 'live-category-20', 'live-category-0']);
+
+    // Nothing in the list focused: Channel +/− leave it alone.
+    await fireEvent(item(2), 'blur');
+    await act(async () => pressRemote('channelDown', 'up'));
+    expect(moveFocus).toHaveBeenCalledTimes(3);
+  });
+
+  it('Channel +/− skip a screenful of categories, less one', () => {
+    expect(categoryPage(300, 50)).toBe(5);
+    expect(categoryPage(60, 50)).toBe(1);
+    expect(categoryPage(0, 50)).toBe(5);
   });
 });

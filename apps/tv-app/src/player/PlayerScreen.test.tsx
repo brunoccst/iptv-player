@@ -203,6 +203,42 @@ describe('PlayerScreen', () => {
     expect(playerState.props?.paused).toBe(false);
   });
 
+  it('the media keys work with the buttons or the drawer open: play, pause, ⏪/⏩, stop closes (issue #178)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    navStore.getState().push({ name: 'player', target: movie });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(100, 6000);
+
+    // ↓ puts the focus on the buttons; the media keys still reach the player.
+    await act(async () => pressRemote('down', 'up'));
+    expect(screen.queryByTestId('player-focus')).toBeNull();
+    await act(async () => pressRemote('pause', 'up'));
+    expect(playerState.props?.paused).toBe(true);
+    await act(async () => pressRemote('pause', 'up'));
+    expect(playerState.props?.paused).toBe(true);
+    await act(async () => pressRemote('play', 'up'));
+    expect(playerState.props?.paused).toBe(false);
+    await act(async () => pressRemote('playPause', 'up'));
+    expect(playerState.props?.paused).toBe(true);
+    await act(async () => pressRemote('playPause', 'up'));
+    expect(playerState.props?.paused).toBe(false);
+    await act(async () => pressRemote('fastForward', 'up'));
+    await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
+    expect(playerState.seeks).toEqual([110_000]);
+
+    await fireEvent.press(screen.getByTestId('player-audio'));
+    expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+    await act(async () => pressRemote('rewind', 'up'));
+    await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
+    expect(playerState.seeks).toEqual([110_000, 100_000]);
+
+    await act(async () => pressRemote('stop', 'up'));
+    expect(navStore.getState().stack.at(-1)?.name).not.toBe('player');
+  });
+
   it('headphones disconnected: the player paused itself, so the screen shows Play and Play resumes (#83)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
