@@ -93,6 +93,8 @@
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
+  /* Cards snap in line with the row title, so the first card's place is the scroll start (D-159). */
+  scroll-padding-inline: var(--gutter);
   /* Room for the hovered card (8 % larger) and its glow: the track clips its content (D-078, D-079). */
   padding: 28px var(--gutter);
   margin: -28px 0;

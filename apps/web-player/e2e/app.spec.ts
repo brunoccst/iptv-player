@@ -398,6 +398,26 @@ test('app language (D-084): the whole app switches, and the choice stays after a
   await expect(page.getByRole('menuitem', { name: 'App-Sprache · App language' })).toBeVisible();
 });
 
+test('Home rows show the left arrow only once scrolled, the right one until the end (D-159)', async ({ page }) => {
+  // Narrow enough that the fake panel's rows do not fit.
+  await page.setViewportSize({ width: 560, height: 900 });
+  await page.getByRole('button', { name: 'Home', exact: true }).click();
+  const right = page.locator('.row__arrow--right').first();
+  await expect(right).toBeAttached();
+  const row = page.locator('.row', { has: right });
+  await row.scrollIntoViewIfNeeded();
+  await row.hover();
+  // The cards snap into place first (scroll-snap): the row is still at its beginning.
+  await page.waitForTimeout(300);
+  await expect(row.locator('.row__arrow--left')).toHaveCount(0);
+  await row.locator('.row__arrow--right').click();
+  await expect(row.locator('.row__arrow--left')).toBeVisible();
+  // Back at the beginning, the first card snaps in line with the title, and the left arrow goes again.
+  await row.locator('.row__arrow--left').click();
+  await expect(row.locator('.row__arrow--left')).toHaveCount(0);
+  await expect(row.locator('.row__arrow--right')).toBeVisible();
+});
+
 test('Home row titles take the mouse over their whole text, above the cards’ hover room (D-085)', async ({ page }) => {
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   const link = page.getByRole('button', { name: 'Open Action' });
