@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Details side by side on TV** (2026-10-07, D-158, issue #186): on the TV, and on a phone held sideways, a movie's or series' details fill the screen in two columns: the title, Play and the other buttons, and the description stay on the left; a series' episodes scroll on the right. A movie's page fits on one screen, without scrolling to reach Play or Download.
 - **Top rated shows what is new** (2026-10-07, D-157, issue #188): the "Top rated movies" and "Top rated series" rows on Home show the 10 best rated of the titles added last, instead of the best of all time, and have no "See all".
 - **Same name, different film** (2026-10-07, D-156, issue #187): two films with the same name and year, such as the two "The Odyssey" of 2026, are no longer shown as one title when your provider gives them different TMDB ids. The library is rebuilt once after the update.
 - **Brightness and volume by sliding on a phone** (2026-10-07, D-155, issue #184): while watching on a phone, slide up or down on the left side of the video for brightness and on the right side for volume. A bar shows the level while you slide and goes a second after you let go. The brightness is the player's own: the phone's comes back when you close it. On a live channel, swipe up in the middle to open the guide.

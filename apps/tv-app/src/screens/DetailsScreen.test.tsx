@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Animated, Platform } from 'react-native';
+import { Animated, Dimensions, Platform } from 'react-native';
 import { navStore, stores } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
@@ -448,5 +448,80 @@ describe('movie details: the version a title starts with (D-144)', () => {
     await render(<DetailsScreen section="movies" masterId="m" />);
     await flush();
     expect(screen.getByTestId('variant-button').props.accessibilityLabel).toBe('Version / Stream Quality: 1080p · ENG');
+  });
+});
+
+describe('landscape: two columns (issue #186, D-158)', () => {
+  const portrait = Dimensions.get('window');
+  /** The column (left or right) an element is in. */
+  const column = (testID: string) => {
+    let node = screen.getByTestId(testID) as unknown as { parent: unknown; props: { testID?: string } } | null;
+    while (node && node.props.testID !== 'details-left' && node.props.testID !== 'details-right') node = node.parent as typeof node;
+    return node?.props.testID ?? null;
+  };
+  beforeEach(() => {
+    const window = { width: 960, height: 540, scale: 1, fontScale: 1 };
+    Dimensions.set({ window, screen: window });
+  });
+  afterEach(() => Dimensions.set({ window: portrait, screen: portrait }));
+
+  it('a movie: title and buttons on the left, the facts on the right, all on one screen', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m', {
+      body: {
+        id: 'm',
+        title: 'Movie',
+        year: 2020,
+        posterUrl: null,
+        rating: 7.5,
+        bestQuality: null,
+        variants: [variant('en', 'EN - Movie 1080p')],
+      },
+    });
+    await render(<DetailsScreen section="movies" masterId="m" />);
+    await flush();
+    expect(screen.getByTestId('details-split')).toBeTruthy();
+    expect(column('details-play')).toBe('details-left');
+    expect(screen.getByText('Movie')).toBeTruthy();
+    expect(screen.getByText('75% rating')).toBeTruthy();
+    // The facts (here the source name) are in the right column.
+    expect(screen.getAllByText('EN - Movie 1080p').length).toBeGreaterThan(0);
+  });
+
+  it('a series: the episodes scroll on the right; on TV Right leaves the buttons and Left leaves an episode', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/wide', {
+      body: { id: 'wide', title: 'Wide', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('w', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/w', {
+      body: series('w', [{ number: 1, episodes: [episode('w-1', 1, 1), episode('w-2', 1, 2)] }]),
+    });
+    await render(<DetailsScreen section="series" masterId="wide" />);
+    await flush();
+    await flush();
+    expect(column('details-play')).toBe('details-left');
+    expect(column('episodes')).toBe('details-right');
+    expect(column('episode-w-2')).toBe('details-right');
+    // The buttons' row lets Right out to the episodes; each episode's row lets Left out to the buttons.
+    type Host = { props: Record<string, unknown>; children: (Host | string)[] };
+    const all = (node: Host): Host[] => [node, ...node.children.flatMap((child) => (typeof child === 'string' ? [] : all(child)))];
+    const guides = all(screen.root as unknown as Host).filter((node) => typeof node.props.trapFocusRight === 'boolean');
+    const holding = (testID: string) => guides.filter((node) => all(node).some((child) => child.props.testID === testID)).at(-1)!;
+    expect(holding('details-play').props).toMatchObject({ trapFocusLeft: true, trapFocusRight: false });
+    expect(holding('episode-w-1').props).toMatchObject({ trapFocusLeft: false, trapFocusRight: true });
+    jest.restoreAllMocks();
+  });
+
+  it('portrait keeps the panel', async () => {
+    Dimensions.set({ window: portrait, screen: portrait });
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m', {
+      body: { id: 'm', title: 'Movie', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('en', 'ENG')] },
+    });
+    await render(<DetailsScreen section="movies" masterId="m" />);
+    await flush();
+    expect(screen.queryByTestId('details-split')).toBeNull();
+    expect(screen.getByTestId('details-play')).toBeTruthy();
   });
 });

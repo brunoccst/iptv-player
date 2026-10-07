@@ -2503,3 +2503,14 @@ Decision (`topRated` in `libraryStore`, every app; changes D-153):
 - No "See all" card and no link on the row title: the row is the app's own, not a provider category. Movies and Series keep "Highest rated" in Sort by.
 - Tests: `topRated` (pool, order, unrated left out); the TV Home asks for the newest 100 and shows no "See all".
 
+## D-158
+
+**Details in two columns on landscape screens** — 2026-10-07 (issue #186: "a different layout for landscape mode with a fixed left side containing the titleshot/title/description/buttons and right side scrolling the episodes. Also, for movies, try to fit everything relevant on the screen")
+
+Decision (`DetailsScreen`, TV and phone app):
+- A screen wider than tall and at least 700 dp wide (every TV, a phone on its side) shows the details over the whole screen instead of the 850 dp panel: the backdrop behind everything, shaded from the left; the left column (42 %) has the title, the Watched tag, the buttons right under the title, the facts, description and version (and a series' cast and genres); the right column has the episodes, or a movie's cast, genres, director and source. Only the right column scrolls (a focused episode moves to its middle on TV); the left one scrolls only when it does not fit (a phone on its side).
+- TV focus: the buttons' row lets → out at its end (`FocusRow rightOpen`), and each episode's row and the season row let ← out at their start, like the guide beside the categories (D-069). Elsewhere ←/→ stay in their row (D-152).
+- Portrait screens keep the panel that scrolls as a whole.
+- Desktop: not yet (⏳, `Parity: Landscape details layout on desktop`).
+- Tests: a movie's parts in the two columns, a series' episodes on the right with the focus openings, portrait unchanged.
+
