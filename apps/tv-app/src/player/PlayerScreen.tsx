@@ -51,6 +51,7 @@ import {
   type SeekDirection,
   type VariantInfo,
   t,
+  isOnWatchlist,
   isFoundSubtitle,
   recentChannelTarget,
   type RecentChannel,
@@ -62,6 +63,7 @@ import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
 import { useLibrary, useNoteRecentChannel, usePlayerTitle } from '../hooks';
+import { toggleOnMyList } from '../tv/colourKeys';
 import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
@@ -445,6 +447,29 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const focusablesVisible = showSkipAhead || countdown !== null;
 
   useRemote(({ key, action }) => {
+    // The remote's colour keys (D-154): Red puts the title on My List or takes it off, Green opens audio and subtitles,
+    // Blue the guide over a live channel. Yellow (Search) leaves the player: ColourKeys handles it.
+    if (key === 'red' || key === 'green' || key === 'blue') {
+      if (action === 'up' || error) return;
+      wake();
+      if (key === 'red' && target.masterId && !isLive) {
+        const section = target.kind === 'movie' ? 'movies' : 'series';
+        const onList = isOnWatchlist(stores.watchlist.getState(), section, target.masterId);
+        toggleOnMyList({ section, card: { id: target.masterId, title: target.title, year: null, posterUrl: target.posterUrl ?? null } });
+        setNotice(onList ? t('Removed from My List') : t('Added to My List'));
+      } else if (key === 'green') {
+        setButtons(false);
+        setGuide(false);
+        setRecent(false);
+        setDrawer('audio');
+      } else if (key === 'blue' && isLive) {
+        setButtons(false);
+        setDrawer(false);
+        setRecent(false);
+        setGuide(true);
+      }
+      return;
+    }
     // The remote's media keys work whatever is open: the buttons, a drawer, the guide, Skip ahead (issue #178).
     // react-native-tvos reports them on release only, like Select. ⏪/⏩ like ←/→: presses in a row go faster (#121).
     if (MEDIA_KEYS.has(key)) {
@@ -776,6 +801,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   size={44}
                   iconSize={26}
                   testID="player-guide"
+                  colourKey="blue"
                   onPress={() => {
                     setButtons(false);
                     setGuide(true);
@@ -791,6 +817,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 size={44}
                 iconSize={26}
                 testID="player-audio"
+                colourKey="green"
                 onPress={() => {
                   setButtons(false);
                   setDrawer('audio');

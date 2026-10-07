@@ -21,7 +21,7 @@ import {
   type MediaCategory,
   t,
 } from '@iptv/shared';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useTitleCard } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -32,6 +32,7 @@ import { Row } from '../components/Row';
 import { Select } from '../components/Select';
 import { colors, useSizes } from '../theme';
 import { usePagedLibrary } from '../hooks';
+import { blurTitle, focusTitle } from '../tv/colourKeys';
 
 /** Home rows show only the first titles; the arrow card at the end opens the category page. */
 const ROW_SIZE = 10;
@@ -70,6 +71,9 @@ export function MasterCardItem({
         subtitle={card.subtitle}
         onPress={openDetails}
         onLongPress={() => setMenu(true)}
+        // The remote's Red key adds the focused title to My List (D-154).
+        onFocus={() => focusTitle({ section, card: item })}
+        onBlur={() => blurTitle(item.id)}
       />
       {menu ? (
         <CardMenu
@@ -83,16 +87,30 @@ export function MasterCardItem({
 }
 
 /** Home row: the first 10 titles of a section/category. The title and the arrow card open Movies/Series on that category. */
-export function TitleRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
-  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE);
+export function TitleRow({
+  section,
+  category,
+  title,
+  sort,
+}: {
+  section: LibrarySection;
+  category?: MediaCategory;
+  title: string;
+  /** A row in another order (Top rated, D-153); "See all" opens the list in it. */
+  sort?: LibrarySortChoice;
+}) {
+  const page = usePagedLibrary(section, { categoryId: category?.id, sort }, ROW_SIZE);
   if (page.done && page.items.length === 0) return null;
-  const open = () => navStore.getState().openCategory(section, category?.id ?? null);
+  const open = () => {
+    if (sort) stores.library.getState().chooseSort(section, sort);
+    navStore.getState().openCategory(section, category?.id ?? null);
+  };
   return (
     <Row
       title={title}
       items={page.items}
       keyOf={(item) => item.id}
-      testID={`row-${section}-${category?.id ?? 'all'}`}
+      testID={`row-${section}-${category?.id ?? 'all'}${sort ? `-${sort.sort}` : ''}`}
       loading={page.loadingFirst}
       empty={page.error ? t('Could not load this row.') : ' '}
       onTitlePress={open}

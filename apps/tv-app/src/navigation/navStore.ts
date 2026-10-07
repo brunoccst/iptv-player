@@ -17,6 +17,8 @@ export interface NavState {
   search: string;
   /** Bumped when the search box's Enter key is pressed: search now, without waiting for typing to pause. */
   searchSubmits: number;
+  /** The remote's Yellow key asked for the search box (D-154); the box starts typing and clears it. */
+  searchRequested: boolean;
   /** Category chip on Movies/Series, or the Live TV category (`null` = All), like the web `uiStore.categoryId`. */
   categoryId: string | null;
   /** Home scrolled: the nav gets a solid background (web `.nav--solid`). */
@@ -33,6 +35,9 @@ export interface NavState {
   /** Typing switches to the Search page; clearing it goes back Home (web behaviour). */
   setSearch(search: string): void;
   submitSearch(): void;
+  /** Yellow (D-154): leaves details or the player for the page under them and starts typing in the search box. */
+  openSearch(): void;
+  searchOpened(): void;
   setScrolled(scrolled: boolean): void;
   setMenuOpen(open: boolean): void;
   setMenuGroup(group: string | null): void;
@@ -50,6 +55,7 @@ export function createNavStore() {
     libraryRevision: 0,
     search: '',
     searchSubmits: 0,
+    searchRequested: false,
     categoryId: null,
     scrolled: false,
     menuOpen: false,
@@ -72,6 +78,8 @@ export function createNavStore() {
       else set({ search, stack: section === 'search' ? [{ name: 'section', section: 'home' }] : get().stack });
     },
     submitSearch: () => set({ searchSubmits: get().searchSubmits + 1 }),
+    openSearch: () => set({ stack: get().stack.slice(0, 1), menuOpen: false, searchRequested: true }),
+    searchOpened: () => set({ searchRequested: false }),
     setScrolled: (scrolled) => {
       if (get().scrolled !== scrolled) set({ scrolled });
     },

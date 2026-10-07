@@ -63,7 +63,7 @@ describe('library in SQLite (D-121)', () => {
     }
 
     const queries: LibraryListQuery[] = [];
-    for (const sort of [undefined, 'added', 'title', 'released'] as const)
+    for (const sort of [undefined, 'added', 'title', 'released', 'rating'] as const)
       for (const order of [undefined, 'asc', 'desc'] as const) queries.push({ sort, order, limit: 500 });
     for (const categoryId of ['0', '3', '8', 'missing']) queries.push({ categoryId, limit: 40, offset: 5 }, { categoryId, sort: 'title' });
     queries.push(
@@ -303,6 +303,8 @@ describe('library in SQLite (D-121)', () => {
         ['title', 'desc'],
         ['released', 'desc'],
         ['released', 'asc'],
+        ['rating', 'desc'],
+        ['rating', 'asc'],
       ] as const)
         for (const query of [
           { sort, order, limit: 500 },

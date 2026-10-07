@@ -4,7 +4,9 @@ import {
   pageKey,
   watchlistCard,
   recentChannelTarget,
+  TOP_RATED_SORT,
   type LibrarySection,
+  type LibrarySortChoice,
   type MediaCategory,
   type ProgressDto,
   t,
@@ -44,6 +46,9 @@ export function HomePage({ banner }: { banner: ReactNode }) {
         <ContinueWatchingRow />
         <MyListRow />
         <LiveRow />
+        {/* The provider's best-rated titles (D-153, issue #181). */}
+        <LibraryRow key={`top-movies-${revision}`} section="movies" sort={TOP_RATED_SORT} title={t('Top rated movies')} />
+        <LibraryRow key={`top-series-${revision}`} section="series" sort={TOP_RATED_SORT} title={t('Top rated series')} />
         <LibraryRow key={`all-series-${revision}`} section="series" title={t('Series')} />
         {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
           <LibraryRow key={`m-${category.id}-${revision}`} section="movies" category={category} title={category.name} />
@@ -135,16 +140,30 @@ function LiveRow() {
   );
 }
 
-function LibraryRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
+function LibraryRow({
+  section,
+  category,
+  title,
+  sort,
+}: {
+  section: LibrarySection;
+  category?: MediaCategory;
+  title: string;
+  /** A row in another order (Top rated, D-153); its title opens the list in it. */
+  sort?: LibrarySortChoice;
+}) {
   const [visible, setVisible] = useState(false);
-  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE, visible);
+  const page = usePagedLibrary(section, { categoryId: category?.id, sort }, ROW_SIZE, visible);
   if (page.done && page.items.length === 0) return null;
 
   return (
     <Row
       title={title}
       onVisible={() => setVisible(true)}
-      onTitleClick={() => uiStore.getState().openCategory(section, category?.id ?? null)}
+      onTitleClick={() => {
+        if (sort) stores.library.getState().chooseSort(section, sort);
+        uiStore.getState().openCategory(section, category?.id ?? null);
+      }}
       onNearEnd={page.loadMore}
       loadingMore={page.loadingMore}
       empty={page.error ? t('Could not load this row.') : ' '}

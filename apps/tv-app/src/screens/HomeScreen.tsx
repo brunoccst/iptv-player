@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { continueWatching, watchlistCard, pageKey, recentChannelTarget, type MasterCard, type ProgressDto, t } from '@iptv/shared';
+import {
+  continueWatching,
+  watchlistCard,
+  pageKey,
+  recentChannelTarget,
+  TOP_RATED_SORT,
+  type MasterCard,
+  type ProgressDto,
+  t,
+} from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { playFromContinue } from '../navigation/navStore';
 import { CardMenu } from '../components/CardMenu';
@@ -28,7 +37,7 @@ const SERIES_ROWS = 3;
 const TV_FIRST_ROWS = 4;
 const TV_ROWS_AHEAD = 2;
 
-/** Same as the web Home: hero, library banner, Continue Watching, Live TV, Series and category rows. */
+/** Same as the web Home: hero, library banner, Continue Watching, Live TV, Top rated, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.data?.items ?? []);
   // Until the first list answers, the saved library is still being read (seconds for 100k+ titles on a TV, D-117).
@@ -63,6 +72,9 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     { key: 'continue', render: () => <ContinueWatchingRow /> },
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
+    // The provider's best-rated titles (D-153, issue #181).
+    { key: 'top-movies', render: () => <TitleRow section="movies" sort={TOP_RATED_SORT} title={t('Top rated movies')} /> },
+    { key: 'top-series', render: () => <TitleRow section="series" sort={TOP_RATED_SORT} title={t('Top rated series')} /> },
     { key: 'series', render: () => <TitleRow section="series" title={t('Series')} /> },
     ...movieCategories.slice(0, MOVIE_ROWS).map((category) => ({
       key: `m-${category.id}`,

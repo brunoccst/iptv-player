@@ -98,6 +98,9 @@ const ORDERS: Record<string, { column: string; by: string }> = {
   'added|asc': { column: 'a0', by: 'added IS NULL, added, title, IFNULL(year, -1), id' },
   'released|desc': { column: 'r1', by: 'released IS NULL, released DESC, title, IFNULL(year, -1), id' },
   'released|asc': { column: 'r0', by: 'released IS NULL, released, title, IFNULL(year, -1), id' },
+  // The provider's rating (D-153); 0 means none.
+  'rating|desc': { column: 's1', by: 'IFNULL(rating, 0) <= 0, CASE WHEN rating > 0 THEN rating END DESC, title, IFNULL(year, -1), id' },
+  'rating|asc': { column: 's0', by: 'IFNULL(rating, 0) <= 0, CASE WHEN rating > 0 THEN rating END, title, IFNULL(year, -1), id' },
   'title|asc': { column: 't0', by: 'title, IFNULL(year, -1), id' },
   'title|desc': { column: 't1', by: 'title DESC, IFNULL(year, -1), id' },
 };
@@ -844,7 +847,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const wanted = ORDERS[`${sort}|${order}`];
       let from = `${t} a`;
       let orderBy = 'a.rowid';
-      if (wanted && saved.orders === null) orderBy = `a.${wanted.column}`;
+      // Libraries from before D-135 have no rating column (D-153): they sort while they read.
+      if (wanted && saved.orders === null) orderBy = sort === 'rating' ? wanted.by : `a.${wanted.column}`;
       else if (wanted && saved.orders?.includes(wanted.column)) {
         from = `${t}_o${wanted.column} o JOIN ${t} a ON a.rowid = o.m`;
         orderBy = 'o.rowid';
@@ -995,6 +999,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     if (await has('added')) sorts.push('added');
     sorts.push('title');
     if (await has('released')) sorts.push('released');
+    if ((await db.query(`SELECT 1 FROM ${t} WHERE rating > 0 LIMIT 1`)).length > 0) sorts.push('rating');
     return sorts;
   }
 

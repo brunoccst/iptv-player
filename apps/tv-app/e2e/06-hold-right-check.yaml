@@ -3,8 +3,9 @@
 appId: ${APP_ID}
 ---
 - takeScreenshot: 31-hold-right-end
+# The first row with stress titles: "Top rated movies" since D-153, before it the stress category's row.
 - assertVisible:
-    id: "row-movies-900-more"
+    id: "row-movies-.*-more"
     focused: true
 - assertVisible:
     id: "home-screen"

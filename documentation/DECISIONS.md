@@ -2442,3 +2442,29 @@ Decision (TV only; `FocusRow` is a plain view elsewhere):
 - Live TV keeps D-069's exception: Left from the guide's channel, or from Earlier, still goes to the category list beside it. Right stops at the end of a channel's row (it used to jump to another channel's programme past a gap with no guide) and after Later. `FocusRow leftOpen` traps Right only.
 - Home: Up from the first row (Continue Watching, My List) put the focus on Play but left the banner scrolled off, so a second Up was needed to see it. Focusing Play or More Info now scrolls Home back to the top (owner, same day).
 - Tests: the Home banner (and its scroll to the top), a row's title link, `leftOpen`, and a plain view off TV.
+
+## D-153
+
+**Home: Top rated movies and series from the provider's ratings** — 2026-10-07 (issue #181: "Make the Home page use IMDB or other sources to display the trending entries, or good rated ones.")
+
+Context: IMDb has no free API (only paid AWS data or bulk files of several GB), and the apps have no server (D-088). The provider's lists already carry a rating for most movies and series (usually TMDB's), which the library keeps per title (the highest of its versions).
+
+Decision:
+- A new list order, `rating` (highest first; "Highest rated" in the Movies/Series sort menu). A rating of 0 or none counts as missing and goes last, like other missing values (D-049). The SQLite library adds it to its order tables (`s1`/`s0`, made when first asked for, D-135); a library from before D-135 sorts while it reads. "Highest rated" shows once a library is built or updated with ratings.
+- Home shows "Top rated movies" and "Top rated series" after the Live TV row, on every app. The row title and the arrow card open Movies or Series sorted by rating.
+- No trending row: it needs an outside list (TMDB's are free, but only with an API key of the user's own, like OpenSubtitles, D-111). The owner chose the provider's ratings only.
+- Tests: the in-memory and SQLite libraries give the same lists in both rating orders; the TV Home asks for the rated rows.
+
+## D-154
+
+**TV: the remote's colour keys** — 2026-10-07 (issue #180; the owner approved the proposed mapping in the project thread)
+
+Context: many TV remotes have red, green, yellow and blue keys. react-native-tvos already reports them (`red`, `green`, `yellow`, `blue`), so no native code is needed. The Google TV voice remote and others have none, so each key only adds a shortcut.
+
+Decision (`tv/colourKeys.tsx`, TV app):
+- Red: the focused cover's title (`MasterCardItem` registers it on focus), else the details page's title (its My List button), goes on My List or comes off. In the player: the movie or series playing, with a short notice ("Added to My List" / "Removed from My List"); nothing on live channels.
+- Green: in the player, the audio and subtitles panel; elsewhere the first title of Continue Watching plays, over its details (issue #166).
+- Yellow: from anywhere (details and the player close), the nav's search box starts typing (`navStore.openSearch`).
+- Blue: on a live channel, the guide over it; elsewhere Live TV.
+- `ColourKeys` is mounted once with the signed-in shell; the player handles Red, Green and Blue itself. A dot in the key's colour sits on the button it also presses: My List in details (red), the player's Audio (green) and Guide (blue), the search box (yellow), Live TV in the nav (blue). TV only.
+- Tests: each key outside and inside the player, Yellow from details, the dots on TV only.

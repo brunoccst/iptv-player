@@ -239,6 +239,24 @@ describe('PlayerScreen', () => {
     expect(navStore.getState().stack.at(-1)?.name).not.toBe('player');
   });
 
+  it('colour keys: Red puts the title on My List with a notice, Green opens audio and subtitles (D-154)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    const toggle = jest.fn(async () => undefined);
+    stores.watchlist.setState({ toggle });
+    const heat: PlayTarget = { ...movie, masterId: 'm9', posterUrl: 'http://img/heat.jpg' };
+    await render(<PlayerScreen target={heat} />);
+    await flush();
+    await ready();
+
+    await act(async () => pressRemote('red', 'up'));
+    expect(toggle).toHaveBeenCalledWith('movies', { id: 'm9', title: 'Heat', year: null, posterUrl: 'http://img/heat.jpg' });
+    expect(screen.getByTestId('player-notice')).toHaveTextContent('Added to My List');
+
+    await act(async () => pressRemote('green', 'up'));
+    expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+  });
+
   it('headphones disconnected: the player paused itself, so the screen shows Play and Play resumes (#83)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
@@ -793,6 +811,15 @@ describe('PlayerScreen', () => {
       });
       return backend;
     }
+
+    it('the Blue key opens the guide over the channel (D-154)', async () => {
+      stubGuide();
+      await render(<PlayerScreen target={news} />);
+      await flush();
+      await act(async () => pressRemote('blue', 'up'));
+      await flush();
+      expect(screen.getByTestId('guide-overlay')).toBeTruthy();
+    });
 
     it('↑ opens a guide of the category over the playing channel; Select switches channel', async () => {
       const backend = stubGuide();

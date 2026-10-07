@@ -52,7 +52,7 @@ While the library is being organized, or when the device is offline, a banner fl
 
 ### Home
 
-A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
+A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), Top rated movies and Top rated series (the provider's ratings, highest first; D-153) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
 
 ### Continue Watching
 
@@ -64,7 +64,7 @@ Android TV and Google TV (Chromecast with Google TV) show the active profile's C
 
 ### Movies and Series
 
-A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049).
+A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049), or highest rated first (the provider's rating, D-153).
 
 ### Category chips
 
@@ -75,6 +75,10 @@ Above the grid, the categories sit on one line with "Show all" / "Show less"; ex
 On TV the focused title is kept in the middle of the screen on every page, so you always see where you are (D-094 to D-099). Phones and computers scroll by touch, wheel or keyboard instead.
 
 On TV, ← and → only move along the row you are in (a row of cards, the Home banner's Play and More Info, a row of buttons or chips) and stop at its ends; ↑ and ↓ change rows (D-069, D-152). On Live TV, ← from a channel still goes to the category list beside the guide.
+
+### Colour keys (TV)
+
+Remotes with red, green, yellow and blue keys: **Red** adds the focused title (a cover, the details page, the movie or series playing) to My List or takes it off; **Green** opens audio and subtitles in the player, elsewhere it plays the first title of Continue Watching; **Yellow** starts a search from anywhere; **Blue** opens the guide over a live channel, elsewhere Live TV. A small dot in the key's colour marks the button it also presses (My List in details, the player's Audio and Guide, the search box, Live TV in the nav). Remotes without colour keys reach all of this the usual way (D-154, issue #180).
 
 ## Covers and cards
 
