@@ -110,7 +110,7 @@ A season choice with a "Watched" button on its left that marks the whole season 
 
 ### Playback controls
 
-Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042, D-100). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128, D-150). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-101); the remote's media keys (Play/Pause, Play, Pause, ⏪/⏩, Stop to close) work whatever is on screen (issue #178). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046, D-097). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps), media keys (play, pause, stop, back, forward; issue #178) and mouse; hovering over the timeline shows preview frames (D-023).
+Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042, D-100). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128, D-150). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-101); the remote's media keys (Play/Pause, Play, Pause, ⏪/⏩, Stop to close) work whatever is on screen (issue #178). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046, D-097); slide up or down on the left third of the video for brightness and on the right third for volume, with a bar that shows the level while sliding and a second after (issue #184, D-155). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps), media keys (play, pause, stop, back, forward; issue #178) and mouse; hovering over the timeline shows preview frames (D-023).
 
 ### Audio, subtitles, versions and episodes
 
@@ -144,7 +144,7 @@ The Live TV page: categories on the left, a guide grid of channels and programme
 
 ### Guide over the playing channel
 
-A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. TV: ↑; phone: swipe up or the Guide button; desktop: the Guide button or G (D-058, D-081).
+A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. TV: ↑; phone: swipe up in the middle of the video (the sides set brightness and volume, D-155) or the Guide button; desktop: the Guide button or G (D-058, D-081).
 
 ### Channels watched last
 
