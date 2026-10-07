@@ -109,7 +109,7 @@ export function TitleRow({ section, category, title }: { section: LibrarySection
   );
 }
 
-/** "Top rated": the 10 best rated of the titles added last; the app's own row, so no "See all" (D-153, issue #188). */
+/** "Top rated": the 25 best rated of the titles added last; the app's own row, so no "See all" (D-153, issue #188). */
 export function TopRatedRow({ section, title }: { section: LibrarySection; title: string }) {
   const page = usePagedLibrary(section, { sort: DEFAULT_LIBRARY_SORT }, TOP_RATED_POOL);
   const items = topRated(page.items);

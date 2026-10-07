@@ -2514,3 +2514,12 @@ Decision (`DetailsScreen`, TV and phone app):
 - Desktop: not yet (⏳, `Parity: Landscape details layout on desktop`).
 - Tests: a movie's parts in the two columns, a series' episodes on the right with the focus openings, portrait unchanged.
 
+
+## D-159
+
+**Top rated rows named for what they hold, 25 titles** — 2026-10-07 (Bruno: "The "top rated" categories must be renamed to something that reflects a) how many entries are being looked up and 2) the order it took from. […] Also, expand the list to 25 entries.")
+
+Decision (every app; changes D-157):
+- The rows are called "Top rated of the {count} newest movies" and "Top rated of the {count} newest series", `{count}` filled from `TOP_RATED_POOL` (100), so the title follows the pool if it changes. "Newest" is the library's added-last order.
+- A row shows the 25 best rated (`TOP_RATED_COUNT`) instead of 10; still no "See all".
+- Tests: `topRated` keeps 25; the TV Home row shows the new title.

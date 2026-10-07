@@ -52,7 +52,7 @@ While the library is being organized, or when the device is offline, a banner fl
 
 ### Home
 
-A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), Top rated movies and Top rated series (the 10 best rated, by the provider's ratings, among the 100 titles added last; the app's own rows, so no "See all"; D-153, issue #188) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
+A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), "Top rated of the 100 newest movies" and "Top rated of the 100 newest series" (the 25 best rated, by the provider's ratings, among the 100 titles added last; the app's own rows, so no "See all"; D-153, D-159, issue #188) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
 
 ### Continue Watching
 

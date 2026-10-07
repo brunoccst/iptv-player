@@ -48,8 +48,16 @@ export function HomePage({ banner }: { banner: ReactNode }) {
         <MyListRow />
         <LiveRow />
         {/* The best-rated titles added last (D-153, issue #181, #188). */}
-        <TopRatedRow key={`top-movies-${revision}`} section="movies" title={t('Top rated movies')} />
-        <TopRatedRow key={`top-series-${revision}`} section="series" title={t('Top rated series')} />
+        <TopRatedRow
+          key={`top-movies-${revision}`}
+          section="movies"
+          title={t('Top rated of the {count} newest movies', { count: TOP_RATED_POOL })}
+        />
+        <TopRatedRow
+          key={`top-series-${revision}`}
+          section="series"
+          title={t('Top rated of the {count} newest series', { count: TOP_RATED_POOL })}
+        />
         <LibraryRow key={`all-series-${revision}`} section="series" title={t('Series')} />
         {movieCategories.slice(0, MOVIE_ROWS).map((category) => (
           <LibraryRow key={`m-${category.id}-${revision}`} section="movies" category={category} title={category.name} />
@@ -141,7 +149,7 @@ function LiveRow() {
   );
 }
 
-/** "Top rated": the 10 best rated of the titles added last; the app's own row, so its title opens nothing (issue #188). */
+/** "Top rated": the 25 best rated of the titles added last; the app's own row, so its title opens nothing (issue #188). */
 function TopRatedRow({ section, title }: { section: LibrarySection; title: string }) {
   const [visible, setVisible] = useState(false);
   const page = usePagedLibrary(section, { sort: DEFAULT_LIBRARY_SORT }, TOP_RATED_POOL, visible);
