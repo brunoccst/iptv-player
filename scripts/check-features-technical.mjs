@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks documentation/FEATURES-TECHNICAL.md against documentation/FEATURES.md (D-162), so every feature has its
+// Checks documentation/FEATURES-TECHNICAL.md against documentation/FEATURES.md (D-163), so every feature has its
 // technical explanation and the two documents keep one structure. Fails when:
 //   - the `## group` and `### feature` headings of the two documents differ (missing, extra, renamed or reordered);
 //   - a technical section is empty, does not link to its feature (`FEATURES.md#<anchor>`), has no Mermaid graph

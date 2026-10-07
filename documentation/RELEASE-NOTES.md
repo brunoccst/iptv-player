@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Connecting a phone brings its settings too** (2026-10-07, D-162): scanning the TV's or computer's QR code with the phone now also brings each profile's settings, so both devices end up the same: content languages, app language, the subtitles, audio and version last picked, hidden categories, kids categories, watched series, recent channels and the automatic-subtitles settings. Where the two differed, the phone's choice wins. The TV's audio decoder stays as it is.
 - **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.
 - **Top rated rows say what they hold** (2026-10-07, D-160): the Top rated rows on Home are now called "Top rated of the 100 newest movies" and "Top rated of the 100 newest series", and show 25 titles instead of 10.
 - **Details side by side on TV** (2026-10-07, D-158, issue #186): on the TV, and on a phone held sideways, a movie's or series' details fill the screen in two columns: the title, Play and the other buttons, and the description stay on the left; a series' episodes scroll on the right. A movie's page fits on one screen, without scrolling to reach Play or Download.
@@ -72,6 +73,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Connecting a phone brings its settings too** (2026-10-07, D-162): scanning the TV's or computer's QR code with the phone now also brings each profile's settings, so both devices end up the same: content languages, app language, the subtitles, audio and version last picked, hidden categories, kids categories, watched series, recent channels and the automatic-subtitles settings. Where the two differed, the phone's choice wins.
 - **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.
 - **Top rated rows say what they hold** (2026-10-07, D-160): the Top rated rows on Home are now called "Top rated of the 100 newest movies" and "Top rated of the 100 newest series", and show 25 titles instead of 10.
 - **Row arrows only where they lead somewhere** (2026-10-07, D-159): on Home, a row's ‹ arrow is hidden while the row is at its beginning and its › arrow once it reaches the end; a row that fits on the screen shows neither.

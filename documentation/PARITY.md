@@ -64,7 +64,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Profiles, Kids, parental PIN, languages | ✅ | ✅ | ✅ | languages numbered in the order ticked, which is their priority (D-145) | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
 | "Who's watching?" every time the app opens (D-151) | ✅ | ✅ | ✅ | an account with one profile opens it directly; web: every page load | [Profiles and Kids](FEATURES.md#profiles-and-kids) |
 | Backup and restore | ✅ | ✅ | ✅ | | [Backup and restore](FEATURES.md#backup-and-restore) |
-| Sign in / sync with the phone by QR code | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) |
+| Sign in / sync with the phone by QR code: sign-in, profiles, My List, progress and the profiles' settings (D-162) | ✅ shows code | ✅ scans | ✅ desktop shows code · ➖ browser | | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) |
 | Play on TV from the phone (D-044) | ✅ receives | ✅ sends | ➖ | | [Play on TV](FEATURES.md#play-on-tv) |
 | App language: English, Português (Brasil), Deutsch, Srpskohrvatski (BiH), per profile (D-084) | ✅ | ✅ | ✅ | account menu → App → App language; sign-in page | [App language](FEATURES.md#app-language) |
 | About (version, build, connection) | ✅ | ✅ | ✅ | account menu → App | [About](FEATURES.md#about) |

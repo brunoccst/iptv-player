@@ -2544,6 +2544,18 @@ Decision (`topRated` in `libraryStore`, every app; changes D-160):
 
 ## D-162
 
+**Pairing carries the settings that follow the account** — 2026-10-07 (Bruno: "When connecting with the phone (Desktop or TV), don't the content language preferences move as well? I want as many configurations to be merged as possible.")
+
+Decision (`pairing/settings.ts`; extends D-060):
+- Connecting a phone to a TV or computer also merges each profile's preferences (`settings.profiles`: content languages, app language, playback choices, hidden and kids categories, watched series, recent channels) and the automatic-subtitles settings (`settings.opensubtitles`, D-111). Both devices end up with the same.
+- Where both devices have a value, the phone's wins (the device the user acts from); watched series and recent channels are joined (the phone's channels first, at most 20). A profile matched by name (D-060) takes the other device's preferences under its merged id. Automatic subtitles: the phone's when it has an API key, else the other device's.
+- The merged settings come back in their own `settings` field of the answer, not in `data`, so an older phone never overwrites its preferences of other accounts. An older TV ignores them.
+- Stay on the device: the audio decoder (`settings.playback`, hardware), the device's own app language (`settings.uiLanguage`, used before a profile is picked), downloads, remote-play keys and update choices. A PIN already set on the receiving device stays (unchanged from D-060).
+- `AppContext.reload()` now reloads the preferences and subtitle settings, so they show at once after pairing or a backup restore.
+- Tests: `pairing.test.ts` (preferences under merged ids on both devices, phone wins, lists joined, subtitles both ways, device settings kept), `settings.test.ts`.
+
+## D-163
+
 **Every feature has a technical explanation** — 2026-10-07 (Bruno: "Include the technical explanation of each feature in a new document. It must always match the `FEATURES.md`." and "Make sure to explain using Mermaid graphs and keep things simple and short. Only state facts, no need for decisions.")
 
 Decision (documentation):

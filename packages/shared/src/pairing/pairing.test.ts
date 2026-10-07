@@ -3,6 +3,8 @@ import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../dire
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
+import { PROFILE_PREFS_KEY } from '../stores/profilePrefsStore';
+import { SUBTITLE_SETTINGS_KEY } from '../subtitles/openSubtitles';
 import { acceptPairing, pairingQrText, parsePairingQr, sendPairing, type PairingOffer } from './pairing';
 
 const KEY = btoa(String.fromCharCode(...Array.from({ length: 32 }, (_, i) => i * 7)));
@@ -122,6 +124,66 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(tv.secure.data.get(pinStorageKey('acc-1'))).toBe('{"salt":"s","hash":"h"}');
     expect(mobile.data.data.get('settings.playback')).toBe('{"audioDecoder":"ffmpeg"}');
     expect(JSON.parse(mobile.secure.data.get(SESSION_STORAGE_KEY)!).activeProfileId).toBe('phone-p1');
+  });
+
+  it("carries each profile's settings and the automatic subtitles, the phone's first, on both devices (D-162)", async () => {
+    const tvProfiles = [{ id: 'tv-p1', name: 'demo', avatarKey: null, isKids: false }];
+    const tv = {
+      secure: createMemoryStorage({
+        [SESSION_STORAGE_KEY]: JSON.stringify({ token: 'direct-tv', account, profiles: tvProfiles, activeProfileId: 'tv-p1' }),
+      }),
+      data: createMemoryStorage({
+        [profilesKey('acc-1')]: JSON.stringify(tvProfiles),
+        [PROFILE_PREFS_KEY]: JSON.stringify({
+          'tv-p1': { languages: ['GER'], hiddenCategories: { live: ['9'] }, watchedSeries: ['s2'], appLanguage: 'de' },
+          'other-account-profile': { languages: ['ARA'] },
+        }),
+        'settings.playback': '{"audioDecoder":"device"}',
+      }),
+    };
+    const mobile = phone();
+    await mobile.data.setItem(
+      PROFILE_PREFS_KEY,
+      JSON.stringify({
+        'phone-p1': { languages: ['ENG', 'POR'], hiddenCategories: { movies: ['3'] }, watchedSeries: ['s1'] },
+        'phone-kids': { kidsCategories: { movies: ['7'] } },
+        'phone-other-account': { languages: ['TUR'] },
+      }),
+    );
+    await mobile.secure.setItem(SUBTITLE_SETTINGS_KEY, JSON.stringify({ enabled: true, apiKey: 'os-key', languages: ['pt-br'] }));
+
+    await sendPairing(mobile, offer, { fetch: via(tv) });
+
+    for (const device of [tv, mobile]) {
+      const prefs = JSON.parse(device.data.data.get(PROFILE_PREFS_KEY)!);
+      expect(prefs['phone-p1']).toEqual({
+        languages: ['ENG', 'POR'],
+        hiddenCategories: { live: ['9'], movies: ['3'] },
+        watchedSeries: ['s1', 's2'],
+        appLanguage: 'de',
+      });
+      expect(prefs['phone-kids']).toEqual({ kidsCategories: { movies: ['7'] } });
+      expect(JSON.parse(device.secure.data.get(SUBTITLE_SETTINGS_KEY)!)).toMatchObject({ apiKey: 'os-key' });
+    }
+    const tvPrefs = JSON.parse(tv.data.data.get(PROFILE_PREFS_KEY)!);
+    // The TV's old id is gone, other accounts' profiles stay, and the phone's other accounts are not sent.
+    expect(tvPrefs['tv-p1']).toBeUndefined();
+    expect(tvPrefs['other-account-profile']).toEqual({ languages: ['ARA'] });
+    expect(tvPrefs['phone-other-account']).toBeUndefined();
+    expect(JSON.parse(mobile.data.data.get(PROFILE_PREFS_KEY)!)['phone-other-account']).toEqual({ languages: ['TUR'] });
+    // Device settings stay.
+    expect(tv.data.data.get('settings.playback')).toBe('{"audioDecoder":"device"}');
+  });
+
+  it('automatic subtitles set only on the TV go to the phone', async () => {
+    const tv = {
+      secure: createMemoryStorage({ [SUBTITLE_SETTINGS_KEY]: JSON.stringify({ enabled: true, apiKey: 'tv-key', languages: ['de'] }) }),
+      data: createMemoryStorage(),
+    };
+    const mobile = phone();
+    await sendPairing(mobile, offer, { fetch: via(tv) });
+    expect(JSON.parse(mobile.secure.data.get(SUBTITLE_SETTINGS_KEY)!)).toMatchObject({ apiKey: 'tv-key' });
+    expect(JSON.parse(tv.secure.data.get(SUBTITLE_SETTINGS_KEY)!)).toMatchObject({ apiKey: 'tv-key' });
   });
 
   it('refuses a TV signed in to another account, and requests sealed with another key', async () => {

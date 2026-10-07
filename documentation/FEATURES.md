@@ -2,7 +2,7 @@
 
 What the apps do, one section per feature: the Android TV app (remote), the same app on phones (touch) and the desktop app for Windows, macOS and Linux (mouse and keyboard; the web player in Electron, D-071, D-106). Which app has each feature, and how it is reached there, is in [PARITY.md](PARITY.md); what changed lately is in [RELEASE-NOTES.md](RELEASE-NOTES.md). The decisions (D-…) and known issues (KI-…) hold the details.
 
-A change that adds or changes a feature updates its section here, its section in [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) (how it works in the code; same headings, D-162), its row in PARITY.md and the release notes in the same pull request (D-080, D-143).
+A change that adds or changes a feature updates its section here, its section in [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) (how it works in the code; same headings, D-163), its row in PARITY.md and the release notes in the same pull request (D-080, D-143).
 
 - [Sign-in and accounts](#sign-in-and-accounts)
 - [Library](#library)
@@ -201,6 +201,8 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 ### Sign in and sync by QR code
 
 The TV and desktop app show a QR code (sign-in page, or account menu → Library & devices → Sync with phone); the phone app scans it (account menu → Library & devices → Connect a TV or computer). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060, D-072).
+
+Each profile's settings go along and end up the same on both devices (D-162): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the phone's wins; watched series and recent channels are joined. A parental PIN already set on the TV or computer stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
 ### Play on TV
 

@@ -688,7 +688,7 @@ sequenceDiagram
   participant T as TV or computer
   T->>T: start local server, show QR IPTVPAIR:1:host:port:key
   P->>T: scan QR
-  P->>T: POST /pair, sign-in + profiles, progress, My List (sealed with key)
+  P->>T: POST /pair, sign-in, profiles, progress, My List, settings (sealed with key)
   T->>T: signed out: sign in · same account: merge · other account: refuse
   T-->>P: merged data (sealed)
   P->>P: save merged data, reload
@@ -696,9 +696,10 @@ sequenceDiagram
 
 - The QR holds the device's address, port and a 32-byte random key. The payload is sealed with XChaCha20-Poly1305 (`sealed.ts`); a wrong key gets 403.
 - `mergeMedia()` matches profiles by id, then name; progress keeps the newest entry per title; My List is the union (up to 500).
+- `mergeProfilePrefs()` merges each profile's settings (`settings.profiles`): the phone's value wins, watched series and recent channels are joined. The automatic-subtitles settings go along too. Device settings (audio decoder, the device's own app language, downloads, update choices) are not sent.
 - The server: `PairingServer.kt` on TV; a Node `http` server in the Electron main process on desktop. The phone scans with Google Play services' code scanner.
 
-**Code:** `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/desktop/main.mjs`
+**Code:** `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/desktop/main.mjs`
 
 ### Play on TV
 
