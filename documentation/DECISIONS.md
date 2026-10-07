@@ -2442,3 +2442,15 @@ Decision (TV only; `FocusRow` is a plain view elsewhere):
 - Live TV keeps D-069's exception: Left from the guide's channel, or from Earlier, still goes to the category list beside it. Right stops at the end of a channel's row (it used to jump to another channel's programme past a gap with no guide) and after Later. `FocusRow leftOpen` traps Right only.
 - Home: Up from the first row (Continue Watching, My List) put the focus on Play but left the banner scrolled off, so a second Up was needed to see it. Focusing Play or More Info now scrolls Home back to the top (owner, same day).
 - Tests: the Home banner (and its scroll to the top), a row's title link, `leftOpen`, and a plain view off TV.
+
+## D-153
+
+**Home: Top rated movies and series from the provider's ratings** — 2026-10-07 (issue #181: "Make the Home page use IMDB or other sources to display the trending entries, or good rated ones.")
+
+Context: IMDb has no free API (only paid AWS data or bulk files of several GB), and the apps have no server (D-088). The provider's lists already carry a rating for most movies and series (usually TMDB's), which the library keeps per title (the highest of its versions).
+
+Decision:
+- A new list order, `rating` (highest first; "Highest rated" in the Movies/Series sort menu). A rating of 0 or none counts as missing and goes last, like other missing values (D-049). The SQLite library adds it to its order tables (`s1`/`s0`, made when first asked for, D-135); a library from before D-135 sorts while it reads. "Highest rated" shows once a library is built or updated with ratings.
+- Home shows "Top rated movies" and "Top rated series" after the Live TV row, on every app. The row title and the arrow card open Movies or Series sorted by rating.
+- Trending lists need an outside source: TMDB's are free with an API key (the user's own, like OpenSubtitles, D-111). Not built yet; waiting for the owner's choice in the project thread.
+- Tests: the in-memory and SQLite libraries give the same lists in both rating orders; the TV Home asks for the rated rows.

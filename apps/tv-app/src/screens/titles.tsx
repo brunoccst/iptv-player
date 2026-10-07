@@ -21,7 +21,7 @@ import {
   type MediaCategory,
   t,
 } from '@iptv/shared';
-import { navStore } from '../appContext';
+import { navStore, stores } from '../appContext';
 import { CardMenu } from '../components/CardMenu';
 import { useTitleCard } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -83,16 +83,30 @@ export function MasterCardItem({
 }
 
 /** Home row: the first 10 titles of a section/category. The title and the arrow card open Movies/Series on that category. */
-export function TitleRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
-  const page = usePagedLibrary(section, { categoryId: category?.id }, ROW_SIZE);
+export function TitleRow({
+  section,
+  category,
+  title,
+  sort,
+}: {
+  section: LibrarySection;
+  category?: MediaCategory;
+  title: string;
+  /** A row in another order (Top rated, D-153); "See all" opens the list in it. */
+  sort?: LibrarySortChoice;
+}) {
+  const page = usePagedLibrary(section, { categoryId: category?.id, sort }, ROW_SIZE);
   if (page.done && page.items.length === 0) return null;
-  const open = () => navStore.getState().openCategory(section, category?.id ?? null);
+  const open = () => {
+    if (sort) stores.library.getState().chooseSort(section, sort);
+    navStore.getState().openCategory(section, category?.id ?? null);
+  };
   return (
     <Row
       title={title}
       items={page.items}
       keyOf={(item) => item.id}
-      testID={`row-${section}-${category?.id ?? 'all'}`}
+      testID={`row-${section}-${category?.id ?? 'all'}${sort ? `-${sort.sort}` : ''}`}
       loading={page.loadingFirst}
       empty={page.error ? t('Could not load this row.') : ' '}
       onTitlePress={open}

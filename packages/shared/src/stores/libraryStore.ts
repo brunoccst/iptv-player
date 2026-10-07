@@ -112,7 +112,17 @@ export const LIBRARY_SORT_OPTIONS: (LibrarySortChoice & { label: string })[] = [
       return t('Oldest release');
     },
   },
+  {
+    sort: 'rating',
+    order: 'desc',
+    get label() {
+      return t('Highest rated');
+    },
+  },
 ];
+
+/** Home's "Top rated" rows and their "See all" (D-153): the provider's rating, highest first. */
+export const TOP_RATED_SORT: LibrarySortChoice = { sort: 'rating', order: 'desc' };
 
 export const sortChoiceKey = (choice: LibrarySortChoice) => `${choice.sort}-${choice.order}`;
 

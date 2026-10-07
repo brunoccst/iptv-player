@@ -169,7 +169,10 @@ const languageCodes = (languages: string | null | undefined) => [
 
 /** D-049: missing values last, then title, year and id. */
 const defaultOrder = (sort: LibrarySort): SortOrder => (sort === 'title' ? 'asc' : 'desc');
-const sortValue = (master: Master, sort: LibrarySort) => (sort === 'added' ? master.addedAt : master.releaseKey);
+/** The provider's rating; 0 means none (D-153). */
+const ratingOf = (master: Master) => (master.rating !== null && master.rating > 0 ? master.rating : null);
+const sortValue = (master: Master, sort: LibrarySort) =>
+  sort === 'added' ? master.addedAt : sort === 'rating' ? ratingOf(master) : master.releaseKey;
 function compareMasters(sort: LibrarySort, order: SortOrder) {
   const sign = order === 'desc' ? -1 : 1;
   return (a: Master, b: Master) => {
@@ -216,6 +219,7 @@ function availableSorts(masters: Master[]): LibrarySort[] {
   if (masters.some((master) => master.addedAt !== null)) sorts.push('added');
   sorts.push('title');
   if (masters.some((master) => master.releaseKey !== null)) sorts.push('released');
+  if (masters.some((master) => ratingOf(master) !== null)) sorts.push('rating');
   return sorts;
 }
 

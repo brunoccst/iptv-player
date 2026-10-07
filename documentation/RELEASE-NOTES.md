@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
 - **Live TV categories: one step at a time** (2026-10-07, issue #179): on the TV, ↑ and ↓ in the category list move exactly one category, and the list scrolls to keep it in the middle instead of jumping a page; Channel + and Channel − move a page up or down.
 - **The remote's media keys always work in the player** (2026-10-07, issue #178): Play/Pause, Play, Pause, ⏪ and ⏩ now also work while the player's buttons, the audio and subtitles panel, the guide or Skip ahead are on screen; Stop closes the player.
 - **On TV, ←/→ stay in the row** (2026-10-06, D-152): ← and → only move along the row you are in, and stop at its ends; ↑ and ↓ change rows. On Home, ← at the banner's Play and → at More Info no longer drop to the row below, and ↑ from the first row scrolls the banner fully into view at once; the same goes for row titles, the player's buttons, Search, My List, Profiles, Downloads and the settings dialogs.
@@ -64,6 +65,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Top rated on Home** (2026-10-07, D-153, issue #181): Home has a "Top rated movies" and a "Top rated series" row, from your provider's ratings, highest first; "See all" opens Movies or Series sorted that way, and their Sort by has "Highest rated".
 - **Media keys** (2026-10-07, issue #178): a keyboard's or headset's play, pause, stop, back and forward keys control the player.
 - **"Who's watching?" every time** (2026-10-06, D-151): opening the app asks who is watching; an account with one profile opens it directly.
 - **Skips add up** (2026-10-06, D-150): presses in a row of → / ← or of the ±10 s buttons skip 10 s, 30 s, 1 min, 2 min, then 5 min; holding a key still skips 10 s at a time.

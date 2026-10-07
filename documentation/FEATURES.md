@@ -52,7 +52,7 @@ While the library is being organized, or when the device is offline, a banner fl
 
 ### Home
 
-A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
+A featured title at the top, then rows: Continue Watching, My List, the [channels watched last](#channels-watched-last), Top rated movies and Top rated series (the provider's ratings, highest first; D-153) and the provider's categories. A row shows 10 titles and a "See all" card that opens the category's page (D-043). On TV the rows are built as the focus moves down, and the focused row is kept in the middle (D-069, D-094, D-122).
 
 ### Continue Watching
 
@@ -64,7 +64,7 @@ Android TV and Google TV (Chromecast with Google TV) show the active profile's C
 
 ### Movies and Series
 
-A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049).
+A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049), or highest rated first (the provider's rating, D-153).
 
 ### Category chips
 

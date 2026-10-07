@@ -150,7 +150,7 @@ describe.each([
       ['Another Film', 2019, 1, null],
       ['Big Test Movie', 2020, 2, '4K'],
     ]);
-    expect(page.sorts).toEqual(['added', 'title', 'released']);
+    expect(page.sorts).toEqual(['added', 'title', 'released', 'rating']);
     const titles = async (query: LibraryListQuery) => (await api.library.list('movies', query)).items.map((card) => card.title);
     expect(await titles({ order: 'asc' })).toEqual(['Big Test Movie', 'Another Film']);
     expect(await titles({ sort: 'title', order: 'desc' })).toEqual(['Big Test Movie', 'Another Film']);

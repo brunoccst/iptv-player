@@ -42,6 +42,23 @@ function stubLibrary(backend: ReturnType<typeof setupApp>) {
   backend.on('GET', '/api/catalog/movies/101', { body: null, status: 404 });
 }
 
+/** Phones: Home is a virtualized list; scrolling it to the end renders the rows further down. */
+async function scrollHomeToEnd() {
+  const home = await screen.findByTestId('home-screen');
+  await act(async () => {
+    fireEvent(home, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 800 } } });
+    fireEvent(home, 'contentSizeChange', 400, 3000);
+    fireEvent.scroll(home, {
+      nativeEvent: {
+        contentOffset: { x: 0, y: 2200 },
+        contentSize: { width: 400, height: 3000 },
+        layoutMeasurement: { width: 400, height: 800 },
+      },
+    });
+  });
+  await flush();
+}
+
 describe('App (TV)', () => {
   it('login → single profile auto-selected → home with rail', async () => {
     const backend = setupApp({ signedIn: false });
@@ -524,6 +541,7 @@ describe('App (TV)', () => {
     backend.on('GET', '/api/catalog/movies/categories', { body: [{ id: '7', name: 'Drama', parentId: null }] });
     await render(<App />);
     await flush();
+    await scrollHomeToEnd();
 
     await fireEvent.press(await screen.findByTestId('row-movies-7-open'));
     await flush();
@@ -549,13 +567,27 @@ describe('App (TV)', () => {
     await render(<App />);
     await flush();
 
-    // Continue Watching, My List, Live TV and Series: no category row yet, and none of their titles asked for.
-    expect(await screen.findByTestId('card-Show A')).toBeTruthy();
+    // Continue Watching, My List, Live TV and Top rated movies: no category row yet, and none of their titles asked for.
+    const topMovies = await screen.findByTestId('row-movies-all-rating');
+    expect(screen.queryByTestId('row-series-all')).toBeNull();
     expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
     expect(categoryRows()).toHaveLength(0);
 
+    // The focus on Top rated movies: the two rows below it (Top rated series, Series) are built.
+    await act(async () => fireEvent(within(topMovies).getByTestId('card-Big Test Movie'), 'focus'));
+    await flush();
+    expect(screen.getByTestId('row-series-all-rating')).toBeTruthy();
+    // The Top rated rows ask for the provider's rating, highest first (D-153).
+    const rated = backend.calls.filter((call) => call.url.searchParams.get('sort') === 'rating');
+    expect(rated.map((call) => [call.url.pathname, call.url.searchParams.get('order')])).toEqual([
+      ['/api/library/movies', 'desc'],
+      ['/api/library/series', 'desc'],
+    ]);
+    const seriesCard = within(screen.getByTestId('row-series-all')).getByTestId('card-Show A');
+    expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();
+
     // The focus on the Series row: the two rows below it are built.
-    await act(async () => fireEvent(screen.getByTestId('card-Show A'), 'focus'));
+    await act(async () => fireEvent(seriesCard, 'focus'));
     await flush();
     expect(screen.getByTestId('row-movies-c1-open')).toBeTruthy();
     expect(screen.getByTestId('row-movies-c2-open')).toBeTruthy();
@@ -597,10 +629,12 @@ describe('App (TV)', () => {
     });
     await render(<App />);
     await flush();
+    await scrollHomeToEnd();
 
+    const more = await screen.findByTestId('row-movies-7-more');
     const rowCalls = backend.calls.filter((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7');
     expect(rowCalls.map((c) => c.url.searchParams.get('limit'))).toEqual(['10']);
-    await fireEvent.press(await screen.findByTestId('row-movies-7-more'));
+    await fireEvent.press(more);
     await flush();
     expect(await screen.findByTestId('browse-movies')).toBeTruthy();
     expect(screen.getByTestId('chip-7')).toHaveProp('accessibilityState', { selected: true });

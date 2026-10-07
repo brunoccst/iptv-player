@@ -59,7 +59,7 @@ export interface LibraryPage {
   total: number;
 }
 
-export type LibrarySort = 'added' | 'title' | 'released';
+export type LibrarySort = 'added' | 'title' | 'released' | 'rating';
 
 export interface LibraryStatus {
   error: null | string;
