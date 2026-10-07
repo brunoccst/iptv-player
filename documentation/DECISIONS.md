@@ -2452,5 +2452,5 @@ Context: IMDb has no free API (only paid AWS data or bulk files of several GB), 
 Decision:
 - A new list order, `rating` (highest first; "Highest rated" in the Movies/Series sort menu). A rating of 0 or none counts as missing and goes last, like other missing values (D-049). The SQLite library adds it to its order tables (`s1`/`s0`, made when first asked for, D-135); a library from before D-135 sorts while it reads. "Highest rated" shows once a library is built or updated with ratings.
 - Home shows "Top rated movies" and "Top rated series" after the Live TV row, on every app. The row title and the arrow card open Movies or Series sorted by rating.
-- Trending lists need an outside source: TMDB's are free with an API key (the user's own, like OpenSubtitles, D-111). Not built yet; waiting for the owner's choice in the project thread.
+- No trending row: it needs an outside list (TMDB's are free, but only with an API key of the user's own, like OpenSubtitles, D-111). The owner chose the provider's ratings only.
 - Tests: the in-memory and SQLite libraries give the same lists in both rating orders; the TV Home asks for the rated rows.
