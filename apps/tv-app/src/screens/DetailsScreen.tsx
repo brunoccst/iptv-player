@@ -268,7 +268,7 @@ function Episodes({
   const progress = useProgress((s) => s);
   // Landscape: Left from an episode's first button goes back to the buttons in the left column (D-158).
   const split = useContext(SplitLayout);
-  // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-167).
+  // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-168).
   const compact = useCompact() || split;
   // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);

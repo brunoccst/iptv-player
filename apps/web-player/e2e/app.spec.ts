@@ -410,7 +410,7 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   await expect(dialog).toHaveCount(0);
 });
 
-test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-165, D-167)', async ({ page }) => {
+test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-165, D-168)', async ({ page }) => {
   await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
   const dialog = page.getByRole('dialog', { name: 'Big Test Movie' });
   const left = dialog.getByTestId('details-left');

@@ -415,7 +415,7 @@
 /*
  * Wide landscape windows (D-158, issue #186, as on the TV and phone app): the backdrop behind everything, shaded from
  * the left; title, buttons, facts, description, version, cast and the other facts on the left (a series: 42 %, at most
- * 720 px; a movie: 2/3, D-167); on the right a series' episodes, which alone scroll, or a movie's backdrop. The left
+ * 720 px; a movie: 2/3, D-168); on the right a series' episodes, which alone scroll, or a movie's backdrop. The left
  * column scrolls only when it does not fit.
  */
 .details-split {
@@ -459,7 +459,7 @@
   padding: 40px 24px 24px 48px;
 }
 
-/* A movie: one column, up to 2/3 of the window (D-167). */
+/* A movie: one column, up to 2/3 of the window (D-168). */
 .details-split__left--single {
   flex-basis: 66.667%;
   max-width: none;

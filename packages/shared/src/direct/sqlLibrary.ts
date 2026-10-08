@@ -68,8 +68,16 @@ const READ_BATCH = 5000;
 const ITEM_RULES = 6;
 /** Names not seen in any update for this long are forgotten. */
 const NAME_KEEP_DAYS = 30;
-/** What the parser read from each name (D-133). The same for every account; read again when the rules change. */
-const NAMES = `title_names_${NORMALIZER_RULES}`;
+/**
+ * Version of what the parser reads from a name (`parseTitle`), apart from the grouping rules (D-167): raise it only when
+ * the parser changes, so a change of grouping alone regroups the titles without reading every name again. 8 is the
+ * first: the parser did not change from 7 to 8, so names read with 7 are kept.
+ */
+const NAME_RULES = 8;
+/** What the parser read from each name (D-133). The same for every account; read again when `NAME_RULES` changes. */
+const NAMES = `title_names_${NAME_RULES}`;
+/** Names read with these older rules say the same as with `NAME_RULES`: moved into the names, not read again. */
+const SAME_NAMES = ['title_names_7'];
 
 const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
@@ -493,7 +501,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   let ready: Promise<void> | null = null;
   /**
    * Creates the table of contents and the names once, and drops the tables of builds that never finished (the app was
-   * closed) and the names read with older rules.
+   * closed) and the names read with older rules (those that say the same are kept for the next build: `keepSameNames`).
    */
   const prepare = () =>
     (ready ??= (async () => {
@@ -508,7 +516,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         .filter((name) => !used.has(name.replace(/_[a-z0-9]+$/, '')));
       const oldNames = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'title_names_*'"))
         .map((row) => String(row[0]))
-        .filter((name) => name !== NAMES);
+        .filter((name) => name !== NAMES && !SAME_NAMES.includes(name));
       if (orphans.length || oldNames.length)
         await db.run([...orphans, ...oldNames].map((name) => ({ sql: `DROP TABLE IF EXISTS ${name}` })));
     })().catch((error: unknown) => {
@@ -1009,6 +1017,15 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     return sorts;
   }
 
+  /** Moves names read with older rules that say the same (`SAME_NAMES`) into the names, so they are not read again (D-167). */
+  async function keepSameNames() {
+    for (const [table] of await db.query(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${SAME_NAMES.map(() => '?').join(', ')})`,
+      SAME_NAMES,
+    ))
+      await db.run([{ sql: `INSERT OR IGNORE INTO ${NAMES} SELECT * FROM ${String(table)}` }, { sql: `DROP TABLE ${String(table)}` }]);
+  }
+
   /** Reads the names no library had before (in slices, so the screen keeps running) and keeps what they say. */
   async function readNewNames(
     t: string,
@@ -1018,6 +1035,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     timings: LibraryBuildTimings,
     progress: (fraction: number) => void,
   ) {
+    await keepSameNames();
     const today = Math.floor(Date.now() / 86_400_000);
     const names = (
       await db.query(`SELECT DISTINCT name FROM ${t}_r WHERE NOT EXISTS (SELECT 1 FROM ${NAMES} n WHERE n.name = ${t}_r.name)`)
