@@ -511,6 +511,36 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
 }
 
+/* Desktop app (D-166): an accepted update downloading, at the top right of any page until the restart question. */
+.banner--update {
+  position: fixed;
+  top: 16px;
+  right: var(--gutter);
+  z-index: 70;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 260px;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  background: rgb(20 20 20 / 95%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
+.banner__track {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+
+.banner__value {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.2s linear;
+}
+
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
 /* About and Log (account menu → App, D-079); padded like the other dialogs (D-142). */
 .about,

@@ -789,14 +789,16 @@ flowchart TD
   R["GitHub release<br/>tv-apk / desktop"] --> C{newer than installed?}
   C -->|TV, phone| A["download APK, check SHA-256,<br/>open Android installer"]
   C -->|Windows, AppImage| E["electron-updater: download,<br/>check SHA-512, install"]
+  E -->|iptv:update-progress| P["UpdateProgress banner<br/>and taskbar %"]
   C -->|macOS, .deb| O[open the release page]
 ```
 
 - TV and phone: `createUpdater()` reads the `tv.apk` asset of the `tv-apk` release, compares its version code with the installed one, and `AppUpdater.kt` downloads and checks it. A version you skip is kept under `update.skipped`.
 - Desktop: `checkForUpdate()` in the Electron main process, about 15 s after start or from the menu; the skipped version is kept in `update-skipped.txt`.
+- Download progress: TV and phone get `onUpdateProgress` from `AppUpdater.kt` into `UpdateDialog`; the desktop sends electron-updater's `download-progress` as `iptv:update-progress` (`{ version, percent }`, then `null`) to the page's `UpdateProgress` banner, and to the taskbar.
 - `scripts/release-notes.mjs` adds the version's release notes to each release.
 
-**Code:** `apps/tv-app/src/update/updates.ts`, `apps/tv-app/src/update/UpdateDialog.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/AppUpdater.kt`, `apps/desktop/main.mjs`, `scripts/release-notes.mjs`
+**Code:** `apps/tv-app/src/update/updates.ts`, `apps/tv-app/src/update/UpdateDialog.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/AppUpdater.kt`, `apps/desktop/main.mjs`, `apps/desktop/preload.cjs`, `apps/web-player/src/features/shell/UpdateProgress.tsx`, `scripts/release-notes.mjs`
 
 ### Close the app (TV and phone)
 

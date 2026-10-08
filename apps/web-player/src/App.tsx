@@ -5,6 +5,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { SyncWithPhoneHost } from './features/pairing/SyncWithPhone';
 import { ProfilePicker } from './features/profiles/ProfilePicker';
 import { Shell } from './features/shell/Shell';
+import { UpdateProgress } from './features/shell/UpdateProgress';
 import { useSession } from './hooks/stores';
 import { desktop } from './desktop';
 import { desktopTexts } from './desktopTexts';
@@ -36,6 +37,7 @@ export function App() {
     <Fragment key={language}>
       <Screen status={status} activeProfileId={activeProfileId} />
       <SyncWithPhoneHost />
+      <UpdateProgress />
     </Fragment>
   );
 }

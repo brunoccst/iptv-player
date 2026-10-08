@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   version: info.version,
   platform: info.platform,
   checkForUpdates: () => ipcRenderer.invoke('iptv:check-updates'),
+  // While an accepted update downloads: { version, percent }, then null when it ends or fails.
+  onUpdateProgress(listener) {
+    const handler = (_event, progress) => listener(progress);
+    ipcRenderer.on('iptv:update-progress', handler);
+    return () => ipcRenderer.removeListener('iptv:update-progress', handler);
+  },
   // The update dialogs' texts in the app's language (D-084).
   setTexts: (texts) => ipcRenderer.invoke('iptv:set-texts', texts),
   // "Open in VLC" (D-081): 'vlc' when VLC started, 'none' when it is not installed.

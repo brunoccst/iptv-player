@@ -2584,3 +2584,9 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 - A series' right column: only the episode list scrolls. "Episodes", the season's Watched button and the season choice stay at its top (Bruno: "make it so that the scroll only happens for the episode list"). On TV a focused episode moves to the middle of the list.
 - Desktop: the column is 42 % of the window, at most 720 px, so the description and the version choice do not stretch across a big screen.
 - Tests: `DetailsScreen.test.tsx` and `DetailsLayout.test.tsx` (a movie's facts on the left, no right column; TV: the season choice outside the scrolling list); e2e: a movie at 1440×900, the series' list the only part that scrolls.
+
+## D-166
+
+**The desktop shows an accepted update downloading** — 2026-10-08 (Bruno: "when the update message is prompted and you accept the update, the user gets no feedback that the download is happening. The user only gets the prompt that the app needs to restart. Add a feedback.")
+
+Decision: after Install now (Windows, AppImage), the main process sends electron-updater's progress to the page as `iptv:update-progress` (`{ version, percent }`, `null` when the download ends or fails); the page shows "Downloading version X… N%" with a bar at the top right of any screen, like the TV's update dialog (D-062, same text). The taskbar progress stays. The restart question follows as before.
