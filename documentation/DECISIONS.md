@@ -2590,3 +2590,9 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 **The desktop shows an accepted update downloading** — 2026-10-08 (Bruno: "when the update message is prompted and you accept the update, the user gets no feedback that the download is happening. The user only gets the prompt that the app needs to restart. Add a feedback.")
 
 Decision: after Install now (Windows, AppImage), the main process sends electron-updater's progress to the page as `iptv:update-progress` (`{ version, percent }`, `null` when the download ends or fails); the page shows "Downloading version X… N%" with a bar at the top right of any screen, like the TV's update dialog (D-062, same text). The taskbar progress stays. The restart question follows as before.
+
+## D-167
+
+**Names are read again only when the parser changes** — 2026-10-08 (Bruno: after updating the TV, the library refresh crept "+1% for movies every 2 seconds"; "Do it")
+
+Decision: what the parser read from each name (`title_names_…`, D-133) has its own version, `NAME_RULES` in `sqlLibrary.ts`, instead of the grouping rules (`NORMALIZER_RULES`). Raising the grouping rules (D-156 raised them to 8) rebuilds the titles but keeps the names, so the first refresh after such an update reads no names. `NAME_RULES` starts at 8; the parser did not change from 7, so the names in `title_names_7` move over at the next build instead of being read again. Raise `NAME_RULES` only with a change to `parseTitle`.

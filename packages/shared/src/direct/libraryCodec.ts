@@ -10,7 +10,8 @@ export const LIBRARY_FORMAT = 3;
  * counts as out of date, so it is rebuilt in the background (D-086: short tags in names, episode numbers; 3: Albanian and Kurdish prefixes;
  * 4: Greek, Ex-Yu, Punjabi and longer prefixes, D-107; 5: "PL = …" and "BL - …" prefixes, D-112;
  * 6: grouped by key, year and TMDB id only, no similar spellings, D-133; 7: languages not in the tables yet dropped as
- * prefixes, D-134; 8: titles of one name and year with different TMDB ids apart, D-156).
+ * prefixes, D-134; 8: titles of one name and year with different TMDB ids apart, D-156). What the parser read from each
+ * name keeps its own version (`NAME_RULES` in `sqlLibrary.ts`, D-167).
  */
 export const NORMALIZER_RULES = 8;
 
