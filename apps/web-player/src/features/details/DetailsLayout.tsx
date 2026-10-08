@@ -32,7 +32,7 @@ export function DetailsLayout({
     return (
       <div className="details-split">
         {backdrop ? <img className="details-split__backdrop" src={backdrop} alt="" /> : null}
-        <div className="details-split__left" data-testid="details-left">
+        <div className={list ? 'details-split__left' : 'details-split__left details-split__left--single'} data-testid="details-left">
           <h2 className="details__title">{title}</h2>
           {watched ? <WatchedTag className="details__watched" /> : null}
           <div className="details__actions">{actions}</div>

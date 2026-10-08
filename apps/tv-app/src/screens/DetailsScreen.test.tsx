@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Animated, Dimensions, Platform } from 'react-native';
+import { Animated, Dimensions, Platform, StyleSheet } from 'react-native';
 import { navStore, stores } from '../appContext';
 import { setupApp, variant } from '../../test/utils';
 import { DetailsScreen } from './DetailsScreen';
@@ -489,6 +489,8 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     const source = screen.getAllByText('EN - Movie 1080p');
     expect(columnOf(source[source.length - 1])).toBe('details-left');
     expect(screen.queryByTestId('details-right')).toBeNull();
+    // The one column takes 2/3 of the screen (D-167).
+    expect(StyleSheet.flatten(screen.getByTestId('details-left').props.style)).toMatchObject({ width: 640 });
   });
 
   it('a series: the episodes scroll on the right; on TV Right leaves the buttons and Left leaves an episode', async () => {
@@ -506,6 +508,9 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(column('details-play')).toBe('details-left');
     expect(column('episodes')).toBe('details-right');
     expect(column('episode-w-2')).toBe('details-right');
+    // The left column keeps 42 %; the episodes use the phone's rows: no number column, buttons under the text (D-167).
+    expect(StyleSheet.flatten(screen.getByTestId('details-left').props.style)).toMatchObject({ width: 403 });
+    expect(within(screen.getByTestId('episode-list')).queryByText('2')).toBeNull();
     // Only the episodes scroll: the season choice stays above them (D-165).
     const list = screen.getByTestId('episode-list');
     expect(within(list).queryByTestId('episode-w-1')).toBeTruthy();

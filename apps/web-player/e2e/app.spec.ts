@@ -410,14 +410,14 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   await expect(dialog).toHaveCount(0);
 });
 
-test('details: a movie keeps its facts on the left of a wide window (D-165)', async ({ page }) => {
+test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-165, D-167)', async ({ page }) => {
   await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
   const dialog = page.getByRole('dialog', { name: 'Big Test Movie' });
   const left = dialog.getByTestId('details-left');
   await expect(left.getByText('Cast:')).toBeVisible();
   await expect(left.getByText('Source:')).toBeVisible();
   await expect(dialog.getByTestId('details-right')).toHaveCount(0);
-  expect((await left.boundingBox())!.width).toBeLessThanOrEqual(720);
+  expect((await left.boundingBox())!.width).toBeCloseTo(960, -1);
 });
 
 test('app language (D-084): the whole app switches, and the choice stays after a reload', async ({ page }) => {

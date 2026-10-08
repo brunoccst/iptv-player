@@ -2590,3 +2590,12 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 **The desktop shows an accepted update downloading** — 2026-10-08 (Bruno: "when the update message is prompted and you accept the update, the user gets no feedback that the download is happening. The user only gets the prompt that the app needs to restart. Add a feedback.")
 
 Decision: after Install now (Windows, AppImage), the main process sends electron-updater's progress to the page as `iptv:update-progress` (`{ version, percent }`, `null` when the download ends or fails); the page shows "Downloading version X… N%" with a bar at the top right of any screen, like the TV's update dialog (D-062, same text). The taskbar progress stays. The restart question follows as before.
+
+## D-167
+
+**TV episode rows like the phone's; a movie's column takes 2/3** — 2026-10-08 (Bruno, with a photo of the TV: "The design in the TV app is horrible after the changes for the columns for series. Make the episode have a look like on the phone app. Also, when there aren't two columns, make the single column expand through the page, until 2/3 of the page."; changes D-158, D-165)
+
+Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
+- In the two columns, a series' episode rows use the phone's layout on every screen: no number column, a smaller still, the title on at most two lines and the buttons under the text. The TV's right column (58 % of the screen) was too narrow for the number, still, text and buttons side by side: titles wrapped one word per line.
+- A movie's single column takes 2/3 of the screen (desktop too, instead of 42 % and at most 720 px); a series' left column stays 42 % (desktop: at most 720 px).
+- Tests: `DetailsScreen.test.tsx` (movie column 640 of 960 dp; series column 403 dp and no episode number); e2e: a movie's column 2/3 of 1440 px.

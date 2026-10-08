@@ -266,7 +266,10 @@ function Episodes({
   const [chosen, setChosen] = useState<Record<string, string>>({});
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
-  const compact = useCompact();
+  // Landscape: Left from an episode's first button goes back to the buttons in the left column (D-158).
+  const split = useContext(SplitLayout);
+  // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-167).
+  const compact = useCompact() || split;
   // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
   // TV: the episode whose buttons have the D-pad focus, so its description can roll. Moving between its own buttons
@@ -290,8 +293,6 @@ function Episodes({
   // TV: Up/Down go to the same button of the episode above or below (Play, "…", version), not Play or the button the
   // episode last had focused.
   const grid = useFocusGrid();
-  // Landscape: Left from an episode's first button goes back to the buttons in the left column (D-158).
-  const split = useContext(SplitLayout);
   if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
   const columns = (listed: MergedEpisode) => (listed.versions.length > 1 ? 3 : 2);
   const neighbour = (index: number, column: number) => {
@@ -685,7 +686,7 @@ function SplitDetails({
         ]}
       />
       <ScrollView
-        style={[styles.splitLeft, { width: Math.round(width * 0.42) }]}
+        style={[styles.splitLeft, { width: Math.round(width * (list ? 0.42 : 2 / 3)) }]}
         contentContainerStyle={styles.splitLeftContent}
         testID="details-left"
       >
