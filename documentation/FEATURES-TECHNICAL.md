@@ -44,13 +44,13 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  K["session, credentials, PIN,<br/>profiles, progress, My List,<br/>settings.profiles"] --> J[JSON]
+  K["session, credentials, PIN,<br/>profiles, progress, My List,<br/>settings.profiles, TV settings.playback"] --> J[JSON]
   J -->|"PBKDF2-SHA256 + XChaCha20-Poly1305"| F[".iptvbackup file"]
   F -->|password| R[write every key back, reload]
 ```
 
 - `collectUserData` reads the keys above; library caches and downloads are left out.
-- `exportUserData` needs a password of 8+ characters: PBKDF2-SHA256 (100,000 rounds, 16-byte salt) derives the key, XChaCha20-Poly1305 seals the JSON. `importUserData` reports any failure as a wrong password.
+- `exportUserData` needs a password of 8+ characters: PBKDF2-SHA256 (100,000 rounds, 16-byte salt) derives the key, XChaCha20-Poly1305 seals the JSON. `importUserData` refuses a file that is not a backup or comes from a newer version, and reports a file it cannot decrypt as a wrong password.
 - TV and phone pick a folder or file with the Expo file system; desktop downloads a file and reads it from a file input.
 
 **Code:** `packages/shared/src/backup/userData.ts`, `apps/tv-app/src/components/BackupDialog.tsx`, `apps/web-player/src/features/backup/BackupDialog.tsx`
@@ -148,7 +148,7 @@ flowchart TD
   H["Hero: random of the 30 newest movies"] --> CW[Continue Watching]
   CW --> ML[My List] --> LV[channels watched last]
   LV --> TR["Top rated: 100 newest → rating → 25"]
-  TR --> C[provider categories]
+  TR --> C["Series, then provider categories"]
 ```
 
 - `topRated` takes the 100 titles added last, drops unrated ones and ratings that round to 100 %, sorts by rating and keeps 25.
@@ -240,7 +240,7 @@ flowchart LR
   M --> O["scrollTo(y − (screen − height) / 2)"]
 ```
 
-- `CenteringScrollView` gives focusable parts a `center()` call that measures them inside the scroll content and scrolls them to the middle. Android's own D-pad scrolling is turned off on TV so it does not add a second step. Phones get a plain scroll view.
+- `CenteringScrollView` gives focusable parts a `center()` call that measures them inside the scroll content and scrolls them to the middle. On the grids (`onlyCentering`) Android's own D-pad scrolling is turned off on TV so it does not add a second step. Phones get a plain scroll view.
 - Grids compute each line's position from the first line's height and keep only lines near the focus mounted.
 - `FocusRow` traps ← and → at a row's ends; `leftOpen` and `rightOpen` let focus out where a column sits beside it.
 
@@ -346,8 +346,9 @@ flowchart TD
 flowchart LR
   V1[version A episodes] --> M[mergeSeriesVersions]
   V2[version B episodes] --> M
-  M -->|"same number + same title or S01E03"| C["one row, copy labelled ENG #2"]
-  M -->|different| R[own row]
+  M -->|same season and episode number| O[one row, versions to pick]
+  M -->|"number twice in one version,<br/>same title or S01E03"| C["one more copy: ENG #2"]
+  M -->|"no number, or twice with other titles"| R[own row]
 ```
 
 - Episodes merge by season and episode number. A version listing a number twice keeps it as one row only when the title or "S01E03" mark matches.
@@ -400,14 +401,15 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  P[movie or episode plays] --> H{"own subtitles in a<br/>profile language?"}
+  P[movie or episode plays] --> H{"own subtitles in a<br/>chosen subtitle language?"}
   H -->|yes| X[nothing]
   H -->|no| C{cached?}
   C -->|yes| A[add the subtitle]
-  C -->|no| S["OpenSubtitles search,<br/>human-made, most downloaded"] --> D[download SRT, cache] --> A
+  C -->|no| S["OpenSubtitles search,<br/>human-made, trusted, most downloaded"] --> D[download SRT, cache] --> A
 ```
 
-- Settings (API key, optional login, languages) are in secure storage under `settings.opensubtitles`.
+- Settings (on/off, API key, optional login, languages) are one set per device, in secure storage under `settings.opensubtitles`; nothing happens while it is off or has no API key. Their languages decide, not the profile's.
+- Live channels never get one. A found subtitle is cached per stream in the device's data storage.
 - TV and phone add the SRT to the native player; desktop converts it to WebVTT and adds a `<track>`.
 
 **Code:** `packages/shared/src/subtitles/openSubtitles.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx`
@@ -471,10 +473,11 @@ flowchart LR
   U -->|desktop| V[start VLC]
 ```
 
-- TV and phone: an Android chooser; MX Player and Just Player read the `headers` extra. Hidden on Kids profiles.
+- TV and phone: an Android chooser; MX Player and Just Player read the `headers` extra.
 - Desktop: the main process looks for VLC in the usual folders and the PATH and starts it with the URL and User-Agent.
+- Hidden on Kids profiles in every app.
 
-**Code:** `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs`
+**Code:** `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs`
 
 ## Live TV
 
@@ -492,7 +495,7 @@ flowchart LR
 - `useEpgGuide` loads 3 hours from the chosen time; Earlier and Later move it. Gaps become empty cells so the TV focus always has a target.
 - TV: the focused category stays centred; Channel +/− move a page.
 
-**Code:** `packages/shared/src/epg/guide.ts`, `packages/shared/src/stores/epgStore.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`
+**Code:** `packages/shared/src/epg/guide.ts`, `packages/shared/src/stores/epgStore.ts`, `packages/shared/src/react.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`
 
 ### Guide over the playing channel
 
@@ -600,7 +603,7 @@ flowchart LR
 - `withKidsFilter` keeps the categories whose names look like children's (and not adult), or the ones a parent picked, for lists, channels, the guide and search.
 - Switching between Kids and other profiles clears the cached lists.
 
-**Code:** `packages/shared/src/profiles/kidsFilter.ts`, `packages/shared/src/stores/sessionStore.ts`, `apps/tv-app/src/screens/ProfilesScreen.tsx`, `apps/web-player/src/features/profiles/ProfilePicker.tsx`
+**Code:** `packages/shared/src/profiles/kidsFilter.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/stores/sessionStore.ts`, `apps/tv-app/src/screens/ProfilesScreen.tsx`, `apps/web-player/src/features/profiles/ProfilePicker.tsx`
 
 ### Parental PIN
 
@@ -696,7 +699,7 @@ sequenceDiagram
 
 - The QR holds the device's address, port and a 32-byte random key. The payload is sealed with XChaCha20-Poly1305 (`sealed.ts`); a wrong key gets 403.
 - `mergeMedia()` matches profiles by id, then name; progress keeps the newest entry per title; My List is the union (up to 500).
-- `mergeProfilePrefs()` merges each profile's settings (`settings.profiles`): the phone's value wins, watched series and recent channels are joined. The automatic-subtitles settings go along too. Device settings (audio decoder, the device's own app language, downloads, update choices) are not sent.
+- `mergeProfilePrefs()` merges each profile's settings (`settings.profiles`): the phone's value wins, watched series and recent channels are joined. The automatic-subtitles settings go along too. A parental PIN is copied only where the TV or computer has none. Device settings (audio decoder, the device's own app language, downloads, update choices) are not sent.
 - The server: `PairingServer.kt` on TV; a Node `http` server in the Electron main process on desktop. The phone scans with Google Play services' code scanner.
 
 **Code:** `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/desktop/main.mjs`
@@ -733,7 +736,7 @@ flowchart TD
   M --> G1[Profiles]
   M --> G2[Library & devices]
   M --> G3[App]
-  M --> O[Sign out · Close the app]
+  M --> O["Sign out · Close the app (TV, phone)"]
   G1 & G2 & G3 -->|opens in place, ← back| M
 ```
 

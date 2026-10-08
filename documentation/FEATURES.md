@@ -120,7 +120,7 @@ Buttons on the player bar open the audio tracks, subtitles, the title's versions
 
 ### Automatic subtitles
 
-With your own OpenSubtitles.com API key, a movie or episode without subtitles in one of the profile's languages gets one downloaded and turned on. Set up under the account menu → App → Automatic subtitles (D-111).
+With your own OpenSubtitles.com API key, a movie or episode without subtitles in one of the languages chosen there gets one downloaded and turned on. Set up under the account menu → App → Automatic subtitles (D-111).
 
 ### Pause when the headphones go away
 
