@@ -379,6 +379,31 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 });
 
+test('details: two columns on a wide window, the panel on a narrow one (D-158, D-164)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Series', exact: true }).click();
+  await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Test Series' });
+  const left = dialog.getByTestId('details-left');
+  const right = dialog.getByTestId('details-right');
+  await expect(left.getByRole('heading', { name: 'Test Series' })).toBeVisible();
+  await expect(left.getByRole('button', { name: /^Play/ })).toBeVisible();
+  await expect(right.getByRole('region', { name: 'Episodes' })).toBeVisible();
+  // The panel covers the window and the columns sit side by side.
+  const panel = await dialog.boundingBox();
+  expect(panel).toMatchObject({ x: 0, y: 0, width: 1440, height: 900 });
+  const [l, r] = [await left.boundingBox(), await right.boundingBox()];
+  expect(r!.x).toBeGreaterThanOrEqual(l!.x + l!.width - 1);
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
+
+  // A narrow window: the panel with the episodes under the rest.
+  await page.setViewportSize({ width: 560, height: 900 });
+  await expect(left).toHaveCount(0);
+  await expect(dialog.locator('.details__hero').getByRole('button', { name: /^Play/ })).toBeVisible();
+  await expect(dialog.getByRole('region', { name: 'Episodes' })).toBeAttached();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+});
+
 test('app language (D-084): the whole app switches, and the choice stays after a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'App' }).click();

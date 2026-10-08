@@ -3,8 +3,8 @@ import { uiStore } from '../appContext';
 import { Icon } from './Icon';
 import { t } from '@iptv/shared';
 
-/** Dialog overlay. Closes on Escape and backdrop click. Focus moves into the panel on open. */
-export function Modal({ label, onClose, children }: { label: string; onClose(): void; children: ReactNode }) {
+/** Dialog overlay. Closes on Escape and backdrop click. Focus moves into the panel on open. `fill`: the panel covers the window. */
+export function Modal({ label, onClose, fill, children }: { label: string; onClose(): void; fill?: boolean; children: ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export function Modal({ label, onClose, children }: { label: string; onClose(): 
   }, [onClose]);
 
   return (
-    <div className="modal" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <div className={fill ? 'modal modal--fill' : 'modal'} onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <div className="modal__panel" role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} ref={panel}>
         <button type="button" className="icon-button modal__close" onClick={onClose} aria-label={t('Close')}>
           <Icon name="close" />
