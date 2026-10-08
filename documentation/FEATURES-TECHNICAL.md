@@ -356,6 +356,7 @@ flowchart LR
 - Episodes merge by season and episode number. A version listing a number twice keeps it as one row only when the title or "S01E03" mark matches.
 - The season Watched button changes only episodes whose state differs, 5 at a time.
 - TV: each episode's buttons are in a focus grid, so ↑/↓ go to the same button of the next episode. The description starts rolling after 1.5 s of focus.
+- Each episode row (`EpisodeRow`) is memoized: a focus move redraws only the episode it leaves and the one it reaches, not the whole season.
 - Desktop: right-click opens the episode menu; a click on the description expands it.
 
 **Code:** `packages/shared/src/playback/seriesVersions.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/components/focusGrid.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/EpisodeList.tsx`

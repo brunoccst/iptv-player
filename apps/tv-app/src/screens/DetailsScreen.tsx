@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -277,39 +277,19 @@ function Episodes({
   const [focusedEpisode, setFocusedEpisode] = useState<string | null>(null);
   const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => clearTimeout(leaving.current ?? undefined), []);
-  const episodeFocus = (id: string) =>
-    Platform.isTV
-      ? {
-          onFocus: () => {
-            clearTimeout(leaving.current ?? undefined);
-            setFocusedEpisode(id);
-          },
-          onBlur: () => {
-            clearTimeout(leaving.current ?? undefined);
-            leaving.current = setTimeout(() => setFocusedEpisode((current) => (current === id ? null : current)), 100);
-          },
-        }
-      : {};
+  const onEpisodeFocus = useCallback((id: string) => {
+    clearTimeout(leaving.current ?? undefined);
+    setFocusedEpisode(id);
+  }, []);
+  const onEpisodeBlur = useCallback((id: string) => {
+    clearTimeout(leaving.current ?? undefined);
+    leaving.current = setTimeout(() => setFocusedEpisode((current) => (current === id ? null : current)), 100);
+  }, []);
+  const onChoose = useCallback((id: string, episodeId: string) => setChosen((current) => ({ ...current, [id]: episodeId })), []);
   // TV: Up/Down go to the same button of the episode above or below (Play, "…", version), not Play or the button the
   // episode last had focused.
   const grid = useFocusGrid();
   if (!season) return <Text style={[styles.muted, styles.episodes]}>{t('No episodes available.')}</Text>;
-  const columns = (listed: MergedEpisode) => (listed.versions.length > 1 ? 3 : 2);
-  const neighbour = (index: number, column: number) => {
-    const other = season.episodes[index];
-    return other ? grid.at(`${other.id}:${alignedColumn(column, columns(other))}`) : undefined;
-  };
-  const cell = (index: number, column: number) => ({
-    focusRef: grid.ref(`${season.episodes[index]!.id}:${column}`),
-    nextFocusUp: neighbour(index - 1, column),
-    nextFocusDown: neighbour(index + 1, column),
-  });
-  const context = (episode: MergedEpisode) => ({
-    title: master.title,
-    masterId: master.id,
-    seriesId: episode.seriesId,
-    posterUrl: series.summary.posterUrl ?? master.posterUrl,
-  });
 
   return (
     <View
@@ -325,7 +305,7 @@ function Episodes({
           <WatchedButton
             kind="season"
             watched={isSeasonWatched(progress, season)}
-            onChange={(next) => setSeasonWatched(stores.progress, season, context(season.episodes[0]!), next)}
+            onChange={(next) => setSeasonWatched(stores.progress, season, episodeContext(series, master, season.episodes[0]!), next)}
             testID="season-watched-toggle"
           />
           {series.seasons.length > 1 ? (
@@ -343,102 +323,181 @@ function Episodes({
         </FocusRow>
       </Centered>
       <EpisodeScroll>
-        {season.episodes.map((listed, index) => {
-          const episode = episodeInVersion(listed, chosen[listed.id]);
-          const target = episodeTarget(context(episode), episode);
-          const saved = findEpisodeProgress(progress, episode);
-          const play = () => navStore.getState().push({ name: 'player', target });
-          const actions = (
-            <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
-              <IconButton
-                icon="play"
-                label={t('Play {title}', { title: episode.title })}
-                onPress={play}
-                onLongPress={() => setMenuFor(episode)}
-                testID={`episode-${episode.id}`}
-                {...episodeFocus(listed.id)}
-                {...cell(index, 0)}
-              />
-              {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
-              <IconButton
-                icon="more"
-                label={t('More options for {title}', { title: episode.title })}
-                onPress={() => setMenuFor(episode)}
-                testID={`episode-${episode.id}-more`}
-                {...episodeFocus(listed.id)}
-                {...cell(index, 1)}
-              />
-              {listed.versions.length > 1 ? (
-                <Select
-                  compact
-                  label={t('Version of {title}', { title: episode.title })}
-                  value={episode.id}
-                  options={listed.versions.map((v) => ({ value: v.episode.id, label: v.label }))}
-                  onChange={(episodeId) => setChosen((current) => ({ ...current, [listed.id]: episodeId }))}
-                  testID={`episode-${listed.id}-version`}
-                  {...episodeFocus(listed.id)}
-                  {...cell(index, 2)}
-                />
-              ) : null}
-            </View>
-          );
-          return (
-            // A focused episode moves to the middle of the screen.
-            <Centered key={listed.id}>
-              <FocusRow style={[styles.episode, compact && styles.episodeCompact]} leftOpen={split}>
-                {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
-                <Pressable
-                  style={[styles.still, compact && styles.stillCompact]}
-                  onPress={play}
-                  accessibilityLabel={t('Play {title}', { title: episode.title })}
-                  focusable={false}
-                >
-                  {episode.stillUrl ? (
-                    <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                  ) : null}
-                  {isWatched(saved) ? (
-                    <WatchedTag style={styles.stillTag} testID={`episode-${episode.id}-watched`} />
-                  ) : saved && saved.durationSeconds > 0 ? (
-                    <View style={styles.stillTrack}>
-                      <View
-                        style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
-                      />
-                    </View>
-                  ) : null}
-                </Pressable>
-                <View style={styles.episodeText}>
-                  <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
-                    {episode.title}
-                  </Text>
-                  <EpisodePlot
-                    text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
-                    testID={`plot-${episode.id}`}
-                    rolling={focusedEpisode === listed.id}
-                  />
-                  {listed.versions.length === 1 && master.variants.length > 1 ? (
-                    <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
-                  ) : null}
-                  {/* Phones: buttons under the text, so the title keeps the width. */}
-                  {compact ? actions : null}
-                </View>
-                {compact ? null : actions}
-              </FocusRow>
-            </Centered>
-          );
-        })}
+        {/* Each row draws on its own: a focus move only draws the episode it leaves and the one it reaches again. */}
+        {season.episodes.map((listed, index) => (
+          <EpisodeRow
+            key={listed.id}
+            listed={listed}
+            above={season.episodes[index - 1]}
+            below={season.episodes[index + 1]}
+            chosenId={chosen[listed.id]}
+            rolling={focusedEpisode === listed.id}
+            progress={progress}
+            series={series}
+            master={master}
+            compact={compact}
+            split={split}
+            gridRef={grid.ref}
+            gridAt={grid.at}
+            gridRevision={grid.revision}
+            onEpisodeFocus={onEpisodeFocus}
+            onEpisodeBlur={onEpisodeBlur}
+            onChoose={onChoose}
+            onMenu={setMenuFor}
+          />
+        ))}
       </EpisodeScroll>
       {menuFor ? (
         <EpisodeMenu
           episode={menuFor}
-          target={episodeTarget(context(menuFor), menuFor)}
+          target={episodeTarget(episodeContext(series, master, menuFor), menuFor)}
           watched={isEpisodeWatched(progress, menuFor)}
-          onWatched={(watched) => void setEpisodeWatched(stores.progress, menuFor, context(menuFor), watched)}
+          onWatched={(watched) => void setEpisodeWatched(stores.progress, menuFor, episodeContext(series, master, menuFor), watched)}
           onClose={() => setMenuFor(null)}
         />
       ) : null}
     </View>
   );
 }
+
+/** The series fields an episode's play target and watched marks carry. */
+const episodeContext = (series: MergedSeries, master: MasterDetails, episode: MergedEpisode) => ({
+  title: master.title,
+  masterId: master.id,
+  seriesId: episode.seriesId,
+  posterUrl: series.summary.posterUrl ?? master.posterUrl,
+});
+
+/** An episode's buttons: Play, "…" and, with more than one version, the version box. */
+const columnsOf = (listed: MergedEpisode) => (listed.versions.length > 1 ? 3 : 2);
+
+/**
+ * One episode of the list. Drawn again only when something it shows changes (its version, progress, rolling
+ * description, its neighbours' buttons), not every time the focus moves along the list.
+ */
+const EpisodeRow = memo(function EpisodeRow({
+  listed,
+  above,
+  below,
+  chosenId,
+  rolling,
+  progress,
+  series,
+  master,
+  compact,
+  split,
+  gridRef,
+  gridAt,
+  onEpisodeFocus,
+  onEpisodeBlur,
+  onChoose,
+  onMenu,
+}: {
+  listed: MergedEpisode;
+  above: MergedEpisode | undefined;
+  below: MergedEpisode | undefined;
+  chosenId: string | undefined;
+  rolling: boolean;
+  progress: Parameters<typeof findEpisodeProgress>[0];
+  series: MergedSeries;
+  master: MasterDetails;
+  compact: boolean;
+  split: boolean;
+  gridRef(key: string): (view: View | null) => void;
+  gridAt(key: string): View | undefined;
+  /** Goes up when a button of the list appears or goes away, so the neighbours' views are read again. */
+  gridRevision: number;
+  onEpisodeFocus(id: string): void;
+  onEpisodeBlur(id: string): void;
+  onChoose(id: string, episodeId: string): void;
+  onMenu(episode: MergedEpisode): void;
+}) {
+  const episode = episodeInVersion(listed, chosenId);
+  const target = episodeTarget(episodeContext(series, master, episode), episode);
+  const saved = findEpisodeProgress(progress, episode);
+  const play = () => navStore.getState().push({ name: 'player', target });
+  const focusEvents = Platform.isTV ? { onFocus: () => onEpisodeFocus(listed.id), onBlur: () => onEpisodeBlur(listed.id) } : {};
+  const neighbour = (other: MergedEpisode | undefined, column: number) =>
+    other ? gridAt(`${other.id}:${alignedColumn(column, columnsOf(other))}`) : undefined;
+  const cell = (column: number) => ({
+    focusRef: gridRef(`${listed.id}:${column}`),
+    nextFocusUp: neighbour(above, column),
+    nextFocusDown: neighbour(below, column),
+  });
+  const actions = (
+    <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
+      <IconButton
+        icon="play"
+        label={t('Play {title}', { title: episode.title })}
+        onPress={play}
+        onLongPress={() => onMenu(episode)}
+        testID={`episode-${episode.id}`}
+        {...focusEvents}
+        {...cell(0)}
+      />
+      {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
+      <IconButton
+        icon="more"
+        label={t('More options for {title}', { title: episode.title })}
+        onPress={() => onMenu(episode)}
+        testID={`episode-${episode.id}-more`}
+        {...focusEvents}
+        {...cell(1)}
+      />
+      {listed.versions.length > 1 ? (
+        <Select
+          compact
+          label={t('Version of {title}', { title: episode.title })}
+          value={episode.id}
+          options={listed.versions.map((v) => ({ value: v.episode.id, label: v.label }))}
+          onChange={(episodeId) => onChoose(listed.id, episodeId)}
+          testID={`episode-${listed.id}-version`}
+          {...focusEvents}
+          {...cell(2)}
+        />
+      ) : null}
+    </View>
+  );
+  return (
+    // A focused episode moves to the middle of the screen.
+    <Centered>
+      <FocusRow style={[styles.episode, compact && styles.episodeCompact]} leftOpen={split}>
+        {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
+        <Pressable
+          style={[styles.still, compact && styles.stillCompact]}
+          onPress={play}
+          accessibilityLabel={t('Play {title}', { title: episode.title })}
+          focusable={false}
+        >
+          {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+          {isWatched(saved) ? (
+            <WatchedTag style={styles.stillTag} testID={`episode-${episode.id}-watched`} />
+          ) : saved && saved.durationSeconds > 0 ? (
+            <View style={styles.stillTrack}>
+              <View style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]} />
+            </View>
+          ) : null}
+        </Pressable>
+        <View style={styles.episodeText}>
+          <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
+            {episode.title}
+          </Text>
+          <EpisodePlot
+            text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+            testID={`plot-${episode.id}`}
+            rolling={rolling}
+          />
+          {listed.versions.length === 1 && master.variants.length > 1 ? (
+            <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
+          ) : null}
+          {/* Phones: buttons under the text, so the title keeps the width. */}
+          {compact ? actions : null}
+        </View>
+        {compact ? null : actions}
+      </FocusRow>
+    </Centered>
+  );
+});
 
 /**
  * Landscape (D-158, D-165): only the episodes scroll, under the fixed "Episodes" title, season Watched button and season

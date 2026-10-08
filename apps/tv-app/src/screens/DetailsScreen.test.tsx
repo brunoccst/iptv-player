@@ -10,6 +10,18 @@ jest.mock('react-native/Libraries/Components/TV/tagForComponentOrHandle', () => 
   default: (component?: { props?: { testID?: string } } | null) => component?.props?.testID,
 }));
 
+// Counts how often each icon button is drawn, by its testID (a focus move draws only the episodes it touches).
+const mockIconButtonRenders = new Map<string, number>();
+jest.mock('../components/IconButton', () => {
+  const actual = jest.requireActual('../components/IconButton');
+  return {
+    IconButton: (props: { testID?: string }) => {
+      if (props.testID) mockIconButtonRenders.set(props.testID, (mockIconButtonRenders.get(props.testID) ?? 0) + 1);
+      return actual.IconButton(props);
+    },
+  };
+});
+
 async function flush() {
   await act(async () => {
     for (let i = 0; i < 40; i++) await new Promise((resolve) => setTimeout(resolve, 0));
@@ -313,6 +325,39 @@ describe('episode description (issue #160)', () => {
     expect(plot().props.numberOfLines).toBeUndefined();
     await fireEvent.press(screen.getByTestId('plot-a1'));
     expect(plot()).toHaveProp('numberOfLines', 2);
+  });
+});
+
+describe('TV episode list: moving the focus stays quick', () => {
+  it('a focus move only draws the episode it leaves and the one it reaches again, not the whole season', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/library/series/many', {
+      body: { id: 'many', title: 'Many', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('mn', 'ENG')] },
+    });
+    backend.on('GET', '/api/catalog/series/mn', {
+      body: series('mn', [{ number: 1, episodes: [1, 2, 3, 4, 5, 6].map((n) => episode(`g${n}`, 1, n)) }]),
+    });
+    await render(<DetailsScreen section="series" masterId="many" />);
+    await flush();
+    await screen.findByTestId('episode-g6');
+
+    jest.useFakeTimers();
+    await act(async () => void fireEvent(screen.getByTestId('episode-g1'), 'focus'));
+    mockIconButtonRenders.clear();
+    await act(async () => {
+      fireEvent(screen.getByTestId('episode-g1'), 'blur');
+      fireEvent(screen.getByTestId('episode-g2'), 'focus');
+      jest.advanceTimersByTime(200);
+    });
+    expect(mockIconButtonRenders.get('episode-g1')).toBeGreaterThan(0);
+    expect(mockIconButtonRenders.get('episode-g2')).toBeGreaterThan(0);
+    for (const other of ['g3', 'g4', 'g5', 'g6']) expect(mockIconButtonRenders.get(`episode-${other}`)).toBeUndefined();
+    // Up/Down still go straight to the episode above and below.
+    expect(screen.getByTestId('episode-g4').props.nextFocusUp).toBe('episode-g3');
+    expect(screen.getByTestId('episode-g4-more').props.nextFocusDown).toBe('episode-g5-more');
+    jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 });
 
