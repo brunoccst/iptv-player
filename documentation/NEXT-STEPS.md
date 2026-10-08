@@ -6,7 +6,6 @@ Open items requested by the owner. Finished ones move to [Done](#done).
 
 - [ ] **App parity, step 2 — share feature logic, not only rules** (requested 2026-09-27, D-080): move each feature's behaviour (what a menu offers, what an action does, player button order and state) into `packages/shared` as small view-models or hooks, so the TV/phone and web/desktop screens only draw it (about 50–100 lines per app and feature). One feature at a time, starting with the card menu and the player controls. About 1–2 weeks, low risk.
 - [ ] **App parity, step 3 — one set of screens for all apps (React Native Web)** (requested 2026-09-27, D-080): render the TV/phone screens in the browser and the desktop app too, so a new screen appears everywhere at once. Stays per platform: the video player (ExoPlayer / hls.js), downloads, remote-control focus; mouse and keyboard need their own touches (right-click, hover). Try one screen first (e.g. My List) and compare look, speed and effort before migrating; the current web screens would be rewritten. Several weeks.
-- [ ] **Parity: Landscape details layout on desktop** (requested 2026-10-07, issue #186, D-158): the desktop app's details panel in the two columns the TV and phone apps use on landscape screens (title and buttons fixed on the left, episodes or facts scrolling on the right).
 - [ ] **Small Windows desktop app with Tauri** (requested 2026-09-26, see D-072): a Windows-only build on the system's WebView2 (Chromium, installed with Windows 10/11) instead of Electron, about 10–20 MB instead of ~270 MB. WebView2 can be started without the CORS check and with the player User-Agent (browser arguments), so the web player works as in the Electron app; storage, phone pairing and the update check move to Rust. macOS and Linux stay on Electron.
 
 ## Agent Suggestions
@@ -34,6 +33,7 @@ flowchart LR
   S8 --> S9[9. Phone app ✅] --> S10[10. Server retired ✅]
 ```
 
+- [x] **Parity: Landscape details layout on desktop** (requested 2026-10-07, issue #186, D-158; done 2026-10-08, D-164): a desktop window wider than tall and at least 700 px wide shows the details over the whole window in the TV and phone app's two columns.
 - [x] **Out of memory on low-memory TVs** (issue #109, D-113): provider lists are read one entry at a time instead of as one 100+ MB text; the saved library is kept in 4 MB parts; the app asks Android for a larger heap; a native crash (like this one) and the device's memory now show in the Log. Lists are parsed in batches of about 500k characters, as fast as reading the whole text. A library saved in parts is read back again (its index file lost everything after a NUL on Android), and the app keeps reacting while lists download.
 - [x] **TV: focus stays on "Show all" / "Show less"** (D-114): opening the category box no longer moves the focus to the chosen category.
 - [x] **TV/phone: native list reading** (D-115): the provider's movie, series and channel lists are downloaded and cut into batches by native code on another thread; JavaScript only parses the batches.

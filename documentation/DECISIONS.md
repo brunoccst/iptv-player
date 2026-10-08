@@ -2511,7 +2511,7 @@ Decision (`DetailsScreen`, TV and phone app):
 - A screen wider than tall and at least 700 dp wide (every TV, a phone on its side) shows the details over the whole screen instead of the 850 dp panel: the backdrop behind everything, shaded from the left; the left column (42 %) has the title, the Watched tag, the buttons right under the title, the facts, description and version (and a series' cast and genres); the right column has the episodes, or a movie's cast, genres, director and source. Only the right column scrolls (a focused episode moves to its middle on TV); the left one scrolls only when it does not fit (a phone on its side).
 - TV focus: the buttons' row lets → out at its end (`FocusRow rightOpen`), and each episode's row and the season row let ← out at their start, like the guide beside the categories (D-069). Elsewhere ←/→ stay in their row (D-152).
 - Portrait screens keep the panel that scrolls as a whole.
-- Desktop: not yet (⏳, `Parity: Landscape details layout on desktop`).
+- Desktop: not yet (⏳, `Parity: Landscape details layout on desktop`); done in D-164.
 - Tests: a movie's parts in the two columns, a series' episodes on the right with the focus openings, portrait unchanged.
 
 ## D-159
@@ -2562,3 +2562,14 @@ Decision (documentation):
 - [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) has the same `##` and `###` headings as [FEATURES.md](FEATURES.md), in the same order. Each feature links to its FEATURES.md section and has a Mermaid graph, a few facts (no decision numbers) and a `**Code:**` line naming the files to read first.
 - `npm run lint:features` (CI *Lint and format*) fails when a heading is missing, extra or out of order, a section has no link, graph, explanation or code line, or a code path does not exist.
 - A pull request that changes FEATURES.md, or how a feature works, updates its section there (CLAUDE.md, the pull request template).
+
+## D-164
+
+**Desktop details in two columns on wide landscape windows** — 2026-10-08 (Bruno: "Do it for desktop as well.", the desktop part of D-158, issue #186)
+
+Decision (`DetailsModal`, web player and desktop app):
+- A window wider than tall and at least 700 px wide (CSS `(orientation: landscape) and (min-width: 700px)`, followed live with `useMediaQuery`) shows the details over the whole window instead of the 850 px panel, laid out as D-158: backdrop behind everything, shaded from the left; title, Watched tag, buttons, facts, description and version (a series' cast and genres too) in the left column (42 %); the episodes, or a movie's cast, genres, director and source, in the right column. Only the right column scrolls; the left one scrolls only when it does not fit.
+- The close button stays at the top right, over the right column, which leaves room for it. Escape and the close button close it; there is no outside to click.
+- A right column under 520 px drops the episode numbers, like the narrow-window layout.
+- Narrower or portrait windows keep the panel that scrolls as a whole; resizing switches between the two.
+- Tests: `DetailsLayout.test.tsx` (a movie's parts in the two columns, a series' episodes on the right, the panel otherwise, the switch when the window changes); e2e: a series at 1440×900 in two columns, at 560×900 in the panel.

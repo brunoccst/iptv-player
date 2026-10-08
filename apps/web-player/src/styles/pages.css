@@ -412,6 +412,92 @@
   font-weight: 400;
 }
 
+/*
+ * Wide landscape windows (D-158, issue #186, as on the TV and phone app): the backdrop behind everything, shaded from
+ * the left; title, buttons, facts, description and version on the left; on the right the episodes, which alone scroll,
+ * or a movie's cast and other facts. The left column scrolls only when it does not fit.
+ */
+.details-split {
+  position: relative;
+  display: flex;
+  height: 100%;
+  background: var(--color-surface);
+}
+
+.details-split__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.details-split::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface) 97%, transparent),
+    color-mix(in srgb, var(--color-surface) 88%, transparent) 45%,
+    color-mix(in srgb, var(--color-surface) 60%, transparent)
+  );
+}
+
+.details-split__left,
+.details-split__right {
+  position: relative;
+  z-index: 2;
+  overflow-y: auto;
+}
+
+.details-split__left {
+  flex: 0 0 42%;
+  padding: 40px 24px 24px 48px;
+}
+
+.details-split__left .details__actions {
+  margin-bottom: 20px;
+}
+
+.details-split__main p {
+  line-height: 1.5;
+}
+
+.details-split__side {
+  margin-top: 20px;
+}
+
+/* Room at the top for the close button. */
+.details-split__right {
+  flex: 1;
+  padding: 72px 0 24px;
+  container-type: inline-size;
+}
+
+.details-split__right--centered {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 72px 48px 24px 24px;
+}
+
+.details-split__right .episodes {
+  padding: 0 32px 0 16px;
+}
+
+/* A narrow right column: the episode number makes room for the still and the text. */
+@container (max-width: 520px) {
+  .details-split__right .episode {
+    grid-template-columns: 110px 1fr auto;
+  }
+
+  .details-split__right .episode__number {
+    display: none;
+  }
+}
+
 .variant-select {
   display: grid;
   gap: 6px;

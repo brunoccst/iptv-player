@@ -102,7 +102,7 @@ Titles on My List (its Home row and its page) carry the same tag: it is read fro
 
 Poster, description, versions, Play, My List and a Watched toggle for the movie or the whole series (D-104). A series' Play button continues where you are: the episode in progress, or the next one not watched yet ("Play S1:E5") (D-131). Movies have Download and [Open in another player](#open-in-another-player) next to Play.
 
-On a landscape screen (TV, a phone on its side) the details fill the screen in two columns (issue #186, D-158): the title, the buttons right under it, the facts, description and version stay on the left; a series' episodes scroll on the right, and a movie's cast, genres, director and source sit there, so everything fits without scrolling. TV: → from the last button goes to the episodes, ← from an episode comes back. Portrait screens keep the panel that scrolls as a whole.
+On a landscape screen (TV, a phone on its side, a desktop window wider than tall and at least 700 px wide) the details fill the screen in two columns (issue #186, D-158, D-164): the title, the buttons right under it, the facts, description and version stay on the left; a series' episodes scroll on the right, and a movie's cast, genres, director and source sit there, so everything fits without scrolling. TV: → from the last button goes to the episodes, ← from an episode comes back. Portrait screens and narrower windows keep the panel that scrolls as a whole; resizing the desktop window switches between the two.
 
 ### Seasons and episodes
 

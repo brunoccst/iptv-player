@@ -363,6 +363,18 @@
   background: var(--color-surface);
 }
 
+/* The panel covers the window (the details' two columns, D-158). */
+.modal--fill {
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal--fill .modal__panel {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
