@@ -5,11 +5,19 @@ import type { KeyValueStorage } from '@iptv/shared';
  * `secure`: encrypted by the operating system (sign-in, provider password); `data`: files for the library the app
  * builds itself (too large for localStorage).
  */
+export interface UpdateProgress {
+  version: string;
+  /** 0 to 100. */
+  percent: number;
+}
+
 export interface DesktopBridge {
   version: string;
   platform: string;
   /** Checks the desktop release; the app's own dialogs take it from there (D-073). */
   checkForUpdates(): Promise<void>;
+  /** While an accepted update downloads: its version and percentage, then null. Returns the unsubscribe function. */
+  onUpdateProgress?(listener: (progress: UpdateProgress | null) => void): () => void;
   /** Plays a stream address in VLC with the provider User-Agent (D-081); 'none' when VLC is not installed. */
   openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */

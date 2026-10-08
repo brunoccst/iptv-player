@@ -341,14 +341,20 @@ async function latestFromFeed() {
   return {
     version,
     async install() {
-      const onProgress = ({ percent }) => window?.setProgressBar(Math.max(0, Math.min(1, percent / 100)));
+      // The taskbar shows the progress, and the page a banner with the percentage, until the download ends or fails.
+      const showProgress = (percent) => {
+        window?.setProgressBar(percent === null ? -1 : percent / 100);
+        window?.webContents.send('iptv:update-progress', percent === null ? null : { version, percent });
+      };
+      const onProgress = ({ percent }) => showProgress(Math.max(0, Math.min(100, percent)));
+      showProgress(0);
       autoUpdater.on('download-progress', onProgress);
       try {
         await autoUpdater.downloadUpdate();
       } finally {
         autoUpdater.off('download-progress', onProgress);
+        showProgress(null);
       }
-      window?.setProgressBar(-1);
       const { response: now } = await dialog.showMessageBox(window, {
         type: 'info',
         title: tx('App update'),

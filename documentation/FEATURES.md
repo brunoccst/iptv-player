@@ -224,7 +224,7 @@ What the app did, with the provider's answers (passwords masked), timings and na
 
 ### App updates
 
-The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. Account menu → App → Check for updates. Each release says what is new (D-143).
+The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. While an accepted update downloads, the TV and phone show its percentage in the update dialog, and the desktop app at the top right of the window and on its taskbar icon, until it asks to restart (D-166). Account menu → App → Check for updates. Each release says what is new (D-143).
 
 ### Close the app (TV and phone)
 
