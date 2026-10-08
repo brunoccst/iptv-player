@@ -74,6 +74,7 @@ flowchart LR
 - `parseTitle` reads the clean name, year, quality, source and language from each name, including language prefixes such as "EN - " or "|DE| ".
 - A copy without a TMDB id takes its name's TMDB id only when that name has exactly one; two TMDB ids for one name and year make two titles.
 - The SQL version of the same rules runs in `sqlLibrary.ts` and writes items, titles and title-by-category tables to `library.db` (Android `SQLiteDatabase` on TV and phone, `node:sqlite` on desktop). On TV and phone the SHA-1 runs natively.
+- What `parseTitle` read is kept per name in `title_names_<NAME_RULES>`, so a refresh reads only new names; its version changes only with the parser, so a change of grouping rules regroups without reading every name again.
 - A series' episodes from all its versions are merged by season and episode number.
 
 **Code:** `packages/shared/src/direct/normalizer/parser.ts`, `packages/shared/src/direct/normalizer/matching.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/LibraryDb.kt`, `apps/desktop/lib/libraryDb.mjs`
