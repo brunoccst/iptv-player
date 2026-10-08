@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Smooth focus in long seasons** (2026-10-08, D-169): on the TV, moving between the episodes of a season with many episodes no longer pauses about half a second on each step; it moves as smoothly as in a short season.
 - **Episodes on TV look like on the phone** (2026-10-08, D-168): in the side-by-side details, each episode has a smaller picture, its title on up to two lines and its buttons under the text, so long titles no longer break one word per line. A movie's details take 2/3 of the screen.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.
 - **A movie's details in one column** (2026-10-08, D-165): in the side-by-side details, a movie's cast, genres, director and source now follow under the version, with the rest; only a series has a second column, for its episodes, and only the episode list scrolls: "Episodes", the season's Watched button and the season choice stay at the top.

@@ -2605,3 +2605,10 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 - In the two columns, a series' episode rows use the phone's layout on every screen: no number column, a smaller still, the title on at most two lines and the buttons under the text. The TV's right column (58 % of the screen) was too narrow for the number, still, text and buttons side by side: titles wrapped one word per line.
 - A movie's single column takes 2/3 of the screen (desktop too, instead of 42 % and at most 720 px); a series' left column stays 42 % (desktop: at most 720 px).
 - Tests: `DetailsScreen.test.tsx` (movie column 640 of 960 dp; series column 403 dp and no episode number); e2e: a movie's column 2/3 of 1440 px.
+
+## D-169
+
+**A focus move redraws only the two episodes it touches** — 2026-10-08 (Bruno: in a series on the TV, moving the focus between episodes "takes half a second", but is smooth after picking the last season; "Verify why.")
+
+Decision (`DetailsScreen` on TV): the episode that has the focus (for its rolling description, issue #160) was state of the whole list, so every focus move drew every episode of the season again: buttons, icons, focus animations, still, description, version box. The cost grew with the number of episodes, so a short season felt smooth. Each row is now its own memoized `EpisodeRow` with stable callbacks, and `useFocusGrid` keeps `ref`/`at` the same between renders and adds a `revision` that redraws the rows when a button appears or goes away. Keep new row props stable, or every move draws the whole season again.
+- Tests: `DetailsScreen.test.tsx` (a focus move draws the Play buttons of only the two episodes involved; ↑/↓ still reach the episode above and below).
