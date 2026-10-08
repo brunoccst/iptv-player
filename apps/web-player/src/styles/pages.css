@@ -414,8 +414,9 @@
 
 /*
  * Wide landscape windows (D-158, issue #186, as on the TV and phone app): the backdrop behind everything, shaded from
- * the left; title, buttons, facts, description and version on the left; on the right the episodes, which alone scroll,
- * or a movie's cast and other facts. The left column scrolls only when it does not fit.
+ * the left; title, buttons, facts, description, version, cast and the other facts on the left (at most 720 px wide); on
+ * the right a series' episodes, which alone scroll, or a movie's backdrop. The left column scrolls only when it does not
+ * fit.
  */
 .details-split {
   position: relative;
@@ -454,6 +455,7 @@
 
 .details-split__left {
   flex: 0 0 42%;
+  max-width: 720px;
   padding: 40px 24px 24px 48px;
 }
 
@@ -469,18 +471,28 @@
   margin-top: 20px;
 }
 
-/* Room at the top for the close button. */
+/* Room at the top for the close button. Only the episode list scrolls, under its header (D-165). */
 .details-split__right {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  min-width: 0;
   padding: 72px 0 24px;
+  overflow: hidden;
   container-type: inline-size;
 }
 
-.details-split__right--centered {
+.details-split__right .episodes {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  justify-content: center;
-  padding: 72px 48px 24px 24px;
+  min-height: 0;
+}
+
+.details-split__right .episodes__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .details-split__right .episodes {

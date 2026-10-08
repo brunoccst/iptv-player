@@ -311,7 +311,11 @@ function Episodes({
   });
 
   return (
-    <View style={[styles.episodes, compact && styles.episodesCompact]} testID="episodes" accessibilityLabel={t('Episodes')}>
+    <View
+      style={[styles.episodes, compact && styles.episodesCompact, split && styles.episodesSplit]}
+      testID="episodes"
+      accessibilityLabel={t('Episodes')}
+    >
       <Centered style={styles.episodesHeader}>
         <Text style={styles.episodesTitle}>{t('Episodes')}</Text>
         {/* Watched on the left of the season choice, like an episode's tag; spaced like the other icons (issue #159). */}
@@ -337,87 +341,91 @@ function Episodes({
           )}
         </FocusRow>
       </Centered>
-      {season.episodes.map((listed, index) => {
-        const episode = episodeInVersion(listed, chosen[listed.id]);
-        const target = episodeTarget(context(episode), episode);
-        const saved = findEpisodeProgress(progress, episode);
-        const play = () => navStore.getState().push({ name: 'player', target });
-        const actions = (
-          <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
-            <IconButton
-              icon="play"
-              label={t('Play {title}', { title: episode.title })}
-              onPress={play}
-              onLongPress={() => setMenuFor(episode)}
-              testID={`episode-${episode.id}`}
-              {...episodeFocus(listed.id)}
-              {...cell(index, 0)}
-            />
-            {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
-            <IconButton
-              icon="more"
-              label={t('More options for {title}', { title: episode.title })}
-              onPress={() => setMenuFor(episode)}
-              testID={`episode-${episode.id}-more`}
-              {...episodeFocus(listed.id)}
-              {...cell(index, 1)}
-            />
-            {listed.versions.length > 1 ? (
-              <Select
-                compact
-                label={t('Version of {title}', { title: episode.title })}
-                value={episode.id}
-                options={listed.versions.map((v) => ({ value: v.episode.id, label: v.label }))}
-                onChange={(episodeId) => setChosen((current) => ({ ...current, [listed.id]: episodeId }))}
-                testID={`episode-${listed.id}-version`}
-                {...episodeFocus(listed.id)}
-                {...cell(index, 2)}
-              />
-            ) : null}
-          </View>
-        );
-        return (
-          // A focused episode moves to the middle of the screen.
-          <Centered key={listed.id}>
-            <FocusRow style={[styles.episode, compact && styles.episodeCompact]} leftOpen={split}>
-              {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
-              <Pressable
-                style={[styles.still, compact && styles.stillCompact]}
+      <EpisodeScroll>
+        {season.episodes.map((listed, index) => {
+          const episode = episodeInVersion(listed, chosen[listed.id]);
+          const target = episodeTarget(context(episode), episode);
+          const saved = findEpisodeProgress(progress, episode);
+          const play = () => navStore.getState().push({ name: 'player', target });
+          const actions = (
+            <View style={[styles.episodeActions, compact && styles.episodeActionsCompact]}>
+              <IconButton
+                icon="play"
+                label={t('Play {title}', { title: episode.title })}
                 onPress={play}
-                accessibilityLabel={t('Play {title}', { title: episode.title })}
-                focusable={false}
-              >
-                {episode.stillUrl ? <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-                {isWatched(saved) ? (
-                  <WatchedTag style={styles.stillTag} testID={`episode-${episode.id}-watched`} />
-                ) : saved && saved.durationSeconds > 0 ? (
-                  <View style={styles.stillTrack}>
-                    <View
-                      style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
-                    />
-                  </View>
-                ) : null}
-              </Pressable>
-              <View style={styles.episodeText}>
-                <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
-                  {episode.title}
-                </Text>
-                <EpisodePlot
-                  text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
-                  testID={`plot-${episode.id}`}
-                  rolling={focusedEpisode === listed.id}
+                onLongPress={() => setMenuFor(episode)}
+                testID={`episode-${episode.id}`}
+                {...episodeFocus(listed.id)}
+                {...cell(index, 0)}
+              />
+              {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
+              <IconButton
+                icon="more"
+                label={t('More options for {title}', { title: episode.title })}
+                onPress={() => setMenuFor(episode)}
+                testID={`episode-${episode.id}-more`}
+                {...episodeFocus(listed.id)}
+                {...cell(index, 1)}
+              />
+              {listed.versions.length > 1 ? (
+                <Select
+                  compact
+                  label={t('Version of {title}', { title: episode.title })}
+                  value={episode.id}
+                  options={listed.versions.map((v) => ({ value: v.episode.id, label: v.label }))}
+                  onChange={(episodeId) => setChosen((current) => ({ ...current, [listed.id]: episodeId }))}
+                  testID={`episode-${listed.id}-version`}
+                  {...episodeFocus(listed.id)}
+                  {...cell(index, 2)}
                 />
-                {listed.versions.length === 1 && master.variants.length > 1 ? (
-                  <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
-                ) : null}
-                {/* Phones: buttons under the text, so the title keeps the width. */}
-                {compact ? actions : null}
-              </View>
-              {compact ? null : actions}
-            </FocusRow>
-          </Centered>
-        );
-      })}
+              ) : null}
+            </View>
+          );
+          return (
+            // A focused episode moves to the middle of the screen.
+            <Centered key={listed.id}>
+              <FocusRow style={[styles.episode, compact && styles.episodeCompact]} leftOpen={split}>
+                {compact ? null : <Text style={styles.episodeNumber}>{episode.episodeNumber ?? '•'}</Text>}
+                <Pressable
+                  style={[styles.still, compact && styles.stillCompact]}
+                  onPress={play}
+                  accessibilityLabel={t('Play {title}', { title: episode.title })}
+                  focusable={false}
+                >
+                  {episode.stillUrl ? (
+                    <Image source={{ uri: episode.stillUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                  ) : null}
+                  {isWatched(saved) ? (
+                    <WatchedTag style={styles.stillTag} testID={`episode-${episode.id}-watched`} />
+                  ) : saved && saved.durationSeconds > 0 ? (
+                    <View style={styles.stillTrack}>
+                      <View
+                        style={[styles.stillValue, { width: `${Math.min(100, (saved.positionSeconds / saved.durationSeconds) * 100)}%` }]}
+                      />
+                    </View>
+                  ) : null}
+                </Pressable>
+                <View style={styles.episodeText}>
+                  <Text style={styles.episodeTitle} numberOfLines={compact ? 2 : undefined}>
+                    {episode.title}
+                  </Text>
+                  <EpisodePlot
+                    text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')}
+                    testID={`plot-${episode.id}`}
+                    rolling={focusedEpisode === listed.id}
+                  />
+                  {listed.versions.length === 1 && master.variants.length > 1 ? (
+                    <Text style={styles.episodePlot}>{t('Only in {label}', { label: listed.versions[0]!.label })}</Text>
+                  ) : null}
+                  {/* Phones: buttons under the text, so the title keeps the width. */}
+                  {compact ? actions : null}
+                </View>
+                {compact ? null : actions}
+              </FocusRow>
+            </Centered>
+          );
+        })}
+      </EpisodeScroll>
       {menuFor ? (
         <EpisodeMenu
           episode={menuFor}
@@ -428,6 +436,36 @@ function Episodes({
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * Landscape (D-158, D-165): only the episodes scroll, under the fixed "Episodes" title, season Watched button and season
+ * choice; a focused episode moves to the middle of the list on TV. Portrait: the panel scrolls as a whole.
+ */
+function EpisodeScroll({ children }: { children: ReactNode }) {
+  const split = useContext(SplitLayout);
+  const scroll = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const [visible, setVisible] = useState(0);
+  if (!split) return <>{children}</>;
+  const center = (view: View | null) => {
+    if (!view || !content.current) return;
+    view.measureLayout(content.current, (_x, y, _w, h) =>
+      scroll.current?.scrollTo({ y: Math.max(0, y - (visible - h) / 2), animated: true }),
+    );
+  };
+  return (
+    <ScrollView
+      ref={scroll}
+      style={styles.episodeScroll}
+      onLayout={(event) => setVisible(event.nativeEvent.layout.height)}
+      testID="episode-list"
+    >
+      <View ref={content}>
+        <CenterFocus.Provider value={Platform.isTV ? center : null}>{children}</CenterFocus.Provider>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -634,15 +672,7 @@ function SplitDetails({
   side: ReactNode;
   list?: ReactNode;
 }) {
-  const { width, height } = useWindowDimensions();
-  const scroll = useRef<ScrollView>(null);
-  const content = useRef<View>(null);
-  const center = (view: View | null) => {
-    if (!view || !content.current) return;
-    view.measureLayout(content.current, (_x, y, _w, h) =>
-      scroll.current?.scrollTo({ y: Math.max(0, SPLIT_PAD + y - (height - h) / 2), animated: true }),
-    );
-  };
+  const { width } = useWindowDimensions();
   return (
     <View style={styles.split}>
       {backdrop ? <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
@@ -663,24 +693,18 @@ function SplitDetails({
           {title}
         </Text>
         {watched ? <WatchedTag style={styles.titleTag} testID="details-watched" /> : null}
-        <FocusRow style={[styles.actions, styles.splitActions]} rightOpen>
+        <FocusRow style={[styles.actions, styles.splitActions]} rightOpen={!!list}>
           {actions}
         </FocusRow>
         {main}
-        {list ? <View style={[styles.side, styles.splitSide]}>{side}</View> : null}
+        <View style={[styles.side, styles.splitSide]}>{side}</View>
       </ScrollView>
-      <ScrollView
-        ref={scroll}
-        style={styles.splitRight}
-        contentContainerStyle={[styles.splitRightContent, !list && styles.splitRightCentered]}
-        testID="details-right"
-      >
-        <View ref={content}>
-          <CenterFocus.Provider value={Platform.isTV ? center : null}>
-            {list ?? <View style={styles.side}>{side}</View>}
-          </CenterFocus.Provider>
+      {/* Only a series' episodes get a second column; a movie's facts stay under the rest, the backdrop beside them. */}
+      {list ? (
+        <View style={[styles.splitRight, styles.splitRightContent]} testID="details-right">
+          {list}
         </View>
-      </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -779,7 +803,6 @@ const styles = StyleSheet.create({
   splitRight: { flex: 1 },
   // Room at the top for the close button.
   splitRightContent: { paddingTop: SPLIT_PAD + 48, paddingBottom: SPLIT_PAD, paddingRight: 16 },
-  splitRightCentered: { flexGrow: 1, justifyContent: 'center', paddingLeft: 24, paddingRight: 48 },
   overlay: { ...StyleSheet.absoluteFill, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.7)' },
   scroll: { alignItems: 'center', paddingVertical: PANEL_TOP, paddingHorizontal: 16 },
   panel: { overflow: 'hidden', borderRadius: 8, backgroundColor: colors.surface, elevation: 12 },
@@ -810,6 +833,8 @@ const styles = StyleSheet.create({
   variantLabel: { color: colors.muted, fontSize: 12.8 },
   episodes: { paddingHorizontal: 32, paddingBottom: 32 },
   episodesCompact: { paddingHorizontal: 16 },
+  episodesSplit: { flex: 1, paddingBottom: 0 },
+  episodeScroll: { flex: 1 },
   episodesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 },
   episodesTitle: { color: colors.strong, fontSize: 22.4, fontWeight: '700' },
   seasonChoice: { flexDirection: 'row', alignItems: 'center', gap: 8 },

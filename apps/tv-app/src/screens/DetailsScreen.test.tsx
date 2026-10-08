@@ -454,8 +454,9 @@ describe('movie details: the version a title starts with (D-144)', () => {
 describe('landscape: two columns (issue #186, D-158)', () => {
   const portrait = Dimensions.get('window');
   /** The column (left or right) an element is in. */
-  const column = (testID: string) => {
-    let node = screen.getByTestId(testID) as unknown as { parent: unknown; props: { testID?: string } } | null;
+  const column = (testID: string) => columnOf(screen.getByTestId(testID));
+  const columnOf = (element: unknown) => {
+    let node = element as { parent: unknown; props: { testID?: string } } | null;
     while (node && node.props.testID !== 'details-left' && node.props.testID !== 'details-right') node = node.parent as typeof node;
     return node?.props.testID ?? null;
   };
@@ -465,7 +466,7 @@ describe('landscape: two columns (issue #186, D-158)', () => {
   });
   afterEach(() => Dimensions.set({ window: portrait, screen: portrait }));
 
-  it('a movie: title and buttons on the left, the facts on the right, all on one screen', async () => {
+  it('a movie: one column, the facts under the rest, all on one screen (D-165)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies/m', {
       body: {
@@ -484,8 +485,10 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(column('details-play')).toBe('details-left');
     expect(screen.getByText('Movie')).toBeTruthy();
     expect(screen.getByText('75% rating')).toBeTruthy();
-    // The facts (here the source name) are in the right column.
-    expect(screen.getAllByText('EN - Movie 1080p').length).toBeGreaterThan(0);
+    // One column: the facts (here the source name) are under the rest; the backdrop has the right side (D-165).
+    const source = screen.getAllByText('EN - Movie 1080p');
+    expect(columnOf(source[source.length - 1])).toBe('details-left');
+    expect(screen.queryByTestId('details-right')).toBeNull();
   });
 
   it('a series: the episodes scroll on the right; on TV Right leaves the buttons and Left leaves an episode', async () => {
@@ -503,6 +506,10 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(column('details-play')).toBe('details-left');
     expect(column('episodes')).toBe('details-right');
     expect(column('episode-w-2')).toBe('details-right');
+    // Only the episodes scroll: the season choice stays above them (D-165).
+    const list = screen.getByTestId('episode-list');
+    expect(within(list).queryByTestId('episode-w-1')).toBeTruthy();
+    expect(within(list).queryByText('Episodes')).toBeNull();
     // The buttons' row lets Right out to the episodes; each episode's row lets Left out to the buttons.
     type Host = { props: Record<string, unknown>; children: (Host | string)[] };
     const all = (node: Host): Host[] => [node, ...node.children.flatMap((child) => (typeof child === 'string' ? [] : all(child)))];

@@ -19,20 +19,19 @@ describe('details in two columns on wide landscape windows (D-158, D-164)', () =
     vi.unstubAllGlobals();
   });
 
-  it('movie: title, buttons and plot on the left; cast and the other facts on the right', () => {
+  it('movie: everything on the left, the right side left to the backdrop', () => {
     render(
       <SplitLayout.Provider value>
         <DetailsLayout {...parts} />
       </SplitLayout.Provider>,
     );
     const left = screen.getByTestId('details-left');
-    const right = screen.getByTestId('details-right');
     expect(left.textContent).toContain('Big Test Movie');
     expect(left.querySelector('[data-testid="watched-tag"]')).not.toBeNull();
     expect(left.textContent).toContain('Play');
     expect(left.textContent).toContain('A plot.');
-    expect(left.textContent).not.toContain('Cast:');
-    expect(right.textContent).toContain('Cast: Someone');
+    expect(left.textContent).toContain('Cast: Someone');
+    expect(screen.queryByTestId('details-right')).toBeNull();
     expect(document.querySelector('.details__hero')).toBeNull();
   });
 
