@@ -2596,3 +2596,12 @@ Decision: after Install now (Windows, AppImage), the main process sends electron
 **Names are read again only when the parser changes** — 2026-10-08 (Bruno: after updating the TV, the library refresh crept "+1% for movies every 2 seconds"; "Do it")
 
 Decision: what the parser read from each name (`title_names_…`, D-133) has its own version, `NAME_RULES` in `sqlLibrary.ts`, instead of the grouping rules (`NORMALIZER_RULES`). Raising the grouping rules (D-156 raised them to 8) rebuilds the titles but keeps the names, so the first refresh after such an update reads no names. `NAME_RULES` starts at 8; the parser did not change from 7, so the names in `title_names_7` move over at the next build instead of being read again. Raise `NAME_RULES` only with a change to `parseTitle`.
+
+## D-168
+
+**TV episode rows like the phone's; a movie's column takes 2/3** — 2026-10-08 (Bruno, with a photo of the TV: "The design in the TV app is horrible after the changes for the columns for series. Make the episode have a look like on the phone app. Also, when there aren't two columns, make the single column expand through the page, until 2/3 of the page."; changes D-158, D-165)
+
+Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
+- In the two columns, a series' episode rows use the phone's layout on every screen: no number column, a smaller still, the title on at most two lines and the buttons under the text. The TV's right column (58 % of the screen) was too narrow for the number, still, text and buttons side by side: titles wrapped one word per line.
+- A movie's single column takes 2/3 of the screen (desktop too, instead of 42 % and at most 720 px); a series' left column stays 42 % (desktop: at most 720 px).
+- Tests: `DetailsScreen.test.tsx` (movie column 640 of 960 dp; series column 403 dp and no episode number); e2e: a movie's column 2/3 of 1440 px.

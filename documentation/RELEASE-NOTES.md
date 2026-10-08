@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Episodes on TV look like on the phone** (2026-10-08, D-168): in the side-by-side details, each episode has a smaller picture, its title on up to two lines and its buttons under the text, so long titles no longer break one word per line. A movie's details take 2/3 of the screen.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.
 - **A movie's details in one column** (2026-10-08, D-165): in the side-by-side details, a movie's cast, genres, director and source now follow under the version, with the rest; only a series has a second column, for its episodes, and only the episode list scrolls: "Episodes", the season's Watched button and the season choice stay at the top.
 - **Connecting a phone brings its settings too** (2026-10-07, D-162): scanning the TV's or computer's QR code with the phone now also brings each profile's settings, so both devices end up the same: content languages, app language, the subtitles, audio and version last picked, hidden categories, kids categories, watched series, recent channels and the automatic-subtitles settings. Where the two differed, the phone's choice wins. The TV's audio decoder stays as it is.
@@ -75,6 +76,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **A movie's details use more of the window** (2026-10-08, D-168): in the side-by-side details, a movie's one column takes 2/3 of the window; a series' episodes use the compact rows.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.
 - **You see the update downloading** (2026-10-08, D-166): after Install now, a box at the top right of the window shows the download of the new version with its percentage, until the app asks to restart.
 - **A movie's details in one column** (2026-10-08, D-165): in the side-by-side details, a movie's cast, genres, director and source now follow under the version, with the rest; only a series has a second column, for its episodes, and only the episode list scrolls: "Episodes", the season's Watched button and the season choice stay at the top. The left side no longer grows past 720 px on a big screen.
