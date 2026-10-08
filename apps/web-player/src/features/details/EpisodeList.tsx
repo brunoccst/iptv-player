@@ -82,79 +82,82 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
           )}
         </div>
       </div>
-      {season.episodes.map((listed) => {
-        const episode = episodeInVersion(listed, chosen[listed.id]);
-        const target = episodeTarget(context(episode), episode);
-        const saved = findEpisodeProgress(progress, episode);
-        return (
-          <div
-            key={listed.id}
-            className="episode"
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setMenu({ episode, position: menuPosition(event) });
-            }}
-          >
-            <span className="episode__number">{episode.episodeNumber ?? '•'}</span>
-            <button
-              type="button"
-              className="episode__still"
-              onClick={() => uiStore.getState().play(target)}
-              aria-label={t('Play {title}', { title: episode.title })}
+      {/* Two columns: only this list scrolls, under the title, season Watched button and season choice (D-165). */}
+      <div className="episodes__list">
+        {season.episodes.map((listed) => {
+          const episode = episodeInVersion(listed, chosen[listed.id]);
+          const target = episodeTarget(context(episode), episode);
+          const saved = findEpisodeProgress(progress, episode);
+          return (
+            <div
+              key={listed.id}
+              className="episode"
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setMenu({ episode, position: menuPosition(event) });
+              }}
             >
-              {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : null}
-              {isWatched(saved) ? (
-                <WatchedTag className="card__watched" />
-              ) : saved && saved.durationSeconds > 0 ? (
-                <span className="card__progress">
-                  <span style={{ width: `${(saved.positionSeconds / saved.durationSeconds) * 100}%` }} />
-                </span>
-              ) : null}
-            </button>
-            <div>
-              <p className="episode__title">{episode.title}</p>
-              <EpisodePlot text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')} />
-              {listed.versions.length > 1 ? (
-                <select
-                  className="select select--small"
-                  aria-label={t('Version of {title}', { title: episode.title })}
-                  value={episode.id}
-                  onChange={(e) => setChosen((current) => ({ ...current, [listed.id]: e.target.value }))}
-                >
-                  {listed.versions.map((v) => (
-                    <option key={v.episode.id} value={v.episode.id}>
-                      {v.label}
-                    </option>
-                  ))}
-                </select>
-              ) : versionCount > 1 ? (
-                <p className="episode__plot">{t('Only in {label}', { label: listed.versions[0]!.label })}</p>
-              ) : null}
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+              <span className="episode__number">{episode.episodeNumber ?? '•'}</span>
               <button
                 type="button"
-                className="icon-button"
+                className="episode__still"
                 onClick={() => uiStore.getState().play(target)}
                 aria-label={t('Play {title}', { title: episode.title })}
               >
-                <Icon name="play" size={20} />
+                {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : null}
+                {isWatched(saved) ? (
+                  <WatchedTag className="card__watched" />
+                ) : saved && saved.durationSeconds > 0 ? (
+                  <span className="card__progress">
+                    <span style={{ width: `${(saved.positionSeconds / saved.durationSeconds) * 100}%` }} />
+                  </span>
+                ) : null}
               </button>
-              {/* Everything else is in the episode's menu, so the row stays short (D-083). */}
-              <button
-                type="button"
-                className="icon-button"
-                aria-label={t('More options for {title}', { title: episode.title })}
-                aria-haspopup="menu"
-                title={t('More options')}
-                onClick={(event) => setMenu({ episode, position: menuBelow(event.currentTarget) })}
-              >
-                <Icon name="more" size={20} />
-              </button>
+              <div>
+                <p className="episode__title">{episode.title}</p>
+                <EpisodePlot text={[formatDuration(episode.durationSeconds), episode.plot].filter(Boolean).join(' · ')} />
+                {listed.versions.length > 1 ? (
+                  <select
+                    className="select select--small"
+                    aria-label={t('Version of {title}', { title: episode.title })}
+                    value={episode.id}
+                    onChange={(e) => setChosen((current) => ({ ...current, [listed.id]: e.target.value }))}
+                  >
+                    {listed.versions.map((v) => (
+                      <option key={v.episode.id} value={v.episode.id}>
+                        {v.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : versionCount > 1 ? (
+                  <p className="episode__plot">{t('Only in {label}', { label: listed.versions[0]!.label })}</p>
+                ) : null}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => uiStore.getState().play(target)}
+                  aria-label={t('Play {title}', { title: episode.title })}
+                >
+                  <Icon name="play" size={20} />
+                </button>
+                {/* Everything else is in the episode's menu, so the row stays short (D-083). */}
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={t('More options for {title}', { title: episode.title })}
+                  aria-haspopup="menu"
+                  title={t('More options')}
+                  onClick={(event) => setMenu({ episode, position: menuBelow(event.currentTarget) })}
+                >
+                  <Icon name="more" size={20} />
+                </button>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
       {menu ? (
         <EpisodeMenu
           episode={menu.episode}

@@ -2573,3 +2573,14 @@ Decision (`DetailsModal`, web player and desktop app):
 - A right column under 520 px drops the episode numbers, like the narrow-window layout.
 - Narrower or portrait windows keep the panel that scrolls as a whole; resizing switches between the two.
 - Tests: `DetailsLayout.test.tsx` (a movie's parts in the two columns, a series' episodes on the right, the panel otherwise, the switch when the window changes); e2e: a series at 1440×900 in two columns, at 560×900 in the panel.
+
+## D-165
+
+**Movie details in one column** — 2026-10-08 (Bruno, on a wide desktop window: "It does not look good on big screens. The details are weirdly placed in the middle of the screen." then "make the details go under the rest, in a single column, for movies. Like it is done at Series. The only 2 column layout is for episodes of series."; changes D-158, D-164)
+
+Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
+- On a wide landscape screen a movie has one column: its cast, genres, director and source go under the version, as a series' cast and genres already did. The rest of the screen shows the backdrop. Only a series has a second column, for its episodes.
+- TV: a movie's buttons no longer let → out at the end (nothing is on the right); a series' still do.
+- A series' right column: only the episode list scrolls. "Episodes", the season's Watched button and the season choice stay at its top (Bruno: "make it so that the scroll only happens for the episode list"). On TV a focused episode moves to the middle of the list.
+- Desktop: the column is 42 % of the window, at most 720 px, so the description and the version choice do not stretch across a big screen.
+- Tests: `DetailsScreen.test.tsx` and `DetailsLayout.test.tsx` (a movie's facts on the left, no right column; TV: the season choice outside the scrolling list); e2e: a movie at 1440×900, the series' list the only part that scrolls.

@@ -394,6 +394,12 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   const [l, r] = [await left.boundingBox(), await right.boundingBox()];
   expect(r!.x).toBeGreaterThanOrEqual(l!.x + l!.width - 1);
   await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
+  // Only the episode list scrolls; the title, season Watched button and season choice stay above it (D-165).
+  const list = right.locator('.episodes__list');
+  await expect(list).toHaveCSS('overflow-y', 'auto');
+  await expect(list.getByRole('button', { name: 'Mark season as watched' })).toHaveCount(0);
+  await expect(right.getByRole('button', { name: 'Mark season as watched' })).toBeVisible();
+  await expect(right).toHaveCSS('overflow-y', 'hidden');
 
   // A narrow window: the panel with the episodes under the rest.
   await page.setViewportSize({ width: 560, height: 900 });
@@ -402,6 +408,16 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   await expect(dialog.getByRole('region', { name: 'Episodes' })).toBeAttached();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);
+});
+
+test('details: a movie keeps its facts on the left of a wide window (D-165)', async ({ page }) => {
+  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Big Test Movie' });
+  const left = dialog.getByTestId('details-left');
+  await expect(left.getByText('Cast:')).toBeVisible();
+  await expect(left.getByText('Source:')).toBeVisible();
+  await expect(dialog.getByTestId('details-right')).toHaveCount(0);
+  expect((await left.boundingBox())!.width).toBeLessThanOrEqual(720);
 });
 
 test('app language (D-084): the whole app switches, and the choice stays after a reload', async ({ page }) => {

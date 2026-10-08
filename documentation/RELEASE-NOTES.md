@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **A movie's details in one column** (2026-10-08, D-165): in the side-by-side details, a movie's cast, genres, director and source now follow under the version, with the rest; only a series has a second column, for its episodes, and only the episode list scrolls: "Episodes", the season's Watched button and the season choice stay at the top.
 - **Connecting a phone brings its settings too** (2026-10-07, D-162): scanning the TV's or computer's QR code with the phone now also brings each profile's settings, so both devices end up the same: content languages, app language, the subtitles, audio and version last picked, hidden categories, kids categories, watched series, recent channels and the automatic-subtitles settings. Where the two differed, the phone's choice wins. The TV's audio decoder stays as it is.
 - **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.
 - **Top rated rows say what they hold** (2026-10-07, D-160): the Top rated rows on Home are now called "Top rated of the 100 newest movies" and "Top rated of the 100 newest series", and show 25 titles instead of 10.
@@ -73,6 +74,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **A movie's details in one column** (2026-10-08, D-165): in the side-by-side details, a movie's cast, genres, director and source now follow under the version, with the rest; only a series has a second column, for its episodes, and only the episode list scrolls: "Episodes", the season's Watched button and the season choice stay at the top. The left side no longer grows past 720 px on a big screen.
 - **Details side by side** (2026-10-08, D-164, issue #186): in a window wider than tall, a movie's or series' details fill the window in two columns, as on the TV: the title, Play and the other buttons, and the description stay on the left; a series' episodes scroll on the right, and a movie's cast and other facts sit there, so its page fits without scrolling. A narrow window keeps the panel.
 - **Connecting a phone brings its settings too** (2026-10-07, D-162): scanning the TV's or computer's QR code with the phone now also brings each profile's settings, so both devices end up the same: content languages, app language, the subtitles, audio and version last picked, hidden categories, kids categories, watched series, recent channels and the automatic-subtitles settings. Where the two differed, the phone's choice wins.
 - **Top rated skips perfect scores** (2026-10-07, D-161): titles rated 100 % are left out of the Top rated rows; they are usually niche titles just out with a single review.

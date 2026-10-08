@@ -334,8 +334,8 @@ flowchart TD
 ```
 
 - The shared hooks load the data; each app draws it: `DetailsScreen` on TV and phone, `DetailsModal` on desktop.
-- In two columns, only the right one scrolls; on TV → leaves the buttons for the episodes and ← comes back.
-- TV and phone read the window size; desktop follows the media query `(orientation: landscape) and (min-width: 700px)` and turns the modal into a full-window panel.
+- Only a series gets the right column: its header (season Watched, season choice) stays, the episode list alone scrolls; a movie's facts stay under the rest in the left one; on TV → leaves the buttons for the episodes and ← comes back.
+- TV and phone read the window size; desktop follows the media query `(orientation: landscape) and (min-width: 700px)` and turns the modal into a full-window panel. On desktop the left column is at most 720 px wide.
 
 **Code:** `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx`, `apps/web-player/src/hooks/useMediaQuery.ts`
 

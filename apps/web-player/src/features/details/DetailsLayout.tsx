@@ -9,7 +9,7 @@ import { WatchedTag } from '../../components/WatchedTag';
 export const SPLIT_QUERY = '(orientation: landscape) and (min-width: 700px)';
 export const SplitLayout = createContext(false);
 
-/** The details' parts, stacked in the panel, or in two columns on a wide landscape window (D-158). */
+/** The details' parts, stacked in the panel, or in two columns on a wide landscape window (D-158, D-164). */
 export function DetailsLayout({
   backdrop,
   title,
@@ -37,11 +37,14 @@ export function DetailsLayout({
           {watched ? <WatchedTag className="details__watched" /> : null}
           <div className="details__actions">{actions}</div>
           <div className="details-split__main">{main}</div>
-          {list ? <div className="details__side details-split__side">{side}</div> : null}
+          <div className="details__side details-split__side">{side}</div>
         </div>
-        <div className={list ? 'details-split__right' : 'details-split__right details-split__right--centered'} data-testid="details-right">
-          {list ?? <div className="details__side">{side}</div>}
-        </div>
+        {/* A movie leaves the right side to the backdrop: its facts in the middle of a big window read as lost. */}
+        {list ? (
+          <div className="details-split__right" data-testid="details-right">
+            {list}
+          </div>
+        ) : null}
       </div>
     );
   return (
