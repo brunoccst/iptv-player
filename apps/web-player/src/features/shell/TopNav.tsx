@@ -289,7 +289,7 @@ export function TopNav() {
                           setLog(true);
                         }}
                       >
-                        <Icon name="info" size={18} /> {t('Log')}
+                        <Icon name="log" size={18} /> {t('Log')}
                       </button>
                     </>
                   )}
