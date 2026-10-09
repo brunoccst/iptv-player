@@ -164,7 +164,7 @@ export function AccountMenu() {
           onPress: then(() => setSubtitleSettings(true)),
         },
         { icon: 'info', label: t('About'), testID: 'menu-about', onPress: then(() => setAbout(true)) },
-        { icon: 'info', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
+        { icon: 'log', label: t('Log'), testID: 'menu-log', onPress: () => navStore.getState().goSection('log') },
       ],
     },
   ];

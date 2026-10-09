@@ -16,6 +16,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Log has its own icon** (2026-10-09): in the account menu, Log now shows a page of lines instead of the same "i" icon as About.
 - **Smooth focus in long seasons** (2026-10-08, D-169): on the TV, moving between the episodes of a season with many episodes no longer pauses about half a second on each step; it moves as smoothly as in a short season.
 - **Episodes on TV look like on the phone** (2026-10-08, D-168): in the side-by-side details, each episode has a smaller picture, its title on up to two lines and its buttons under the text, so long titles no longer break one word per line. A movie's details take 2/3 of the screen.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.
@@ -77,6 +78,7 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
+- **Log has its own icon** (2026-10-09): in the account menu, Log now shows a page of lines instead of the same "i" icon as About.
 - **A movie's details use more of the window** (2026-10-08, D-168): in the side-by-side details, a movie's one column takes 2/3 of the window; a series' episodes use the compact rows.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.
 - **You see the update downloading** (2026-10-08, D-166): after Install now, a box at the top right of the window shows the download of the new version with its percentage, until the app asks to restart.
