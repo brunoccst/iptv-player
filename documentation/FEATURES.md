@@ -68,7 +68,7 @@ A grid of titles, loaded as you scroll (D-040), sorted by date added (newest fir
 
 ### Category chips
 
-Above the grid, the categories sit on one line with "Show all" / "Show less"; expanded, they fill a full-width box that scrolls on its own (D-047, D-085, D-091, D-105). On TV the bar shows "All", the categories that fit, ‹ › and "Show all".
+Above the grid, the categories sit on one line with "Show all" / "Show less"; expanded, they fill a full-width box that scrolls on its own (D-047, D-085, D-091, D-105). On TV the bar shows "All", the categories that fit, ‹ › and "Show all"; pressing "Show all" or "Show less" keeps the focus on the button and the page where it is (D-170).
 
 ### Focus in the middle (TV)
 

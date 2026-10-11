@@ -2612,3 +2612,10 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 
 Decision (`DetailsScreen` on TV): the episode that has the focus (for its rolling description, issue #160) was state of the whole list, so every focus move drew every episode of the season again: buttons, icons, focus animations, still, description, version box. The cost grew with the number of episodes, so a short season felt smooth. Each row is now its own memoized `EpisodeRow` with stable callbacks, and `useFocusGrid` keeps `ref`/`at` the same between renders and adds a `revision` that redraws the rows when a button appears or goes away. Keep new row props stable, or every move draws the whole season again.
 - Tests: `DetailsScreen.test.tsx` (a focus move draws the Play buttons of only the two episodes involved; ↑/↓ still reach the episode above and below).
+
+## D-170
+
+**TV: "Show all" and "Show less" are one button that stays mounted** — 2026-10-11 (Bruno, with photos of the TV: after "Show all" in Movies and Series the page scrolled down to the first titles, and Down scrolled back up; "the focus should be kept at \"Show all\" and the page must not scroll down"; changes D-105, D-112, D-114)
+
+Decision (`ChipBar.tsx`, TV): the collapsed bar and the expanded box were two different trees, so the button was replaced when the bar changed shape. The focus fell from the removed button to the grid's first title, which centred the page on it, and only then reached the new button (D-114). The TV bar is now one tree in both modes: expanded, it shows "Categories" in place of the chips and ‹ ›, with the box under it, and the toggle keeps its place in the tree, so Android never moves the focus and nothing scrolls the page. `hasTVPreferredFocus` stays as a fallback. Phones keep their two layouts (no focus there).
+- Tests: `ChipBar.test.tsx` (the button is the same view, still focused, after "Show all" and "Show less"; nothing asks the page to center).
