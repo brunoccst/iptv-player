@@ -178,30 +178,26 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     />
   );
 
-  if (expanded) {
-    return (
-      <View ref={boxCentering.ref} style={styles.expanded} testID={testID}>
-        <FocusRow style={styles.header}>
-          <Text style={styles.heading}>{label}</Text>
-          {toggle}
-        </FocusRow>
-        <ScrollView
-          testID={testID && `${testID}-box`}
-          style={{ maxHeight: boxHeight }}
-          nestedScrollEnabled
-          accessibilityLabel={label}
-          scrollEventThrottle={100}
-          onScroll={(event) => nearEnd(event, false) && boxCount < chips.length && setBoxLimit(boxCount + BOX_PAGE)}
-          onContentSizeChange={(_width, contentHeight) => setBoxContentHeight(contentHeight)}
-        >
-          <FocusRow style={styles.wrap}>{items}</FocusRow>
-        </ScrollView>
-      </View>
-    );
-  }
+  // The chips of the expanded box, in their own scroll view of at most half the screen (D-091).
+  const box = (
+    <ScrollView
+      testID={testID && `${testID}-box`}
+      style={{ maxHeight: boxHeight }}
+      nestedScrollEnabled
+      accessibilityLabel={label}
+      scrollEventThrottle={100}
+      onScroll={(event) => nearEnd(event, false) && boxCount < chips.length && setBoxLimit(boxCount + BOX_PAGE)}
+      onContentSizeChange={(_width, contentHeight) => setBoxContentHeight(contentHeight)}
+    >
+      <FocusRow style={styles.wrap}>{items}</FocusRow>
+    </ScrollView>
+  );
 
   // TV (D-094, D-105): "All", the categories that fit (at most TV_WINDOW), ‹ › to page through them, then "Show all" —
   // no long walk to reach the end. Long names take more room: fewer of them show, so the buttons stay on screen.
+  // Expanded, the same bar shows "Categories" and "Show less" above the box. "Show all" and "Show less" are one button
+  // that stays in place: replacing it made the focus fall to the grid, which scrolled the page down to the titles
+  // (D-170).
   if (Platform.isTV) {
     const rest = chips.slice(1);
     const needsPager = rest.length > TV_WINDOW || !fitsWhole(rest, 0, rest.length, tvRoomWithout());
@@ -214,58 +210,90 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     // Chips around the shown ones, measured off screen so the next and previous pages know how many fit.
     const measured = rest.slice(Math.max(0, first - TV_WINDOW), first + count + TV_WINDOW);
     return (
-      <View style={styles.tvWrap}>
-        <FocusRow style={[styles.bar, styles.tvBar]} testID={testID}>
-          <View
-            style={styles.tvMeasure}
-            testID={testID && `${testID}-width`}
-            onLayout={(event) => setTvWidth('bar', event.nativeEvent.layout.width)}
-          />
-          {shown.map((chip, index) => (
-            <Chip
-              key={chip.key}
-              label={chip.label}
-              active={chip.active}
-              testID={chip.testID}
-              onPress={() => choose(chip)}
-              onLayout={index === 0 ? (event) => setTvWidth('all', event.nativeEvent.layout.width) : undefined}
-            />
-          ))}
-          {needsPager ? (
+      <View ref={boxCentering.ref} style={expanded ? styles.expanded : styles.tvWrap} testID={expanded ? testID : undefined}>
+        <FocusRow style={expanded ? styles.header : [styles.bar, styles.tvBar]} testID={expanded ? undefined : testID}>
+          {expanded ? (
+            <Text key="heading" style={styles.heading}>
+              {label}
+            </Text>
+          ) : (
+            [
+              <View
+                key="measure"
+                style={styles.tvMeasure}
+                testID={testID && `${testID}-width`}
+                onLayout={(event) => setTvWidth('bar', event.nativeEvent.layout.width)}
+              />,
+              ...shown.map((chip, index) => (
+                <Chip
+                  key={`chip:${chip.key}`}
+                  label={chip.label}
+                  active={chip.active}
+                  testID={chip.testID}
+                  onPress={() => choose(chip)}
+                  onLayout={index === 0 ? (event) => setTvWidth('all', event.nativeEvent.layout.width) : undefined}
+                />
+              )),
+            ]
+          )}
+          {needsPager || expanded ? (
             // Pinned to the right end, so ‹ › and "Show all" stay put whatever the shown categories' widths.
-            <View style={styles.tvPager} testID={testID && `${testID}-pager`}>
-              <PageButton
-                direction="left"
-                disabled={first === 0}
-                testID={testID && `${testID}-prev`}
-                onPress={() => setTvStart(Math.max(0, first - fitCount(rest, first - 1, room, -1)))}
-                onLayout={(event) => setTvWidth('prev', event.nativeEvent.layout.width)}
-              />
-              <PageButton
-                direction="right"
-                disabled={first + count >= rest.length}
-                testID={testID && `${testID}-next`}
-                onPress={() => setTvStart(Math.min(lastFirst, first + count))}
-                onLayout={(event) => setTvWidth('next', event.nativeEvent.layout.width)}
-              />
-              <View testID={testID && `${testID}-toggle-box`} onLayout={(event) => setTvWidth('toggle', event.nativeEvent.layout.width)}>
+            <View key="pager" style={styles.tvPager} testID={testID && `${testID}-pager`}>
+              {expanded ? null : (
+                <PageButton
+                  direction="left"
+                  disabled={first === 0}
+                  testID={testID && `${testID}-prev`}
+                  onPress={() => setTvStart(Math.max(0, first - fitCount(rest, first - 1, room, -1)))}
+                  onLayout={(event) => setTvWidth('prev', event.nativeEvent.layout.width)}
+                />
+              )}
+              {expanded ? null : (
+                <PageButton
+                  direction="right"
+                  disabled={first + count >= rest.length}
+                  testID={testID && `${testID}-next`}
+                  onPress={() => setTvStart(Math.min(lastFirst, first + count))}
+                  onLayout={(event) => setTvWidth('next', event.nativeEvent.layout.width)}
+                />
+              )}
+              <View
+                testID={testID && `${testID}-toggle-box`}
+                onLayout={(event) => !expanded && setTvWidth('toggle', event.nativeEvent.layout.width)}
+              >
                 {toggle}
               </View>
             </View>
           ) : null}
         </FocusRow>
-        <View style={styles.tvHidden} pointerEvents="none" importantForAccessibility="no-hide-descendants">
-          {measured.map((chip) => (
-            <View
-              key={chip.key}
-              style={styles.chip}
-              testID={testID && `${testID}-measure-${chip.key}`}
-              onLayout={(event) => setTvWidth(`chip:${chip.key}`, event.nativeEvent.layout.width)}
-            >
-              <Text style={styles.chipText}>{chip.label}</Text>
-            </View>
-          ))}
-        </View>
+        {expanded ? (
+          box
+        ) : (
+          <View style={styles.tvHidden} pointerEvents="none" importantForAccessibility="no-hide-descendants">
+            {measured.map((chip) => (
+              <View
+                key={chip.key}
+                style={styles.chip}
+                testID={testID && `${testID}-measure-${chip.key}`}
+                onLayout={(event) => setTvWidth(`chip:${chip.key}`, event.nativeEvent.layout.width)}
+              >
+                <Text style={styles.chipText}>{chip.label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  if (expanded) {
+    return (
+      <View style={styles.expanded} testID={testID}>
+        <FocusRow style={styles.header}>
+          <Text style={styles.heading}>{label}</Text>
+          {toggle}
+        </FocusRow>
+        {box}
       </View>
     );
   }
