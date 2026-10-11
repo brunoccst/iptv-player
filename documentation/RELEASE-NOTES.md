@@ -4,7 +4,7 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ## Keeping it current (D-143)
 
-- A pull request that adds or changes something people see or use adds a line under **Latest** of the app's current version line, newest first, with the date and its decision (D-…) or issue. It goes to every app it reaches (the same apps as its row in [PARITY.md](PARITY.md)).
+- A pull request that adds or changes something people see or use adds a line under **Latest** of the app's current version line, newest first, with the date and its decision (D-…) or issue. It goes to every app it reaches (the apps on its feature's **Apps:** line in [FEATURES.md](FEATURES.md)).
 - Raising MAJOR.MINOR in `apps/tv-app/package.json` or `apps/desktop/package.json` adds a new `### MAJOR.MINOR` section on top of that app's part, saying what is new in it; a version line without notes is not released.
 - CI checks it (`npm run lint:release-notes`, in *Lint and format*): each app has a non-empty section for the MAJOR.MINOR in its `package.json`. `tv-apk.yml` and `desktop.yml` stop before building without it, and add the section to the release's notes after the line the apps read their version from (D-062, D-073).
 

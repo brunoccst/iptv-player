@@ -65,7 +65,7 @@ providers do not let web pages read their answers.
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
-| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `FEATURES-TECHNICAL.md` (how each feature works in the code), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `NEXT-STEPS.md`. Known issues are [GitHub issues](https://github.com/brunoccst/iptv-player/issues?q=is%3Aissue+label%3A%22known+issue%22) (D-174). |
+| [`documentation`](./documentation) | `FEATURES.md` (what the apps do and which apps have it), `FEATURES-TECHNICAL.md` (where each feature lives in the code), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`. Known issues and planned work are [GitHub issues](https://github.com/brunoccst/iptv-player/issues) (labels `known issue` and `enhancement`; D-174). |
 
 ## Prerequisites
 
@@ -102,7 +102,7 @@ npm run test:e2e
 Lint and format (CI runs the same checks; the Python part needs `pip install ruff`):
 
 ```bash
-npm run lint                # ESLint + Prettier, app parity, release notes, translations, Ruff (check only)
+npm run lint                # ESLint + Prettier, features, release notes, translations, Ruff (check only)
 npm run format              # apply Prettier and Ruff fixes
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format commits in blame
 ```

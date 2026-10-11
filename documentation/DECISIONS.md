@@ -79,7 +79,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-151](#d-151) | "Who's watching?" every time; no TV sleep mode |
 | [D-154](#d-154) | TV colour keys |
 | [D-158](#d-158) | Details in columns on landscape screens |
-| [D-174](#d-174) | Known issues are GitHub issues |
+| [D-174](#d-174) | Known issues and planned work are GitHub issues |
 
 ## Merged and retired IDs
 
@@ -627,12 +627,12 @@ Why: SmartScreen only asks about files marked as downloaded from the internet; a
 
 <a id="d-041"></a><a id="d-080"></a><a id="d-124"></a>
 
-**Parity: one look and one feature set in every app** — 2026-09-27, updated 2026-09-29 (merges D-041, D-080, D-124 and D-073's card size)
+**Parity: one look and one feature set in every app** — 2026-09-27, updated 2026-10-11 (merges D-041, D-080, D-124 and D-073's card size)
 
-- Every app has every feature unless it does not apply to the device, reached the way that device is used (hold OK on TV, a long touch on a phone, right-click on a computer). [PARITY.md](PARITY.md) lists each feature per app.
+- Every app has every feature unless it does not apply to the device, reached the way that device is used (hold OK on TV, a long touch on a phone, right-click on a computer). Each section of [FEATURES.md](FEATURES.md) ends with an **Apps:** line marking TV, Phone and Desktop.
 - One look: the native screens mirror the web design (no WebView, which would lose native playback and the remote). Colours, fluid sizes and icons live in `@iptv/shared` (`design/`), and a test checks the tokens against the web CSS. A focused or hovered card grows 8 % with a light ring and soft glow; rows leave room so it is not cut. Cards keep one size (`min-width: 0`).
 - One logic: `createAppHooks` (`packages/shared/src/hooks.ts`) gives both apps the same hooks for state, loading and actions; each app keeps only its drawing. React Native Web (one set of screens) was set aside: a much larger change.
-- Checks: the pull request template asks which apps a change covers; `npm run lint:parity` (`scripts/check-parity.mjs`) fails when a PARITY.md app cell lacks ✅, ➖ or ⏳, or a ⏳ row has no open `Parity: …` item in NEXT-STEPS.md (and the reverse). It cannot see features missing from the table.
+- Checks: the pull request template asks which apps a change covers; `npm run lint:features` fails when a feature's **Apps:** line does not mark every app ✅, ➖ or ⏳, or a ⏳ names no GitHub issue. It cannot see features missing from FEATURES.md.
 
 ## D-081
 
@@ -852,11 +852,11 @@ A title whose versions all have a cinema source tag (`LOW_SOURCES`: SCR, TC, TS,
 
 <a id="d-163"></a>
 
-**Docs every change keeps current** — 2026-10-05, updated 2026-10-07 (merges D-163)
+**Docs every change keeps current** — 2026-10-05, updated 2026-10-11 (merges D-163)
 
 - [RELEASE-NOTES.md](RELEASE-NOTES.md): a part per app and a `### MAJOR.MINOR` section per version line with **Latest** (one line per change people notice, newest first, with date and decision or issue). PATCH builds share their line's section. `tv-apk.yml` and `desktop.yml` add the section under "What's new in X.Y" after the generated first line (which the apps read their version from) and stop without one; `npm run lint:release-notes` checks each app has a section for its `package.json` MAJOR.MINOR.
-- [FEATURES.md](FEATURES.md) describes each feature; PARITY.md links each row to it.
-- [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) has the same `##` and `###` headings in the same order, each with a link, a Mermaid graph, a few facts (no decision numbers) and a `**Code:**` line whose paths exist; `npm run lint:features` checks it.
+- [FEATURES.md](FEATURES.md) describes each feature and which apps have it (D-079).
+- [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) is a code index: a row per feature, in FEATURES.md's order, with the files to read first; `npm run lint:features` checks the rows and that the paths exist. It replaced a longer document with a Mermaid graph per feature, which cost every change more than it helped (2026-10-11).
 - A change people see or use updates all of them in the same pull request; tooling, tests and refactors need no note.
 
 ## D-147
@@ -903,7 +903,8 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 ## D-174
 
-**Known issues are GitHub issues** — 2026-10-11 (requested by owner)
+**Known issues and planned work are GitHub issues** — 2026-10-11 (requested by owner)
 
 - A known limitation, risk, bug or piece of technical debt is an open GitHub issue labelled `known issue`, not a file. Code and docs cite it as `issue #N`.
 - `documentation/KNOWN-ISSUES.md` is gone; its open entries became issues #213–#236 (each names its old `KI-…` ID), and the closed ones stay in git history.
+- Planned work and feature ideas are GitHub issues labelled `enhancement`; `documentation/NEXT-STEPS.md` is gone (2026-10-11).

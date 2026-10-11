@@ -13,13 +13,12 @@ IPTV player: an Android TV and phone app (`apps/tv-app`, React Native tvOS fork 
 ## Every change
 
 - **Release notes:** a change people see or use adds a line under **Latest** of each app it reaches in `documentation/RELEASE-NOTES.md` (newest first, with date and decision or issue). Raising MAJOR.MINOR in an app's `package.json` needs a new `### MAJOR.MINOR` section.
-- **Features:** describe it in `documentation/FEATURES.md` and its matching section of `documentation/FEATURES-TECHNICAL.md` (same headings and order, a short Mermaid graph, a `**Code:**` line).
-- **Parity:** every app gets the feature unless it does not apply to that device; update `documentation/PARITY.md`.
+- **Features and parity:** every app gets the feature unless it does not apply to that device. Describe it in `documentation/FEATURES.md`, ending its section with an `**Apps:**` line (TV, Phone, Desktop: ✅, ➖, or ⏳ with the GitHub issue that adds it), and add its row to the code index `documentation/FEATURES-TECHNICAL.md`.
 - **Translations:** user-facing text goes through `t('…')`; run `npm run i18n:sync` and translate every catalog in `packages/shared/src/i18n/catalogs`.
-- **Known issues:** a limitation, risk, bug or tech debt that stays after the change becomes an open GitHub issue labelled `known issue`; cite it as `issue #N` (D-174).
-- **Decisions:** a decision worth keeping gets the next `D-…` entry at the bottom of `documentation/DECISIONS.md` and a row in its index. Parallel branches can take the same number: renumber yours when merging.
+- **Issues:** a limitation, risk, bug or tech debt that stays after the change becomes an open GitHub issue labelled `known issue`; planned work and feature ideas are issues labelled `enhancement`. Cite them as `issue #N` (D-174).
+- **Decisions:** weigh every new decision worth keeping. A rule every change must follow (like the TV focus rules below) goes in this file, short. The reason code is the way it is goes in `documentation/DECISIONS.md` as the next `D-…` entry at the bottom with a row in its index, cited from the code. Parallel branches can take the same number: renumber yours when merging.
 
-`npm run lint` checks all of the above except the decisions.
+`npm run lint` checks all of the above except issues and decisions.
 
 ## Gotchas
 

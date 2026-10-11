@@ -48,7 +48,7 @@ def add_stress_titles(catalog: dict, count: int) -> None:
     ]
 
 
-# FAKE_PANEL_STRESS=5000 adds thousands of titles (see NEXT-STEPS "UI stress tests").
+# FAKE_PANEL_STRESS=5000 adds thousands of titles (D-025).
 add_stress_titles(CATALOG, int(os.environ.get("FAKE_PANEL_STRESS", "0") or 0))
 USER = CATALOG["credentials"]["username"]
 PASSWORD = CATALOG["credentials"]["password"]
