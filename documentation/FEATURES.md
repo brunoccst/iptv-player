@@ -130,7 +130,7 @@ Unplugging headphones or losing a Bluetooth headset pauses playback instead of c
 
 ### Playback errors
 
-When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-038). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC (KI-045).
+When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-038). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-172). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC (KI-045).
 
 ### Audio decoder (TV and phone)
 
@@ -224,9 +224,9 @@ The installed version (MAJOR.MINOR.PATCH, D-070) and the commit and date it was 
 
 What the app did, with the provider's answers, timings and native crashes, to share (TV, phone) or save and copy (desktop). Account menu → App → Log (D-039, D-074, D-113).
 
-The log never shows the provider's server address, usernames, passwords, keys or tokens, e-mail or IP addresses; public services (TMDB, OpenSubtitles, GitHub) keep their address (D-172).
+The log never shows the provider's server address, usernames, passwords, keys or tokens, e-mail or IP addresses; public services (TMDB, OpenSubtitles, GitHub) keep their address (D-173).
 
-On a phone paired with a TV, Log → **Get TV log** fetches the TV's log over the home network and opens the phone's share sheet with it, so it can be sent from the phone (D-172). The TV app must be running and signed in, on any page; the phone app is the one in use. The TV's Log page says how.
+On a phone paired with a TV, Log → **Get TV log** fetches the TV's log over the home network and opens the phone's share sheet with it, so it can be sent from the phone (D-173). The TV app must be running and signed in, on any page; the phone app is the one in use. The TV's Log page says how.
 
 ### App updates
 

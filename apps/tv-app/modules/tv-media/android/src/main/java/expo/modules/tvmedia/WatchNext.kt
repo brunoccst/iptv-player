@@ -21,7 +21,6 @@ object WatchNext {
   const val EXTRA_ID = "expo.modules.tvmedia.WATCH_NEXT_ID"
 
   private const val ID = "_id"
-  private const val PACKAGE_NAME = "package_name"
   private const val INTERNAL_PROVIDER_ID = "internal_provider_id"
   private const val BROWSABLE = "browsable"
   private const val TYPE = "type"
@@ -50,8 +49,10 @@ object WatchNext {
     if (!supported(context)) return emptyList()
     val projection = arrayOf(ID, INTERNAL_PROVIDER_ID, BROWSABLE, LAST_PLAYBACK_POSITION_MILLIS, LAST_ENGAGEMENT_TIME_UTC_MILLIS)
     val result = mutableListOf<Map<String, Any?>>()
+    // No selection: the TV provider already returns only the calling app's rows, and refuses any selection from an app
+    // without ACCESS_ALL_EPG_DATA ("SecurityException: Selection not allowed", which failed every sync, D-172).
     context.contentResolver
-      .query(TvContract.WatchNextPrograms.CONTENT_URI, projection, "$PACKAGE_NAME = ?", arrayOf(context.packageName), null)
+      .query(TvContract.WatchNextPrograms.CONTENT_URI, projection, null, null, null)
       ?.use { cursor ->
         while (cursor.moveToNext()) {
           result += mapOf(

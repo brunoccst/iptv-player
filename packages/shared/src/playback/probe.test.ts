@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeProbe, probeHint, probeMessage, probeStream } from './probe';
+import { describeProbe, probeHint, probeMessage, probeStream, providerUnreachableMessage, unreachableHost } from './probe';
 
 const URL_ = 'http://p.example:80/series/bob/s3cret/715092.mp4';
 const answer = (body: string | Uint8Array, init: ResponseInit & { url?: string } = {}) =>
@@ -75,5 +75,20 @@ describe('what the provider sent instead of a video (D-074)', () => {
     const probe = await probeStream(URL_, { fetch: failing });
     expect(describeProbe(probe)).toBe('no answer (Network request failed)');
     expect(probeHint(probe)).toBeNull();
+  });
+});
+
+describe("the provider's server stopped answering (D-172)", () => {
+  it('names the server from the connection error or the stream address', () => {
+    const detail =
+      'java.net.SocketTimeoutException: failed to connect to 7164443.merovixx.cc/149.57.86.125 (port 80) from /192.168.0.252 (port 52758) after 8000ms';
+    expect(unreachableHost(detail)).toBe('7164443.merovixx.cc');
+    expect(unreachableHost('Source error http://nyjmf.example.cc:80/movie/a/b/1.mkv')).toBe('nyjmf.example.cc');
+    expect(unreachableHost('Source error')).toBeNull();
+  });
+
+  it("says it is the provider's side", () => {
+    expect(providerUnreachableMessage('cdn.example')).toContain('(cdn.example)');
+    expect(providerUnreachableMessage(null)).toContain("provider's side");
   });
 });

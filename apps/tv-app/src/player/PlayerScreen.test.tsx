@@ -206,6 +206,48 @@ describe('PlayerScreen', () => {
     expect(await screen.findByText(/could not decode the audio of this title \(Dolby Digital Plus\)/)).toBeTruthy();
   });
 
+  it("carries on from where the stream stopped when the provider's server stops answering, and offers Try again (D-172)", async () => {
+    const timeout = {
+      message: 'Source error',
+      code: 'ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT',
+      detail: 'java.net.SocketTimeoutException: failed to connect to cdn.example/1.2.3.4 (port 80) after 8000ms',
+    };
+    expect(playbackErrorText(timeout.message, timeout.detail, timeout.code)).toMatch(
+      /^Your IPTV provider's server \(cdn\.example\) stopped responding\. This is a problem on the provider's side/,
+    );
+
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({
+      body: {
+        ...playback(`http://relay/55.${url.searchParams.get('container')}`),
+        alternateUrls: url.searchParams.get('container') === 'mkv' ? ['http://stream/55.mkv'] : [],
+      },
+    }));
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(6060, 7200);
+
+    // Mid-movie: the other server, from 1:41:00, with a spinner that says why (not a black screen).
+    await act(async () => playerState.props?.onError?.({ nativeEvent: timeout } as never));
+    await flush();
+    expect(playerState.props?.source).toMatchObject({ uri: 'http://stream/55.mkv', startPositionMs: 6_060_000 });
+    expect(screen.getByText('The provider stopped sending the video. Reconnecting…')).toBeTruthy();
+
+    // Then the HLS copy, still from there; when that fails too, the message and Try again.
+    await act(async () => playerState.props?.onError?.({ nativeEvent: timeout } as never));
+    await flush();
+    expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.m3u8', startPositionMs: 6_060_000 });
+    await act(async () => playerState.props?.onError?.({ nativeEvent: timeout } as never));
+    await flush();
+    expect(screen.getByText(/stopped responding/)).toBeTruthy();
+
+    await act(async () => fireEvent.press(screen.getByTestId('player-retry')));
+    await flush();
+    expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv', startPositionMs: 6_060_000 });
+    expect(screen.queryByText(/stopped responding/)).toBeNull();
+  });
+
   it('keeps the controls and clock up while loading; hides them 4 s after playback starts', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });

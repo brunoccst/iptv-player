@@ -16,7 +16,8 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
-- **Get the TV log on your phone** (2026-10-11, D-172): on a phone paired with the TV, Log → Get TV log fetches the TV's log and opens the share sheet, so you can send it from the phone. The TV app only has to be open. The log now also hides the server address, keys, e-mail and IP addresses, not just usernames and passwords.
+- **Get the TV log on your phone** (2026-10-11, D-173): on a phone paired with the TV, Log → Get TV log fetches the TV's log and opens the share sheet, so you can send it from the phone. The TV app only has to be open. The log now also hides the server address, keys, e-mail and IP addresses, not just usernames and passwords.
+- **The player says when the provider stops sending the video** (2026-10-11, D-172): when your provider's server stops answering in the middle of a movie, the screen no longer just goes black. It says the provider stopped sending the video, reconnects and carries on from the same point instead of where you started watching; if the provider still does not answer, it says the problem is on the provider's side and offers Try again. The home screen's Continue watching row now also updates on TVs that refused it before.
 - **My List keeps the focus** (2026-10-11, D-171): on the TV, pressing My List in a movie's or series' details leaves the focus on the button, instead of sending it somewhere out of sight. While details are open, nothing on the page behind them can take the focus, and closing them puts the focus back on the cover or button that opened them (or the first one on screen, if it is gone).
 - **"Show all" stays put** (2026-10-11, D-170): on the TV, pressing "Show all" in Movies or Series opens the full category list with the focus still on the button, now "Show less"; the page no longer jumps down to the titles.
 - **Log has its own icon** (2026-10-09): in the account menu, Log now shows a page of lines instead of the same "i" icon as About.
@@ -81,7 +82,8 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
-- **The log hides more** (2026-10-11, D-172): besides usernames and passwords, the log now hides the server address, keys, tokens, e-mail and IP addresses.
+- **The log hides more** (2026-10-11, D-173): besides usernames and passwords, the log now hides the server address, keys, tokens, e-mail and IP addresses.
+- **The player says when the provider stops sending the video** (2026-10-11, D-172): when your provider's server stops answering in the middle of a movie, the player says the problem is on the provider's side instead of "Playback stopped (media error)", and offers Try again, which carries on from where the video stopped.
 - **Log has its own icon** (2026-10-09): in the account menu, Log now shows a page of lines instead of the same "i" icon as About.
 - **A movie's details use more of the window** (2026-10-08, D-168): in the side-by-side details, a movie's one column takes 2/3 of the window; a series' episodes use the compact rows.
 - **A quick first refresh after this update** (2026-10-08, D-167): the first library refresh after an update that only changes how titles are grouped no longer reads every movie and series name again, so it no longer creeps along one percent at a time.

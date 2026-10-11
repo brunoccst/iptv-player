@@ -55,6 +55,8 @@ import {
   isFoundSubtitle,
   recentChannelTarget,
   type RecentChannel,
+  providerUnreachableMessage,
+  unreachableHost,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, appContext, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
@@ -105,6 +107,8 @@ export function playbackErrorText(message: string, detail?: string | null, code 
         : t('This device could not decode the video of this title.');
     return `${problem} ${tip}`;
   }
+  // The provider's server stopped answering (it timed out or refused the connection): their side, not ours (D-172).
+  if (code.startsWith('ERROR_CODE_IO_NETWORK')) return providerUnreachableMessage(unreachableHost(all));
   if (code.startsWith('ERROR_CODE_PARSING'))
     return t(
       'The provider did not send a playable video for this title (it may be broken on their side). Try another version, or open it in another player.',
@@ -145,6 +149,15 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Same stream on the provider's other server, tried before the next attempt (D-038).
   const alternates = useRef<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // The failure was the network (the provider's server stopped answering): the error offers Try again (D-172).
+  const [retryable, setRetryable] = useState(false);
+  // Bumped by Try again: the attempts start over.
+  const [retry, setRetry] = useState(0);
+  // Where the stream stopped (seconds), so a retry carries on from there instead of where the title was opened (D-172).
+  const resumeAt = useRef<number | null>(null);
+  // Mid-stream: the player waits for data (spinner), or a new address is being tried after the stream stopped.
+  const [buffering, setBuffering] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [paused, setPaused] = useState(false);
   const [ready, setReady] = useState(false);
   const [time, setTime] = useState(0);
@@ -241,13 +254,18 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     else if (choice) rememberPlayback(stores, { audio: choice });
   };
 
+  // Another title (next episode, another channel or version): it starts where its own target says.
+  useEffect(() => {
+    resumeAt.current = null;
+  }, [target]);
+
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
     let cancelled = false;
     // Read when the title starts: a changed setting applies to the next title, not mid-stream (D-059).
     const audioDecoder = playbackSettings.getState().audioDecoder;
     const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
-    const startPositionMs = (target.startAt ?? resumePosition(saved)) * 1000;
+    const startPositionMs = (resumeAt.current ?? target.startAt ?? resumePosition(saved)) * 1000;
     const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
     const session = stores.session.getState();
     const access = offlineAccess(session.account, session.lastOnlineAt);
@@ -285,7 +303,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     return () => {
       cancelled = true;
     };
-  }, [target, attempt]);
+  }, [target, attempt, retry]);
 
   const saveProgress = useCallback(() => savePlaybackProgress(stores.progress, target, timeRef.current, durationRef.current), [target]);
 
@@ -569,6 +587,19 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     });
   };
 
+  // After the provider's server stopped answering: all attempts again, from where the stream stopped (D-172).
+  const tryAgain = () => {
+    if (!isLive && timeRef.current > 0) resumeAt.current = timeRef.current;
+    appLog.info('player', `trying again${resumeAt.current ? ` from ${formatClock(resumeAt.current)}` : ''}`);
+    setError(null);
+    setRetryable(false);
+    setReady(false);
+    // A new source even when the address is the same, so the player reconnects.
+    setSource(null);
+    setAttempt(0);
+    setRetry((r) => r + 1);
+  };
+
   const percent = duration > 0 ? ((dragTime ?? time) / duration) * 100 : 0;
 
   return (
@@ -579,7 +610,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         source={source}
         paused={paused}
         onStatus={(e) => {
-          setReady(e.nativeEvent.state === 'ready' || e.nativeEvent.isPlaying || ready);
+          const playing = e.nativeEvent.state === 'ready' || e.nativeEvent.isPlaying;
+          setReady(playing || ready);
+          setBuffering(e.nativeEvent.state === 'buffering');
+          if (playing) setReconnecting(false);
           // Headphones gone: the player paused itself; show it paused so Play resumes (#83).
           if (e.nativeEvent.pausedByAudioOutput) setPaused(true);
         }}
@@ -598,6 +632,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         onError={(e) => {
           const { message, code, detail } = e.nativeEvent;
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
+          // It had been playing: the next try carries on from here, with a spinner that says what is going on (D-172).
+          const stopped = ready && !isLive && timeRef.current > 0;
+          if (stopped) resumeAt.current = timeRef.current;
           // "Not a video" or an HTTP error: log what the provider actually sent (D-074).
           const explain = !source?.offlineId && /^ERROR_CODE_(PARSING|IO_BAD_HTTP_STATUS)/.test(code) ? source?.uri : undefined;
           // Decoding errors: the other server and the HLS copy carry the same audio/video, so retrying only costs time.
@@ -610,7 +647,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (alternate) {
             if (explain) explainFailure(explain, attempt + 1, false);
             appLog.info('player', `attempt ${attempt + 1}: retrying on the stream server ${alternate}`);
-            setSource({ ...source, uri: alternate });
+            setReady(false);
+            if (stopped) setReconnecting(true);
+            setSource({
+              ...source,
+              uri: alternate,
+              startPositionMs: resumeAt.current !== null ? resumeAt.current * 1000 : source?.startPositionMs,
+            });
             return;
           }
           // A failed stream (not a download) moves on to the next attempt.
@@ -618,8 +661,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           if (explain) explainFailure(explain, attempt + 1, final);
           if (!final) {
             setReady(false);
+            if (stopped) setReconnecting(true);
             setAttempt((a) => a + 1);
-          } else setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
+          } else {
+            setReconnecting(false);
+            setRetryable(!source?.offlineId && code.startsWith('ERROR_CODE_IO'));
+            setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
+          }
         }}
       />
 
@@ -639,16 +687,25 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         />
       ) : null}
 
-      {!ready && !error ? <Loading label={t('Loading stream')} /> : null}
-      {notice && !error ? (
+      {(!ready || buffering) && !error ? <Loading label={t('Loading stream')} /> : null}
+      {/* Mid-stream the provider stopped sending the video: says so while the next address is tried (D-172). */}
+      {(notice || reconnecting) && !error ? (
         <View style={styles.notice} pointerEvents="none" testID="player-notice">
-          <Text style={styles.noticeText}>{notice}</Text>
+          <Text style={styles.noticeText}>{reconnecting ? t('The provider stopped sending the video. Reconnecting…') : notice}</Text>
         </View>
       ) : null}
       {error ? (
         <View style={styles.center}>
           <ErrorText>{error}</ErrorText>
-          <FocusButton label={t('Go back')} variant="primary" hasTVPreferredFocus onPress={() => navStore.getState().back()} />
+          {retryable ? (
+            <FocusButton label={t('Try again')} variant="primary" hasTVPreferredFocus testID="player-retry" onPress={tryAgain} />
+          ) : null}
+          <FocusButton
+            label={t('Go back')}
+            variant={retryable ? undefined : 'primary'}
+            hasTVPreferredFocus={!retryable}
+            onPress={() => navStore.getState().back()}
+          />
         </View>
       ) : null}
 

@@ -6,7 +6,9 @@ import {
   type ApiClient,
   type PlaybackInfoWithAlternates,
   type PlaybackKind,
+  providerUnreachableMessage,
   t,
+  unreachableHost,
 } from '@iptv/shared';
 import { desktop } from '../../desktop';
 import { offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
@@ -52,11 +54,13 @@ export function undecodableVideoCodec(codecs: string[], video: Pick<HTMLVideoEle
 type HlsFactory = Pick<typeof Hls, 'isSupported' | 'Events' | 'ErrorTypes'> & { new (config?: Partial<HlsConfig>): Hls };
 
 const ATTACH_TIMEOUT_MS = 20_000;
+/** `MediaError.MEDIA_ERR_NETWORK`: the download stopped part way. */
+const MEDIA_ERR_NETWORK = 2;
 
 /** Wraps one <video>: resolves stream URLs, tries HLS then file, recovers hls.js errors. See DECISIONS.md#d-023. */
 export class PlaybackEngine {
   private hlsInstance: Hls | null = null;
-  private onFatal: ((message: string) => void) | null = null;
+  private onFatal: ((message: string, network?: boolean) => void) | null = null;
   /** Stream addresses tried, last one last: what the provider sent there explains a failure (D-074, D-079). */
   readonly attempted: string[] = [];
 
@@ -72,8 +76,11 @@ export class PlaybackEngine {
     return this.hlsInstance;
   }
 
-  /** Registers a callback for unrecoverable errors after a successful load. */
-  onFatalError(callback: (message: string) => void) {
+  /**
+   * Registers a callback for unrecoverable errors after a successful load; `network` when the provider's server stopped
+   * sending the file (D-172).
+   */
+  onFatalError(callback: (message: string, network?: boolean) => void) {
     this.onFatal = callback;
   }
 
@@ -195,7 +202,15 @@ export class PlaybackEngine {
       };
       const onLoaded = () => {
         cleanup();
-        video.addEventListener('error', () => this.onFatal?.('Playback stopped (media error).'), { once: true });
+        video.addEventListener(
+          'error',
+          () => {
+            // Mid-file, the provider's server stopped answering: say it is their side (D-172).
+            if (video.error?.code === MEDIA_ERR_NETWORK) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
+            else this.onFatal?.('Playback stopped (media error).');
+          },
+          { once: true },
+        );
         resolve();
       };
       const onError = () => {

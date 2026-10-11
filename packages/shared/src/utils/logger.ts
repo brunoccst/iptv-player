@@ -19,7 +19,7 @@ const MIN_SECRET_LENGTH = 3;
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Masks what could identify the provider or the person (D-172): the given `secrets` (server address, usernames,
+ * Masks what could identify the provider or the person (D-173): the given `secrets` (server address, usernames,
  * passwords, keys) wherever they appear, credentials in queries and stream paths (`/movie/<user>/<pass>/…`), the server
  * of every URL except public services, keys and tokens, e-mail addresses, IP addresses and `host:port`.
  */

@@ -77,7 +77,7 @@ export async function rememberPhone(offer: RemoteOffer): Promise<void> {
 }
 
 /**
- * TV: while signed in, listens for paired phones, plays what they send (D-061) and hands them its log (D-172). Answers
+ * TV: while signed in, listens for paired phones, plays what they send (D-061) and hands them its log (D-173). Answers
  * 403 to anything not sealed by a paired phone.
  */
 export function useRemoteServer(enabled: boolean) {
@@ -141,7 +141,7 @@ export async function playOnTv(target: PlayTarget): Promise<string> {
   }
 }
 
-/** Phone: the paired TV's diagnostics log, masked on the TV (D-172). Rejects with a message for the user. */
+/** Phone: the paired TV's diagnostics log, masked on the TV (D-173). Rejects with a message for the user. */
 export async function getTvLog(): Promise<{ tvName: string; log: string }> {
   const tv = pairedTv.getState().tv;
   if (!tv) throw new Error(t('Connect a TV first: account menu → Connect a TV or computer.'));
