@@ -561,13 +561,13 @@ flowchart LR
   B[bookmark or menu] --> T["toggle (undone if saving fails)"]
   T --> S[("direct.watchlist.profileId<br/>max 500")]
   S --> H[Home row, My List page, bookmark on covers]
-  B -->|TV: blur after press,<br/>no D-pad key since| F[focus back on the button]
+  H -.->|TV, details open:<br/>hasTVPreferredFocus held| N[page behind takes no focus]
 ```
 
 - The list reloads when the active profile changes and is deleted with its profile.
-- TV details button: `useKeepFocusAfterPress` puts the focus back after a press, until an arrow, Back or Menu key. A card on the page behind the panel (the My List page's first card has `hasTVPreferredFocus`) could take it.
+- TV: the page under the details panel is in `BehindPanel`; `usePreferredFocus` holds each view's `hasTVPreferredFocus` while it is, so a card appearing behind (My List's first) cannot take the focus, and nothing new asks after the panel closes.
 
-**Code:** `packages/shared/src/stores/watchlistStore.ts`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/keepFocus.ts`, `apps/web-player/src/features/browse/MyListPage.tsx`
+**Code:** `packages/shared/src/stores/watchlistStore.ts`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/focus.tsx`, `apps/web-player/src/features/browse/MyListPage.tsx`
 
 ## Downloads
 

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { colors } from '../theme';
 import { Icon } from './Icon';
-import { focus } from './focus';
+import { focus, usePreferredFocus } from './focus';
 import { FocusRow } from './FocusRow';
 import { useCenterOnFocus } from './CenterScroll';
 import { t } from '@iptv/shared';
@@ -349,6 +349,7 @@ function Toggle({
   const [focused, setFocused] = useState(false);
   const text = expanded ? t('Show less') : t('Show all');
   const centering = useCenterOnFocus();
+  const preferred = usePreferredFocus(hasTVPreferredFocus);
   return (
     <Pressable
       ref={centering.ref}
@@ -356,7 +357,7 @@ function Toggle({
       accessibilityRole="button"
       accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={preferred}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
@@ -393,11 +394,12 @@ export function Chip({
 }) {
   const [focused, setFocused] = useState(false);
   const centering = useCenterOnFocus();
+  const preferred = usePreferredFocus(hasTVPreferredFocus);
   return (
     <Pressable
       ref={centering.ref}
       testID={testID}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={preferred}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}

@@ -4,6 +4,7 @@ import { startStallWatch } from './diagnostics/stallWatch';
 import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
+import { BehindPanel } from './components/focus';
 import { LibraryNotice } from './components/LibraryBanner';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
@@ -158,23 +159,26 @@ function Shell() {
   return (
     <View style={styles.shell}>
       <View style={styles.content} importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}>
-        {shown !== section ? (
-          <PageLoading />
-        ) : section === 'home' ? (
-          <HomeScreen key={`home-${revision}`} processing={processing} />
-        ) : section === 'movies' || section === 'series' ? (
-          <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} processing={processing} />
-        ) : section === 'search' ? (
-          <SearchScreen />
-        ) : section === 'log' ? (
-          <LogScreen />
-        ) : section === 'live' ? (
-          <LiveScreen />
-        ) : section === 'mylist' ? (
-          <MyListScreen />
-        ) : (
-          <DownloadsScreen />
-        )}
+        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-170). */}
+        <BehindPanel.Provider value={route.name === 'details'}>
+          {shown !== section ? (
+            <PageLoading />
+          ) : section === 'home' ? (
+            <HomeScreen key={`home-${revision}`} processing={processing} />
+          ) : section === 'movies' || section === 'series' ? (
+            <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} processing={processing} />
+          ) : section === 'search' ? (
+            <SearchScreen />
+          ) : section === 'log' ? (
+            <LogScreen />
+          ) : section === 'live' ? (
+            <LiveScreen />
+          ) : section === 'mylist' ? (
+            <MyListScreen />
+          ) : (
+            <DownloadsScreen />
+          )}
+        </BehindPanel.Provider>
       </View>
       {route.name === 'details' ? null : <TopNav />}
       {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} /> : null}

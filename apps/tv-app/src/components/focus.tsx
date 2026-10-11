@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, type ComponentProps } from 'react';
+import { createContext, forwardRef, useContext, useEffect, useRef, type ComponentProps } from 'react';
 import { Animated, Platform, Pressable, type View } from 'react-native';
 
 /**
@@ -26,6 +26,27 @@ export const focus = {
 
 const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
 
+/** True for the page while the details panel covers it (D-170). */
+export const BehindPanel = createContext(false);
+
+/**
+ * `hasTVPreferredFocus` for a view that can sit behind the details panel (D-170). A view with it asks Android for the
+ * focus when it appears or when it turns on, and got it behind the panel: My List's first card, after a press on the
+ * panel's My List button. While the panel is open the value is held as it was, so nothing behind asks; a value that
+ * came up meanwhile is not acted on after it closes either, until it changes again (no jump on closing).
+ */
+export function usePreferredFocus(wanted: boolean | undefined): boolean {
+  const behind = useContext(BehindPanel);
+  const value = !!wanted;
+  const state = useRef<{ given: boolean; seenBehind: boolean | null }>({ given: behind ? false : value, seenBehind: null });
+  if (behind) state.current.seenBehind = value;
+  else if (state.current.seenBehind === null || state.current.seenBehind !== value) {
+    state.current.given = value;
+    state.current.seenBehind = null;
+  }
+  return state.current.given;
+}
+
 /**
  * Pressable that accepts animated styles (the focus scale). `hasTVPreferredFocus` only applies on TV: an animated
  * component sends it again on re-renders, and on a phone that pulled focus away from the search field when the
@@ -35,7 +56,8 @@ export const AnimatedPressable = forwardRef<View, ComponentProps<typeof Animated
   { hasTVPreferredFocus, ...props },
   ref,
 ) {
-  return <AnimatedPressableBase ref={ref} {...props} hasTVPreferredFocus={Platform.isTV ? hasTVPreferredFocus : undefined} />;
+  const preferred = usePreferredFocus(!!hasTVPreferredFocus);
+  return <AnimatedPressableBase ref={ref} {...props} hasTVPreferredFocus={Platform.isTV ? preferred : undefined} />;
 });
 
 /** Scale that springs to `to` while focused and back to 1 on blur (runs on the native thread). */

@@ -16,7 +16,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `LanguageSettings.tsx` | Account menu → Profiles → Content language filter: only titles with audio or subtitles in one of the chosen languages (from the title's name, else its category's name; titles in a category without a language always show), per profile (D-063, D-067, D-086). Also opened from the profile editor for a given profile. |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus turns it white with a glow and grows it. |
-| `focus.tsx` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable` (its `hasTVPreferredFocus` only applies on TV). |
+| `focus.tsx` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable` (its `hasTVPreferredFocus` only applies on TV), `BehindPanel` and `usePreferredFocus` (nothing behind the details panel asks for the focus, D-170). |
 | `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
 | `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |
@@ -30,8 +30,7 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `WatchedTag.tsx` | "Watched" tag: bottom right of a watched cover (`PosterCard.watched`), next to the title in details, on episode stills (D-081). |
 | `ExternalPlayerButton.tsx` | Round "open in another player" button on the details panel (D-057). Hidden on Kids profiles. `useExternalPlayer` for menus (D-083). |
 | `WatchedButton.tsx` | Round "Watched" toggle (open / closed eye) on the details panel; a whole series for series (D-104). |
-| `WatchlistButton.tsx` | Round "My List" toggle (bookmark) on the details panel (D-055); on TV it keeps the focus after a press (D-170). |
-| `keepFocus.ts` | `useKeepFocusAfterPress`: TV, a blur after a press that no arrow, Back or Menu key caused puts the focus back on the button (D-170). |
+| `WatchlistButton.tsx` | Round "My List" toggle (plus / check) on the details panel (D-055). |
 | `ProgressRing.tsx` | SVG progress circle. |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` mapping. |
 | `FocusRow.tsx` | `FocusRow`: a horizontal group whose Left/Right stay inside on TV (D-069); `RowFocus` lets Home centre the row of the focused card. |

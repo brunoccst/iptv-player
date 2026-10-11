@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Animated, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
-import { focus, useFocusScale } from './focus';
+import { focus, useFocusScale, usePreferredFocus } from './focus';
 import { Icon, type IconName } from './Icon';
 import { ColourDot, type ColourKey } from '../tv/colourKeys';
 
@@ -48,13 +48,14 @@ export function IconButton({
 }) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.12);
+  const preferred = usePreferredFocus(hasTVPreferredFocus);
   return (
     <Pressable
       ref={focusRef}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={preferred}
       focusable={focusable}
       nextFocusUp={nextFocusUp}
       nextFocusDown={nextFocusDown}
