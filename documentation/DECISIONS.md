@@ -2645,3 +2645,16 @@ Decision:
 - `stallWatch.ts`: Android stops JavaScript timers while the app is in the background, so the gap until it comes back was logged as a busy thread. A gap now counts only while the app is not in the background, and coming back resets the clock. The 30.6 s in the Log was most likely that (inferred: nothing else in the Log ran then).
 - Not changed: retrying the same address again automatically. The provider decides the CDN host; a host that timed out four times usually stays down for a while, so the user chooses when with Try again.
 - Tests: `PlayerScreen.test.tsx` (retries from 1:41:00 with the notice; the provider message; Try again from the same point), `probe.test.ts`, `playbackEngine.test.ts`, `stallWatch.test.ts`.
+
+## D-173
+
+**The phone fetches the TV log; the log masks the server and everything that identifies the account** — 2026-10-11 (Bruno: "Brainstorm a way of making it easier for me to send the TV logs to you besides sending pictures … The Bluetooth share also doesn't work". Then: "Do \"send log to phone\". … make sure to mask the server's URL and the user's credentials, and any other sensitive info.")
+
+Context: the TV's Log → Share log (D-039) opens Android's share sheet, which on a TV has nowhere useful to send text (Bluetooth refuses it). The phone is already paired with the TV for remote play (D-061), and the TV runs a server for it while signed in. `redact()` only masked usernames and passwords in queries and stream paths; the provider's address stayed in URLs and in "HTTP 503 from host:port" lines.
+
+Decision (shared `logger.ts`, `remote.ts`; TV app `LogScreen`, `pairing/remote.ts`, `diagnostics/logReport.ts`):
+
+- **The phone pulls, the TV answers.** A new remote command `{ type: 'log' }`, sealed with the phone's pairing key like play; the TV answers with its log as shared (header plus `shareText()`), sealed the same way. The phone's Log page shows **Get TV log** when a TV is paired and opens the share sheet with the result. A push from the TV was not used: the phone app does not listen in the background, so it would have to be open anyway, and the phone is where the log is sent from. The TV's Log page says how to do it. The log command needs no account or profile check: only paired phones get any answer.
+- **Masking (every app).** `appLog.hide()` takes values to mask everywhere, case-insensitively, when at least 3 characters long: the Xtream client registers the server URL, host and hostname, username and password; OpenSubtitles its API key, username, password and token. `redact()` also masks the host of every URL (except localhost and TMDB, OpenSubtitles, GitHub, which help reading the log), `key`, `token`, `api_key`, `auth`, `sig` and similar query values, Bearer tokens, e-mail and IPv4 addresses and bare host names such as a CDN host in a connection error (not file names like `55.mkv` or `Response.kt:89`, nor package names in a stack trace). Masking runs again on the kept lines at start-up and when a new value is hidden, so lines saved by an older version come out masked too.
+- Titles and stream ids stay: they are needed to read the log.
+- Tests: shared `logger.test.ts` (servers, keys, IPs, e-mail, secrets, older lines), `remote.test.ts` (log command sealed); TV `Pairing.test.tsx` (the TV hands a paired phone its masked log; the phone's Get TV log shares it).

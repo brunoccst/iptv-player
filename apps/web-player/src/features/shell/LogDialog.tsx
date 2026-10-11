@@ -42,7 +42,9 @@ export function LogDialog({ onClose }: { onClose(): void }) {
     <Modal label={t('Log')} onClose={onClose}>
       <div className="log" data-testid="log-dialog">
         <h2>{t('Log')}</h2>
-        <p className="muted">{t('Send this to support when something goes wrong. Usernames and passwords are hidden.')}</p>
+        <p className="muted">
+          {t('Send this to support when something goes wrong. The server address, usernames, passwords and keys are hidden.')}
+        </p>
         <div className="log__actions">
           <button type="button" className="button button--accent" onClick={save}>
             {t('Save log')}

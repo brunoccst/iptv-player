@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import {
   acceptPairing,
+  appLog,
   createMemoryStorage,
   openRemoteRequest,
   pairingQrText,
@@ -11,9 +12,10 @@ import {
   type PairedTv,
   type RemoteOffer,
 } from '@iptv/shared';
-import { Alert } from 'react-native';
+import { Alert, Share } from 'react-native';
 import { navStore } from '../appContext';
 import { PlayOnTvButton } from '../components/PlayOnTvButton';
+import { LogScreen } from '../screens/LogScreen';
 import { pairedTv } from './remote';
 import { App } from '../App';
 import { stores } from '../appContext';
@@ -166,6 +168,16 @@ describe('phone-to-TV pairing (D-060)', () => {
           sendRemoteCommand({ ...tv, phoneId: 'stranger' }, { type: 'play', accountId: account.id, target: movie }, { fetch: toRemote }),
         ).rejects.toMatchObject({ reason: 'unknown-phone' });
       });
+
+      // D-173: the phone can fetch the TV log; the provider's address and the account stay masked.
+      appLog.error('player', 'attempt 1 failed: http://portal.example.com:8080/movie/bob/pw/55.mkv from 192.168.1.5');
+      let log: string | undefined;
+      await act(async () => {
+        log = (await sendRemoteCommand(tv, { type: 'log' }, { fetch: toRemote })).log;
+      });
+      expect(log).toContain('diagnostics log (TV)');
+      expect(log).toContain('attempt 1 failed: http://***/movie/***/***/55.mkv from ***');
+      expect(log).not.toMatch(/portal\.example|bob|192\.168\.1\.5/);
     });
 
     it('phones with a paired TV show "Play on TV"; it sends the title', async () => {
@@ -189,6 +201,28 @@ describe('phone-to-TV pairing (D-060)', () => {
       await flush();
       expect(received).toEqual([{ type: 'play', accountId: account.id, target: movie }]);
       expect(alert).toHaveBeenCalledWith('Play on TV', 'Playing on Living room TV.');
+      await view.unmount();
+    });
+
+    it('phones with a paired TV get its log on the Log page and share it (D-173)', async () => {
+      setupApp();
+      jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+      const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+      const key = PAIRING_KEY;
+      const tv: PairedTv = { tvId: 't', tvName: 'Living room TV', phoneId: 'p1', key, port: 38127, host: '192.168.1.20', pairedAt: 'x' };
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const opened = openRemoteRequest([{ phoneId: 'p1', key, pairedAt: 'x' }], String(init?.body))!;
+        expect(opened.command).toEqual({ type: 'log' });
+        return new Response(opened.reply({ ok: true, log: 'the TV log' }), { status: 200 });
+      }) as typeof fetch;
+
+      await act(async () => pairedTv.setState({ tv: null }));
+      const view = await render(<LogScreen />);
+      expect(screen.queryByTestId('log-get-tv')).toBeNull();
+      await act(async () => pairedTv.setState({ tv }));
+      await fireEvent.press(screen.getByTestId('log-get-tv'));
+      await flush();
+      expect(share).toHaveBeenCalledWith({ title: 'Test TV log (Living room TV)', message: 'the TV log' });
       await view.unmount();
     });
   });

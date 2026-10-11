@@ -135,6 +135,9 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       return 'the provider';
     }
   };
+  // The log never shows the provider's address or the account (D-173).
+  const server = host() === 'the provider' ? null : host();
+  appLog.hide(credentials.serverUrl, server, server?.replace(/:\d+$/, ''), credentials.username, credentials.password);
 
   const buildUrl = (file: string, query: Record<string, string>) => {
     const all = { username: credentials.username, password: credentials.password, ...query };

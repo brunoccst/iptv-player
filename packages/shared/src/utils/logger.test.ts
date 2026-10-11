@@ -5,10 +5,39 @@ import { createLogger, redact } from './logger';
 describe('redact', () => {
   it('masks Xtream credentials in queries and stream paths', () => {
     expect(redact('GET http://p.tv/player_api.php?username=bob&password=s3cret&action=get_vod_streams')).toBe(
-      'GET http://p.tv/player_api.php?username=***&password=***&action=get_vod_streams',
+      'GET http://***/player_api.php?username=***&password=***&action=get_vod_streams',
     );
     expect(redact('http://p.tv:8080/movie/bob/s3cret/101.mkv and /live/a/b/7.ts')).toBe(
-      'http://p.tv:8080/movie/***/***/101.mkv and /live/***/***/7.ts',
+      'http://***/movie/***/***/101.mkv and /live/***/***/7.ts',
+    );
+  });
+
+  it('masks servers, keys, tokens, e-mail and IP addresses but keeps public services and the device itself (D-173)', () => {
+    expect(redact('retrying on the stream server https://user:pw@cdn.example.net:2083/live/a/b/1.ts')).toBe(
+      'retrying on the stream server https://***/live/***/***/1.ts',
+    );
+    expect(redact('HTTP 503 from portal.example.com:8080 after 12 ms')).toBe('HTTP 503 from *** after 12 ms');
+    expect(redact('attempt 1 failed: failed to connect to 7164443.merovixx.cc (port 80) after 10000ms')).toBe(
+      'attempt 1 failed: failed to connect to *** (port 80) after 10000ms',
+    );
+    expect(redact('java.lang.OutOfMemoryError at expo.modules.fetch.Response.bodyText, 55.mkv, player_api.php, api.themoviedb.org')).toBe(
+      'java.lang.OutOfMemoryError at expo.modules.fetch.Response.bodyText, 55.mkv, player_api.php, api.themoviedb.org',
+    );
+    expect(redact('at expo.modules.fetch.Response.bodyText(Response.kt:89), index.android.bundle.js:1200')).toBe(
+      'at expo.modules.fetch.Response.bodyText(Response.kt:89), index.android.bundle.js:1200',
+    );
+    expect(redact('pairing with 192.168.1.20, proxy on http://127.0.0.1:4100/x')).toBe(
+      'pairing with ***, proxy on http://127.0.0.1:4100/x',
+    );
+    expect(redact('GET https://api.themoviedb.org/3/movie/1?api_key=abc123 and https://api.opensubtitles.com/api/v1/login')).toBe(
+      'GET https://api.themoviedb.org/3/movie/1?api_key=*** and https://api.opensubtitles.com/api/v1/login',
+    );
+    expect(redact('Authorization: Bearer eyJabc.def, mail bob@example.com')).toBe('Authorization: Bearer ***, mail ***@***');
+  });
+
+  it('masks the given secrets wherever they appear, ignoring case, and not ones too short to be safe', () => {
+    expect(redact('Could not connect to MyProvider.tv (bob123 / hunter2), id 42', ['myprovider.tv', 'bob123', 'hunter2', '42'])).toBe(
+      'Could not connect to *** (*** / ***), id 42',
     );
   });
 });
@@ -27,6 +56,15 @@ describe('createLogger', () => {
     expect(log.entries()).toEqual([]);
   });
 
+  it('hides registered values in new lines and in lines kept from before', () => {
+    const log = createLogger({ now: clock });
+    log.info('provider', 'old line about portal.tv for bob');
+    log.hide('portal.tv', 'bob', null, ' ');
+    log.info('provider', 'Could not connect to portal.tv');
+    expect(log.entries().map((entry) => entry.message)).toEqual(['old line about *** for ***', 'Could not connect to ***']);
+    expect(log.shareText().text).not.toMatch(/portal\.tv|bob/);
+  });
+
   it('restores the previous session and saves new lines', async () => {
     vi.useFakeTimers();
     const storage = createMemoryStorage();
@@ -39,6 +77,15 @@ describe('createLogger', () => {
     second.info('app', 'booting');
     await second.persist(storage);
     expect(second.entries().map((entry) => entry.message)).toEqual(['saved', '--- app started ---', 'booting']);
+
+    // Lines saved by an older version with weaker masking come back masked.
+    await storage.setItem(
+      'diagnostics.log',
+      JSON.stringify([{ at: clock().toISOString(), level: 'info', area: 'x', message: 'GET http://p.tv/a' }]),
+    );
+    const third = createLogger({ now: clock });
+    await third.persist(storage);
+    expect(third.entries()[0]!.message).toBe('GET http://***/a');
     vi.useRealTimers();
   });
 

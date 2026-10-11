@@ -31,6 +31,21 @@ describe('remote play (D-061)', () => {
     expect(received).toEqual([command]);
   });
 
+  it('a paired phone gets the TV log, sealed with its key (D-173)', async () => {
+    let sealed = '';
+    const logTv = (async (_url: string, init?: RequestInit) => {
+      const opened = openRemoteRequest([phone], String(init?.body), now)!;
+      expect(opened.command).toEqual({ type: 'log' });
+      sealed = opened.reply({ ok: true, log: 'TV log · ×2' });
+      return new Response(sealed, { status: 200 });
+    }) as typeof fetch;
+    await expect(sendRemoteCommand(tv, { type: 'log' }, { fetch: logTv, now: () => now })).resolves.toEqual({
+      port: tv.port,
+      log: 'TV log · ×2',
+    });
+    expect(sealed).not.toContain('TV log');
+  });
+
   it('finds the TV on another port of the range after a restart', async () => {
     const moved = REMOTE_PORTS[2]!;
     await expect(sendRemoteCommand(tv, command, { fetch: fakeTv(moved, [phone]), now: () => now })).resolves.toEqual({ port: moved });

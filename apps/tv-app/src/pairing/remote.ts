@@ -16,6 +16,7 @@ import {
 import { TvMedia } from '../../modules/tv-media';
 import { backupStorages, navStore, stores } from '../appContext';
 import { currentRoute } from '../navigation/navStore';
+import { logReport } from '../diagnostics/logReport';
 
 /** Remote play (D-061). Keys live in the Keystore-backed storage; they are not part of backups. */
 const secure = backupStorages.secure;
@@ -76,8 +77,8 @@ export async function rememberPhone(offer: RemoteOffer): Promise<void> {
 }
 
 /**
- * TV: while signed in, listens for paired phones and plays what they send (D-061). Answers 403 to anything not sealed
- * by a paired phone.
+ * TV: while signed in, listens for paired phones, plays what they send (D-061) and hands them its log (D-173). Answers
+ * 403 to anything not sealed by a paired phone.
  */
 export function useRemoteServer(enabled: boolean) {
   useEffect(() => {
@@ -98,6 +99,10 @@ export function useRemoteServer(enabled: boolean) {
           return TvMedia.respondRemote(id, 403, 'forbidden');
         }
         const { command, reply } = opened;
+        if (command.type === 'log') {
+          appLog.info('remote', 'log sent to a phone');
+          return TvMedia.respondRemote(id, 200, reply({ ok: true, log: logReport() }));
+        }
         const session = stores.session.getState();
         if (command.type !== 'play' || !command.target?.streamId)
           return TvMedia.respondRemote(id, 200, reply({ ok: false, error: 'bad-request' }));
@@ -130,6 +135,22 @@ export async function playOnTv(target: PlayTarget): Promise<string> {
     if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
     appLog.info('remote', `sent ${target.kind} ${target.streamId} to the TV`);
     return t('Playing on {tv}.', { tv: tv.tvName });
+  } catch (error) {
+    appLog.warn('remote', errorMessage(error));
+    throw error instanceof RemoteFailure ? error : new Error(t('Something went wrong. Try again.'));
+  }
+}
+
+/** Phone: the paired TV's diagnostics log, masked on the TV (D-173). Rejects with a message for the user. */
+export async function getTvLog(): Promise<{ tvName: string; log: string }> {
+  const tv = pairedTv.getState().tv;
+  if (!tv) throw new Error(t('Connect a TV first: account menu → Connect a TV or computer.'));
+  try {
+    const { port, log } = await sendRemoteCommand(tv, { type: 'log' });
+    if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+    if (log === undefined) throw new RemoteFailure('bad-request', tv.tvName);
+    appLog.info('remote', 'got the TV log');
+    return { tvName: tv.tvName, log };
   } catch (error) {
     appLog.warn('remote', errorMessage(error));
     throw error instanceof RemoteFailure ? error : new Error(t('Something went wrong. Try again.'));

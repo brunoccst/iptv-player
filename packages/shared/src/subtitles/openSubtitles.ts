@@ -220,6 +220,7 @@ export function createSubtitleService({ secureStorage, dataStorage, fetch: fetch
       .then(async (response) => {
         if (!response.ok) throw new Error(`login ${response.status}`);
         const body = (await response.json()) as { token?: string; base_url?: string };
+        appLog.hide(body.token);
         return { token: body.token ?? null, base: body.base_url ? `https://${body.base_url.replace(/^https?:\/\//, '')}/api/v1` : API };
       })
       .catch((error: unknown) => {
@@ -261,6 +262,7 @@ export function createSubtitleService({ secureStorage, dataStorage, fetch: fetch
     { trackLanguages = [], year = null }: { trackLanguages?: (string | null)[]; year?: number | null } = {},
   ): Promise<FoundSubtitle | SubtitleMiss> {
     const current = settings.getState().settings;
+    appLog.hide(current.apiKey, current.username, current.password);
     const names = subtitleLanguageNames();
     const languages = current.languages.filter((code) => names[code]);
     if (!current.enabled || !current.apiKey.trim() || languages.length === 0) return { message: null };

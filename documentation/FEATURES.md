@@ -222,7 +222,11 @@ The installed version (MAJOR.MINOR.PATCH, D-070) and the commit and date it was 
 
 ### Diagnostics log
 
-What the app did, with the provider's answers (passwords masked), timings and native crashes, to share (TV, phone) or save and copy (desktop). Account menu → App → Log (D-039, D-074, D-113).
+What the app did, with the provider's answers, timings and native crashes, to share (TV, phone) or save and copy (desktop). Account menu → App → Log (D-039, D-074, D-113).
+
+The log never shows the provider's server address, usernames, passwords, keys or tokens, e-mail or IP addresses; public services (TMDB, OpenSubtitles, GitHub) keep their address (D-173).
+
+On a phone paired with a TV, Log → **Get TV log** fetches the TV's log over the home network and opens the phone's share sheet with it, so it can be sent from the phone (D-173). The TV app must be running and signed in, on any page; the phone app is the one in use. The TV's Log page says how.
 
 ### App updates
 
