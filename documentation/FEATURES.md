@@ -68,7 +68,7 @@ A grid of titles, loaded as you scroll (D-040), sorted by date added (newest fir
 
 ### Category chips
 
-Above the grid, the categories sit on one line with "Show all" / "Show less"; expanded, they fill a full-width box that scrolls on its own (D-047, D-085, D-091, D-105). On TV the bar shows "All", the categories that fit, ‹ › and "Show all".
+Above the grid, the categories sit on one line with "Show all" / "Show less"; expanded, they fill a full-width box that scrolls on its own (D-047, D-085, D-091, D-105). On TV the bar shows "All", the categories that fit, ‹ › and "Show all"; pressing "Show all" or "Show less" keeps the focus on the button and the page where it is (D-170).
 
 ### Focus in the middle (TV)
 
@@ -164,7 +164,7 @@ Finds movies, series, live channels and programmes of the TV guide on now or in 
 
 A watchlist per profile: add from details or the card menu; it has a Home row and its own page (D-055).
 
-A title on My List carries a bookmark at the top right of its cover. The details button is the same bookmark: outlined when the title is not on My List, filled when it is (issue #157). On TV the focus stays on it after pressing it: while details are open, nothing on the page behind them can take the focus (D-170).
+A title on My List carries a bookmark at the top right of its cover. The details button is the same bookmark: outlined when the title is not on My List, filled when it is (issue #157). On TV the focus stays on it after pressing it: while details are open, nothing on the page behind them can take the focus (D-171).
 
 ## Downloads
 

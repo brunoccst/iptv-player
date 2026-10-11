@@ -159,7 +159,7 @@ function Shell() {
   return (
     <View style={styles.shell}>
       <View style={styles.content} importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}>
-        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-170). */}
+        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-171). */}
         <BehindPanel.Provider value={route.name === 'details'}>
           {shown !== section ? (
             <PageLoading />

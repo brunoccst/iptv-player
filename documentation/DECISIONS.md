@@ -2615,6 +2615,12 @@ Decision (`DetailsScreen` on TV): the episode that has the focus (for its rollin
 
 ## D-170
 
+**TV: "Show all" and "Show less" are one button that stays mounted** — 2026-10-11 (Bruno, with photos of the TV: after "Show all" in Movies and Series the page scrolled down to the first titles, and Down scrolled back up; "the focus should be kept at \"Show all\" and the page must not scroll down"; changes D-105, D-112, D-114)
+
+Decision (`ChipBar.tsx`, TV): the collapsed bar and the expanded box were two different trees, so the button was replaced when the bar changed shape. The focus fell from the removed button to the grid's first title, which centred the page on it, and only then reached the new button (D-114). The TV bar is now one tree in both modes: expanded, it shows "Categories" in place of the chips and ‹ ›, with the box under it, and the toggle keeps its place in the tree, so Android never moves the focus and nothing scrolls the page. `hasTVPreferredFocus` stays as a fallback. Phones keep their two layouts (no focus there).
+- Tests: `ChipBar.test.tsx` (the button is the same view, still focused, after "Show all" and "Show less"; nothing asks the page to center).
+## D-171
+
 **TV: nothing behind the details panel takes the focus** — 2026-10-11 (Bruno: "When in a movie detail (probably for series too), when I press the \"save\" button to save to my list, the focus is lost and goes somewhere I don't know. Make the focus be kept on the save button." Then: "when a modal/popup is active, such as the details of a movie, the focus is 100% on it and never gets out, even if the page behind it is refreshed.")
 
 Context: the page behind the details panel stays mounted, and pressing My List changes it. A view with `hasTVPreferredFocus` asks Android for the focus when it appears or when the prop turns on, and gets it even behind the panel: the My List page's first card (the title just added, or the next one after a removal). The D-pad was already trapped in the panel (D-075); this was the other way out. Not reproduced on an emulator (none in the cloud container).

@@ -16,7 +16,8 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 #### Latest
 
-- **My List keeps the focus** (2026-10-11, D-170): on the TV, pressing My List in a movie's or series' details leaves the focus on the button, instead of sending it somewhere out of sight. While details are open, nothing on the page behind them can take the focus.
+- **My List keeps the focus** (2026-10-11, D-171): on the TV, pressing My List in a movie's or series' details leaves the focus on the button, instead of sending it somewhere out of sight. While details are open, nothing on the page behind them can take the focus.
+- **"Show all" stays put** (2026-10-11, D-170): on the TV, pressing "Show all" in Movies or Series opens the full category list with the focus still on the button, now "Show less"; the page no longer jumps down to the titles.
 - **Log has its own icon** (2026-10-09): in the account menu, Log now shows a page of lines instead of the same "i" icon as About.
 - **Smooth focus in long seasons** (2026-10-08, D-169): on the TV, moving between the episodes of a season with many episodes no longer pauses about half a second on each step; it moves as smoothly as in a short season.
 - **Episodes on TV look like on the phone** (2026-10-08, D-168): in the side-by-side details, each episode has a smaller picture, its title on up to two lines and its buttons under the text, so long titles no longer break one word per line. A movie's details take 2/3 of the screen.

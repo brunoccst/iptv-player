@@ -182,6 +182,41 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
+  it('TV: "Show all" and "Show less" are one button that stays mounted, so the focus never leaves it (D-170)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const center = jest.fn();
+    const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
+      key,
+      label: key,
+      active: key === 'c6',
+      testID: `chip-${key}`,
+      onPress: () => undefined,
+    }));
+    await render(
+      <CenterFocus.Provider value={center}>
+        <ChipBar label="Categories" testID="chips" chips={many} />
+      </CenterFocus.Provider>,
+    );
+    const button = screen.getByTestId('chips-all');
+    await fireEvent(button, 'focus');
+    center.mockClear();
+
+    await fireEvent.press(button);
+    // The same view, still focused: replaced, it lost the focus to the grid, which scrolled the page to the titles.
+    expect(screen.getByTestId('chips-less')).toBe(button);
+    expect(within(button).getByText('Show less')).toHaveStyle({ color: '#000' });
+    expect(screen.getByTestId('chips-box')).toBeTruthy();
+    expect(screen.queryByTestId('chips-prev')).toBeNull();
+
+    await fireEvent.press(button);
+    expect(screen.getByTestId('chips-all')).toBe(button);
+    expect(within(button).getByText('Show all')).toHaveStyle({ color: '#000' });
+    expect(screen.getByTestId('chips-prev')).toBeTruthy();
+    // Nothing got a new focus, so nothing moved the page.
+    expect(center).not.toHaveBeenCalled();
+    jest.restoreAllMocks();
+  });
+
   it('TV: at the ends ‹ › stay enabled (a disabled view loses the focus) and do nothing (D-108)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({

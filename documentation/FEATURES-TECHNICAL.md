@@ -228,6 +228,7 @@ flowchart LR
 - Desktop: a `ResizeObserver` shows "Show all" only when the chips overflow.
 - Phone: chips render in pages (40 on the line, 150 in the box) for providers with thousands of categories.
 - TV: "All", the categories that fit (measured off screen), ‹ › to page and "Show all".
+- TV: expanded, the same bar shows "Categories" and the button, so "Show all"/"Show less" stays one mounted view and keeps the focus.
 
 **Code:** `packages/shared/src/stores/catalogStore.ts`, `apps/tv-app/src/components/ChipBar.tsx`, `apps/web-player/src/components/ChipBar.tsx`
 
