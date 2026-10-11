@@ -118,7 +118,7 @@ describe('PlaybackEngine', () => {
     expect((error as PlaybackUnavailableError).unsupportedFormat).toBe(true);
   });
 
-  it('does not blame MKV in the desktop app, which plays it: the provider is asked instead (KI-045)', async () => {
+  it('does not blame MKV in the desktop app, which plays it: the provider is asked instead (issue #236)', async () => {
     const { client } = api({ mkv: 'http://r/movie.mkv' });
     const engine = new PlaybackEngine(
       fakeVideo(() => false),
@@ -192,7 +192,7 @@ describe('PlaybackEngine', () => {
   });
 });
 
-describe('undecodableVideoCodec (KI-045)', () => {
+describe('undecodableVideoCodec (issue #236)', () => {
   const video = (supported: string[]) =>
     ({ canPlayType: (type: string) => (supported.some((s) => type.includes(s)) ? 'probably' : '') }) as never;
 

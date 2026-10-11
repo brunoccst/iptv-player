@@ -42,7 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-build-properties',
       {
         android: {
-          // Many IPTV providers answer on plain HTTP (KI-004); Android blocks cleartext by default.
+          // Many IPTV providers answer on plain HTTP (issue #214); Android blocks cleartext by default.
           usesCleartextTraffic: true,
           // Smaller APK (D-045): compress native libraries, strip unused Java code (R8) and resources.
           useLegacyPackaging: true,

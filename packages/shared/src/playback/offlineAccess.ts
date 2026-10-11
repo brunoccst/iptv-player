@@ -11,7 +11,7 @@ export type OfflineAccess =
 
 /**
  * Whether downloaded titles may play: the provider subscription must not have expired, and the account must have
- * been confirmed online within `OFFLINE_RECHECK_DAYS`. Enforced by the apps, not by the stored files (KI-002).
+ * been confirmed online within `OFFLINE_RECHECK_DAYS`. Enforced by the apps, not by the stored files (issue #231).
  */
 export function offlineAccess(
   account: Pick<AccountDto, 'expiresAt'> | null,

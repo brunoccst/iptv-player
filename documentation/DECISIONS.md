@@ -79,6 +79,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-151](#d-151) | "Who's watching?" every time; no TV sleep mode |
 | [D-154](#d-154) | TV colour keys |
 | [D-158](#d-158) | Details in columns on landscape screens |
+| [D-174](#d-174) | Known issues are GitHub issues |
 
 ## Merged and retired IDs
 
@@ -235,7 +236,7 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 
 - `PlaybackEngine` tries sources in order and stops at the first that loads (`webPlaybackAttempts`): a completed download, then for VOD the panel's HLS output (`.m3u8`, which plays MKV sources in any browser) and then the original file; live is HLS only.
 - hls.js fatal errors after start: network → `startLoad()`, media → `recoverMediaError()` (twice), then an error message (D-074).
-- Timeline previews: providers ship no trickplay sprites, so `frameGrabber.ts` opens a hidden, muted second video at the lowest rendition on the first timeline hover and draws frames into a canvas. It costs one extra stream connection while previewing (KI-020).
+- Timeline previews: providers ship no trickplay sprites, so `frameGrabber.ts` opens a hidden, muted second video at the lowest rendition on the first timeline hover and draws frames into a canvas. It costs one extra stream connection while previewing ([#218](https://github.com/brunoccst/iptv-player/issues/218)).
 - The player and hls.js are a lazily loaded chunk.
 
 ## D-024
@@ -247,7 +248,7 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 - One download at a time (each holds a provider connection); resumable from the last chunk; interrupted downloads come back paused.
 - The SW also precaches the app shell, so the app opens offline. It is bundled by a small Vite plugin with esbuild, not Workbox.
 
-Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache files are ciphertext. It is not DRM: scripts on the origin can still read decrypted bytes (KI-002).
+Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache files are ciphertext. It is not DRM: scripts on the origin can still read decrypted bytes ([#213](https://github.com/brunoccst/iptv-player/issues/213)).
 
 ## D-025
 
@@ -255,7 +256,7 @@ Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache file
 
 **Web UI architecture** — 2026-09-23 (merges D-048)
 
-- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. No shareable URLs (KI-023).
+- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. No shareable URLs ([#221](https://github.com/brunoccst/iptv-player/issues/221)).
 - Rows load when scrolled within 400 px of the viewport. Grid cards are memoized and use `content-visibility: auto`, which keeps scrolling smooth up to thousands of cards (stress test: `FAKE_PANEL_STRESS`, `scripts/stress-web.mjs`).
 - Hero trailer: a muted `youtube-nocookie.com` embed fades in after 3 s when the provider has a trailer id; the backdrop otherwise.
 - When a library update ends, `LibraryBanner` invalidates the library and bumps `libraryRevision`; mounted views reload.
@@ -296,7 +297,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 **TV tests and CI** — 2026-09-23 (merges D-044)
 
 - Jest (`jest-expo/android`, React Native Testing Library) runs anywhere, with a mock of the native module and a remote mock (`pressRemote`).
-- The cloud container has no `/dev/kvm` and no Android SDK (KI-029), so APK builds and emulator runs happen in GitHub Actions: `tv-app.yml` builds an x86 release APK (the emulator's ABI only), boots an Android TV emulator against the fake panel and runs Maestro flows (D-pad, playback, drawer, download, offline, phone search, hold Right). `tv-stress.yml` runs the large-library flows by hand or on branches named `*stress*`.
+- The cloud container has no `/dev/kvm` and no Android SDK ([#224](https://github.com/brunoccst/iptv-player/issues/224)), so APK builds and emulator runs happen in GitHub Actions: `tv-app.yml` builds an x86 release APK (the emulator's ABI only), boots an Android TV emulator against the fake panel and runs Maestro flows (D-pad, playback, drawer, download, offline, phone search, hold Right). `tv-stress.yml` runs the large-library flows by hand or on branches named `*stress*`.
 - Emulator quirks: it runs with a sound device (ExoPlayer's clock follows audio output); flows pause before reading the clock (screen reads take seconds); the keyboard is closed with Enter (`hideKeyboard` sends Back). `e2e/run.sh` prints screen text and filtered logcat into the job log.
 - Gradle's build cache is kept between runs (written by `main`, read by pull requests).
 - `ci.yml` runs on pull requests and pushes to `main`; changes that touch only Markdown or `LICENSE` skip the builds.
@@ -309,7 +310,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 **Live TV page and guide** — 2026-09-23, updated 2026-10-04 (merges D-103, D-139, D-140 and D-090's Live TV category)
 
 - `@iptv/shared` owns the guide's layout (`layoutGuideRow`: clip to the window, trim overlaps, fill gaps) and paging (`useEpgGuide`). Cells carry fractions, so the web uses CSS percentages and TV multiplies by the row width.
-- The guide comes from each channel's short EPG; the full XMLTV guide is only read for search (D-130). Guide windows align to UTC half hours (KI-031). There is no catch-up yet (KI-032): past programmes play the live channel.
+- The guide comes from each channel's short EPG; the full XMLTV guide is only read for search (D-130). Guide windows align to UTC half hours ([#225](https://github.com/brunoccst/iptv-player/issues/225)). There is no catch-up yet ([#226](https://github.com/brunoccst/iptv-player/issues/226)): past programmes play the live channel.
 - Web/desktop: a 3-hour window, Earlier / Now / Later move 1 hour, a sticky channel column and time header, a red "now" line. The page is as tall as the window; the categories and the guide scroll on their own. Narrow windows (720 px or less) keep a scrolling page with chips.
 - TV: a 2-hour window with fixed-height rows, so focus search moves naturally; the focused programme is described above the grid; Select plays the channel. The page does not scroll: the category list and the channels scroll on their own. Down at the last channel stays in the guide (`trapFocusDown`); Up from Earlier / Now / Later goes to "Live TV" in the nav (`nextFocusUp`). Left from a channel goes to the category list (the one exception to D-069).
 - TV categories: ↑/↓ move one category and keep it in the middle; Channel +/− move a page.
@@ -407,7 +408,7 @@ No intro detection: providers send no markers and detection needs server-side pr
 - Tied to the account: sign-out deletes the device's downloads (the menu warns); signing in with another account deletes the previous one's.
 - Downloads play only while the subscription has not expired and the app reached the provider within 30 days; a clock set back before the last check blocks too. On start the app asks the provider for the account status (10 s limit): unreachable is offline, rejected signs out.
 
-Limits: the rules run inside the apps (KI-038); real protection needs DRM, which Xtream providers do not offer.
+Limits: the rules run inside the apps ([#231](https://github.com/brunoccst/iptv-player/issues/231)); real protection needs DRM, which Xtream providers do not offer.
 
 ## D-052
 
@@ -432,7 +433,7 @@ Why: Expo's debug key is public, so anyone could sign an APK that replaces the a
 - `withKidsFilter` in the shared client applies it to categories, live channels, the guide, library lists and search. A provider with no kids categories shows a Kids profile nothing, not everything. Switching between kids and regular profiles drops cached lists.
 - A Kids profile's account menu only switches profile and closes the app; it has no "Open in another player".
 
-Limits: a filter by category, not a lock (KI-039).
+Limits: a filter by category, not a lock ([#232](https://github.com/brunoccst/iptv-player/issues/232)).
 
 ## D-054
 
@@ -454,7 +455,7 @@ A round button in details saves a movie or series; saved titles show as a Home r
 
 - One `.iptvbackup` file holds the saved sign-in, the PIN, per profile the profiles, progress and My List, and the device settings each app lists in `BackupStorages.settingsKeys`. The library, downloads and the log stay out.
 - Encrypted with a password of 8+ characters: PBKDF2-SHA256 (100,000 rounds, random salt), then XChaCha20-Poly1305 (`@noble/hashes`, `@noble/ciphers`: plain JavaScript for browsers and Hermes). A wrong password or a changed file writes nothing. Files from a newer app version are refused.
-- Restore signs in without restarting (`AppContext.reload()`). TV and phone use the system pickers (`expo-file-system`); a TV without a file manager cannot (KI-040).
+- Restore signs in without restarting (`AppContext.reload()`). TV and phone use the system pickers (`expo-file-system`); a TV without a file manager cannot ([#233](https://github.com/brunoccst/iptv-player/issues/233)).
 
 ## D-057
 
@@ -464,7 +465,7 @@ A round button in details saves a movie or series; saved titles show as a Home r
 - Desktop: **Open in VLC**; the main process finds VLC in the usual folders and on PATH and starts it with the stream and the User-Agent, http(s) only. The player's error offers it too.
 - Not in a browser, not on Kids profiles, not for downloads (encrypted, D-050).
 
-Limits: progress watched elsewhere is not saved (KI-041).
+Limits: progress watched elsewhere is not saved ([#234](https://github.com/brunoccst/iptv-player/issues/234)).
 
 ## D-058
 
@@ -480,7 +481,7 @@ Limits: progress watched elsewhere is not saved (KI-041).
 **Bundled FFmpeg audio decoders** — 2026-09-26
 
 - Jellyfin's prebuilt Media3 extension `org.jellyfin.media3:media3-ffmpeg-decoder` adds software decoders for Dolby Digital (Plus), DTS, TrueHD and more. No native build here.
-- The device's decoders come first (so Dolby can reach a soundbar); account menu → Library & devices → Playback can put FFmpeg first for devices whose decoders claim a format and then fail (KI-043). The choice is per device and in backups, not in pairing.
+- The device's decoders come first (so Dolby can reach a soundbar); account menu → Library & devices → Playback can put FFmpeg first for devices whose decoders claim a format and then fail ([#235](https://github.com/brunoccst/iptv-player/issues/235)). The choice is per device and in backups, not in pairing.
 - `modules/tv-media/android/build.gradle` adds it unless `iptvFfmpegAudio=false` or `IPTV_FFMPEG_AUDIO=0`; `tv-apk.yml` has an `ffmpeg_audio` input. The log's start line says whether it is bundled.
 
 ## D-060
@@ -496,7 +497,7 @@ Limits: progress watched elsewhere is not saved (KI-041).
 - Transport, no server: while the code shows, the TV (`PairingServer.kt`) or the desktop main process listens on the home network on a random port. The code holds its address, port and a one-time 32-byte key; both directions are sealed with XChaCha20-Poly1305, so plain HTTP reveals nothing. The server stops after one pairing or when the code closes. The desktop picks the first private IPv4 address, skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs).
 - Code: `packages/shared/src/pairing/` (protocol, merge, `usePairingServer`), `apps/tv-app/src/pairing/`, `apps/web-player/src/features/pairing/`.
 
-Limits: same network; the phone needs Play services. No sync after pairing (KI-034).
+Limits: same network; the phone needs Play services. No sync after pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
 
 ## D-061
 
@@ -576,7 +577,7 @@ The owner's rules for the TV app (phones and computers have no D-pad focus):
 - The web player is the desktop app's screens; in a plain browser it is for development and tests only (D-088). The folder stays `apps/web-player`.
 - `ci.yml` → Desktop runs its unit tests and a smoke test against the fake panel.
 
-Limits: plays what Chromium plays (KI-045); installers are not code-signed, so SmartScreen and Gatekeeper ask once.
+Limits: plays what Chromium plays ([#236](https://github.com/brunoccst/iptv-player/issues/236)); installers are not code-signed, so SmartScreen and Gatekeeper ask once.
 
 ## D-073
 
@@ -642,7 +643,7 @@ Why: SmartScreen only asks about files marked as downloaded from the internet; a
 - A movie or episode is watched when any version's progress is finished: 95 % played, or 2 minutes or less left on titles over 10 minutes. The progress list keeps 1000 entries per profile so older titles keep their tag.
 - The tag is an eye at the bottom right of the cover, next to the title in details and on episode stills (`eye` / `eyeOff`; a check was too close to My List's).
 - Marking saves finished progress on the chosen version (1 of 1 s without a known length); not watched removes every version's progress. Details have a round Watched toggle (a movie, or every episode of a series); the season header has one for the shown season; episodes have it in their menu (D-078).
-- A card cannot count a series' episodes, so the profile notes fully watched series (`ProfilePrefs.watchedSeries`): set when marked or when details find every episode finished, cleared when one is unwatched. The note is per device (KI-034).
+- A card cannot count a series' episodes, so the profile notes fully watched series (`ProfilePrefs.watchedSeries`): set when marked or when details find every episode finished, cleared when one is unwatched. The note is per device ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
 - Code: `playback/watched.ts` (`isWatched`, `setMovieWatched`, `setSeasonWatched`, `setSeriesWatched`, …).
 
 ## D-084
@@ -682,7 +683,7 @@ Why: SmartScreen only asks about files marked as downloaded from the internet; a
 
 Why: the owner uses only the native and desktop apps; the server doubled every library rule (Python, C# and TypeScript) for the web player alone.
 
-Consequences: no sync between devices other than pairing (KI-034).
+Consequences: no sync between devices other than pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
 
 ## D-090
 
@@ -821,7 +822,7 @@ Hermes has no JIT and a Chromecast is about 9× slower than a PC, so code that r
 
 - The provider's items go into the database as they arrive and SQL queries group them; only names the database has not seen are parsed in code (D-017). The same rules run in memory (`groupTitles`, `normalizer/matching.ts`) for a plain browser.
 - Rules: (1) same compact key (spaces and leading zeros dropped; prefixes are not part of it) and year; a year-less item takes its key's year when the key has exactly one. (2) An item with a TMDB id groups by its id and year, so translated titles join ("La Casa de Papel" and "Money Heist") only in the same year. An item without one takes its key's id when the key has exactly one, else stays its own title. Two works of one name and year with different TMDB ids stay apart.
-- Similar spellings ("Redemption" / "Redemtion") do not join (KI-014).
+- Similar spellings ("Redemption" / "Redemtion") do not join ([#217](https://github.com/brunoccst/iptv-player/issues/217)).
 - A title shows its most common spelling and year, the best version's poster and quality, the highest rating and the newest date; its versions are read only when it opens.
 - Ids: SHA-1 of account, kind, key and year, so My List and progress follow a title across updates. When one key and year hold several TMDB ids, the smallest keeps that id and the others add their TMDB id ("-" for the id-less one).
 - `NORMALIZER_RULES` (`libraryCodec.ts`) versions the grouping: raising it rebuilds every library once.
@@ -899,3 +900,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - A series: the left column (42 %; desktop at most 720 px) has the title, buttons, facts, description, version, cast and genres; the right column has the episodes. Only the episode list scrolls; "Episodes", the season's Watched button and the season choice stay at its top. Episode rows use the phone's layout everywhere (no number column, a smaller still, the title on at most two lines, buttons under the text).
 - TV focus: a series' buttons let → out to the episodes and episode rows let ← out (D-069). Each episode is a memoized `EpisodeRow` with stable callbacks and `useFocusGrid` keeps `ref`/`at` stable, so a focus move redraws only the two rows involved; keep new row props stable.
 - Desktop: the close button sits over the right column; Escape closes. A right column under 520 px drops episode numbers.
+
+## D-174
+
+**Known issues are GitHub issues** — 2026-10-11 (requested by owner)
+
+- A known limitation, risk, bug or piece of technical debt is an open GitHub issue labelled `known issue`, not a file. Code and docs cite it as `issue #N`.
+- `documentation/KNOWN-ISSUES.md` is gone; its open entries became issues #213–#236 (each names its old `KI-…` ID), and the closed ones stay in git history.

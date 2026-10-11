@@ -20,7 +20,7 @@ No repository or commands needed. The apps talk to your IPTV provider directly; 
 | Linux | [iptv-player.AppImage](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.AppImage) or [iptv-player.deb](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.deb) | AppImage: make it executable (`chmod +x`) and open it. |
 | Android TV / phone | [tv.apk](https://github.com/brunoccst/iptv-player/releases/download/tv-apk/tv.apk) | Allow installing from your browser or Downloader once. |
 
-The apps look for new versions themselves (D-062, D-073); on Windows and with the AppImage the desktop app downloads and installs them, without the SmartScreen question. Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Library & devices → Sync with phone) and scan the code with the phone app → account menu → Library & devices → Connect a TV or computer (D-060). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
+The apps look for new versions themselves (D-062, D-073); on Windows and with the AppImage the desktop app downloads and installs them, without the SmartScreen question. Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Library & devices → Sync with phone) and scan the code with the phone app → account menu → Library & devices → Connect a TV or computer (D-060). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
 
 ## Legal notes (Germany)
 
@@ -65,7 +65,7 @@ providers do not let web pages read their answers.
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
-| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `FEATURES-TECHNICAL.md` (how each feature works in the code), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
+| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `FEATURES-TECHNICAL.md` (how each feature works in the code), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `NEXT-STEPS.md`. Known issues are [GitHub issues](https://github.com/brunoccst/iptv-player/issues?q=is%3Aissue+label%3A%22known+issue%22) (D-174). |
 
 ## Prerequisites
 

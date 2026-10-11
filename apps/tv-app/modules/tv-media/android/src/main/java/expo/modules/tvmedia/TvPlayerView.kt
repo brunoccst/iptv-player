@@ -122,7 +122,7 @@ class TvPlayerView(context: Context, appContext: AppContext) : ExpoView(context,
     // Decoder fallback: if the preferred (often hardware) decoder fails to init, try the next one.
     // FFmpeg audio (when bundled, D-059): by default the device's own decoders come first and FFmpeg only covers formats
     // they cannot play; the user can choose "FFmpeg first" (Playback settings) for devices whose decoder claims support
-    // and then fails mid-stream (KI-043). Without the extension this is a no-op.
+    // and then fails mid-stream (issue #235). Without the extension this is a no-op.
     val extensionMode =
       if (source.audioDecoder == "ffmpeg") DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
       else DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON

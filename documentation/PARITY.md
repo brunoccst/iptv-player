@@ -73,5 +73,5 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Diagnostics log | ✅ share | ✅ share, get the TV's log | ✅ save or copy | account menu → App → Log | [Diagnostics log](FEATURES.md#diagnostics-log) |
 | App updates | ✅ | ✅ | ✅ desktop · ➖ browser (always current) | | [App updates](FEATURES.md#app-updates) |
 | Audio decoder choice (FFmpeg, D-059) | ✅ | ✅ | ➖ | browsers decode themselves | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) |
-| MKV files, AC3/DTS audio | ✅ | ✅ | ✅ MKV with H.264/AAC · ➖ HEVC, AC3/DTS (KI-045) | desktop names the codec it cannot play and offers Open in VLC | [Playback errors](FEATURES.md#playback-errors) |
+| MKV files, AC3/DTS audio | ✅ | ✅ | ✅ MKV with H.264/AAC · ➖ HEVC, AC3/DTS ([#236](https://github.com/brunoccst/iptv-player/issues/236)) | desktop names the codec it cannot play and offers Open in VLC | [Playback errors](FEATURES.md#playback-errors) |
 | Timeline preview frames | ➖ (scrub bar) | ➖ | ✅ | hover over the timeline | [Playback controls](FEATURES.md#playback-controls) |

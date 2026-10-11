@@ -1,6 +1,6 @@
 # Features
 
-What the apps do, one section per feature: the Android TV app (remote), the same app on phones (touch) and the desktop app for Windows, macOS and Linux (mouse and keyboard; the web player in Electron, D-071). Which app has each feature, and how it is reached there, is in [PARITY.md](PARITY.md); what changed lately is in [RELEASE-NOTES.md](RELEASE-NOTES.md). The decisions (D-…) and known issues (KI-…) hold the details.
+What the apps do, one section per feature: the Android TV app (remote), the same app on phones (touch) and the desktop app for Windows, macOS and Linux (mouse and keyboard; the web player in Electron, D-071). Which app has each feature, and how it is reached there, is in [PARITY.md](PARITY.md); what changed lately is in [RELEASE-NOTES.md](RELEASE-NOTES.md). The decisions (D-…) and the [known issues](https://github.com/brunoccst/iptv-player/issues?q=is%3Aissue+label%3A%22known+issue%22) hold the details.
 
 A change that adds or changes a feature updates its section here, its section in [FEATURES-TECHNICAL.md](FEATURES-TECHNICAL.md) (how it works in the code; same headings, D-143), its row in PARITY.md and the release notes in the same pull request (D-079, D-143).
 
@@ -130,7 +130,7 @@ Unplugging headphones or losing a Bluetooth headset pauses playback instead of c
 
 ### Playback errors
 
-When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC (KI-045).
+When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
 
 ### Audio decoder (TV and phone)
 

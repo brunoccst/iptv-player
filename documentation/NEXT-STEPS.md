@@ -9,12 +9,12 @@ Open work only. What is done is described in [FEATURES.md](FEATURES.md) and [DEC
 
 ## Suggestions
 
-- **Sync between devices** on the home network: progress and My List follow the other devices (KI-034).
-- **Catch-up playback** for channels with `tv_archive` (KI-032).
+- **Sync between devices** on the home network: progress and My List follow the other devices ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
+- **Catch-up playback** for channels with `tv_archive` ([#226](https://github.com/brunoccst/iptv-player/issues/226)).
 - **Guide reminders** when a chosen programme starts.
 - **TV guide: move the window with the D-pad** instead of the Earlier/Later buttons only.
 - **Infer missing XMLTV `stop` times** from the next programme; programmes without one are dropped today.
-- **Deep links** on the desktop app (KI-023).
-- **mpegts.js** fallback for TS-only live panels (KI-022).
-- **Connection-limit warning** before a stream that would exceed the account's `maxConnections` (KI-004).
+- **Deep links** on the desktop app ([#221](https://github.com/brunoccst/iptv-player/issues/221)).
+- **mpegts.js** fallback for TS-only live panels ([#220](https://github.com/brunoccst/iptv-player/issues/220)).
+- **Connection-limit warning** before a stream that would exceed the account's `maxConnections` ([#214](https://github.com/brunoccst/iptv-player/issues/214)).
 - **Split or merge titles by hand**, kept as rules the grouping applies.

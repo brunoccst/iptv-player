@@ -73,7 +73,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [retryable, setRetryable] = useState(false);
   const [retry, setRetry] = useState(0);
   const resumeAt = useRef<number | null>(null);
-  // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (KI-045, D-057).
+  // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (issue #236, D-057).
   const [unsupportedFormat, setUnsupportedFormat] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);

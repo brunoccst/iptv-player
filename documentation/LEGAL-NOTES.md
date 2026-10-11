@@ -41,7 +41,7 @@ This app is a **player**. It ships no TV channels, films, series, channel lists 
   - they are deleted when you sign out;
   - they stop playing when the subscription expires or the app has not been online for 30 days.
   
-  These measures support the private-copy rules. They are not a guarantee (see KI-002, KI-038).
+  These measures support the private-copy rules. They are not a guarantee (see [#213](https://github.com/brunoccst/iptv-player/issues/213), [#231](https://github.com/brunoccst/iptv-player/issues/231)).
 
 ## Sharing with other people
 

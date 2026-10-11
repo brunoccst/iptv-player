@@ -16,6 +16,7 @@ IPTV player: an Android TV and phone app (`apps/tv-app`, React Native tvOS fork 
 - **Features:** describe it in `documentation/FEATURES.md` and its matching section of `documentation/FEATURES-TECHNICAL.md` (same headings and order, a short Mermaid graph, a `**Code:**` line).
 - **Parity:** every app gets the feature unless it does not apply to that device; update `documentation/PARITY.md`.
 - **Translations:** user-facing text goes through `t('…')`; run `npm run i18n:sync` and translate every catalog in `packages/shared/src/i18n/catalogs`.
+- **Known issues:** a limitation, risk, bug or tech debt that stays after the change becomes an open GitHub issue labelled `known issue`; cite it as `issue #N` (D-174).
 - **Decisions:** a decision worth keeping gets the next `D-…` entry at the bottom of `documentation/DECISIONS.md` and a row in its index. Parallel branches can take the same number: renumber yours when merging.
 
 `npm run lint` checks all of the above except the decisions.
