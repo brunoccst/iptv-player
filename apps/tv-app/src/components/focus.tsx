@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useRef, type ComponentProps } from 'react';
+import { forwardRef, useEffect, useMemo, useRef, type ComponentProps } from 'react';
+import { mergeRefs, usePageFocusable } from './pageFocus';
 import { Animated, Platform, Pressable, type View } from 'react-native';
 
 /**
@@ -35,7 +36,9 @@ export const AnimatedPressable = forwardRef<View, ComponentProps<typeof Animated
   { hasTVPreferredFocus, ...props },
   ref,
 ) {
-  return <AnimatedPressableBase ref={ref} {...props} hasTVPreferredFocus={Platform.isTV ? hasTVPreferredFocus : undefined} />;
+  const page = usePageFocusable(!!hasTVPreferredFocus);
+  const merged = useMemo(() => mergeRefs<View>(ref, page.ref), [ref, page.ref]);
+  return <AnimatedPressableBase ref={merged} {...props} hasTVPreferredFocus={Platform.isTV ? page.preferred : undefined} />;
 });
 
 /** Scale that springs to `to` while focused and back to 1 on blur (runs on the native thread). */

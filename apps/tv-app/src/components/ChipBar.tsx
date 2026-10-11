@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -14,6 +14,7 @@ import {
 import { colors } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
+import { mergeRefs, usePageFocusable } from './pageFocus';
 import { FocusRow } from './FocusRow';
 import { useCenterOnFocus } from './CenterScroll';
 import { t } from '@iptv/shared';
@@ -377,14 +378,16 @@ function Toggle({
   const [focused, setFocused] = useState(false);
   const text = expanded ? t('Show less') : t('Show all');
   const centering = useCenterOnFocus();
+  const page = usePageFocusable(hasTVPreferredFocus);
+  const ref = useMemo(() => mergeRefs<View>(centering.ref, page.ref), [centering.ref, page.ref]);
   return (
     <Pressable
-      ref={centering.ref}
+      ref={ref}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={expanded ? t('Show fewer categories') : t('Show all categories')}
       accessibilityState={{ expanded }}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={page.preferred}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
@@ -421,11 +424,13 @@ export function Chip({
 }) {
   const [focused, setFocused] = useState(false);
   const centering = useCenterOnFocus();
+  const page = usePageFocusable(hasTVPreferredFocus);
+  const ref = useMemo(() => mergeRefs<View>(centering.ref, page.ref), [centering.ref, page.ref]);
   return (
     <Pressable
-      ref={centering.ref}
+      ref={ref}
       testID={testID}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={page.preferred}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}

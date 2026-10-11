@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Animated, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
+import { useMemo } from 'react';
 import { focus, useFocusScale } from './focus';
+import { mergeRefs, usePageFocusable } from './pageFocus';
 import { Icon, type IconName } from './Icon';
 import { ColourDot, type ColourKey } from '../tv/colourKeys';
 
@@ -48,13 +50,15 @@ export function IconButton({
 }) {
   const [focused, setFocused] = useState(false);
   const scale = useFocusScale(focused, 1.12);
+  const page = usePageFocusable(hasTVPreferredFocus);
+  const ref = useMemo(() => mergeRefs<View>(focusRef, page.ref), [focusRef, page.ref]);
   return (
     <Pressable
-      ref={focusRef}
+      ref={ref}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      hasTVPreferredFocus={hasTVPreferredFocus}
+      hasTVPreferredFocus={page.preferred}
       focusable={focusable}
       nextFocusUp={nextFocusUp}
       nextFocusDown={nextFocusDown}

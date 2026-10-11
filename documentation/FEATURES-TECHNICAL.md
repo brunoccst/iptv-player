@@ -333,13 +333,17 @@ flowchart TD
   D --> W{"landscape and ≥ 700 dp?"}
   W -->|yes| T[two columns]
   W -->|no| O[one panel]
+  D -->|TV, closed| F{"opener still there?"}
+  F -->|yes| FO[focus on it]
+  F -->|no| FF[first view on screen]
 ```
 
 - The shared hooks load the data; each app draws it: `DetailsScreen` on TV and phone, `DetailsModal` on desktop.
 - Only a series gets the right column (episode rows in the phone's compact layout): its header (season Watched, season choice) stays, the episode list alone scrolls; a movie's facts stay under the rest in the left one; on TV → leaves the buttons for the episodes and ← comes back.
 - TV and phone read the window size; desktop follows the media query `(orientation: landscape) and (min-width: 700px)` and turns the modal into a full-window panel. The left column is 42 % wide (desktop: at most 720 px) beside episodes, 2/3 for a movie.
+- TV focus: the page's buttons and covers register through `usePageFocusable`, which also holds their `hasTVPreferredFocus` while the panel is open; the page's `onFocusCapture` remembers the last one focused. On closing (Back, onto the same page), `restore` focuses it, or the registered view on screen highest up, then furthest left (`measureInWindow`).
 
-**Code:** `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx`, `apps/web-player/src/hooks/useMediaQuery.ts`
+**Code:** `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/tv-app/src/App.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx`, `apps/web-player/src/hooks/useMediaQuery.ts`
 
 ### Seasons and episodes
 
@@ -562,11 +566,13 @@ flowchart LR
   B[bookmark or menu] --> T["toggle (undone if saving fails)"]
   T --> S[("direct.watchlist.profileId<br/>max 500")]
   S --> H[Home row, My List page, bookmark on covers]
+  H -.->|TV, details open:<br/>hasTVPreferredFocus held| N[page behind takes no focus]
 ```
 
 - The list reloads when the active profile changes and is deleted with its profile.
+- TV: while the details panel is open, `usePageFocusable` holds each page view's `hasTVPreferredFocus`, so a card appearing behind (My List's first) cannot take the focus.
 
-**Code:** `packages/shared/src/stores/watchlistStore.ts`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/web-player/src/features/browse/MyListPage.tsx`
+**Code:** `packages/shared/src/stores/watchlistStore.ts`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/web-player/src/features/browse/MyListPage.tsx`
 
 ## Downloads
 

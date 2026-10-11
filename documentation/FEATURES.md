@@ -104,6 +104,8 @@ Poster, description, versions, Play, My List and a Watched toggle for the movie 
 
 On a landscape screen (TV, a phone on its side, a desktop window wider than tall and at least 700 px wide) the details fill the screen in two columns (issue #186, D-158, D-164): the title, the buttons right under it, the facts, description and version stay on the left; a series' episodes scroll on the right, under the season choice, which stays put. A movie has one column, 2/3 of the screen wide: its cast, genres, director and source follow under the version and the backdrop fills the rest, so everything fits without scrolling (D-165, D-168). The episodes there look like on the phone: a smaller still, the title on two lines at most, the buttons under the text (D-168). TV: → from a series' last button goes to the episodes, ← from an episode comes back. Portrait screens and narrower windows keep the panel that scrolls as a whole; resizing the desktop window switches between the two.
 
+TV: while the details are open the focus stays in them; nothing on the page behind can take it, even when that page changes (D-171). Closing them puts the focus back on the cover or button that opened them, or, when it is gone, on the first cover or button on screen.
+
 ### Seasons and episodes
 
 A season choice with a "Watched" button on its left that marks the whole season watched or not (D-132, issue #159). Each episode row shows Play, "…" and its version; an episode the provider lists twice in one version (same title, or the same "S01E03" in it) is one row, the copy a choice in its version picker labelled "ENG #2" (D-146); its length and description stop after two lines with "…", and a touch or click on them shows the whole description, another folds it again (phone and desktop); on TV, once the focus has stayed on one of the episode's buttons for 1.5 s, the description rolls up a line at a time inside its two lines, rests at the end, then starts over; the description keeps its full length while it rolls, so nothing is cut off (issue #160); "…" (TV: hold OK on Play; phone: long touch; desktop: right-click) offers Mark as watched / not watched, Download, Play on TV and Open in another player (D-082, D-083). On TV, ↑/↓ move to the same button of the episode above or below (Play to Play, "…" to "…", version to version; to "…" when that episode has no version choice), and ←/→ move between the buttons of one episode (D-149).
@@ -164,7 +166,7 @@ Finds movies, series, live channels and programmes of the TV guide on now or in 
 
 A watchlist per profile: add from details or the card menu; it has a Home row and its own page (D-055).
 
-A title on My List carries a bookmark at the top right of its cover. The details button is the same bookmark: outlined when the title is not on My List, filled when it is (issue #157).
+A title on My List carries a bookmark at the top right of its cover. The details button is the same bookmark: outlined when the title is not on My List, filled when it is (issue #157). On TV the focus stays on it after pressing it: while details are open, nothing on the page behind them can take the focus (D-171).
 
 ## Downloads
 

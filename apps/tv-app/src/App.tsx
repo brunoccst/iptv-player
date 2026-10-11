@@ -1,9 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { startStallWatch } from './diagnostics/stallWatch';
-import { ActivityIndicator, BackHandler, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Dimensions, Image, Platform, StatusBar as SystemBars, StyleSheet, View } from 'react-native';
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
+import { createPageFocus, PageFocusContext } from './components/pageFocus';
 import { LibraryNotice } from './components/LibraryBanner';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
@@ -153,28 +154,56 @@ function Shell() {
     return () => subscription.remove();
   }, []);
 
+  // TV: closing the details puts the focus back on what opened them, or else on the first cover or button on screen
+  // (D-171); Android handed it to any view.
+  const pageFocus = useRef(createPageFocus()).current;
+  const behind = route.name === 'details';
+  const pageFocusContext = useMemo(() => ({ behind, register: pageFocus.register }), [behind, pageFocus]);
+  // The page the details opened over; Yellow (search) and Blue (Live TV) close them onto another page, or onto the
+  // search box, which keep their own focus.
+  const openedOver = useRef<Section | null>(null);
+  const searchRequested = useNav((s) => s.searchRequested);
+  useEffect(() => {
+    if (route.name === 'details') {
+      openedOver.current ??= section;
+      return;
+    }
+    const over = openedOver.current;
+    openedOver.current = null;
+    if (Platform.isTV && over === section && route.name === 'section' && !searchRequested) void pageFocus.restore(Dimensions.get('window'));
+    // Only a change of route closes the details.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route]);
+
   if (route.name === 'player') return <PlayerScreen key={`${route.target.kind}-${route.target.streamId}`} target={route.target} />;
 
   return (
     <View style={styles.shell}>
-      <View style={styles.content} importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}>
-        {shown !== section ? (
-          <PageLoading />
-        ) : section === 'home' ? (
-          <HomeScreen key={`home-${revision}`} processing={processing} />
-        ) : section === 'movies' || section === 'series' ? (
-          <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} processing={processing} />
-        ) : section === 'search' ? (
-          <SearchScreen />
-        ) : section === 'log' ? (
-          <LogScreen />
-        ) : section === 'live' ? (
-          <LiveScreen />
-        ) : section === 'mylist' ? (
-          <MyListScreen />
-        ) : (
-          <DownloadsScreen />
-        )}
+      <View
+        style={styles.content}
+        importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}
+        onFocusCapture={Platform.isTV ? pageFocus.focused : undefined}
+      >
+        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-171). */}
+        <PageFocusContext.Provider value={pageFocusContext}>
+          {shown !== section ? (
+            <PageLoading />
+          ) : section === 'home' ? (
+            <HomeScreen key={`home-${revision}`} processing={processing} />
+          ) : section === 'movies' || section === 'series' ? (
+            <BrowseScreen key={`${section}-${categoryId}-${revision}`} section={section} processing={processing} />
+          ) : section === 'search' ? (
+            <SearchScreen />
+          ) : section === 'log' ? (
+            <LogScreen />
+          ) : section === 'live' ? (
+            <LiveScreen />
+          ) : section === 'mylist' ? (
+            <MyListScreen />
+          ) : (
+            <DownloadsScreen />
+          )}
+        </PageFocusContext.Provider>
       </View>
       {route.name === 'details' ? null : <TopNav />}
       {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} /> : null}
