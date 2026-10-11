@@ -153,6 +153,32 @@ export function probeMessage(hint: ProbeHint): string | null {
   }
 }
 
+/**
+ * The server a connection error names: Android's "failed to connect to cdn.example.com/1.2.3.4 (port 80)" or a
+ * stream address. Null when there is none.
+ */
+export function unreachableHost(text: string): string | null {
+  const named = /failed to connect to ([\w.-]+)/i.exec(text)?.[1];
+  if (named) return named;
+  const url = /https?:\/\/[^\s)]+/.exec(text)?.[0];
+  return url ? hostOf(url) : null;
+}
+
+/**
+ * The provider's server stopped answering (connection timed out or refused, mid-stream or at the start): the user
+ * learns it is the provider's side and what to do (D-172).
+ */
+export function providerUnreachableMessage(host: string | null): string {
+  return host
+    ? t(
+        "Your IPTV provider's server ({host}) stopped responding. This is a problem on the provider's side, not in the app. Try again in a moment, or pick another version.",
+        { host },
+      )
+    : t(
+        "Your IPTV provider's server stopped responding. This is a problem on the provider's side, not in the app. Try again in a moment, or pick another version.",
+      );
+}
+
 function hostOf(url: string): string | null {
   try {
     return new URL(url).host;

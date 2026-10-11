@@ -89,6 +89,20 @@ describe('PlaybackEngine', () => {
     });
   });
 
+  it("says the provider's server stopped sending the file mid-way (D-172)", async () => {
+    const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://cdn.example/movie.mp4' });
+    const video = fakeVideo((url) => url.endsWith('.mp4'));
+    const engine = new PlaybackEngine(video, client, fakeHls() as never);
+    const fatal = vi.fn();
+    engine.onFatalError(fatal);
+    await engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null);
+
+    (video as unknown as { error: { code: number } }).error = { code: 2 };
+    video.dispatchEvent(new Event('error'));
+
+    expect(fatal).toHaveBeenCalledWith(expect.stringMatching(/^Your IPTV provider's server \(cdn\.example\) stopped responding/), true);
+  });
+
   it('explains MKV-only titles', async () => {
     const { client } = api({ mkv: 'http://r/movie.mkv' });
     const engine = new PlaybackEngine(

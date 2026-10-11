@@ -69,6 +69,10 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [source, setSource] = useState<LoadedSource | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
+  // The provider's server stopped sending the video: the message offers Try again, from where it stopped (D-172).
+  const [retryable, setRetryable] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const resumeAt = useRef<number | null>(null);
   // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (KI-045, D-081).
   const [unsupportedFormat, setUnsupportedFormat] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -103,6 +107,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     if (video && !isLive) savePlaybackProgress(stores.progress, target, video.currentTime, video.duration);
   }, [target, isLive]);
 
+  // Another title starts where its own target says.
+  useEffect(() => {
+    resumeAt.current = null;
+  }, [target.kind, target.streamId]);
+
   // Load the stream whenever the item changes. The completed download (if any) is read once at start.
   useEffect(() => {
     const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
@@ -121,6 +130,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     const controller = new AbortController();
     setStatus('loading');
     setError(null);
+    setRetryable(false);
     setUnsupportedFormat(false);
     setNextDismissed(false);
     setPanel(null);
@@ -144,8 +154,9 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         if (text) setError(text);
       });
     };
-    engine.onFatalError((message) => {
+    engine.onFatalError((message, network) => {
       setError(message);
+      setRetryable(!!network && !isLive);
       setStatus('error');
       explain();
     });
@@ -155,7 +166,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         setSource(loaded);
         setStatus('ready');
         const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
-        const start = target.startAt ?? resumePosition(saved);
+        const start = resumeAt.current ?? target.startAt ?? resumePosition(saved);
         if (start > 0 && !isLive) video.currentTime = start;
         void video.play().catch(() => setPlaying(false));
         engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
@@ -233,7 +244,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     };
     // Reload only when the playing item changes; saveProgress is refreshed with the same target.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.kind, target.streamId]);
+  }, [target.kind, target.streamId, retry]);
 
   useEffect(() => {
     if (!notice) return;
@@ -617,10 +628,23 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                 : error}
             </p>
             <div className="player__message-actions">
-              {vlc ? (
+              {retryable ? (
                 <button
                   type="button"
                   className="button button--primary"
+                  onClick={() => {
+                    const at = videoRef.current?.currentTime ?? 0;
+                    if (at > 0) resumeAt.current = at;
+                    setRetry((r) => r + 1);
+                  }}
+                >
+                  {t('Try again')}
+                </button>
+              ) : null}
+              {vlc ? (
+                <button
+                  type="button"
+                  className={retryable ? 'button' : 'button button--primary'}
                   onClick={() => {
                     vlc(target);
                     close();
@@ -629,7 +653,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                   {t('Open in VLC')}
                 </button>
               ) : null}
-              <button type="button" className={vlc ? 'button' : 'button button--primary'} onClick={close}>
+              <button type="button" className={vlc || retryable ? 'button' : 'button button--primary'} onClick={close}>
                 {t('Go back')}
               </button>
             </div>
