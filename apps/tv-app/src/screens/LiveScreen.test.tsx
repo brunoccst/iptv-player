@@ -174,7 +174,7 @@ describe('LiveScreen (guide)', () => {
     expect(screen.getByText('Downloading the TV guide…')).toBeTruthy();
   });
 
-  it('TV: the page fits the screen; the guide scrolls on its own, keeps Down and sends Up to the nav (D-140)', async () => {
+  it('TV: the page fits the screen; the guide scrolls on its own, keeps Down and sends Up to the nav (D-032)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
     navStore.getState().goSection('live');

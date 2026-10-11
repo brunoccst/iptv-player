@@ -1,6 +1,6 @@
 import { centeredOffset } from './CenterScroll';
 
-describe('centeredOffset (D-094, D-095)', () => {
+describe('centeredOffset (D-094)', () => {
   it('puts the focused element in the middle of the viewport, from its place in the page', () => {
     // Element 300 high at 2000 inside the page, viewport 1000: scroll to 2000 - 350.
     expect(centeredOffset(2000, 300, 1000)).toBe(1650);

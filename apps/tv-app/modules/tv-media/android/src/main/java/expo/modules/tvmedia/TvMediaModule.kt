@@ -43,7 +43,7 @@ class TvMediaModule : Module() {
     Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress", "onWatchNextOpen")
 
     OnCreate {
-      // First, so a native crash from here on is in the next run's Log (D-113).
+      // First, so a native crash from here on is in the next run's Log (D-039).
       CrashLog.install(context)
       DownloadCenter.init(context)
       DownloadCenter.addListener(downloadsListener)
@@ -87,7 +87,7 @@ class TvMediaModule : Module() {
       ListReader.close(id)
     }
 
-    /** SHA-1 hex digests of texts separated by "\n", one after another (title ids, D-118). */
+    /** SHA-1 hex digests of texts separated by "\n", one after another (title ids, D-093). */
     AsyncFunction("sha1Batch") { texts: String ->
       Sha1Batch.hash(texts)
     }
@@ -102,12 +102,12 @@ class TvMediaModule : Module() {
       LibraryDb.query(context, sql, params, promise)
     }
 
-    /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
+    /** The native crash of the last run (stack trace), once; null when it ended normally (D-039). */
     Function("takeLastCrash") {
       CrashLog.takeLastCrash(context)
     }
 
-    /** Java heap limit and use, the device's RAM (MB), for the Log (D-113). */
+    /** Java heap limit and use, the device's RAM (MB), for the Log (D-039). */
     Function("memoryInfo") {
       CrashLog.memoryInfo(context)
     }
@@ -241,7 +241,7 @@ class TvMediaModule : Module() {
     }.runOnQueue(Queues.MAIN)
 
     /**
-     * Phone player (issue #184, D-155): the screen brightness of the app's window, 0–1. While the app sets none it is
+     * Phone player (issue #184, D-046): the screen brightness of the app's window, 0–1. While the app sets none it is
      * the system's (its 0–255 setting).
      */
     Function("brightness") {
@@ -260,7 +260,7 @@ class TvMediaModule : Module() {
       }
     }.runOnQueue(Queues.MAIN)
 
-    /** Phone player (issue #184, D-155): the media volume, 0–1. */
+    /** Phone player (issue #184, D-046): the media volume, 0–1. */
     Function("volume") {
       val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
       audio.getStreamVolume(AudioManager.STREAM_MUSIC).toDouble() / audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)

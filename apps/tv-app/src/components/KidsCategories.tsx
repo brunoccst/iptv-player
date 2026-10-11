@@ -12,7 +12,7 @@ import { focus } from './focus';
 import { FocusRow } from '../components/FocusRow';
 
 /**
- * Profile editor → Choose categories (D-064): the categories a Kids profile may see, per section. Starts from the
+ * Profile editor → Choose categories (D-053): the categories a Kids profile may see, per section. Starts from the
  * automatic choice (category names, D-053); "Automatic" goes back to it. Saved on this device with the profile.
  */
 export function KidsCategories({ profileId, name, onClose }: { profileId: string; name: string; onClose(): void }) {

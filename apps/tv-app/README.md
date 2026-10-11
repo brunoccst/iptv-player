@@ -2,7 +2,7 @@
 
 Android TV client. Expo SDK 57 + `react-native-tvos` 0.86 + TypeScript + local native module `tv-media` (Media3 ExoPlayer + DownloadManager). Output: `.apk`.
 
-Looks the same as the web app (shared design tokens and icons, [D-041](../../documentation/DECISIONS.md#d-041)). Talks to the IPTV provider directly and keeps profiles, progress and the grouped library on the device ([D-038](../../documentation/DECISIONS.md#d-038), [D-088](../../documentation/DECISIONS.md#d-088)).
+Looks the same as the web app (shared design tokens and icons, [D-079](../../documentation/DECISIONS.md#d-079)). Talks to the IPTV provider directly and keeps profiles, progress and the grouped library on the device ([D-088](../../documentation/DECISIONS.md#d-088)).
 
 ```mermaid
 flowchart TD

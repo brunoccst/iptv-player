@@ -18,7 +18,7 @@ export interface DesktopBridge {
   checkForUpdates(): Promise<void>;
   /** While an accepted update downloads: its version and percentage, then null. Returns the unsubscribe function. */
   onUpdateProgress?(listener: (progress: UpdateProgress | null) => void): () => void;
-  /** Plays a stream address in VLC with the provider User-Agent (D-081); 'none' when VLC is not installed. */
+  /** Plays a stream address in VLC with the provider User-Agent (D-057); 'none' when VLC is not installed. */
   openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
   setTexts(texts: Record<string, string>): Promise<void>;
@@ -26,7 +26,7 @@ export interface DesktopBridge {
   data: KeyValueStorage;
   /** The library database (D-121): statements and queries as JSON text, run by the main process. */
   db: { run(statements: string): Promise<void>; query(sql: string, params: string): Promise<string> };
-  /** Phone-to-computer pairing (D-072): a server on the home network while the QR code is shown. */
+  /** Phone-to-computer pairing (D-060): a server on the home network while the QR code is shown. */
   pairing: {
     /** `host` is null without a home network. `key`: 32 random bytes, base64. */
     start(): Promise<{ host: string | null; port: number; key: string }>;

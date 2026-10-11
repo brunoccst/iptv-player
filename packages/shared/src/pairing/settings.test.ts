@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mergeProfilePrefs, mergeSubtitleSettings } from './settings';
 
-describe('settings merged by pairing (D-162)', () => {
+describe('settings merged by pairing (D-060)', () => {
   it("the phone's values win, a value only on the other device stays", () => {
     expect(
       mergeProfilePrefs(

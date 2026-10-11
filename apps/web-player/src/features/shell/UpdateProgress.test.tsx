@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { UpdateProgress as Progress } from '../../desktop';
 
-describe('desktop update download (D-166)', () => {
+describe('desktop update download (D-073)', () => {
   afterEach(() => {
     cleanup();
     delete (globalThis as { iptvDesktop?: unknown }).iptvDesktop;

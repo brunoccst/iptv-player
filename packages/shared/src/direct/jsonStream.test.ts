@@ -17,7 +17,7 @@ function streamOf(text: string, size: number): ReadableStream<Uint8Array> {
 const all = (value: unknown) => value;
 const none = () => [];
 
-describe('reading a JSON array one element at a time (D-113)', () => {
+describe('reading a JSON array one element at a time (D-115)', () => {
   const list = [
     { stream_id: 1, name: 'Amélie [4K] {EN}', extra: { a: [1, 2, { b: '}' }] } },
     { stream_id: '2', name: 'Say "hi" \\ bye', tags: [] },

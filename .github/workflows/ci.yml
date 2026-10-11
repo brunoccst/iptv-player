@@ -69,11 +69,8 @@ jobs:
       - run: npm ci
       - name: ESLint + Prettier
         run: npm run lint:js
-      # Every app has each feature, or the backlog says when it will (documentation/PARITY.md, D-080).
-      - name: App parity table
-        run: npm run lint:parity
-      # Every feature has its technical explanation (documentation/FEATURES-TECHNICAL.md, D-163).
-      - name: Technical features
+      # Every feature marks which apps have it and is in the code index (documentation/FEATURES.md, D-079, D-143).
+      - name: Features
         run: npm run lint:features
       # Every app's version has release notes (documentation/RELEASE-NOTES.md, D-143).
       - name: Release notes

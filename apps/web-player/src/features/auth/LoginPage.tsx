@@ -11,8 +11,8 @@ import { usePairingServer } from '../pairing/pairing';
 import { PairingCode } from '../pairing/SyncWithPhone';
 
 /**
- * Xtream login, laid out like the TV app's: the app talks to the provider directly (D-038, D-071, D-088). The desktop
- * app also offers, next to the form, sign-in by scanning a code with the phone app (D-072).
+ * Xtream login, laid out like the TV app's: the app talks to the provider directly (D-088, D-071). The desktop
+ * app also offers, next to the form, sign-in by scanning a code with the phone app (D-060).
  */
 export function LoginPage() {
   const busy = useSession((s) => s.busy);
@@ -95,7 +95,7 @@ export function LoginPage() {
   );
 }
 
-/** Desktop app: sign in by scanning this code with the phone app, as on the TV (D-060, D-072). */
+/** Desktop app: sign in by scanning this code with the phone app, as on the TV (D-060). */
 function PhoneSignIn() {
   const state = usePairingServer();
   return (

@@ -10,7 +10,7 @@ const howTo = () =>
     'On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Phone and computer must be on the same home network; if Windows asks, allow the app on private networks.',
   );
 
-/** The QR code, or what stands in for it (D-072). */
+/** The QR code, or what stands in for it (D-060). */
 export function PairingCode({ state, size = 240 }: { state: PairingServerState; size?: number }) {
   switch (state.phase) {
     case 'starting':
@@ -48,7 +48,7 @@ export function SyncWithPhoneHost() {
 }
 
 /**
- * Desktop app: account menu → Sync with phone (D-072): profiles, My List and progress are merged with the phone's.
+ * Desktop app: account menu → Sync with phone (D-060): profiles, My List and progress are merged with the phone's.
  * The login page shows the same code beside the form, to sign in.
  */
 export function SyncWithPhone({ onClose }: { onClose(): void }) {

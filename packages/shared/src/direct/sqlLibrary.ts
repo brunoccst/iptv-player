@@ -35,7 +35,7 @@ export type LibraryKind = 'movie' | 'series';
 export interface SqlLibraryKind {
   table: string;
   builtAt: string;
-  /** Built with the current title rules (D-086); otherwise shown, but out of date. */
+  /** Built with the current title rules (D-133); otherwise shown, but out of date. */
   current: boolean;
   /** Saved before D-133: whole titles packed in `${table}_d`, not the provider's items. */
   packed: boolean;
@@ -47,7 +47,7 @@ export interface SqlLibraryKind {
    * them as columns (built before D-135).
    */
   orders: string[] | null;
-  /** A fingerprint of the provider's list it was built from (D-138): the same list again needs no comparing. */
+  /** A fingerprint of the provider's list it was built from (D-135): the same list again needs no comparing. */
   fingerprint: string | null;
 }
 
@@ -56,7 +56,7 @@ const WRITE_BATCH = 1000;
 /** How long the last build's tables stay after a new one is in place. */
 const RETIRE_MS = 60_000;
 /**
- * An update changes the library in place when at most this share of the items is grouped again (D-137); more, and a new
+ * An update changes the library in place when at most this share of the items is grouped again (D-135); more, and a new
  * library is built beside it.
  */
 const IN_PLACE_SHARE = 0.2;
@@ -69,7 +69,7 @@ const ITEM_RULES = 6;
 /** Names not seen in any update for this long are forgotten. */
 const NAME_KEEP_DAYS = 30;
 /**
- * Version of what the parser reads from a name (`parseTitle`), apart from the grouping rules (D-167): raise it only when
+ * Version of what the parser reads from a name (`parseTitle`), apart from the grouping rules (D-017): raise it only when
  * the parser changes, so a change of grouping alone regroups the titles without reading every name again. 8 is the
  * first: the parser did not change from 7 to 8, so names read with 7 are kept.
  */
@@ -83,7 +83,7 @@ const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
   count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, orders TEXT, fp TEXT, PRIMARY KEY (account, kind))`;
 
-/** The day each account's movie or series names were last marked as seen (D-138): once a day is enough. */
+/** The day each account's movie or series names were last marked as seen (D-135): once a day is enough. */
 const NAMES_SEEN = `CREATE TABLE IF NOT EXISTS names_seen (list TEXT PRIMARY KEY, day INTEGER NOT NULL) WITHOUT ROWID`;
 
 const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL,
@@ -94,7 +94,7 @@ const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY,
 const NEWEST_FIRST = 'added IS NULL, added DESC, title, IFNULL(year, -1), id';
 /**
  * Newest first as an order table: titles an update adds in place come at the end, so from then on the row order is not
- * newest first (D-137).
+ * newest first (D-135).
  */
 const NEWEST = { column: 'n1', by: NEWEST_FIRST };
 
@@ -106,7 +106,7 @@ const ORDERS: Record<string, { column: string; by: string }> = {
   'added|asc': { column: 'a0', by: 'added IS NULL, added, title, IFNULL(year, -1), id' },
   'released|desc': { column: 'r1', by: 'released IS NULL, released DESC, title, IFNULL(year, -1), id' },
   'released|asc': { column: 'r0', by: 'released IS NULL, released, title, IFNULL(year, -1), id' },
-  // The provider's rating (D-153); 0 means none.
+  // The provider's rating (D-049); 0 means none.
   'rating|desc': { column: 's1', by: 'IFNULL(rating, 0) <= 0, CASE WHEN rating > 0 THEN rating END DESC, title, IFNULL(year, -1), id' },
   'rating|asc': { column: 's0', by: 'IFNULL(rating, 0) <= 0, CASE WHEN rating > 0 THEN rating END, title, IFNULL(year, -1), id' },
   'title|asc': { column: 't0', by: 'title, IFNULL(year, -1), id' },
@@ -118,10 +118,10 @@ const ORDERS: Record<string, { column: string; by: string }> = {
  * - `${t}_i`: the items, with what the parser read from their names and the title (`g`) each is in.
  * - `${t}`: one row per title (rowid: newest first), with what lists show, filter, search and sort on. `cats`, `langs`
  *   and `hints` are lists like ",10,11,": the title's categories, its audio and subtitle languages, and the categories
- *   of its versions without a language (the category hint, D-086).
+ *   of its versions without a language (the category hint, D-063).
  * - `${t}_c`: title by category, for category pages and Kids profiles.
  * - `${t}_o<column>`: one per order other than newest first, once asked for (D-135); `_on1`, newest first, once the
- *   library was updated in place (D-137).
+ *   library was updated in place (D-135).
  * While building: `_r` (the items as downloaded), `_x`, `_k` (what changed), `_p`, `_y`, `_t`, `_g` (grouping), `_a` and
  * `_e` (the new titles and their ids), `_z` (the titles an update in place replaces).
  */
@@ -184,8 +184,8 @@ const comparing = (t: string, o: string): string[][] => [
  * Grouping (D-133), one step per call so no call holds the database (on desktop: the main process) for long:
  * 1. Same compact key (the key without spaces) and year. A year-less item takes its key's year when the key has
  *    exactly one.
- * 2. Items with a TMDB id group by it and the year instead (D-065), so two works of one name and year stay apart
- *    (D-156); an item without one takes its key's id when the key has exactly one.
+ * 2. Items with a TMDB id group by it and the year instead (D-133), so two works of one name and year stay apart
+ *    (D-133); an item without one takes its key's id when the key has exactly one.
  * The same rules as `groupTitles` (the library in memory).
  *
  * The rules are worked out in a narrow table (`_p`), and the items are written once with their title (`g`). With the
@@ -213,7 +213,7 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
     `INSERT INTO ${t}_t (k, lo, n) SELECT k, min(tmdb), count(DISTINCT tmdb) FROM ${t}_p WHERE tmdb IS NOT NULL GROUP BY k`,
     `UPDATE ${t}_p SET tm = IFNULL(tmdb, (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k AND n = 1))`,
     `UPDATE ${t}_p SET gk = CASE WHEN tm IS NULL THEN 'k' || k ELSE 't' || tm || '|' || IFNULL(gyear, '') END`,
-    // What the item adds to its title's id (D-156, as titleGroups): another TMDB id than its key's smallest, or "-"
+    // What the item adds to its title's id (D-133, as titleGroups): another TMDB id than its key's smallest, or "-"
     // without one in a key with several.
     `UPDATE ${t}_p SET sx = CASE WHEN tm IS NULL THEN CASE WHEN EXISTS (SELECT 1 FROM ${t}_t WHERE k = ${t}_p.k) THEN '-' ELSE '' END
       WHEN tm > (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k) THEN tm ELSE '' END`,
@@ -295,7 +295,7 @@ const finishing = (t: string, o: string | null, base: number): string[][] => {
 };
 
 /**
- * An update in place (D-137), when few items changed: the titles of the groups that changed are worked out beside the
+ * An update in place (D-135), when few items changed: the titles of the groups that changed are worked out beside the
  * library (`_z`: their old numbers; `_i`: their items, new or kept; `_a`, `_e`: their titles), then `applying` swaps
  * them in. The rest of the library is not copied.
  */
@@ -322,7 +322,7 @@ const inPlace = (t: string, o: string, base: number): string[][] => [
 ];
 
 /**
- * Swaps the changed titles into the library `o` in one step (D-137): their old titles, items and categories go, the new
+ * Swaps the changed titles into the library `o` in one step (D-135): their old titles, items and categories go, the new
  * ones come in (at the end: newest first becomes an order table, `_on1`), and every order is made again.
  */
 const applying = (t: string, o: string, orders: { column: string; by: string }[]): string[] => {
@@ -381,7 +381,7 @@ const codesOf = (value: SqlValue | undefined) => (value ? String(value).split(',
 const textOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : String(value));
 const numberOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : Number(value));
 
-/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063, D-067). */
+/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063). */
 export const languageCodes = (languages: string | null | undefined) => [
   ...new Set(
     (languages ?? '')
@@ -403,7 +403,7 @@ export const toCard = (master: Master): MasterCard => ({
 });
 
 /**
- * A fingerprint of a list's items as they are saved, in order (D-138): a 64-bit hash of every field and how many items
+ * A fingerprint of a list's items as they are saved, in order (D-135): a 64-bit hash of every field and how many items
  * were saved (desktop and browser; TV and phone make theirs in native code).
  */
 export function listFingerprint(items: NormalizerItem[]): string {
@@ -446,20 +446,20 @@ const newTable = () => {
 };
 
 export interface LibraryBuildOptions {
-  /** SHA-1 hex of each text, all at once (TV/phone: native code, D-118); otherwise hashed here. */
+  /** SHA-1 hex of each text, all at once (TV/phone: native code, D-093); otherwise hashed here. */
   hashIds?(texts: string[]): Promise<string[]>;
   /** How far the build is, from 0 to 1, over all its steps (D-135). */
   onProgress?(fraction: number): void;
-  /** Milliseconds per step, for the Log (D-116). */
+  /** Milliseconds per step, for the Log (D-093). */
   onTimings?(timings: LibraryBuildTimings): void;
   /** Milliseconds of parsing between breaks for the screen. */
   sliceMs?: number;
 }
 
 export interface LibraryBuildTimings {
-  /** The same list as the last library's (its fingerprint, D-138): nothing was read or compared. */
+  /** The same list as the last library's (its fingerprint, D-135): nothing was read or compared. */
   sameList: boolean;
-  /** Few items changed: the last library was updated in place (D-137). */
+  /** Few items changed: the last library was updated in place (D-135). */
   inPlace: boolean;
   /** Saving the provider's items (0 when native code saved them while downloading, D-135). */
   items: number;
@@ -481,7 +481,7 @@ export interface LibraryBuildTimings {
 /** Items native code already saved in a library's items table (`createItems`, D-135). */
 export interface SavedItems {
   table: string;
-  /** A fingerprint of the list (D-138); null when native code does not make one. */
+  /** A fingerprint of the list (D-135); null when native code does not make one. */
   fingerprint?: string | null;
 }
 
@@ -506,7 +506,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   const prepare = () =>
     (ready ??= (async () => {
       await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }]);
-      // The orders column came with D-135 (libraries from before keep their orders as columns: null), fp with D-138.
+      // The orders column came with D-135 (libraries from before keep their orders as columns: null), fp with D-135.
       const columns = (await db.query('PRAGMA table_info(library)')).map((row) => String(row[1]));
       if (!columns.includes('orders')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN orders TEXT' }]);
       if (!columns.includes('fp')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN fp TEXT' }]);
@@ -554,14 +554,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     fingerprint: textOrNull(fp),
   });
 
-  /** Libraries being built: tables of replaced ones are not dropped meanwhile (D-137). */
+  /** Libraries being built: tables of replaced ones are not dropped meanwhile (D-135). */
   const building = new Set<string>();
   const retiring: string[] = [];
   let sweeping = false;
   /**
-   * Drops the tables of a replaced library, channel list or guide once the lists still reading them are done (D-137):
+   * Drops the tables of a replaced library, channel list or guide once the lists still reading them are done (D-135):
    * one table per call, and none while a library is being built, so an update does not wait for a big drop to finish.
-   * A start drops what is left if the app is closed before. What an update worked out goes at once (`afterMs` 0, D-138):
+   * A start drops what is left if the app is closed before. What an update worked out goes at once (`afterMs` 0, D-135):
    * the update is done without waiting for it.
    */
   const retire = (t: string, afterMs = RETIRE_MS) =>
@@ -692,7 +692,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
      * titles (D-133), beside the current library, then switches to it in one step: a start in between still finds the
      * last complete library. Only names not seen before are read, and only titles whose items changed are built again
      * (D-135); when nothing changed, the current library stays and only its date moves; when few items changed, those
-     * titles are swapped into the current library in one step instead of copying it (D-137). Also says what changed
+     * titles are swapped into the current library in one step instead of copying it (D-135). Also says what changed
      * against the last library (D-119).
      */
     async build(
@@ -724,7 +724,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const progress = (from: number, to: number) => (fraction: number) => options.onProgress?.(from + (to - from) * fraction);
       const old = (await db.query(`SELECT ${KIND_COLUMNS} FROM library WHERE account = ? AND kind = ?`, [account, kind]))[0];
       const last = old ? kindOf(old) : null;
-      // The same list as the last library's (D-138): nothing to read or compare; the library stays, its date moves.
+      // The same list as the last library's (D-135): nothing to read or compare; the library stays, its date moves.
       const fingerprint = Array.isArray(source) ? listFingerprint(source) : (source.fingerprint ?? null);
       if (fingerprint && last?.fingerprint === fingerprint && last.current && !last.packed && (await tableExists(`${last.table}_i`))) {
         if (!Array.isArray(source)) {
@@ -861,7 +861,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const wanted = ORDERS[`${sort}|${order}`];
       let from = `${t} a`;
       let orderBy = 'a.rowid';
-      // Libraries from before D-135 have no rating column (D-153): they sort while they read.
+      // Libraries from before D-135 have no rating column (D-049): they sort while they read.
       if (wanted && saved.orders === null) orderBy = sort === 'rating' ? wanted.by : `a.${wanted.column}`;
       else if (wanted && saved.orders?.includes(wanted.column)) {
         from = `${t}_o${wanted.column} o JOIN ${t} a ON a.rowid = o.m`;
@@ -962,8 +962,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   };
 
   /**
-   * Swaps the titles worked out in `t` into the last library in one step (D-137), says what changed against it, and drops
-   * what was worked out in the background (D-138).
+   * Swaps the titles worked out in `t` into the last library in one step (D-135), says what changed against it, and drops
+   * what was worked out in the background (D-135).
    */
   async function updateInPlace(
     t: string,
@@ -1017,7 +1017,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     return sorts;
   }
 
-  /** Moves names read with older rules that say the same (`SAME_NAMES`) into the names, so they are not read again (D-167). */
+  /** Moves names read with older rules that say the same (`SAME_NAMES`) into the names, so they are not read again (D-017). */
   async function keepSameNames() {
     for (const [table] of await db.query(
       `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${SAME_NAMES.map(() => '?').join(', ')})`,
@@ -1085,7 +1085,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   }
 
   /**
-   * Names seen today stay; names no update has seen for a while go. Once a day per account and kind (D-138): `table`
+   * Names seen today stay; names no update has seen for a while go. Once a day per account and kind (D-135): `table`
    * holds the list's names.
    */
   async function markSeen(account: string, kind: LibraryKind, table: string) {
@@ -1157,7 +1157,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
 export type SqlLibrary = ReturnType<typeof createSqlLibrary>;
 
-/** An account's live channels in the database (D-123). */
+/** An account's live channels in the database (D-121). */
 export interface SqlLiveChannels {
   table: string;
   builtAt: string;
@@ -1181,7 +1181,7 @@ export interface LiveChannelQuery {
 const CHANNEL_BATCH = 2000;
 
 /**
- * Live channels in SQLite (D-123): providers list 20,000+ channels, and the guide, a category and a search each want a
+ * Live channels in SQLite (D-121): providers list 20,000+ channels, and the guide, a category and a search each want a
  * few of them. The whole list is downloaded now and then (daily, and with "Update library") and saved here in the
  * provider's order; each screen then asks for its page. Tables are named like the library's (`lib…`), listed in the
  * same table of contents (kind "live"), so an unfinished save is dropped at the next start the same way.

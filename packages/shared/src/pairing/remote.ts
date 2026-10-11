@@ -37,7 +37,7 @@ export interface PairedPhone {
   pairedAt: string;
 }
 
-/** `log`: the TV answers with its diagnostics log, masked, so the phone can share it (D-173). */
+/** `log`: the TV answers with its diagnostics log, masked, so the phone can share it (D-039). */
 export type RemoteCommand = { type: 'play'; accountId: string; target: PlayTarget } | { type: 'log' };
 export type RemoteError = 'other-account' | 'no-profile' | 'bad-request';
 export type RemoteReply = { ok: true; log?: string } | { ok: false; error: RemoteError };

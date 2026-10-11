@@ -169,7 +169,7 @@ describe('phone-to-TV pairing (D-060)', () => {
         ).rejects.toMatchObject({ reason: 'unknown-phone' });
       });
 
-      // D-173: the phone can fetch the TV log; the provider's address and the account stay masked.
+      // D-039: the phone can fetch the TV log; the provider's address and the account stay masked.
       appLog.error('player', 'attempt 1 failed: http://portal.example.com:8080/movie/bob/pw/55.mkv from 192.168.1.5');
       let log: string | undefined;
       await act(async () => {
@@ -204,7 +204,7 @@ describe('phone-to-TV pairing (D-060)', () => {
       await view.unmount();
     });
 
-    it('phones with a paired TV get its log on the Log page and share it (D-173)', async () => {
+    it('phones with a paired TV get its log on the Log page and share it (D-039)', async () => {
       setupApp();
       jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
       const share = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });

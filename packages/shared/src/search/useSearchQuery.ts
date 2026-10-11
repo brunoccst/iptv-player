@@ -3,7 +3,7 @@ import type { LibrarySortChoice } from '../stores/libraryStore';
 import { t } from '../i18n/i18n';
 import { SEARCH_MIN_LENGTH, searchDelay } from './searchDelay';
 
-/** Which results show (D-108): everything, or only movies, series or live channels. */
+/** Which results show (D-130): everything, or only movies, series or live channels. */
 export type SearchKind = 'all' | 'movies' | 'series' | 'live';
 export const SEARCH_KINDS: { kind: SearchKind; label: () => string }[] = [
   { kind: 'all', label: () => t('All') },
@@ -19,7 +19,7 @@ export const MAX_SEARCH_CHANNELS = 30;
 export const MAX_SEARCH_PROGRAMMES = 30;
 
 /**
- * The text to search for, from what is typed (both apps, D-124): waits until typing pauses, adapted to how fast the
+ * The text to search for, from what is typed (both apps, D-079): waits until typing pauses, adapted to how fast the
  * user types (searchDelay.ts); shorter than SEARCH_MIN_LENGTH searches nothing. A new `submits` count (Enter) searches
  * at once. Starts empty: the first letter opens the page, and searching for it alone froze typing on big libraries.
  */

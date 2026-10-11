@@ -2,7 +2,7 @@ import type { MediaCategory } from '../api/types';
 import * as tags from '../direct/normalizer/tags';
 
 /**
- * The content language filter's category hint (D-086). Many titles carry no language in their names; their category
+ * The content language filter's category hint (D-063). Many titles carry no language in their names; their category
  * often does ("SRS | EN - ACTION", "SRS | DEUTSCH"). A title without a language of its own counts as its category's
  * language; in a category whose name has no language either ("VOD | DOCUMENTARIES FHD"), it is shown whatever the filter.
  */
@@ -65,7 +65,7 @@ export function categoryLanguages(name: string): string[] {
       tags.LANGUAGE_LONG[key] ??
       COUNTRIES[key] ??
       (word.length === 2 && word === word.toUpperCase() ? tags.LANGUAGE_SHORT[key] : undefined) ??
-      // "EAR": English audio, Arabic subtitles in the picture (D-107).
+      // "EAR": English audio, Arabic subtitles in the picture (D-017).
       (word === 'EAR' ? 'ENG' : undefined);
     if (code) found.add(code);
   }

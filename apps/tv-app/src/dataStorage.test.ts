@@ -4,7 +4,7 @@ import { fileStorage, PART_CHARS } from './dataStorage';
 const files = (FileSystem as unknown as { __files: Map<string, string> }).__files;
 const names = (key: string) => [...files.keys()].filter((name) => name.startsWith(key)).sort();
 
-describe('app data files (D-113)', () => {
+describe('app data files (D-121)', () => {
   it('keeps a large value in parts of at most PART_CHARS, never between the halves of an emoji', async () => {
     const big = 'a'.repeat(PART_CHARS - 1) + '😀' + 'b'.repeat(PART_CHARS) + 'é';
     await fileStorage.setItem('library.movie', big);

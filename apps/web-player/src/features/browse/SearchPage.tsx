@@ -9,7 +9,7 @@ import { t } from '@iptv/shared';
 /** Searches movies and series (title or normalized key) and live channels by name; same as the TV app. */
 export function SearchPage() {
   const search = useUi((s) => s.search);
-  // Waits until typing pauses, adapted to the typing speed; the same as the TV app (D-124).
+  // Waits until typing pauses, adapted to the typing speed; the same as the TV app (D-079).
   const query = useSearchQuery(search);
 
   const [kind, setKind] = useState<SearchKind>('all');

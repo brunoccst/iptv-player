@@ -32,7 +32,7 @@ export function useDownload(target: PlayTarget) {
           : failed
             ? t('Download failed · Retry')
             : t('Download');
-  /** For the episode menu (D-083). */
+  /** For the episode menu (D-078). */
   const menu: DownloadMenuState = {
     status:
       state === 'completed'

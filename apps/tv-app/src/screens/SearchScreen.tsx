@@ -22,14 +22,14 @@ import { MasterCardItem, TvLines, useGridColumns } from './titles';
 import { useChannelSearch, usePagedLibrary, useProgrammeSearch } from '../hooks';
 
 const PAGE = 100;
-/** TV: smaller pages that load as the focus nears the end; only the lines near the focus stay mounted (D-095). */
+/** TV: smaller pages that load as the focus nears the end; only the lines near the focus stay mounted (D-094). */
 const TV_PAGE = 36;
 
 /** Same as the web search page ("Results for …": Movies and Series grids), plus matching live channels. Text comes from the top nav. */
 export function SearchScreen() {
   const search = useNav((s) => s.search);
   const submits = useNav((s) => s.searchSubmits);
-  // Waits until typing pauses (adapted to the typing speed); Enter searches at once (D-124).
+  // Waits until typing pauses (adapted to the typing speed); Enter searches at once (D-079).
   const query = useSearchQuery(search, submits);
   const sizes = useSizes();
   const navH = useNavHeight();
@@ -37,7 +37,7 @@ export function SearchScreen() {
   const [kind, setKind] = useState<SearchKind>('all');
   const shows = (section: SearchKind) => kind === 'all' || kind === section;
 
-  // The title and the filter stay above the results, so "Results for …" is always on screen (D-108).
+  // The title and the filter stay above the results, so "Results for …" is always on screen (D-130).
   return (
     <View style={styles.screen} testID="search-screen">
       <View style={{ paddingTop: navH + 24, paddingHorizontal: sizes.gutter }} testID="search-header">
@@ -84,7 +84,7 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   const page = usePagedLibrary(section, { search: query, sort: SEARCH_BY_TITLE }, tv ? TV_PAGE : PAGE);
   const { columns, itemWidth } = useGridColumns();
   const sizes = useSizes();
-  // Where this section sits in the page, for centering its lines (D-098).
+  // Where this section sits in the page, for centering its lines (D-094).
   const sectionY = useRef(0);
   const lines = Array.from({ length: Math.ceil(page.items.length / columns) }, (_, i) => page.items.slice(i * columns, (i + 1) * columns));
 

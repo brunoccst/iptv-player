@@ -129,7 +129,7 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
       </FocusTrap>
     );
   return (
-    // TV: the D-pad stays in the panel; the page behind it is never reached (D-075).
+    // TV: the D-pad stays in the panel; the page behind it is never reached (D-069).
     <FocusTrap style={styles.overlay} testID="details-screen">
       <Pressable style={StyleSheet.absoluteFill} onPress={close} focusable={false} accessibilityLabel={t('Close details')} />
       <ScrollView ref={scroll} contentContainerStyle={styles.scroll}>
@@ -190,7 +190,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 }
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
-  // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-082).
+  // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-081).
   const { variant, series, allWatched, backdrop, play: playTarget, playLabel, startSeason } = useSeriesDetails(master);
   if (!variant) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
@@ -268,9 +268,9 @@ function Episodes({
   const progress = useProgress((s) => s);
   // Landscape: Left from an episode's first button goes back to the buttons in the left column (D-158).
   const split = useContext(SplitLayout);
-  // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-168).
+  // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-158).
   const compact = useCompact() || split;
-  // The episode's menu (D-083): its "…" button, or holding OK on its Play button (a long touch on phones).
+  // The episode's menu (D-078): its "…" button, or holding OK on its Play button (a long touch on phones).
   const [menuFor, setMenuFor] = useState<MergedEpisode | null>(null);
   // TV: the episode whose buttons have the D-pad focus, so its description can roll. Moving between its own buttons
   // blurs one and focuses the next; the short wait keeps that from counting as leaving the episode.
@@ -435,7 +435,7 @@ const EpisodeRow = memo(function EpisodeRow({
         {...focusEvents}
         {...cell(0)}
       />
-      {/* Everything else is in the episode's menu, so the row fits a phone (D-083). */}
+      {/* Everything else is in the episode's menu, so the row fits a phone (D-078). */}
       <IconButton
         icon="more"
         label={t('More options for {title}', { title: episode.title })}
@@ -500,7 +500,7 @@ const EpisodeRow = memo(function EpisodeRow({
 });
 
 /**
- * Landscape (D-158, D-165): only the episodes scroll, under the fixed "Episodes" title, season Watched button and season
+ * Landscape (D-158): only the episodes scroll, under the fixed "Episodes" title, season Watched button and season
  * choice; a focused episode moves to the middle of the list on TV. Portrait: the panel scrolls as a whole.
  */
 function EpisodeScroll({ children }: { children: ReactNode }) {
@@ -606,7 +606,7 @@ function EpisodePlot({ text, testID, rolling = false }: { text: string; testID: 
   );
 }
 
-/** An episode's options (D-083): Mark as (not) watched, Download, Play on the paired TV, Open in another player. */
+/** An episode's options (D-078): Mark as (not) watched, Download, Play on the paired TV, Open in another player. */
 function EpisodeMenu({
   episode,
   target,
@@ -652,7 +652,7 @@ function EpisodeMenu({
   );
 }
 
-/** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first; "(best)" only when one is (D-136). */
+/** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first; "(best)" only when one is (D-087). */
 function VariantSelect({ master, value }: { master: MasterDetails; value: VariantInfo }) {
   const best = useLibrary((s) => bestVariant(master.variants, s.versionLanguages));
   if (master.variants.length < 2) return null;

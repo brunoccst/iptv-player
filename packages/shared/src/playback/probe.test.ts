@@ -78,7 +78,7 @@ describe('what the provider sent instead of a video (D-074)', () => {
   });
 });
 
-describe("the provider's server stopped answering (D-172)", () => {
+describe("the provider's server stopped answering (D-074)", () => {
   it('names the server from the connection error or the stream address', () => {
     const detail =
       'java.net.SocketTimeoutException: failed to connect to 7164443.merovixx.cc/149.57.86.125 (port 80) from /192.168.0.252 (port 52758) after 8000ms';

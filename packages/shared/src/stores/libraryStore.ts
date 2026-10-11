@@ -25,9 +25,9 @@ export interface LibraryState {
   selectedVariants: Record<string, string>;
   /** The open profile's version choice (D-087): language and quality titles start with when none was picked. */
   preferredVersion: VersionChoice | null;
-  /** The open profile's languages, then the app's: which of equally good versions is the best (D-136). */
+  /** The open profile's languages, then the app's: which of equally good versions is the best (D-087). */
   versionLanguages: string[];
-  /** The open profile's languages (D-063): a title starts with its best version in one of them (D-144). */
+  /** The open profile's languages (D-063): a title starts with its best version in one of them (D-087). */
   profileLanguages: string[];
   syncing: boolean;
   syncError: ApiError | null;
@@ -123,9 +123,9 @@ export const LIBRARY_SORT_OPTIONS: (LibrarySortChoice & { label: string })[] = [
 ];
 
 /**
- * Home's "Top rated" rows (D-153, D-160, issue #188): the 25 best rated (the provider's rating) among the 100 titles added
+ * Home's "Top rated" rows (D-040, issue #188): the 25 best rated (the provider's rating) among the 100 titles added
  * last. A row of the app's own, not a list of the provider's: no "See all". A perfect score (shown as 100 %) is left out:
- * it is usually a niche title just out with a single review (D-161).
+ * it is usually a niche title just out with a single review (D-040).
  */
 export const TOP_RATED_POOL = 100;
 export const TOP_RATED_COUNT = 25;
@@ -261,8 +261,8 @@ export function createLibraryStore({ api }: { api: ApiClient }) {
 export type LibraryStore = ReturnType<typeof createLibraryStore>;
 
 /**
- * The chosen variant; else the one a title starts with: the best in the profile's languages (D-144), else the one
- * matching the profile's version choice (D-087), else the best one (D-136), else the first (variants are ordered
+ * The chosen variant; else the one a title starts with: the best in the profile's languages (D-087), else the one
+ * matching the profile's version choice, else the best one (D-087), else the first (variants are ordered
  * best-first).
  */
 export function selectVariant(
@@ -289,7 +289,7 @@ const count = (value: number) => String(Math.round(value)).replace(/\B(?=(\d{3})
 
 /**
  * One line per library kind for the "organizing your library" notice. Uses the direct-mode stage and count when
- * present (D-038) and the plain job states otherwise. Empty when nothing is running.
+ * present (D-088) and the plain job states otherwise. Empty when nothing is running.
  */
 export function describeLibraryProgress(statuses: LibraryStatus[] | null): string[] {
   if (!isLibraryProcessing(statuses)) return [];

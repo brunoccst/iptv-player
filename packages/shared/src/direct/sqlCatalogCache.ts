@@ -7,7 +7,7 @@ const TABLE = `CREATE TABLE IF NOT EXISTS catalog_cache (account TEXT NOT NULL, 
   value TEXT NOT NULL, PRIMARY KEY (account, key)) WITHOUT ROWID`;
 
 /**
- * The provider's answers the apps ask for one at a time, kept in the library database (D-125): categories, a movie's
+ * The provider's answers the apps ask for one at a time, kept in the library database (D-121): categories, a movie's
  * info, a series' seasons and episodes, and a channel's next programmes. Each is one row of JSON per account and key,
  * with the time it was saved; how long a row stays fresh is up to the caller.
  */

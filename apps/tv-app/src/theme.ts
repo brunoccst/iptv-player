@@ -1,7 +1,7 @@
 import { useWindowDimensions } from 'react-native';
 import { colorTokens, fluidSizes, sizeTokens } from '@iptv/shared';
 
-/** Same tokens as the web app (D-041). Sizes are dp; the web's vw-based sizes come from `useSizes()`. */
+/** Same tokens as the web app (D-079). Sizes are dp; the web's vw-based sizes come from `useSizes()`. */
 export const colors = {
   bg: colorTokens.bg,
   surface: colorTokens.surface,

@@ -3,7 +3,7 @@ import { useWatchlistToggle } from '../hooks';
 import { IconButton } from './IconButton';
 import { useColourPageTitle } from '../tv/colourKeys';
 
-/** Web `WatchlistButton`: round "My List" toggle on the details panel (D-055; logic shared, D-124). */
+/** Web `WatchlistButton`: round "My List" toggle on the details panel (D-055; logic shared, D-079). */
 export function WatchlistButton({
   section,
   title,

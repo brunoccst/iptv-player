@@ -15,7 +15,7 @@ import { usePairingServer } from '../pairing/pairing';
 import { PairingCode } from '../pairing/PairingDialogs';
 import { colors, fonts, radius, useSizes } from '../theme';
 
-/** Xtream login: the app talks to the provider directly (D-038, D-088). Select a field to open the on-screen keyboard. */
+/** Xtream login: the app talks to the provider directly (D-088). Select a field to open the on-screen keyboard. */
 export function LoginScreen() {
   const busy = useSession((s) => s.busy);
   const error = useSession((s) => s.error);

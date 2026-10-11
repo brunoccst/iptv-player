@@ -1,7 +1,7 @@
 # @iptv/shared
 
 Platform-agnostic TypeScript used by `apps/tv-app` and `apps/web-player` (and through it `apps/desktop`): the provider
-client, title grouping, stores, rules and translations. The apps talk to the IPTV provider directly (D-038, D-088).
+client, title grouping, stores, rules and translations. The apps talk to the IPTV provider directly (D-088).
 
 ```mermaid
 flowchart LR

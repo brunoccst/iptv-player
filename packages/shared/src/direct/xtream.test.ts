@@ -233,7 +233,7 @@ describe('provider replies', () => {
   });
 });
 
-describe('big lists are read one entry at a time (D-113, #109)', () => {
+describe('big lists are read one entry at a time (D-115, #109)', () => {
   /** A reply whose body arrives in small chunks, like a slow provider (and never as one text). */
   const chunked = (body: string, size = 7) =>
     (async () => {

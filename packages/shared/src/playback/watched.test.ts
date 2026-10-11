@@ -125,7 +125,7 @@ describe('watched titles (D-081)', () => {
     expect(backend.calls.filter((c) => c.method === 'DELETE').map((c) => c.url.pathname)).toEqual(['/api/profiles/p1/progress/episode/e1']);
   });
 
-  it('card menus: continue watching, movies (watched or not), series; My List on every titled card (D-104)', () => {
+  it('card menus: continue watching, movies (watched or not), series; My List on every titled card (D-078)', () => {
     const labels = (items: { label: string }[]) => items.map((item) => item.label);
     expect(labels(cardMenuItems({ kind: 'continue', entry: entry('e1', 5, { kind: 'episode', masterId: 'show' }) }))).toEqual([
       'Go to details',
@@ -160,7 +160,7 @@ describe('watched titles (D-081)', () => {
     expect(continueWatchlistEntry(entry('e1', 5, { kind: 'episode', masterId: null }))).toBeNull();
   });
 
-  it('episode menu (D-083): watched first, then what the device and profile allow', () => {
+  it('episode menu (D-078): watched first, then what the device and profile allow', () => {
     expect(episodeMenuItems({ watched: false })).toEqual([{ id: 'watched', label: 'Mark as watched', icon: 'eye' }]);
     expect(episodeMenuItems({ watched: true, download: { status: 'none' }, tvName: 'Living room', externalPlayer: 'app' })).toEqual([
       { id: 'unwatched', label: 'Mark as not watched', icon: 'eyeOff' },
@@ -179,7 +179,7 @@ describe('watched titles (D-081)', () => {
     expect(download('completed')[0]).toEqual({ id: 'download', label: 'Downloaded', icon: 'check', disabled: true });
   });
 
-  describe('episodes and whole series (D-082)', () => {
+  describe('episodes and whole series (D-081)', () => {
     const ep = (id: string, n: number) => ({
       id,
       title: `E${n}`,

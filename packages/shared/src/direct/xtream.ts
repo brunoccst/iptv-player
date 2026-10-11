@@ -19,7 +19,7 @@ import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Jso
 import { t } from '../i18n/i18n';
 import { createXmltvReader, type GuideProgramme } from './xmltv';
 
-/** The provider's Xtream Codes API (D-011, D-038), turned into the app's types (`api/types.ts`). */
+/** The provider's Xtream Codes API (D-011, D-088), turned into the app's types (`api/types.ts`). */
 export interface XtreamCredentials {
   /** Normalized with `normalizeServerUrl`: scheme + host + path, trailing slash. */
   serverUrl: string;
@@ -69,7 +69,7 @@ export interface ListReader {
 
 /**
  * A list native code saved (D-135): how many entries, how many with a TMDB id, and a fingerprint of what was saved
- * (D-138; null when the native code is older).
+ * (D-135; null when the native code is older).
  */
 export interface SavedList {
   saved: number;
@@ -135,7 +135,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       return 'the provider';
     }
   };
-  // The log never shows the provider's address or the account (D-173).
+  // The log never shows the provider's address or the account (D-039).
   const server = host() === 'the provider' ? null : host();
   appLog.hide(credentials.serverUrl, server, server?.replace(/:\d+$/, ''), credentials.username, credentials.password);
 
@@ -220,7 +220,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
   };
 
   /**
-   * A list (movies, series, channels), read one entry at a time as it arrives (D-113): the whole reply as one text
+   * A list (movies, series, channels), read one entry at a time as it arrives (D-115): the whole reply as one text
    * (100+ MB for a big catalog) ran TVs out of memory. `pick` keeps what the app needs from an entry (null = skip).
    */
   const getList = async <T>(
@@ -390,7 +390,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     rating: num(item, 'rating'),
     addedAt: unixTime(item, 'added'),
     containerExtension: str(item, 'container_extension'),
-    // Some panels send the TMDB id in their lists; used to merge translated titles (D-065).
+    // Some panels send the TMDB id in their lists; used to merge translated titles (D-133).
     tmdbId: str(item, 'tmdb') ?? str(item, 'tmdb_id'),
   });
 

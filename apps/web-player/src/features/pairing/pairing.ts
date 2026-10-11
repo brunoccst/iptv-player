@@ -8,7 +8,7 @@ const storages = { secure: backupStorages.secure, data: backupStorages.data };
 export type { PairingServerState } from '@iptv/shared';
 
 /**
- * Desktop app, computer side of phone pairing (D-072, protocol D-060): the shared hook (D-124) with the app's pairing
+ * Desktop app, computer side of phone pairing (D-060): the shared hook (D-079) with the app's pairing
  * server in the main process. Not available in a browser.
  */
 export const usePairingServer = () => usePairing(desktop?.pairing ?? null, { storages, reload: () => appContext.reload() });

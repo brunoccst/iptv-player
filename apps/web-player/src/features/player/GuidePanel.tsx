@@ -18,7 +18,7 @@ import { useCatalog } from '../../hooks/stores';
 const GUIDE_HOURS = 3;
 
 /**
- * Guide over the playing channel (D-058 on TV, D-081 here): channels of the same category with what is on now and next,
+ * Guide over the playing channel (D-058): channels of the same category with what is on now and next,
  * over the still-playing video. Opened with the Guide button or G (↑/↓ keep the volume here); a click on a channel
  * switches to it; Escape, a click beside the panel or the button again close it.
  */

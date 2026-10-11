@@ -80,23 +80,23 @@ export function preferredVariant<V extends Pick<VariantInfo, 'audioLanguages' | 
   return candidates.find(sameQuality) ?? (choice.languages.length ? candidates[0]! : null);
 }
 
-/** A version with subtitles in the picture that cannot be turned off ("EAR", D-148). */
+/** A version with subtitles in the picture that cannot be turned off ("EAR", D-087). */
 const burnedIn = (variant: Partial<Pick<VariantInfo, 'rawTitle'>>) => isEnglishArabic(variant.rawTitle ?? '');
 
-/** The versions without subtitles in the picture, when there are any (D-148). */
+/** The versions without subtitles in the picture, when there are any (D-087). */
 const withoutBurnedIn = <V extends Partial<Pick<VariantInfo, 'rawTitle'>>>(variants: V[]): V[] => {
   const clean = variants.filter((variant) => !burnedIn(variant));
   return clean.length ? clean : variants;
 };
 
-/** The audio language tag of each app language (D-136). */
+/** The audio language tag of each app language (D-087). */
 const UI_LANGUAGE_TAG: Record<UiLanguage, string> = { en: 'ENG', 'pt-BR': 'POR', de: 'GER', 'sh-BA': 'EXYU' };
 
-/** The languages that pick the best of equally good versions (D-136): the profile's languages, then the app's. */
+/** The languages that pick the best of equally good versions (D-087): the profile's languages, then the app's. */
 export const versionLanguages = (profile: readonly string[], app: UiLanguage): string[] => [...new Set([...profile, UI_LANGUAGE_TAG[app]])];
 
 /**
- * The version marked "best" (D-136): the one with the highest quality (quality, source, HDR). When several share it,
+ * The version marked "best" (D-087): the one with the highest quality (quality, source, HDR). When several share it,
  * quality says nothing, so the first of them in one of `languages` (in that order); null when none is.
  */
 export function bestVariant<
@@ -115,10 +115,10 @@ export function bestVariant<
 }
 
 /**
- * The version a title starts with when none was picked for it (D-144). In the profile's languages (the first one the
- * title has a version in), leaving out versions with subtitles in the picture when it has others ("EAR", D-148): the
+ * The version a title starts with when none was picked for it (D-087). In the profile's languages (the first one the
+ * title has a version in), leaving out versions with subtitles in the picture when it has others ("EAR", D-087): the
  * quality of the profile's version choice, else the highest quality. A title with no version in them: the profile's
- * version choice (D-087), else the best version (D-136), else the first.
+ * version choice, else the best version, else the first (D-087).
  */
 export function startingVariant<
   V extends Pick<VariantInfo, 'audioLanguages' | 'quality' | 'source' | 'isHdr'> & Partial<Pick<VariantInfo, 'rawTitle'>>,
@@ -195,7 +195,7 @@ export function trackLanguageName(code: string | null | undefined): string | nul
 
 /**
  * What a player shows for a track: the stream's own name ("English 5.1", "Forced"), or, when it has none or only
- * repeats the language code ("en"), the language's name (D-089).
+ * repeats the language code ("en"), the language's name (D-090).
  */
 export function trackLabel(track: TrackInfo): string {
   const label = track.label?.trim() ?? '';

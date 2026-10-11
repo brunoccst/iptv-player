@@ -32,7 +32,7 @@ function setup(
   } = newStorages(),
 ) {
   let ids = 0;
-  // In the database mode, profiles, progress and My List are in the database too (D-126).
+  // In the database mode, profiles, progress and My List are in the database too (D-121).
   const kept = withUserDatabase({ secure: storages.secure, data: storages.data }, storages.db);
   const api = createDirectApiClient({
     appName: 'Test',
@@ -171,7 +171,7 @@ describe.each([
     expect(await titles({ hiddenCategoryIds: ['10'] })).toEqual(['Big Test Movie']);
     expect(await titles({ hiddenCategoryIds: ['10', '11'] })).toEqual([]);
     expect((await api.library.list('movies', { search: 'another', hiddenCategoryIds: ['10'] })).total).toBe(1);
-    // Category hint (D-086): a version without a language in its name passes in a hinted category.
+    // Category hint (D-063): a version without a language in its name passes in a hinted category.
     expect(await titles({ language: 'GER', languageCategoryIds: ['10'] })).toEqual(['Big Test Movie']);
     expect(await titles({ language: 'GER', languageCategoryIds: ['11'] })).toEqual([]);
     expect(await titles({ language: 'ita', languageCategoryIds: ['10'] })).toEqual(['Another Film', 'Big Test Movie']);
@@ -239,7 +239,7 @@ describe.each([
     expect(lists()).toBe(1);
     release();
     await libraryReady(api);
-    // The update refreshes the saved channels and the guide once the library is done (D-123, issue #119).
+    // The update refreshes the saved channels and the guide once the library is done (D-121, issue #119).
     for (let attempt = 0; attempt < 100 && !asked.includes('/xmltv.php'); attempt++) await new Promise((r) => setTimeout(r, 5));
     expect(lists()).toBe(2);
     expect(asked.indexOf('/xmltv.php')).toBeGreaterThan(asked.lastIndexOf('get_vod_streams'));
@@ -277,7 +277,7 @@ describe.each([
     }
   });
 
-  it('"Update library" stops a guide still downloading, and downloads it again after the library (D-138)', async () => {
+  it('"Update library" stops a guide still downloading, and downloads it again after the library (D-135)', async () => {
     if (!useDatabase) return;
     const panel = createFakePanel();
     const guides: { aborted: boolean }[] = [];
@@ -416,7 +416,7 @@ describe.each([
       expect(await api.library.list(section, { limit: 500 })).toEqual(await plain.library.list(section, { limit: 500 }));
   });
 
-  it('Refresh library reuses the saved titles that did not change, after a restart too (D-109)', async () => {
+  it('Refresh library reuses the saved titles that did not change, after a restart too (D-135)', async () => {
     const first = setup();
     await first.api.auth.login(login);
     await libraryReady(first.api);
@@ -431,7 +431,7 @@ describe.each([
       .entries()
       .filter((entry) => !logged.has(entry))
       .map((entry) => entry.message);
-    // The database knows the same list by its fingerprint (D-138); in memory, unchanged titles are kept as they were.
+    // The database knows the same list by its fingerprint (D-135); in memory, unchanged titles are kept as they were.
     const reused = useDatabase
       ? /^movie: the same list as last time, nothing to compare$/
       : /^movie: grouped into 2 titles in \d+ ms, 3 names and 2 titles unchanged$/;
@@ -496,7 +496,7 @@ describe.each([
   });
 
   // With the database there is no saved file to wait for: the next test.
-  it.runIf(!useDatabase)('after a restart, Home answers from the snapshot while the saved library is still read (D-120)', async () => {
+  it.runIf(!useDatabase)('after a restart, Home answers from the snapshot while the saved library is still read (D-121)', async () => {
     const first = setup();
     await first.api.auth.login(login);
     await libraryReady(first.api);
@@ -563,7 +563,7 @@ describe.each([
       expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
       expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
       expect(fileKeys()).toEqual([]);
-      // Home's snapshot (D-120) is not needed with a database (D-122).
+      // Home's snapshot is not needed with a database (D-121).
       expect(snapshots()).toEqual([]);
       expect((await moved.library.status()).map((status) => [status.jobStatus, status.masterCount])).toEqual([
         ['done', 2],
@@ -641,7 +641,7 @@ describe.each([
   });
 
   it.runIf(useDatabase)(
-    'keeps categories, movie info, episodes and the guide in the database: no download after a restart, old copies offline (D-125)',
+    'keeps categories, movie info, episodes and the guide in the database: no download after a restart, old copies offline (D-121)',
     async () => {
       const first = setup();
       await first.api.auth.login(login);

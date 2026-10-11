@@ -9,7 +9,7 @@ async function flush() {
   });
 }
 
-describe('account menu → Content language filter (D-063, D-067, D-086)', () => {
+describe('account menu → Content language filter (D-063)', () => {
   it('filters the library by one or more languages for the active profile and remembers the choice', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
@@ -29,7 +29,7 @@ describe('account menu → Content language filter (D-063, D-067, D-086)', () =>
     await fireEvent.press(screen.getByTestId('language-POR'));
     await fireEvent.press(screen.getByTestId('language-ENG'));
     await fireEvent.press(screen.getByTestId('language-POR'));
-    // The order they are ticked in is their priority, shown as a number (D-145): unticking Portuguese moves English up.
+    // The order they are ticked in is their priority, shown as a number (D-063): unticking Portuguese moves English up.
     expect(screen.getByText('✓ 1. German')).toBeTruthy();
     expect(screen.getByText('✓ 2. English')).toBeTruthy();
     expect(screen.getByText('Portuguese')).toBeTruthy();

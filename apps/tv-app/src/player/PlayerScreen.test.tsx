@@ -206,7 +206,7 @@ describe('PlayerScreen', () => {
     expect(await screen.findByText(/could not decode the audio of this title \(Dolby Digital Plus\)/)).toBeTruthy();
   });
 
-  it("carries on from where the stream stopped when the provider's server stops answering, and offers Try again (D-172)", async () => {
+  it("carries on from where the stream stopped when the provider's server stops answering, and offers Try again (D-074)", async () => {
     const timeout = {
       message: 'Source error',
       code: 'ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT',
@@ -410,12 +410,12 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('fastForward', 'down'));
     expect(screen.getByTestId('scrub-step')).toHaveTextContent('+5:00');
     await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
-    // 110 + 30 + 60 + 120 + 300 (D-150)
+    // 110 + 30 + 60 + 120 + 300 (D-128)
     expect(playerState.seeks).toEqual([110_000, 620_000]);
     expect(screen.queryByTestId('scrub-bar')).toBeNull();
   });
 
-  it('the ±10 s buttons skip further when pressed in a row: 10 s, 30 s, 1 min (D-150)', async () => {
+  it('the ±10 s buttons skip further when pressed in a row: 10 s, 30 s, 1 min (D-128)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
     await render(<PlayerScreen target={movie} />);
@@ -479,7 +479,7 @@ describe('PlayerScreen', () => {
     expect(screen.queryByTestId('quick-drawer')).toBeNull();
   });
 
-  it('TV: ↓ puts the focus on the on-screen buttons; the D-pad moves between them; Back returns to the video (D-075)', async () => {
+  it('TV: ↓ puts the focus on the on-screen buttons; the D-pad moves between them; Back returns to the video (D-077)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
@@ -507,7 +507,7 @@ describe('PlayerScreen', () => {
     expect(screen.getByTestId('player-focus')).toBeTruthy();
     expect(screen.getByTestId('player-toggle').props.focusable).toBe(false);
 
-    // ↑ opens the same buttons with Back at the top left focused, not the drawer (D-101).
+    // ↑ opens the same buttons with Back at the top left focused, not the drawer (D-077).
     await act(async () => pressRemote('up', 'down'));
     expect(screen.queryByTestId('quick-drawer')).toBeNull();
     expect(screen.getByTestId('player-back').props).toMatchObject({ focusable: true, hasTVPreferredFocus: true });
@@ -560,7 +560,7 @@ describe('PlayerScreen', () => {
     expect(screen.queryByText('S01:E02 · Second')).toBeNull();
     await act(async () => pressBack());
 
-    // Audio, Subtitles, Episodes on the bar, in the drawer's order, each opening its tab (D-102).
+    // Audio, Subtitles, Episodes on the bar, in the drawer's order, each opening its tab (D-077).
     const bar = screen.getAllByRole('button').map((button) => button.props.testID);
     expect(bar.filter((id) => ['player-audio', 'player-subtitles', 'player-episodes'].includes(id))).toEqual([
       'player-audio',
@@ -579,7 +579,7 @@ describe('PlayerScreen', () => {
     expect(screen.getByLabelText('✓ Default')).toBeTruthy();
     await act(async () => pressBack());
 
-    // Several tracks with only their codes ("en") show the languages' names (D-089).
+    // Several tracks with only their codes ("en") show the languages' names (D-090).
     const pt = { type: 'audio', groupIndex: 1, trackIndex: 0, label: 'pt', language: 'pt', selected: false };
     await act(async () => playerState.props?.onTracks?.({ nativeEvent: { tracks: [en, pt] } } as never));
     await fireEvent.press(screen.getByTestId('player-audio'));
@@ -736,7 +736,7 @@ describe('PlayerScreen', () => {
     expect(screen.getByText('S01:E02 · Second')).toBeTruthy();
   });
 
-  it('episodes: Skip ahead is on screen for 10 s only, 5–15 s in (D-100)', async () => {
+  it('episodes: Skip ahead is on screen for 10 s only, 5–15 s in (D-042)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });
     stubShow(backend);
@@ -768,7 +768,7 @@ describe('PlayerScreen', () => {
     // Only the Skip ahead button: ←/→ still seek.
     await act(async () => pressRemote('right'));
     expect(playerState.seeks).toEqual([15_000]);
-    // Back inside the 10 s the button is up (D-100).
+    // Back inside the 10 s the button is up (D-042).
     await progress(8, 2400);
     // Options open: walking them with →/← never seeks; the chosen option skips exactly its amount.
     await fireEvent.press(screen.getByTestId('skip-ahead'));
@@ -1080,7 +1080,7 @@ describe('PlayerScreen', () => {
       expect(playerState.seeks.at(-1)).toBe(40_000);
       // Controls stay as they were before the double tap (hidden).
       expect(screen.queryByTestId('player-controls')).toBeNull();
-      // The "+10" circle never takes the next taps, and goes once it has faded (D-097).
+      // The "+10" circle never takes the next taps, and goes once it has faded (D-046).
       expect(screen.getByTestId('tap-flash-forward')).toHaveProp('pointerEvents', 'none');
       await act(async () => jest.advanceTimersByTime(1000));
       expect(screen.queryByTestId('tap-flash-forward')).toBeNull();
@@ -1137,7 +1137,7 @@ describe('PlayerScreen', () => {
       expect(nativeState.brightness).toBe(1);
     });
 
-    it('live: a swipe up in the middle opens the guide, on the sides it sets brightness or volume (D-155)', async () => {
+    it('live: a swipe up in the middle opens the guide, on the sides it sets brightness or volume (D-046)', async () => {
       const backend = setupApp();
       backend.on('GET', '/api/playback/live/7', { body: playback('http://relay/7.m3u8', 'm3u8') });
       backend.on('GET', '/api/epg', { body: { status: 'ready', totalChannels: 0, from: null, to: null, updatedAt: null, channels: [] } });
@@ -1155,7 +1155,7 @@ describe('PlayerScreen', () => {
       expect(screen.getByTestId('guide-overlay')).toBeTruthy();
     });
 
-    it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-150)', async () => {
+    it('more quick taps on the same side skip further: 10 s, 30 s, 1 min (D-128)', async () => {
       const backend = setupApp();
       backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
       await render(<PlayerScreen target={movie} />);

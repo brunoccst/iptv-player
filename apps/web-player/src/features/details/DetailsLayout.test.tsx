@@ -13,7 +13,7 @@ const parts = {
   side: <p>Cast: Someone</p>,
 };
 
-describe('details in two columns on wide landscape windows (D-158, D-164)', () => {
+describe('details in two columns on wide landscape windows (D-158)', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();

@@ -4,7 +4,7 @@ import type { KeyValueStorage } from './storage';
 
 const TABLE = 'CREATE TABLE IF NOT EXISTS user_data (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL) WITHOUT ROWID';
 
-/** Profiles, progress, My List and the settings (D-126). Library files, logs and caches stay where they are. */
+/** Profiles, progress, My List and the settings (D-121). Library files, logs and caches stay where they are. */
 export const isUserDataKey = (key: string) => /^(direct\.(profiles|progress|watchlist)\.|settings\.)/.test(key);
 /** The parental PIN's salted hash (D-054). */
 export const isPinKey = (key: string) => key.startsWith('pin.');
@@ -21,8 +21,8 @@ const prepare = (db: SqlDatabase) => {
 };
 
 /**
- * `base` with the keys `inDatabase` picks kept in the library database (D-126). Such a key still in `base` (the app
- * before D-126, a restored backup written there) is moved into the database the first time it is read, then removed
+ * `base` with the keys `inDatabase` picks kept in the library database (D-121). Such a key still in `base` (the app
+ * before D-121, a restored backup written there) is moved into the database the first time it is read, then removed
  * from `base`. If the database fails, `base` answers, as before.
  */
 export function createDatabaseStorage(db: SqlDatabase, base: KeyValueStorage, inDatabase: (key: string) => boolean): KeyValueStorage {
@@ -97,7 +97,7 @@ export function createDatabaseStorage(db: SqlDatabase, base: KeyValueStorage, in
 }
 
 /**
- * The storages the apps use, with the user's data in the database when there is one (D-126): profiles, progress,
+ * The storages the apps use, with the user's data in the database when there is one (D-121): profiles, progress,
  * My List and settings from `data`, the PIN from `secure`. The sign-in stays in `secure` (encrypted by the system).
  * Without a database (a plain browser), the storages as they are.
  */

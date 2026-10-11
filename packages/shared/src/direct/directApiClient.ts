@@ -46,7 +46,7 @@ import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
 
-/** The app's `ApiClient`: runs on the device and talks to the provider directly (D-038, D-088). */
+/** The app's `ApiClient`: runs on the device and talks to the provider directly (D-088). */
 export interface DirectApiClientOptions {
   appName: string;
   /** Credentials. TV: expo-secure-store. */
@@ -57,11 +57,11 @@ export interface DirectApiClientOptions {
   userAgent?: string;
   /** TV/phone: provider lists read by native code (D-115). */
   listReader?: ListReader;
-  /** TV/phone: SHA-1 hex of many texts at once, in native code, for title ids (D-118). */
+  /** TV/phone: SHA-1 hex of many texts at once, in native code, for title ids (D-093). */
   hashIds?(texts: string[]): Promise<string[]>;
   now?: () => Date;
   randomId?: () => string;
-  /** How long after the last new list the start-up snapshot is saved (D-120); tests use 0. */
+  /** How long after the last new list the start-up snapshot is saved (D-121); tests use 0. */
   snapshotSaveMs?: number;
   /**
    * TV/phone: the library in SQLite (D-121), so a start reads a few rows instead of the whole library, and lists are
@@ -106,7 +106,7 @@ const oldLibraryKey = (accountId: string, kind: LibraryKind) => `direct.library.
 
 const CATALOG_CACHE_MS = 15 * 60_000;
 const SHORT_EPG_CACHE_MS = 30 * 60_000;
-/** How long the database's copy stays fresh (D-125); an older one is still used when the provider cannot answer. */
+/** How long the database's copy stays fresh (D-121); an older one is still used when the provider cannot answer. */
 const SAVED_CATEGORIES_MS = 24 * 3600_000;
 const SAVED_MOVIE_MS = 7 * 24 * 3600_000;
 const SAVED_SERIES_MS = 12 * 3600_000;
@@ -132,13 +132,13 @@ const ME_TIMEOUT_MS = 10_000;
 const unixSeconds = (iso: string | null | undefined) => (iso ? Math.floor(Date.parse(iso) / 1000) || null : null);
 
 /**
- * Titles with audio or subtitles in one of `languages` (D-063, D-067). Home and the grids ask for many lists at once
+ * Titles with audio or subtitles in one of `languages` (D-063). Home and the grids ask for many lists at once
  * after a language change; the result is kept per list and language choice, so they share one pass over the titles.
  */
 const languageScopes = new WeakMap<Master[], Map<string, Master[]>>();
 function inLanguages(scope: Master[], languages: string[], categoryIds: string[] | null | undefined): Master[] {
   if (languages.length === 0) return scope;
-  // A version without a language in its name passes in a category named in a chosen language, or in none (D-086).
+  // A version without a language in its name passes in a category named in a chosen language, or in none (D-063).
   const hinted = new Set(categoryIds ?? []);
   const key = `${languages.join(',')}|${[...hinted].sort().join(',')}`;
   let byKey = languageScopes.get(scope);
@@ -157,7 +157,7 @@ function inLanguages(scope: Master[], languages: string[], categoryIds: string[]
   return result;
 }
 
-/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063, D-067). */
+/** Upper-case three-letter codes from `ENG,GER`; empty for "all languages" (D-063). */
 const languageCodes = (languages: string | null | undefined) => [
   ...new Set(
     (languages ?? '')
@@ -169,7 +169,7 @@ const languageCodes = (languages: string | null | undefined) => [
 
 /** D-049: missing values last, then title, year and id. */
 const defaultOrder = (sort: LibrarySort): SortOrder => (sort === 'title' ? 'asc' : 'desc');
-/** The provider's rating; 0 means none (D-153). */
+/** The provider's rating; 0 means none (D-049). */
 const ratingOf = (master: Master) => (master.rating !== null && master.rating > 0 ? master.rating : null);
 const sortValue = (master: Master, sort: LibrarySort) =>
   sort === 'added' ? master.addedAt : sort === 'rating' ? ratingOf(master) : master.releaseKey;
@@ -199,7 +199,7 @@ function changesSince(previous: Master[] | undefined, masters: Master[], reused:
   return { added: masters.length - kept, changed: Math.max(0, kept - reused), removed: before.size - kept };
 }
 
-/** A sorted copy; a list already in that order (the saved library is newest first, D-117) is only checked, not sorted. */
+/** A sorted copy; a list already in that order (the saved library is newest first, D-121) is only checked, not sorted. */
 function inOrder(masters: Master[], compare: (a: Master, b: Master) => number): Master[] {
   for (let index = 1; index < masters.length; index++) {
     if (compare(masters[index - 1]!, masters[index]!) > 0) return [...masters].sort(compare);
@@ -353,7 +353,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   const catalogDb = options.libraryDb ? createSqlCatalogCache(options.libraryDb, () => now().getTime()) : null;
 
   /**
-   * The provider's answer, saved in the database (D-125): a copy younger than `freshMs` answers without the network;
+   * The provider's answer, saved in the database (D-121): a copy younger than `freshMs` answers without the network;
    * an older one answers when the provider fails (offline). Without a database, only the provider.
    */
   const persisted = async <T>(accountId: string, key: string, freshMs: number, load: () => Promise<T>): Promise<T> => {
@@ -380,7 +380,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   const saving = new Set<LibraryKind>();
 
   /**
-   * A saved library, read and unpacked in slices so the screen keeps running (D-117, D-120). The Log says where the
+   * A saved library, read and unpacked in slices so the screen keeps running (D-121). The Log says where the
    * time went: reading the files, or reading the titles from the text.
    */
   const readSavedLibrary = async (key: string) => {
@@ -416,7 +416,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       const accountId = stored.account.id;
       await loadLibrary();
       // The last library, when built with the current title rules (older rules load as built at time 0): unchanged names
-      // and titles are reused, so a daily update only works on what changed (D-109).
+      // and titles are reused, so a daily update only works on what changed (D-135).
       const previous = library.data && Date.parse(library.data.builtAt) > 0 ? library.data : null;
       const queuedAt = now().toISOString();
       appLog.info('library', `sync started (saved copy: ${library.data ? `built ${library.data.builtAt}` : 'none'})`);
@@ -424,10 +424,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         library.status[kind] = { jobStatus: 'processing', stage: 'downloading', itemCount: null, queuedAt, finishedAt: null, error: null };
       markStarted();
       // A guide still downloading would share the connection with the lists: it stops, and comes again after the
-      // channel list that follows this update (D-138).
+      // channel list that follows this update (D-135).
       guide.stop?.abort();
-      // "Update library" also refreshes the categories (D-125), and the saved channel list once the library is done
-      // (D-123, D-135): saving 20k+ channels and the full guide at the same time slowed the library down.
+      // "Update library" also refreshes the categories (D-121), and the saved channel list once the library is done
+      // (D-121, D-135): saving 20k+ channels and the full guide at the same time slowed the library down.
       for (const key of [...cache.keys()]) if (key.startsWith(`categories:${accountId}:`)) cache.delete(key);
       void catalogDb?.forget(accountId, 'categories:').catch(() => undefined);
       const current = () => credentials?.account.id === accountId;
@@ -567,7 +567,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               reused = `, ${counts.names} names and ${counts.masters} titles unchanged`;
               reusedMasters = counts.masters;
             },
-            // Where the time goes, to see what to speed up (D-116).
+            // Where the time goes, to see what to speed up (D-093).
             onTimings: (time) => {
               const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
               appLog.info(
@@ -589,9 +589,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           if (!current()) return;
           // Publish and save before reporting "done": a watcher (or a restart) that sees "done" must also see the titles.
           // Kept and saved newest first, the order Home and the lists ask for first: after a restart that list needs no
-          // sort (D-117).
+          // sort (D-121).
           const newestFirst = [...masters].sort(compareMasters('added', 'desc'));
-          // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-120).
+          // The answers kept for a quick start are from the old titles: gone before the new ones are saved (D-121).
           saving.add(kind);
           try {
             await snapshot.drop(accountId, kind === 'movie' ? 'movies' : 'series');
@@ -705,8 +705,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       // A file from before D-121 is not read: the provider's lists are saved and grouped again (D-133).
       for (const kind of ['movie', 'series'] as const)
         if (!kinds[kind]) void Promise.resolve(options.dataStorage.removeItem(libraryKey(accountId, kind))).catch(() => undefined);
-      // The database answers at once: the snapshot of Home's lists (D-120) only served the first start, while the file
-      // was moved in (D-122).
+      // The database answers at once: the snapshot of Home's lists (D-121) only served the first start, while the file
+      // was moved in (D-121).
       void snapshot.forget(accountId);
       const present = Object.values(kinds);
       appLog.info(
@@ -822,7 +822,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
   };
 
   /**
-   * While the saved library is still being read after a start: the answer kept from the last run (D-120), if any. Home
+   * While the saved library is still being read after a start: the answer kept from the last run (D-121), if any. Home
    * then shows in a moment instead of after the whole library (15 s for 160k titles on a Chromecast).
    */
   const beforeLoad = async <T>(answer: (accountId: string) => Promise<T | null>): Promise<T | null> => {
@@ -835,7 +835,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return kept;
   };
 
-  // ---- Live channels (in the database with one, D-123) ----
+  // ---- Live channels (in the database with one, D-121) ----
   const live: {
     accountId: string | null;
     saved: SqlLiveChannels | null;
@@ -906,7 +906,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     saved: SqlGuide | null;
     opening: Promise<SqlGuide | null> | null;
     refreshing: Promise<void> | null;
-    /** Stops a guide download that is saving into the database (D-138). */
+    /** Stops a guide download that is saving into the database (D-135). */
     stop: AbortController | null;
     memory: { programmes: GuideProgramme[]; builtAt: number } | null;
   } = { accountId: null, saved: null, opening: null, refreshing: null, stop: null, memory: null };
@@ -1068,7 +1068,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     let page: LiveChannel[];
     let totalChannels: number;
     if (saved && sqlLive) {
-      // Only this page of channels is read (D-123).
+      // Only this page of channels is read (D-121).
       const found = await sqlLive.list(saved, {
         categoryId: query.categoryId,
         categoryIds: query.categoryIds,

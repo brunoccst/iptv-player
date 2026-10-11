@@ -16,7 +16,7 @@ module.exports = {
   ...(updateRepo ? { publish: { provider: 'generic', url: `https://github.com/${updateRepo}/releases/download/desktop` } } : {}),
   // Fixed file names, so the download links in the README never change.
   win: { target: 'nsis', icon: 'build/icon.png', artifactName: `${appSlug}-setup.\${ext}` },
-  // A normal setup wizard (D-072): for this user only (no administrator rights, default %LOCALAPPDATA%\Programs) or
+  // A normal setup wizard (D-071): for this user only (no administrator rights, default %LOCALAPPDATA%\Programs) or
   // for all users (Program Files), then the folder, which may be on any drive. Shortcuts on the desktop and Start menu.
   nsis: {
     oneClick: false,
@@ -25,7 +25,7 @@ module.exports = {
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
   },
-  // Size (D-072): only the English Chromium texts (the app's own texts are English; saves ~9 MB) and the
+  // Size (D-071): only the English Chromium texts (the app's own texts are English; saves ~9 MB) and the
   // strongest installer compression. Chromium itself (~200 MB) is the rest.
   electronLanguages: ['en-US'],
   compression: 'maximum',

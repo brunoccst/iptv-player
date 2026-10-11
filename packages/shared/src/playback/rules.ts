@@ -69,7 +69,7 @@ export interface SkipAheadWindow {
   end: number;
 }
 
-/** When the "Skip ahead" button shows: episodes of at least 10 minutes, 5–15 s in (10 s on screen, D-100). Movies and live never. */
+/** When the "Skip ahead" button shows: episodes of at least 10 minutes, 5–15 s in (10 s on screen, D-042). Movies and live never. */
 export function skipAheadWindow(kind: 'live' | 'movie' | 'episode', durationSeconds: number): SkipAheadWindow | null {
   if (kind !== 'episode' || !(durationSeconds >= SKIP_AHEAD_WINDOW.minDuration)) return null;
   return { start: SKIP_AHEAD_WINDOW.start, end: SKIP_AHEAD_WINDOW.end };

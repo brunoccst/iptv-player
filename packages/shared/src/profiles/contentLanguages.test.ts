@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { categoryLanguages, languageCategoryIds } from './contentLanguages';
 
-describe('content language filter: category hint (D-086)', () => {
+describe('content language filter: category hint (D-063)', () => {
   it('reads the language a category name says', () => {
     expect(categoryLanguages('SRS | EN - ACTION')).toEqual(['ENG']);
     expect(categoryLanguages('SRS | DEUTSCH')).toEqual(['GER']);
@@ -15,7 +15,7 @@ describe('content language filter: category hint (D-086)', () => {
     expect(categoryLanguages('VOD | NOW IN CINEMAS')).toEqual([]);
   });
 
-  it('reads Greek, Ex-Yu, Polish and Punjabi (D-107)', () => {
+  it('reads Greek, Ex-Yu, Polish and Punjabi (D-017)', () => {
     expect(categoryLanguages('VOD | GR - MOVIES')).toEqual(['GRE']);
     expect(categoryLanguages('SRS | GREECE')).toEqual(['GRE']);
     expect(categoryLanguages('VOD | EXYU FILMOVI')).toEqual(['EXYU']);
@@ -44,7 +44,7 @@ describe('content language filter: category hint (D-086)', () => {
   });
 });
 
-describe('library lists send the category hint with the content language filter (D-086)', () => {
+describe('library lists send the category hint with the content language filter (D-063)', () => {
   it('asks for the categories once and sends the hinted ids', async () => {
     const { createTestAppContext } = await import('../testing/fakeBackend');
     const { createFakeBackend, account, profile } = await import('../testing/fakeBackend');

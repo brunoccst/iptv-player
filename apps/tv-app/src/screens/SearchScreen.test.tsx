@@ -97,7 +97,7 @@ describe('Search and Log pages (TV)', () => {
     jest.useRealTimers();
   });
 
-  it('filters the results to movies, series or live channels; the title stays above them (D-108)', async () => {
+  it('filters the results to movies, series or live channels; the title stays above them (D-130)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', { body: { total: 1, items: [card('m1', 'News of the World')] } });
     backend.on('GET', '/api/library/series', { body: { total: 1, items: [card('s1', 'The Newsroom')] } });
@@ -134,7 +134,7 @@ describe('Search and Log pages (TV)', () => {
     expect(screen.getAllByText('BBC News').length).toBeGreaterThan(0);
   });
 
-  it('TV: pages of 36 results that load as the focus nears the end (D-095)', async () => {
+  it('TV: pages of 36 results that load as the focus nears the end (D-094)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
     backend.on('GET', '/api/library/movies', ({ url }) => {

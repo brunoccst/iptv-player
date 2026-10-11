@@ -10,7 +10,7 @@ vi.mock('../appContext', () => ({
   stores: { session: { getState: () => ({ offline: false }) } },
 }));
 
-describe('Open in VLC (desktop app, D-081)', () => {
+describe('Open in VLC (desktop app, D-057)', () => {
   afterEach(() => {
     vi.resetModules();
     delete (globalThis as { iptvDesktop?: unknown }).iptvDesktop;
@@ -27,7 +27,7 @@ describe('Open in VLC (desktop app, D-081)', () => {
     expect(openInVlc).toHaveBeenCalledWith('http://panel/movie/u/p/101.mkv', 'Heat');
   });
 
-  it('hands VLC the stream server when the portal does not answer with a video (D-038)', async () => {
+  it('hands VLC the stream server when the portal does not answer with a video (D-088)', async () => {
     get.mockResolvedValueOnce({ url: 'http://portal/movie/u/p/101.mkv', alternateUrls: ['http://streams/movie/u/p/101.mkv'] } as never);
     const openInVlc = vi.fn(async () => 'vlc' as const);
     (globalThis as { iptvDesktop?: unknown }).iptvDesktop = { openInVlc };

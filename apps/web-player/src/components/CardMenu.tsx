@@ -9,7 +9,7 @@ export interface CardMenuAction {
   onSelect(): void;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
-  /** Shown after the text (the episode menu, D-086). */
+  /** Shown after the text (the episode menu, D-078). */
   icon?: IconName;
 }
 
@@ -139,7 +139,7 @@ export function menuPosition(event: { clientX: number; clientY: number; currentT
   return { x: box.left + 12, y: box.top + 12 };
 }
 
-/** Position for a menu opened by a button (an episode's "…", D-083): under the button, its right edges lined up. */
+/** Position for a menu opened by a button (an episode's "…", D-078): under the button, its right edges lined up. */
 export function menuBelow(button: Element): MenuPosition {
   const box = button.getBoundingClientRect();
   return { x: box.right - 200, y: box.bottom + 4 };

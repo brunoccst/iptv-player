@@ -9,7 +9,7 @@ const POLL_MS = 4000;
 
 /**
  * Offline notice, "organizing library" progress per kind, and empty-library hint; reloads rows when processing ends.
- * Floats at the bottom of Home and the Movies/Series pages, over the content, as in the TV/phone app (D-142).
+ * Floats at the bottom of Home and the Movies/Series pages, over the content, as in the TV/phone app (D-119).
  */
 export function LibraryBanner() {
   const offline = useSession((s) => s.offline);
@@ -20,7 +20,7 @@ export function LibraryBanner() {
   const empty = !statuses || statuses.every((status) => status.masterCount === 0);
   // Right after the first login the sync job may not exist yet: keep polling while empty, not only while processing.
   const waiting = processing || empty;
-  // Rows shown while the status was still unknown (a start, D-120) are already the saved library's: only an update or
+  // Rows shown while the status was still unknown (a start, D-121) are already the saved library's: only an update or
   // an empty library make them stale.
   const stale = processing || (!!statuses && empty);
   const wasStale = useRef(false);

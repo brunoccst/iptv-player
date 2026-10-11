@@ -72,7 +72,7 @@ export type ExternalPlayerResult = 'opened' | 'chooser' | 'none';
 /** What Android would say about a downloaded update (D-062): `other-key` means a different signing key. */
 export type UpdateCheck = 'ok' | 'not-newer' | 'other-app' | 'other-key';
 
-/** What the app may use and the device has, in MB (D-113). */
+/** What the app may use and the device has, in MB (D-039). */
 export interface MemoryInfo {
   javaHeapMaxMb: number;
   javaHeapUsedMb: number;

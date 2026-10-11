@@ -45,7 +45,7 @@ jest.mock('expo-file-system', () => {
       files.set(this.path, '');
     }
     write(value: string) {
-      // Like Android: Expo hands the text to Kotlin as a C string (NewStringUTF), which ends at the first NUL (D-113).
+      // Like Android: Expo hands the text to Kotlin as a C string (NewStringUTF), which ends at the first NUL (D-121).
       files.set(this.path, value.split('\u0000')[0]!);
     }
     delete() {

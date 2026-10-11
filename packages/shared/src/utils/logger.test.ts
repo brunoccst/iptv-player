@@ -12,7 +12,7 @@ describe('redact', () => {
     );
   });
 
-  it('masks servers, keys, tokens, e-mail and IP addresses but keeps public services and the device itself (D-173)', () => {
+  it('masks servers, keys, tokens, e-mail and IP addresses but keeps public services and the device itself (D-039)', () => {
     expect(redact('retrying on the stream server https://user:pw@cdn.example.net:2083/live/a/b/1.ts')).toBe(
       'retrying on the stream server https://***/live/***/***/1.ts',
     );

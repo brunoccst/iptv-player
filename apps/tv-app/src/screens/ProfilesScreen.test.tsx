@@ -34,7 +34,7 @@ describe('Profiles (TV)', () => {
   });
 });
 
-describe('Kids categories (TV, D-064)', () => {
+describe('Kids categories (TV, D-053)', () => {
   it('a parent picks the categories of a Kids profile, starting from the automatic choice', async () => {
     const backend = setupApp();
     const kid = { id: 'kid', name: 'Mia', avatarKey: null, isKids: true };

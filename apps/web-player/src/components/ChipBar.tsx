@@ -10,9 +10,9 @@ export interface ChipItem {
 }
 
 /**
- * Category chips on one line, like the TV and phone apps (D-085). When they do not fit, "Show all" wraps every chip
+ * Category chips on one line, like the TV and phone apps (D-047). When they do not fit, "Show all" wraps every chip
  * across the full width in a box of at most half the screen that scrolls on its own, with "Show less" above it
- * (D-091); "Show less" returns to the line; picking a chip also returns to it, with the chosen chip in view. On the
+ * (D-047); "Show less" returns to the line; picking a chip also returns to it, with the chosen chip in view. On the
  * line, the mouse wheel scrolls sideways.
  */
 export function ChipBar({ chips, label }: { chips: ChipItem[]; label: string }) {

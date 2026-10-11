@@ -10,7 +10,7 @@ export interface CardMenuAction {
   testID?: string;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
-  /** Shown after the text (the episode menu, D-086). */
+  /** Shown after the text (the episode menu, D-078). */
   icon?: IconName;
 }
 

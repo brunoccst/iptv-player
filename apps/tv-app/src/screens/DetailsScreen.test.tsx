@@ -162,14 +162,14 @@ describe('series details: one episode list for all versions (D-066)', () => {
     });
     await render(<DetailsScreen section="series" masterId="show" />);
     await flush();
-    // The D-pad stays in the panel in every direction: the page behind is never reached (D-075).
+    // The D-pad stays in the panel in every direction: the page behind is never reached (D-069).
     expect(screen.getByTestId('details-screen').props).toMatchObject({
       trapFocusUp: true,
       trapFocusDown: true,
       trapFocusLeft: true,
       trapFocusRight: true,
     });
-    // Left/Right stay in the episode's row, which no longer sends Up/Down to Play (D-069, D-149).
+    // Left/Right stay in the episode's row, which no longer sends Up/Down to Play (D-069).
     let row = screen.getByTestId('episode-en-1').parent;
     while (row && row.props.trapFocusRight !== true) row = row.parent;
     expect(row?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
@@ -193,7 +193,7 @@ describe('series details: one episode list for all versions (D-066)', () => {
   });
 });
 
-describe('watched episodes and series (D-082)', () => {
+describe('watched episodes and series (D-081)', () => {
   it('marks episodes with the check button or by holding OK; every episode watched tags the series', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/series/show', {
@@ -224,7 +224,7 @@ describe('watched episodes and series (D-082)', () => {
     await flush();
     const puts = () => backend.calls.filter((c) => c.method === 'PUT').map((c) => c.url.pathname.split('/').pop());
 
-    // The row keeps Play, "…" and the version choice (D-083); the rest is in the episode's menu.
+    // The row keeps Play, "…" and the version choice (D-078); the rest is in the episode's menu.
     expect(screen.queryByTestId('download-button')).toBeNull();
     expect(screen.queryByTestId('episode-en-1-mark')).toBeNull();
     await fireEvent.press(screen.getByTestId('episode-en-1-more'));
@@ -319,7 +319,7 @@ describe('episode description (issue #160)', () => {
     const plot = () => screen.getByText(/A long plot that goes on and on\./);
 
     expect(await screen.findByText(/A long plot that goes on and on\./)).toHaveProp('numberOfLines', 2);
-    // Not a D-pad stop: Play stays the first thing focused in an episode (D-083).
+    // Not a D-pad stop: Play stays the first thing focused in an episode (D-078).
     expect(screen.getByTestId('plot-a1')).toHaveProp('focusable', false);
     await fireEvent.press(screen.getByTestId('plot-a1'));
     expect(plot().props.numberOfLines).toBeUndefined();
@@ -445,7 +445,7 @@ describe('episode description rolls on TV (issue #160)', () => {
   });
 });
 
-describe('movie details: the best version (D-136)', () => {
+describe('movie details: the best version (D-087)', () => {
   it('equally good versions: the one in the app language is the best and starts, not the first', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies/m', {
@@ -470,7 +470,7 @@ describe('movie details: the best version (D-136)', () => {
   });
 });
 
-describe('movie details: the version a title starts with (D-144)', () => {
+describe('movie details: the version a title starts with (D-087)', () => {
   it("starts with the best version in the profile's language, even when another language has a better one", async () => {
     const backend = setupApp();
     await act(async () => void (await stores.profilePrefs.getState().update('p1', { languages: ['ENG'] })));
@@ -511,7 +511,7 @@ describe('landscape: two columns (issue #186, D-158)', () => {
   });
   afterEach(() => Dimensions.set({ window: portrait, screen: portrait }));
 
-  it('a movie: one column, the facts under the rest, all on one screen (D-165)', async () => {
+  it('a movie: one column, the facts under the rest, all on one screen (D-158)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies/m', {
       body: {
@@ -530,11 +530,11 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(column('details-play')).toBe('details-left');
     expect(screen.getByText('Movie')).toBeTruthy();
     expect(screen.getByText('75% rating')).toBeTruthy();
-    // One column: the facts (here the source name) are under the rest; the backdrop has the right side (D-165).
+    // One column: the facts (here the source name) are under the rest; the backdrop has the right side (D-158).
     const source = screen.getAllByText('EN - Movie 1080p');
     expect(columnOf(source[source.length - 1])).toBe('details-left');
     expect(screen.queryByTestId('details-right')).toBeNull();
-    // The one column takes 2/3 of the screen (D-168).
+    // The one column takes 2/3 of the screen (D-158).
     expect(StyleSheet.flatten(screen.getByTestId('details-left').props.style)).toMatchObject({ width: 640 });
   });
 
@@ -553,10 +553,10 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(column('details-play')).toBe('details-left');
     expect(column('episodes')).toBe('details-right');
     expect(column('episode-w-2')).toBe('details-right');
-    // The left column keeps 42 %; the episodes use the phone's rows: no number column, buttons under the text (D-168).
+    // The left column keeps 42 %; the episodes use the phone's rows: no number column, buttons under the text (D-158).
     expect(StyleSheet.flatten(screen.getByTestId('details-left').props.style)).toMatchObject({ width: 403 });
     expect(within(screen.getByTestId('episode-list')).queryByText('2')).toBeNull();
-    // Only the episodes scroll: the season choice stays above them (D-165).
+    // Only the episodes scroll: the season choice stays above them (D-158).
     const list = screen.getByTestId('episode-list');
     expect(within(list).queryByTestId('episode-w-1')).toBeTruthy();
     expect(within(list).queryByText('Episodes')).toBeNull();

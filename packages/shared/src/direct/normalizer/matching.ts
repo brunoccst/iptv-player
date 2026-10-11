@@ -6,8 +6,8 @@ import { compactKey, type ParsedTitle } from './parser';
  *
  * 1. Same compact key and year ("Spider-Man" == "Spiderman"). A year-less title takes the year of its key when the key
  *    has exactly one (dated titles of it); with several it stays apart.
- * 2. Titles with a TMDB id group by that id and year instead of the key, so keys that share one join (D-065) and two
- *    works of one name and year ("The Odyssey" 2026 by Nolan and by Walz) stay apart (D-156). A title without one takes
+ * 2. Titles with a TMDB id group by that id and year instead of the key, so keys that share one join (D-133) and two
+ *    works of one name and year ("The Odyssey" 2026 by Nolan and by Walz) stay apart (D-133). A title without one takes
  *    its key's TMDB id when the key has exactly one; with several it stays with the key.
  *
  * Similar spellings ("Redemtion") no longer join (D-133): that step needed every pair of names compared in code.
@@ -17,7 +17,7 @@ export function groupTitles(titles: ParsedTitle[], tmdbIds: (string | null)[] = 
 }
 
 /**
- * `groupTitles`, with what each group adds to its title's id (D-156): two titles of one name and year would otherwise
+ * `groupTitles`, with what each group adds to its title's id (D-133): two titles of one name and year would otherwise
  * get the same id. The group of the key's smallest TMDB id (by text, the one that took the whole key before) adds
  * nothing, so its id stays; another TMDB id adds itself, and the titles without one in a key with several add "-".
  */

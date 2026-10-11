@@ -166,7 +166,7 @@ export function unreachableHost(text: string): string | null {
 
 /**
  * The provider's server stopped answering (connection timed out or refused, mid-stream or at the start): the user
- * learns it is the provider's side and what to do (D-172).
+ * learns it is the provider's side and what to do (D-074).
  */
 export function providerUnreachableMessage(host: string | null): string {
   return host

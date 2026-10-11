@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   },
   // The update dialogs' texts in the app's language (D-084).
   setTexts: (texts) => ipcRenderer.invoke('iptv:set-texts', texts),
-  // "Open in VLC" (D-081): 'vlc' when VLC started, 'none' when it is not installed.
+  // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
   secure: storage('secure'),
   data: storage('data'),
@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     run: (statements) => ipcRenderer.invoke('iptv:db', 'run', statements),
     query: (sql, params) => ipcRenderer.invoke('iptv:db', 'query', sql, params),
   },
-  // Phone-to-computer pairing (D-072): the main process runs the server, the page decides and answers.
+  // Phone-to-computer pairing (D-060): the main process runs the server, the page decides and answers.
   pairing: {
     start: () => ipcRenderer.invoke('iptv:pairing-start'),
     stop: () => ipcRenderer.invoke('iptv:pairing-stop'),

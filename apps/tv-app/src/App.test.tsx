@@ -82,7 +82,7 @@ describe('App (TV)', () => {
     expect(screen.getByLabelText('Movies')).toBeTruthy();
   });
 
-  it('Home shows "Loading your library…" until the first list answers, then the hero (D-117)', async () => {
+  it('Home shows "Loading your library…" until the first list answers, then the hero (D-119)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     let answer: (response: { body: unknown }) => void = () => undefined;
@@ -103,7 +103,7 @@ describe('App (TV)', () => {
     expect(await screen.findByTestId('hero-play')).toBeTruthy();
   });
 
-  it('TV Home: Left at Play and Right at More Info stay in the hero, and focusing them shows the whole banner (D-152)', async () => {
+  it('TV Home: Left at Play and Right at More Info stay in the hero, and focusing them shows the whole banner (D-069)', async () => {
     const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     stubLibrary(setupApp());
     await render(<App />);
@@ -127,7 +127,7 @@ describe('App (TV)', () => {
     isTV.mockRestore();
   });
 
-  it('rows shown before the first library status stay; they reload only after an update (D-120)', async () => {
+  it('rows shown before the first library status stay; they reload only after an update (D-121)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     const status = (jobStatus: string) =>
@@ -141,7 +141,7 @@ describe('App (TV)', () => {
         masterCount: 1,
       }));
     let current = status('done');
-    // The first status comes after Home shows (the saved library is still being read, D-120).
+    // The first status comes after Home shows (the saved library is still being read, D-121).
     let answerFirst: (response: { body: unknown }) => void = () => undefined;
     let first = true;
     backend.on('GET', '/api/library/status', () => {
@@ -238,7 +238,7 @@ describe('App (TV)', () => {
     expect(screen.getByTestId('row-mylist')).toBeTruthy();
   });
 
-  it('details: the eye button marks the movie as watched and back (D-104)', async () => {
+  it('details: the eye button marks the movie as watched and back (D-081)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     backend.on('PUT', '/api/profiles/p1/progress/movie/101', ({ body }) => ({
@@ -262,7 +262,7 @@ describe('App (TV)', () => {
     expect(screen.queryByTestId('details-watched')).toBeNull();
   });
 
-  it('card menu: Add to My List and Remove from My List; the cover carries a bookmark while saved (D-104, issue #157)', async () => {
+  it('card menu: Add to My List and Remove from My List; the cover carries a bookmark while saved (D-078, issue #157)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     backend.on('GET', '/api/profiles/p1/watchlist', { body: [] });
@@ -386,7 +386,7 @@ describe('App (TV)', () => {
     expect(screen.queryByTestId('card-Big Test Movie-watched')).toBeNull();
   });
 
-  it('card menu on a series: Mark series as watched marks every episode and tags the cover (D-082)', async () => {
+  it('card menu on a series: Mark series as watched marks every episode and tags the cover (D-081)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
     backend.on('GET', '/api/library/series', {
@@ -550,7 +550,7 @@ describe('App (TV)', () => {
     expect(backend.calls.some((c) => c.url.pathname === '/api/library/movies' && c.url.searchParams.get('categoryId') === '7')).toBe(true);
   });
 
-  it('TV Home builds the first rows, then the next ones as the focus or the scroll moves down (D-122)', async () => {
+  it('TV Home builds the first rows, then the next ones as the focus or the scroll moves down (D-040)', async () => {
     const isTV = jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
     stubLibrary(backend);
@@ -584,7 +584,7 @@ describe('App (TV)', () => {
       ['/api/library/series', 'added', 'desc'],
     ]);
     expect(screen.queryByTestId('row-movies-top-rated-open')).toBeNull();
-    // Their titles say how many were looked at and in which order (D-160).
+    // Their titles say how many were looked at and in which order (D-040).
     expect(within(topMovies).getByText('Top rated of the 100 newest movies')).toBeTruthy();
     const seriesCard = within(screen.getByTestId('row-series-all')).getByTestId('card-Show A');
     expect(screen.queryByTestId('row-movies-c1-open')).toBeNull();

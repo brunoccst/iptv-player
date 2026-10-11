@@ -78,7 +78,7 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await page.getByRole('button', { name: 'Skip ahead 2 minutes' }).click();
   await expect.poll(() => videoTime(page)).toBeGreaterThanOrEqual(124);
 
-  // → three times in a row skips 10 s, 30 s, then 1 min (D-150).
+  // → three times in a row skips 10 s, 30 s, then 1 min (D-128).
   const beforeSkips = await videoTime(page);
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
   await expect(page.locator('.skip-flash')).toHaveText('+1:00');
@@ -148,7 +148,7 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await expect(page.locator('.player__subtitle')).toContainText(title);
   await expectPlaying(page, 1);
 
-  // Guide over the playing channel (D-058 on TV, D-081 here): G or the Guide button; a click switches channel.
+  // Guide over the playing channel (D-058): G or the Guide button; a click switches channel.
   const playing = (await page.locator('.player__title').textContent())!;
   await page.keyboard.press('g');
   const panel = page.getByRole('complementary', { name: 'Guide' });
@@ -327,7 +327,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await menu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 
-  // The details' eye button does the same (D-104).
+  // The details' eye button does the same (D-081).
   await card.getByRole('button', { name: 'Sequel Test 2' }).click();
   await dialog.getByRole('button', { name: 'Mark as watched' }).click();
   await expect(dialog.getByTestId('watched-tag')).toBeVisible();
@@ -335,7 +335,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await expect(dialog.getByTestId('watched-tag')).toHaveCount(0);
   await page.keyboard.press('Escape');
 
-  // My List from the card menu (D-104).
+  // My List from the card menu (D-078).
   await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Add to My List' }).click();
   await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
@@ -343,7 +343,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await menu.getByRole('menuitem', { name: 'Remove from My List' }).click();
 });
 
-test('series: Mark series as watched tags the cover and every episode; unwatching one episode (its … menu) clears the series tag (D-082, D-083)', async ({
+test('series: Mark series as watched tags the cover and every episode; unwatching one episode (its … menu) clears the series tag (D-081, D-078)', async ({
   page,
 }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
@@ -364,7 +364,7 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   const count = await episodes.getByTestId('watched-tag').count();
   // The whole season is watched: its button says so (issue #132).
   await expect(episodes.getByRole('button', { name: 'Mark season as not watched' })).toBeVisible();
-  // The row has Play and "…" (D-083); the episode's options are in its menu.
+  // The row has Play and "…" (D-078); the episode's options are in its menu.
   await expect(episodes.getByRole('button', { name: /^Mark (?!season)/ })).toHaveCount(0);
   await episodes
     .getByRole('button', { name: /^More options for / })
@@ -379,7 +379,7 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   await expect(card.getByTestId('watched-tag')).toHaveCount(0);
 });
 
-test('details: two columns on a wide window, the panel on a narrow one (D-158, D-164)', async ({ page }) => {
+test('details: two columns on a wide window, the panel on a narrow one (D-158)', async ({ page }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
   await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog', { name: 'Test Series' });
@@ -394,7 +394,7 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   const [l, r] = [await left.boundingBox(), await right.boundingBox()];
   expect(r!.x).toBeGreaterThanOrEqual(l!.x + l!.width - 1);
   await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
-  // Only the episode list scrolls; the title, season Watched button and season choice stay above it (D-165).
+  // Only the episode list scrolls; the title, season Watched button and season choice stay above it (D-158).
   const list = right.locator('.episodes__list');
   await expect(list).toHaveCSS('overflow-y', 'auto');
   await expect(list.getByRole('button', { name: 'Mark season as watched' })).toHaveCount(0);
@@ -410,7 +410,7 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158, D
   await expect(dialog).toHaveCount(0);
 });
 
-test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-165, D-168)', async ({ page }) => {
+test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-158)', async ({ page }) => {
   await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
   const dialog = page.getByRole('dialog', { name: 'Big Test Movie' });
   const left = dialog.getByTestId('details-left');
@@ -439,7 +439,7 @@ test('app language (D-084): the whole app switches, and the choice stays after a
   await expect(page.getByRole('menuitem', { name: 'App-Sprache · App language' })).toBeVisible();
 });
 
-test('Home rows show the left arrow only once scrolled, the right one until the end (D-159)', async ({ page }) => {
+test('Home rows show the left arrow only once scrolled, the right one until the end (D-040)', async ({ page }) => {
   // Narrow enough that the fake panel's rows do not fit.
   await page.setViewportSize({ width: 560, height: 900 });
   await page.getByRole('button', { name: 'Home', exact: true }).click();
@@ -459,7 +459,7 @@ test('Home rows show the left arrow only once scrolled, the right one until the 
   await expect(row.locator('.row__arrow--right')).toBeVisible();
 });
 
-test('Home row titles take the mouse over their whole text, above the cards’ hover room (D-085)', async ({ page }) => {
+test('Home row titles take the mouse over their whole text, above the cards’ hover room (D-047)', async ({ page }) => {
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   const link = page.getByRole('button', { name: 'Open Action' });
   await link.scrollIntoViewIfNeeded();
@@ -483,7 +483,7 @@ test('Home row titles take the mouse over their whole text, above the cards’ h
   await expect(page.getByRole('tab', { name: 'Action' })).toHaveAttribute('aria-selected', 'true');
 });
 
-test('category chips stay on one line with Show all / Show less when they do not fit (D-085, D-091)', async ({ page }) => {
+test('category chips stay on one line with Show all / Show less when they do not fit (D-047)', async ({ page }) => {
   await page.setViewportSize({ width: 300, height: 800 });
   await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
   const chips = page.getByRole('tablist', { name: 'Categories' });
@@ -493,7 +493,7 @@ test('category chips stay on one line with Show all / Show less when they do not
 
   await page.getByRole('button', { name: 'Show all categories' }).click();
   expect((await tops()).size).toBeGreaterThan(1);
-  // Expanded, the chips use the full width in a box of at most half the screen, under "Show less" (D-091).
+  // Expanded, the chips use the full width in a box of at most half the screen, under "Show less" (D-047).
   const box = (await chips.boundingBox())!;
   const less = (await page.getByRole('button', { name: 'Show fewer categories' }).boundingBox())!;
   expect(box.height).toBeLessThanOrEqual(400);
@@ -505,7 +505,7 @@ test('category chips stay on one line with Show all / Show less when they do not
   await expect(chips.getByRole('tab', { name: 'Drama' })).toBeInViewport();
 });
 
-test('search: All, Movies, Series or Live TV shows only those results (D-108)', async ({ page }) => {
+test('search: All, Movies, Series or Live TV shows only those results (D-130)', async ({ page }) => {
   await page.getByPlaceholder('Titles, series').fill('Test');
   await expect(page.getByRole('heading', { name: 'Results for “Test”' })).toBeVisible();
   const filter = page.getByRole('tablist', { name: 'Search' });

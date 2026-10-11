@@ -29,7 +29,7 @@ const server: PairingServer = {
 };
 
 /**
- * TV side (D-060), the shared hook (D-124): while mounted, the pairing server runs and `qr` holds the code to show.
+ * TV side (D-060), the shared hook (D-079): while mounted, the pairing server runs and `qr` holds the code to show.
  * The phone also gets a key for remote play (D-061), kept here once pairing succeeded.
  */
 export const usePairingServer = () =>

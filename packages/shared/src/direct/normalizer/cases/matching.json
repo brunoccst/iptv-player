@@ -11,7 +11,7 @@
       "groups": 1
     },
     {
-      "name": "a language prefix not in the tables yet still merges (D-134)",
+      "name": "a language prefix not in the tables yet still merges (D-017)",
       "titles": ["XY - The Matrix (1999)", "|KZ| The Matrix (1999) 4K", "FR - The Matrix (1999)", "The Matrix (1999)"],
       "groups": 1
     },
@@ -81,13 +81,13 @@
       "groups": 1
     },
     {
-      "name": "one name and year, two TMDB ids: two titles (issue #187, D-156)",
+      "name": "one name and year, two TMDB ids: two titles (issue #187, D-133)",
       "titles": ["The Odyssey (2026)", "EN - The Odyssey (2026) 4K", "The Odyssey (2026)"],
       "tmdb": ["1033127", "1033127", "1499711"],
       "groups": 2
     },
     {
-      "name": "without a TMDB id, a title stays apart when its key has several (D-156)",
+      "name": "without a TMDB id, a title stays apart when its key has several (D-133)",
       "titles": ["The Odyssey (2026)", "The Odyssey (2026)", "The Odyssey (2026) HD"],
       "tmdb": ["1033127", "1499711", null],
       "groups": 3

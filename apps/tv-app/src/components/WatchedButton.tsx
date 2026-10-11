@@ -1,7 +1,7 @@
 import { useWatchedToggle } from '@iptv/shared';
 import { IconButton } from './IconButton';
 
-/** Round "Watched" toggle on the details panel (D-104), next to My List; logic shared with the web app (D-124). */
+/** Round "Watched" toggle on the details panel (D-081), next to My List; logic shared with the web app (D-079). */
 export function WatchedButton({
   kind,
   watched,

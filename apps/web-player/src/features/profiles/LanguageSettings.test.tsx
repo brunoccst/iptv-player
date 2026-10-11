@@ -16,7 +16,7 @@ vi.mock('../../appContext', async () => {
 
 const { LanguageSettings } = await import('./LanguageSettings');
 
-describe('Content language filter: the order is the priority (D-145)', () => {
+describe('Content language filter: the order is the priority (D-063)', () => {
   afterEach(cleanup);
 
   it('numbers the ticked languages in the order they were ticked', () => {

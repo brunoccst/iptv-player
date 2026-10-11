@@ -395,7 +395,7 @@
   left: 0;
 }
 
-/* Guide over the playing channel (D-058, D-081): see-through list on the left, the video keeps playing. */
+/* Guide over the playing channel (D-058): see-through list on the left, the video keeps playing. */
 .guide-panel {
   position: absolute;
   inset: 0;

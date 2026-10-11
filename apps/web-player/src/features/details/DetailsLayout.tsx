@@ -9,7 +9,7 @@ import { WatchedTag } from '../../components/WatchedTag';
 export const SPLIT_QUERY = '(orientation: landscape) and (min-width: 700px)';
 export const SplitLayout = createContext(false);
 
-/** The details' parts, stacked in the panel, or in two columns on a wide landscape window (D-158, D-164). */
+/** The details' parts, stacked in the panel, or in two columns on a wide landscape window (D-158). */
 export function DetailsLayout({
   backdrop,
   title,

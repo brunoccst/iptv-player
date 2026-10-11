@@ -1,6 +1,6 @@
 /**
  * SHA-1 hex of a UTF-8 string. Only for stable master ids; not for security. Written for Hermes (no JIT), where ids for
- * 100k+ titles took about a third of building the titles on a TV (D-093, D-118):
+ * 100k+ titles took about a third of building the titles on a TV (D-093):
  * - no allocation per call: the bytes go into one reused buffer, the rounds use one reused word array;
  * - the four round kinds are four loops, without a branch per round;
  * - the hex text comes from a table of the 256 byte values.
@@ -142,7 +142,7 @@ const isPlainAscii = (text: string) => {
 };
 
 /**
- * `hashIds` for `buildMastersInChunks` from a native hasher (D-118): plain-ASCII texts (nearly every id) go to
+ * `hashIds` for `buildMastersInChunks` from a native hasher (D-093): plain-ASCII texts (nearly every id) go to
  * `hashAscii` in batches, separated by "\n", which answers their 40-character hex digests one after another; any other
  * text (a key in another script) is hashed here, since native code gets the text as modified UTF-8. If the native call
  * fails, that batch is hashed here too: the ids are the same either way.

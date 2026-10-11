@@ -28,14 +28,14 @@ function createWebStorage(prefix: string): KeyValueStorage {
 const offlineSupported = 'serviceWorker' in navigator && 'caches' in window && 'indexedDB' in window && !!window.crypto?.subtle;
 
 /**
- * The page talks to the IPTV provider directly, like the TV app (D-038, D-071, D-088). In the desktop app, sign-in and
+ * The page talks to the IPTV provider directly, like the TV app (D-088, D-071). In the desktop app, sign-in and
  * password are encrypted by the operating system and the library goes to files; the app sets the provider User-Agent
  * itself, so none is sent from the page. In a plain browser (development and the end-to-end tests only: providers do
  * not let a web page read their answers) both live in localStorage.
  */
 // The desktop app keeps the library in SQLite (D-121), like the TV app; a browser keeps it in memory.
 const libraryDb = desktop ? createNativeSqlDatabase(desktop.db) : undefined;
-// Profiles, progress, My List, settings and the PIN in the same database (D-126); the sign-in stays encrypted.
+// Profiles, progress, My List, settings and the PIN in the same database (D-121); the sign-in stays encrypted.
 const storages = withUserDatabase(
   {
     secure: desktop ? desktop.secure : createWebStorage(appConfig.appSlug),

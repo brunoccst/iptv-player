@@ -1,6 +1,6 @@
 /**
  * Design tokens shared by the web app (CSS custom properties in apps/web-player/src/styles/global.css)
- * and the TV/phone app (apps/tv-app/src/theme.ts), so both look the same. See DECISIONS.md#d-041.
+ * and the TV/phone app (apps/tv-app/src/theme.ts), so both look the same. See DECISIONS.md#d-079.
  */
 export const colorTokens = {
   bg: '#141414',

@@ -9,12 +9,12 @@ import type { RecentChannel } from '../playback/recentChannels';
 export const PROFILE_PREFS_KEY = 'settings.profiles';
 
 export interface ProfilePrefs {
-  /** Only titles with audio or subtitles in one of these languages, e.g. `['ENG', 'GER']` (D-063, D-067). Empty = all. */
+  /** Only titles with audio or subtitles in one of these languages, e.g. `['ENG', 'GER']` (D-063). Empty = all. */
   languages?: string[] | null;
   /** The single language of earlier versions; read by `profileLanguages`, replaced by `languages` on the next change. */
   language?: string | null;
   /**
-   * Kids profiles: the categories a parent picked per section (D-064). A section that is absent or `null` uses the
+   * Kids profiles: the categories a parent picked per section (D-053). A section that is absent or `null` uses the
    * name rule (D-053); an empty list shows nothing of that section.
    */
   kidsCategories?: Partial<Record<CatalogSection, string[] | null>> | null;
@@ -23,7 +23,7 @@ export interface ProfilePrefs {
    * search still finds their titles and channels.
    */
   hiddenCategories?: Partial<Record<CatalogSection, string[]>> | null;
-  /** Series titles (master ids) with every episode watched: the tag on their covers (D-082). */
+  /** Series titles (master ids) with every episode watched: the tag on their covers (D-081). */
   watchedSeries?: string[] | null;
   /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
   appLanguage?: string | null;

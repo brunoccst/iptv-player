@@ -20,7 +20,7 @@ No repository or commands needed. The apps talk to your IPTV provider directly; 
 | Linux | [iptv-player.AppImage](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.AppImage) or [iptv-player.deb](https://github.com/brunoccst/iptv-player/releases/download/desktop/iptv-player.deb) | AppImage: make it executable (`chmod +x`) and open it. |
 | Android TV / phone | [tv.apk](https://github.com/brunoccst/iptv-player/releases/download/tv-apk/tv.apk) | Allow installing from your browser or Downloader once. |
 
-The apps look for new versions themselves (D-062, D-073); on Windows and with the AppImage the desktop app downloads and installs them, without the SmartScreen question. Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Library & devices → Sync with phone) and scan the code with the phone app → account menu → Library & devices → Connect a TV or computer (D-072). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([KI-045](./documentation/KNOWN-ISSUES.md#ki-045)).
+The apps look for new versions themselves (D-062, D-073); on Windows and with the AppImage the desktop app downloads and installs them, without the SmartScreen question. Signed in on the phone? On the computer choose **Sign in with your phone** (or account menu → Library & devices → Sync with phone) and scan the code with the phone app → account menu → Library & devices → Connect a TV or computer (D-060). The desktop app plays what web browsers play; for MKV-only titles and Dolby/DTS audio use the TV app ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
 
 ## Legal notes (Germany)
 
@@ -50,8 +50,7 @@ flowchart LR
 ```
 
 Each app talks to the IPTV provider directly, groups the provider's titles into one library on the device and keeps
-profiles, progress and My List there ([D-038](./documentation/DECISIONS.md#d-038), [D-071](./documentation/DECISIONS.md#d-071),
-[D-088](./documentation/DECISIONS.md#d-088)). Phones, TVs and computers share sign-in and data by scanning a code (D-060, D-072).
+profiles, progress and My List there ([D-088](./documentation/DECISIONS.md#d-088), [D-071](./documentation/DECISIONS.md#d-071)). Phones, TVs and computers share sign-in and data by scanning a code (D-060).
 The web player runs inside the desktop app; in a plain browser it is only used for development and tests, because
 providers do not let web pages read their answers.
 
@@ -66,7 +65,7 @@ providers do not let web pages read their answers.
 | [`tools`](./tools) | Developer tools: fake Xtream panel with test media (Python, standard library only). |
 | [`scripts`](./scripts) | One-command dev start; start/stop the fake panel for end-to-end tests; checks. |
 | [`.github`](./.github) | CI workflows ([`workflows/`](./.github/workflows)). No README here: GitHub would show it instead of this one. |
-| [`documentation`](./documentation) | `FEATURES.md` (what the apps do), `FEATURES-TECHNICAL.md` (how each feature works in the code), `PARITY.md` (what each app has and how it is reached), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`, `KNOWN-ISSUES.md`, `NEXT-STEPS.md`. |
+| [`documentation`](./documentation) | `FEATURES.md` (what the apps do and which apps have it), `FEATURES-TECHNICAL.md` (where each feature lives in the code), `RELEASE-NOTES.md` (what is new in each version; every release carries it), `LEGAL-NOTES.md` (German law for users), `DECISIONS.md`. Known issues and planned work are [GitHub issues](https://github.com/brunoccst/iptv-player/issues) (labels `known issue` and `enhancement`; D-174). |
 
 ## Prerequisites
 
@@ -103,7 +102,7 @@ npm run test:e2e
 Lint and format (CI runs the same checks; the Python part needs `pip install ruff`):
 
 ```bash
-npm run lint                # ESLint + Prettier, app parity, release notes, translations, Ruff (check only)
+npm run lint                # ESLint + Prettier, features, release notes, translations, Ruff (check only)
 npm run format              # apply Prettier and Ruff fixes
 git config blame.ignoreRevsFile .git-blame-ignore-revs   # hide bulk-format commits in blame
 ```

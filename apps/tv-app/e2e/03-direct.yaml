@@ -1,4 +1,4 @@
-# A fresh sign-in to the fake panel (after the offline flow), on-device library, playback, guide. D-038.
+# A fresh sign-in to the fake panel (after the offline flow), on-device library, playback, guide. D-088.
 appId: ${APP_ID}
 ---
 - launchApp:
@@ -91,7 +91,7 @@ appId: ${APP_ID}
     visible:
       id: "guide-now-301"
     timeout: 60000
-# Only the channels scroll, not the page (D-140): the remote's Down moves through them.
+# Only the channels scroll, not the page (D-032): the remote's Down moves through them.
 - repeat:
     while:
       notVisible:

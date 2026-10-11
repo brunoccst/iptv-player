@@ -1,4 +1,4 @@
-/** Tag vocabularies for the title parser (D-017, D-038). */
+/** Tag vocabularies for the title parser (D-017, D-088). */
 export type Table = Record<string, string>;
 
 export const QUALITY: Table = {
@@ -104,7 +104,7 @@ export const LANGUAGE_LONG: Table = {
   ellinika: 'GRE',
   gre: 'GRE',
   ell: 'GRE',
-  // Ex-Yu (D-107): Bosnian, Croatian, Serbian and Montenegrin, one language as providers group them.
+  // Ex-Yu (D-017): Bosnian, Croatian, Serbian and Montenegrin, one language as providers group them.
   exyu: 'EXYU',
   serbian: 'EXYU',
   srpski: 'EXYU',
@@ -150,14 +150,14 @@ export const LANGUAGE_PREFIX: Table = {
 };
 
 /**
- * Leading groups that say what kind of title it is, not its language ("BL - " = Bollywood, D-112): dropped from the
+ * Leading groups that say what kind of title it is, not its language ("BL - " = Bollywood, D-017): dropped from the
  * name so the title joins its other versions, with no language. Only as a leading prefix group, like LANGUAGE_PREFIX.
  */
 export const IGNORED_PREFIX = new Set(['bl']);
 
 /**
  * Acronyms that start real names ("UFC - 300", "BBC - Planet Earth"): kept although they look like a language not
- * registered yet, which is dropped from the name (D-134). Lower case.
+ * registered yet, which is dropped from the name (D-017). Lower case.
  */
 export const KEPT_PREFIX = new Set([
   'abc',

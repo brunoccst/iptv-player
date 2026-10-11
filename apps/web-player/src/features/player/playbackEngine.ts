@@ -42,7 +42,7 @@ const VIDEO_CODEC_TYPES: Record<string, { label: string; type: string | null }> 
   mpeg2: { label: 'MPEG-2', type: null },
 };
 
-/** The first video codec in `codecs` this computer cannot decode (its display name), else null (KI-045). */
+/** The first video codec in `codecs` this computer cannot decode (its display name), else null (issue #236). */
 export function undecodableVideoCodec(codecs: string[], video: Pick<HTMLVideoElement, 'canPlayType'>): string | null {
   for (const codec of codecs) {
     const known = VIDEO_CODEC_TYPES[codec];
@@ -68,7 +68,7 @@ export class PlaybackEngine {
     private readonly video: HTMLVideoElement,
     private readonly api: ApiClient,
     private readonly HlsClass: HlsFactory = Hls,
-    /** The desktop app's Chromium plays MKV (H.264/AAC), so there a failed MKV is a provider problem (KI-045). */
+    /** The desktop app's Chromium plays MKV (H.264/AAC), so there a failed MKV is a provider problem (issue #236). */
     private readonly playsMatroska = !!desktop,
   ) {}
 
@@ -78,7 +78,7 @@ export class PlaybackEngine {
 
   /**
    * Registers a callback for unrecoverable errors after a successful load; `network` when the provider's server stopped
-   * sending the file (D-172).
+   * sending the file (D-074).
    */
   onFatalError(callback: (message: string, network?: boolean) => void) {
     this.onFatal = callback;
@@ -103,7 +103,7 @@ export class PlaybackEngine {
         continue;
       }
       // Some panels answer the API on the portal and serve streams only on the stream server from the login reply:
-      // that address is tried next, like the TV app (D-038).
+      // that address is tried next, like the TV app (D-088).
       for (const url of [playback.url, ...(playback.alternateUrls ?? [])]) {
         if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         try {
@@ -205,7 +205,7 @@ export class PlaybackEngine {
         video.addEventListener(
           'error',
           () => {
-            // Mid-file, the provider's server stopped answering: say it is their side (D-172).
+            // Mid-file, the provider's server stopped answering: say it is their side (D-074).
             if (video.error?.code === MEDIA_ERR_NETWORK) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
             else this.onFatal?.('Playback stopped (media error).');
           },
@@ -215,7 +215,7 @@ export class PlaybackEngine {
       };
       const onError = () => {
         cleanup();
-        // Chromium's text tells a refused or broken answer from a codec it cannot decode (KI-045).
+        // Chromium's text tells a refused or broken answer from a codec it cannot decode (issue #236).
         const detail = video.error?.message ? ` (${video.error.message})` : '';
         reject(new Error(`Media error ${video.error?.code ?? ''}`.trim() + detail));
       };

@@ -23,7 +23,7 @@ import type { ProfilePrefs } from '../stores/profilePrefsStore';
  * phone app scans it and sends its sign-in and media data (profiles, progress, My List), encrypted with that key. The
  * TV signs in with it (when signed out) or merges it (same account), and answers with the merged media data, so both
  * devices end up with the same lists. The profiles' preferences and the automatic-subtitles settings go along too
- * (D-162, `settings.ts`). Device settings (the audio decoder choice) are never sent.
+ * (D-060, `settings.ts`). Device settings (the audio decoder choice) are never sent.
  */
 export const PAIRING_PATH = '/pair';
 const QR_PREFIX = 'IPTVPAIR:1:';
@@ -60,7 +60,7 @@ type PairingReply =
   | { ok: true; mode: PairingMode; data: Record<string, string>; settings?: PairedSettings; remote?: RemoteOffer }
   | { ok: false; error: PairingError };
 /**
- * The merged settings (D-162), apart from `data` so an older phone, which writes `data` as it is, never replaces its
+ * The merged settings (D-060), apart from `data` so an older phone, which writes `data` as it is, never replaces its
  * preferences of other accounts with this account's.
  */
 interface PairedSettings {
@@ -224,7 +224,7 @@ export async function acceptPairing(
   for (const [entryKey, value] of Object.entries(entries)) await dataStorage.setItem(entryKey, value);
   const profiles = merged.profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids }));
 
-  // Settings (D-162): each profile's preferences and the automatic subtitles.
+  // Settings (D-060): each profile's preferences and the automatic subtitles.
   const renamed = [...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId);
   const prefs = mergePrefsByProfile(
     readPrefs(data[PROFILE_PREFS_KEY]),
@@ -279,7 +279,7 @@ export async function sendPairing(
   const accountId = session?.account?.id;
   if (!session || !accountId) throw new PairingFailure('not-signed-in');
 
-  // Settings that follow the account (D-162): this account's profile preferences and the automatic subtitles.
+  // Settings that follow the account (D-060): this account's profile preferences and the automatic subtitles.
   const dataStorage = storages.data ?? storages.secure;
   const profileIds = (parseJson<ProfileDto[]>(contents.data[profilesKey(accountId)] ?? null) ?? session.profiles ?? []).map(({ id }) => id);
   const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);

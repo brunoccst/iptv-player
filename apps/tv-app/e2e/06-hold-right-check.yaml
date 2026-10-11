@@ -3,7 +3,7 @@
 appId: ${APP_ID}
 ---
 - takeScreenshot: 31-hold-right-end
-# The stress category's row (the walk skipped "Top rated movies", which has no "See all" since D-157).
+# The stress category's row (the walk skipped "Top rated movies", which has no "See all" since D-040).
 - assertVisible:
     id: "row-movies-.*-more"
     focused: true

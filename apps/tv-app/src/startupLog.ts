@@ -2,7 +2,7 @@ import { appLog } from '@iptv/shared';
 import { TvMedia } from '../modules/tv-media';
 
 /**
- * What the Log needs to explain a crash (D-113, issue #109): the memory the app may use on this device, and the native
+ * What the Log needs to explain a crash (D-039, issue #109): the memory the app may use on this device, and the native
  * crash that ended the last run (an `OutOfMemoryError` ends the process before JavaScript can log it).
  */
 export function logStartup() {

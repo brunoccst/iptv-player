@@ -7,8 +7,8 @@ import { colors, fonts } from '../theme';
 import { FocusButton } from './FocusButton';
 
 /**
- * Account menu → Content language filter (D-063, D-067, D-086): only titles with audio or subtitles in one of the chosen languages, for the
- * active profile. The order they are ticked in is their priority (D-145). Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
+ * Account menu → Content language filter (D-063): only titles with audio or subtitles in one of the chosen languages, for the
+ * active profile. The order they are ticked in is their priority (D-063). Languages come from the names ("EN - …", "SUB ITA"); titles without any language tag are hidden
  * while a filter is on. Select toggles a language; "All languages" clears the choice. The choice is applied once, when
  * the dialog closes: applying it reloads every list, so doing that on each toggle would stall the TV.
  */
@@ -37,7 +37,7 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
               onPress={() => allLanguages()}
             />
             {Object.entries(languageNames()).map(([code, label]) => {
-              // The order the languages were ticked in is their priority (D-145): "✓ 1. English".
+              // The order the languages were ticked in is their priority (D-063): "✓ 1. English".
               const rank = chosen.indexOf(code);
               const on = rank >= 0;
               return (

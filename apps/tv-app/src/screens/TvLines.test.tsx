@@ -16,7 +16,7 @@ function Card({ title }: { title: string }) {
 const lines = Array.from({ length: 30 }, (_, i) => [{ id: `m${i}`, title: `Movie ${i}` }]) as never;
 const layout = (y: number, height: number) => ({ nativeEvent: { layout: { x: 0, y, width: 900, height } } });
 
-describe('TvLines (D-096, D-098)', () => {
+describe('TvLines (D-094)', () => {
   it('gives every line the first line’s height and centres the focused line from its place in the page, like Home', async () => {
     const centerAt = jest.fn();
     // The search results sit in a section 1000 px down the page.
@@ -41,7 +41,7 @@ describe('TvLines (D-096, D-098)', () => {
     expect(centerAt).toHaveBeenLastCalledWith(1000 + 500 + 4 * 400, 400);
   });
 
-  it('moves between lines without re-rendering them, and keeps Up inside below the first line (D-099)', async () => {
+  it('moves between lines without re-rendering them, and keeps Up inside below the first line (D-094)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const renderLine = jest.fn((line: { title: string }[]) => <Card title={line[0]!.title} />);
     await render(

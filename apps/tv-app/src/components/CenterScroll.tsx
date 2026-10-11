@@ -21,7 +21,7 @@ export function useCenterOnFocus() {
 }
 
 /**
- * Set by a centering page on TV for content that knows where its lines sit, like the rows on Home (D-096, D-098):
+ * Set by a centering page on TV for content that knows where its lines sit, like the rows on Home (D-094):
  * `centerAt` scrolls straight to a place in the page, with nothing to measure first.
  */
 export interface CenterPageApi {
@@ -40,7 +40,7 @@ export function centeredOffset(y: number, height: number, viewport: number): num
  *
  * The target comes from where the element sits inside the page, never from where it is on screen: measured on screen,
  * it depended on the current scroll offset, which is stale while a scroll animates, so one move scrolled in two steps
- * and quick presses scrolled back to earlier titles (D-095).
+ * and quick presses scrolled back to earlier titles (D-094).
  */
 export function CenteringScrollView({
   children,
@@ -52,7 +52,7 @@ export function CenteringScrollView({
   children?: ReactNode;
   scrollRef?: RefObject<ScrollView | null>;
   /**
-   * TV: only the centering moves the page (D-098). Android's scroll view otherwise scrolls on its own first, on every
+   * TV: only the centering moves the page (D-094). Android's scroll view otherwise scrolls on its own first, on every
    * Up/Down, just enough to show the next row, and the centering then scrolls the rest: two steps per move wherever a
    * row is too tall for the next one to be on screen already (the Movies/Series grid, not Home). Every focusable
    * inside must then center itself: cards, buttons, chips, the lines of `TvLines`.

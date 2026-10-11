@@ -24,7 +24,7 @@ export const nativeState = {
   calls: [] as string[],
   externalPlayerResult: 'chooser' as ExternalPlayerResult,
   ffmpegAudio: false,
-  /** The native crash the last run left (D-113). */
+  /** The native crash the last run left (D-039). */
   lastCrash: null as string | null,
   /** Phone-to-TV pairing (D-060): TV server state and what the phone's scanner returns. */
   pairingHost: '192.168.1.20' as string | null,
@@ -53,7 +53,7 @@ export const nativeState = {
   watchNext: [] as (WatchNextRow & { entry: WatchNextEntry })[],
   watchNextLaunch: null as string | null,
   watchNextListeners: new Set<(event: { id: string }) => void>(),
-  /** Phone player (D-155): the window's brightness (-1: the system's, which is `systemBrightness`) and the media volume in steps. */
+  /** Phone player (D-046): the window's brightness (-1: the system's, which is `systemBrightness`) and the media volume in steps. */
   brightness: -1,
   systemBrightness: 0.5,
   volumeStep: 5,

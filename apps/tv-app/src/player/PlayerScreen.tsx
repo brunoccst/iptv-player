@@ -107,7 +107,7 @@ export function playbackErrorText(message: string, detail?: string | null, code 
         : t('This device could not decode the video of this title.');
     return `${problem} ${tip}`;
   }
-  // The provider's server stopped answering (it timed out or refused the connection): their side, not ours (D-172).
+  // The provider's server stopped answering (it timed out or refused the connection): their side, not ours (D-074).
   if (code.startsWith('ERROR_CODE_IO_NETWORK')) return providerUnreachableMessage(unreachableHost(all));
   if (code.startsWith('ERROR_CODE_PARSING'))
     return t(
@@ -137,23 +137,23 @@ const NOTICE_MS = 4000;
 const MEDIA_KEYS = new Set(['playPause', 'play', 'pause', 'stop', 'rewind', 'fastForward']);
 
 /**
- * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-075), ↑ the same
- * buttons on Back (D-101), Select play/pause, Back close. Live: ↑ opens the guide overlay (phones: swipe up in the
- * middle or the Guide button). Phones: slides on the left/right third set brightness/volume (D-155). See
+ * Full-screen player. Remote: tap ←/→ ±10 s, hold ←/→ scrub, ↓ the on-screen buttons on Play/Pause (D-077), ↑ the same
+ * buttons on Back (D-077), Select play/pause, Back close. Live: ↑ opens the guide overlay (phones: swipe up in the
+ * middle or the Guide button). Phones: slides on the left/right third set brightness/volume (D-046). See
  * DECISIONS.md#d-028, #d-058.
  */
 export function PlayerScreen({ target }: { target: PlayTarget }) {
   const playerRef = useRef<TvPlayerViewRef>(null);
   const [source, setSource] = useState<PlayerSource | null>(null);
   const [attempt, setAttempt] = useState(0);
-  // Same stream on the provider's other server, tried before the next attempt (D-038).
+  // Same stream on the provider's other server, tried before the next attempt (D-088).
   const alternates = useRef<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  // The failure was the network (the provider's server stopped answering): the error offers Try again (D-172).
+  // The failure was the network (the provider's server stopped answering): the error offers Try again (D-074).
   const [retryable, setRetryable] = useState(false);
   // Bumped by Try again: the attempts start over.
   const [retry, setRetry] = useState(0);
-  // Where the stream stopped (seconds), so a retry carries on from there instead of where the title was opened (D-172).
+  // Where the stream stopped (seconds), so a retry carries on from there instead of where the title was opened (D-074).
   const resumeAt = useRef<number | null>(null);
   // Mid-stream: the player waits for data (spinner), or a new address is being tried after the stream stopped.
   const [buffering, setBuffering] = useState(false);
@@ -171,7 +171,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [recent, setRecent] = useState(false);
   // TV: ↓ puts the focus on the on-screen buttons (back, play/pause, from the beginning, previous episode, ±10 s, next
   // episode, episodes, audio and subtitles), which the D-pad then walks through; Back or a few seconds without keys
-  // return to the video (D-075, D-077).
+  // return to the video (D-077).
   const [buttons, setButtons] = useState<false | 'play' | 'back'>(false);
   const tvButtons = Platform.isTV && !!buttons;
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number; seconds?: number } | null>(null);
@@ -184,7 +184,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const { width } = useWindowDimensions();
   const timelineWidth = useRef(0);
 
-  // The episode lists of all versions of the series, merged (D-066), and a movie's versions; shared (D-124).
+  // The episode lists of all versions of the series, merged (D-066), and a movie's versions; shared (D-079).
   const { series, next, previous, variants } = usePlayerTitle(target);
   // Live: Home's first row and the ↓ strip list the channels watched last (issue #122).
   useNoteRecentChannel(target);
@@ -337,7 +337,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   });
   useEffect(() => () => controller.current?.cancel(), []);
 
-  // The ±10 s buttons and double taps: presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-150).
+  // The ±10 s buttons and double taps: presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-128).
   const skipStreak = useRef(new SkipStreak()).current;
   const skipPress = useCallback(
     (direction: SeekDirection) => {
@@ -379,7 +379,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   }, []);
 
   // Phones: a tap shows or hides the controls; a second tap on the left/right third seeks ∓10 s instead, and further
-  // quick taps there skip further (D-150).
+  // quick taps there skip further (D-128).
   const lastTap = useRef<{ at: number; side: SeekDirection | null; controls: boolean } | null>(null);
   /**
    * Logs what the provider sent instead of a video (the first bytes, credentials masked). After the last attempt a
@@ -533,7 +533,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-101); on Live TV ↑ opens the guide and ↓ the
+    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-077); on Live TV ↑ opens the guide and ↓ the
     // channels watched last, with the buttons one more ↓ away (issue #122).
     if (key === 'down' && Platform.isTV && isLive) setRecent(true);
     else if (key === 'down' && Platform.isTV) setButtons('play');
@@ -557,7 +557,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   }, [guide, recent, drawer, skipOpen, buttons]);
 
   // Phones: slide up/down on the left third for brightness, the right third for volume; live: swipe up in the middle
-  // opens the guide overlay (D-155).
+  // opens the guide overlay (D-046).
   const swipe = usePlayerSwipes(!Platform.isTV && !guide && !drawer && !recent && !error, isLive ? () => setGuide(true) : null);
 
   const zap = (channel: LiveChannel, programme: EpgListing | null) => {
@@ -587,7 +587,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     });
   };
 
-  // After the provider's server stopped answering: all attempts again, from where the stream stopped (D-172).
+  // After the provider's server stopped answering: all attempts again, from where the stream stopped (D-074).
   const tryAgain = () => {
     if (!isLive && timeRef.current > 0) resumeAt.current = timeRef.current;
     appLog.info('player', `trying again${resumeAt.current ? ` from ${formatClock(resumeAt.current)}` : ''}`);
@@ -632,7 +632,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         onError={(e) => {
           const { message, code, detail } = e.nativeEvent;
           appLog.error('player', `attempt ${attempt + 1} failed: ${code} ${message}${detail ? ` (${detail})` : ''}`);
-          // It had been playing: the next try carries on from here, with a spinner that says what is going on (D-172).
+          // It had been playing: the next try carries on from here, with a spinner that says what is going on (D-074).
           const stopped = ready && !isLive && timeRef.current > 0;
           if (stopped) resumeAt.current = timeRef.current;
           // "Not a video" or an HTTP error: log what the provider actually sent (D-074).
@@ -688,7 +688,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {(!ready || buffering) && !error ? <Loading label={t('Loading stream')} /> : null}
-      {/* Mid-stream the provider stopped sending the video: says so while the next address is tried (D-172). */}
+      {/* Mid-stream the provider stopped sending the video: says so while the next address is tried (D-074). */}
       {(notice || reconnecting) && !error ? (
         <View style={styles.notice} pointerEvents="none" testID="player-notice">
           <Text style={styles.noticeText}>{reconnecting ? t('The provider stopped sending the video. Reconnecting…') : notice}</Text>
@@ -861,7 +861,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   }}
                 />
               ) : null}
-              {/* Same order as the drawer's tabs: Audio, Subtitles, Episodes (D-102). */}
+              {/* Same order as the drawer's tabs: Audio, Subtitles, Episodes (D-077). */}
               <IconButton
                 icon="audio"
                 label={t('Audio')}

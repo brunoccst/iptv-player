@@ -16,7 +16,7 @@ describe('profile preferences', () => {
     expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual({ p1: { languages: ['GER', 'ENG'] } });
   });
 
-  it('several languages per profile; the single language of earlier versions still counts (D-067)', () => {
+  it('several languages per profile; the single language of earlier versions still counts (D-063)', () => {
     expect(profileLanguages(undefined)).toEqual([]);
     expect(profileLanguages({ language: 'GER' })).toEqual(['GER']);
     expect(profileLanguages({ language: 'GER', languages: ['ENG', 'POR'] })).toEqual(['ENG', 'POR']);
@@ -55,7 +55,7 @@ describe('profile preferences', () => {
     expect(lastLanguage()).toBeNull();
   });
 
-  it("a Kids profile's picked categories apply at once; cached lists are dropped (D-064)", async () => {
+  it("a Kids profile's picked categories apply at once; cached lists are dropped (D-053)", async () => {
     const backend = createFakeBackend();
     const kid = { ...profile('kid'), isKids: true };
     backend.on('GET', '/api/auth/me', { body: account });

@@ -1,5 +1,5 @@
 # Phone (touch, on-screen keyboard), direct mode: tap the search box and type. The typed text must stay in the box
-# and search; before the fix, focus jumped to the first Live TV card and the typing went nowhere. D-073.
+# and search; before the fix, focus jumped to the first Live TV card and the typing went nowhere. D-069.
 appId: ${APP_ID}
 ---
 - launchApp:

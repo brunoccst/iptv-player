@@ -12,7 +12,7 @@ const PREVIEW_LINES = 150;
 
 /**
  * Diagnostics log: preview plus "Share log" (Android share sheet) so it can be sent for analysis. On a phone paired with
- * a TV, "Get TV log" fetches the TV's log and shares it from the phone (D-173). Server, accounts and keys are masked.
+ * a TV, "Get TV log" fetches the TV's log and shares it from the phone (D-039). Server, accounts and keys are masked.
  */
 export function LogScreen() {
   const [, refresh] = useState(0);

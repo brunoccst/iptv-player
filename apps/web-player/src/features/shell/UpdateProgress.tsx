@@ -3,7 +3,7 @@ import { t } from '@iptv/shared';
 import { desktop, type UpdateProgress as Progress } from '../../desktop';
 
 /**
- * Desktop app (D-166): after "Install now", the update's download with its percentage, at the top right of any page,
+ * Desktop app (D-073): after "Install now", the update's download with its percentage, at the top right of any page,
  * until the app asks to restart. The main process (apps/desktop/main.mjs) sends the progress.
  */
 export function UpdateProgress() {

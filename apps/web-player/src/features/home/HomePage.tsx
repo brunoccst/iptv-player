@@ -47,7 +47,7 @@ export function HomePage({ banner }: { banner: ReactNode }) {
         <ContinueWatchingRow />
         <MyListRow />
         <LiveRow />
-        {/* The best-rated titles added last (D-153, issue #181, #188). */}
+        {/* The best-rated titles added last (D-040, issue #181, #188). */}
         <TopRatedRow
           key={`top-movies-${revision}`}
           section="movies"
@@ -187,4 +187,4 @@ function LibraryRow({ section, category, title }: { section: LibrarySection; cat
   );
 }
 
-/** Continue Watching card menu: is its title on My List, and add/remove it (D-104). */
+/** Continue Watching card menu: is its title on My List, and add/remove it (D-078). */
