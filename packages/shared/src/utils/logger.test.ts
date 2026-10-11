@@ -17,6 +17,12 @@ describe('redact', () => {
       'retrying on the stream server https://***/live/***/***/1.ts',
     );
     expect(redact('HTTP 503 from portal.example.com:8080 after 12 ms')).toBe('HTTP 503 from *** after 12 ms');
+    expect(redact('attempt 1 failed: failed to connect to 7164443.merovixx.cc (port 80) after 10000ms')).toBe(
+      'attempt 1 failed: failed to connect to *** (port 80) after 10000ms',
+    );
+    expect(redact('java.lang.OutOfMemoryError at expo.modules.fetch.Response.bodyText, 55.mkv, player_api.php, api.themoviedb.org')).toBe(
+      'java.lang.OutOfMemoryError at expo.modules.fetch.Response.bodyText, 55.mkv, player_api.php, api.themoviedb.org',
+    );
     expect(redact('at expo.modules.fetch.Response.bodyText(Response.kt:89), index.android.bundle.js:1200')).toBe(
       'at expo.modules.fetch.Response.bodyText(Response.kt:89), index.android.bundle.js:1200',
     );

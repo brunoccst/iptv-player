@@ -41,8 +41,12 @@ export function redact(text: string, secrets: Iterable<string> = []): string {
       .replace(/(Bearer\s+)[^\s"',]+/gi, '$1***')
       .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, '***@***')
       .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, (ip) => (LOCAL_HOSTS.has(ip) ? ip : '***'))
-      // `host:port`, but not `File.kt:89` in a stack trace.
-      .replace(/\b(?:[a-z0-9-]+\.)+(?!(?:java|kt|kts|js|jsx|ts|tsx|mjs|cjs|json|py|cpp|cc|h|m|mm|swift)\b)[a-z]{2,}:\d{2,5}\b/gi, '***')
+      // Bare host names (`cdn.example.cc`, `portal.tv:8080`), but not file names (`55.mkv`, `Response.kt:89`) or
+      // package names in a stack trace (`java.lang.Error`, followed by a dot).
+      .replace(
+        /\b(?:[a-z0-9-]+\.)+(?!(?:java|kt|kts|js|jsx|ts|tsx|mjs|cjs|json|py|cpp|swift|php|html|htm|mkv|mp4|avi|mpd|xml|txt|log|png|jpg|jpeg|webp|srt|vtt|zip|apk|bundle|db)\b)[a-z]{2,6}(?::\d{2,5})?\b(?![.\w(])/g,
+        (host) => (LOCAL_HOSTS.has(host.replace(/:\d+$/, '')) || PUBLIC_HOSTS.test(host.replace(/:\d+$/, '')) ? host : '***'),
+      )
   );
 }
 

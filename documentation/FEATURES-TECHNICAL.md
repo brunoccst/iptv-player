@@ -790,7 +790,7 @@ flowchart LR
 ```
 
 - `createLogger()` keeps up to 600 entries no older than 3 days.
-- `redact()` masks the values given to `appLog.hide()` (the Xtream server, username and password; the OpenSubtitles key, account and token), credentials in queries and stream paths, the host of every URL except localhost and TMDB / OpenSubtitles / GitHub, keys, tokens, e-mail and IP addresses and `host:port`. It runs on each new line, and again on the kept lines at start-up and when a value is hidden, so lines saved before come out masked too.
+- `redact()` masks the values given to `appLog.hide()` (the Xtream server, username and password; the OpenSubtitles key, account and token), credentials in queries and stream paths, the host of every URL except localhost and TMDB / OpenSubtitles / GitHub, keys, tokens, e-mail and IP addresses and bare host names (not file names or stack-trace package names). It runs on each new line, and again on the kept lines at start-up and when a value is hidden, so lines saved before come out masked too.
 - Get TV log: the phone sends the `log` remote command (`sendRemoteCommand`, sealed with its pairing key); the TV answers with `logReport()` (header plus `shareText()`), sealed the same way. Only paired phones get an answer.
 - `shareText()` folds repeated lines into "(×N)" and keeps the newest 15,000 characters for sharing.
 - TV and phone: `stallWatch.ts` logs a JavaScript thread busy for 2 s or more; time in the background (timers stopped) does not count.
