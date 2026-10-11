@@ -2612,3 +2612,12 @@ Decision (`DetailsScreen` on TV and phone, `DetailsLayout` on desktop):
 
 Decision (`DetailsScreen` on TV): the episode that has the focus (for its rolling description, issue #160) was state of the whole list, so every focus move drew every episode of the season again: buttons, icons, focus animations, still, description, version box. The cost grew with the number of episodes, so a short season felt smooth. Each row is now its own memoized `EpisodeRow` with stable callbacks, and `useFocusGrid` keeps `ref`/`at` the same between renders and adds a `revision` that redraws the rows when a button appears or goes away. Keep new row props stable, or every move draws the whole season again.
 - Tests: `DetailsScreen.test.tsx` (a focus move draws the Play buttons of only the two episodes involved; ↑/↓ still reach the episode above and below).
+
+## D-170
+
+**TV: the details' My List button keeps the focus after a press** — 2026-10-11 (Bruno: "When in a movie detail (probably for series too), when I press the \"save\" button to save to my list, the focus is lost and goes somewhere I don't know. Make the focus be kept on the save button.")
+
+Context: pressing My List changes the page behind the details panel, which stays mounted. On the My List page, the first card has `hasTVPreferredFocus`; a card that appears there with it (the title just added, or the next one after a removal) asks Android for the focus, and gets it, behind the panel. Not reproduced on an emulator (none in the cloud container), so the fix does not depend on which view takes it.
+
+Decision (`WatchlistButton` on TV, `useKeepFocusAfterPress`): after a press, any blur of the button that no arrow, Back or Menu key caused puts the focus back on it (`requestTVFocus`, after the blur ends); the first such key ends that. Phones and the desktop have no focus to keep.
+- Tests: `keepFocus.test.tsx` (a blur after a press refocuses the button; after an arrow key, or with no press, it does not).
