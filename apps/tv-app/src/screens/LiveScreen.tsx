@@ -38,7 +38,8 @@ import { FocusButton } from '../components/FocusButton';
 import { useNavFocusTarget } from '../components/TopNav';
 import { useCatalog, useNav } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
-import { focus, usePreferredFocus } from '../components/focus';
+import { focus } from '../components/focus';
+import { usePageFocusable } from '../components/pageFocus';
 import { FocusRow } from '../components/FocusRow';
 import { CenteringScrollView, useCenterFocus, type Measurable } from '../components/CenterScroll';
 import { moveFocus, useFocusGrid } from '../components/focusGrid';
@@ -508,13 +509,13 @@ interface GuideCellButtonProps {
 /** Focusable guide block: white border when focused (Android focus search moves by geometry). */
 function GuideCellButton({ label, onPress, onFocus, style, testID, hasTVPreferredFocus, children }: GuideCellButtonProps) {
   const [focused, setFocused] = useState(false);
-  const preferred = usePreferredFocus(hasTVPreferredFocus);
+  const page = usePageFocusable(hasTVPreferredFocus);
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}
-      hasTVPreferredFocus={preferred}
+      hasTVPreferredFocus={page.preferred}
       onPress={onPress}
       onFocus={() => {
         setFocused(true);

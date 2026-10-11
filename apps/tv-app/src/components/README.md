@@ -16,7 +16,8 @@ Same look as the web components ([D-041](../../../../documentation/DECISIONS.md#
 | `LanguageSettings.tsx` | Account menu → Profiles → Content language filter: only titles with audio or subtitles in one of the chosen languages (from the title's name, else its category's name; titles in a category without a language always show), per profile (D-063, D-067, D-086). Also opened from the profile editor for a given profile. |
 | `PlaybackSettings.tsx` | Account menu → Playback: audio decoder choice (Device decoders first, the default / FFmpeg first), D-059. |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with optional icon; focus turns it white with a glow and grows it. |
-| `focus.tsx` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable` (its `hasTVPreferredFocus` only applies on TV), `BehindPanel` and `usePreferredFocus` (nothing behind the details panel asks for the focus, D-171). |
+| `focus.tsx` | The D-pad focus look shared by all focusable items: `focus` tokens (glow, light ring, translucent fill, white fill), `useFocusScale` (spring scale on focus) and `AnimatedPressable` (its `hasTVPreferredFocus` only applies on TV) |
+| `pageFocus.ts` | TV, D-171: `usePageFocusable` (nothing behind the details panel asks for the focus; registers the page's buttons and covers) and `createPageFocus` (closing the details puts the focus back on the opener, else the first view on screen). |
 | `IconButton.tsx` | Web `.icon-button` (round) and plain player controls. |
 | `Icon.tsx` | Shared 24×24 icon set (`iconPaths` from `@iptv/shared`) drawn with react-native-svg. |
 | `Gradient.tsx` | CSS-like `linear-gradient` (hero, nav and player shades). |
