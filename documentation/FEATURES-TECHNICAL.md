@@ -194,6 +194,7 @@ sequenceDiagram
 - No active profile or signed out means an empty list, which empties the row.
 - A row the user removed stays removed until the title is watched again.
 - Only Android TV devices (Android 8+, leanback) do anything; on phones it is a no-op.
+- Rows are read without a selection: the TV provider returns only the app's own rows and refuses a selection from apps without `ACCESS_ALL_EPG_DATA`.
 
 **Code:** `apps/tv-app/src/tv/watchNext.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/WatchNext.kt`, `apps/tv-app/src/App.tsx`
 
@@ -447,10 +448,13 @@ flowchart TD
   U -->|fails| N{more?}
   N -->|yes| A
   N -->|no| P["probe first 64 KB"] --> M["message: max connections,<br/>expired, not found, codec"]
+  S[mid-video network error] --> R["same steps from the current position<br/>(TV: Reconnecting notice)"]
+  R -->|all fail| T["provider's server message + Try again"]
 ```
 
 - TV and phone try the original file, then HLS (live: HLS, then TS); desktop the other way round. A decoding error stops at once.
 - `probeStream` reads the provider's answer and the codec from the first bytes. Desktop asks `canPlayType` and offers VLC when it cannot decode.
+- A network error (`ERROR_CODE_IO_NETWORK_*` on TV, `MEDIA_ERR_NETWORK` on desktop) after playback started keeps the position in `resumeAt`; retries start there. `providerUnreachableMessage(unreachableHost(…))` names the server that stopped answering. Try again runs every attempt again.
 
 **Code:** `packages/shared/src/playback/sources.ts`, `packages/shared/src/playback/probe.ts`, `apps/web-player/src/features/player/playbackEngine.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`
 
@@ -785,9 +789,10 @@ flowchart LR
 
 - `createLogger()` keeps up to 600 entries no older than 3 days; `redact()` masks usernames and passwords in URLs.
 - `shareText()` folds repeated lines into "(×N)" and keeps the newest 15,000 characters for sharing.
+- TV and phone: `stallWatch.ts` logs a JavaScript thread busy for 2 s or more; time in the background (timers stopped) does not count.
 - TV and phone: saved as a file in app storage; `CrashLog.kt` writes native crashes, which `startupLog.ts` adds on the next start. Desktop: saved in local storage, saved as a .txt file or copied.
 
-**Code:** `packages/shared/src/utils/logger.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx`
+**Code:** `packages/shared/src/utils/logger.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/src/diagnostics/stallWatch.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx`
 
 ### App updates
 
