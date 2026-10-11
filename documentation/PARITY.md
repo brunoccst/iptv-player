@@ -69,7 +69,7 @@ Legend: ✅ has it · ➖ does not apply to this device · ⏳ missing (the row 
 | Play on TV from the phone (D-044) | ✅ receives | ✅ sends | ➖ | | [Play on TV](FEATURES.md#play-on-tv) |
 | App language: English, Português (Brasil), Deutsch, Srpskohrvatski (BiH), per profile (D-084) | ✅ | ✅ | ✅ | account menu → App → App language; sign-in page | [App language](FEATURES.md#app-language) |
 | About (version, build, connection) | ✅ | ✅ | ✅ | account menu → App | [About](FEATURES.md#about) |
-| Diagnostics log | ✅ share | ✅ share | ✅ save or copy | account menu → App → Log | [Diagnostics log](FEATURES.md#diagnostics-log) |
+| Diagnostics log | ✅ share | ✅ share, get the TV's log | ✅ save or copy | account menu → App → Log | [Diagnostics log](FEATURES.md#diagnostics-log) |
 | App updates | ✅ | ✅ | ✅ desktop · ➖ browser (always current) | | [App updates](FEATURES.md#app-updates) |
 | Audio decoder choice (FFmpeg, D-059) | ✅ | ✅ | ➖ | browsers decode themselves | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) |
 | MKV / AC3 files | ✅ | ✅ | ➖ | browsers cannot play them; the app says so | [Playback errors](FEATURES.md#playback-errors) |

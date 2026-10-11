@@ -2630,3 +2630,16 @@ Decision (TV app, `pageFocus.ts`):
 - The same hook registers the view; the page's `onFocusCapture` remembers the last one focused. Back from the details (onto the same page, not Yellow's search box or Blue's Live TV) focuses it again, or, when it is gone, the registered view on screen highest up, then furthest left. After the player the page is drawn anew, so that is the first one on screen too.
 - Blocking the whole page natively (`TVFocusGuideView focusable={false}`) was not used: turning it back on makes the page's wrapper itself a focus target or keeps it blocked.
 - Tests: `focus.test.tsx` (behind the panel, a new first card does not ask; after it closes nothing new asks; the opener gets the focus back, else the first view on screen).
+
+## D-172
+
+**The phone fetches the TV log; the log masks the server and everything that identifies the account** — 2026-10-11 (Bruno: "Brainstorm a way of making it easier for me to send the TV logs to you besides sending pictures … The Bluetooth share also doesn't work". Then: "Do \"send log to phone\". … make sure to mask the server's URL and the user's credentials, and any other sensitive info.")
+
+Context: the TV's Log → Share log (D-039) opens Android's share sheet, which on a TV has nowhere useful to send text (Bluetooth refuses it). The phone is already paired with the TV for remote play (D-061), and the TV runs a server for it while signed in. `redact()` only masked usernames and passwords in queries and stream paths; the provider's address stayed in URLs and in "HTTP 503 from host:port" lines.
+
+Decision (shared `logger.ts`, `remote.ts`; TV app `LogScreen`, `pairing/remote.ts`, `diagnostics/logReport.ts`):
+
+- **The phone pulls, the TV answers.** A new remote command `{ type: 'log' }`, sealed with the phone's pairing key like play; the TV answers with its log as shared (header plus `shareText()`), sealed the same way. The phone's Log page shows **Get TV log** when a TV is paired and opens the share sheet with the result. A push from the TV was not used: the phone app does not listen in the background, so it would have to be open anyway, and the phone is where the log is sent from. The TV's Log page says how to do it. The log command needs no account or profile check: only paired phones get any answer.
+- **Masking (every app).** `appLog.hide()` takes values to mask everywhere, case-insensitively, when at least 3 characters long: the Xtream client registers the server URL, host and hostname, username and password; OpenSubtitles its API key, username, password and token. `redact()` also masks the host of every URL (except localhost and TMDB, OpenSubtitles, GitHub, which help reading the log), `key`, `token`, `api_key`, `auth`, `sig` and similar query values, Bearer tokens, e-mail and IPv4 addresses and `host:port`. Masking runs again on the kept lines at start-up and when a new value is hidden, so lines saved by an older version come out masked too.
+- Titles and stream ids stay: they are needed to read the log.
+- Tests: shared `logger.test.ts` (servers, keys, IPs, e-mail, secrets, older lines), `remote.test.ts` (log command sealed); TV `Pairing.test.tsx` (the TV hands a paired phone its masked log; the phone's Get TV log shares it).

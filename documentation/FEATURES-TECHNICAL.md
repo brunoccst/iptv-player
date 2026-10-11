@@ -781,13 +781,17 @@ flowchart LR
   C["native crash → last-crash.txt"] -->|next start| R
   R -->|every 2 s| S[(diagnostics.log)]
   R --> V["Log screen: share / save, copy"]
+  P["phone: Get TV log"] -->|"sealed { type: 'log' }"| T["TV remote server"]
+  R --> T -->|"sealed log text"| P --> Sh[phone share sheet]
 ```
 
-- `createLogger()` keeps up to 600 entries no older than 3 days; `redact()` masks usernames and passwords in URLs.
+- `createLogger()` keeps up to 600 entries no older than 3 days.
+- `redact()` masks the values given to `appLog.hide()` (the Xtream server, username and password; the OpenSubtitles key, account and token), credentials in queries and stream paths, the host of every URL except localhost and TMDB / OpenSubtitles / GitHub, keys, tokens, e-mail and IP addresses and `host:port`. It runs on each new line, and again on the kept lines at start-up and when a value is hidden, so lines saved before come out masked too.
+- Get TV log: the phone sends the `log` remote command (`sendRemoteCommand`, sealed with its pairing key); the TV answers with `logReport()` (header plus `shareText()`), sealed the same way. Only paired phones get an answer.
 - `shareText()` folds repeated lines into "(×N)" and keeps the newest 15,000 characters for sharing.
 - TV and phone: saved as a file in app storage; `CrashLog.kt` writes native crashes, which `startupLog.ts` adds on the next start. Desktop: saved in local storage, saved as a .txt file or copied.
 
-**Code:** `packages/shared/src/utils/logger.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx`
+**Code:** `packages/shared/src/utils/logger.ts`, `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/diagnostics/logReport.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx`
 
 ### App updates
 
