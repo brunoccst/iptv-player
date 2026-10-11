@@ -50,7 +50,7 @@ import type { SessionState } from './stores/sessionStore';
 import { isOnWatchlist, type WatchlistState } from './stores/watchlistStore';
 
 /**
- * Hooks the TV/phone app and the desktop/web app share (D-124): the same state, loading and paging for both; each app
+ * Hooks the TV/phone app and the desktop/web app share (D-079): the same state, loading and paging for both; each app
  * only draws. Made once per app from its stores: `export const { useSession, usePagedLibrary } = createAppHooks(stores)`.
  */
 /** The sections a profile's category settings cover, in their order on screen. */
@@ -61,7 +61,7 @@ export const CATEGORY_SECTIONS: { section: CatalogSection; label: () => string }
 ];
 
 /**
- * The details panel's round "Watched" toggle (D-104): an open eye when watched, a closed one when not. For a series it
+ * The details panel's round "Watched" toggle (D-081): an open eye when watched, a closed one when not. For a series it
  * marks every episode. Presses while a change is still being saved are ignored.
  */
 export function useWatchedToggle(kind: 'movie' | 'series' | 'season', watched: boolean, onChange: (watched: boolean) => Promise<void>) {
@@ -270,7 +270,7 @@ export function createAppHooks({
 
     /**
      * A series' details page: all versions' episode lists merged into one (D-066), resume, and whether every episode was
-     * watched (noted for the cover's tag, D-082). `play` resumes, or starts the first episode.
+     * watched (noted for the cover's tag, D-081). `play` resumes, or starts the first episode.
      */
     useSeriesDetails(master: MasterDetails) {
       const variant = useLibrary((s) => selectVariant(s, master));
@@ -313,7 +313,7 @@ export function createAppHooks({
     },
 
     /**
-     * Profile editor → Choose categories (D-064): what a Kids profile may see, per section. Starts from the automatic
+     * Profile editor → Choose categories (D-053): what a Kids profile may see, per section. Starts from the automatic
      * choice (category names, D-053); `automatic()` goes back to it.
      */
     useKidsCategories(profileId: string, onClose: () => void) {
@@ -372,7 +372,7 @@ export function createAppHooks({
     },
 
     /**
-     * Content language filter (D-063, D-067, D-086) of the active profile, or of `profile` (the profile editor): only
+     * Content language filter (D-063) of the active profile, or of `profile` (the profile editor): only
      * titles with audio or subtitles in a chosen language; none chosen = all. Applied on `close()`.
      */
     useLanguageSettings(profile: { id: string; name: string } | undefined, onClose: () => void) {
@@ -460,7 +460,7 @@ export function createAppHooks({
     },
 
     /**
-     * A title's poster card: the "Watched" tag (finished movie, fully watched series, D-082), the year and version count,
+     * A title's poster card: the "Watched" tag (finished movie, fully watched series, D-081), the year and version count,
      * and its menu (Go to details, My List, Mark as (not) watched, D-081). Each app draws the card and the menu.
      */
     useTitleCard(section: LibrarySection, item: MasterCard, openDetails: () => void) {
@@ -579,7 +579,7 @@ export function createAppHooks({
       useEffect(() => {
         let cancelled = false;
         const needle = query.toLowerCase();
-        // Search also finds channels in hidden categories (D-110). The database finds the matches (D-123); the filter here
+        // Search also finds channels in hidden categories (D-110). The database finds the matches (D-121); the filter here
         // is for an API that ignores `search`.
         api.catalog.liveChannels(null, undefined, { includeHidden: true, search: needle, limit: MAX_SEARCH_CHANNELS }).then(
           (all) =>

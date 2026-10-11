@@ -204,7 +204,7 @@ export function TopNav() {
                       >
                         <Icon name="refresh" size={18} /> {t('Refresh library')}
                       </button>
-                      {/* Desktop app only (D-072). */}
+                      {/* Desktop app only (D-060). */}
                       {desktop ? (
                         <button
                           type="button"

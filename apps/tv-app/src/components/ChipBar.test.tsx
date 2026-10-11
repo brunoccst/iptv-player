@@ -35,7 +35,7 @@ describe('ChipBar', () => {
     await fireEvent.press(screen.getByTestId('chips-all'));
     expect(screen.queryByTestId('chips-line')).toBeNull();
     expect(screen.getByTestId('chips-less')).toHaveProp('accessibilityState', { expanded: true });
-    // The chips scroll in their own box of at most half the screen, so "Show less" stays in view (D-091).
+    // The chips scroll in their own box of at most half the screen, so "Show less" stays in view (D-047).
     expect(screen.getByTestId('chips-box')).toHaveStyle({ maxHeight: Math.round(Dimensions.get('window').height * 0.5) });
 
     await fireEvent.press(screen.getByTestId('chips-less'));
@@ -117,7 +117,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: shows only the categories that fit, so ‹ › and "Show all" stay on screen (D-105)', async () => {
+  it('TV: shows only the categories that fit, so ‹ › and "Show all" stay on screen (D-047)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
       key,
@@ -158,7 +158,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: after "Show all" and "Show less" the focus stays on the button; focused, its text is dark (D-105, D-114)', async () => {
+  it('TV: after "Show all" and "Show less" the focus stays on the button; focused, its text is dark (D-047)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
       key,
@@ -182,7 +182,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: "Show all" and "Show less" are one button that stays mounted, so the focus never leaves it (D-170)', async () => {
+  it('TV: "Show all" and "Show less" are one button that stays mounted, so the focus never leaves it (D-047)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const center = jest.fn();
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
@@ -217,7 +217,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: at the ends ‹ › stay enabled (a disabled view loses the focus) and do nothing (D-108)', async () => {
+  it('TV: at the ends ‹ › stay enabled (a disabled view loses the focus) and do nothing (D-047)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({
       key,
@@ -239,7 +239,7 @@ describe('ChipBar', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: a chip in the "Show all" box centers the whole box, not itself (D-108, D-112)', async () => {
+  it('TV: a chip in the "Show all" box centers the whole box, not itself (D-047)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const center = jest.fn();
     const many: ChipItem[] = ['all', ...Array.from({ length: 10 }, (_, i) => `c${i}`)].map((key) => ({

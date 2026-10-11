@@ -1,7 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import type { KeyValueStorage } from '@iptv/shared';
 
-/** Plain JSON files in app-private storage for larger, non-secret data (profiles, progress, library cache). See DECISIONS.md#d-038. */
+/** Plain JSON files in app-private storage for larger, non-secret data (profiles, progress, library cache). See DECISIONS.md#d-088. */
 const folder = () => {
   const directory = new Directory(Paths.document, 'app-data');
   if (!directory.exists) directory.create({ intermediates: true });
@@ -13,7 +13,7 @@ const fileFor = (key: string) => new File(folder(), `${safe(key)}.json`);
 const partFor = (key: string, index: number) => new File(folder(), `${safe(key)}.part${index}.json`);
 
 /**
- * Values longer than this are kept in several files (D-113): a library of 160,000 titles is ~30 MB of text, and one
+ * Values longer than this are kept in several files (D-121): a library of 160,000 titles is ~30 MB of text, and one
  * file meant one Java string that size (twice that as UTF-16) while reading or writing it, too much for TVs with a
  * 192 MB Java heap. The main file then holds only `PARTS` and the number of parts.
  */
@@ -64,7 +64,7 @@ export const fileStorage: KeyValueStorage = {
     const count = Number(text.slice(PARTS.length));
     const files = Array.from({ length: count }, (_, index) => partFor(key, index));
     if (files.some((part) => !part.exists)) return null;
-    // All at once: native code reads each part on its own thread, so reading 9 parts does not take 9 turns (D-120).
+    // All at once: native code reads each part on its own thread, so reading 9 parts does not take 9 turns (D-121).
     return (await Promise.all(files.map(read))).join('');
   },
   setItem(key, value) {

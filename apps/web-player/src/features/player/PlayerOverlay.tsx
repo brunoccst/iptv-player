@@ -69,11 +69,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [source, setSource] = useState<LoadedSource | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
-  // The provider's server stopped sending the video: the message offers Try again, from where it stopped (D-172).
+  // The provider's server stopped sending the video: the message offers Try again, from where it stopped (D-074).
   const [retryable, setRetryable] = useState(false);
   const [retry, setRetry] = useState(0);
   const resumeAt = useRef<number | null>(null);
-  // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (KI-045, D-081).
+  // The format itself is the problem (AVI …). The desktop app offers VLC for any failure (KI-045, D-057).
   const [unsupportedFormat, setUnsupportedFormat] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [time, setTime] = useState(0);
@@ -96,7 +96,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const vlc = useVlc();
 
   // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066); a movie's
-  // versions for the in-player selector. Shared with the TV app (D-124).
+  // versions for the in-player selector. Shared with the TV app (D-079).
   const revision = useUi((s) => s.libraryRevision);
   const { series, next, previous, variants } = usePlayerTitle(target, revision);
   // Live: Home's first row lists the channels watched last (issue #122).
@@ -264,7 +264,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     if (video) video.currentTime = clampTime(seconds, video.duration);
   }, []);
 
-  // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-150); a held key's repeats stay at 10 s.
+  // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-128); a held key's repeats stay at 10 s.
   const skipStreak = useRef(new SkipStreak()).current;
   const skip = useCallback(
     (side: 'back' | 'forward', repeat = false) => {

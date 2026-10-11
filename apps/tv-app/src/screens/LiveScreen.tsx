@@ -45,7 +45,7 @@ import { CenteringScrollView, useCenterFocus, type Measurable } from '../compone
 import { moveFocus, useFocusGrid } from '../components/focusGrid';
 import { useRemote } from '../tv/remote';
 
-/** Same 3-hour window as the web guide (DECISIONS.md#d-031). */
+/** Same 3-hour window as the web guide (DECISIONS.md#d-088). */
 const HOURS = 3;
 const STEP_MS = 2 * EPG_SLOT_MS;
 const MIN_BACK_MS = 3 * 3600_000;
@@ -155,7 +155,7 @@ export function LiveScreen() {
             ]}
           />
         ) : (
-          // The page fits the screen; the list and the guide each scroll on their own (D-103, D-140).
+          // The page fits the screen; the list and the guide each scroll on their own (D-032).
           <CategoryList categories={categories} categoryId={categoryId} onChoose={chooseCategory} navUp={navUp} />
         )}
 
@@ -271,7 +271,7 @@ export function categoryPage(viewport: number, itemHeight: number): number {
 
 /**
  * The category list beside the guide. TV: ↑/↓ move exactly one category and the list keeps the focused one in the
- * middle; Android's scroll view no longer scrolls on its own first, which skipped like a page down (D-098). ↓ stops at
+ * middle; Android's scroll view no longer scrolls on its own first, which skipped like a page down (D-094). ↓ stops at
  * the last category, ↑ from the first goes to the nav. Channel +/− move a page up or down (issue #179).
  */
 function CategoryList({
@@ -423,7 +423,7 @@ interface GuideRowProps {
 const activate = (selection: Selection, onSelect: (selection: Selection) => void, playNow: () => void) =>
   Platform.isTV ? playNow() : onSelect(selection);
 
-/** Memoized: loading more channels or moving focus renders only the rows that changed (hundreds of channels, D-048). */
+/** Memoized: loading more channels or moving focus renders only the rows that changed (hundreds of channels, D-025). */
 const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, compact, selected, onSelect }: GuideRowProps) {
   const { channel, programmes } = row;
   const cells = layoutGuideRow(programmes, from, to);

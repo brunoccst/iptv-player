@@ -28,7 +28,7 @@ export function IconButton({
   icon: IconName;
   label: string;
   onPress(): void;
-  /** Holding OK (a long touch on phones), e.g. an episode's options menu (D-082). */
+  /** Holding OK (a long touch on phones), e.g. an episode's options menu (D-081). */
   onLongPress?(): void;
   size?: number;
   iconSize?: number;

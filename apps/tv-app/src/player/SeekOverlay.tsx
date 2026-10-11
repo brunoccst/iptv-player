@@ -5,9 +5,9 @@ import { colors, fonts, safe } from '../theme';
 
 /**
  * Animated circle shown on a D-pad tap, a ±10 s button or a double tap: "−10" left, "+10" right, or the longer step of
- * presses in a row ("+0:30", D-150). `flashKey` restarts the animation;
+ * presses in a row ("+0:30", D-128). `flashKey` restarts the animation;
  * `onDone` runs once it has faded out. It never takes touches: faded out but left on screen, it swallowed the next
- * double taps on phones (D-097).
+ * double taps on phones (D-046).
  */
 export function TapFlash({
   direction,

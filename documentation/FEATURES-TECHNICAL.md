@@ -104,7 +104,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  T["sign-in, 24 h old, or Update library"] --> D[download lists]
+  T["sign-in, 24 h old, or Refresh library"] --> D[download lists]
   D --> F{same fingerprint as last time?}
   F -->|yes| N[nothing to do]
   F -->|no| C[compare with last build]

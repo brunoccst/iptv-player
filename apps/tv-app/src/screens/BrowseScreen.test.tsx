@@ -85,7 +85,7 @@ describe('BrowseScreen (TV)', () => {
     });
     await render(<BrowseScreen section="movies" />);
     await flush();
-    // Only the centering moves the page: Android's own D-pad scrolling is off (D-098).
+    // Only the centering moves the page: Android's own D-pad scrolling is off (D-094).
     expect(screen.getByTestId('browse-movies')).toHaveProp('scrollEnabled', false);
     // Before a line is measured every line is mounted; once its height is known, far lines become spacers.
     await fireEvent(screen.getByTestId('grid-line-0'), 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 900, height: 400 } } });
@@ -101,7 +101,7 @@ describe('BrowseScreen (TV)', () => {
     await fireEvent(within(screen.getByTestId('grid-line-12')).getAllByRole('button')[0]!, 'focus');
     expect(screen.getByTestId('grid-line-18')).toBeTruthy();
     expect(screen.getByTestId('grid-spacer-1')).toHaveStyle({ height: 400 });
-    // The first line stays mounted: its first card takes the focus when it mounts (D-099).
+    // The first line stays mounted: its first card takes the focus when it mounts (D-094).
     expect(screen.getByTestId('grid-line-0')).toBeTruthy();
   });
 });

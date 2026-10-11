@@ -42,7 +42,7 @@
 }
 
 .row__title {
-  /* Above the card track, whose room for the hovered card's glow reaches up over the title (D-085). */
+  /* Above the card track, whose room for the hovered card's glow reaches up over the title (D-047). */
   position: relative;
   z-index: 1;
   margin: 0 var(--gutter) 10px;
@@ -93,7 +93,7 @@
   overflow-x: auto;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  /* Cards snap in line with the row title, so the first card's place is the scroll start (D-159). */
+  /* Cards snap in line with the row title, so the first card's place is the scroll start (D-040). */
   scroll-padding-inline: var(--gutter);
   /* Room for the hovered card (8 % larger) and its glow: the track clips its content (D-078, D-079). */
   padding: 28px var(--gutter);
@@ -139,7 +139,7 @@
 .card {
   position: relative;
   flex: 0 0 var(--card-width);
-  /* Every card the same size, whatever the image (D-073): a large cover must not widen its card or grid column. */
+  /* Every card the same size, whatever the image (D-079): a large cover must not widen its card or grid column. */
   min-width: 0;
   scroll-snap-align: start;
   border-radius: var(--radius);
@@ -397,7 +397,7 @@
   color: #000;
 }
 
-/* Category chips on one line with "Show all", like the TV and phone apps (D-085). */
+/* Category chips on one line with "Show all", like the TV and phone apps (D-047). */
 .chip-bar {
   display: flex;
   gap: 8px;
@@ -468,7 +468,7 @@
   font-size: 0.9rem;
 }
 
-/* Offline, "organizing your library" and empty library: float at the bottom over the content, as on TV (D-142). */
+/* Offline, "organizing your library" and empty library: float at the bottom over the content, as on TV (D-119). */
 .banner--floating {
   position: fixed;
   left: var(--gutter);
@@ -511,7 +511,7 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
 }
 
-/* Desktop app (D-166): an accepted update downloading, at the top right of any page until the restart question. */
+/* Desktop app (D-073): an accepted update downloading, at the top right of any page until the restart question. */
 .banner--update {
   position: fixed;
   top: 16px;
@@ -542,7 +542,7 @@
 }
 
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
-/* About and Log (account menu → App, D-079); padded like the other dialogs (D-142). */
+/* About and Log (account menu → App, D-079); padded like the other dialogs (D-119). */
 .about,
 .log {
   display: grid;

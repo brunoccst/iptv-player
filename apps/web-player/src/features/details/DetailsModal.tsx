@@ -120,7 +120,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 }
 
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
-  // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-082).
+  // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-081).
   const { variant, series, allWatched, backdrop, play: playTarget, playLabel, startSeason } = useSeriesDetails(master);
   if (!variant) return <p style={{ padding: 32 }}>{t('No playable versions.')}</p>;
   const play = () => {

@@ -48,7 +48,7 @@ export interface NavState {
   back(): boolean;
 }
 
-/** Stack navigation: root is a page from the top nav; details and player are pushed on top. See DECISIONS.md#d-028, #d-041. */
+/** Stack navigation: root is a page from the top nav; details and player are pushed on top. See DECISIONS.md#d-028, #d-079. */
 export function createNavStore() {
   return createStore<NavState>()((set, get) => ({
     stack: [{ name: 'section', section: 'home' }],

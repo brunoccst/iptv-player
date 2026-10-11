@@ -57,7 +57,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(pickTrack(tracks, null)).toBeNull();
   });
 
-  it("name a track by its language when the stream gives no name of its own, in the app's language (D-089)", () => {
+  it("name a track by its language when the stream gives no name of its own, in the app's language (D-090)", () => {
     expect(trackLabel({ language: 'en', label: 'en' })).toBe('English');
     expect(trackLabel({ language: 'eng', label: '' })).toBe('English');
     expect(trackLabel({ language: 'pt-BR', label: 'PT-BR' })).toBe('Portuguese');
@@ -94,7 +94,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(preferredVariant(variants, null)).toBeNull();
   });
 
-  it('mark as best only the highest quality; equally good versions go by language, else none is (D-136)', () => {
+  it('mark as best only the highest quality; equally good versions go by language, else none is (D-087)', () => {
     const sameQuality = [variant('alb', ['ALB'], '1080p'), variant('en', ['ENG'], '1080p')];
     expect(bestVariant(sameQuality, ['ENG'])?.streamId).toBe('en');
     expect(bestVariant(sameQuality, ['GER', 'ALB', 'ENG'])?.streamId).toBe('alb');
@@ -110,7 +110,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(bestVariant([variant('one', ['ALB'], 'SD')], [])?.streamId).toBe('one');
   });
 
-  it("start with the best version in the profile's languages, then the version choice, then the best (D-144)", () => {
+  it("start with the best version in the profile's languages, then the version choice, then the best (D-087)", () => {
     const versions = [variant('alb-4k', ['ALB'], '4K'), variant('en-720', ['ENG'], '720p'), variant('en-1080', ['ENG'], '1080p')];
     const start = (profileLanguages: string[], choice: { languages: string[]; quality: string | null } | null = null) =>
       startingVariant(versions, { profileLanguages, choice, languages: [...profileLanguages, 'ENG'] })?.streamId;
@@ -130,7 +130,7 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(startingVariant([], { profileLanguages: ['ENG'], choice: null, languages: [] })).toBeNull();
   });
 
-  it('prefer the plain English version over the EAR one (D-148)', () => {
+  it('prefer the plain English version over the EAR one (D-087)', () => {
     const named = (streamId: string, rawTitle: string, quality: string | null) =>
       ({ ...variant(streamId, ['ENG'], quality), rawTitle }) as VariantInfo;
     const ear = named('ear', 'EAR - Backrooms (2026) 1080p', '1080p');
@@ -147,14 +147,14 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(bestVariant([ear, en1080], ['ENG'])?.streamId).toBe('en-1080');
   });
 
-  it("order the languages: the profile's, then the app's (D-136)", () => {
+  it("order the languages: the profile's, then the app's (D-087)", () => {
     expect(versionLanguages(['ALB'], 'en')).toEqual(['ALB', 'ENG']);
     expect(versionLanguages([], 'pt-BR')).toEqual(['POR']);
     expect(versionLanguages(['GER'], 'de')).toEqual(['GER']);
     expect(versionLanguages([], 'sh-BA')).toEqual(['EXYU']);
   });
 
-  it('follow the open profile and the app language (D-136)', async () => {
+  it('follow the open profile and the app language (D-087)', async () => {
     const { stores } = app();
     await stores.session.getState().restore();
     stores.session.getState().selectProfile('p1');
@@ -177,7 +177,7 @@ describe('playback choices for every movie and series (D-087)', () => {
       variants: [variant('h-de', ['GER'], '4K'), variant('h-en-hd', ['ENG'], '1080p'), variant('h-en-4k', ['ENG'], '4K')],
     } as MasterDetails;
     const up = { id: 'up', variants: [variant('u-de', ['GER'], '1080p'), variant('u-en', ['ENG'], '1080p')] } as MasterDetails;
-    // Two 4K versions: the app's language (English) picks the best one (D-136).
+    // Two 4K versions: the app's language (English) picks the best one (D-087).
     expect(selectVariant(stores.library.getState(), heat)?.streamId).toBe('h-en-4k');
 
     chooseVersion(stores, 'heat', heat.variants[2]!);

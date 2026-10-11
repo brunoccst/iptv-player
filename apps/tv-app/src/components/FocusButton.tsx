@@ -13,7 +13,7 @@ interface FocusButtonProps {
   /** Same variants as the web `.button--*` classes. */
   variant?: Variant;
   icon?: IconName | ReactNode;
-  /** The icon after the label (menus, D-086); before it by default. */
+  /** The icon after the label (menus, D-078); before it by default. */
   iconAfter?: boolean;
   hasTVPreferredFocus?: boolean;
   disabled?: boolean;

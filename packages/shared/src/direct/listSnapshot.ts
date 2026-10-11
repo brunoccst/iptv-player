@@ -31,7 +31,7 @@ function listKey(section: LibrarySection, query: LibraryListQuery): string | nul
 const detailsKey = (section: LibrarySection, masterId: string) => `${section}|${masterId}`;
 
 /**
- * The first pages the screens asked for, with the details of short lists, saved apart from the library (D-120). After
+ * The first pages the screens asked for, with the details of short lists, saved apart from the library (D-121). After
  * a start, Home answers from here while the saved library (30+ MB for 160k titles, 15 s on a Chromecast) is still being
  * read. It holds only answers from the saved library as it is now: a kind's answers are dropped before a new library of
  * that kind is saved.
@@ -132,7 +132,7 @@ export function createListSnapshot(storage: KeyValueStorage, saveDelayMs = SAVE_
       await save();
     },
 
-    /** Not needed any more (the library is in a database, D-122): forgotten and its file removed. */
+    /** Not needed any more (the library is in a database, D-121): forgotten and its file removed. */
     async forget(id: string) {
       if (timer) clearTimeout(timer);
       timer = null;

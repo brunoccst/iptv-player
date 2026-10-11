@@ -2,7 +2,7 @@ import type { VariantInfo } from '@iptv/shared';
 import { bestVariant, t } from '@iptv/shared';
 import { useLibrary } from '../../hooks/stores';
 
-/** "Version / Stream Quality" dropdown. Variants arrive best-first; "(best)" only when one is (D-136). */
+/** "Version / Stream Quality" dropdown. Variants arrive best-first; "(best)" only when one is (D-087). */
 export function VariantSelect({ variants, value, onChange }: { variants: VariantInfo[]; value: string; onChange(streamId: string): void }) {
   const best = useLibrary((s) => bestVariant(variants, s.versionLanguages));
   if (variants.length < 2) return null;

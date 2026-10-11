@@ -15,7 +15,7 @@ import { useSession } from '../hooks/stores';
 import { Icon } from './Icon';
 
 /**
- * Desktop app: "Open in VLC" next to Play (D-081), the TV's "open in another player" (D-057). VLC gets the original
+ * Desktop app: "Open in VLC" next to Play, the TV's "open in another player" (D-057). VLC gets the original
  * file (else HLS) with the provider User-Agent. Not in a browser (it cannot start other programs), not on Kids profiles.
  */
 export function VlcButton({ target }: { target: PlayTarget }) {
@@ -65,7 +65,7 @@ export async function openInVlc(target: PlayTarget): Promise<string | null> {
 }
 
 /**
- * VLC gets one address: with a stream server from the login reply (D-038), the first address that answers with a
+ * VLC gets one address: with a stream server from the login reply (D-088), the first address that answers with a
  * video or playlist, else the portal's. Without one, no extra request.
  */
 export async function answeringUrl(urls: string[], probe: (url: string) => Promise<StreamProbe> = probeStream): Promise<string> {

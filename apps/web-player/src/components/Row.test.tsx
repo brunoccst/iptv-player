@@ -11,7 +11,7 @@ function layout(scrollWidth: number, clientWidth: number) {
 
 const cards = ['a', 'b', 'c'].map((key) => <div key={key}>{key}</div>);
 
-describe('Row arrows (D-159)', () => {
+describe('Row arrows (D-040)', () => {
   afterEach(() => {
     cleanup();
     delete (HTMLElement.prototype as { scrollWidth?: number }).scrollWidth;

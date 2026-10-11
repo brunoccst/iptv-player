@@ -1,6 +1,6 @@
 import * as tags from './tags';
 
-/** Regex title parser (D-017, D-038); the JSON cases in `cases/` describe what it must do. */
+/** Regex title parser (D-017, D-088); the JSON cases in `cases/` describe what it must do. */
 export interface ParsedTitle {
   raw: string;
   cleanTitle: string;
@@ -88,10 +88,10 @@ function subtitleCode(word: string): string {
 /** Every subtitle pattern contains "sub", "leg" or "vos"; names without them skip the long patterns. */
 const MAYBE_SUBTITLES = /sub|leg|vos/i;
 
-/** "EAR": English audio with Arabic subtitles burned into the picture (D-107). Capitals only: "ear" is a word. */
+/** "EAR": English audio with Arabic subtitles burned into the picture (D-017). Capitals only: "ear" is a word. */
 const ENGLISH_ARABIC = /\bEAR\b/g;
 
-/** True for an "EAR" version: English audio with Arabic subtitles in the picture that cannot be turned off (D-148). */
+/** True for an "EAR" version: English audio with Arabic subtitles in the picture that cannot be turned off (D-087). */
 export const isEnglishArabic = (raw: string) => raw.includes('EAR') && /\bEAR\b/.test(raw);
 
 function extractSubtitles(raw: string): { text: string; languages: string[] } {
@@ -114,7 +114,7 @@ function extractSubtitles(raw: string): { text: string; languages: string[] } {
 }
 
 // Numbered groups only: Babel turns named groups into a slow wrapper around every match on Hermes (D-093).
-// "=" too ("PL = Title", D-112): the group before it must still be a known tag in capitals, so "E=MC2" stays a title.
+// "=" too ("PL = Title", D-017): the group before it must still be a known tag in capitals, so "E=MC2" stays a title.
 const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:=]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
 const EDGE_PUNCTUATION = ' -–:|.,_/';
@@ -287,7 +287,7 @@ class Tags {
 
 /**
  * Whether `absorb` would take `token`, without recording anything. It depends only on the token, so no throw-away
- * `Tags` is needed to ask (thousands of them per library, D-118).
+ * `Tags` is needed to ask (thousands of them per library, D-093).
  */
 function isTag(token: string, allowShort: boolean, prefix = false): boolean {
   const word = fold(token);
@@ -380,7 +380,7 @@ function stripPrefixes(text: string, found: Tags): string {
 const UNKNOWN_LANGUAGE = /^[A-Z]{2,3}$/;
 
 /**
- * A language not in the tables yet ("XY - Title", "|XY| Title", D-134): two or three capitals before " - " or between
+ * A language not in the tables yet ("XY - Title", "|XY| Title", D-017): two or three capitals before " - " or between
  * pipes. Dropped with no language, so the title joins its other versions. Not before ":" or "=" ("CSI: Miami",
  * "E=MC2"), and not the acronyms in KEPT_PREFIX.
  */

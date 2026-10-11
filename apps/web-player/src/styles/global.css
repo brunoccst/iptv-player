@@ -146,7 +146,7 @@ img {
   background: transparent;
 }
 
-/* A toggle that is on (e.g. an episode marked watched, D-082): filled light, dark icon. */
+/* A toggle that is on (e.g. an episode marked watched, D-081): filled light, dark icon. */
 .icon-button--on {
   border-color: var(--focus-ring);
   background: var(--focus-ring);
@@ -168,7 +168,7 @@ img {
 .select {
   width: 100%;
   min-height: 48px;
-  /* Our own chevron with room on the right, the same in every browser and the desktop app (D-086). */
+  /* Our own chevron with room on the right, the same in every browser and the desktop app (D-079). */
   padding: 12px 44px 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);

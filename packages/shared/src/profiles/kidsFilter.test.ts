@@ -116,7 +116,7 @@ describe('Kids profile in the app context', () => {
     expect(backend.calls.at(-1)?.url.searchParams.get('categoryIds')).toBe('m2');
   });
 
-  it('uses the categories a parent picked; untouched sections keep the name rule (D-064)', async () => {
+  it('uses the categories a parent picked; untouched sections keep the name rule (D-053)', async () => {
     const raw = fakeApi();
     const picked: Record<string, string[] | null> = { movies: ['m1'], live: [], series: null };
     const { api } = withKidsFilter(

@@ -29,7 +29,7 @@ const status = (mediaKind: string, jobStatus: string, itemCount: number | null):
   queuedAt: null,
 });
 
-describe('library banner (D-142)', () => {
+describe('library banner (D-119)', () => {
   afterEach(cleanup);
 
   it('floats at the bottom with one progress line per kind, as on TV', async () => {

@@ -25,7 +25,7 @@ describe('library codec', () => {
     expect(unpackLibrary(JSON.parse(text))).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters });
   });
 
-  it('a library built with older title rules still shows, but counts as out of date (D-086)', () => {
+  it('a library built with older title rules still shows, but counts as out of date (D-017)', () => {
     const { rules: _rules, ...older } = packLibrary('2026-09-24T00:00:00Z', masters);
     expect(unpackLibrary(JSON.parse(JSON.stringify(older)))).toEqual({ builtAt: new Date(0).toISOString(), masters });
   });
@@ -35,7 +35,7 @@ describe('library codec', () => {
     expect(unpackLibrary(null)).toBeNull();
   });
 
-  it('unpacks in slices with the same result, letting the screen run in between (D-117)', async () => {
+  it('unpacks in slices with the same result, letting the screen run in between (D-121)', async () => {
     const many = buildMasters(
       'acc',
       'movie',
@@ -51,7 +51,7 @@ describe('library codec', () => {
     expect(await unpackLibraryInSlices(null, async () => undefined)).toBeNull();
   });
 
-  it('reads the saved text a line of titles at a time; older texts without lines in one piece (D-120)', async () => {
+  it('reads the saved text a line of titles at a time; older texts without lines in one piece (D-121)', async () => {
     const text = await packLibraryText('2026-09-24T00:00:00Z', masters, async () => undefined, 1);
     expect(masters.length).toBeGreaterThan(1);
     // Still one JSON document, as older versions of the app read it.
@@ -66,7 +66,7 @@ describe('library codec', () => {
 
     const empty = await packLibraryText('2026-09-24T00:00:00Z', [], async () => undefined);
     expect(await readLibraryText(empty, async () => undefined)).toEqual({ builtAt: '2026-09-24T00:00:00Z', masters: [], pieces: 0 });
-    // Older title rules: shown, but out of date (D-086).
+    // Older title rules: shown, but out of date (D-017).
     const older = text.replace(`"rules":${JSON.parse(text).rules},`, '');
     expect((await readLibraryText(older, async () => undefined))?.builtAt).toBe(new Date(0).toISOString());
     expect(await readLibraryText('{"builtAt":"x"}', async () => undefined)).toBeNull();

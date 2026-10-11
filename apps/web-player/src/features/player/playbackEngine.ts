@@ -78,7 +78,7 @@ export class PlaybackEngine {
 
   /**
    * Registers a callback for unrecoverable errors after a successful load; `network` when the provider's server stopped
-   * sending the file (D-172).
+   * sending the file (D-074).
    */
   onFatalError(callback: (message: string, network?: boolean) => void) {
     this.onFatal = callback;
@@ -103,7 +103,7 @@ export class PlaybackEngine {
         continue;
       }
       // Some panels answer the API on the portal and serve streams only on the stream server from the login reply:
-      // that address is tried next, like the TV app (D-038).
+      // that address is tried next, like the TV app (D-088).
       for (const url of [playback.url, ...(playback.alternateUrls ?? [])]) {
         if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
         try {
@@ -205,7 +205,7 @@ export class PlaybackEngine {
         video.addEventListener(
           'error',
           () => {
-            // Mid-file, the provider's server stopped answering: say it is their side (D-172).
+            // Mid-file, the provider's server stopped answering: say it is their side (D-074).
             if (video.error?.code === MEDIA_ERR_NETWORK) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
             else this.onFatal?.('Playback stopped (media error).');
           },

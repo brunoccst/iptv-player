@@ -19,7 +19,7 @@ describe('preferred focus', () => {
     expect(screen.getByTestId('play').props.hasTVPreferredFocus).toBe(true);
   });
 
-  it('TV: nothing behind the details panel asks for the focus, before or after it closes (D-171)', async () => {
+  it('TV: nothing behind the details panel asks for the focus, before or after it closes (D-069)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const page = (behind: boolean, cards: string[]) => (
       <PageFocusContext.Provider value={{ behind, register: () => () => undefined }}>
@@ -46,7 +46,7 @@ describe('preferred focus', () => {
     expect([preferred('b'), preferred('new')]).toEqual([true, false]);
   });
 
-  it('TV: closing the details puts the focus back on what opened them, or on the first view on screen (D-171)', async () => {
+  it('TV: closing the details puts the focus back on what opened them, or on the first view on screen (D-069)', async () => {
     const view = (x: number, y: number) =>
       ({
         requestTVFocus: jest.fn(),

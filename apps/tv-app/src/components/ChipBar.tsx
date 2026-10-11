@@ -30,7 +30,7 @@ export interface ChipItem {
 /** Chips rendered at first on the line and in the expanded box; more follow as the user scrolls toward the end. */
 const LINE_PAGE = 40;
 const BOX_PAGE = 150;
-/** TV: at most this many categories between "All" and the ‹ › buttons; fewer when their names do not fit (D-105). */
+/** TV: at most this many categories between "All" and the ‹ › buttons; fewer when their names do not fit (D-047). */
 const TV_WINDOW = 3;
 /** Space between the items of the bar (styles.bar gap). */
 const GAP = 8;
@@ -47,7 +47,7 @@ function nearEnd({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>, horiz
 
 /**
  * Category chips on one scrollable line. When they do not fit, "Show all" wraps every chip across the full width in
- * a box of at most half the screen that scrolls on its own, so "Show less" stays in view above it (D-091);
+ * a box of at most half the screen that scrolls on its own, so "Show less" stays in view above it (D-047);
  * "Show less" returns to the line; picking a chip also returns to it, scrolled so the chosen chip is in view.
  *
  * Chips are rendered a page at a time (D-093): providers with 100k+ titles have thousands of categories, and building
@@ -62,7 +62,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const [boxContentHeight, setBoxContentHeight] = useState(0);
   // TV: the first chip of the categories shown after "All" (null: around the chosen one).
   const [tvStart, setTvStart] = useState<number | null>(null);
-  // TV: after "Show all" / "Show less" the focus stays on the button (D-105, D-114). The button itself is replaced when
+  // TV: after "Show all" / "Show less" the focus stays on the button (D-047). The button itself is replaced when
   // the bar changes shape; without this the focus fell to the grid or "Sort by".
   const [refocusToggle, setRefocusToggle] = useState(false);
   // TV: measured widths (the bar, "All", ‹ ›, "Show all", each category chip), to show only the chips that fit.
@@ -106,7 +106,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
   const activeIndex = chips.findIndex((chip) => chip.active);
   const lineChips =
     activeIndex >= LINE_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
-  // The expanded box does the same beyond its first page, so the chosen chip shows without scrolling the box (D-105).
+  // The expanded box does the same beyond its first page, so the chosen chip shows without scrolling the box (D-047).
   const boxChips =
     activeIndex >= BOX_PAGE ? [chips[0]!, chips[activeIndex]!, ...chips.slice(1, activeIndex), ...chips.slice(activeIndex + 1)] : chips;
   const lineCount = Math.min(chips.length, lineLimit);
@@ -149,7 +149,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     scheduleReveal();
   };
 
-  // TV: a chip in the box centers the whole box in the page, not itself (D-112).
+  // TV: a chip in the box centers the whole box in the page, not itself (D-047).
   const boxCentering = useCenterOnFocus();
   const items = (expanded ? boxChips.slice(0, boxCount) : lineChips.slice(0, lineCount)).map((chip) => (
     <Chip
@@ -159,7 +159,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
       testID={chip.testID}
       onPress={() => choose(chip)}
       onLayout={(event) => onChipLayout(chip, event)}
-      // In the box, the page centers the whole box (D-112): centering the chip scrolled the page down to the titles, and
+      // In the box, the page centers the whole box (D-047): centering the chip scrolled the page down to the titles, and
       // no centering left the page where a title the focus passed through had scrolled it.
       onCenter={expanded ? boxCentering.center : undefined}
     />
@@ -179,7 +179,7 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     />
   );
 
-  // The chips of the expanded box, in their own scroll view of at most half the screen (D-091).
+  // The chips of the expanded box, in their own scroll view of at most half the screen (D-047).
   const box = (
     <ScrollView
       testID={testID && `${testID}-box`}
@@ -194,11 +194,11 @@ export function ChipBar({ chips, label, testID }: { chips: ChipItem[]; label: st
     </ScrollView>
   );
 
-  // TV (D-094, D-105): "All", the categories that fit (at most TV_WINDOW), ‹ › to page through them, then "Show all" —
+  // TV (D-094, D-047): "All", the categories that fit (at most TV_WINDOW), ‹ › to page through them, then "Show all" —
   // no long walk to reach the end. Long names take more room: fewer of them show, so the buttons stay on screen.
   // Expanded, the same bar shows "Categories" and "Show less" above the box. "Show all" and "Show less" are one button
   // that stays in place: replacing it made the focus fall to the grid, which scrolled the page down to the titles
-  // (D-170).
+  // (D-047).
   if (Platform.isTV) {
     const rest = chips.slice(1);
     const needsPager = rest.length > TV_WINDOW || !fitsWhole(rest, 0, rest.length, tvRoomWithout());
@@ -418,7 +418,7 @@ export function Chip({
   onPress(): void;
   onLayout?(event: LayoutChangeEvent): void;
   hasTVPreferredFocus?: boolean;
-  /** TV: what centers the page when the chip gets the focus; default the chip itself (D-094). The "Show all" box: the box (D-112). */
+  /** TV: what centers the page when the chip gets the focus; default the chip itself (D-094). The "Show all" box: the box (D-047). */
   onCenter?(): void;
   testID?: string;
 }) {

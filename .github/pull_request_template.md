@@ -4,7 +4,7 @@
 
 ## Apps
 
-Which apps does this change? Every app should get a feature unless it does not apply to that device ([PARITY.md](../documentation/PARITY.md), D-080).
+Which apps does this change? Every app should get a feature unless it does not apply to that device ([PARITY.md](../documentation/PARITY.md), D-079).
 
 - [ ] TV (remote)
 - [ ] Phone (touch)

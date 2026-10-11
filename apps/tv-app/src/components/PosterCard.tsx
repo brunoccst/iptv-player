@@ -23,7 +23,7 @@ export interface PosterCardProps {
   /** Overrides the web `--card-width` (grids stretch cards to fill a line). */
   width?: number;
   hasTVPreferredFocus?: boolean;
-  /** Keeps the subtitle line even when empty, so every card in a grid is the same height (D-096). */
+  /** Keeps the subtitle line even when empty, so every card in a grid is the same height (D-094). */
   reserveSubtitle?: boolean;
   /** Top-right corner actions (e.g. download button). */
   actions?: ReactNode;
@@ -130,7 +130,7 @@ export function PosterCard({
 const styles = StyleSheet.create({
   card: { borderRadius: radius + 2, backgroundColor: colors.surface, borderWidth: 2, borderColor: 'transparent' },
   // No zIndex: a zIndex change reorders the row's views (the focused card is taken out and put back), which drops the
-  // focus; with quick Right presses it then landed on the nav (D-076). The glow's elevation already draws the card on top.
+  // focus; with quick Right presses it then landed on the nav (D-069). The glow's elevation already draws the card on top.
   focused: { borderColor: focus.ring, ...focus.glow },
   art: { width: '100%', borderRadius: radius, overflow: 'hidden', justifyContent: 'center', backgroundColor: '#1f1f1f' },
   fallback: { color: colors.strong, fontSize: 16, fontWeight: '700', textAlign: 'center', padding: 10 },

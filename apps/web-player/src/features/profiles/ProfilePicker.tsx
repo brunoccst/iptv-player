@@ -103,7 +103,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
         <label className="checkbox">
           <input type="checkbox" checked={isKids} onChange={(e) => setIsKids(e.target.checked)} /> {t('Kids profile')}
         </label>
-        {/* Parents pick what a saved Kids profile may see (D-064). */}
+        {/* Parents pick what a saved Kids profile may see (D-053). */}
         {isKids && profile ? (
           <button type="button" className="button button--ghost" onClick={() => setCategories(true)}>
             <Icon name="pencil" size={18} /> {t('Choose categories')}

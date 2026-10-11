@@ -10,7 +10,7 @@ interface Box {
   height: number;
 }
 
-/** The page under the top nav and the details panel (D-171). */
+/** The page under the top nav and the details panel (D-069). */
 export interface PageFocus {
   /** The details panel covers the page. */
   behind: boolean;
@@ -20,7 +20,7 @@ export const PageFocusContext = createContext<PageFocus | null>(null);
 
 /**
  * The page's buttons and covers, and the one that last had the focus. When the details panel closes, the focus goes
- * back to the one that opened it, or else to the first one on screen (D-171): Android used to hand it to any view.
+ * back to the one that opened it, or else to the first one on screen (D-069): Android used to hand it to any view.
  */
 export function createPageFocus() {
   const views = new Set<PageView>();

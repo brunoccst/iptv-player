@@ -84,12 +84,12 @@ run_flow 01-online
 "$HERE/../../../scripts/stop-e2e-stack.sh"
 run_flow 02-offline
 
-# A fresh sign-in once the provider is back (DECISIONS.md#d-038).
+# A fresh sign-in once the provider is back (DECISIONS.md#d-088).
 sleep 1
 "$HERE/../../../scripts/start-e2e-stack.sh"
 run_flow 03-direct
 
-# Holding Right in a Home row (D-076): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
+# Holding Right in a Home row (D-069): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
 # `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (a held key
 # repeats every ~50 ms): 16 presses reach the row's end, 40 keep going past it.
 "$HERE/../../../scripts/stop-e2e-stack.sh"

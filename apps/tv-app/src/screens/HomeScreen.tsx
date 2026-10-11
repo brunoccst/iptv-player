@@ -31,7 +31,7 @@ const LIVE_ROW_SIZE = 10;
 const MOVIE_ROWS = 6;
 const SERIES_ROWS = 3;
 /**
- * TV: rows built at the start; more follow when the focus or the scroll gets near the last one (D-122). Each row fetches
+ * TV: rows built at the start; more follow when the focus or the scroll gets near the last one (D-040). Each row fetches
  * its titles and posters when built: all 13 at once cost a Chromecast about 130 posters before the screen settled.
  */
 const TV_FIRST_ROWS = 4;
@@ -40,7 +40,7 @@ const TV_ROWS_AHEAD = 2;
 /** Same as the web Home: hero, library banner, Continue Watching, Live TV, Top rated, Series and category rows. */
 export function HomeScreen({ processing = false }: { processing?: boolean }) {
   const featured = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.data?.items ?? []);
-  // Until the first list answers, the saved library is still being read (seconds for 100k+ titles on a TV, D-117).
+  // Until the first list answers, the saved library is still being read (seconds for 100k+ titles on a TV, D-119).
   const featuredStatus = useLibrary((s) => s.pages[pageKey('movies', { limit: HERO_CANDIDATES })]?.status ?? 'idle');
   const loading = featured.length === 0 && (featuredStatus === 'idle' || featuredStatus === 'loading');
   const movieCategories = useCatalog((s) => s.categories.movies?.data ?? []);
@@ -72,7 +72,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
     { key: 'continue', render: () => <ContinueWatchingRow /> },
     { key: 'mylist', render: () => <MyListRow /> },
     { key: 'live', render: () => <LiveRow /> },
-    // The best-rated titles added last (D-153, issue #181, #188).
+    // The best-rated titles added last (D-040, issue #181, #188).
     {
       key: 'top-movies',
       render: () => <TopRatedRow section="movies" title={t('Top rated of the {count} newest movies', { count: TOP_RATED_POOL })} />,
@@ -140,7 +140,7 @@ export function HomeScreen({ processing = false }: { processing?: boolean }) {
           {loading ? (
             <LibraryLoading />
           ) : (
-            // Up from the first row lands on Play: show the whole banner, Android left it scrolled off (D-152).
+            // Up from the first row lands on Play: show the whole banner, Android left it scrolled off (D-069).
             <Hero candidates={featured} onFocus={() => scroll.current?.scrollTo({ y: 0, animated: true })} />
           )}
           {rows.slice(0, shownRows).map(renderRow)}
@@ -264,7 +264,7 @@ function LiveRow() {
 }
 
 /**
- * Where the hero goes, while the saved library is read after a start (D-117). Android's spinner turns on the UI
+ * Where the hero goes, while the saved library is read after a start (D-119). Android's spinner turns on the UI
  * thread, so it keeps moving even while JavaScript is busy unpacking the library.
  */
 function LibraryLoading() {
@@ -312,7 +312,7 @@ function Hero({ candidates, onFocus }: { candidates: MasterCard[]; onFocus?(): v
             {meta.data.plot}
           </Text>
         ) : null}
-        {/* Left at Play and Right at More Info stop there; they used to drop to the first row (D-152). */}
+        {/* Left at Play and Right at More Info stop there; they used to drop to the first row (D-069). */}
         <FocusRow style={styles.heroActions} testID="hero-actions">
           <FocusButton
             label={t('Play')}
@@ -354,4 +354,4 @@ const styles = StyleSheet.create({
   // Above everything on the page (rows, focused cards), not focusable.
 });
 
-/** Continue Watching card menu: is its title on My List, and add/remove it (D-104). */
+/** Continue Watching card menu: is its title on My List, and add/remove it (D-078). */

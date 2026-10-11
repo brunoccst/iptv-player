@@ -1,5 +1,5 @@
 /**
- * Reads a JSON array one element at a time from a byte stream (D-113, issue #109). A provider's movie list can be
+ * Reads a JSON array one element at a time from a byte stream (D-115, issue #109). A provider's movie list can be
  * 100+ MB of JSON; reading it as one text needed a single string that size, which ran a TV with a 192 MB Java heap out
  * of memory (in the native fetch, before any JavaScript ran). Here only one chunk and one element are held at a time,
  * and `pick` keeps what the app needs from each element.

@@ -155,7 +155,7 @@ function Shell() {
   }, []);
 
   // TV: closing the details puts the focus back on what opened them, or else on the first cover or button on screen
-  // (D-171); Android handed it to any view.
+  // (D-069); Android handed it to any view.
   const pageFocus = useRef(createPageFocus()).current;
   const behind = route.name === 'details';
   const pageFocusContext = useMemo(() => ({ behind, register: pageFocus.register }), [behind, pageFocus]);
@@ -184,7 +184,7 @@ function Shell() {
         importantForAccessibility={route.name === 'details' ? 'no-hide-descendants' : 'auto'}
         onFocusCapture={Platform.isTV ? pageFocus.focused : undefined}
       >
-        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-171). */}
+        {/* Nothing behind the details panel asks for the focus, whatever the page redraws (D-069). */}
         <PageFocusContext.Provider value={pageFocusContext}>
           {shown !== section ? (
             <PageLoading />

@@ -17,7 +17,7 @@ interface RowProps {
   loadingMore?: boolean;
 }
 
-/** Horizontal scrolling row with arrow buttons; each arrow is hidden while the row is at that end (D-159). */
+/** Horizontal scrolling row with arrow buttons; each arrow is hidden while the row is at that end (D-040). */
 export function Row({ title, children, onVisible, empty, onTitleClick, onNearEnd, loadingMore }: RowProps) {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);

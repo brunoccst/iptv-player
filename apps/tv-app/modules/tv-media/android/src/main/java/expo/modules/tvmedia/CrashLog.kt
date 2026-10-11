@@ -9,7 +9,7 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Native crashes in the app's Log (D-113, issue #109). An error in native code (e.g. `OutOfMemoryError` in the fetch
+ * Native crashes in the app's Log (D-039, issue #109). An error in native code (e.g. `OutOfMemoryError` in the fetch
  * module) ends the process before JavaScript can log anything, so the last run's Log just stopped. The handler writes
  * the crash to a small file; the next start moves it into the Log. Also reports the memory the app may use.
  */

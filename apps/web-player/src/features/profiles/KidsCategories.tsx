@@ -3,7 +3,7 @@ import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 import { Modal } from '../../components/Modal';
 import { useKidsCategories } from '../../hooks/stores';
 
-/** Profile editor → Choose categories (D-064): what a Kids profile may see, per section; starts from the automatic choice. */
+/** Profile editor → Choose categories (D-053): what a Kids profile may see, per section; starts from the automatic choice. */
 export function KidsCategories({ profileId, name, onClose }: { profileId: string; name: string; onClose(): void }) {
   const { section, setSection, categories, error, chosen, isPicked, toggle, automatic, save } = useKidsCategories(profileId, onClose);
 

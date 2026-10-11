@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One-command local start: the fake Xtream panel and the web player's dev server, which talks to the panel directly
 // (D-088). Usage: npm run dev:all [-- --no-web]. Sign in at http://localhost:5173 with http://localhost:8090, demo / demo.
-// Ctrl+C stops everything. See DECISIONS.md#d-034.
+// Ctrl+C stops everything. See DECISIONS.md#d-033.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';

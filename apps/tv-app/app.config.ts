@@ -42,7 +42,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-build-properties',
       {
         android: {
-          // Many IPTV providers answer on plain HTTP (KI-009); Android blocks cleartext by default.
+          // Many IPTV providers answer on plain HTTP (KI-004); Android blocks cleartext by default.
           usesCleartextTraffic: true,
           // Smaller APK (D-045): compress native libraries, strip unused Java code (R8) and resources.
           useLegacyPackaging: true,
@@ -52,7 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     './plugins/withReleaseSigning.js',
-    // More Java heap on low-memory TVs (issue #109, D-113).
+    // More Java heap on low-memory TVs (issue #109, D-115).
     './plugins/withLargeHeap.js',
   ],
   extra: {

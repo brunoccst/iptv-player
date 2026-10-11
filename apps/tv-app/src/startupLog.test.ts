@@ -2,7 +2,7 @@ import { appLog } from '@iptv/shared';
 import { nativeState } from '../test/tvMediaMock';
 import { logStartup } from './startupLog';
 
-describe('start-up log (D-113, #109)', () => {
+describe('start-up log (D-039, #109)', () => {
   it('names the memory the app may use, and moves the last run’s native crash into the Log once', () => {
     nativeState.lastCrash = [
       '2026-09-29T11:39:12Z on thread mqt_native_modules',

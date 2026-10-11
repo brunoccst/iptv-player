@@ -25,7 +25,7 @@ export function useDownload(target: DownloadTarget) {
           : status === 'error'
             ? t('Download failed: {error}. Retry', { error: record?.error ?? '' })
             : t('Download {title} for offline', { title: target.title });
-  /** For the episode menu (D-083). */
+  /** For the episode menu (D-078). */
   const menu: DownloadMenuState = {
     status:
       status === 'completed'

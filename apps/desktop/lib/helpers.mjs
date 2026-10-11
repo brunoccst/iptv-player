@@ -82,7 +82,7 @@ export function isNewer(a, b) {
 }
 
 /**
- * The computer's address on the home network for the pairing QR code (D-072): the first private IPv4 address,
+ * The computer's address on the home network for the pairing QR code (D-060): the first private IPv4 address,
  * skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs) a phone cannot reach. `interfaces` is
  * `os.networkInterfaces()`.
  */
@@ -102,7 +102,7 @@ export function lanAddress(interfaces) {
 }
 
 /**
- * Where VLC usually is (D-081, "Open in VLC"): the standard install folders, then every folder on PATH. `env` and
+ * Where VLC usually is (D-057, "Open in VLC"): the standard install folders, then every folder on PATH. `env` and
  * `platform` come from the process; `join` is the platform's path join (tests pass path.win32 / path.posix).
  */
 export function vlcCandidates(platform, env, join = path.join) {

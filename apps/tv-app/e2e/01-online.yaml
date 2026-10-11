@@ -111,7 +111,7 @@ appId: ${APP_ID}
 - evalScript: ${output.after = Number(maestro.copiedText.split(' / ')[0].split(':')[1])}
 # Slow screen reads can land the pause late in the 30 s clip: a skip near the end stops at 0:30.
 - assertTrue: ${output.after >= Math.min(output.before + 9, 30)}
-# Up: the on-screen buttons, with Back at the top left focused (D-101); Back returns to the video. The quick drawer
+# Up: the on-screen buttons, with Back at the top left focused (D-077); Back returns to the video. The quick drawer
 # (audio / subtitles / versions) opens from its button on the bar.
 - pressKey: Remote Dpad Up
 - extendedWaitUntil:
@@ -127,7 +127,7 @@ appId: ${APP_ID}
     id: "player-back"
     focused: true
 # Down: the focus goes to the on-screen buttons, play/pause first; Right moves along them, Up reaches Back at the top
-# left. Back returns to the video, a second Back leaves the player (D-075).
+# left. Back returns to the video, a second Back leaves the player (D-077).
 - pressKey: Remote Dpad Down
 - extendedWaitUntil:
     visible:
@@ -151,7 +151,7 @@ appId: ${APP_ID}
     visible:
       id: "details-screen"
     timeout: 15000
-# The D-pad stays in the details panel: Down past the last control never reaches the page behind it (D-075).
+# The D-pad stays in the details panel: Down past the last control never reaches the page behind it (D-069).
 - repeat:
     times: 8
     commands:
@@ -180,7 +180,7 @@ appId: ${APP_ID}
     visible:
       id: "guide-now-301"
     timeout: 60000
-# Only the channels scroll, not the page (D-140): the remote's Down moves through them (focus starts on the first).
+# Only the channels scroll, not the page (D-032): the remote's Down moves through them (focus starts on the first).
 - repeat:
     while:
       notVisible:

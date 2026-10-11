@@ -15,7 +15,7 @@ async function flush() {
 describe('account menu groups', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('TV: the D-pad stays in the open menu, in every direction (D-112)', async () => {
+  it('TV: the D-pad stays in the open menu, in every direction (D-069)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     setupApp();
     await render(<App />);
@@ -79,7 +79,7 @@ describe('account menu groups', () => {
     expect(stores.session.getState().activeProfileId).toBeNull();
   });
 
-  it('Close the app is on the main menu: it asks first, then closes the app like "Force stop" (D-108)', async () => {
+  it('Close the app is on the main menu: it asks first, then closes the app like "Force stop"', async () => {
     setupApp();
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     await render(<App />);

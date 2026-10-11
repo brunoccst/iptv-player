@@ -126,7 +126,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(JSON.parse(mobile.secure.data.get(SESSION_STORAGE_KEY)!).activeProfileId).toBe('phone-p1');
   });
 
-  it("carries each profile's settings and the automatic subtitles, the phone's first, on both devices (D-162)", async () => {
+  it("carries each profile's settings and the automatic subtitles, the phone's first, on both devices (D-060)", async () => {
     const tvProfiles = [{ id: 'tv-p1', name: 'demo', avatarKey: null, isKids: false }];
     const tv = {
       secure: createMemoryStorage({

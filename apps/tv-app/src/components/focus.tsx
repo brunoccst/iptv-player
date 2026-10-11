@@ -9,8 +9,8 @@ import { Animated, Platform, Pressable, type View } from 'react-native';
 export const focus = {
   /**
    * Soft white glow around cards and buttons, even on every side (`boxShadow`, Android 9+). An `elevation` shadow
-   * fell lower and to one side: Android lights it from above the screen (D-100). The elevation stays, with no visible
-   * shadow, so a focused card is still drawn over its neighbours (D-076).
+   * fell lower and to one side: Android lights it from above the screen (D-069). The elevation stays, with no visible
+   * shadow, so a focused card is still drawn over its neighbours (D-069).
    */
   glow: { boxShadow: '0px 0px 16px 2px rgba(255, 255, 255, 0.5)', elevation: 14, shadowColor: 'transparent', shadowOpacity: 0 },
   /** Thin light ring for cards; rounded, and together with the glow it reads as light, not as a box. */

@@ -1,17 +1,17 @@
 import type { Master, Variant } from './normalizer/pipeline';
 
 /**
- * Compact on-device format for the direct-mode library (D-038): arrays instead of objects, poster URL prefixes in a
+ * Compact on-device format for the direct-mode library (D-088): arrays instead of objects, poster URL prefixes in a
  * table, and master poster/rating derived on load. A 125k-title catalog was ~85 MB as plain JSON; this is about a third.
  */
 export const LIBRARY_FORMAT = 3;
 /**
  * Version of the grouping and title rules the library was built with. A library from older rules still shows, but
- * counts as out of date, so it is rebuilt in the background (D-086: short tags in names, episode numbers; 3: Albanian and Kurdish prefixes;
- * 4: Greek, Ex-Yu, Punjabi and longer prefixes, D-107; 5: "PL = …" and "BL - …" prefixes, D-112;
+ * counts as out of date, so it is rebuilt in the background (D-017: short tags in names, episode numbers; 3: Albanian and Kurdish prefixes;
+ * 4: Greek, Ex-Yu, Punjabi and longer prefixes, D-017; 5: "PL = …" and "BL - …" prefixes, D-017;
  * 6: grouped by key, year and TMDB id only, no similar spellings, D-133; 7: languages not in the tables yet dropped as
- * prefixes, D-134; 8: titles of one name and year with different TMDB ids apart, D-156). What the parser read from each
- * name keeps its own version (`NAME_RULES` in `sqlLibrary.ts`, D-167).
+ * prefixes, D-017; 8: titles of one name and year with different TMDB ids apart, D-133). What the parser read from each
+ * name keeps its own version (`NAME_RULES` in `sqlLibrary.ts`, D-017).
  */
 export const NORMALIZER_RULES = 8;
 
@@ -32,7 +32,7 @@ type PackedVariant = [
   containerExtension: string | null,
   /** Only when there are any (D-063) or when the next fields follow; files saved before it have 14 fields. */
   subtitleLanguages?: string[],
-  /** What the parser read from the name (D-109): null = the title's own; files saved before have no such fields. */
+  /** What the parser read from the name (D-135): null = the title's own; files saved before have no such fields. */
   cleanTitle?: string | null,
   nameYear?: number | null,
 ];
@@ -65,7 +65,7 @@ export function packLibrary(builtAt: string, masters: Master[]): PackedLibrary {
  * `JSON.stringify(packLibrary(…))`, built in chunks with `pause()` between them: 160,000 titles are ~30 MB of JSON,
  * which blocked a TV for seconds in one piece. Same data; `prefixes` comes last because it is complete only then.
  * Each chunk is on a line of its own (a line break is only whitespace to JSON, and JSON text has none inside strings),
- * so `readLibraryText` can read it a chunk at a time (D-120).
+ * so `readLibraryText` can read it a chunk at a time (D-121).
  */
 export async function packLibraryText(builtAt: string, masters: Master[], pause: () => Promise<void>, chunkSize = 2000): Promise<string> {
   const { packMaster, prefixes } = packer();
@@ -143,7 +143,7 @@ export function unpackLibrary(value: unknown): { builtAt: string; masters: Maste
 
 /**
  * `unpackLibrary` in slices of about 100 ms with `pause()` between them, so the screen keeps running while a library
- * of 100k+ titles is unpacked (several seconds on a Chromecast, D-117).
+ * of 100k+ titles is unpacked (several seconds on a Chromecast, D-121).
  */
 export async function unpackLibraryInSlices(
   value: unknown,

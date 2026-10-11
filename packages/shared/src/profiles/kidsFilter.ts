@@ -17,7 +17,7 @@ const NOTHING = '__kids-none__';
 /**
  * Wraps an API client so that, while `isKids()` is true, categories, live channels, the guide, library lists (and
  * search) and raw movie/series lists only contain kids categories. `chosen(section)` returns the categories a parent
- * picked for the active Kids profile (D-064); `null` falls back to the name rule. `reset()` forgets cached category ids
+ * picked for the active Kids profile (D-053); `null` falls back to the name rule. `reset()` forgets cached category ids
  * (account change).
  */
 export function withKidsFilter(api: ApiClient, isKids: () => boolean, chosen: (section: CatalogSection) => string[] | null = () => null) {

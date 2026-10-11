@@ -46,7 +46,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      # Caches Gradle's downloads and build cache between runs (written by main; D-044).
+      # Caches Gradle's downloads and build cache between runs (written by main; D-030).
       - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-python@v5
         with:
@@ -112,7 +112,7 @@ jobs:
             apps/tv-app/e2e/install.sh ${{ runner.temp }}/app-release.apk
             apps/tv-app/e2e/run.sh maestro-output stress
 
-      # The same APK on a phone: touch and the on-screen keyboard (search box focus, D-073). The fake panel from the
+      # The same APK on a phone: touch and the on-screen keyboard (search box focus, D-069). The fake panel from the
       # TV flows is still running.
       - name: Fake panel log
         if: always()

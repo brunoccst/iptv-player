@@ -101,7 +101,7 @@ export function cardMenuItems(
     | { kind: 'series'; watched: boolean; onList?: boolean },
 ): CardMenuItem[] {
   const details: CardMenuItem = { id: 'details', label: t('Go to details') };
-  // Add to / Remove from My List (D-104): on every card that stands for a title.
+  // Add to / Remove from My List (D-078): on every card that stands for a title.
   const myList: CardMenuItem = card.onList
     ? { id: 'mylist-remove', label: t('Remove from My List') }
     : { id: 'mylist-add', label: t('Add to My List') };
@@ -129,7 +129,7 @@ export function cardMenuItems(
   }
 }
 
-/** The My List entry behind a Continue Watching card (D-104): its title's section and card; null without a title. */
+/** The My List entry behind a Continue Watching card (D-078): its title's section and card; null without a title. */
 export function continueWatchlistEntry(
   entry: ProgressDto,
 ): { section: 'movies' | 'series'; card: { id: string; title: string; year: null; posterUrl: string | null } } | null {
@@ -151,14 +151,14 @@ export type EpisodeMenuItemId = 'watched' | 'unwatched' | 'download' | 'play-on-
 export interface EpisodeMenuItem {
   id: EpisodeMenuItemId;
   label: string;
-  /** The icon the row's button had, shown after the text (D-086). */
+  /** The icon the row's button had, shown after the text (D-078). */
   icon: IconName;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
 }
 
 /**
- * An episode's options (D-083): the "…" button next to Play in series details, and holding OK / a long touch /
+ * An episode's options (D-078): the "…" button next to Play in series details, and holding OK / a long touch /
  * right-click on the episode. Only Play and the version choice stay in the row, so it fits a phone. Items for things
  * the device or profile cannot do are left out: pass `download` only where downloads work, `tvName` only on a phone
  * with a paired TV, `externalPlayer` only where another player can be opened (not Kids profiles).
@@ -202,7 +202,7 @@ export function episodeMenuItems(episode: {
 /** The tag's text (bottom right of a cover, next to the title in details). */
 export const watchedLabel = () => t('Watched');
 
-// Episodes and whole series (D-082).
+// Episodes and whole series (D-081).
 
 /** An episode is watched when any of its versions was finished. */
 export const isEpisodeWatched = (progress: Pick<ProgressState, 'items'>, episode: Episode | MergedEpisode) =>
@@ -312,8 +312,8 @@ export const isSeasonWatched = (progress: Pick<ProgressState, 'items'>, season: 
   season.episodes.length > 0 && season.episodes.every((episode) => isEpisodeWatched(progress, episode));
 
 /**
- * Marks every episode of one season watched or not watched (issue #132, D-132): only the seasons seen so far, while a
- * later one is still to watch. The series' cover tag follows once its details show every episode watched (D-082).
+ * Marks every episode of one season watched or not watched (issue #132, D-081): only the seasons seen so far, while a
+ * later one is still to watch. The series' cover tag follows once its details show every episode watched (D-081).
  */
 export async function setSeasonWatched(
   progress: ProgressStore,

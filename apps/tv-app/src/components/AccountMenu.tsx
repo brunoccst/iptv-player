@@ -177,7 +177,7 @@ export function AccountMenu() {
     <>
       {overlays}
       <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel={t('Close menu')} focusable={false} />
-      {/* TV: the D-pad stays in the menu until Back (or a pick) closes it; it used to walk down into the page (D-112). */}
+      {/* TV: the D-pad stays in the menu until Back (or a pick) closes it; it used to walk down into the page (D-069). */}
       <TVFocusGuideView
         style={[styles.menu, { right: sizes.gutter, top: navH - 8 }]}
         accessibilityRole="menu"
@@ -250,7 +250,7 @@ export function AccountMenu() {
                 onPress={then(confirmSignOut)}
               />
             )}
-            {/* On the main list, for every profile: no trip to Settings → Apps → Force stop (D-108). */}
+            {/* On the main list, for every profile: no trip to Settings → Apps → Force stop. */}
             <MenuItem icon="close" label={t('Close the app')} testID="menu-close-app" onPress={then(confirmCloseApp)} />
           </>
         )}

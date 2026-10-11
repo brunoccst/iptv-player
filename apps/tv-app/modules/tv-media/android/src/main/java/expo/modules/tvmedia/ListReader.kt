@@ -76,7 +76,7 @@ internal object ListReader {
   }
 
   private const val READY = 2
-  /** Bytes that end a field, or stand for a missing one, in a list's fingerprint (D-138). */
+  /** Bytes that end a field, or stand for a missing one, in a list's fingerprint (D-135). */
   private const val FIELD_END: Byte = 1
   private const val MISSING: Byte = 2
   /** Characters of a batch that is not JSON shown in the message. */
@@ -150,7 +150,7 @@ internal object ListReader {
     /**
      * A movie or series list saved batch by batch into [Save.table], then `{ kind: "end", chars, saved, tmdb,
      * fingerprint }`; a reply that is not an array ends as when it is read in JavaScript. The fingerprint is a SHA-1 of
-     * every saved field in the list's order: the same list as last time needs no comparing (D-138).
+     * every saved field in the list's order: the same list as last time needs no comparing (D-135).
      */
     private fun saveList(response: HttpURLConnection, save: Save) {
       var saved = 0
@@ -201,7 +201,7 @@ internal object ListReader {
       )
     }
 
-    /** Adds an entry's saved fields to [digest]; a field ends with 1, a missing one is 2 (D-138). */
+    /** Adds an entry's saved fields to [digest]; a field ends with 1, a missing one is 2 (D-135). */
     private fun fingerprint(digest: MessageDigest, entry: SavedEntry) {
       val fields = listOf(
         entry.streamId,

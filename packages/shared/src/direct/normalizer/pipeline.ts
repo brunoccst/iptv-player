@@ -3,7 +3,7 @@ import { compactKey, isEnglishArabic, normalizeKey, parseTitle, parseYear, type 
 import { sha1Hex } from './sha1';
 import * as tags from './tags';
 
-/** Raw provider items → master titles with variants (D-017, D-038). Pure: no I/O. */
+/** Raw provider items → master titles with variants (D-017, D-088). Pure: no I/O. */
 export interface NormalizerItem {
   id?: unknown;
   name?: unknown;
@@ -14,7 +14,7 @@ export interface NormalizerItem {
   releaseDate?: string | null;
   /** Unix seconds the provider added (movies) or last changed (series) the item. */
   addedAt?: number | null;
-  /** TMDB id when the provider's list sends one (D-065). */
+  /** TMDB id when the provider's list sends one (D-133). */
   tmdbId?: unknown;
 }
 
@@ -36,7 +36,7 @@ export interface Variant {
   subtitleLanguages: string[];
   /**
    * What the parser read from the name: its clean title and year (not the release date's). Kept so the next update
-   * can skip parsing names that did not change (D-109). Missing in libraries saved before.
+   * can skip parsing names that did not change (D-135). Missing in libraries saved before.
    */
   cleanTitle?: string;
   nameYear?: number | null;
@@ -88,7 +88,7 @@ export function tmdbId(item: NormalizerItem): string | null {
   return /^\d+$/.test(value) && /[1-9]/.test(value) ? value : null;
 }
 
-/** Milliseconds per grouping step, without the breaks for the screen (D-116). */
+/** Milliseconds per grouping step, without the breaks for the screen (D-093). */
 export interface GroupingTimings {
   /** Reading the names (or taking them from the last library). */
   names: number;
@@ -108,16 +108,16 @@ type GroupingStep = Exclude<keyof GroupingTimings, 'waiting' | 'breaks'>;
 
 /**
  * Same result as `buildMasters`, but works in chunks and yields between them so the UI stays responsive, and
- * `onProgress(done, total)` reports how far it got (D-038). `done` runs from 0 to `total` across all steps: reading the
+ * `onProgress(done, total)` reports how far it got (D-088). `done` runs from 0 to `total` across all steps: reading the
  * names (to 80 %), grouping them and building the titles (the rest). Only the library kept in memory (no database) is
  * built here; the database groups its titles itself (D-133).
  *
  * It yields to the UI once `sliceMs` of work has passed, not after every chunk: on React Native each yield waits for
  * the next frame, and hundreds of them added seconds of idle time on a TV (D-093). 250 ms (it was 50): each break costs
  * at least a frame, so short slices spent a fifth of the time or more waiting; the progress still moves 4 times a
- * second (D-116).
+ * second (D-093).
  *
- * `onTimings` reports how long each step took, without the breaks (logged, D-116).
+ * `onTimings` reports how long each step took, without the breaks (logged, D-093).
  */
 export async function buildMastersInChunks(
   accountId: string,
@@ -139,7 +139,7 @@ export async function buildMastersInChunks(
     /** Asked at every pause: a job to run first (e.g. a smaller list that just arrived), awaited before going on. */
     yieldTo?(): Promise<unknown> | null;
     /**
-     * The same account's and kind's library from the last update, built with the current title rules (D-109): names
+     * The same account's and kind's library from the last update, built with the current title rules (D-135): names
      * seen there are not parsed again, and titles whose versions did not change are kept as they were. The result is
      * the same as without it.
      */
@@ -148,7 +148,7 @@ export async function buildMastersInChunks(
     onReuse?(counts: { names: number; masters: number }): void;
     onTimings?(timings: GroupingTimings): void;
     /**
-     * SHA-1 hex of each text, all at once (TV/phone: native code, D-118). Without it, each id is hashed in JavaScript
+     * SHA-1 hex of each text, all at once (TV/phone: native code, D-093). Without it, each id is hashed in JavaScript
      * as the title is built. The ids are the same either way.
      */
     hashIds?(texts: string[]): Promise<string[]>;
@@ -195,7 +195,7 @@ export async function buildMastersInChunks(
   const parsed: ParsedTitle[] = [];
   const names: ParsedTitle[] = [];
   let reusedNames = 0;
-  // Providers list the same movie in several categories under the same name: each name is read once (D-118).
+  // Providers list the same movie in several categories under the same name: each name is read once (D-093).
   const readNow = new Map<string, ParsedTitle>();
   for (let start = 0; start < total; start += chunkSize) {
     for (const item of usable.slice(start, start + chunkSize)) {
@@ -228,7 +228,7 @@ export async function buildMastersInChunks(
     : hashedId;
   for (let start = 0; start < groups.length; start += chunkSize) {
     for (const { members, idSuffix } of groups.slice(start, start + chunkSize)) {
-      // A title of a name and year with others is built again (its id may have changed, D-156).
+      // A title of a name and year with others is built again (its id may have changed, D-133).
       const same = idSuffix ? null : unchangedMaster(reuse, usable, members);
       if (same) reusedMasters++;
       const master = same ?? masterOf(accountId, mediaKind, usable, parsed, members, names, idOf, idSuffix);
@@ -280,7 +280,7 @@ const masterOf = (
     idSuffix,
   );
 
-/** What an update can take from the last library (D-109). */
+/** What an update can take from the last library (D-135). */
 interface Reuse {
   /** Raw name → what the parser read from it. */
   names: Map<string, ParsedTitle>;
@@ -293,7 +293,7 @@ function reuseFrom(previous: Master[] | undefined): Reuse {
   const streams = new Map<string, { master: Master; variant: Variant }>();
   for (const master of previous ?? []) {
     for (const variant of master.variants) {
-      // Saved before D-109: nothing to reuse.
+      // Saved before D-135: nothing to reuse.
       if (variant.cleanTitle === undefined || variant.nameYear === undefined) continue;
       streams.set(variant.streamId, { master, variant });
       if (names.has(variant.rawTitle)) continue;
@@ -366,7 +366,7 @@ export function variantLabel(title: ParsedTitle, containerExtension: string | nu
     title.quality,
     title.source && ['CAM', 'TS', 'TC', 'SCR', 'REMUX'].includes(title.source) ? title.source : null,
     title.isHdr ? 'HDR' : null,
-    // An "EAR" version reads "ENG (EAR)", so it stands apart from the plain English one (D-148).
+    // An "EAR" version reads "ENG (EAR)", so it stands apart from the plain English one (D-087).
     (isEnglishArabic(title.raw) ? title.audioLanguages.map((code) => (code === 'ENG' ? 'ENG (EAR)' : code)) : title.audioLanguages).join(
       '/',
     ) || null,
@@ -389,7 +389,7 @@ export const masterId = (accountId: string, mediaKind: string, key: string, year
 
 /**
  * What a master id is the SHA-1 of (its first 20 hex digits). `idSuffix` keeps two titles of one name and year apart
- * (D-156, `titleGroups`); empty for every other title, whose id stays what it was.
+ * (D-133, `titleGroups`); empty for every other title, whose id stays what it was.
  */
 export const masterIdText = (accountId: string, mediaKind: string, key: string, year: number | null, idSuffix = '') =>
   `${accountId}|${mediaKind}|${key}|${year ?? ''}${idSuffix ? `|${idSuffix}` : ''}`;

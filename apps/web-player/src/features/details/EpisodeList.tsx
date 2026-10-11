@@ -44,7 +44,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
   const season = series.seasons.find((s) => s.number === seasonNumber) ?? series.seasons[0];
   const progress = useProgress((s) => s);
   const context = (episode: MergedEpisode) => ({ title, masterId, seriesId: episode.seriesId, posterUrl: series.summary.posterUrl });
-  // The episode's menu (D-083): its "…" button, or a right-click on the episode.
+  // The episode's menu (D-078): its "…" button, or a right-click on the episode.
   const [menu, setMenu] = useState<{ episode: MergedEpisode; position: MenuPosition } | null>(null);
   // Stable, so the open menu keeps its focus while a download's progress redraws the list.
   const closeMenu = useCallback(() => setMenu(null), []);
@@ -82,7 +82,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
           )}
         </div>
       </div>
-      {/* Two columns: only this list scrolls, under the title, season Watched button and season choice (D-165). */}
+      {/* Two columns: only this list scrolls, under the title, season Watched button and season choice (D-158). */}
       <div className="episodes__list">
         {season.episodes.map((listed) => {
           const episode = episodeInVersion(listed, chosen[listed.id]);
@@ -142,7 +142,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
                 >
                   <Icon name="play" size={20} />
                 </button>
-                {/* Everything else is in the episode's menu, so the row stays short (D-083). */}
+                {/* Everything else is in the episode's menu, so the row stays short (D-078). */}
                 <button
                   type="button"
                   className="icon-button"
@@ -172,7 +172,7 @@ export function EpisodeList({ series, title, masterId, versionCount, initialSeas
   );
 }
 
-/** An episode's options (D-083): Mark as (not) watched, Download, Open in VLC (desktop app). */
+/** An episode's options (D-078): Mark as (not) watched, Download, Open in VLC (desktop app). */
 function EpisodeMenu({
   episode,
   target,

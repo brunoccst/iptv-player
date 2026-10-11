@@ -17,7 +17,7 @@ export function useLibraryWatcher(): boolean {
   const processing = isLibraryProcessing(statuses) || syncing;
   const empty = !!statuses && statuses.every((status) => status.masterCount === 0);
   const waiting = processing || !statuses || empty;
-  // Rows shown while the status was still unknown (a start, D-120) are already the saved library's: only an update or
+  // Rows shown while the status was still unknown (a start, D-121) are already the saved library's: only an update or
   // an empty library make them stale.
   const stale = processing || empty;
   const wasStale = useRef(false);

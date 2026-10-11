@@ -31,9 +31,9 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   listDownloads(): NativeDownload[];
   /** True when the FFmpeg audio decoders are bundled in this build (D-059). */
   ffmpegAudioAvailable(): boolean;
-  /** The native crash of the last run (stack trace), once; null when it ended normally (D-113). */
+  /** The native crash of the last run (stack trace), once; null when it ended normally (D-039). */
   takeLastCrash(): string | null;
-  /** Java heap limit and use, and the device's RAM, in MB (D-113). */
+  /** Java heap limit and use, and the device's RAM, in MB (D-039). */
   memoryInfo(): MemoryInfo;
   /**
    * Provider lists read on a background thread (D-115); see `ListReader` in @iptv/shared. `guideFromMs` > 0: an XMLTV
@@ -52,7 +52,7 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   ): Promise<{ id: number; status: number }>;
   readList(id: number): Promise<ListPiece>;
   closeList(id: number): void;
-  /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another, over every core (D-118, D-135). */
+  /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another, over every core (D-093, D-135). */
   sha1Batch(texts: string): Promise<string>;
   /** The library database (D-121): `[{ sql, rows? }]` as JSON, run in one transaction. */
   dbRun(statements: string): Promise<void>;
@@ -94,7 +94,7 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   applyWatchNext(plan: string): Promise<void>;
   /** The id of the title the app was opened with from that row, once; null otherwise. */
   takeWatchNextOpen(): string | null;
-  /** Phone player (issue #184, D-155): the app window's screen brightness, 0–1 (the system's while none is set). */
+  /** Phone player (issue #184, D-046): the app window's screen brightness, 0–1 (the system's while none is set). */
   brightness(): number;
   /** Sets the window's brightness (at least 1 %); a value below 0 gives it back to the system. */
   setBrightness(level: number): Promise<void>;

@@ -1,4 +1,4 @@
-# Holding Right in a Home row (D-075, D-076). Part 1: sign in to the stress panel (a row with more than 10 titles, so
+# Holding Right in a Home row (D-069). Part 1: sign in to the stress panel (a row with more than 10 titles, so
 # it ends in "See all") and focus the first card of that row. run.sh then sends a burst of quick Right presses (as a
 # held key repeats) and runs 06-hold-right-check.
 appId: ${APP_ID}
@@ -23,7 +23,7 @@ appId: ${APP_ID}
     timeout: 60000
 # Down walks the rows (the page follows the focus) to the stress row, below the fold: the first category row with
 # stress titles. "Top rated movies" comes first with stress titles too (they all have a rating) but holds 25 and has no
-# "See all" (D-157, D-160), so the walk goes once past it and on to the next row with stress titles.
+# "See all" (D-040), so the walk goes once past it and on to the next row with stress titles.
 - repeat:
     while:
       notVisible:

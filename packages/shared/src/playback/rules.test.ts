@@ -111,7 +111,7 @@ describe('playback rules', () => {
     expect(isInSkipAheadWindow(window, 4)).toBe(false);
     expect(isInSkipAheadWindow(window, 5)).toBe(true);
     expect(isInSkipAheadWindow(window, 14.9)).toBe(true);
-    // On screen for 10 s only (D-100).
+    // On screen for 10 s only (D-042).
     expect(isInSkipAheadWindow(window, 15)).toBe(false);
     expect(SKIP_AHEAD_OPTIONS.map(skipAheadLabel)).toEqual(['30 s', '1 min', '2 min', '3 min']);
     expect(SKIP_AHEAD_OPTIONS.map(skipAheadDescription)).toEqual([

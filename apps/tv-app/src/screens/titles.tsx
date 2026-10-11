@@ -43,7 +43,7 @@ const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
 /**
- * Web `MasterCard`: poster, quality badge ("4K", or "CAM"/"TS" when only cinema copies, D-141), "year · N versions", "Watched" tag on finished movies and fully watched series (D-082), a bookmark on titles on My List (issue #157); opens the details panel.
+ * Web `MasterCard`: poster, quality badge ("4K", or "CAM"/"TS" when only cinema copies, D-141), "year · N versions", "Watched" tag on finished movies and fully watched series (D-081), a bookmark on titles on My List (issue #157); opens the details panel.
  * Holding OK (a long touch on phones) opens its menu: Go to details, Mark as (not) watched (D-081).
  */
 export function MasterCardItem({
@@ -109,7 +109,7 @@ export function TitleRow({ section, category, title }: { section: LibrarySection
   );
 }
 
-/** "Top rated": the 25 best rated of the titles added last; the app's own row, so no "See all" (D-153, issue #188). */
+/** "Top rated": the 25 best rated of the titles added last; the app's own row, so no "See all" (D-040, issue #188). */
 export function TopRatedRow({ section, title }: { section: LibrarySection; title: string }) {
   const page = usePagedLibrary(section, { sort: DEFAULT_LIBRARY_SORT }, TOP_RATED_POOL);
   const items = topRated(page.items);
@@ -255,7 +255,7 @@ export function TitleGrid({
 
 /** Lines kept mounted above and below the focused one on TV; the rest are empty spacers of the same height. */
 const MOUNTED_AROUND = 8;
-/** The mounted lines move only when the focus gets this close to their edge, a few lines at a time (D-099). */
+/** The mounted lines move only when the focus gets this close to their edge, a few lines at a time (D-094). */
 const WINDOW_EDGE = 3;
 
 /**
@@ -330,7 +330,7 @@ export function LoadingMoreNote() {
 }
 
 /**
- * TV lines of cards (D-094, D-095, D-096, D-098, D-099): only the lines within MOUNTED_AROUND of the focus are
+ * TV lines of cards (D-094): only the lines within MOUNTED_AROUND of the focus are
  * mounted, the others are empty spacers; when the focus reaches one of the last two lines, `onNearEnd` asks for the
  * next page. Used by the Movies/Series grid and the search results.
  *
@@ -339,7 +339,7 @@ export function LoadingMoreNote() {
  * sits, plus index × line height), and the page scrolls there on the same key press, with nothing measured.
  * `parentY` is where the block's parent sits in the page, when the block is not directly in the scroll view (search).
  *
- * Moving between lines must stay light (D-099): lines are memoised, so a move re-renders nothing; the mounted lines
+ * Moving between lines must stay light (D-094): lines are memoised, so a move re-renders nothing; the mounted lines
  * move only when the focus nears their edge, as a low-priority update that never holds up the key press; and Up is
  * kept inside the block while the focus is below its first line. Held Up went faster than lines were mounted, so the
  * focus jumped over the empty spacers to the category bar and the page showed only spacers.

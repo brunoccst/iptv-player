@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks documentation/PARITY.md against the backlog (DECISIONS.md#d-080), so a feature missing from one app is never
+// Checks documentation/PARITY.md against the backlog (DECISIONS.md#d-079), so a feature missing from one app is never
 // forgotten. Fails when:
 //   - a table row has an app cell without ✅ (has it), ➖ (does not apply) or ⏳ (missing);
 //   - a row marks an app ⏳ without naming an open backlog item "Parity: …" (in the row, as "Parity: <title>");

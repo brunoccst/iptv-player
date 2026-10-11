@@ -50,7 +50,7 @@ object WatchNext {
     val projection = arrayOf(ID, INTERNAL_PROVIDER_ID, BROWSABLE, LAST_PLAYBACK_POSITION_MILLIS, LAST_ENGAGEMENT_TIME_UTC_MILLIS)
     val result = mutableListOf<Map<String, Any?>>()
     // No selection: the TV provider already returns only the calling app's rows, and refuses any selection from an app
-    // without ACCESS_ALL_EPG_DATA ("SecurityException: Selection not allowed", which failed every sync, D-172).
+    // without ACCESS_ALL_EPG_DATA ("SecurityException: Selection not allowed", which failed every sync, D-074).
     context.contentResolver
       .query(TvContract.WatchNextPrograms.CONTENT_URI, projection, null, null, null)
       ?.use { cursor ->

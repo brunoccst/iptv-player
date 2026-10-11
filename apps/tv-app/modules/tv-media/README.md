@@ -20,7 +20,7 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 | `TvMedia.startDownload(id, uri, isHls, metadataJson)` | Queues a download (foreground service). |
 | `TvMedia.pauseDownload / resumeDownload / removeDownload(id)` | Control a download. |
 | `TvMedia.removeAllDownloads()` | Deletes every download (sign-out, account change, D-050). |
-| `TvMedia.setUserAgent(ua)` | HTTP User-Agent for playback and downloads; saved natively so resumed downloads use it too (D-038). |
+| `TvMedia.setUserAgent(ua)` | HTTP User-Agent for playback and downloads; saved natively so resumed downloads use it too (D-088). |
 | `TvMedia.listDownloads()` | All downloads with state, percent, metadata. |
 | `TvMedia.ffmpegAudioAvailable()` | True when the FFmpeg audio decoders are bundled (D-059). |
 | `TvMedia.openExternalPlayer(uri, mimeType, title, headers)` | Opens the stream in another player app with `ACTION_VIEW` (headers in the `headers` extra); the app chooser when no default player is set. Returns `opened`, `chooser` or `none` (D-057). |
@@ -28,12 +28,12 @@ Local Expo module (Android only). Media3 1.9 ExoPlayer view and offline download
 
 Tests replace this module with `test/tvMediaMock.tsx` (Jest `moduleNameMapper`).
 
-`CrashLog.kt` (D-113): a native crash is written to `last-crash.txt` and handed to the next start (`takeLastCrash()`), which puts it in the Log; `memoryInfo()` reports the Java heap limit and the device's RAM.
+`CrashLog.kt` (D-039): a native crash is written to `last-crash.txt` and handed to the next start (`takeLastCrash()`), which puts it in the Log; `memoryInfo()` reports the Java heap limit and the device's RAM.
 
 `ListReader.kt`, `JsonArraySplitter.kt` (D-115): provider lists downloaded on a background thread and cut into batches of whole entries (`openList`, `readList`, `closeList`); JavaScript parses each batch with `JSON.parse`.
 
 `ListItems.kt` (D-135): with `openList`'s `save` ("movie:lib1_r"), a movie or series list is not handed to JavaScript: each batch is read here, with the same fields as the JavaScript reader (`looseJson.ts`, `xtream.ts`, `pipeline.ts`; change them together), and saved by `LibraryDb.saveItems` into that library items table on the list's own thread. `readList` then gives only the end with the counts.
 
-`Sha1Batch.kt` (D-118): `sha1Batch` hashes many title ids at once with `MessageDigest`, a large batch over every core (D-135).
+`Sha1Batch.kt` (D-093): `sha1Batch` hashes many title ids at once with `MessageDigest`, a large batch over every core (D-135).
 
 `LibraryDb.kt` (D-121): the library database in Android's own SQLite (no library added to the APK). `dbRun(statementsJson)` runs statements with rows of parameters in one transaction; `dbQuery(sql, paramsJson)` answers rows as a JSON array of arrays. Writes and reads each have their own thread (write-ahead logging), and characters outside the BMP cross as JSON escapes both ways. The connection that writes uses `synchronous = NORMAL`, a 16 MB cache and SQLite's helper threads for sorts, one per core (D-135). All library logic is in `@iptv/shared` (`sqlLibrary.ts`).

@@ -5,7 +5,7 @@ import { SUBTITLE_SETTINGS_KEY, type SubtitleSettings } from '../subtitles/openS
 import { parseJson } from '../utils/bytes';
 
 /**
- * The settings pairing carries besides sign-in and media (D-162): each profile's preferences (content languages, app
+ * The settings pairing carries besides sign-in and media (D-060): each profile's preferences (content languages, app
  * language, subtitle/audio/version choices, hidden and kids categories, watched series, recent channels) and the
  * automatic-subtitles settings. Where both devices have a value, the phone's wins; lists are joined. What belongs to
  * the device stays: the audio decoder, the device's own app language, downloads, remote-play keys, update choices.

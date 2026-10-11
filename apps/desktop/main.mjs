@@ -1,5 +1,5 @@
 // Desktop app (Windows, macOS, Linux), DECISIONS.md#d-071: the web player in its own window. It talks to the IPTV
-// provider directly like the TV app (D-038, D-088). The page is served from 127.0.0.1 by this
+// provider directly like the TV app (D-088). The page is served from 127.0.0.1 by this
 // process; provider requests get the player User-Agent and CORS headers added here.
 import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
 import electronUpdater from 'electron-updater';
@@ -151,7 +151,7 @@ function registerStorage() {
 }
 
 /**
- * Phone-to-computer pairing (D-072), the TV's protocol (D-060): while the page shows the QR code, a small HTTP server
+ * Phone-to-computer pairing, the TV's protocol (D-060): while the page shows the QR code, a small HTTP server
  * listens on the home network (random port) at /pair. Each request body goes to the page, which checks the one-time
  * key, merges and answers (packages/shared/src/pairing); the answer goes back to the phone.
  */
@@ -408,7 +408,7 @@ app.whenReady().then(async () => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     void checkForUpdate(true);
   });
-  // "Open in VLC" (D-081, like the TV's "open in another player", D-057): VLC plays the stream with the provider
+  // "Open in VLC", like the TV's "open in another player" (D-057): VLC plays the stream with the provider
   // User-Agent. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
   ipcMain.handle('iptv:open-external', (event, url, title) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');

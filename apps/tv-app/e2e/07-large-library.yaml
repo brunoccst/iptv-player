@@ -55,7 +55,7 @@ appId: ${APP_ID}
       focused: true
     timeout: 60000
 - takeScreenshot: 73-movies-second-page
-# Quick presses keep going down: centering once jumped back to earlier titles (D-095).
+# Quick presses keep going down: centering once jumped back to earlier titles (D-094).
 - repeat:
     times: 12
     commands:
@@ -67,7 +67,7 @@ appId: ${APP_ID}
     timeout: 60000
 - takeScreenshot: 73b-movies-quick-presses
 # Quick presses up keep the focus on a card: held Up once went faster than lines were mounted, jumped over the empty spacers to
-# the category bar and left only spacers on screen (D-099).
+# the category bar and left only spacers on screen (D-094).
 - repeat:
     times: 20
     commands:

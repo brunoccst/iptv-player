@@ -6,7 +6,7 @@ import { buildMasters, buildMastersInChunks, lowSourceOf, type GroupingTimings }
 import { batchedSha1, sha1Hex } from './sha1';
 import { packLibrary, unpackLibrary } from '../libraryCodec';
 
-/** The JSON cases in `cases/` (D-017, D-038). */
+/** The JSON cases in `cases/` (D-017, D-088). */
 const load = (name: string) => JSON.parse(readFileSync(new URL(`./cases/${name}.json`, import.meta.url), 'utf8'));
 
 interface ParseCase {
@@ -79,7 +79,7 @@ describe('sort keys (shared cases)', () => {
 });
 
 describe('version labels', () => {
-  it('label the EAR version "ENG (EAR)" and the plain English one "ENG" (D-148)', () => {
+  it('label the EAR version "ENG (EAR)" and the plain English one "ENG" (D-087)', () => {
     const [master] = buildMasters('acc', 'movie', [
       { id: '1', name: 'EAR - Backrooms (2026)' },
       { id: '2', name: 'EN - Backrooms (2026)' },
@@ -99,7 +99,7 @@ describe('helpers', () => {
   });
 });
 
-describe('grouping large libraries (D-038)', () => {
+describe('grouping large libraries (D-088)', () => {
   it('groups by TMDB id and year, else by key and year (D-133)', () => {
     const names = ['Money Heist (2017)', 'La Casa de Papel (2017) 4K', 'La Casa de Papel (2017)', 'Money Heist (2021)', 'Dark (2017)'];
     const groups = groupTitles(names.map(parseTitle), ['71446', '71446', null, '71446', null]);
@@ -113,7 +113,7 @@ describe('grouping large libraries (D-038)', () => {
     const items = Array.from({ length: 3000 }, (_, i) => ({
       id: i + 1,
       name: `Film ${i % 1000} (${2000 + (i % 3)}) ${['4K', '1080p', ''][i % 3]}`,
-      // Some titles share a TMDB id with one of the same year: those merge (D-065).
+      // Some titles share a TMDB id with one of the same year: those merge (D-133).
       tmdbId: i % 30 === 0 || i % 30 === 3 ? 5000 + Math.floor(i / 30) : undefined,
     }));
     const reported: number[] = [];
@@ -124,7 +124,7 @@ describe('grouping large libraries (D-038)', () => {
     expect(reported.every((value, index) => index === 0 || value >= reported[index - 1]!)).toBe(true);
   });
 
-  it('buildMastersInChunks can hash the new ids all at once, with the same result (D-118)', async () => {
+  it('buildMastersInChunks can hash the new ids all at once, with the same result (D-093)', async () => {
     const items = Array.from({ length: 3000 }, (_, i) => ({ id: i + 1, name: `Film ${i % 1000} (${2000 + (i % 3)}) Über` }));
     const batches: string[][] = [];
     const hashIds = async (texts: string[]) => {
@@ -143,7 +143,7 @@ describe('grouping large libraries (D-038)', () => {
     expect(batches[1]).toEqual(['acc|movie|newfilm|2024']);
   });
 
-  it('batchedSha1 sends plain-ASCII texts in batches, hashes the rest itself, and falls back when native code fails (D-118)', async () => {
+  it('batchedSha1 sends plain-ASCII texts in batches, hashes the rest itself, and falls back when native code fails (D-093)', async () => {
     const texts = ['acc|movie|a|2001', 'acc|movie|über|', 'acc|movie|b|', 'acc|movie|日本|2020', 'acc|movie|c|1999'];
     const sent: string[] = [];
     const native = async (joined: string) => {
@@ -160,7 +160,7 @@ describe('grouping large libraries (D-038)', () => {
     expect(await batchedSha1(async () => 'short')(texts)).toEqual(texts.map(sha1Hex));
   });
 
-  it('buildMastersInChunks reports how long each step took, without the breaks (D-116)', async () => {
+  it('buildMastersInChunks reports how long each step took, without the breaks (D-093)', async () => {
     const items = Array.from({ length: 3000 }, (_, i) => ({ id: i + 1, name: `Film ${i % 1000} (${2000 + (i % 3)})` }));
     let timings: GroupingTimings | null = null;
     const started = Date.now();
@@ -198,7 +198,7 @@ describe('grouping large libraries (D-038)', () => {
   });
 });
 
-describe('updates reuse the last library (D-109)', () => {
+describe('updates reuse the last library (D-135)', () => {
   const yesterday = [
     { id: 1, name: 'EN - Big Movie (2020) [4K]', categoryId: '1', posterUrl: 'http://img/a.jpg', rating: 7, addedAt: 100 },
     { id: 2, name: 'Big.Movie.2020.1080p.WEB-DL', categoryId: '1', addedAt: 90 },

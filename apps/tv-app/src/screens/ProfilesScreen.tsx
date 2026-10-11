@@ -167,7 +167,7 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             <View style={[styles.box, isKids && styles.boxChecked]}>{isKids ? <Icon name="check" size={16} color="#000" /> : null}</View>
             <Text style={styles.checkLabel}>{t('Kids profile')}</Text>
           </Pressable>
-          {/* Parents pick what a saved Kids profile may see (D-064); new profiles can do so after the first save. */}
+          {/* Parents pick what a saved Kids profile may see (D-053); new profiles can do so after the first save. */}
           {isKids && profile ? (
             <FocusButton
               label={t('Choose categories')}

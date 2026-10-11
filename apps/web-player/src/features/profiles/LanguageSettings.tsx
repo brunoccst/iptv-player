@@ -4,8 +4,8 @@ import { Modal } from '../../components/Modal';
 import { useLanguageSettings } from '../../hooks/stores';
 
 /**
- * Account menu → Content language filter (D-063, D-067, D-086): only titles with audio or subtitles in one of the chosen languages, for the
- * active profile. The order they are ticked in is their priority (D-145). No language ticked = all languages. Applied when the dialog closes (every list reloads).
+ * Account menu → Content language filter (D-063): only titles with audio or subtitles in one of the chosen languages, for the
+ * active profile. The order they are ticked in is their priority (D-063). No language ticked = all languages. Applied when the dialog closes (every list reloads).
  */
 export function LanguageSettings({ onClose, profile }: { onClose(): void; profile?: { id: string; name: string } }) {
   // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
@@ -26,7 +26,7 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
           <input type="checkbox" checked={chosen.length === 0} onChange={() => allLanguages()} /> {t('All languages')}
         </label>
         {Object.entries(languageNames()).map(([code, name]) => {
-          // The order the languages were ticked in is their priority (D-145): "☑ 1. English".
+          // The order the languages were ticked in is their priority (D-063): "☑ 1. English".
           const rank = chosen.indexOf(code);
           return (
             <label key={code} className="checkbox">

@@ -27,7 +27,7 @@ function catalog(count: number) {
     ...(random(4) === 0 ? {} : { added: String(1_700_000_000 + random(50) * 1000) }),
     ...(random(3) === 0 ? { rating: String(random(100) / 10) } : {}),
     ...(random(5) === 0 ? {} : { stream_icon: `http://img.test/p/${i}.jpg` }),
-    // Some share a TMDB id: those with the same year join (D-065, D-133).
+    // Some share a TMDB id: those with the same year join (D-133).
     ...(i % 5 === 0 ? { tmdb: String(500 + (i % 85)) } : {}),
   }));
 }
@@ -116,7 +116,7 @@ describe('library in SQLite (D-121)', () => {
     expect(await library.open('other')).toEqual({});
   });
 
-  it('two works of one name and year with different TMDB ids stay two titles, like the library in memory (issue #187, D-156)', async () => {
+  it('two works of one name and year with different TMDB ids stay two titles, like the library in memory (issue #187, D-133)', async () => {
     const db = createNodeSqlDatabase();
     const library = createSqlLibrary(db, async () => undefined);
     const items = [
@@ -183,7 +183,7 @@ describe('library in SQLite (D-121)', () => {
     expect((await library.open('acc')).movie).toMatchObject({ table: second.saved.table, count: 5, current: true, packed: false });
   });
 
-  it('a change of grouping rules alone regroups without reading the names again (D-167)', async () => {
+  it('a change of grouping rules alone regroups without reading the names again (D-017)', async () => {
     const db = createNodeSqlDatabase();
     const items = [
       { id: 1, name: 'EN - Money Heist (2017)', tmdbId: '71446' },
@@ -250,7 +250,7 @@ describe('library in SQLite (D-121)', () => {
     expect(built.changes).toEqual({ added: 0, changed: 0, removed: 0 });
   });
 
-  it('live channels: every list, guide page and search answers the same as without a database (D-123)', async () => {
+  it('live channels: every list, guide page and search answers the same as without a database (D-121)', async () => {
     const panel = createFakePanel();
     const names = ['News', 'Sport', 'Música', 'Kids', 'Cinema 😀', 'Docs', 'EN | BBC', 'DE | ARD'];
     panel.channels.splice(
@@ -332,7 +332,7 @@ describe('library in SQLite (D-121)', () => {
         .filter((name) => !name.startsWith(table));
 
     /**
-     * Every title newest first (without the internal group number; an update in place adds titles at the end, D-137), its
+     * Every title newest first (without the internal group number; an update in place adds titles at the end, D-135), its
      * versions, and the category pages.
      */
     async function contents(
@@ -398,7 +398,7 @@ describe('library in SQLite (D-121)', () => {
       };
       const updated = make();
       const first = await updated.library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
-      // An order made before the update is made again with it (D-137).
+      // An order made before the update is made again with it (D-135).
       await updated.library.list(first.saved, { sort: 'title', order: 'asc' });
       await vi.waitFor(() => expect(first.saved.orders).toEqual(['t0']));
       let changedKeys: number | null = null;
@@ -421,11 +421,11 @@ describe('library in SQLite (D-121)', () => {
       const again = make();
       const original = await again.library.build('acc', 'movie', '2026-01-03T00:00:00Z', before);
       expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
-      // Nothing is left of what the updates worked out, once it is dropped in the background (D-138).
+      // Nothing is left of what the updates worked out, once it is dropped in the background (D-135).
       await vi.waitFor(async () => expect(await leftovers(updated.db, first.saved.table)).toEqual([]));
     }, 60_000);
 
-    it('builds a new library beside the last one when many items changed (D-137)', async () => {
+    it('builds a new library beside the last one when many items changed (D-135)', async () => {
       const before = items(600);
       const after = before.map((item, index) => (index % 3 === 0 ? { ...item, name: `${String(item.name)} Again` } : item));
       const db = createNodeSqlDatabase();
@@ -454,7 +454,7 @@ describe('library in SQLite (D-121)', () => {
       });
       expect(changedKeys).toBe(0);
       expect(second.changes).toEqual({ added: 0, changed: 0, removed: 0 });
-      // The list in another order has another fingerprint: it was compared, and the new fingerprint is kept (D-138).
+      // The list in another order has another fingerprint: it was compared, and the new fingerprint is kept (D-135).
       expect(second.saved).toEqual({ ...first.saved, builtAt: '2026-01-02T00:00:00Z', fingerprint: listFingerprint([...list].reverse()) });
       expect(second.saved.fingerprint).not.toBe(first.saved.fingerprint);
       expect((await library.open('acc')).movie).toEqual(second.saved);
@@ -463,7 +463,7 @@ describe('library in SQLite (D-121)', () => {
       await vi.waitFor(async () => expect(await leftovers(db, first.saved.table)).toEqual([]));
     });
 
-    it('knows the same list again by its fingerprint: nothing is read or compared (D-138)', async () => {
+    it('knows the same list again by its fingerprint: nothing is read or compared (D-135)', async () => {
       const db = createNodeSqlDatabase();
       const library = createSqlLibrary(db, async () => undefined);
       const list = items(300);

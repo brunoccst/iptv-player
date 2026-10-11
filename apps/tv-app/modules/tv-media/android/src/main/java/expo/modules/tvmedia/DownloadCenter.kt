@@ -94,7 +94,7 @@ object DownloadCenter {
   }
 
   /**
-   * Providers often only answer player-like agents; direct mode talks to them without a relay (DECISIONS.md#d-038).
+   * Providers often only answer player-like agents; direct mode talks to them without a relay (DECISIONS.md#d-088).
    * Saved so downloads resumed by the service after a restart use it before JS runs.
    */
   @Synchronized

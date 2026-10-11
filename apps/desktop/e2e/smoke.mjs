@@ -39,7 +39,7 @@ try {
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible({ timeout: 30_000 });
   console.log('signed in directly to the panel');
 
-  // Sync with phone (D-072): the code names this computer's pairing server; a request with a wrong key goes through
+  // Sync with phone (D-060): the code names this computer's pairing server; a request with a wrong key goes through
   // the app and is refused (403), and the code stays valid.
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: /Library & devices/ }).click();
@@ -68,7 +68,7 @@ try {
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible({ timeout: 30_000 });
   console.log('still signed in after a restart');
 
-  // Profiles are in the library database with the library (D-121, D-126), not in files.
+  // Profiles are in the library database with the library (D-121), not in files.
   const { DatabaseSync } = await import('node:sqlite');
   const db = new DatabaseSync(path.join(userData, 'library.db'), { readOnly: true });
   const keys = db

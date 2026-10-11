@@ -41,7 +41,7 @@ const libraryDb = createNativeSqlDatabase({
   run: (statements) => TvMedia.dbRun(statements),
   query: (sql, params) => TvMedia.dbQuery(sql, params),
 });
-// Profiles, progress, My List, settings and the PIN in the same database (D-126); the sign-in stays in the Keystore.
+// Profiles, progress, My List, settings and the PIN in the same database (D-121); the sign-in stays in the Keystore.
 const { secure: secureStorage, data: dataStorage } = withUserDatabase({ secure: keystoreStorage, data: fileStorage }, libraryDb);
 
 export const appContext = createAppContext({
@@ -59,7 +59,7 @@ export const appContext = createAppContext({
       next: (id) => TvMedia.readList(id),
       close: (id) => TvMedia.closeList(id),
     },
-    // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-118).
+    // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-093).
     hashIds: batchedSha1((joined) => TvMedia.sha1Batch(joined)),
     libraryDb,
   },
@@ -87,7 +87,7 @@ void appLog
       `${appConfig.appName} started on Android ${Platform.Version}, FFmpeg audio ${TvMedia.ffmpegAudioAvailable() ? 'bundled' : 'not bundled'}`,
     ),
   )
-  // The device's memory and the native crash of the last run, if any (D-113).
+  // The device's memory and the native crash of the last run, if any (D-039).
   .then(logStartup);
 const errorUtils = (
   globalThis as {

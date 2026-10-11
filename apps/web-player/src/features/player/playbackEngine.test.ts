@@ -89,7 +89,7 @@ describe('PlaybackEngine', () => {
     });
   });
 
-  it("says the provider's server stopped sending the file mid-way (D-172)", async () => {
+  it("says the provider's server stopped sending the file mid-way (D-074)", async () => {
     const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://cdn.example/movie.mp4' });
     const video = fakeVideo((url) => url.endsWith('.mp4'));
     const engine = new PlaybackEngine(video, client, fakeHls() as never);
@@ -133,7 +133,7 @@ describe('PlaybackEngine', () => {
     expect((error as Error).message).toMatch(/couldn't be played/);
   });
 
-  it('tries the stream server from the login reply when the portal address fails, like the TV app (D-038)', async () => {
+  it('tries the stream server from the login reply when the portal address fails, like the TV app (D-088)', async () => {
     const get = vi.fn(async (_kind: string, _id: string, container?: string | null) => ({
       url: `http://portal/movie.${container}`,
       alternateUrls: [`http://streams/movie.${container}`],

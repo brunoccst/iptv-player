@@ -23,7 +23,7 @@ export interface PairingServer {
 }
 
 /**
- * The TV's or computer's side of phone pairing (D-060, D-072), for both apps (D-124): while mounted, the server runs
+ * The TV's or computer's side of phone pairing (D-060), for both apps (D-079): while mounted, the server runs
  * and `qr` holds the code to show. A phone that scans it signs this device in or merges its data, then the app state
  * reloads. Refused attempts (another account) keep the code valid. Without a server (a browser) or a home network:
  * 'offline'.

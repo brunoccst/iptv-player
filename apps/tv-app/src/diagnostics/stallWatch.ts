@@ -8,7 +8,7 @@ const STALL_MS = 2000;
 /**
  * Logs when the JavaScript thread was blocked, and for how long, so the Log screen shows what froze on a slow TV
  * (D-093). Returns a stop function. Android stops the app's timers while it is in the background (another input, the
- * screen saver, the home screen), so a gap that spans a trip to the background is not a busy thread (D-172).
+ * screen saver, the home screen), so a gap that spans a trip to the background is not a busy thread (D-074).
  */
 export function startStallWatch(now: () => number = Date.now): () => void {
   let last = now();

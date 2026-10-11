@@ -1,6 +1,6 @@
 # cases
 
-JSON test cases for the title normalizer (`normalizer.test.ts`). Rationale: [D-017](../../../../../../documentation/DECISIONS.md#d-017), [D-038](../../../../../../documentation/DECISIONS.md#d-038).
+JSON test cases for the title normalizer (`normalizer.test.ts`). Rationale: [D-017](../../../../../../documentation/DECISIONS.md#d-017), [D-088](../../../../../../documentation/DECISIONS.md#d-088).
 
 | File            | Used by                                                                                  |
 | --------------- | ---------------------------------------------------------------------------------------- |

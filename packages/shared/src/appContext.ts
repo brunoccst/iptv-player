@@ -54,14 +54,14 @@ export interface AppContextOptions {
   storage: KeyValueStorage;
   fetch?: typeof fetch;
   /**
-   * The apps talk to the IPTV provider directly (D-038, D-088): `dataStorage` keeps profiles, progress and the grouped
+   * The apps talk to the IPTV provider directly (D-088): `dataStorage` keeps profiles, progress and the grouped
    * library; `userAgent` is sent to the provider; `listReader` reads the provider's lists outside JavaScript (D-115).
    */
   direct: {
     dataStorage: KeyValueStorage;
     userAgent?: string;
     listReader?: ListReader;
-    /** SHA-1 of title ids in native code (D-118). */
+    /** SHA-1 of title ids in native code (D-093). */
     hashIds?(texts: string[]): Promise<string[]>;
     /** TV/phone: the library in SQLite (D-121). */
     libraryDb?: SqlDatabase;
@@ -92,7 +92,7 @@ function delegatingApi(current: () => ApiClient): ApiClient {
   return wrap([], current()) as ApiClient;
 }
 
-/** Saved by versions that could go through a server ("My server", D-038); read by none since D-088. */
+/** Saved by versions that could go through a server ("My server"); read by none since D-088. */
 const RETIRED_CONNECTION_KEY = 'connection';
 
 /** Wires API client and stores together. Each app creates exactly one context at startup. */
@@ -112,7 +112,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   void Promise.resolve(storage.removeItem(RETIRED_CONNECTION_KEY)).catch(() => undefined);
 
   // Kids profiles only see kids categories (D-053); `session` is initialized below, before any request.
-  // Per-profile preferences on this device: the language filter (D-063) and a Kids profile's categories (D-064).
+  // Per-profile preferences on this device: the language filter (D-063) and a Kids profile's categories (D-053).
   const profilePrefs = createProfilePrefsStore(direct.dataStorage);
   void profilePrefs.getState().load();
   const activePrefs = () => {
@@ -124,9 +124,9 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     () => selectActiveProfile(session.getState())?.isKids === true,
     (section) => activePrefs()?.kidsCategories?.[section] ?? null,
   );
-  // One or more languages (D-067), sent as a comma-separated list: `ENG,GER`.
+  // One or more languages (D-063), sent as a comma-separated list: `ENG,GER`.
   const activeLanguage = () => profileLanguages(activePrefs()).join(',') || null;
-  // The filter's category hint (D-086): which categories let titles without a language of their own through.
+  // The filter's category hint (D-063): which categories let titles without a language of their own through.
   const categoryNames = new Map<LibrarySection, Promise<MediaCategory[]>>();
   const categoriesOf = (section: LibrarySection) => {
     let list = categoryNames.get(section);
@@ -195,12 +195,12 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   profilePrefs.subscribe(followVersion);
   session.subscribe(followVersion);
 
-  // The profile's languages, then the app's, pick the best of equally good versions (D-136).
+  // The profile's languages, then the app's, pick the best of equally good versions (D-087).
   const followLanguages = () => {
     const profile = profileLanguages(activePrefs());
     const languages = versionLanguages(profile, i18nStore.getState().language);
     if (languages.join(',') !== library.getState().versionLanguages.join(',')) library.getState().setVersionLanguages(languages);
-    // A title starts with its best version in one of the profile's languages (D-144).
+    // A title starts with its best version in one of the profile's languages (D-087).
     if (profile.join(',') !== library.getState().profileLanguages.join(',')) library.getState().setProfileLanguages(profile);
   };
   followLanguages();
@@ -244,7 +244,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     player.getState().close();
     progress.getState().reset();
     watchlist.getState().reset();
-    // Pairing and backups write preferences and subtitle settings too (D-162).
+    // Pairing and backups write preferences and subtitle settings too (D-060).
     await Promise.all([profilePrefs.getState().load(), subtitles.settings.getState().load()]);
     await session.getState().restore({ keepProfile: true });
     // restore() keeps the same profile id when nothing changed, so the subscription above may not load it.

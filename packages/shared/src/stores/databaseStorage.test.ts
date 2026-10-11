@@ -11,7 +11,7 @@ const setup = (files: Record<string, string> = {}, secureFiles: Record<string, s
   return { data, secure, db, storages: withUserDatabase({ secure, data }, db) };
 };
 
-describe('user data in the database (D-126)', () => {
+describe('user data in the database (D-121)', () => {
   it('moves profiles, progress, My List, settings and the PIN into the database once, and leaves the rest alone', async () => {
     const { data, secure, db, storages } = setup(
       {

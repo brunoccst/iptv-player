@@ -13,13 +13,13 @@ const RANGE = 0.6;
 /** The bar stays a second after the finger lifts (issue #184). */
 const BAR_AFTER_MS = 1000;
 
-/** Brightness chosen in a player during this run of the app; the next player starts with it (D-155). */
+/** Brightness chosen in a player during this run of the app; the next player starts with it (D-046). */
 let sessionBrightness: number | null = null;
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 
 /**
- * Phones (issue #184, D-155): a vertical slide on the left third of the video sets the screen brightness, on the right
+ * Phones (issue #184, D-046): a vertical slide on the left third of the video sets the screen brightness, on the right
  * third the media volume; a bar shows the level while sliding and a second after. Live channels: a swipe up in the
  * middle third opens the guide (D-058). The brightness is the player's own and the system's comes back when it closes.
  */

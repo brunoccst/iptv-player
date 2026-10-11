@@ -21,7 +21,7 @@ describe('startStallWatch', () => {
     warn.mockRestore();
   });
 
-  it('does not count the time the app spent in the background (D-172)', () => {
+  it('does not count the time the app spent in the background (D-074)', () => {
     jest.useFakeTimers();
     let time = 0;
     let onChange: (() => void) | undefined;

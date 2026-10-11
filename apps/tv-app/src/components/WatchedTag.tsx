@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 
 /**
  * "Watched" tag (D-081): bottom right of a watched title's cover, next to the title in its details, on watched episodes.
- * An open eye in a light pill, readable over any poster (D-104: the check was too close to My List's). Same look as the web app's `.watched-tag`.
+ * An open eye in a light pill, readable over any poster (D-081: the check was too close to My List's). Same look as the web app's `.watched-tag`.
  */
 export function WatchedTag({ style, testID }: { style?: StyleProp<ViewStyle>; testID?: string }) {
   return (

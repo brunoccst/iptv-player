@@ -1,6 +1,6 @@
 /**
  * The data the apps work with. The direct client (`direct/directApiClient.ts`) builds it from the provider's answers
- * (D-038); the whole app reads it through `ApiClient`.
+ * (D-088); the whole app reads it through `ApiClient`.
  */
 
 export interface AccountDto {
@@ -256,7 +256,7 @@ export interface WatchlistRequest {
   year?: null | number;
 }
 
-/** Client-side extension of LibraryStatus: the stage and how many titles have been read (D-038). */
+/** Client-side extension of LibraryStatus: the stage and how many titles have been read (D-088). */
 /** `waiting`: downloaded, waiting for the other kind to finish grouping (D-093). */
 export type LibraryStage = 'downloading' | 'waiting' | 'grouping';
 /** What an update changed against the last library (D-119); none on a first build. */
@@ -271,7 +271,7 @@ export type LibraryStatusProgress = LibraryStatus & {
   parsedCount?: number | null;
   changes?: LibraryChanges | null;
 };
-/** The same stream on the provider's announced stream server (D-038). */
+/** The same stream on the provider's announced stream server (D-088). */
 export type PlaybackInfoWithAlternates = PlaybackInfo & { alternateUrls?: string[] };
 export type SortOrder = 'asc' | 'desc';
 

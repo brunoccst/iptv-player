@@ -68,7 +68,7 @@ afterEach(() => {
   bridge.host = '192.168.1.23';
 });
 
-describe('desktop: sign in and sync with the phone app (D-072)', () => {
+describe('desktop: sign in and sync with the phone app (D-060)', () => {
   it('shows the code; a phone that scans it signs the computer in', async () => {
     const { result, unmount } = renderHook(() => usePairingServer());
     await waitFor(() => expect(result.current.phase).toBe('ready'));

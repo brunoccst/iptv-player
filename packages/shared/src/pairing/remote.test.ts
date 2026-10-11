@@ -31,7 +31,7 @@ describe('remote play (D-061)', () => {
     expect(received).toEqual([command]);
   });
 
-  it('a paired phone gets the TV log, sealed with its key (D-173)', async () => {
+  it('a paired phone gets the TV log, sealed with its key (D-039)', async () => {
     let sealed = '';
     const logTv = (async (_url: string, init?: RequestInit) => {
       const opened = openRemoteRequest([phone], String(init?.body), now)!;

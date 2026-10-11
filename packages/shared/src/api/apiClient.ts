@@ -38,11 +38,11 @@ export interface LibraryListQuery {
   order?: SortOrder;
   /** Only titles in these categories (Kids profiles, D-053). An empty list is not sent: callers handle "nothing allowed". */
   categoryIds?: string[] | null;
-  /** Only titles with a version in one of these audio or subtitle languages, e.g. `ENG` or `ENG,GER` (D-063, D-067). */
+  /** Only titles with a version in one of these audio or subtitle languages, e.g. `ENG` or `ENG,GER` (D-063). */
   language?: string | null;
   /**
    * With `language`: a version whose name has no language passes when it is in one of these categories (named in a
-   * chosen language, or in none), D-086.
+   * chosen language, or in none), D-063.
    */
   languageCategoryIds?: string[] | null;
   /** Leaves out titles whose every version is in one of these categories (hidden by the profile, D-110). */
@@ -52,7 +52,7 @@ export interface LibraryListQuery {
 /** Categories and channels the profile hid are left out (D-110), except with `includeHidden` (search, the settings). */
 export interface CatalogOptions {
   includeHidden?: boolean;
-  /** Live channels only: those whose name contains this text, any case (search, D-123). */
+  /** Live channels only: those whose name contains this text, any case (search, D-121). */
   search?: string;
   /** Live channels only: at most this many. */
   limit?: number;
@@ -73,7 +73,7 @@ export interface EpgGridQuery {
 
 /**
  * Everything the apps read and change. `createDirectApiClient` implements it by talking to the IPTV provider and
- * keeping profiles, progress and the grouped library on the device (D-038, D-088). Tests use a fake
+ * keeping profiles, progress and the grouped library on the device (D-088). Tests use a fake
  * (`testing/fakeBackend.ts`).
  */
 export interface ApiClient {

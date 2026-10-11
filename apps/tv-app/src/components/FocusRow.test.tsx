@@ -25,14 +25,14 @@ describe('focus rows (TV)', () => {
     while (node && node.props.trapFocusRight !== true) node = node.parent;
     expect(node?.props).toMatchObject({ trapFocusLeft: true, trapFocusRight: true });
     expect(node?.props.trapFocusUp).toBeFalsy();
-    // The row keeps scrolling with the focus on TV: switched off, the focused card went off screen (D-076).
+    // The row keeps scrolling with the focus on TV: switched off, the focused card went off screen (D-069).
     let scroll = screen.getByTestId('row-more').parent;
     while (scroll && scroll.props.horizontal === undefined) scroll = scroll.parent;
     expect(scroll?.props.horizontal).toBe(true);
     expect(scroll?.props.scrollEnabled).not.toBe(false);
   });
 
-  it('a row title link keeps Left/Right too: Right used to drop to the second card below (D-152)', async () => {
+  it('a row title link keeps Left/Right too: Right used to drop to the second card below (D-069)', async () => {
     await render(
       <Row
         title="Drama"
