@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NavigationBar } from 'expo-navigation-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   BackHandler,
@@ -717,9 +716,6 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           }
         }}
       />
-
-      {/* Phones: full screen video; the navigation bar comes back when the player closes. */}
-      {Platform.isTV ? null : <NavigationBar hidden />}
 
       {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028.
           On TV it steps aside while Skip ahead / Next episode buttons need the focus; phones keep it, so a tap on the video

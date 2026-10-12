@@ -1,3 +1,4 @@
+import { NavigationBar } from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { startStallWatch } from './diagnostics/stallWatch';
@@ -72,6 +73,9 @@ export function App() {
     // The whole app redraws in a newly chosen language (D-084).
     <View style={styles.root} key={language}>
       <StatusBar hidden={fullScreen} style="light" />
+      {/* Phones and tablets never show the navigation bar or taskbar; a swipe from the edge brings it back for a moment
+          (DECISIONS.md#d-177). */}
+      {Platform.isTV ? null : <NavigationBar hidden />}
       <View style={{ height: topInset }} testID="status-bar-space" />
       <View style={styles.app}>
         {status === 'idle' || status === 'restoring' ? (

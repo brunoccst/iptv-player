@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Truly full screen on tablets and phones** (2026-10-12, D-177): the navigation bar and the tablet taskbar no longer cover the app. Swipe up from the bottom edge to show them for a moment.
 - **Better quality on My List** (2026-10-12, D-176): when a movie on My List was only a cinema copy (CAM, TS…) and a better copy arrives, Home tells you with a popup, with Play and More Info.
 - **My List and progress survive renamed titles** (2026-10-12, D-133, issue #216): when your provider renames a movie or series, it stays on My List and Continue watching instead of disappearing from them.
 - **A longer TV guide** (2026-10-12, D-032, issue #229): the guide used to stop after each channel's next 12 programmes. Further ahead, it now shows the programmes of your provider's full TV guide, up to a day ahead.
