@@ -57,3 +57,7 @@ jest.mock('expo-file-system', () => {
 
 // Player hides the phone navigation bar; no native module in Jest.
 jest.mock('expo-navigation-bar', () => ({ NavigationBar: () => null }));
+
+// The player's connection-limit check (issue #242) only runs in the tests about it.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+require('@iptv/shared').resetConnectionLimit(false);

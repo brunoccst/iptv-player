@@ -56,6 +56,12 @@ const CATEGORY_WIDTH = 220;
 /** Web `.guide__row`: the timeline keeps a readable width and scrolls sideways on narrow screens. */
 const MIN_TIMELINE = 640;
 
+/** Where the focused guide cell sits in its row: the first or last programme (issue #240). */
+interface Edge {
+  first: boolean;
+  last: boolean;
+}
+
 interface Selection {
   channel: LiveChannel;
   programme: EpgListing | null;
@@ -94,6 +100,24 @@ export function LiveScreen() {
   const timelineWidth = Math.max(MIN_TIMELINE, pageWidth - channelWidth);
   // TV: Up from Earlier/Now/Later goes to the nav, not to a category scrolled out of sight above them.
   const navUp = useNavFocusTarget();
+  const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
+  const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
+  // The guide shows later hours than now: Left on a row's first programme goes back an hour instead of to the channel.
+  const ahead = from > nowSlot;
+
+  // TV: Right on a row's last programme shows the next hour, Left on its first the hour before while the guide is
+  // ahead of now (issue #240, D-032). The key arrives before the focus moves, so `edge` is still the focused cell's.
+  const edge = useRef<(Edge & { cell: object }) | null>(null);
+  // A cell clears only its own edge: its blur can arrive after the next cell's focus.
+  const onEdge = useCallback((cell: object, value: Edge | null) => {
+    if (value) edge.current = { ...value, cell };
+    else if (edge.current?.cell === cell) edge.current = null;
+  }, []);
+  useRemote(({ key, action }) => {
+    if (!Platform.isTV || action !== 'down' || !edge.current) return;
+    if (key === 'right' && edge.current.last && canLater) setFrom(from + STEP_MS);
+    else if (key === 'left' && edge.current.first && ahead) setFrom(from - STEP_MS);
+  });
 
   useEffect(() => {
     void stores.catalog.getState().loadCategories('live');
@@ -128,6 +152,8 @@ export function LiveScreen() {
       // Only this row's selection: moving focus re-renders two rows, not the whole guide.
       selected={selected?.channel.id === row.channel.id ? selected : null}
       onSelect={setSelected}
+      ahead={ahead}
+      onEdge={onEdge}
     />
   ));
   const more = moreChannels ? (
@@ -164,7 +190,7 @@ export function LiveScreen() {
             <FocusButton
               label={`◀ ${t('Earlier')}`}
               variant="ghost"
-              disabled={from - STEP_MS < nowSlot - MIN_BACK_MS}
+              disabled={!canEarlier}
               onPress={() => setFrom(from - STEP_MS)}
               nextFocusUp={navUp}
               testID="guide-earlier"
@@ -179,7 +205,7 @@ export function LiveScreen() {
             <FocusButton
               label={`${t('Later')} ▶`}
               variant="ghost"
-              disabled={from + STEP_MS > nowSlot + MAX_AHEAD_MS}
+              disabled={!canLater}
               onPress={() => setFrom(from + STEP_MS)}
               testID="guide-later"
               nextFocusUp={navUp}
@@ -417,6 +443,9 @@ interface GuideRowProps {
   compact: boolean;
   selected: Selection | null;
   onSelect(selection: Selection): void;
+  /** The guide shows later hours: the channel cell steps aside so Left on the first programme goes back an hour. */
+  ahead: boolean;
+  onEdge(cell: object, edge: Edge | null): void;
 }
 
 /** TV: Select plays (focus already selects). Phone: a tap selects, like a click on the web. */
@@ -424,12 +453,28 @@ const activate = (selection: Selection, onSelect: (selection: Selection) => void
   Platform.isTV ? playNow() : onSelect(selection);
 
 /** Memoized: loading more channels or moving focus renders only the rows that changed (hundreds of channels, D-025). */
-const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, compact, selected, onSelect }: GuideRowProps) {
+const GuideRow = memo(function GuideRow({
+  row,
+  from,
+  to,
+  now,
+  width,
+  preferred,
+  compact,
+  selected,
+  onSelect,
+  ahead,
+  onEdge,
+}: GuideRowProps) {
   const { channel, programmes } = row;
   const cells = layoutGuideRow(programmes, from, to);
+  const firstCell = cells.findIndex((cell) => cell.programme);
+  const lastCell = cells.findLastIndex((cell) => cell.programme);
   return (
-    <FocusRow leftOpen style={styles.row}>
+    <FocusRow leftOpen={!ahead} style={styles.row}>
       <GuideCellButton
+        focusable={!ahead}
+        onEdge={onEdge}
         style={[styles.channel, compact && styles.channelCompact]}
         testID={`guide-channel-${channel.id}`}
         label={t('Watch {name}', { name: channel.name })}
@@ -449,7 +494,7 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
         )}
       </GuideCellButton>
       <View style={[styles.timeline, { width }]}>
-        {cells.map((cell) => {
+        {cells.map((cell, index) => {
           const cellWidth = cell.width * width;
           if (!cell.programme) {
             return (
@@ -480,6 +525,8 @@ const GuideRow = memo(function GuideRow({ row, from, to, now, width, preferred, 
               ]}
               onPress={() => activate({ channel, programme }, onSelect, () => play(channel, onNow ? programme : null))}
               onFocus={() => Platform.isTV && onSelect({ channel, programme })}
+              edge={{ first: index === firstCell, last: index === lastCell }}
+              onEdge={onEdge}
             >
               <Text style={styles.programmeTitle} numberOfLines={1}>
                 {cell.clippedStart ? '‹ ' : ''}
@@ -503,15 +550,38 @@ interface GuideCellButtonProps {
   style?: StyleProp<ViewStyle>;
   testID?: string;
   hasTVPreferredFocus?: boolean;
+  focusable?: boolean;
+  /** Reported while focused (issue #240); a cell that is no programme reports no edge. */
+  edge?: Edge;
+  onEdge?(cell: object, edge: Edge | null): void;
   children: ReactNode;
 }
 
 /** Focusable guide block: white border when focused (Android focus search moves by geometry). */
-function GuideCellButton({ label, onPress, onFocus, style, testID, hasTVPreferredFocus, children }: GuideCellButtonProps) {
+function GuideCellButton({
+  label,
+  onPress,
+  onFocus,
+  style,
+  testID,
+  hasTVPreferredFocus,
+  focusable,
+  edge,
+  onEdge,
+  children,
+}: GuideCellButtonProps) {
   const [focused, setFocused] = useState(false);
   const page = usePageFocusable(hasTVPreferredFocus);
+  // Also when the window moves under the focused cell: it may no longer be the row's last programme.
+  const self = useRef({}).current;
+  const first = edge?.first ?? false;
+  const last = edge?.last ?? false;
+  useEffect(() => {
+    onEdge?.(self, focused ? { first, last } : null);
+  }, [focused, first, last, onEdge, self]);
   return (
     <Pressable
+      focusable={focusable}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={label}

@@ -8,6 +8,7 @@
 | `playbackSettings.ts` | Player settings (audio decoder choice, D-059), saved in `fileStorage` and included in backups (D-056). |
 | `config.ts` | `appConfig` from `Constants.expoConfig.extra` (API address optional), `providerUserAgent`. |
 | `hooks.ts` | Store hooks (`useSession`, `useConnection`, `useLibrary`, `useDownloads`, `useNav`, …) and `connectionStore`. |
+| `secureRandom.ts` | `crypto.getRandomValues` from Android's SecureRandom where Hermes lacks it (backup salts, pairing nonces, issue #233). |
 | `useAsync.ts` | Cached one-off reads (movie metadata, series episodes). |
 | `useLibraryWatcher.ts` | Polls library status while empty/processing; reloads rows when done. |
 | `theme.ts` | Colours, spacing, TV-safe margins, font and card sizes. |

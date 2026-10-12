@@ -74,7 +74,7 @@ describe.each([
       providerType: 'xtream',
       serverUrl: 'http://panel.test:8080/',
       username: 'demo',
-      maxConnections: 1,
+      maxConnections: 2,
     });
     expect(response.account.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5/);
     expect(response.profiles).toEqual([{ id: 'id-1', name: 'demo', avatarKey: null, isKids: false }]);

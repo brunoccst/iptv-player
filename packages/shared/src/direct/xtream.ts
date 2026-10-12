@@ -459,6 +459,14 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       return info;
     },
 
+    /** Streams in use (`active_cons`) and allowed (`max_connections`) right now (issue #242); null when not reported. */
+    async connections(signal?: AbortSignal): Promise<{ active: number | null; max: number | null }> {
+      const userInfo = prop(await getJson(null, {}, signal), 'user_info');
+      return isObject(userInfo)
+        ? { active: int(userInfo, 'active_cons'), max: int(userInfo, 'max_connections') }
+        : { active: null, max: null };
+    },
+
     async categories(kind: MediaKind, signal?: AbortSignal): Promise<MediaCategory[]> {
       const action = { live: 'get_live_categories', movie: 'get_vod_categories', series: 'get_series_categories' }[kind];
       return items(await getJson(action, {}, signal))

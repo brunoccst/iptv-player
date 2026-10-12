@@ -31,13 +31,19 @@ import {
   t,
   isFoundSubtitle,
   srtToVtt,
+  checkConnectionLimit,
+  connectionCheckNeeded,
+  connectionLimitMessage,
+  holdStreamConnection,
+  spareConnection,
+  type ConnectionUse,
 } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
 import { useVlc } from '../../components/VlcButton';
 import { desktop } from '../../desktop';
-import { useNoteRecentChannel, usePlayerTitle, useUi } from '../../hooks/stores';
+import { useNoteRecentChannel, usePlayerTitle, useSession, useUi } from '../../hooks/stores';
 import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
@@ -112,8 +118,32 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     resumeAt.current = null;
   }, [target.kind, target.streamId]);
 
+  // All the account's streams in use (issue #242, D-175): asks before opening another. 'checking' while the provider
+  // answers; skipped for a download and while the provider still counts the app's own stream (zapping, next episode).
+  const [limit, setLimit] = useState<ConnectionUse | 'checking' | null>(() => {
+    const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
+    return download?.status !== 'completed' && api.playback.connections && connectionCheckNeeded() ? 'checking' : null;
+  });
+  useEffect(() => {
+    if (limit !== 'checking' || !api.playback.connections) return;
+    let cancelled = false;
+    const read = api.playback.connections;
+    void checkConnectionLimit((signal) => read(signal)).then((use) => {
+      if (cancelled) return;
+      if (use) appLog.warn('player', `${use.active} of ${use.max} connections in use: asking before playing`);
+      setLimit(use);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+  const waiting = limit !== null;
+  const full = limit !== null && limit !== 'checking' ? limit : null;
+  useEffect(() => (source && !source.offline ? holdStreamConnection() : undefined), [source]);
+
   // Load the stream whenever the item changes. The completed download (if any) is read once at start.
   useEffect(() => {
+    if (waiting) return;
     const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
     // A blocked download is skipped: online it streams instead; offline there is nothing else to play (D-050).
     const session = stores.session.getState();
@@ -244,7 +274,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
     };
     // Reload only when the playing item changes; saveProgress is refreshed with the same target.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target.kind, target.streamId, retry]);
+  }, [target.kind, target.streamId, retry, waiting]);
 
   useEffect(() => {
     if (!notice) return;
@@ -426,11 +456,13 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   };
   useEffect(() => () => window.clearTimeout(idleTimer.current), []);
 
+  // The preview opens a second connection: only where the account has one to spare (issue #218).
+  const maxConnections = useSession((s) => s.account?.maxConnections ?? null);
   const getPreview = useCallback(() => {
-    if (!source || isLive) return null;
+    if (!source || isLive || !spareConnection(maxConnections)) return null;
     previewRef.current ??= new FrameGrabber(source);
     return previewRef.current;
-  }, [source, isLive]);
+  }, [source, isLive, maxConnections]);
 
   const skipWindow = skipAheadWindow(target.kind, duration);
   const countdown = nextDismissed ? null : nextUpCountdown(time, duration, !!next);
@@ -609,7 +641,22 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         </div>
       </div>
 
-      {status === 'loading' ? (
+      {full ? (
+        <div className="player__center">
+          <div className="player__message" role="alert" data-testid="player-connection-limit">
+            <p>{connectionLimitMessage(full)}</p>
+            <div className="player__message-actions">
+              <button type="button" className="button button--primary" onClick={() => setLimit(null)}>
+                {t('Play anyway')}
+              </button>
+              <button type="button" className="button" onClick={close}>
+                {t('Go back')}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {status === 'loading' && !full ? (
         <div className="player__center">
           <Spinner label={t('Loading stream')} />
         </div>

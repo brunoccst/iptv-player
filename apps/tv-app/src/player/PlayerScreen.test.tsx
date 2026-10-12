@@ -1,10 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Dimensions, Platform } from 'react-native';
-import { appLog, HOLD_THRESHOLD_MS, TAP_CHAIN_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
+import { appLog, resetConnectionLimit, HOLD_THRESHOLD_MS, TAP_CHAIN_MS, SCRUB_DOUBLING_MS, type PlayTarget } from '@iptv/shared';
 import { pressRemote } from '../../test/remoteMock';
 import { nativeState, playerState } from '../../test/tvMediaMock';
-import { appContext, navStore, stores } from '../appContext';
+import { api, appContext, navStore, playbackSettings, stores } from '../appContext';
 import { playback, pressBack, setupApp, variant } from '../../test/utils';
 import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { RECENT_HIDE_MS } from './RecentChannelsOverlay';
@@ -152,6 +152,36 @@ describe('PlayerScreen', () => {
     expect(await screen.findByText('Source error')).toBeTruthy();
   });
 
+  it("asks before playing when all the account's streams are in use, and not again while zapping (issue #242)", async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://relay/55.${url.searchParams.get('container')}`) }));
+    resetConnectionLimit();
+    const connections = jest.fn(async () => ({ active: 1, max: 1 }));
+    const original = api.playback.connections;
+    api.playback.connections = connections;
+    try {
+      const view = await render(<PlayerScreen target={movie} />);
+      await flush();
+      expect(screen.getByTestId('player-connection-limit')).toBeTruthy();
+      expect(playerState.props?.source).toBeNull();
+
+      await act(async () => fireEvent.press(screen.getByTestId('player-play-anyway')));
+      await flush();
+      expect(screen.queryByTestId('player-connection-limit')).toBeNull();
+      expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv' });
+
+      // The provider still counts the app's own stream for a while: the next title plays without asking.
+      await view.unmount();
+      await render(<PlayerScreen target={{ ...movie, streamId: '55' }} />);
+      await flush();
+      expect(screen.queryByTestId('player-connection-limit')).toBeNull();
+      expect(connections).toHaveBeenCalledTimes(1);
+    } finally {
+      api.playback.connections = original;
+      resetConnectionLimit(false);
+    }
+  });
+
   it('logs what the provider sent instead of a video, and names "max connections" (D-074)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://relay/55.${url.searchParams.get('container')}`) }));
@@ -204,6 +234,35 @@ describe('PlayerScreen', () => {
     await flush();
     expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv' });
     expect(await screen.findByText(/could not decode the audio of this title \(Dolby Digital Plus\)/)).toBeTruthy();
+  });
+
+  it('switches to FFmpeg when the device fails to decode the audio, and keeps that choice (issue #235)', async () => {
+    const detail =
+      'MediaCodecAudioRenderer error, index=1, format=Format(2, null, video/x-matroska, audio/eac3, null, -1, en), format_supported=YES (v: Decoder failed: c2.dolby.eac3.decoder.eac3)';
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', ({ url }) => ({ body: playback(`http://relay/55.${url.searchParams.get('container')}`) }));
+    nativeState.ffmpegAudio = true;
+    try {
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv', audioDecoder: 'device' });
+      const fail = () =>
+        act(async () =>
+          playerState.props?.onError?.({ nativeEvent: { message: 'Source error', code: 'ERROR_CODE_DECODING_FAILED', detail } } as never),
+        );
+      await fail();
+      await flush();
+      expect(playerState.props?.source).toMatchObject({ uri: 'http://relay/55.mkv', audioDecoder: 'ffmpeg' });
+      expect(playbackSettings.getState().audioDecoder).toBe('ffmpeg');
+      expect(screen.queryByText(/could not decode/)).toBeNull();
+
+      // FFmpeg failed too: the error, without suggesting FFmpeg again.
+      await fail();
+      expect(await screen.findByText(/could not decode the audio of this title \(Dolby Digital Plus\)/)).toBeTruthy();
+      expect(screen.queryByText(/FFmpeg first/)).toBeNull();
+    } finally {
+      nativeState.ffmpegAudio = false;
+    }
   });
 
   it("carries on from where the stream stopped when the provider's server stops answering, and offers Try again (D-074)", async () => {

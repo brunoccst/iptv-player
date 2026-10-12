@@ -47,7 +47,14 @@ export function createFakePanel() {
     switch (params.get('action')) {
       case null:
         return {
-          user_info: { auth: 1, status: accountStatus, exp_date: expDate, max_connections: '1', allowed_output_formats: ['m3u8', 'ts'] },
+          user_info: {
+            auth: 1,
+            status: accountStatus,
+            exp_date: expDate,
+            max_connections: '2',
+            active_cons: '0',
+            allowed_output_formats: ['m3u8', 'ts'],
+          },
         };
       case 'get_vod_streams':
         return movies;

@@ -306,6 +306,7 @@
   "Play": "Abspielen",
   "Play {title}": "{title} abspielen",
   "Play {title} on {tv}": "{title} auf {tv} abspielen",
+  "Play anyway": "Trotzdem abspielen",
   "Play from the beginning": "Von Anfang an abspielen",
   "Play Now": "Jetzt abspielen",
   "Play on {tv}": "Auf {tv} abspielen",
@@ -543,5 +544,6 @@
   "Your library is empty. Is the title normalizer worker running?": "Deine Mediathek ist leer. Läuft der Titel-Normalizer-Worker?",
   "Your library is up to date: nothing new from your provider.": "Deine Mediathek ist aktuell: nichts Neues von deinem Anbieter.",
   "Your library was updated.": "Deine Mediathek wurde aktualisiert.",
-  "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist."
+  "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist.",
+  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Laut deinem Anbieter sind {active} der {max} Streams deines Kontos belegt, wahrscheinlich auf einem anderen Gerät. Dieser Stream wird vielleicht abgelehnt oder beendet den anderen."
 }

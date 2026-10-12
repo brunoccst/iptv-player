@@ -80,6 +80,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-154](#d-154) | TV colour keys |
 | [D-158](#d-158) | Details in columns on landscape screens |
 | [D-174](#d-174) | Known issues and planned work are GitHub issues |
+| [D-175](#d-175) | Connection limit: ask the provider before playing |
 
 ## Merged and retired IDs
 
@@ -236,7 +237,7 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 
 - `PlaybackEngine` tries sources in order and stops at the first that loads (`webPlaybackAttempts`): a completed download, then for VOD the panel's HLS output (`.m3u8`, which plays MKV sources in any browser) and then the original file; live is HLS only.
 - hls.js fatal errors after start: network → `startLoad()`, media → `recoverMediaError()` (twice), then an error message (D-074).
-- Timeline previews: providers ship no trickplay sprites, so `frameGrabber.ts` opens a hidden, muted second video at the lowest rendition on the first timeline hover and draws frames into a canvas. It costs one extra stream connection while previewing ([#218](https://github.com/brunoccst/iptv-player/issues/218)).
+- Timeline previews: providers ship no trickplay sprites, so `frameGrabber.ts` opens a hidden, muted second video at the lowest rendition on the first timeline hover and draws frames into a canvas. It costs one extra stream connection while previewing, so it only runs where the account has one to spare (D-175).
 - The player and hls.js are a lazily loaded chunk.
 
 ## D-024
@@ -312,7 +313,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 - `@iptv/shared` owns the guide's layout (`layoutGuideRow`: clip to the window, trim overlaps, fill gaps) and paging (`useEpgGuide`). Cells carry fractions, so the web uses CSS percentages and TV multiplies by the row width.
 - The guide comes from each channel's short EPG; the full XMLTV guide is only read for search (D-130). Guide windows align to UTC half hours ([#225](https://github.com/brunoccst/iptv-player/issues/225)). There is no catch-up yet ([#226](https://github.com/brunoccst/iptv-player/issues/226)): past programmes play the live channel.
 - Web/desktop: a 3-hour window, Earlier / Now / Later move 1 hour, a sticky channel column and time header, a red "now" line. The page is as tall as the window; the categories and the guide scroll on their own. Narrow windows (720 px or less) keep a scrolling page with chips.
-- TV: a 2-hour window with fixed-height rows, so focus search moves naturally; the focused programme is described above the grid; Select plays the channel. The page does not scroll: the category list and the channels scroll on their own. Down at the last channel stays in the guide (`trapFocusDown`); Up from Earlier / Now / Later goes to "Live TV" in the nav (`nextFocusUp`). Left from a channel goes to the category list (the one exception to D-069).
+- TV: a 2-hour window with fixed-height rows, so focus search moves naturally; the focused programme is described above the grid; Select plays the channel. The page does not scroll: the category list and the channels scroll on their own. Down at the last channel stays in the guide (`trapFocusDown`); Up from Earlier / Now / Later goes to "Live TV" in the nav (`nextFocusUp`). Left from a channel goes to the category list (the one exception to D-069). Right on a row's last programme moves the window an hour later; while the window is ahead of now the channel cell is not focusable and the row keeps Left, so Left on the first programme moves an hour earlier (issue #240). The key arrives before the focus moves, so the focused cell's place in its row decides.
 - TV categories: ↑/↓ move one category and keep it in the middle; Channel +/− move a page.
 - The chosen category lives in `navStore.categoryId`, so it survives the player.
 - Guide rows are memoized and get only their own selection, so loading more channels does not re-render every row.
@@ -454,7 +455,7 @@ A round button in details saves a movie or series; saved titles show as a Home r
 **Password-protected backup and restore** — 2026-09-25
 
 - One `.iptvbackup` file holds the saved sign-in, the PIN, per profile the profiles, progress and My List, and the device settings each app lists in `BackupStorages.settingsKeys`. The library, downloads and the log stay out.
-- Encrypted with a password of 8+ characters: PBKDF2-SHA256 (100,000 rounds, random salt), then XChaCha20-Poly1305 (`@noble/hashes`, `@noble/ciphers`: plain JavaScript for browsers and Hermes). A wrong password or a changed file writes nothing. Files from a newer app version are refused.
+- Encrypted with a password of 8+ characters: PBKDF2-SHA256 (100,000 rounds, random salt; on TV and phone `crypto.getRandomValues` comes from Android's SecureRandom, issue #233), then XChaCha20-Poly1305 (`@noble/hashes`, `@noble/ciphers`: plain JavaScript for browsers and Hermes). A wrong password or a changed file writes nothing. Files from a newer app version are refused.
 - Restore signs in without restarting (`AppContext.reload()`). TV and phone use the system pickers (`expo-file-system`); a TV without a file manager cannot ([#233](https://github.com/brunoccst/iptv-player/issues/233)).
 
 ## D-057
@@ -481,7 +482,8 @@ Limits: progress watched elsewhere is not saved ([#234](https://github.com/bruno
 **Bundled FFmpeg audio decoders** — 2026-09-26
 
 - Jellyfin's prebuilt Media3 extension `org.jellyfin.media3:media3-ffmpeg-decoder` adds software decoders for Dolby Digital (Plus), DTS, TrueHD and more. No native build here.
-- The device's decoders come first (so Dolby can reach a soundbar); account menu → Library & devices → Playback can put FFmpeg first for devices whose decoders claim a format and then fail ([#235](https://github.com/brunoccst/iptv-player/issues/235)). The choice is per device and in backups, not in pairing.
+- The device's decoders come first (so Dolby can reach a soundbar); account menu → Library & devices → Playback can put FFmpeg first for devices whose decoders claim a format and then fail. The choice is per device and in backups, not in pairing.
+- When the device's audio decoder fails on a title, the player restarts it from the same point with FFmpeg first and saves that as the device's choice, since such a decoder fails again on the next title (issue #235). The setting can put the device's decoders back.
 - `modules/tv-media/android/build.gradle` adds it unless `iptvFfmpegAudio=false` or `IPTV_FFMPEG_AUDIO=0`; `tv-apk.yml` has an `ffmpeg_audio` input. The log's start line says whether it is bundled.
 
 ## D-060
@@ -805,7 +807,7 @@ Hermes has no JIT and a Chromecast is about 9× slower than a PC, so code that r
 **Search** — 2026-10-03 (issue #119; merges D-108's search filter)
 
 - Search finds movies, series, live channels and programmes of the provider's full guide that have not ended (next 24 hours), with the channel that shows them; on now first, then by start, at most 30. Hidden categories are still searched (D-110); Kids profiles see only their channels' programmes.
-- The full guide (`xmltv.php`, hundreds of MB) is streamed and only the next 24 hours kept (`xmltv.ts`; on TV and phone native `XmltvFilter` drops the rest first), saved in the database (kind "guide") after the channel list, daily and when older than 12 hours. A provider without one shows no programmes.
+- The full guide (`xmltv.php`, hundreds of MB) is streamed and only the next 24 hours kept (`xmltv.ts`; on TV and phone native `XmltvFilter` drops the rest first), saved in the database (kind "guide") after the channel list, daily and when older than 12 hours. A provider without one shows no programmes. A programme without `stop` ends where its channel's next one starts (`XmltvFilter` keeps that next one too); a channel's last one without `stop` is dropped (issue #241).
 - A filter (All, Movies, Series, Live TV) and the "Results for …" title stay above the results on TV and phone.
 
 ## D-131
@@ -908,3 +910,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - A known limitation, risk, bug or piece of technical debt is an open GitHub issue labelled `known issue`, not a file. Code and docs cite it as `issue #N`.
 - `documentation/KNOWN-ISSUES.md` is gone; its open entries became issues #213–#236 (each names its old `KI-…` ID), and the closed ones stay in git history.
 - Planned work and feature ideas are GitHub issues labelled `enhancement`; `documentation/NEXT-STEPS.md` is gone (2026-10-11).
+
+## D-175
+
+**Connection limit: ask the provider before playing** — 2026-10-12 (issue #242, issue #218)
+
+- Providers refuse a stream beyond the account's `max_connections`, often as a broken video. Before a player opens a stream (not a download), it asks the provider (`user_info.active_cons`, `playback.connections`) and, when every connection is in use, says so with Play anyway (focused) and Go back (`playback/connectionLimit.ts`).
+- The question waits at most 3 s; no answer, an error or a missing count plays as before.
+- While the app streams and for 60 s after, it does not ask: the provider still counts the app's own stream, so zapping and the next episode would warn about it.
+- The desktop timeline preview (D-023) opens a second connection, so it runs only when the account allows two or more and the last check left room for both (an unknown limit keeps it on).

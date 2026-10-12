@@ -44,4 +44,24 @@ describe('XMLTV guide (issue #119)', () => {
       expect(reader.seen).toBe(4);
     }
   });
+
+  it("ends a programme without stop where its channel's next one starts (issue #241)", () => {
+    const programme = (channel: string, start: string, title: string, stop?: string) =>
+      `<programme start="${start} +0000"${stop ? ` stop="${stop} +0000"` : ''} channel="${channel}"><title>${title}</title></programme>`;
+    const xml =
+      programme('a', '20261003190000', 'Open') +
+      programme('b', '20261003193000', 'Other', '20261003200000') +
+      programme('a', '20261003203000', 'Closed', '20261003213000') +
+      programme('a', '20261003220000', 'Last open');
+    const window = { from: at('2026-10-03T19:00:00Z'), to: at('2026-10-04T00:00:00Z') };
+    const found: GuideProgramme[] = [];
+    const reader = createXmltvReader(window, (p) => found.push(p));
+    reader.feed(xml);
+    expect(found).toEqual([
+      { channel: 'b', start: at('2026-10-03T19:30:00Z'), stop: at('2026-10-03T20:00:00Z'), title: 'Other' },
+      { channel: 'a', start: at('2026-10-03T19:00:00Z'), stop: at('2026-10-03T20:30:00Z'), title: 'Open' },
+      { channel: 'a', start: at('2026-10-03T20:30:00Z'), stop: at('2026-10-03T21:30:00Z'), title: 'Closed' },
+    ]);
+    expect(parseProgramme(programme('a', '20261003190000', 'Open'))).toBeNull();
+  });
 });

@@ -42,25 +42,39 @@ const attributeValue = (tag: string, name: string) => {
   return match ? decode(match[2] ?? match[3] ?? '') : null;
 };
 
-/** One `<programme …>…</programme>` element, or null when it lacks a channel, a time or a title. */
-export function parseProgramme(element: string): GuideProgramme | null {
+/** A programme as written, `stop` null when the guide leaves it out (issue #241). */
+type ReadProgramme = Omit<GuideProgramme, 'stop'> & { stop: number | null };
+
+function readProgramme(element: string): ReadProgramme | null {
   const open = element.slice(0, element.indexOf('>') + 1);
   const channel = attributeValue(open, 'channel');
   const start = parseXmltvTime(attributeValue(open, 'start') ?? '');
   const stop = parseXmltvTime(attributeValue(open, 'stop') ?? '');
   const title = /<title\b[^>]*>([\s\S]*?)<\/title>/.exec(element)?.[1];
-  if (!channel || start === null || stop === null || stop <= start || !title) return null;
+  if (!channel || start === null || (stop !== null && stop <= start) || !title) return null;
   const text = decode(title);
   return text ? { channel, start, stop, title: text } : null;
 }
 
+/** One `<programme …>…</programme>` element, or null when it lacks a channel, a time or a title. */
+export function parseProgramme(element: string): GuideProgramme | null {
+  const programme = readProgramme(element);
+  return programme?.stop != null ? { ...programme, stop: programme.stop } : null;
+}
+
 /**
  * Reads XMLTV text in pieces of any size: each complete programme that overlaps [`from`, `to`) is handed to
- * `onProgramme`. Text after the last complete programme waits for the next piece.
+ * `onProgramme`. Text after the last complete programme waits for the next piece. A programme without `stop` ends
+ * where its channel's next programme starts (issue #241); a channel's last one without `stop` is dropped.
  */
 export function createXmltvReader(window: { from: number; to: number }, onProgramme: (programme: GuideProgramme) => void) {
   let rest = '';
   let seen = 0;
+  /** Per channel, the programme without `stop` still waiting for the next one's start. */
+  const open = new Map<string, ReadProgramme>();
+  const keep = (programme: GuideProgramme) => {
+    if (programme.stop > window.from && programme.start < window.to) onProgramme(programme);
+  };
   return {
     /** Programmes found so far, in the window or not. */
     get seen() {
@@ -83,8 +97,15 @@ export function createXmltvReader(window: { from: number; to: number }, onProgra
         }
         at = end + '</programme>'.length;
         seen++;
-        const programme = parseProgramme(buffer.slice(begin, at));
-        if (programme && programme.stop > window.from && programme.start < window.to) onProgramme(programme);
+        const programme = readProgramme(buffer.slice(begin, at));
+        if (!programme) continue;
+        const earlier = open.get(programme.channel);
+        if (earlier) {
+          open.delete(programme.channel);
+          if (programme.start > earlier.start) keep({ ...earlier, stop: programme.start });
+        }
+        if (programme.stop === null) open.set(programme.channel, programme);
+        else keep({ ...programme, stop: programme.stop });
       }
       rest = buffer.slice(at);
     },
