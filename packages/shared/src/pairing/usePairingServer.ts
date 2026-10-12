@@ -23,7 +23,7 @@ export interface PairingServer {
 }
 
 /**
- * The side of device pairing that shows the code (D-060), for every app (D-079, D-177): while mounted, the server runs
+ * The side of device pairing that shows the code (D-060), for every app (D-079, D-178): while mounted, the server runs
  * and `qr` holds the code to show. A device that scans it signs this device in, merges its data or gets this device's
  * sign-in, then the app state reloads. Refused attempts (another account) keep the code valid. Without a server (a browser) or a home network:
  * 'offline'.

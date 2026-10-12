@@ -115,7 +115,7 @@ export function AccountMenu() {
           testID: 'menu-refresh',
           onPress: then(() => void stores.library.getState().sync()),
         },
-        // Sign-in and sync between devices (D-060, D-177): every device shows a code, devices with a camera scan one.
+        // Sign-in and sync between devices (D-060, D-178): every device shows a code, devices with a camera scan one.
         {
           icon: Platform.isTV ? 'phone' : 'tv',
           label: t('Sync with another device'),

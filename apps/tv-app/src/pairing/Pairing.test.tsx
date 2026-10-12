@@ -135,7 +135,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(await screen.findByText(/not a code from this app/)).toBeTruthy();
   });
 
-  it('phone account menu shows its own code: another phone or tablet that scans it syncs, without a remote-play key (D-177)', async () => {
+  it('phone account menu shows its own code: another phone or tablet that scans it syncs, without a remote-play key (D-178)', async () => {
     setupApp();
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     await render(<App />);
@@ -155,7 +155,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(screen.queryByTestId('sync-scan')).toBeNull();
   });
 
-  it('phone sign-in page: shows its code, and Scan a code signs in with a signed-in device (D-177)', async () => {
+  it('phone sign-in page: shows its code, and Scan a code signs in with a signed-in device (D-178)', async () => {
     const backend = setupApp({ signedIn: false });
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     const tablet = phoneStorages();

@@ -102,7 +102,7 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   volume(): number;
   /** Sets the media volume to its nearest step, without the system's volume panel; returns the new volume, 0–1. */
   setVolume(level: number): number;
-  /** Whether the device has a camera to scan QR codes with (D-177). */
+  /** Whether the device has a camera to scan QR codes with (D-178). */
   hasCamera(): boolean;
   /** Scans a QR code with Google's code scanner; null when cancelled. */
   scanQrCode(): Promise<string | null>;

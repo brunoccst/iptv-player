@@ -208,7 +208,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     });
   });
 
-  it('a signed-out device that scans gets the sign-in, PIN, media and settings of the device showing the code (D-177)', async () => {
+  it('a signed-out device that scans gets the sign-in, PIN, media and settings of the device showing the code (D-178)', async () => {
     const shower = phone();
     await shower.data.setItem(PROFILE_PREFS_KEY, JSON.stringify({ 'phone-p1': { contentLanguages: ['en'] }, 'other-account-p': {} }));
     await shower.secure.setItem(SUBTITLE_SETTINGS_KEY, '{"apiKey":"k"}');

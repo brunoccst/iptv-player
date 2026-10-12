@@ -20,10 +20,10 @@ import type { ProfilePrefs } from '../stores/profilePrefsStore';
 
 /**
  * Device pairing (D-060). Every app shows a QR code with its address on the home network and a one-time key; apps on
- * devices with a camera can also scan one (D-177). The scanning device sends its sign-in and media data (profiles,
+ * devices with a camera can also scan one (D-178). The scanning device sends its sign-in and media data (profiles,
  * progress, My List), encrypted with that key. The device showing the code signs in with it (when signed out) or merges
  * it (same account), and answers with the merged media data, so both devices end up with the same lists. A scanning
- * device that is signed out gets the other device's sign-in instead ('share', D-177). The profiles' preferences and
+ * device that is signed out gets the other device's sign-in instead ('share', D-178). The profiles' preferences and
  * the automatic-subtitles settings go along too (D-060, `settings.ts`). Device settings (the audio decoder choice) are
  * never sent.
  */
@@ -50,7 +50,7 @@ export function parsePairingQr(text: string): PairingOffer | null {
   return { host: match[1]!, port: Number(match[2]), key };
 }
 
-/** 'login': the device showing the code was signed in; 'share': the scanning device was (D-177). */
+/** 'login': the device showing the code was signed in; 'share': the scanning device was (D-178). */
 export type PairingMode = 'login' | 'sync' | 'share';
 export type PairingError = 'other-account' | 'not-signed-in' | 'bad-request';
 
@@ -66,7 +66,7 @@ type PairingReply =
       data: Record<string, string>;
       settings?: PairedSettings;
       remote?: RemoteOffer;
-      /** 'share' (D-177): the sign-in for the scanning device, and the account name to show there. */
+      /** 'share' (D-178): the sign-in for the scanning device, and the account name to show there. */
       secure?: Record<string, string>;
       accountName?: string;
     }
@@ -198,7 +198,7 @@ async function readLocalMedia(storage: BackupStorages['data'], accountId: string
 /**
  * Side showing the code: handles one request body sealed with `key`. Signed out → signs in with the scanning device's
  * account; signed in to the same account → merges; scanning device signed out → hands it this device's sign-in
- * ('share', D-177). Writes the storage; the app must then call `AppContext.reload()`. `status` 403 means the body was
+ * ('share', D-178). Writes the storage; the app must then call `AppContext.reload()`. `status` 403 means the body was
  * not sealed with this key (keep waiting for the real device).
  */
 export async function acceptPairing(
@@ -278,7 +278,7 @@ export async function acceptPairing(
 }
 
 /**
- * 'share' (D-177): this device's sign-in, media data and settings for a signed-out scanning device. Who is watching
+ * 'share' (D-178): this device's sign-in, media data and settings for a signed-out scanning device. Who is watching
  * there is its own choice, so the profile picker opens.
  */
 async function shareSignIn(storages: BackupStorages, session: Session): Promise<Extract<PairingReply, { ok: true }>> {
@@ -306,7 +306,7 @@ async function shareSignIn(storages: BackupStorages, session: Session): Promise<
 
 /**
  * Scanning side: sends this device's sign-in and media data to the device in the QR code, then saves the merged media
- * data it answers with. Signed out, it sends nothing and saves the other device's sign-in ('share', D-177). The app
+ * data it answers with. Signed out, it sends nothing and saves the other device's sign-in ('share', D-178). The app
  * must then call `AppContext.reload()`. Throws `PairingFailure`.
  */
 export async function sendPairing(
@@ -315,7 +315,7 @@ export async function sendPairing(
   options: { fetch?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<Extract<PairingResult, { ok: true }>> {
   // Sign-in and media keys; device settings (settingsKeys, e.g. the audio decoder) stay on each device. Signed out:
-  // nothing, and the other device shares its sign-in (D-177).
+  // nothing, and the other device shares its sign-in (D-178).
   const contents: UserDataContents = await collectUserData({ secure: storages.secure, data: storages.data }).catch(() => ({
     secure: {},
     data: {},
@@ -369,7 +369,7 @@ export async function sendPairing(
   return { ok: true, mode: reply.mode, accountName: session.account?.username ?? t('your account'), remote: reply.remote };
 }
 
-/** 'share' (D-177): signs this device in with what the other device sent. Only sign-in keys go to the secure storage. */
+/** 'share' (D-178): signs this device in with what the other device sent. Only sign-in keys go to the secure storage. */
 async function saveSharedSignIn(
   storages: BackupStorages,
   reply: Extract<PairingReply, { ok: true }>,

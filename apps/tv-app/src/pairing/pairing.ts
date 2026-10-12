@@ -30,7 +30,7 @@ const server: PairingServer = {
 };
 
 /**
- * Side showing the code (D-060, D-177), the shared hook (D-079): while mounted, the pairing server runs and `qr` holds
+ * Side showing the code (D-060, D-178), the shared hook (D-079): while mounted, the pairing server runs and `qr` holds
  * the code to show. TV: the other device also gets a key for remote play (D-061), kept here once pairing succeeded.
  */
 export const usePairingServer = () =>
@@ -48,11 +48,11 @@ export const usePairingServer = () =>
       : { storages, reload: () => appContext.reload() },
   );
 
-/** Devices with a camera can scan another device's code (D-177). */
+/** Devices with a camera can scan another device's code (D-178). */
 export const canScanQr = () => TvMedia.hasCamera();
 
 /**
- * Scanning side (D-060, D-177): scans another device's QR code and pairs. Returns a message for the user, or null when
+ * Scanning side (D-060, D-178): scans another device's QR code and pairs. Returns a message for the user, or null when
  * the scan was cancelled. Throws with a user-facing message.
  */
 export async function connectToDevice(): Promise<string | null> {

@@ -82,7 +82,8 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-174](#d-174) | Known issues and planned work are GitHub issues |
 | [D-175](#d-175) | Connection limit: ask the provider before playing |
 | [D-176](#d-176) | Better copies of movies on My List |
-| [D-177](#d-177) | Every device shows a sync code; camera devices scan |
+| [D-177](#d-177) | No navigation bar on phones and tablets |
+| [D-178](#d-178) | Every device shows a sync code; camera devices scan |
 
 ## Merged and retired IDs
 
@@ -377,7 +378,7 @@ No intro detection: providers send no markers and detection needs server-side pr
 
 **Phone player gestures** — 2026-09-24, updated 2026-10-07 (merges D-097, D-155)
 
-- The player locks to landscape and hides the navigation bar; both come back on close. The player keeps the screen on while video plays, on phones and TV.
+- The player locks to landscape (back to free rotation on close); the navigation bar stays hidden everywhere (D-177). The player keeps the screen on while video plays, on phones and TV.
 - A tap shows or hides the controls; a second tap within 300 ms on the left or right third skips (D-128). The skip circle (`TapFlash`) takes no touches and is removed once faded.
 - The timeline can be dragged and seeks once on release.
 - A vertical slide on the left third sets the brightness, on the right third the media volume (`player/TouchLevels.tsx`); the middle is free for the live guide's swipe up (D-058). 60 % of the screen height is 0 to 100 %; slides from the top or bottom 8 % are left to the system. Brightness is the window's own (at least 1 %; the phone's comes back on close; kept for the next player of the run); volume is the system media volume without the system panel.
@@ -502,7 +503,7 @@ Limits: progress watched elsewhere is not saved ([#234](https://github.com/bruno
 - Transport, no server: while the code shows, the TV (`PairingServer.kt`) or the desktop main process listens on the home network on a random port. The code holds its address, port and a one-time 32-byte key; both directions are sealed with XChaCha20-Poly1305, so plain HTTP reveals nothing. The server stops after one pairing or when the code closes. The desktop picks the first private IPv4 address, skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs).
 - Code: `packages/shared/src/pairing/` (protocol, merge, `usePairingServer`), `apps/tv-app/src/pairing/`, `apps/web-player/src/features/pairing/`.
 
-Every device shows the code and a signed-out scanner gets the other device's sign-in since D-177. Limits: same network; the phone needs Play services. No sync after pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
+Every device shows the code and a signed-out scanner gets the other device's sign-in since D-178. Limits: same network; the phone needs Play services. No sync after pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
 
 ## D-061
 
@@ -934,6 +935,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Movies only: series' versions differ per episode (issue #251).
 
 ## D-177
+
+**No navigation bar on phones and tablets** — 2026-10-12 (requested by owner)
+
+- The phone app hides the Android navigation bar, and with it the taskbar of tablets (Samsung and other large screens), on every page, not just in the player: on a tablet the taskbar covered the bottom row of covers. A swipe from the bottom edge shows it for a moment (`BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`); it hides again on its own.
+- `expo-navigation-bar`: the config plugin's `hidden` hides it from the first frame, `<NavigationBar hidden />` in `App.tsx` keeps it hidden and sets the swipe behaviour.
+- The status bar (time, battery) stays on outside the player, with the app starting below it, so rounded corners and the camera cut-out do not cover the header.
+
+## D-178
 
 **Every device shows a sync code; camera devices scan** — 2026-10-12 (requested by owner)
 

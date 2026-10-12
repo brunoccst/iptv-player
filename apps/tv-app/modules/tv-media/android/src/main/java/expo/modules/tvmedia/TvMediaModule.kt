@@ -152,7 +152,7 @@ class TvMediaModule : Module() {
         ?: android.os.Build.MODEL
     }
 
-    /** Whether the device has a camera, so it can scan another device's QR code (DECISIONS.md#d-177). */
+    /** Whether the device has a camera, so it can scan another device's QR code (DECISIONS.md#d-178). */
     Function("hasCamera") {
       context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     }

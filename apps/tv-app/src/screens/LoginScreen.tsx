@@ -29,7 +29,7 @@ export function LoginScreen() {
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
   const short = Dimensions.get('screen').height < 600;
   const sizes = useSizes();
-  // Every device also offers sign-in from another device (D-060, D-177): beside the form when there is room
+  // Every device also offers sign-in from another device (D-060, D-178): beside the form when there is room
   // (TVs, wide tablets), below it otherwise.
   const side = width >= 760;
   // Enter on the keyboard moves to the next field; on the password it signs in.
@@ -140,7 +140,7 @@ export function LoginScreen() {
 const PHONE_CARD_WIDTH = 230;
 
 /**
- * Sign in from another device (D-060, D-177): a signed-in phone or tablet scans this code; devices with a camera can
+ * Sign in from another device (D-060, D-178): a signed-in phone or tablet scans this code; devices with a camera can
  * also scan the code of a signed-in device.
  */
 function DeviceSignIn({ width }: { width: number }) {

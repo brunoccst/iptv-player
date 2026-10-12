@@ -15,7 +15,7 @@ type SyncView = 'code' | 'scan';
 export const openPairingDialog = (view: SyncView = 'code') => pairingDialog.setState({ open: true, view });
 const closeDialog = () => pairingDialog.setState({ open: false });
 
-/** Rendered once at the app root (D-060, D-177). */
+/** Rendered once at the app root (D-060, D-178). */
 export function PairingDialogHost() {
   const open = useAppStore(pairingDialog, (s) => s.open);
   const view = useAppStore(pairingDialog, (s) => s.view);
@@ -55,7 +55,7 @@ export function pairingDoneText(state: Extract<PairingServerState, { phase: 'don
 }
 
 /**
- * Account menu → Sync with another device (D-060, D-177): this device's code for another device to scan, and on
+ * Account menu → Sync with another device (D-060, D-178): this device's code for another device to scan, and on
  * devices with a camera, Scan a code to read another device's code instead.
  */
 export function SyncDialog({ initialView, onClose }: { initialView: SyncView; onClose(): void }) {

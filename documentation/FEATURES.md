@@ -294,7 +294,7 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 
 ### Sign in and sync by QR code
 
-Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-177). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-177). Both signed in to different accounts are refused.
+Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-178). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-178). Both signed in to different accounts are refused.
 
 Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the scanning device's wins; watched series and recent channels are joined. A parental PIN already set on the device showing the code stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
@@ -335,6 +335,12 @@ On a phone paired with a TV, Log → **Get TV log** fetches the TV's log over th
 The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. While an accepted update downloads, the TV and phone show its percentage in the update dialog, and the desktop app at the top right of the window and on its taskbar icon, until it asks to restart (D-073). Account menu → App → Check for updates. Each release says what is new (D-143).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
+### Full screen (phone and tablet)
+
+The app hides Android's navigation bar, and the taskbar on tablets, on every page (D-177). Swipe up from the bottom edge to show it for a moment. The status bar stays outside the player.
+
+**Apps:** TV ➖ (no navigation bar) · Phone ✅ · Desktop ➖ (a window; the player has its own full screen)
 
 ### Close the app (TV and phone)
 

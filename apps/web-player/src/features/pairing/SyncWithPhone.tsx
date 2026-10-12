@@ -54,7 +54,7 @@ export function SyncWithPhoneHost() {
 }
 
 /**
- * Desktop app: account menu → Sync with another device (D-060, D-177): profiles, My List and progress are merged with
+ * Desktop app: account menu → Sync with another device (D-060, D-178): profiles, My List and progress are merged with
  * those of the phone or tablet that scans the code; a signed-out one gets this computer's sign-in.
  * The login page shows the same code beside the form, to sign in.
  */
