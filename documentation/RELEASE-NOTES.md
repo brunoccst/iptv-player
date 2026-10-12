@@ -94,6 +94,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Live TV on more providers** (2026-10-12, D-023, issue #220): channels from providers that only send live TV as MPEG-TS, not HLS, now play in the desktop app. Before, they did not play at all.
 - **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of an error from the provider. Switching channels or going on to the next episode does not ask again.
 - **Timeline previews no longer cost you the stream** (2026-10-12, D-175, issue #218): the preview frames over the timeline need a second stream, so they only show when your account allows more than one at a time and one is free. On one-stream accounts the provider no longer stops the video when you hover the timeline.
 - **More programmes in search** (2026-10-12, D-130, issue #241): programmes from TV guides that leave out when a show ends now appear in search, ending where the channel's next programme starts.

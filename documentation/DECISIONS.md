@@ -235,10 +235,10 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 
 **Web playback engine** — 2026-09-23
 
-- `PlaybackEngine` tries sources in order and stops at the first that loads (`webPlaybackAttempts`): a completed download, then for VOD the panel's HLS output (`.m3u8`, which plays MKV sources in any browser) and then the original file; live is HLS only.
+- `PlaybackEngine` tries sources in order and stops at the first that loads (`webPlaybackAttempts`): a completed download, then for VOD the panel's HLS output (`.m3u8`, which plays MKV sources in any browser) and then the original file; live tries HLS, then the panel's MPEG-TS output through `mpegts.js` for panels without HLS output (issue #220). An account whose allowed formats exclude HLS goes straight to MPEG-TS. A dropped MPEG-TS connection is reopened three times before the error.
 - hls.js fatal errors after start: network → `startLoad()`, media → `recoverMediaError()` (twice), then an error message (D-074).
 - Timeline previews: providers ship no trickplay sprites, so `frameGrabber.ts` opens a hidden, muted second video at the lowest rendition on the first timeline hover and draws frames into a canvas. It costs one extra stream connection while previewing, so it only runs where the account has one to spare (D-175).
-- The player and hls.js are a lazily loaded chunk.
+- The player and hls.js are a lazily loaded chunk; `mpegts.js` loads only when a stream needs it.
 
 ## D-024
 
