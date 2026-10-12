@@ -7,6 +7,7 @@ import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
 import { MyListPage } from '../browse/MyListPage';
 import { HomePage } from '../home/HomePage';
+import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
@@ -34,6 +35,8 @@ export function Shell() {
       </main>
       <LibraryNotice />
       {details ? <DetailsModal target={details} /> : null}
+      {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
+      {view === 'home' && !details && !playing ? <QualityUpgradeDialog /> : null}
       {playing ? (
         <Suspense
           fallback={

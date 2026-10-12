@@ -242,6 +242,12 @@ A title on My List carries a bookmark at the top right of its cover. The details
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Better quality on My List
+
+When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR, the tag on its cover) and a better copy arrives, Home shows a popup: "Better quality on My List" with the movie's cover and a line such as "Now 1080p, was TS". **Play** starts the best of the better copies, **More Info** opens its details, **OK** or Back closes it. Several movies that got better are listed in one popup. Each upgrade is shown once to the profile whose list has the movie; a movie that turns into a cinema copy again is announced again when it gets better. Any copy without a cinema tag counts as better, as for the cover's tag. The check runs when the app opens and after each library update (the app updates the library in the background once a day). The popup never shows during playback or over details (DECISIONS.md#d-176). Series are not announced yet (issue #251).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ## Downloads
 
 ### Offline downloads

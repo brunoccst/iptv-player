@@ -4,6 +4,7 @@ import type { ApiError } from '../api/errors';
 import type { LibrarySection, MasterCard, MasterDetails, WatchlistDto } from '../api/types';
 import { lowSourceOf } from '../direct/normalizer/pipeline';
 import { emptyResource, toApiError, type Resource } from './resource';
+import { t } from '../i18n/i18n';
 
 /** "My List" of the active profile (D-055). Adding and removing update the list before the server answers. */
 export interface WatchlistState {
@@ -13,6 +14,10 @@ export interface WatchlistState {
   load(profileId: string, options?: { force?: boolean }): Promise<void>;
   /** Adds the title when missing, removes it when present. */
   toggle(section: LibrarySection, card: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>): Promise<void>;
+  /** Reads every entry's quality again (after a library update), which may reveal upgrades (DECISIONS.md#d-176). */
+  recheckQuality(): Promise<void>;
+  /** The upgrades were shown: they are not shown again unless the title turns into a cinema copy once more. */
+  dismissUpgrades(entries: WatchlistDto[]): Promise<void>;
   reset(): void;
 }
 
@@ -43,14 +48,48 @@ const qualityOf = (details: MasterDetails): NonNullable<WatchlistDto['quality']>
 
 const entryKey = (item: Pick<WatchlistDto, 'section' | 'masterId'>) => `${item.section}:${item.masterId}`;
 
+/**
+ * Movies on My List that were seen as cinema copies only (CAM, TS, TC, SCR) and now have a better copy, oldest
+ * first (DECISIONS.md#d-176). Any copy without a cinema tag counts as better, as for the cover's badge.
+ */
+/** The popup's line for an upgraded movie: "Now 1080p, was TS". */
+export const upgradeLine = (item: WatchlistDto): string =>
+  item.quality?.bestQuality
+    ? t('Now {quality}, was {source}', { quality: item.quality.bestQuality, source: item.lowSourceSeen ?? '' })
+    : t('Better copy, was {source}', { source: item.lowSourceSeen ?? '' });
+
+export const qualityUpgrades = (items: WatchlistDto[] | null): WatchlistDto[] =>
+  (items ?? []).filter((item) => item.section === 'movies' && !!item.lowSourceSeen && !!item.quality && !item.quality.lowSource).reverse();
+
 export function createWatchlistStore({ api, now = () => new Date().toISOString() }: { api: ApiClient; now?: () => string }) {
   return createStore<WatchlistState>()((set, get) => {
     let inFlight: { profileId: string; promise: Promise<void> } | null = null;
     const setData = (data: WatchlistDto[]) => set({ items: { ...get().items, data } });
 
-    /** Reads the quality of the entries that lack it from the library, all at once, and shows it in one update. */
-    const readQuality = async (profileId: string) => {
-      const missing = (get().items.data ?? []).filter((item) => !item.quality);
+    /** Saves which cinema copy each movie is now, so a later better copy can be announced (DECISIONS.md#d-176). */
+    const noteLowSources = async (profileId: string) => {
+      const marks = (get().items.data ?? []).filter(
+        (item) => item.section === 'movies' && item.quality?.lowSource && item.quality.lowSource !== item.lowSourceSeen,
+      );
+      if (marks.length === 0) return;
+      const seen = new Map(marks.map((item) => [entryKey(item), item.quality!.lowSource!]));
+      setData(
+        (get().items.data ?? []).map((item) => (seen.has(entryKey(item)) ? { ...item, lowSourceSeen: seen.get(entryKey(item)) } : item)),
+      );
+      await api.watchlist
+        .noteLowSources(
+          profileId,
+          marks.map((item) => ({ section: item.section, masterId: item.masterId, lowSource: seen.get(entryKey(item))! })),
+        )
+        .catch(() => undefined);
+    };
+
+    /**
+     * Reads the quality of the entries that lack it (or of all, after a library update) from the library, all at once,
+     * and shows it in one update.
+     */
+    const readQuality = async (profileId: string, all = false) => {
+      const missing = (get().items.data ?? []).filter((item) => all || !item.quality);
       if (missing.length === 0) return;
       const found = new Map<string, WatchlistDto['quality']>();
       await Promise.all(
@@ -65,9 +104,10 @@ export function createWatchlistStore({ api, now = () => new Date().toISOString()
       if (found.size === 0 || get().profileId !== profileId) return;
       setData(
         (get().items.data ?? []).map((item) =>
-          item.quality || !found.has(entryKey(item)) ? item : { ...item, quality: found.get(entryKey(item)) },
+          (item.quality && !all) || !found.has(entryKey(item)) ? item : { ...item, quality: found.get(entryKey(item)) },
         ),
       );
+      await noteLowSources(profileId);
     };
 
     return {
@@ -120,6 +160,30 @@ export function createWatchlistStore({ api, now = () => new Date().toISOString()
           if (get().profileId === profileId) setData(before);
           set({ saveError: toApiError(error) });
         }
+      },
+
+      async recheckQuality() {
+        const { profileId, items } = get();
+        if (profileId && items.status === 'success') await readQuality(profileId, true);
+      },
+
+      async dismissUpgrades(entries) {
+        const { profileId } = get();
+        if (!profileId || entries.length === 0) return;
+        const done = new Set(entries.map(entryKey));
+        setData(
+          (get().items.data ?? []).map((item) => {
+            if (!done.has(entryKey(item))) return item;
+            const { lowSourceSeen: _, ...rest } = item;
+            return rest;
+          }),
+        );
+        await api.watchlist
+          .noteLowSources(
+            profileId,
+            entries.map((item) => ({ section: item.section, masterId: item.masterId, lowSource: null })),
+          )
+          .catch(() => undefined);
       },
 
       reset() {

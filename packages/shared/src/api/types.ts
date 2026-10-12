@@ -250,6 +250,18 @@ export interface WatchlistDto {
   quality?: Pick<MasterCard, 'bestQuality' | 'lowSource' | 'rating' | 'variantCount'>;
   /** Saved: the provider items (stream ids) of the title, to find it again when a rename changes its id (issue #216). */
   streamIds?: string[];
+  /**
+   * Saved: the cinema copy (CAM, TS…) a movie was last seen as, until its upgrade to a better copy has been shown
+   * (DECISIONS.md#d-176).
+   */
+  lowSourceSeen?: string;
+}
+
+/** A My List entry's cinema copy to remember (DECISIONS.md#d-176); null forgets it. */
+export interface WatchlistLowSource {
+  section: LibrarySection;
+  masterId: string;
+  lowSource: string | null;
 }
 
 export interface WatchlistRequest {

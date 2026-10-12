@@ -3,7 +3,7 @@ import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend, profile } from '../testing/fakeBackend';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
-import { isOnWatchlist, watchlistCard } from './watchlistStore';
+import { isOnWatchlist, qualityUpgrades, upgradeLine, watchlistCard } from './watchlistStore';
 
 const heat = { id: 'm1', title: 'Heat', year: 1995, posterUrl: null };
 
@@ -109,5 +109,63 @@ describe('watchlist store', () => {
     await settle();
 
     expect(watchlistCard(watchlist.getState().items.data![0]!).bestQuality).toBe('4K');
+  });
+
+  describe('better copies (D-176)', () => {
+    const lowSourceCalls = (backend: Awaited<ReturnType<typeof setup>>['backend']) =>
+      backend.calls
+        .filter((call) => call.method === 'POST' && call.url.pathname.endsWith('/watchlist/low-sources'))
+        .map((call) => call.body);
+
+    it('remembers a cinema copy and announces the movie once a better copy arrives', async () => {
+      const { backend, watchlist, load } = await setup([entry('movies', 'm1')]);
+      backend.on('POST', '/api/profiles/p1/watchlist/low-sources', { status: 204 });
+      backend.on('GET', '/api/library/movies/m1', { body: details('m1', '1080p', [variant('1080p', 'TS')]) });
+      await load();
+      await settle();
+
+      expect(lowSourceCalls(backend)).toEqual([[{ section: 'movies', masterId: 'm1', lowSource: 'TS' }]]);
+      expect(qualityUpgrades(watchlist.getState().items.data)).toEqual([]);
+
+      backend.on('GET', '/api/library/movies/m1', {
+        body: details('m1', '1080p', [variant('1080p', 'TS'), variant('1080p', 'WEB')]),
+      });
+      await watchlist.getState().recheckQuality();
+
+      const upgrades = qualityUpgrades(watchlist.getState().items.data);
+      expect(upgrades.map((item) => item.masterId)).toEqual(['m1']);
+      expect(upgradeLine(upgrades[0]!)).toBe('Now 1080p, was TS');
+
+      await watchlist.getState().dismissUpgrades(upgrades);
+      expect(qualityUpgrades(watchlist.getState().items.data)).toEqual([]);
+      expect(lowSourceCalls(backend).at(-1)).toEqual([{ section: 'movies', masterId: 'm1', lowSource: null }]);
+    });
+
+    it('announces a saved cinema copy that is better when the app opens', async () => {
+      const { backend, watchlist, load } = await setup([{ ...entry('movies', 'm1'), lowSourceSeen: 'CAM' }]);
+      backend.on('GET', '/api/library/movies/m1', { body: details('m1', '720p', [variant('720p', null)]) });
+      await load();
+      await settle();
+
+      expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['m1']);
+    });
+
+    it('never announces series, titles already good when added, or titles gone from the library', async () => {
+      const { backend, watchlist, load } = await setup([
+        { ...entry('series', 's1'), lowSourceSeen: 'TS' },
+        entry('movies', 'good'),
+        { ...entry('movies', 'gone'), lowSourceSeen: 'TS' },
+      ]);
+      backend.on('POST', '/api/profiles/p1/watchlist/low-sources', { status: 204 });
+      backend.on('GET', '/api/library/series/s1', { body: details('s1', '1080p', [variant('1080p', 'WEB')]) });
+      backend.on('GET', '/api/library/movies/good', { body: details('good', '4K', [variant('4K', 'BLURAY')]) });
+      backend.on('GET', '/api/library/movies/gone', { status: 404 });
+      await load();
+      await settle();
+      await watchlist.getState().recheckQuality();
+
+      expect(qualityUpgrades(watchlist.getState().items.data)).toEqual([]);
+      expect(lowSourceCalls(backend)).toEqual([]);
+    });
   });
 });

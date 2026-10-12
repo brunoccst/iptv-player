@@ -26,6 +26,7 @@ import type {
   SeriesSummary,
   SortOrder,
   WatchlistDto,
+  WatchlistLowSource,
   WatchlistRequest,
 } from './types';
 
@@ -99,6 +100,8 @@ export interface ApiClient {
     list(profileId: string, signal?: AbortSignal): Promise<WatchlistDto[]>;
     add(profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest): Promise<WatchlistDto>;
     remove(profileId: string, section: LibrarySection, masterId: string): Promise<void>;
+    /** Remembers or forgets the cinema copy entries were seen as (DECISIONS.md#d-176). */
+    noteLowSources(profileId: string, marks: WatchlistLowSource[]): Promise<void>;
   };
   catalog: {
     categories(section: CatalogSection, signal?: AbortSignal, options?: CatalogOptions): Promise<MediaCategory[]>;

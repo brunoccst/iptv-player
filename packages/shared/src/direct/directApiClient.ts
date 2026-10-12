@@ -23,6 +23,7 @@ import type {
   ProgressRequest,
   SortOrder,
   WatchlistDto,
+  WatchlistLowSource,
   WatchlistRequest,
 } from '../api/types';
 import type { KeyValueStorage } from '../stores/storage';
@@ -1537,6 +1538,23 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           watchlistKey(profileId),
           items.filter((item) => !(item.section === section && item.masterId === masterId)),
         );
+        return undefined;
+      },
+      async noteLowSources(profileId: string, marks: WatchlistLowSource[]) {
+        await ownedProfile(profileId);
+        const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        const markOf = new Map(marks.map((mark) => [`${mark.section}:${mark.masterId}`, mark.lowSource]));
+        let changed = false;
+        const next = items.map((item) => {
+          const key = `${item.section}:${item.masterId}`;
+          if (!markOf.has(key)) return item;
+          const lowSource = markOf.get(key);
+          if ((item.lowSourceSeen ?? null) === lowSource) return item;
+          changed = true;
+          const { lowSourceSeen: _, ...rest } = item;
+          return lowSource ? { ...rest, lowSourceSeen: lowSource } : rest;
+        });
+        if (changed) await writeJson(options.dataStorage, watchlistKey(profileId), next);
         return undefined;
       },
     },
