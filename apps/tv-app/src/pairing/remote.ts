@@ -129,7 +129,7 @@ export function useRemoteServer(enabled: boolean) {
 export async function playOnTv(target: PlayTarget): Promise<string> {
   const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
-  if (!tv || !accountId) throw new Error(t('Connect a TV first: account menu → Connect a TV or computer.'));
+  if (!tv || !accountId) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
     const { port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
     if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
@@ -144,7 +144,7 @@ export async function playOnTv(target: PlayTarget): Promise<string> {
 /** Phone: the paired TV's diagnostics log, masked on the TV (D-039). Rejects with a message for the user. */
 export async function getTvLog(): Promise<{ tvName: string; log: string }> {
   const tv = pairedTv.getState().tv;
-  if (!tv) throw new Error(t('Connect a TV first: account menu → Connect a TV or computer.'));
+  if (!tv) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
     const { port, log } = await sendRemoteCommand(tv, { type: 'log' });
     if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });

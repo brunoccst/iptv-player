@@ -99,10 +99,12 @@ export function LoginPage() {
 function PhoneSignIn() {
   const state = usePairingServer();
   return (
-    <section className="login__phone" aria-label={t('Sign in with your phone')} data-testid="login-phone">
-      <h3>{t('Sign in with your phone')}</h3>
+    <section className="login__phone" aria-label={t('Sign in with another device')} data-testid="login-phone">
+      <h3>{t('Sign in with another device')}</h3>
       <PairingCode state={state} size={180} />
-      <p className="muted login__note">{t('In the app on your phone: account menu → Connect a TV or computer, then scan this code.')}</p>
+      <p className="muted login__note">
+        {t('With the app on a signed-in phone or tablet: account menu → Sync with another device → Scan a code.')}
+      </p>
     </section>
   );
 }

@@ -152,8 +152,13 @@ class TvMediaModule : Module() {
         ?: android.os.Build.MODEL
     }
 
+    /** Whether the device has a camera, so it can scan another device's QR code (DECISIONS.md#d-177). */
+    Function("hasCamera") {
+      context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
+
     /**
-     * Phone side: Google's code scanner (Play services) reads the TV's QR code. No camera permission, and the scanner
+     * Scanning side: Google's code scanner (Play services) reads another device's QR code. No camera permission, and the scanner
      * UI is downloaded by Play services, so the APK stays small. Resolves null when the user backs out.
      */
     AsyncFunction("scanQrCode") { promise: Promise ->

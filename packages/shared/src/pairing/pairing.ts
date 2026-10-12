@@ -19,11 +19,13 @@ import { t } from '../i18n/i18n';
 import type { ProfilePrefs } from '../stores/profilePrefsStore';
 
 /**
- * Phone-to-TV pairing (D-060). The TV shows a QR code with its address on the home network and a one-time key. The
- * phone app scans it and sends its sign-in and media data (profiles, progress, My List), encrypted with that key. The
- * TV signs in with it (when signed out) or merges it (same account), and answers with the merged media data, so both
- * devices end up with the same lists. The profiles' preferences and the automatic-subtitles settings go along too
- * (D-060, `settings.ts`). Device settings (the audio decoder choice) are never sent.
+ * Device pairing (D-060). Every app shows a QR code with its address on the home network and a one-time key; apps on
+ * devices with a camera can also scan one (D-177). The scanning device sends its sign-in and media data (profiles,
+ * progress, My List), encrypted with that key. The device showing the code signs in with it (when signed out) or merges
+ * it (same account), and answers with the merged media data, so both devices end up with the same lists. A scanning
+ * device that is signed out gets the other device's sign-in instead ('share', D-177). The profiles' preferences and
+ * the automatic-subtitles settings go along too (D-060, `settings.ts`). Device settings (the audio decoder choice) are
+ * never sent.
  */
 export const PAIRING_PATH = '/pair';
 const QR_PREFIX = 'IPTVPAIR:1:';
@@ -48,7 +50,8 @@ export function parsePairingQr(text: string): PairingOffer | null {
   return { host: match[1]!, port: Number(match[2]), key };
 }
 
-export type PairingMode = 'login' | 'sync';
+/** 'login': the device showing the code was signed in; 'share': the scanning device was (D-177). */
+export type PairingMode = 'login' | 'sync' | 'share';
 export type PairingError = 'other-account' | 'not-signed-in' | 'bad-request';
 
 /** What the phone sends. */
@@ -57,7 +60,16 @@ interface PairingRequest {
 }
 /** What the TV answers. */
 type PairingReply =
-  | { ok: true; mode: PairingMode; data: Record<string, string>; settings?: PairedSettings; remote?: RemoteOffer }
+  | {
+      ok: true;
+      mode: PairingMode;
+      data: Record<string, string>;
+      settings?: PairedSettings;
+      remote?: RemoteOffer;
+      /** 'share' (D-177): the sign-in for the scanning device, and the account name to show there. */
+      secure?: Record<string, string>;
+      accountName?: string;
+    }
   | { ok: false; error: PairingError };
 /**
  * The merged settings (D-060), apart from `data` so an older phone, which writes `data` as it is, never replaces its
@@ -76,15 +88,15 @@ export type PairingResult = { ok: true; mode: PairingMode; accountName: string; 
 export function pairingMessage(error: PairingError | 'unreachable' | 'wrong-code'): string {
   switch (error) {
     case 'other-account':
-      return t('The TV or computer is signed in to a different account. Sign out there first, then scan again.');
+      return t('The other device is signed in to a different account. Sign out on one of them first, then scan again.');
     case 'not-signed-in':
-      return t('Sign in on the phone first.');
+      return t('Sign in on one of the two devices first.');
     case 'bad-request':
     case 'wrong-code':
-      return t('This code is no longer valid. Open the QR code on the TV or computer again and scan the new one.');
+      return t('This code is no longer valid. Open the QR code on the other device again and scan the new one.');
     case 'unreachable':
       return t(
-        'Could not reach the TV or computer. Both must be on the same home network (Wi-Fi or cable). On a computer, allow the app on private networks if the firewall asks.',
+        'Could not reach the other device. Both must be on the same home network (Wi-Fi or cable). On a computer, allow the app on private networks if the firewall asks.',
       );
   }
 }
@@ -184,9 +196,10 @@ async function readLocalMedia(storage: BackupStorages['data'], accountId: string
 }
 
 /**
- * TV side: handles one request body sealed with `key`. Signed out → signs in with the phone's account; signed in to
- * the same account → merges. Writes the storage; the app must then call `AppContext.reload()`. `status` 403 means the
- * body was not sealed with this key (keep waiting for the real phone).
+ * Side showing the code: handles one request body sealed with `key`. Signed out → signs in with the scanning device's
+ * account; signed in to the same account → merges; scanning device signed out → hands it this device's sign-in
+ * ('share', D-177). Writes the storage; the app must then call `AppContext.reload()`. `status` 403 means the body was
+ * not sealed with this key (keep waiting for the real device).
  */
 export async function acceptPairing(
   storages: BackupStorages,
@@ -203,10 +216,15 @@ export async function acceptPairing(
   const { secure, data = {} } = request.contents;
   const phoneSession = parseJson<Session>(secure[SESSION_STORAGE_KEY] ?? null);
   const accountId = phoneSession?.account?.id;
-  if (!phoneSession?.token || !accountId) return fail('not-signed-in');
-
   const tvSession = parseJson<Session>(await storages.secure.getItem(SESSION_STORAGE_KEY));
   const signedIn = Boolean(tvSession?.token && tvSession.account?.id);
+  if (!phoneSession?.token || !accountId) {
+    if (!signedIn) return fail('not-signed-in');
+    const shared = await shareSignIn(storages, tvSession!);
+    const result: PairingResult = { ok: true, mode: 'share', accountName: shared.accountName!, remote: options.remote };
+    return reply({ ...shared, remote: options.remote }, result);
+  }
+
   if (signedIn && tvSession!.account!.id !== accountId) return fail('other-account');
   const mode: PairingMode = signedIn ? 'sync' : 'login';
 
@@ -260,32 +278,62 @@ export async function acceptPairing(
 }
 
 /**
- * Phone side: sends this device's sign-in and media data to the TV in the QR code, then saves the merged media data
- * the TV answers with. The app must then call `AppContext.reload()`. Throws `PairingFailure`.
+ * 'share' (D-177): this device's sign-in, media data and settings for a signed-out scanning device. Who is watching
+ * there is its own choice, so the profile picker opens.
+ */
+async function shareSignIn(storages: BackupStorages, session: Session): Promise<Extract<PairingReply, { ok: true }>> {
+  const accountId = session.account!.id;
+  const dataStorage = storages.data ?? storages.secure;
+  const media = mediaFrom(await readLocalMedia(dataStorage, accountId), accountId);
+  const profileIds = (media.profiles.length ? media.profiles : (session.profiles ?? [])).map(({ id }) => id);
+  const secure: Record<string, string> = { [SESSION_STORAGE_KEY]: JSON.stringify({ ...session, activeProfileId: null }) };
+  for (const key of [CREDENTIALS_KEY, pinStorageKey(accountId)]) {
+    const value = await storages.secure.getItem(key);
+    if (value !== null) secure[key] = value;
+  }
+  return {
+    ok: true,
+    mode: 'share',
+    data: mediaEntries(media, accountId),
+    settings: {
+      prefs: readPrefs(prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds)),
+      subtitles: await storages.secure.getItem(SUBTITLE_SETTINGS_KEY),
+    },
+    secure,
+    accountName: session.account?.username ?? t('your account'),
+  };
+}
+
+/**
+ * Scanning side: sends this device's sign-in and media data to the device in the QR code, then saves the merged media
+ * data it answers with. Signed out, it sends nothing and saves the other device's sign-in ('share', D-177). The app
+ * must then call `AppContext.reload()`. Throws `PairingFailure`.
  */
 export async function sendPairing(
   storages: BackupStorages,
   offer: PairingOffer,
   options: { fetch?: typeof fetch; timeoutMs?: number } = {},
 ): Promise<Extract<PairingResult, { ok: true }>> {
-  let contents: UserDataContents;
-  try {
-    // Sign-in and media keys; device settings (settingsKeys, e.g. the audio decoder) stay on each device.
-    contents = await collectUserData({ secure: storages.secure, data: storages.data });
-  } catch {
-    throw new PairingFailure('not-signed-in');
-  }
+  // Sign-in and media keys; device settings (settingsKeys, e.g. the audio decoder) stay on each device. Signed out:
+  // nothing, and the other device shares its sign-in (D-177).
+  const contents: UserDataContents = await collectUserData({ secure: storages.secure, data: storages.data }).catch(() => ({
+    secure: {},
+    data: {},
+  }));
   const session = parseJson<Session>(contents.secure[SESSION_STORAGE_KEY] ?? null);
   const accountId = session?.account?.id;
-  if (!session || !accountId) throw new PairingFailure('not-signed-in');
-
-  // Settings that follow the account (D-060): this account's profile preferences and the automatic subtitles.
   const dataStorage = storages.data ?? storages.secure;
-  const profileIds = (parseJson<ProfileDto[]>(contents.data[profilesKey(accountId)] ?? null) ?? session.profiles ?? []).map(({ id }) => id);
-  const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);
-  if (prefs) contents.data[PROFILE_PREFS_KEY] = prefs;
-  const subtitles = await storages.secure.getItem(SUBTITLE_SETTINGS_KEY);
-  if (subtitles !== null) contents.secure[SUBTITLE_SETTINGS_KEY] = subtitles;
+
+  if (session && accountId) {
+    // Settings that follow the account (D-060): this account's profile preferences and the automatic subtitles.
+    const profileIds = (parseJson<ProfileDto[]>(contents.data[profilesKey(accountId)] ?? null) ?? session.profiles ?? []).map(
+      ({ id }) => id,
+    );
+    const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);
+    if (prefs) contents.data[PROFILE_PREFS_KEY] = prefs;
+    const subtitles = await storages.secure.getItem(SUBTITLE_SETTINGS_KEY);
+    if (subtitles !== null) contents.secure[SUBTITLE_SETTINGS_KEY] = subtitles;
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 30_000);
@@ -305,6 +353,8 @@ export async function sendPairing(
   const reply = response.ok ? unseal<PairingReply>(offer.key, await response.text()) : null;
   if (!reply) throw new PairingFailure('wrong-code');
   if (!reply.ok) throw new PairingFailure(reply.error);
+  if (reply.mode === 'share') return saveSharedSignIn(storages, reply);
+  if (!session || !accountId) throw new PairingFailure('not-signed-in');
 
   for (const [key, value] of Object.entries(reply.data)) await dataStorage.setItem(key, value);
   if (reply.settings) {
@@ -317,6 +367,26 @@ export async function sendPairing(
     await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
   }
   return { ok: true, mode: reply.mode, accountName: session.account?.username ?? t('your account'), remote: reply.remote };
+}
+
+/** 'share' (D-177): signs this device in with what the other device sent. Only sign-in keys go to the secure storage. */
+async function saveSharedSignIn(
+  storages: BackupStorages,
+  reply: Extract<PairingReply, { ok: true }>,
+): Promise<Extract<PairingResult, { ok: true }>> {
+  const secure = reply.secure ?? {};
+  const accountId = parseJson<Session>(secure[SESSION_STORAGE_KEY] ?? null)?.account?.id;
+  if (!accountId) throw new PairingFailure('wrong-code');
+  const dataStorage = storages.data ?? storages.secure;
+  for (const [key, value] of Object.entries(reply.data)) await dataStorage.setItem(key, value);
+  if (reply.settings) {
+    await savePrefs(dataStorage, reply.settings.prefs);
+    if (reply.settings.subtitles !== null) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, reply.settings.subtitles);
+  }
+  for (const key of [CREDENTIALS_KEY, pinStorageKey(accountId), SESSION_STORAGE_KEY]) {
+    if (secure[key] !== undefined) await storages.secure.setItem(key, secure[key]);
+  }
+  return { ok: true, mode: 'share', accountName: reply.accountName ?? t('your account'), remote: reply.remote };
 }
 
 export class PairingFailure extends Error {

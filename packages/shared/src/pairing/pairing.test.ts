@@ -207,4 +207,33 @@ describe('phone-to-TV pairing (D-060)', () => {
       reason: 'not-signed-in',
     });
   });
+
+  it('a signed-out device that scans gets the sign-in, PIN, media and settings of the device showing the code (D-177)', async () => {
+    const shower = phone();
+    await shower.data.setItem(PROFILE_PREFS_KEY, JSON.stringify({ 'phone-p1': { contentLanguages: ['en'] }, 'other-account-p': {} }));
+    await shower.secure.setItem(SUBTITLE_SETTINGS_KEY, '{"apiKey":"k"}');
+    const tablet = { secure: createMemoryStorage(), data: createMemoryStorage({ 'settings.playback': '{"audioDecoder":"device"}' }) };
+    const remote = { tvId: 'tv-1', tvName: 'TV', phoneId: 'p-1', key: KEY, port: 38127 };
+    const toShower = (async (_url: string, init?: RequestInit) => {
+      const reply = await acceptPairing(shower, KEY, String(init?.body), { remote });
+      expect(reply.result).toEqual({ ok: true, mode: 'share', accountName: 'demo', remote });
+      return new Response(reply.body, { status: reply.status });
+    }) as typeof fetch;
+
+    await expect(sendPairing(tablet, offer, { fetch: toShower })).resolves.toEqual({
+      ok: true,
+      mode: 'share',
+      accountName: 'demo',
+      remote,
+    });
+    expect(JSON.parse(tablet.secure.data.get(SESSION_STORAGE_KEY)!)).toMatchObject({ token: 'direct-x', account, activeProfileId: null });
+    expect(tablet.secure.data.get(CREDENTIALS_KEY)).toContain('secret');
+    expect(tablet.secure.data.get(pinStorageKey('acc-1'))).toBe('{"salt":"s","hash":"h"}');
+    expect(tablet.secure.data.get(SUBTITLE_SETTINGS_KEY)).toBe('{"apiKey":"k"}');
+    expect(JSON.parse(tablet.data.data.get(watchlistKey('phone-kids'))!)).toHaveLength(1);
+    expect(JSON.parse(tablet.data.data.get(PROFILE_PREFS_KEY)!)).toEqual({ 'phone-p1': { contentLanguages: ['en'] } });
+    expect(tablet.data.data.get('settings.playback')).toBe('{"audioDecoder":"device"}');
+    // The device showing the code keeps its own state.
+    expect(JSON.parse(shower.secure.data.get(SESSION_STORAGE_KEY)!)).toMatchObject({ activeProfileId: 'phone-p1' });
+  });
 });

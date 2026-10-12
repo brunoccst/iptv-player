@@ -8,6 +8,7 @@ import {
   sendPairing,
   t,
 } from '@iptv/shared';
+import { Platform } from 'react-native';
 import { TvMedia } from '../../modules/tv-media';
 import { appContext, backupStorages } from '../appContext';
 import { pairedTv, rememberPhone, remoteOffer } from './remote';
@@ -29,44 +30,54 @@ const server: PairingServer = {
 };
 
 /**
- * TV side (D-060), the shared hook (D-079): while mounted, the pairing server runs and `qr` holds the code to show.
- * The phone also gets a key for remote play (D-061), kept here once pairing succeeded.
+ * Side showing the code (D-060, D-177), the shared hook (D-079): while mounted, the pairing server runs and `qr` holds
+ * the code to show. TV: the other device also gets a key for remote play (D-061), kept here once pairing succeeded.
  */
 export const usePairingServer = () =>
-  usePairing(server, {
-    storages,
-    reload: () => appContext.reload(),
-    remoteOffer,
-    paired: async (remote) => {
-      if (remote) await rememberPhone(remote);
-    },
-  });
+  usePairing(
+    server,
+    Platform.isTV
+      ? {
+          storages,
+          reload: () => appContext.reload(),
+          remoteOffer,
+          paired: async (remote) => {
+            if (remote) await rememberPhone(remote);
+          },
+        }
+      : { storages, reload: () => appContext.reload() },
+  );
+
+/** Devices with a camera can scan another device's code (D-177). */
+export const canScanQr = () => TvMedia.hasCamera();
 
 /**
- * Phone side (D-060): scans the TV's QR code and pairs. Returns a message for the user, or null when the scan was
- * cancelled. Throws with a user-facing message.
+ * Scanning side (D-060, D-177): scans another device's QR code and pairs. Returns a message for the user, or null when
+ * the scan was cancelled. Throws with a user-facing message.
  */
-export async function connectToTv(): Promise<string | null> {
+export async function connectToDevice(): Promise<string | null> {
   const text = await TvMedia.scanQrCode();
   if (!text) return null;
   const offer = parsePairingQr(text);
   if (!offer)
     throw new Error(
       t(
-        'This is not a code from this app. On the TV or computer, open the QR code on the sign-in page or in the account menu → Sync with phone.',
+        'This is not a code from this app. On the other device, open the QR code on the sign-in page or in the account menu → Sync with another device.',
       ),
     );
   try {
     const result = await sendPairing(storages, offer);
-    appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} a TV`);
+    appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : result.mode === 'share' ? 'got the sign-in of' : 'synced'} a device`);
     if (result.remote) await pairedTv.getState().save({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     const done =
       result.mode === 'login'
         ? t(
-            'The TV or computer is signed in with your account. Pick a profile there. Both devices now have the same profiles, My List and progress.',
+            'The other device is signed in with your account. Pick a profile there. Both devices now have the same profiles, My List and progress.',
           )
-        : t('Both devices now have the same profiles, My List and progress.');
+        : result.mode === 'share'
+          ? `${t('Signed in as {accountName}.', { accountName: result.accountName })} ${t('Both devices now have the same profiles, My List and progress.')}`
+          : t('Both devices now have the same profiles, My List and progress.');
     return result.remote ? `${done} ${t('Use "Play on TV" on a title to start it on the TV.')}` : done;
   } catch (error) {
     appLog.warn('pairing', errorMessage(error));

@@ -7,7 +7,7 @@ import { QrCode } from './QrCode';
 
 const howTo = () =>
   t(
-    'On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Phone and computer must be on the same home network; if Windows asks, allow the app on private networks.',
+    'Scan this code with the app on a phone or tablet: account menu → Sync with another device → Scan a code. Both devices must be on the same home network; if Windows asks, allow the app on private networks.',
   );
 
 /** The QR code, or what stands in for it (D-060). */
@@ -16,10 +16,16 @@ export function PairingCode({ state, size = 240 }: { state: PairingServerState; 
     case 'starting':
       return <Spinner label={t('Preparing the code')} />;
     case 'offline':
-      return <p className="error-text">{t('This computer is not connected to a home network, so a phone cannot reach it.')}</p>;
+      return <p className="error-text">{t('This device is not connected to a network, so other devices cannot reach it.')}</p>;
     case 'done':
       return (
-        <p>{state.mode === 'login' ? t('Signed in as {accountName}.', { accountName: state.accountName }) : t('Synced with the phone.')}</p>
+        <p>
+          {state.mode === 'login'
+            ? t('Signed in as {accountName}.', { accountName: state.accountName })
+            : state.mode === 'share'
+              ? t('The other device is now signed in as {accountName}.', { accountName: state.accountName })
+              : t('Synced with the other device.')}
+        </p>
       );
     default:
       return (
@@ -48,12 +54,13 @@ export function SyncWithPhoneHost() {
 }
 
 /**
- * Desktop app: account menu → Sync with phone (D-060): profiles, My List and progress are merged with the phone's.
+ * Desktop app: account menu → Sync with another device (D-060, D-177): profiles, My List and progress are merged with
+ * those of the phone or tablet that scans the code; a signed-out one gets this computer's sign-in.
  * The login page shows the same code beside the form, to sign in.
  */
 export function SyncWithPhone({ onClose }: { onClose(): void }) {
   const state = usePairingServer();
-  const title = t('Sync with phone');
+  const title = t('Sync with another device');
   return (
     <Modal label={title} onClose={onClose}>
       <div className="sync-phone">

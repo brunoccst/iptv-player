@@ -24,7 +24,7 @@ A change that adds or changes a feature updates its section here, its row in FEA
 
 ### Sign-in
 
-Sign in with the IPTV provider's address, username and password (Xtream Codes). There is no server: each app talks to the provider directly and keeps everything on the device (D-088). The password is encrypted by the system (Android Keystore; the operating system in the desktop app). The sign-in page also offers the app language, a QR code for [signing in with the phone](#sign-in-and-sync-by-qr-code) (TV, desktop) and [restoring a backup](#backup-and-restore). Signing out deletes the downloads on the device.
+Sign in with the IPTV provider's address, username and password (Xtream Codes). There is no server: each app talks to the provider directly and keeps everything on the device (D-088). The password is encrypted by the system (Android Keystore; the operating system in the desktop app). The sign-in page also offers the app language, a QR code for [signing in from another device](#sign-in-and-sync-by-qr-code) and [restoring a backup](#backup-and-restore). Signing out deletes the downloads on the device.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
@@ -294,11 +294,11 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 
 ### Sign in and sync by QR code
 
-The TV and desktop app show a QR code (sign-in page, or account menu → Library & devices → Sync with phone); the phone app scans it (account menu → Library & devices → Connect a TV or computer). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060).
+Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-177). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-177). Both signed in to different accounts are refused.
 
-Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the phone's wins; watched series and recent channels are joined. A parental PIN already set on the TV or computer stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
+Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the scanning device's wins; watched series and recent channels are joined. A parental PIN already set on the device showing the code stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV and desktop show the code; the phone scans it.
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones and tablets with a camera also scan one. Scanning with a computer's webcam: ⏳ [#254](https://github.com/brunoccst/iptv-player/issues/254).
 
 ### Play on TV
 

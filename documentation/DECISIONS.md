@@ -82,6 +82,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-174](#d-174) | Known issues and planned work are GitHub issues |
 | [D-175](#d-175) | Connection limit: ask the provider before playing |
 | [D-176](#d-176) | Better copies of movies on My List |
+| [D-177](#d-177) | Every device shows a sync code; camera devices scan |
 
 ## Merged and retired IDs
 
@@ -501,7 +502,7 @@ Limits: progress watched elsewhere is not saved ([#234](https://github.com/bruno
 - Transport, no server: while the code shows, the TV (`PairingServer.kt`) or the desktop main process listens on the home network on a random port. The code holds its address, port and a one-time 32-byte key; both directions are sealed with XChaCha20-Poly1305, so plain HTTP reveals nothing. The server stops after one pairing or when the code closes. The desktop picks the first private IPv4 address, skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs).
 - Code: `packages/shared/src/pairing/` (protocol, merge, `usePairingServer`), `apps/tv-app/src/pairing/`, `apps/web-player/src/features/pairing/`.
 
-Limits: same network; the phone needs Play services. No sync after pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
+Every device shows the code and a signed-out scanner gets the other device's sign-in since D-177. Limits: same network; the phone needs Play services. No sync after pairing ([#227](https://github.com/brunoccst/iptv-player/issues/227)).
 
 ## D-061
 
@@ -931,3 +932,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The quality is read on My List's load (app open, profile change) and again for every entry after a library update ends (`recheckQuality`, from the library watchers). Entries added already good, or saved before this, are never announced; a title gone from the library keeps its mark.
 - Shown on Home only, with nothing over it (no details, player, account menu or update prompt), one popup for all upgrades. Play starts the profile's starting version among the non-cinema copies and selects it for the title, so details show it too.
 - Movies only: series' versions differ per episode (issue #251).
+
+## D-177
+
+**Every device shows a sync code; camera devices scan** — 2026-10-12 (requested by owner)
+
+- Phones and tablets run the same pairing server as the TV (`PairingServer.kt`), so every app shows a code: on the sign-in page (beside the form from 760 dp wide, below it otherwise) and in Sync with another device, one dialog and name on every app. Phone-to-phone needed nothing new in the protocol.
+- Scanning is offered where `TvMedia.hasCamera()` (`FEATURE_CAMERA_ANY`), not by device type: phones and tablets, and a TV with a camera. The dialog opens on this device's code with Scan a code instead; a cancelled scan goes back to the code. Only the TV hands out a Play on TV key.
+- The scanning device's data wins on conflict, as with the phone before (D-060).
+- A signed-out device that scans a signed-in device's code gets its sign-in ('share' mode): it sends no session, and the device showing the code answers with its session (without its active profile), provider credentials, parental PIN, media, profile settings and automatic subtitles, and keeps its own state. So Scan a code on the sign-in page is useful. An older app showing the code answers "not signed in".
+- The desktop app shows its code but does not scan with a webcam yet (issue #254).
