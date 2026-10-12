@@ -1361,6 +1361,21 @@ export function createSqlGuide(db: SqlDatabase, library: SqlLibrary) {
       };
     },
 
+    /** Programmes of the guide ids `channels` (lower case) that overlap [from, to), by channel and start (issue #229). */
+    async programmes(saved: SqlGuide, channels: string[], from: number, to: number): Promise<GuideProgramme[]> {
+      if (!channels.length) return [];
+      const rows = await db.query(
+        `SELECT ch, start, stop, title FROM ${saved.table} WHERE ch IN (${placeholders(channels.length)}) AND stop > ? AND start < ? ORDER BY ch, start`,
+        [...channels, from, to],
+      );
+      return rows.map(([channel, start, stop, title]) => ({
+        channel: String(channel),
+        start: Number(start),
+        stop: Number(stop),
+        title: String(title),
+      }));
+    },
+
     /**
      * Programmes whose title contains `search` (any case) that have not ended at `now`, on the saved channels that
      * show them: on now first, then by start time.

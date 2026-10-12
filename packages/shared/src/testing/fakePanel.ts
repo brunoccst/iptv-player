@@ -36,6 +36,8 @@ export function createFakePanel() {
   const guide = [
     { channel: 'NEWS', from: -30, to: 30, title: 'Evening News' },
     { channel: 'NEWS', from: 30, to: 90, title: 'Late News' },
+    // After the short EPG ends: the guide fills it in (issue #229).
+    { channel: 'NEWS', from: 150, to: 210, title: 'Night Talk' },
     { channel: 'NEWS', from: -300, to: -240, title: 'Morning News' },
     { channel: 'NEWS', from: 60 * 30, to: 60 * 31, title: 'News in two days' },
     { channel: 'unknown', from: 0, to: 60, title: 'News on a channel the provider does not list' },
