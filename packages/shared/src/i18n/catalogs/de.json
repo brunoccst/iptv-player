@@ -25,7 +25,7 @@
   "{section}: grouping titles…": "{section}: Titel werden gruppiert…",
   "{section}: waiting to start…": "{section}: wartet auf den Start…",
   "{title} trailer": "Trailer zu {title}",
-  "{tv} does not know this phone any more. Pair again: on the TV, account menu → Sync with phone.": "Dieses Handy ist {tv} nicht mehr bekannt. Kopple es erneut: am Fernseher Kontomenü → Mit Handy synchronisieren.",
+  "{tv} does not know this phone any more. Pair again: on the TV, account menu → Sync with another device.": "Dieses Handy ist {tv} nicht mehr bekannt. Kopple es erneut: am Fernseher Kontomenü → Mit anderem Gerät synchronisieren.",
   "{tv} is signed in to a different account.": "Auf {tv} ist ein anderes Konto angemeldet.",
   "a local build": "ein lokaler Build",
   "A profile named '{name}' already exists.": "Ein Profil namens '{name}' gibt es bereits.",
