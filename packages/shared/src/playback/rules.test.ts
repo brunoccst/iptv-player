@@ -144,7 +144,10 @@ describe('playback rules', () => {
       { container: 'm3u8', engine: 'hls' },
       { container: 'mkv', engine: 'file' },
     ]);
-    expect(webPlaybackAttempts('live', 'ts')).toEqual([{ container: 'm3u8', engine: 'hls' }]);
+    expect(webPlaybackAttempts('live', 'ts')).toEqual([
+      { container: 'm3u8', engine: 'hls' },
+      { container: 'ts', engine: 'mpegts' },
+    ]);
     expect(tvPlaybackAttempts('movie', 'mkv')).toEqual([
       { container: 'mkv', engine: 'file' },
       { container: 'm3u8', engine: 'hls' },

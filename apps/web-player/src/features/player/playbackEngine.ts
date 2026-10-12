@@ -1,4 +1,5 @@
 import Hls, { type HlsConfig } from 'hls.js';
+import type Mpegts from 'mpegts.js';
 import {
   appLog,
   isBrowserNativeContainer,
@@ -21,7 +22,7 @@ export interface EngineSource {
 
 export interface LoadedSource {
   url: string;
-  engine: 'hls' | 'file';
+  engine: 'hls' | 'file' | 'mpegts';
   offline: boolean;
 }
 
@@ -52,6 +53,12 @@ export function undecodableVideoCodec(codecs: string[], video: Pick<HTMLVideoEle
 }
 
 type HlsFactory = Pick<typeof Hls, 'isSupported' | 'Events' | 'ErrorTypes'> & { new (config?: Partial<HlsConfig>): Hls };
+export type MpegtsModule = Pick<typeof Mpegts, 'isSupported' | 'createPlayer' | 'Events' | 'ErrorTypes'>;
+
+/** mpegts.js is only needed for panels without HLS output: load it on first use (issue #220). */
+const loadMpegts = (): Promise<MpegtsModule> => import('mpegts.js').then((module) => module.default);
+/** A live MPEG-TS stream that drops is reopened this many times before the player gives up. */
+const MPEGTS_RECONNECTS = 3;
 
 const ATTACH_TIMEOUT_MS = 20_000;
 /** `MediaError.MEDIA_ERR_NETWORK`: the download stopped part way. */
@@ -60,6 +67,7 @@ const MEDIA_ERR_NETWORK = 2;
 /** Wraps one <video>: resolves stream URLs, tries HLS then file, recovers hls.js errors. See DECISIONS.md#d-023. */
 export class PlaybackEngine {
   private hlsInstance: Hls | null = null;
+  private mpegtsPlayer: Mpegts.Player | null = null;
   private onFatal: ((message: string, network?: boolean) => void) | null = null;
   /** Stream addresses tried, last one last: what the provider sent there explains a failure (D-074, D-079). */
   readonly attempted: string[] = [];
@@ -70,6 +78,7 @@ export class PlaybackEngine {
     private readonly HlsClass: HlsFactory = Hls,
     /** The desktop app's Chromium plays MKV (H.264/AAC), so there a failed MKV is a provider problem (issue #236). */
     private readonly playsMatroska = !!desktop,
+    private readonly mpegts: () => Promise<MpegtsModule> = loadMpegts,
   ) {}
 
   get hls(): Hls | null {
@@ -102,12 +111,15 @@ export class PlaybackEngine {
         failures.push(`${attempt.container}: ${error instanceof Error ? error.message : String(error)}`);
         continue;
       }
+      // An account whose allowed formats exclude HLS gets the MPEG-TS address even when HLS was asked for (issue #220).
+      const engine = attempt.engine === 'hls' && playback.container === 'ts' ? 'mpegts' : attempt.engine;
       // Some panels answer the API on the portal and serve streams only on the stream server from the login reply:
       // that address is tried next, like the TV app (D-088).
       for (const url of [playback.url, ...(playback.alternateUrls ?? [])]) {
         if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+        if (this.attempted.includes(url)) continue;
         try {
-          const loaded: LoadedSource = { url, engine: attempt.engine, offline: false };
+          const loaded: LoadedSource = { url, engine, offline: false };
           this.attempted.push(url);
           await this.attach(loaded, signal);
           return loaded;
@@ -144,11 +156,14 @@ export class PlaybackEngine {
   private detach() {
     this.hlsInstance?.destroy();
     this.hlsInstance = null;
+    this.mpegtsPlayer?.destroy();
+    this.mpegtsPlayer = null;
   }
 
   private attach(source: LoadedSource, signal?: AbortSignal): Promise<void> {
     this.detach();
     if (source.engine === 'hls' && this.HlsClass.isSupported()) return this.attachHls(source.url, signal);
+    if (source.engine === 'mpegts') return this.attachMpegts(source.url, signal);
     // Safari plays HLS natively; everything else here is a progressive file.
     return this.attachNative(source.url, signal);
   }
@@ -188,6 +203,70 @@ export class PlaybackEngine {
 
       hls.loadSource(url);
       hls.attachMedia(this.video);
+    });
+  }
+
+  /** Live MPEG-TS for panels without HLS output: mpegts.js transmuxes it into the <video> (issue #220). */
+  private async attachMpegts(url: string, signal?: AbortSignal): Promise<void> {
+    const mpegts = await this.mpegts();
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (!mpegts.isSupported()) throw new Error('MPEG-TS playback is not supported here');
+    const video = this.video;
+    const player = mpegts.createPlayer(
+      { type: 'mpegts', isLive: true, url },
+      {
+        enableWorker: true,
+        enableStashBuffer: true,
+        liveBufferLatencyChasing: true,
+        liveBufferLatencyMaxLatency: 8,
+        liveBufferLatencyMinRemain: 2,
+      },
+    );
+    this.mpegtsPlayer = player;
+    let loaded = false;
+    let reconnects = 0;
+
+    return new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timer);
+        video.removeEventListener('loadedmetadata', onLoaded);
+        signal?.removeEventListener('abort', onAbort);
+      };
+      const onLoaded = () => {
+        loaded = true;
+        cleanup();
+        resolve();
+      };
+      const onAbort = () => {
+        cleanup();
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('Timed out loading stream'));
+      }, ATTACH_TIMEOUT_MS);
+
+      player.on(mpegts.Events.ERROR, (type: string, details: string, info?: { code?: number }) => {
+        if (this.mpegtsPlayer !== player) return;
+        if (!loaded) {
+          cleanup();
+          const status = info?.code ? ` (HTTP ${info.code})` : '';
+          reject(new Error(`${type}: ${details}${status}`));
+          return;
+        }
+        // A live connection that drops is reopened a few times, then the provider is named (D-074).
+        if (type === mpegts.ErrorTypes.NETWORK_ERROR && reconnects++ < MPEGTS_RECONNECTS) {
+          appLog.warn('player', `MPEG-TS stream dropped (${details}), reconnecting`);
+          player.unload();
+          player.load();
+          void Promise.resolve(player.play()).catch(() => undefined);
+        } else if (type === mpegts.ErrorTypes.NETWORK_ERROR) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
+        else this.onFatal?.(`Playback stopped (${details}).`);
+      });
+      video.addEventListener('loadedmetadata', onLoaded);
+      signal?.addEventListener('abort', onAbort);
+      player.attachMediaElement(video);
+      player.load();
     });
   }
 

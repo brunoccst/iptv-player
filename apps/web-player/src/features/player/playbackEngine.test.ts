@@ -49,6 +49,37 @@ function fakeHls() {
   return FakeHls;
 }
 
+/** Fake mpegts.js: URLs containing "good" fire loadedmetadata on the video, others raise a network error. */
+function fakeMpegts() {
+  const Events = { ERROR: 'error' };
+  const ErrorTypes = { NETWORK_ERROR: 'NetworkError', MEDIA_ERROR: 'MediaError', OTHER_ERROR: 'OtherError' };
+  const created: string[] = [];
+  const module = {
+    Events,
+    ErrorTypes,
+    isSupported: () => true,
+    createPlayer: (source: { url: string }) => {
+      created.push(source.url);
+      let video: HTMLVideoElement | null = null;
+      let onError: ((type: string, details: string, info?: { code?: number }) => void) | null = null;
+      return {
+        on: (_event: string, handler: typeof onError) => (onError = handler),
+        attachMediaElement: (element: HTMLVideoElement) => (video = element),
+        load: () =>
+          queueMicrotask(() =>
+            source.url.includes('good')
+              ? video?.dispatchEvent(new Event('loadedmetadata'))
+              : onError?.(ErrorTypes.NETWORK_ERROR, 'HttpStatusCodeInvalid', { code: 404 }),
+          ),
+        unload() {},
+        play() {},
+        destroy() {},
+      };
+    },
+  };
+  return { load: async () => module as never, created };
+}
+
 const api = (urls: Record<string, string>) => {
   const get = vi.fn(async (_kind: string, _id: string, container?: string | null) => {
     const url = urls[container ?? ''];
@@ -189,6 +220,43 @@ describe('PlaybackEngine', () => {
       offline: true,
     });
     expect(get).not.toHaveBeenCalled();
+  });
+});
+
+describe('PlaybackEngine live MPEG-TS (issue #220)', () => {
+  it('plays live MPEG-TS with mpegts.js when the panel has no HLS output', async () => {
+    const { client } = api({ m3u8: 'http://r/bad.m3u8', ts: 'http://r/good.ts' });
+    const mpegts = fakeMpegts();
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      client,
+      fakeHls() as never,
+      true,
+      mpegts.load,
+    );
+
+    await expect(engine.load({ kind: 'live', streamId: '7', container: null }, null)).resolves.toEqual({
+      url: 'http://r/good.ts',
+      engine: 'mpegts',
+      offline: false,
+    });
+    expect(mpegts.created).toEqual(['http://r/good.ts']);
+  });
+
+  it('uses mpegts.js straight away when the account only allows MPEG-TS, and does not ask twice', async () => {
+    const get = vi.fn(async () => ({ url: 'http://r/live.ts', container: 'ts', isLive: true, deliveryMode: 'direct' }));
+    const mpegts = fakeMpegts();
+    const engine = new PlaybackEngine(
+      fakeVideo(() => false),
+      { playback: { get } } as unknown as ApiClient,
+      fakeHls() as never,
+      true,
+      mpegts.load,
+    );
+
+    await expect(engine.load({ kind: 'live', streamId: '7', container: null }, null)).rejects.toBeInstanceOf(PlaybackUnavailableError);
+    expect(mpegts.created).toEqual(['http://r/live.ts']);
+    expect(engine.attempted).toEqual(['http://r/live.ts']);
   });
 });
 

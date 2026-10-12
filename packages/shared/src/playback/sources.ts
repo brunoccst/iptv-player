@@ -6,16 +6,21 @@ export const BROWSER_NATIVE_CONTAINERS = ['mp4', 'm4v', 'webm', 'mov'] as const;
 export interface PlaybackAttempt {
   /** Passed to `/api/playback/...?container=`. */
   container: string;
-  /** `hls` = hls.js / native HLS; `file` = progressive <video src>. */
-  engine: 'hls' | 'file';
+  /** `hls` = hls.js / native HLS; `file` = progressive <video src>; `mpegts` = MPEG-TS transmuxed in the page (mpegts.js). */
+  engine: 'hls' | 'file' | 'mpegts';
 }
 
 /**
  * Ordered attempts for the web player. VOD tries the panel's HLS output first (plays MKV sources in browsers),
- * then the original file. See DECISIONS.md#d-023.
+ * then the original file. See DECISIONS.md#d-023. Live tries HLS, then the panel's MPEG-TS output played by mpegts.js, for
+ * panels without HLS output (issue #220).
  */
 export function webPlaybackAttempts(kind: PlaybackKind, container: string | null | undefined): PlaybackAttempt[] {
-  if (kind === 'live') return [{ container: 'm3u8', engine: 'hls' }];
+  if (kind === 'live')
+    return [
+      { container: 'm3u8', engine: 'hls' },
+      { container: 'ts', engine: 'mpegts' },
+    ];
   const original = (container ?? 'mp4').toLowerCase();
   return original === 'm3u8'
     ? [{ container: 'm3u8', engine: 'hls' }]
