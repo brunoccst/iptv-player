@@ -41,6 +41,7 @@ import {
   type SqlLiveChannels,
 } from './sqlLibrary';
 import type { GuideProgramme } from './xmltv';
+import { reattachTitles, type TitleLookup } from './reattach';
 import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -776,6 +777,98 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   const librarySection = (section: LibrarySection): LibraryKind => (section === 'movies' ? 'movie' : 'series');
 
+  /**
+   * The library's titles of `section` by id and by provider item, and a stamp that changes when the library does (issue
+   * #216); null while there is none (saved titles are then left as they are).
+   */
+  const titleLookup = async (section: LibrarySection): Promise<{ lookup: TitleLookup; stamp: string } | null> => {
+    const data = await loadLibrary();
+    if (!data) return null;
+    const kind = librarySection(section);
+    if (data.sql) {
+      const saved = data.sql[kind];
+      const sql = sqlLibrary;
+      if (!saved || saved.packed || !sql) return null;
+      return {
+        stamp: `${saved.table}|${saved.builtAt}`,
+        lookup: { itemsOf: (ids) => sql.itemsOf(saved, ids), holdersOf: (streamIds) => sql.holdersOf(saved, streamIds) },
+      };
+    }
+    const masters = data[kind];
+    if (!masters.length) return null;
+    const byId = indexFor(masters).byId;
+    let stamp = listStamps.get(masters);
+    if (!stamp) listStamps.set(masters, (stamp = `memory|${++listStampCount}`));
+    return {
+      stamp,
+      lookup: {
+        itemsOf: async (ids) => {
+          const result = new Map<string, string[]>();
+          for (const id of ids) {
+            const master = byId.get(id);
+            if (master)
+              result.set(
+                id,
+                master.variants.map((variant) => variant.streamId),
+              );
+          }
+          return result;
+        },
+        holdersOf: async (streamIds) => {
+          const wanted = new Set(streamIds);
+          const result = new Map<string, string>();
+          for (const master of masters)
+            for (const variant of master.variants) if (wanted.has(variant.streamId)) result.set(variant.streamId, master.id);
+          return result;
+        },
+      },
+    };
+  };
+
+  /** Each in-memory title list gets its own stamp: a new list is a changed library. */
+  const listStamps = new WeakMap<Master[], string>();
+  let listStampCount = 0;
+  /** Profile list → the library stamps it was last matched against (issue #216): once per library change, not per read. */
+  const reattachedAt = new Map<string, string>();
+
+  /**
+   * Saved titles (My List, progress) whose id the library no longer has move to the title that now holds their provider
+   * items (issue #216). `hints` names an entry's items; `move` gives the entry its new id. Returns null when nothing changed.
+   */
+  const reattach = async <T extends { masterId: string | null }>(
+    listKey: string,
+    entries: T[],
+    sectionOf: (entry: T) => LibrarySection,
+    hints: (entry: T, items: Map<string, string[]>) => { entry: T; streamIds: string[] },
+    move: (entry: T, masterId: string) => T,
+  ): Promise<T[] | null> => {
+    let changed = false;
+    let result = entries;
+    for (const section of ['movies', 'series'] as const) {
+      const found = await titleLookup(section);
+      const key = `${listKey}|${section}`;
+      if (!found || reattachedAt.get(key) === found.stamp) continue;
+      const mine = result.filter((entry) => entry.masterId && sectionOf(entry) === section);
+      const items = await found.lookup.itemsOf([...new Set(mine.map((entry) => entry.masterId!))]);
+      const withHints = new Map(mine.map((entry) => [entry, hints(entry, items)]));
+      const { moved } = await reattachTitles(
+        { itemsOf: async () => items, holdersOf: found.lookup.holdersOf },
+        mine.map((entry) => ({ masterId: entry.masterId!, streamIds: withHints.get(entry)!.streamIds })),
+      );
+      result = result.map((entry) => {
+        const hinted = withHints.get(entry);
+        if (!hinted) return entry;
+        const target = moved.get(entry.masterId!);
+        if (target) appLog.info('library', `${section}: a saved title was renamed by the provider and found again by its items`);
+        const next = target ? move(hinted.entry, target) : hinted.entry;
+        if (next !== entry) changed = true;
+        return next;
+      });
+      reattachedAt.set(key, found.stamp);
+    }
+    return changed ? result : null;
+  };
+
   /** A list without the titles whose every version is in a hidden category; kept per list and hidden set (D-110). */
   const withoutHiddenCache = new WeakMap<Master[], { key: string; masters: Master[] }>();
   const withoutHidden = (list: Master[], categoriesOf: Map<string, string[]>, hidden: Set<string>, ids: string[]) => {
@@ -1321,7 +1414,26 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     progress: {
       async list(profileId: string, limit?: number) {
         await ownedProfile(profileId);
-        const items = (await readJson<ProgressDto[]>(options.dataStorage, progressKey(profileId))) ?? [];
+        let items = (await readJson<ProgressDto[]>(options.dataStorage, progressKey(profileId))) ?? [];
+        // A renamed title gets a new id: its progress follows it by the movie or series item (issue #216).
+        const moved = await reattach(
+          `progress|${profileId}`,
+          items,
+          (item) => (item.kind === 'movie' ? 'movies' : 'series'),
+          (item) => ({ entry: item, streamIds: [item.kind === 'movie' ? item.itemId : item.seriesId].filter((id): id is string => !!id) }),
+          (item, masterId) => ({ ...item, masterId }),
+        ).catch((error: unknown) => {
+          appLog.warn('library', `progress: renamed titles not checked: ${errorMessage(error)}`);
+          return null;
+        });
+        if (moved) {
+          // Saved unless a newer save came in meanwhile.
+          const current = (await readJson<ProgressDto[]>(options.dataStorage, progressKey(profileId))) ?? [];
+          if (current.length === items.length && current.every((item, index) => item.updatedAt === items[index]!.updatedAt)) {
+            await writeJson(options.dataStorage, progressKey(profileId), moved);
+            items = moved;
+          }
+        }
         return items.sort((a, b) => ordinal(b.updatedAt, a.updatedAt)).slice(0, clamp(limit ?? 50, 1, 1000));
       },
       async save(profileId: string, kind: ProgressKind, itemId: string, request: ProgressRequest) {
@@ -1360,7 +1472,39 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     watchlist: {
       async list(profileId: string) {
         await ownedProfile(profileId);
-        const items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        let items = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+        // Each entry keeps its title's provider items; a renamed title (new id) is found again by them (issue #216).
+        const moved = await reattach(
+          `watchlist|${profileId}`,
+          items,
+          (item) => item.section,
+          (item, found) => {
+            const now = found.get(item.masterId);
+            const same = now && item.streamIds?.length === now.length && now.every((id) => item.streamIds!.includes(id));
+            return { entry: now && !same ? { ...item, streamIds: now } : item, streamIds: item.streamIds ?? [] };
+          },
+          (item, masterId) => ({ ...item, masterId }),
+        ).catch((error: unknown) => {
+          appLog.warn('library', `My List: renamed titles not checked: ${errorMessage(error)}`);
+          return null;
+        });
+        if (moved) {
+          // Two entries that are one title now: the newest stays.
+          const seen = new Set<string>();
+          const unique = moved
+            .sort((a, b) => ordinal(b.addedAt, a.addedAt))
+            .filter((item) => {
+              const key = `${item.section}:${item.masterId}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          const current = (await readJson<WatchlistDto[]>(options.dataStorage, watchlistKey(profileId))) ?? [];
+          if (current.length === items.length && current.every((item, index) => item.masterId === items[index]!.masterId)) {
+            await writeJson(options.dataStorage, watchlistKey(profileId), unique);
+            items = unique;
+          }
+        }
         return items.sort((a, b) => ordinal(b.addedAt, a.addedAt));
       },
       async add(profileId: string, section: LibrarySection, masterId: string, request: WatchlistRequest) {
@@ -1369,6 +1513,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const existing = items.find((item) => item.section === section && item.masterId === masterId);
         if (!existing && items.length >= MAX_WATCHLIST)
           throw validation(t('My List holds at most {count} titles.', { count: MAX_WATCHLIST }));
+        // Its provider items, to find it again if a rename changes its id (issue #216).
+        const found = await titleLookup(section).catch(() => null);
+        const streamIds = (await found?.lookup.itemsOf([masterId]).catch(() => null))?.get(masterId);
         const saved: WatchlistDto = {
           section,
           masterId,
@@ -1376,6 +1523,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           year: request.year ?? null,
           posterUrl: request.posterUrl ?? null,
           addedAt: existing?.addedAt ?? now().toISOString(),
+          ...(streamIds?.length ? { streamIds } : existing?.streamIds ? { streamIds: existing.streamIds } : {}),
         };
         const others = items.filter((item) => item !== existing);
         await writeJson(options.dataStorage, watchlistKey(profileId), [saved, ...others]);
