@@ -38,6 +38,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Native launch screen: the icon on the dark background until the first frame.
     ['expo-splash-screen', { image: './assets/splash-icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: '#141414' }],
     'expo-secure-store',
+    // No navigation bar or taskbar from the first frame on phones and tablets (D-177).
+    ['expo-navigation-bar', { hidden: true }],
     [
       'expo-build-properties',
       {

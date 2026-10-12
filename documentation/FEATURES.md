@@ -336,6 +336,12 @@ The apps look for new versions in this repository's releases (D-062, D-073): TV 
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Full screen (phone and tablet)
+
+The app hides Android's navigation bar, and the taskbar on tablets, on every page (D-177). Swipe up from the bottom edge to show it for a moment. The status bar stays outside the player.
+
+**Apps:** TV ➖ (no navigation bar) · Phone ✅ · Desktop ➖ (a window; the player has its own full screen)
+
 ### Close the app (TV and phone)
 
 Account menu → Close the app ends the app completely, like "Force stop" in the system settings.
