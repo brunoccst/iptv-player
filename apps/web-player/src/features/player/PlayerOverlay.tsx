@@ -37,6 +37,7 @@ import {
   holdStreamConnection,
   spareConnection,
   type ConnectionUse,
+  isLiveStream,
 } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
@@ -98,7 +99,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [flash, setFlash] = useState<{ side: 'back' | 'forward'; key: number; seconds: number } | null>(null);
   const [, setTracksVersion] = useState(0);
 
-  const isLive = target.kind === 'live';
+  // A past programme from the provider's recordings plays like a video: seeking, no LIVE tag (issue #226).
+  const isLive = isLiveStream(target);
   const vlc = useVlc();
 
   // Series context for the episodes drawer and next-up: all versions' episode lists, merged (D-066); a movie's
@@ -191,76 +193,82 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       explain();
     });
 
-    engine.load({ kind: target.kind, streamId: target.streamId, container: target.container }, offlineRecord, controller.signal).then(
-      (loaded) => {
-        setSource(loaded);
-        setStatus('ready');
-        const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
-        const start = resumeAt.current ?? target.startAt ?? resumePosition(saved);
-        if (start > 0 && !isLive) video.currentTime = start;
-        void video.play().catch(() => setPlaying(false));
-        engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
-        engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
-        // The profile's subtitles and audio track (D-087), selected once their tracks are known.
-        if (!usesPlaybackChoices(target)) return;
-        const choices = playbackChoices(stores);
-        const pending = { subtitles: Boolean(choices.subtitles), audio: Boolean(choices.audio) };
-        const applyChoices = () => {
-          if (controller.signal.aborted) return;
-          const hls = engine.hls;
-          const subtitles = subtitleTracks(hls, video);
-          if (pending.subtitles && subtitles.length > 0) {
-            pending.subtitles = false;
-            const pick = pickTrack(subtitles, choices.subtitles);
-            if (pick !== null && pick !== activeSubtitle(hls, video)) showSubtitle(hls, video, pick);
-          }
-          const audio = audioTracks(hls);
-          if (pending.audio && hls && audio.length > 0) {
-            pending.audio = false;
-            const pick = pickTrack(audio, choices.audio);
-            if (pick !== null && pick >= 0 && pick !== hls.audioTrack) hls.audioTrack = pick;
-          }
-          if (!pending.subtitles && !pending.audio) stopWatching();
-          setTracksVersion((v) => v + 1);
-        };
-        const stopWatching = () => {
-          engine.hls?.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
-          engine.hls?.off(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
-          video.textTracks.removeEventListener('addtrack', applyChoices);
-        };
-        engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
-        engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
-        if (!engine.hls) {
-          pending.audio = false;
-          video.textTracks.addEventListener('addtrack', applyChoices);
-        }
-        controller.signal.addEventListener('abort', stopWatching);
-        applyChoices();
-        // OpenSubtitles (D-111): a subtitle in a preferred language when the stream has none of its own.
-        const year =
-          target.kind === 'movie' && target.masterId ? stores.library.getState().details[`movies|${target.masterId}`]?.data?.year : null;
-        void appContext.subtitles
-          .find(target, { trackLanguages: subtitleTracks(engine.hls, video).map((track) => track.language), year: year ?? null })
-          .then((found) => {
+    engine
+      .load(
+        { kind: target.kind, streamId: target.streamId, container: target.container, catchup: target.catchup },
+        offlineRecord,
+        controller.signal,
+      )
+      .then(
+        (loaded) => {
+          setSource(loaded);
+          setStatus('ready');
+          const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
+          const start = resumeAt.current ?? target.startAt ?? resumePosition(saved);
+          if (start > 0 && !isLive) video.currentTime = start;
+          void video.play().catch(() => setPlaying(false));
+          engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
+          engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
+          // The profile's subtitles and audio track (D-087), selected once their tracks are known.
+          if (!usesPlaybackChoices(target)) return;
+          const choices = playbackChoices(stores);
+          const pending = { subtitles: Boolean(choices.subtitles), audio: Boolean(choices.audio) };
+          const applyChoices = () => {
             if (controller.signal.aborted) return;
-            if (!isFoundSubtitle(found)) {
-              if (found.message) setNotice(found.message);
-              return;
+            const hls = engine.hls;
+            const subtitles = subtitleTracks(hls, video);
+            if (pending.subtitles && subtitles.length > 0) {
+              pending.subtitles = false;
+              const pick = pickTrack(subtitles, choices.subtitles);
+              if (pick !== null && pick !== activeSubtitle(hls, video)) showSubtitle(hls, video, pick);
             }
-            addSubtitle(engine.hls, video, srtToVtt(found.srt), found.language, found.label);
-            setNotice(t('Subtitles: {label}', { label: found.label }));
+            const audio = audioTracks(hls);
+            if (pending.audio && hls && audio.length > 0) {
+              pending.audio = false;
+              const pick = pickTrack(audio, choices.audio);
+              if (pick !== null && pick >= 0 && pick !== hls.audioTrack) hls.audioTrack = pick;
+            }
+            if (!pending.subtitles && !pending.audio) stopWatching();
             setTracksVersion((v) => v + 1);
-          });
-      },
-      (loadError: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(loadError instanceof Error ? loadError.message : String(loadError));
-        setStatus('error');
-        const unsupported = loadError instanceof PlaybackUnavailableError && loadError.unsupportedFormat;
-        setUnsupportedFormat(unsupported);
-        if (!unsupported) explain();
-      },
-    );
+          };
+          const stopWatching = () => {
+            engine.hls?.off(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
+            engine.hls?.off(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
+            video.textTracks.removeEventListener('addtrack', applyChoices);
+          };
+          engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, applyChoices);
+          engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, applyChoices);
+          if (!engine.hls) {
+            pending.audio = false;
+            video.textTracks.addEventListener('addtrack', applyChoices);
+          }
+          controller.signal.addEventListener('abort', stopWatching);
+          applyChoices();
+          // OpenSubtitles (D-111): a subtitle in a preferred language when the stream has none of its own.
+          const year =
+            target.kind === 'movie' && target.masterId ? stores.library.getState().details[`movies|${target.masterId}`]?.data?.year : null;
+          void appContext.subtitles
+            .find(target, { trackLanguages: subtitleTracks(engine.hls, video).map((track) => track.language), year: year ?? null })
+            .then((found) => {
+              if (controller.signal.aborted) return;
+              if (!isFoundSubtitle(found)) {
+                if (found.message) setNotice(found.message);
+                return;
+              }
+              addSubtitle(engine.hls, video, srtToVtt(found.srt), found.language, found.label);
+              setNotice(t('Subtitles: {label}', { label: found.label }));
+              setTracksVersion((v) => v + 1);
+            });
+        },
+        (loadError: unknown) => {
+          if (controller.signal.aborted) return;
+          setError(loadError instanceof Error ? loadError.message : String(loadError));
+          setStatus('error');
+          const unsupported = loadError instanceof PlaybackUnavailableError && loadError.unsupportedFormat;
+          setUnsupportedFormat(unsupported);
+          if (!unsupported) explain();
+        },
+      );
 
     return () => {
       controller.abort();
@@ -459,7 +467,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // The preview opens a second connection: only where the account has one to spare (issue #218).
   const maxConnections = useSession((s) => s.account?.maxConnections ?? null);
   const getPreview = useCallback(() => {
-    if (!source || isLive || !spareConnection(maxConnections)) return null;
+    if (!source || isLive || source.engine === 'mpegts' || !spareConnection(maxConnections)) return null;
     previewRef.current ??= new FrameGrabber(source);
     return previewRef.current;
   }, [source, isLive, maxConnections]);

@@ -164,6 +164,26 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await expectPlaying(page, 1);
 });
 
+test("catch-up: a past programme plays from the channel's recording, with seeking and no LIVE tag (issue #226)", async ({ page }) => {
+  await page.getByRole('button', { name: 'Live TV' }).click();
+  const guide = page.getByRole('region', { name: 'TV guide' });
+  await expect(guide.locator('.guide__programme--now')).toHaveCount(5);
+  await page.getByRole('button', { name: '◀ Earlier' }).click();
+  await page.getByRole('button', { name: '◀ Earlier' }).click();
+  // Only Test Sports FHD keeps recordings: its ended programmes carry the ↺ mark.
+  const recorded = guide.locator('.guide__programme--past', { hasText: '↺' });
+  await expect(recorded.first()).toBeVisible();
+  await expect(recorded.first()).toHaveAttribute('aria-label', /Test Sports FHD$/);
+  const title = (await recorded.first().getAttribute('aria-label'))!.split(',')[0]!;
+  await recorded.first().click();
+  await page.getByRole('region', { name: 'Programme details' }).getByRole('button', { name: 'Watch', exact: true }).click();
+  await expect(page.locator('.player__title')).toHaveText(title);
+  await expectPlaying(page, 1);
+  await expect(page.locator('.player__live')).toHaveCount(0);
+  await seek(page, 20);
+  await expect.poll(() => videoTime(page)).toBeGreaterThan(19);
+});
+
 test('downloads are encrypted in-app and play offline, even after reload', async ({ page, context }) => {
   await page.getByRole('button', { name: 'Another Film' }).click();
   await page

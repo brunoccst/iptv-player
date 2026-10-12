@@ -640,6 +640,24 @@ describe.each([
     expect((await api.epg.grid({ offset: 2 })).channels.map((row) => row.channel.name)).toEqual(['Sport']);
   });
 
+  it("fills a channel's past programmes from its data table when it keeps recordings (issue #226)", async () => {
+    const { api, panel } = setup();
+    await api.auth.login(login);
+    const from = new Date(panel.nowSeconds * 1000 - 4 * 3600_000).toISOString();
+    const grid = await api.epg.grid({ from, hours: 5 });
+
+    expect(grid.channels.map((row) => [row.channel.name, row.channel.hasCatchup, row.programmes.map((p) => p.title)])).toEqual([
+      ['News', false, ['Old show', 'Evening News', 'Late News']],
+      ['Broken guide', false, []],
+      ['Sport', true, ['Match replay', 'Old show', 'Evening News', 'Late News']],
+    ]);
+    expect(panel.calls.filter((url) => url.includes('get_simple_data_table'))).toEqual([expect.stringContaining('stream_id=3')]);
+    // The window from now needs nothing older than the short EPG.
+    await api.epg.refresh();
+    await api.epg.grid({});
+    expect(panel.calls.filter((url) => url.includes('get_simple_data_table'))).toHaveLength(1);
+  });
+
   it.runIf(useDatabase)(
     'keeps categories, movie info, episodes and the guide in the database: no download after a restart, old copies offline (D-121)',
     async () => {

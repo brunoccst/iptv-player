@@ -23,7 +23,8 @@ export function createFakePanel() {
   const channels = [
     { stream_id: 1, name: 'News', num: 1, epg_channel_id: 'news' },
     { stream_id: 2, name: 'Broken guide', num: 2 },
-    { stream_id: 3, name: 'Sport', num: 3 },
+    // Keeps recordings (catch-up, issue #226).
+    { stream_id: 3, name: 'Sport', num: 3, tv_archive: 1 },
   ];
   const programme = (title: string, startOffset: number, minutes: number) => ({
     title: btoa(title),
@@ -78,6 +79,10 @@ export function createFakePanel() {
       case 'get_short_epg':
         if (params.get('stream_id') === '2') throw new Error('guide unavailable');
         return { epg_listings: [programme('Old show', -120, 60), programme('Evening News', 0, 30), programme('Late News', 30, 60)] };
+      case 'get_simple_data_table':
+        return {
+          epg_listings: [programme('Match replay', -200, 60), programme('Old show', -120, 60), programme('Evening News', 0, 30)],
+        };
       default:
         return [];
     }

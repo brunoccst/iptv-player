@@ -20,6 +20,8 @@ import {
   guideSlots,
   layoutGuideRow,
   liveTarget,
+  catchupMode,
+  catchupTarget,
   nowFraction,
   programmeAt,
   programmeProgress,
@@ -48,7 +50,8 @@ import { useRemote } from '../tv/remote';
 /** Same 3-hour window as the web guide (DECISIONS.md#d-088). */
 const HOURS = 3;
 const STEP_MS = 2 * EPG_SLOT_MS;
-const MIN_BACK_MS = 3 * 3600_000;
+// A day back, for channels with recordings (issue #226).
+const MIN_BACK_MS = 24 * 3600_000;
 const MAX_AHEAD_MS = 46 * 3600_000;
 const CHANNEL_WIDTH = 200;
 const ROW_HEIGHT = 64;
@@ -72,6 +75,20 @@ function play(channel: LiveChannel, programme: EpgListing | null) {
     name: 'player',
     target: liveTarget(channel, programme?.title),
   });
+}
+
+/** A programme from the provider's recordings (issue #226). */
+function playRecording(channel: LiveChannel, programme: EpgListing) {
+  navStore.getState().push({ name: 'player', target: catchupTarget(channel, programme) });
+}
+
+/**
+ * TV Select on a programme: an ended one on a channel with recordings plays from the recording (issue #226), the one on
+ * now plays live, others the channel.
+ */
+function playProgramme(channel: LiveChannel, programme: EpgListing, now: number) {
+  if (catchupMode(channel, programme, now) === 'past') playRecording(channel, programme);
+  else play(channel, Date.parse(programme.start) <= now && now < Date.parse(programme.end) ? programme : null);
 }
 
 /**
@@ -523,13 +540,16 @@ const GuideRow = memo(function GuideRow({
                 past && styles.programmePast,
                 selected?.programme === programme && styles.programmeSelected,
               ]}
-              onPress={() => activate({ channel, programme }, onSelect, () => play(channel, onNow ? programme : null))}
+              onPress={() => activate({ channel, programme }, onSelect, () => playProgramme(channel, programme, now))}
+              // TV: holding OK on the programme on now watches it from its start (issue #226).
+              onLongPress={Platform.isTV && onNow && channel.hasCatchup ? () => playRecording(channel, programme) : undefined}
               onFocus={() => Platform.isTV && onSelect({ channel, programme })}
               edge={{ first: index === firstCell, last: index === lastCell }}
               onEdge={onEdge}
             >
               <Text style={styles.programmeTitle} numberOfLines={1}>
                 {cell.clippedStart ? '‹ ' : ''}
+                {past && channel.hasCatchup ? '↺ ' : ''}
                 {programme.title}
               </Text>
               <Text style={styles.programmeTime} numberOfLines={1}>
@@ -546,6 +566,7 @@ const GuideRow = memo(function GuideRow({
 interface GuideCellButtonProps {
   label: string;
   onPress(): void;
+  onLongPress?(): void;
   onFocus(): void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -561,6 +582,7 @@ interface GuideCellButtonProps {
 function GuideCellButton({
   label,
   onPress,
+  onLongPress,
   onFocus,
   style,
   testID,
@@ -587,6 +609,7 @@ function GuideCellButton({
       accessibilityLabel={label}
       hasTVPreferredFocus={page.preferred}
       onPress={onPress}
+      onLongPress={onLongPress}
       onFocus={() => {
         setFocused(true);
         onFocus();
@@ -602,6 +625,7 @@ function GuideCellButton({
 function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; now: number; onClose(): void }) {
   const { channel, programme } = selection;
   const onNow = programme ? Date.parse(programme.start) <= now && now < Date.parse(programme.end) : false;
+  const catchup = catchupMode(channel, programme, now);
   return (
     <View style={styles.details} testID="guide-info" accessibilityLabel={t('Programme details')}>
       <View style={styles.detailsText}>
@@ -612,6 +636,8 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
           {channel.name}
           {programme ? ` · ${formatProgrammeTime(programme)}` : ''}
           {onNow ? ` · ${t('On now')}` : ''}
+          {Platform.isTV && catchup === 'past' ? ` · ${t('Recorded: OK plays it')}` : ''}
+          {Platform.isTV && catchup === 'restart' ? ` · ${t('Hold OK to watch from the start')}` : ''}
         </Text>
         {programme && onNow ? (
           <View style={styles.detailsBar}>
@@ -626,11 +652,17 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
       </View>
       {Platform.isTV ? null : (
         <View style={styles.detailsActions}>
+          {programme && catchup === 'past' ? (
+            <FocusButton label={t('Watch')} variant="primary" onPress={() => playRecording(channel, programme)} />
+          ) : null}
           <FocusButton
             label={onNow ? t('Watch live') : t('Watch channel')}
-            variant="primary"
+            variant={catchup === 'past' ? 'secondary' : 'primary'}
             onPress={() => play(channel, onNow ? programme : null)}
           />
+          {programme && catchup === 'restart' ? (
+            <FocusButton label={t('From the start')} variant="secondary" onPress={() => playRecording(channel, programme)} />
+          ) : null}
           <FocusButton label={t('Close')} variant="ghost" onPress={onClose} />
         </View>
       )}

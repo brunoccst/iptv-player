@@ -1,4 +1,5 @@
 import type { Episode, LibrarySection, LiveChannel, MasterDetails, PlaybackKind, ProgressDto, VariantInfo } from '../api/types';
+import type { CatchupWindow } from './catchup';
 import { episodeLabel } from './rules';
 
 /** Everything a player needs to start, switch versions, save progress and find the next episode. */
@@ -17,6 +18,8 @@ export interface PlayTarget {
   startAt?: number;
   /** Live: the channel's category, so the player's guide overlay lists its neighbours (D-058). */
   categoryId?: string | null;
+  /** Live: a programme from the provider's recordings instead of the live channel (issue #226). */
+  catchup?: CatchupWindow | null;
 }
 
 /** A live channel; `programme` is the title shown under the channel name. */

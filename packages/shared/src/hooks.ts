@@ -534,16 +534,20 @@ export function createAppHooks({
 
     useRecentChannels,
 
-    /** Notes the playing live channel in the active profile's recent channels once it starts (issue #122). */
+    /**
+     * Notes the playing live channel in the active profile's recent channels once it starts (issue #122). A recording
+     * (catch-up, issue #226) is not the channel as it airs, and carries the programme's title: not noted.
+     */
     useNoteRecentChannel(target: PlayTarget) {
       const profileId = useSession((s) => s.activeProfileId);
+      const recording = !!target.catchup;
       useEffect(() => {
-        if (target.kind !== 'live' || !profileId) return;
+        if (target.kind !== 'live' || recording || !profileId) return;
         const prefs = stores.profilePrefs.getState();
         void prefs.update(profileId, { recentChannels: addRecentChannel(prefs.prefs[profileId]?.recentChannels, recentChannelOf(target)) });
         // A new channel, not a new object for the same one.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [target.kind, target.streamId, profileId]);
+      }, [target.kind, target.streamId, recording, profileId]);
     },
 
     /**

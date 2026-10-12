@@ -138,6 +138,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.xmltv(parse_qs(url.query))
         if match := re.fullmatch(r"/(movie|series|live)/([^/]+)/([^/]+)/([^/.]+)\.(\w+)", path):
             return self.stream(*match.groups())
+        if match := re.fullmatch(r"/timeshift/([^/]+)/([^/]+)/(\d+)/(\d{4}-\d\d-\d\d:\d\d-\d\d)/([^/.]+)\.(\w+)", path):
+            return self.timeshift(*match.groups())
         if match := re.fullmatch(r"/live-media/(\w+)/index\.m3u8", path):
             return self.live_playlist(match.group(1))
         if match := re.fullmatch(r"/live-media/(\w+)/seg_(\d+)\.m4s", path):
@@ -285,16 +287,20 @@ class Handler(BaseHTTPRequestHandler):
                         "stream_icon": base + image("logo", c["id"]),
                         "epg_channel_id": c["epg"],
                         "category_id": c["category"],
-                        "tv_archive": 0,
+                        "tv_archive": 1 if c.get("catchup") else 0,
+                        "tv_archive_duration": 3 if c.get("catchup") else 0,
                     }
                     for i, c in enumerate(by_category(CATALOG["live"]))
                 ]
             )
-        if action == "get_short_epg":
+        if action in ("get_short_epg", "get_simple_data_table"):
             channel = next((c for c in CATALOG["live"] if c["id"] == query.get("stream_id", [""])[0]), None)
             limit = int(query.get("limit", ["4"])[0])
             now = int(time.time())
-            listings = epg_programmes(channel, now, now + 24 * 3600)[:limit] if channel else []
+            if action == "get_short_epg":
+                listings = epg_programmes(channel, now, now + 24 * 3600)[:limit] if channel else []
+            else:  # every programme the panel keeps, the last day included (catch-up)
+                listings = epg_programmes(channel, now - 24 * 3600, now + 24 * 3600) if channel else []
             encode = lambda text: base64.b64encode(text.encode()).decode()  # noqa: E731 - real panels base64 these
             return self.json(
                 {
@@ -345,6 +351,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self.redirect(f"/media/{candidate}")
         # HLS-only media requested as a file: serve the first rendition's playlist location instead.
         return self.send_error(HTTPStatus.NOT_FOUND)
+
+    def timeshift(self, user: str, password: str, _minutes: str, _start: str, item_id: str, extension: str) -> None:
+        """Catch-up: a recording of a channel with `catchup` plays the HLS test movie (seekable, fixed length)."""
+        if user != USER or password != PASSWORD:
+            return self.send_error(HTTPStatus.FORBIDDEN)
+        channel = next((c for c in CATALOG["live"] if c["id"] == item_id), None)
+        if not channel or not channel.get("catchup") or extension != "m3u8":
+            return self.send_error(HTTPStatus.NOT_FOUND)
+        return self.redirect("/media/movie-hls/index.m3u8")
 
     def live_playlist(self, channel_id: str) -> None:
         segments = sorted((MEDIA / "live").glob("seg_*.m4s"))

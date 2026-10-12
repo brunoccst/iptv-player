@@ -21,6 +21,7 @@ export * from './playback/watched';
 export * from './playback/sources';
 export * from './playback/remoteSeek';
 export * from './playback/targets';
+export * from './playback/catchup';
 export * from './playback/offlineAccess';
 export * from './playback/seriesVersions';
 export * from './playback/probe';

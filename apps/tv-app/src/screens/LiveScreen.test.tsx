@@ -204,6 +204,53 @@ describe('LiveScreen (guide)', () => {
     expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: '1', subtitle: 'Morning Briefing' } });
   });
 
+  it.each([true, false])('plays past programmes from the recording and the one on now from its start (issue #226, TV %s)', async (tv) => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(tv);
+    const backend = setupApp();
+    backend.on('GET', '/api/catalog/live/categories', { body: [] });
+    const past = { start: at(-20), end: at(5), title: 'Early Match', description: null };
+    const current = { start: at(5), end: at(60), title: 'Late Match', description: null };
+    backend.on('GET', '/api/epg', {
+      body: {
+        status: 'ready',
+        updatedAt: at(0),
+        from: at(0),
+        to: at(180),
+        totalChannels: 1,
+        channels: [{ channel: { ...channel('4', 'Replay TV'), hasCatchup: true }, programmes: [past, current] }],
+      },
+    });
+
+    await render(<LiveScreen />);
+    await flush();
+    await layoutGuide();
+    await flush();
+    const recording = (programme: typeof past) => ({
+      name: 'player',
+      target: { kind: 'live', streamId: '4', title: programme.title, catchup: { start: programme.start, end: programme.end } },
+    });
+
+    if (tv) {
+      await fireEvent(screen.getByLabelText(/Early Match,/), 'focus');
+      expect(screen.getByTestId('guide-info')).toHaveTextContent(/Recorded: OK plays it/);
+      await fireEvent.press(screen.getByLabelText(/Early Match,/));
+      expect(navStore.getState().stack.at(-1)).toMatchObject(recording(past));
+      await fireEvent(screen.getByTestId('guide-now-4'), 'longPress');
+      expect(navStore.getState().stack.at(-1)).toMatchObject(recording(current));
+      await fireEvent.press(screen.getByTestId('guide-now-4'));
+      expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { title: 'Replay TV', subtitle: 'Late Match' } });
+    } else {
+      await fireEvent.press(screen.getByLabelText(/Early Match,/));
+      await fireEvent.press(screen.getByText('Watch'));
+      expect(navStore.getState().stack.at(-1)).toMatchObject(recording(past));
+      navStore.getState().back();
+      await flush();
+      await fireEvent.press(screen.getByTestId('guide-now-4'));
+      await fireEvent.press(screen.getByText('From the start'));
+      expect(navStore.getState().stack.at(-1)).toMatchObject(recording(current));
+    }
+  });
+
   it('keeps the chosen category after the player closes', async () => {
     const backend = setupApp();
     const requests: URL[] = [];

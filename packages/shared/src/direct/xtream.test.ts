@@ -34,7 +34,7 @@ describe('createXtreamClient', () => {
     const { fetch, calls } = panel({
       login: {
         user_info: { auth: 1, status: 'Active', exp_date: '1893456000', max_connections: '2', allowed_output_formats: ['m3u8', 'ts'] },
-        server_info: { url: 'stream.test', port: 80, https_port: '443', server_protocol: 'http' },
+        server_info: { url: 'stream.test', port: 80, https_port: '443', server_protocol: 'http', timezone: 'Europe/Berlin' },
       },
     });
     const account = await createXtreamClient(credentials, { fetch, userAgent: 'VLC/3' }).validate();
@@ -44,6 +44,7 @@ describe('createXtreamClient', () => {
       maxConnections: 2,
       allowedOutputFormats: ['m3u8', 'ts'],
       streamBaseUrl: 'http://stream.test:80/',
+      timezone: 'Europe/Berlin',
     });
     expect(calls[0]!.url).toBe('http://panel.test:8080/player_api.php?username=u%20s&password=p%26w');
     expect(calls[0]!.headers['User-Agent']).toBe('VLC/3');
@@ -205,6 +206,43 @@ describe('createXtreamClient', () => {
     const tsOnly = { status: 'Active', expiresAt: null, maxConnections: 1, allowedOutputFormats: ['ts'] };
     expect(client.playbackUrl('live', '9', null, tsOnly)).toMatchObject({ container: 'ts', isLive: true });
     expect(client.playbackUrl('live', '9', null, null).container).toBe('m3u8');
+  });
+
+  it("builds catch-up addresses in the panel's time zone (issue #226)", () => {
+    const client = createXtreamClient(credentials);
+    const programme = { start: '2026-10-12T18:30:00.000Z', end: '2026-10-12T19:15:00.000Z' };
+    const account = {
+      status: 'Active',
+      expiresAt: null,
+      maxConnections: 1,
+      allowedOutputFormats: [],
+      streamBaseUrl: 'http://1.2.3.4:80/',
+      timezone: 'Europe/Berlin',
+    };
+    expect(client.playbackUrl('live', '9', null, account, programme)).toEqual({
+      url: 'http://panel.test:8080/timeshift/u%20s/p%26w/45/2026-10-12:20-30/9.m3u8',
+      container: 'm3u8',
+      isLive: true,
+      alternateUrls: ['http://1.2.3.4:80/timeshift/u%20s/p%26w/45/2026-10-12:20-30/9.m3u8'],
+    });
+    // No time zone (or one this device does not know): UTC.
+    expect(client.playbackUrl('live', '9', 'ts', null, programme).url).toBe(
+      'http://panel.test:8080/timeshift/u%20s/p%26w/45/2026-10-12:18-30/9.ts',
+    );
+    expect(client.playbackUrl('live', '9', 'ts', { ...account, timezone: 'Nowhere/Land' }, programme).url).toContain('/2026-10-12:18-30/');
+    // Only live channels have recordings.
+    expect(client.playbackUrl('movie', '7', 'mp4', null, programme).url).toBe('http://panel.test:8080/movie/u%20s/p%26w/7.mp4');
+  });
+
+  it('reads past programmes from the data table (issue #226)', async () => {
+    const { fetch } = panel({
+      get_simple_data_table: {
+        epg_listings: [{ title: 'TmV3cw==', start_timestamp: '1700000000', stop_timestamp: '1700001800', has_archive: 1 }],
+      },
+    });
+    expect(await createXtreamClient(credentials, { fetch }).channelEpg('9')).toEqual([
+      { title: 'News', description: null, start: '2023-11-14T22:13:20.000Z', end: '2023-11-14T22:43:20.000Z' },
+    ]);
   });
 });
 

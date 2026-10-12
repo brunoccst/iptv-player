@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Catch-up: watch what you missed** (2026-10-12, D-032, issue #226): on channels whose provider keeps recordings, ended programmes in the guide carry ↺ and play from the recording, with pause and seeking. OK plays an ended programme; holding OK on the programme on now starts it from the beginning. On the phone, a programme's details offer Watch or From the start. The guide now goes back a day.
 - **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of a black screen or an error from the provider. Switching channels or going on to the next episode does not ask again.
 - **Dolby and DTS sound fixes itself** (2026-10-12, D-059, issue #235): when the TV's or phone's own audio decoder fails on a title, the player switches to the built-in FFmpeg decoders and carries on from the same point, and keeps that choice for the next titles. You no longer have to find the setting after an error; it is still under Library & devices → Playback.
 - **Move through the guide's hours with the remote** (2026-10-12, D-032, issue #240): on the TV, → on a row's last programme shows the next hour, and once the guide shows later hours, ← on the first programme goes back an hour. Earlier / Now / Later still work.
@@ -94,6 +95,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Catch-up: watch what you missed** (2026-10-12, D-032, issue #226): on channels whose provider keeps recordings, ended programmes in the guide carry ↺, and their details offer Watch, which plays the recording with pause and seeking. The programme on now offers From the start. The guide now goes back a day.
 - **Live TV on more providers** (2026-10-12, D-023, issue #220): channels from providers that only send live TV as MPEG-TS, not HLS, now play in the desktop app. Before, they did not play at all.
 - **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of an error from the provider. Switching channels or going on to the next episode does not ask again.
 - **Timeline previews no longer cost you the stream** (2026-10-12, D-175, issue #218): the preview frames over the timeline need a second stream, so they only show when your account allows more than one at a time and one is free. On one-stream accounts the provider no longer stops the video when you hover the timeline.

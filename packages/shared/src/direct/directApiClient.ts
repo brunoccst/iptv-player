@@ -113,6 +113,8 @@ const SAVED_SERIES_MS = 12 * 3600_000;
 const SHORT_EPG_LIMIT = 12;
 // Low on purpose: some providers treat bursts of guide requests as flooding (a 503 was seen at 4 in parallel).
 const SHORT_EPG_PARALLELISM = 2;
+/** How far back the guide keeps programmes of channels with recordings (issue #226); the apps' guides go back as far. */
+const CATCHUP_GUIDE_MS = 24 * 3600_000;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
 /** The full TV guide keeps the programmes of the next day, and is downloaded again after half a day (issue #119). */
 const GUIDE_WINDOW_MS = 24 * 3600_000;
@@ -1038,7 +1040,11 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return options.limit === undefined ? matches : matches.slice(0, options.limit);
   };
 
-  const shortEpg = async (channels: LiveChannel[]): Promise<Map<string, EpgListing[]>> => {
+  /**
+   * Each channel's short EPG. A channel with recordings whose short EPG starts after `from` also gets the programmes
+   * before it from the panel's full list for that channel, so its past programmes can be watched (issue #226).
+   */
+  const shortEpg = async (channels: LiveChannel[], from = Number.POSITIVE_INFINITY): Promise<Map<string, EpgListing[]>> => {
     const { stored, client } = await session();
     const result = new Map<string, EpgListing[]>();
     const queue = [...channels];
@@ -1051,7 +1057,20 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             () => [] as EpgListing[],
           ),
         );
-        result.set(id, programmes);
+        const first = programmes.length ? Math.min(...programmes.map((programme) => Date.parse(programme.start))) : Infinity;
+        if (!channel.hasCatchup || first <= from) {
+          result.set(id, programmes);
+          continue;
+        }
+        const keepFrom = now().getTime() - CATCHUP_GUIDE_MS;
+        const past = await cached(`epg-past:${stored.account.id}:${id}`, SHORT_EPG_CACHE_MS, () =>
+          persisted(stored.account.id, `epg-past:${id}`, SHORT_EPG_CACHE_MS, async () =>
+            (await client.channelEpg(id)).filter(
+              (programme) => Date.parse(programme.end) > keepFrom && Date.parse(programme.start) < first,
+            ),
+          ).catch(() => [] as EpgListing[]),
+        );
+        result.set(id, [...past.filter((programme) => Date.parse(programme.start) < first), ...programmes]);
       }
     };
     await Promise.all(Array.from({ length: Math.min(SHORT_EPG_PARALLELISM, channels.length) }, worker));
@@ -1089,7 +1108,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       page = channels.slice(offset, offset + limit);
       totalChannels = channels.length;
     }
-    const programmes = await shortEpg(page);
+    const programmes = await shortEpg(page, from.getTime());
     const rows: EpgChannelRow[] = page.map((channel) => ({
       channel,
       programmes: (programmes.get(channel.id) ?? [])
@@ -1442,16 +1461,18 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       grid: epgGrid,
       async refresh() {
         const { stored } = await session();
-        for (const key of [...cache.keys()]) if (key.startsWith(`epg:${stored.account.id}:`)) cache.delete(key);
+        for (const key of [...cache.keys()])
+          if (key.startsWith(`epg:${stored.account.id}:`) || key.startsWith(`epg-past:${stored.account.id}:`)) cache.delete(key);
         await catalogDb?.forget(stored.account.id, 'epg:').catch(() => undefined);
+        await catalogDb?.forget(stored.account.id, 'epg-past:').catch(() => undefined);
         return undefined;
       },
     },
 
     playback: {
-      async get(kind, id, container) {
+      async get(kind, id, container, _signal, options) {
         const { stored, client } = await session();
-        return { ...client.playbackUrl(kind, id, container, stored.info), deliveryMode: 'direct' };
+        return { ...client.playbackUrl(kind, id, container, stored.info, options?.catchup), deliveryMode: 'direct' };
       },
       async connections(signal) {
         const { client } = await session();
