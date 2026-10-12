@@ -37,6 +37,8 @@ export function LibraryBanner() {
     if (wasStale.current && !stale) {
       stores.library.getState().invalidate();
       uiStore.getState().bumpLibrary();
+      // A better copy of a movie on My List is announced (DECISIONS.md#d-176).
+      void stores.watchlist.getState().recheckQuality();
     }
     wasStale.current = stale;
   }, [stale]);

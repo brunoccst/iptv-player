@@ -81,6 +81,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-158](#d-158) | Details in columns on landscape screens |
 | [D-174](#d-174) | Known issues and planned work are GitHub issues |
 | [D-175](#d-175) | Connection limit: ask the provider before playing |
+| [D-176](#d-176) | Better copies of movies on My List |
 
 ## Merged and retired IDs
 
@@ -921,3 +922,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The question waits at most 3 s; no answer, an error or a missing count plays as before.
 - While the app streams and for 60 s after, it does not ask: the provider still counts the app's own stream, so zapping and the next episode would warn about it.
 - The desktop timeline preview (D-023) opens a second connection, so it runs only when the account allows two or more and the last check left room for both (an unknown limit keeps it on).
+
+## D-176
+
+**Better copies of movies on My List** — 2026-10-12 (requested by owner)
+
+- A My List movie whose copies are all cinema copies (`lowSource`: CAM, TS, TC, SCR, the cover's tag, D-141) is remembered with that copy in its saved entry (`lowSourceSeen`). Once the library shows it without `lowSource` (any copy without a cinema tag, untagged ones included, as for the cover), it is an upgrade until the popup is closed; then `lowSourceSeen` is cleared. Stateless that way: an upgrade found while the app was closed, or before the popup could show, is still there on the next open.
+- The quality is read on My List's load (app open, profile change) and again for every entry after a library update ends (`recheckQuality`, from the library watchers). Entries added already good, or saved before this, are never announced; a title gone from the library keeps its mark.
+- Shown on Home only, with nothing over it (no details, player, account menu or update prompt), one popup for all upgrades. Play starts the profile's starting version among the non-cinema copies and selects it for the title, so details show it too.
+- Movies only: series' versions differ per episode (issue #251).

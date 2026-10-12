@@ -130,6 +130,7 @@ export function createFakeApi(
       add: (profileId, section, masterId, body) =>
         request('PUT', `/api/profiles/${id(profileId)}/watchlist/${section}/${id(masterId)}`, { body }),
       remove: (profileId, section, masterId) => request('DELETE', `/api/profiles/${id(profileId)}/watchlist/${section}/${id(masterId)}`),
+      noteLowSources: (profileId, body) => request('POST', `/api/profiles/${id(profileId)}/watchlist/low-sources`, { body }),
     },
     catalog: {
       categories: (section) => get(`/api/catalog/${section}/categories`),

@@ -6,6 +6,7 @@ import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { createPageFocus, PageFocusContext } from './components/pageFocus';
 import { LibraryNotice } from './components/LibraryBanner';
+import { QualityUpgradeDialog } from './components/QualityUpgradeDialog';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
@@ -163,6 +164,7 @@ function Shell() {
   // search box, which keep their own focus.
   const openedOver = useRef<Section | null>(null);
   const searchRequested = useNav((s) => s.searchRequested);
+  const menuOpen = useNav((s) => s.menuOpen);
   useEffect(() => {
     if (route.name === 'details') {
       openedOver.current ??= section;
@@ -209,6 +211,8 @@ function Shell() {
       {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} /> : null}
       <AccountMenu />
       {route.name === 'details' ? null : <LibraryNotice />}
+      {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
+      <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen} />
     </View>
   );
 }

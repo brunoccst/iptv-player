@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from './api/errors';
 import type {
   CatalogSection,
@@ -11,6 +11,7 @@ import type {
   ProgressDto,
   ProgrammeMatch,
   VariantInfo,
+  WatchlistDto,
 } from './api/types';
 import type { AppContext } from './appContext';
 import { offlineAccess } from './playback/offlineAccess';
@@ -22,7 +23,8 @@ import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, type RecentChan
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
-import { chooseVersion } from './playback/playbackChoices';
+import { chooseVersion, startingVariant } from './playback/playbackChoices';
+import { LOW_SOURCES } from './direct/normalizer/tags';
 import { loadSeriesVersions, mergeSeriesVersions, playerSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
 import { nextEpisode, previousEpisode } from './playback/rules';
 import { episodeTarget, movieTarget, progressDetails, progressTarget, type PlayTarget } from './playback/targets';
@@ -47,7 +49,7 @@ import type { PinState } from './stores/pinStore';
 import type { ProfilePrefsState } from './stores/profilePrefsStore';
 import type { ProgressState } from './stores/progressStore';
 import type { SessionState } from './stores/sessionStore';
-import { isOnWatchlist, type WatchlistState } from './stores/watchlistStore';
+import { isOnWatchlist, qualityUpgrades, type WatchlistState } from './stores/watchlistStore';
 
 /**
  * Hooks the TV/phone app and the desktop/web app share (D-079): the same state, loading and paging for both; each app
@@ -393,6 +395,33 @@ export function createAppHooks({
           onClose();
           if (!profileId || chosen.join(',') === saved.join(',')) return;
           void stores.profilePrefs.getState().update(profileId, { languages: chosen, language: null }).then(reloadLists);
+        },
+      };
+    },
+
+    /**
+     * Movies on My List that turned from a cinema copy (CAM, TS…) into a better one, for the popup Home shows
+     * (DECISIONS.md#d-176). `dismiss` once shown; `playTarget` starts the best of the better copies.
+     */
+    useQualityUpgrades() {
+      const items = useAppStore(stores.watchlist, (s) => s.items.data);
+      const upgrades = useMemo(() => qualityUpgrades(items), [items]);
+      return {
+        upgrades,
+        dismiss: useCallback(() => void stores.watchlist.getState().dismissUpgrades(upgrades), [upgrades]),
+        async playTarget(entry: WatchlistDto): Promise<PlayTarget | null> {
+          const master = await stores.library.getState().loadDetails('movies', entry.masterId);
+          if (!master) return null;
+          const library = stores.library.getState();
+          const better = master.variants.filter((variant) => !variant.source || !LOW_SOURCES.includes(variant.source));
+          const variant = startingVariant(better, {
+            profileLanguages: library.profileLanguages,
+            choice: library.preferredVersion,
+            languages: library.versionLanguages,
+          });
+          if (!variant) return null;
+          library.selectVariant(master.id, variant.streamId);
+          return movieTarget(master, variant);
         },
       };
     },
