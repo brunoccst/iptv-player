@@ -480,6 +480,36 @@ describe.each([
     expect(await movieChanges()).toEqual({ added: 0, changed: 0, removed: 1 });
   });
 
+  it('My List and progress follow a title the provider renamed, by its items (issue #216)', async () => {
+    const { api, panel } = setup();
+    const { profiles } = await api.auth.login(login);
+    const profileId = profiles[0]!.id;
+    await libraryReady(api);
+    const idOf = async (title: string) =>
+      (await api.library.list('movies', { search: title })).items.find((card) => card.title.startsWith(title))?.id;
+    const before = (await idOf('Another Film'))!;
+    await api.watchlist.add(profileId, 'movies', before, { title: 'Another Film', year: 2019 });
+    await api.progress.save(profileId, 'movie', '103', {
+      title: 'Another Film',
+      masterId: before,
+      positionSeconds: 30,
+      durationSeconds: 90,
+    });
+    expect((await api.watchlist.list(profileId))[0]).toMatchObject({ masterId: before, streamIds: ['103'] });
+
+    // The provider renames it: a new title id.
+    panel.movies[2]!.name = 'Another Great Film (2019) SUB ITA';
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await api.library.sync();
+    await libraryReady(api);
+    const after = (await idOf('Another Great Film'))!;
+    expect(after).not.toBe(before);
+
+    expect((await api.watchlist.list(profileId)).map((item) => item.masterId)).toEqual([after]);
+    expect((await api.progress.list(profileId)).map((item) => item.masterId)).toEqual([after]);
+    await expect(api.library.get('movies', after)).resolves.toMatchObject({ id: after });
+  });
+
   it('reuses the saved library after a restart when many screens ask at once', async () => {
     const first = setup();
     await first.api.auth.login(login);

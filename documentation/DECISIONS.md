@@ -828,6 +828,7 @@ Hermes has no JIT and a Chromecast is about 9× slower than a PC, so code that r
 - Similar spellings ("Redemption" / "Redemtion") do not join ([#217](https://github.com/brunoccst/iptv-player/issues/217)).
 - A title shows its most common spelling and year, the best version's poster and quality, the highest rating and the newest date; its versions are read only when it opens.
 - Ids: SHA-1 of account, kind, key and year, so My List and progress follow a title across updates. When one key and year hold several TMDB ids, the smallest keeps that id and the others add their TMDB id ("-" for the id-less one).
+- A rename that changes the key or year gives the title a new id (issue #216). My List entries save their title's provider items (stream ids); progress has its movie or series item. Once per library change, reading either list looks up the ids the library no longer has and moves each to the title that now holds most of its items (`reattach.ts`), then saves the list; two entries that became one title keep the newest. Stream ids rather than TMDB ids: every item has one, and Xtream keeps it across renames. Entries saved before this carry no items until the list is read while their title still exists.
 - `NORMALIZER_RULES` (`libraryCodec.ts`) versions the grouping: raising it rebuilds every library once.
 
 ## D-135

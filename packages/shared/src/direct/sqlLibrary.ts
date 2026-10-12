@@ -372,6 +372,8 @@ const drops = (t: string) =>
   ].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
 
 const placeholders = (count: number) => Array.from({ length: count }, () => '?').join(', ');
+/** Ids per `IN (…)` lookup: well under SQLite's limit on parameters. */
+const LOOKUP_CHUNK = 400;
 /** ",a,b," : `instr(list, ",a,")` finds a whole entry. */
 const listOf = (values: Iterable<string>) => {
   const text = [...values].join(',');
@@ -820,6 +822,38 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [], orders: [], fingerprint },
         changes,
       };
+    },
+
+    /** The provider items (stream ids) of those of `ids` that are titles of this library (issue #216). */
+    async itemsOf(saved: SqlLibraryKind, ids: string[]): Promise<Map<string, string[]>> {
+      const result = new Map<string, string[]>();
+      if (saved.packed) return result;
+      const t = saved.table;
+      for (let start = 0; start < ids.length; start += LOOKUP_CHUNK) {
+        const chunk = ids.slice(start, start + LOOKUP_CHUNK);
+        const rows = await db.query(
+          `SELECT a.id, i.sid FROM ${t} a JOIN ${t}_i i ON i.g = a.g WHERE a.id IN (${placeholders(chunk.length)})`,
+          chunk,
+        );
+        for (const [id, sid] of rows) result.set(String(id), [...(result.get(String(id)) ?? []), String(sid)]);
+      }
+      return result;
+    },
+
+    /** The title that holds each of these provider items (stream ids), when one does (issue #216). */
+    async holdersOf(saved: SqlLibraryKind, streamIds: string[]): Promise<Map<string, string>> {
+      const result = new Map<string, string>();
+      if (saved.packed) return result;
+      const t = saved.table;
+      for (let start = 0; start < streamIds.length; start += LOOKUP_CHUNK) {
+        const chunk = streamIds.slice(start, start + LOOKUP_CHUNK);
+        const rows = await db.query(
+          `SELECT i.sid, a.id FROM ${t}_i i JOIN ${t} a ON a.g = i.g WHERE i.sid IN (${placeholders(chunk.length)})`,
+          chunk,
+        );
+        for (const [sid, id] of rows) if (id !== null) result.set(String(sid), String(id));
+      }
+      return result;
     },
 
     /** One page of a list: the same filters and orders as the in-memory library. */

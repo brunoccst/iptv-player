@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **My List and progress survive renamed titles** (2026-10-12, D-133, issue #216): when your provider renames a movie or series, it stays on My List and Continue watching instead of disappearing from them.
 - **A longer TV guide** (2026-10-12, D-032, issue #229): the guide used to stop after each channel's next 12 programmes. Further ahead, it now shows the programmes of your provider's full TV guide, up to a day ahead.
 - **Catch-up: watch what you missed** (2026-10-12, D-032, issue #226): on channels whose provider keeps recordings, ended programmes in the guide carry ↺ and play from the recording, with pause and seeking. OK plays an ended programme; holding OK on the programme on now starts it from the beginning. On the phone, a programme's details offer Watch or From the start. The guide now goes back a day.
 - **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of a black screen or an error from the provider. Switching channels or going on to the next episode does not ask again.
@@ -96,6 +97,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **My List and progress survive renamed titles** (2026-10-12, D-133, issue #216): when your provider renames a movie or series, it stays on My List and Continue watching instead of disappearing from them.
 - **A longer TV guide** (2026-10-12, D-032, issue #229): the guide used to stop after each channel's next 12 programmes. Further ahead, it now shows the programmes of your provider's full TV guide, up to a day ahead.
 - **Catch-up: watch what you missed** (2026-10-12, D-032, issue #226): on channels whose provider keeps recordings, ended programmes in the guide carry ↺, and their details offer Watch, which plays the recording with pause and seeking. The programme on now offers From the start. The guide now goes back a day.
 - **Live TV on more providers** (2026-10-12, D-023, issue #220): channels from providers that only send live TV as MPEG-TS, not HLS, now play in the desktop app. Before, they did not play at all.

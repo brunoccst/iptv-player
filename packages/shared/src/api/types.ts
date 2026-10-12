@@ -248,6 +248,8 @@ export interface WatchlistDto {
   year: null | number;
   /** Read from the library when the list loads, not saved: the cover's quality badge (4K, TS…) and versions. */
   quality?: Pick<MasterCard, 'bestQuality' | 'lowSource' | 'rating' | 'variantCount'>;
+  /** Saved: the provider items (stream ids) of the title, to find it again when a rename changes its id (issue #216). */
+  streamIds?: string[];
 }
 
 export interface WatchlistRequest {
