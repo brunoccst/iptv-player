@@ -152,7 +152,7 @@ A season choice with a "Watched" button on its left that marks the whole season 
 
 ### Playback controls
 
-Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-077); the remote's media keys (Play/Pause, Play, Pause, ⏪/⏩, Stop to close) work whatever is on screen (issue #178). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046); slide up or down on the left third of the video for brightness and on the right third for volume, with a bar that shows the level while sliding and a second after (issue #184, D-046). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps), media keys (play, pause, stop, back, forward; issue #178) and mouse; hovering over the timeline shows preview frames (D-023).
+Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "Skip ahead" by 30 s to 3 min instead of Skip Intro (D-042). At the end of an episode, the next one is offered (next-up). Presses in a row skip further each time: 10 s, 30 s, 1 min, 2 min, then 5 min; the other way or a pause of a second starts again at 10 s (D-128). TV: ←/→ and holding to scrub; with ←/→ the presses after the first move a preview on the progress bar and the video jumps once they stop (D-128); the on-screen ±10 s buttons skip at once; ↑/↓ open the buttons (D-077); the remote's media keys (Play/Pause, Play, Pause, ⏪/⏩, Stop to close) work whatever is on screen (issue #178). Phone: full-screen landscape, double tap to skip and more quick taps to skip further, drag the timeline, the screen stays on (D-046); slide up or down on the left third of the video for brightness and on the right third for volume, with a bar that shows the level while sliding and a second after (issue #184, D-046). Desktop: keyboard (←/→, space, ↑/↓ volume; a held arrow repeats 10 s steps), media keys (play, pause, stop, back, forward; issue #178) and mouse; hovering over the timeline shows preview frames when the account allows a second stream (D-023, D-175).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. Sliding for brightness and volume is phone only (TV: the remote's volume keys; desktop: ↑/↓). Timeline preview frames are desktop only (TV and phone: the scrub bar).
 
@@ -180,9 +180,15 @@ When a stream does not play, the error and the Log say why: the provider's answe
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. Desktop plays MKV with H.264/AAC but not HEVC without a decoder or AC3/DTS audio ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
 
+### Connection limit
+
+Before a stream starts, the apps ask the provider how many of the account's streams are in use. When all are, they say so and offer Play anyway or Go back, instead of a stream the provider refuses. They do not ask while switching channels or going on to the next episode, since the provider still counts the app's own stream then (D-175).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ### Audio decoder (TV and phone)
 
-FFmpeg decoders for Dolby Digital / Plus and DTS are built in; the account menu → Library & devices → Playback chooses them or the device's decoders first (D-059).
+FFmpeg decoders for Dolby Digital / Plus and DTS are built in; the account menu → Library & devices → Playback chooses them or the device's decoders first. When the device's decoder fails on a title, the player switches to FFmpeg on its own, from the same point, and keeps that choice for the next titles (D-059).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ➖ (Chromium decodes itself).
 
@@ -196,9 +202,9 @@ Hands a movie or episode to another player app with the provider's User-Agent: V
 
 ### TV guide
 
-The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it. TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179).
+The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it. TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179). TV: → on a row's last programme shows the next hour; once the guide is ahead of now, ← on the first programme goes back an hour (issue #240).
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. ↑/↓ through the categories and Channel +/− are TV only.
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. ↑/↓ through the categories, Channel +/− and moving the hours with ←/→ are TV only (phone and desktop: Earlier / Later).
 
 ### Guide over the playing channel
 
@@ -216,7 +222,7 @@ Each profile keeps its last 20 channels. Home's live row lists them; on TV, ↓ 
 
 ### Titles, channels and programmes
 
-Finds movies, series, live channels and programmes of the TV guide on now or in the next day; a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
+Finds movies, series, live channels and programmes of the TV guide on now or in the next day, also from guides that leave out when a programme ends (issue #241); a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

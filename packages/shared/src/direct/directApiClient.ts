@@ -1453,6 +1453,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         const { stored, client } = await session();
         return { ...client.playbackUrl(kind, id, container, stored.info), deliveryMode: 'direct' };
       },
+      async connections(signal) {
+        const { client } = await session();
+        return client.connections(signal);
+      },
     },
   };
 }

@@ -19,7 +19,10 @@ export const asciiJson = (value: unknown) =>
   JSON.stringify(value).replace(/[\u0080-\uffff]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 export const fromAscii = (bytes: Uint8Array) => Array.from(bytes, (b) => String.fromCharCode(b)).join('');
 
-/** Web Crypto when available. Otherwise Math.random: salt and nonce must be unique, not secret, and each backup gets a fresh salt, so a fresh key. */
+/**
+ * Web Crypto. The TV/phone app installs it from Android's SecureRandom (issue #233); Math.random stays as a last
+ * resort: salt and nonce must be unique, not secret, and each backup gets a fresh salt, so a fresh key.
+ */
 export function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length);
   if (globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(bytes);

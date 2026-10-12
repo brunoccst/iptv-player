@@ -17,6 +17,9 @@ internal class XmltvFilter(
   private val buffer = StringBuilder()
   private val batch = StringBuilder()
 
+  /** Channels whose last kept programme had no `stop`: their next programme is kept too, to end it (issue #241). */
+  private val openChannels = HashSet<String>()
+
   /** Characters read so far. */
   var chars = 0L
     private set
@@ -61,14 +64,24 @@ internal class XmltvFilter(
     batch.setLength(0)
   }
 
-  /** Reads `start` and `stop` from the opening tag at [begin]; unreadable times are kept (JavaScript decides). */
+  /**
+   * Reads `start` and `stop` from the opening tag at [begin]; unreadable times are kept (JavaScript decides). A
+   * programme without `stop` ends where its channel's next one starts (issue #241), so that next one is kept as well.
+   */
   private fun inWindow(begin: Int): Boolean {
     val tagEnd = buffer.indexOf(">", begin)
     if (tagEnd < 0) return true
     val tag = buffer.substring(begin, tagEnd)
+    val channel = attribute(tag, "channel") ?: ""
+    val endsOpen = openChannels.remove(channel)
     val start = attribute(tag, "start")?.let(::parseTime) ?: return true
-    val stop = attribute(tag, "stop")?.let(::parseTime) ?: return true
-    return stop > fromMs && start < toMs
+    val stop = attribute(tag, "stop")?.let(::parseTime)
+    if (stop == null) {
+      if (start >= toMs) return endsOpen
+      openChannels.add(channel)
+      return true
+    }
+    return endsOpen || (stop > fromMs && start < toMs)
   }
 
   companion object {

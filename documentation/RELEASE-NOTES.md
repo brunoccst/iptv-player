@@ -10,6 +10,18 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ## TV and phone app
 
+### 2.0
+
+A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before your provider refuses a stream, and fix more playback and guide problems on their own.
+
+#### Latest
+
+- **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of a black screen or an error from the provider. Switching channels or going on to the next episode does not ask again.
+- **Dolby and DTS sound fixes itself** (2026-10-12, D-059, issue #235): when the TV's or phone's own audio decoder fails on a title, the player switches to the built-in FFmpeg decoders and carries on from the same point, and keeps that choice for the next titles. You no longer have to find the setting after an error; it is still under Library & devices → Playback.
+- **Move through the guide's hours with the remote** (2026-10-12, D-032, issue #240): on the TV, → on a row's last programme shows the next hour, and once the guide shows later hours, ← on the first programme goes back an hour. Earlier / Now / Later still work.
+- **More programmes in search** (2026-10-12, D-130, issue #241): programmes from TV guides that leave out when a show ends now appear in search, ending where the channel's next programme starts.
+- **Safer backups and pairing** (2026-10-12, D-056, issue #233): backup passwords and the phone-to-TV link now use the system's secure random numbers.
+
 ### 1.0
 
 The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
@@ -75,6 +87,16 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 - Large libraries (100k+ titles) on slow TVs: lists read by native code, faster grouping, no freezes (D-093, D-115).
 
 ## Desktop app
+
+### 2.0
+
+A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before your provider refuses a stream.
+
+#### Latest
+
+- **A warning when all your streams are in use** (2026-10-12, D-175, issue #242): before a channel or title starts, the app asks your provider how many of the account's streams are in use. When all of them are, probably on another device, it says so and offers Play anyway or Go back, instead of an error from the provider. Switching channels or going on to the next episode does not ask again.
+- **Timeline previews no longer cost you the stream** (2026-10-12, D-175, issue #218): the preview frames over the timeline need a second stream, so they only show when your account allows more than one at a time and one is free. On one-stream accounts the provider no longer stops the video when you hover the timeline.
+- **More programmes in search** (2026-10-12, D-130, issue #241): programmes from TV guides that leave out when a show ends now appear in search, ending where the channel's next programme starts.
 
 ### 1.0
 

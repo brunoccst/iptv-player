@@ -57,6 +57,11 @@ import {
   type RecentChannel,
   providerUnreachableMessage,
   unreachableHost,
+  checkConnectionLimit,
+  connectionCheckNeeded,
+  connectionLimitMessage,
+  holdStreamConnection,
+  type ConnectionUse,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, appContext, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
@@ -259,8 +264,34 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     resumeAt.current = null;
   }, [target]);
 
+  // All the account's streams in use (issue #242, D-175): asks before opening another. 'checking' while the provider
+  // answers; skipped for a download and while the provider still counts the app's own stream (zapping, next episode).
+  const [limit, setLimit] = useState<ConnectionUse | 'checking' | null>(() => {
+    const download = target.kind === 'live' ? null : selectDownload(downloadsStore.getState(), target.kind, target.streamId);
+    return download?.state !== 'completed' && api.playback.connections && connectionCheckNeeded() ? 'checking' : null;
+  });
+  useEffect(() => {
+    if (limit !== 'checking' || !api.playback.connections) return;
+    let cancelled = false;
+    const read = api.playback.connections;
+    void checkConnectionLimit((signal) => read(signal)).then((use) => {
+      if (cancelled) return;
+      if (use) appLog.warn('player', `${use.active} of ${use.max} connections in use: asking before playing`);
+      setLimit(use);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+  const waiting = limit !== null;
+  const full = limit !== null && limit !== 'checking' ? limit : null;
+  // Error and the full account stop the player alike: no controls, swipes or focus catcher behind them.
+  const halted = !!error || !!full;
+  useEffect(() => (source && !source.offlineId ? holdStreamConnection() : undefined), [source]);
+
   // Resolve the source: completed download first, else the TV attempt list (original file, then HLS).
   useEffect(() => {
+    if (waiting) return;
     let cancelled = false;
     // Read when the title starts: a changed setting applies to the next title, not mid-stream (D-059).
     const audioDecoder = playbackSettings.getState().audioDecoder;
@@ -303,7 +334,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     return () => {
       cancelled = true;
     };
-  }, [target, attempt, retry]);
+  }, [target, attempt, retry, waiting]);
 
   const saveProgress = useCallback(() => savePlaybackProgress(stores.progress, target, timeRef.current, durationRef.current), [target]);
 
@@ -462,7 +493,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // "Skip ahead": early in an episode; opens into 30 s … 3 min. Stays up while its options are open.
   const skipWindow = skipAheadWindow(target.kind, duration);
   const [skipOpen, setSkipOpen] = useState(false);
-  const showSkipAhead = ready && !error && (skipOpen || isInSkipAheadWindow(skipWindow, time));
+  const showSkipAhead = ready && !halted && (skipOpen || isInSkipAheadWindow(skipWindow, time));
   const countdown = nextDismissed ? null : nextUpCountdown(time, duration, !!next);
   const focusablesVisible = showSkipAhead || countdown !== null;
 
@@ -558,7 +589,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
 
   // Phones: slide up/down on the left third for brightness, the right third for volume; live: swipe up in the middle
   // opens the guide overlay (D-046).
-  const swipe = usePlayerSwipes(!Platform.isTV && !guide && !drawer && !recent && !error, isLive ? () => setGuide(true) : null);
+  const swipe = usePlayerSwipes(!Platform.isTV && !guide && !drawer && !recent && !halted, isLive ? () => setGuide(true) : null);
 
   const zap = (channel: LiveChannel, programme: EpgListing | null) => {
     setGuide(false);
@@ -639,7 +670,21 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
           const explain = !source?.offlineId && /^ERROR_CODE_(PARSING|IO_BAD_HTTP_STATUS)/.test(code) ? source?.uri : undefined;
           // Decoding errors: the other server and the HLS copy carry the same audio/video, so retrying only costs time.
           if (code.startsWith('ERROR_CODE_DECODING') || code.startsWith('ERROR_CODE_AUDIO_TRACK')) {
-            setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable()));
+            // The device's audio decoder claimed the format and failed (issue #235): FFmpeg takes over, for this title
+            // and, as the saved choice, on this device from now on (D-059).
+            const audioFailed = /MediaCodecAudioRenderer/.test(`${message} ${detail ?? ''}`);
+            if (source && audioFailed && source.audioDecoder !== 'ffmpeg' && TvMedia.ffmpegAudioAvailable()) {
+              appLog.warn('player', 'the device could not decode the audio: trying FFmpeg, kept for later titles');
+              void playbackSettings.getState().setAudioDecoder('ffmpeg');
+              setReady(false);
+              setSource({
+                ...source,
+                audioDecoder: 'ffmpeg',
+                startPositionMs: resumeAt.current !== null ? resumeAt.current * 1000 : source.startPositionMs,
+              });
+              return;
+            }
+            setError(playbackErrorText(message, detail, code, TvMedia.ffmpegAudioAvailable() && source?.audioDecoder !== 'ffmpeg'));
             return;
           }
           // The stream server's other address only helps with network and HTTP errors.
@@ -677,7 +722,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {/* Android TV sends D-pad keys to JS only while a view has focus; nothing else is focusable here. See DECISIONS.md#d-028.
           On TV it steps aside while Skip ahead / Next episode buttons need the focus; phones keep it, so a tap on the video
           still shows the controls and the timeline while those buttons are up. */}
-      {!drawer && !guide && !recent && !(Platform.isTV && focusablesVisible) && !tvButtons && !error ? (
+      {!drawer && !guide && !recent && !(Platform.isTV && focusablesVisible) && !tvButtons && !halted ? (
         <Pressable
           testID="player-focus"
           accessibilityLabel={t('Player')}
@@ -687,11 +732,24 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         />
       ) : null}
 
-      {(!ready || buffering) && !error ? <Loading label={t('Loading stream')} /> : null}
+      {(!ready || buffering) && !halted ? <Loading label={t('Loading stream')} /> : null}
       {/* Mid-stream the provider stopped sending the video: says so while the next address is tried (D-074). */}
-      {(notice || reconnecting) && !error ? (
+      {(notice || reconnecting) && !halted ? (
         <View style={styles.notice} pointerEvents="none" testID="player-notice">
           <Text style={styles.noticeText}>{reconnecting ? t('The provider stopped sending the video. Reconnecting…') : notice}</Text>
+        </View>
+      ) : null}
+      {full && !error ? (
+        <View style={styles.center} testID="player-connection-limit">
+          <ErrorText>{connectionLimitMessage(full)}</ErrorText>
+          <FocusButton
+            label={t('Play anyway')}
+            variant="primary"
+            hasTVPreferredFocus
+            testID="player-play-anyway"
+            onPress={() => setLimit(null)}
+          />
+          <FocusButton label={t('Go back')} onPress={() => navStore.getState().back()} />
         </View>
       ) : null}
       {error ? (
@@ -709,13 +767,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
-      {swipe.level && !error ? <LevelBar kind={swipe.level.kind} value={swipe.level.value} /> : null}
+      {swipe.level && !halted ? <LevelBar kind={swipe.level.kind} value={swipe.level.value} /> : null}
       {flash ? <TapFlash direction={flash.direction} seconds={flash.seconds} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
       {scrub ? (
         <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />
       ) : null}
 
-      {controls && !guide && !recent && !scrub && !error ? (
+      {controls && !guide && !recent && !scrub && !halted ? (
         // Web `.player__overlay`: back + title on top, timeline + controls at the bottom. On TV the remote drives them.
         <View style={styles.overlay} pointerEvents={Platform.isTV && !buttons ? 'none' : 'box-none'} testID="player-controls">
           <Gradient

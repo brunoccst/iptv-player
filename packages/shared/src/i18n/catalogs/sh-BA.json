@@ -308,6 +308,7 @@
   "Play": "Pusti",
   "Play {title}": "Pusti {title}",
   "Play {title} on {tv}": "Pusti {title} na {tv}",
+  "Play anyway": "Ipak pusti",
   "Play from the beginning": "Pusti od početka",
   "Play Now": "Pusti sada",
   "Play on {tv}": "Pusti na {tv}",
@@ -547,5 +548,6 @@
   "Your library is empty. Is the title normalizer worker running?": "Biblioteka je prazna. Da li radi worker za normalizaciju naslova?",
   "Your library is up to date: nothing new from your provider.": "Vaša biblioteka je ažurna: ništa novo od vašeg provajdera.",
   "Your library was updated.": "Vaša biblioteka je ažurirana.",
-  "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu."
+  "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu.",
+  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Tvoj provajder kaže da je {active} od {max} streamova koje tvoj račun dozvoljava u upotrebi, vjerovatno na drugom uređaju. Pokretanje ovog može biti odbijeno ili zaustaviti drugi."
 }

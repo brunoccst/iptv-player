@@ -125,5 +125,7 @@ export interface ApiClient {
   };
   playback: {
     get(kind: PlaybackKind, id: string, container?: string | null, signal?: AbortSignal): Promise<PlaybackInfo>;
+    /** Streams the account has in use and may have (issue #242); null where not reported. Absent without a provider. */
+    connections?(signal?: AbortSignal): Promise<{ active: number | null; max: number | null }>;
   };
 }

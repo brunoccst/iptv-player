@@ -109,6 +109,71 @@ describe('LiveScreen (guide)', () => {
     expect(requests.at(-1)!.searchParams.get('from')).toBe('2026-09-23T13:00:00.000Z');
   });
 
+  it('TV: Right on the last programme shows the next hour; Left on the first goes back while ahead of now (issue #240)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    navStore.getState().goSection('live');
+    const requests: URL[] = [];
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });
+    backend.on('GET', '/api/epg', ({ url }) => {
+      requests.push(url);
+      return {
+        body: {
+          status: 'ready',
+          updatedAt: at(0),
+          from: url.searchParams.get('from'),
+          to: at(300),
+          totalChannels: 1,
+          channels: [
+            {
+              channel: channel('1', 'News HD'),
+              programmes: [
+                { start: at(-30), end: at(30), title: 'Morning Briefing', description: null },
+                { start: at(30), end: at(150), title: 'World Report', description: null },
+                { start: at(150), end: at(300), title: 'Late Show', description: null },
+              ],
+            },
+          ],
+        },
+      };
+    });
+    const from = () => requests.at(-1)!.searchParams.get('from');
+
+    await render(<LiveScreen />);
+    await flush();
+    await layoutGuide();
+    await flush();
+    expect(from()).toBe('2026-09-23T12:00:00.000Z');
+
+    // Not the last programme: Right moves along the row only.
+    await fireEvent(screen.getByLabelText(/^Morning Briefing,/), 'focus');
+    await flush();
+    await act(async () => pressRemote('right', 'down'));
+    await flush();
+    expect(from()).toBe('2026-09-23T12:00:00.000Z');
+    // At "now", Left on the first programme goes to the channel as before.
+    await act(async () => pressRemote('left', 'down'));
+    await flush();
+    expect(from()).toBe('2026-09-23T12:00:00.000Z');
+
+    await fireEvent(screen.getByLabelText(/^Late Show,/), 'focus');
+    await flush();
+    await act(async () => pressRemote('right', 'down'));
+    await flush();
+    expect(from()).toBe('2026-09-23T13:00:00.000Z');
+    // Ahead of now the channel cell steps aside, so Left at the first programme goes back an hour.
+    expect(screen.getByTestId('guide-channel-1').props.focusable).toBe(false);
+    await fireEvent(screen.getByLabelText(/^Late Show,/), 'blur');
+    await fireEvent(screen.getByLabelText(/^World Report,/), 'focus');
+    await flush();
+    expect(screen.queryByLabelText(/^Morning Briefing,/)).toBeNull();
+    await act(async () => pressRemote('left', 'down'));
+    await flush();
+    // Back on the hours already loaded: the morning show is in the window again.
+    expect(screen.getByLabelText(/^Morning Briefing,/)).toBeTruthy();
+    expect(screen.getByTestId('guide-channel-1').props.focusable).toBe(true);
+  });
+
   it('on phones a tap selects the programme and "Watch live" plays it, like the web', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     const backend = setupApp();
