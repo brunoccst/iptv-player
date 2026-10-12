@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import type { BackupStorages } from '../backup/userData';
 import { t } from '../i18n/i18n';
 import { appLog, errorMessage } from '../utils/logger';
-import { acceptPairing, pairingMessage, pairingQrText } from './pairing';
+import { acceptPairing, pairingMessage, pairingQrText, type PairingMode } from './pairing';
 import type { RemoteOffer } from './remote';
 
 export type PairingServerState =
   | { phase: 'starting' }
   | { phase: 'ready'; qr: string; error: string | null }
   | { phase: 'working'; qr: string }
-  | { phase: 'done'; mode: 'login' | 'sync'; accountName: string }
+  | { phase: 'done'; mode: PairingMode; accountName: string }
   | { phase: 'offline' };
 
-/** The device's pairing server (TV: native module; desktop: the main process). */
+/** The device's pairing server (TV, phone and tablet: native module; desktop: the main process). */
 export interface PairingServer {
   /** `host` is null without a home network. `key`: 32 random bytes, base64. */
   start(): { host: string | null; port: number; key: string } | Promise<{ host: string | null; port: number; key: string }>;
@@ -23,9 +23,9 @@ export interface PairingServer {
 }
 
 /**
- * The TV's or computer's side of phone pairing (D-060), for both apps (D-079): while mounted, the server runs
- * and `qr` holds the code to show. A phone that scans it signs this device in or merges its data, then the app state
- * reloads. Refused attempts (another account) keep the code valid. Without a server (a browser) or a home network:
+ * The side of device pairing that shows the code (D-060), for every app (D-079, D-178): while mounted, the server runs
+ * and `qr` holds the code to show. A device that scans it signs this device in, merges its data or gets this device's
+ * sign-in, then the app state reloads. Refused attempts (another account) keep the code valid. Without a server (a browser) or a home network:
  * 'offline'.
  */
 export function usePairingServer(
@@ -82,7 +82,10 @@ export function usePairingServer(
               appLog.warn('pairing', `refused: ${result.error}`);
               setState({ phase: 'ready', qr, error: pairingMessage(result.error) });
             } else {
-              appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : 'synced'} with a phone`);
+              appLog.info(
+                'pairing',
+                `${result.mode === 'login' ? 'signed in' : result.mode === 'share' ? 'shared the sign-in' : 'synced'} with a device`,
+              );
               void server.stop();
               await options.paired?.(remote);
               await options.reload();

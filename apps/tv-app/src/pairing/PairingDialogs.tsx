@@ -1,22 +1,26 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
 import { createStore } from 'zustand/vanilla';
 import { useAppStore, t } from '@iptv/shared';
 import { ErrorText } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { colors, fonts } from '../theme';
-import { connectToTv, usePairingServer, type PairingServerState } from './pairing';
+import { canScanQr, connectToDevice, usePairingServer, type PairingServerState } from './pairing';
 import { QrCode } from './QrCode';
 
 /** Open state lives outside the account menu: pairing reloads the app state, which briefly unmounts the screens. */
-export const pairingDialog = createStore<{ open: boolean }>(() => ({ open: false }));
+export const pairingDialog = createStore<{ open: boolean; view: SyncView }>(() => ({ open: false, view: 'code' }));
+type SyncView = 'code' | 'scan';
+/** Account menu → Sync with another device shows this device's code; the sign-in page's Scan a code opens the scanner. */
+export const openPairingDialog = (view: SyncView = 'code') => pairingDialog.setState({ open: true, view });
 const closeDialog = () => pairingDialog.setState({ open: false });
 
-/** Rendered once at the app root: account menu → Sync with phone (TV) or Connect a TV or computer (phone), D-060. */
+/** Rendered once at the app root (D-060, D-178). */
 export function PairingDialogHost() {
   const open = useAppStore(pairingDialog, (s) => s.open);
+  const view = useAppStore(pairingDialog, (s) => s.view);
   if (!open) return null;
-  return Platform.isTV ? <SyncWithPhoneDialog onClose={closeDialog} /> : <ConnectTvDialog onClose={closeDialog} />;
+  return <SyncDialog initialView={view} onClose={closeDialog} />;
 }
 
 /** The QR code, or what stands in for it, for a running pairing server (D-060). */
@@ -25,13 +29,9 @@ export function PairingCode({ state, size }: { state: PairingServerState; size: 
     case 'starting':
       return <ActivityIndicator color={colors.accent} style={{ height: size }} />;
     case 'offline':
-      return <Text style={styles.text}>{t('This TV is not connected to a network, so a phone cannot reach it.')}</Text>;
+      return <Text style={styles.text}>{t('This device is not connected to a network, so other devices cannot reach it.')}</Text>;
     case 'done':
-      return (
-        <Text style={styles.text}>
-          {state.mode === 'login' ? t('Signed in as {accountName}.', { accountName: state.accountName }) : t('Synced with the phone.')}
-        </Text>
-      );
+      return <Text style={styles.text}>{pairingDoneText(state)}</Text>;
     default:
       return (
         <View style={styles.code}>
@@ -43,76 +43,105 @@ export function PairingCode({ state, size }: { state: PairingServerState; size: 
   }
 }
 
-/** TV: account menu → Sync with phone. Shows the code until a phone with the same account has synced. */
-export function SyncWithPhoneDialog({ onClose }: { onClose(): void }) {
-  const state = usePairingServer();
+export function pairingDoneText(state: Extract<PairingServerState, { phase: 'done' }>) {
+  switch (state.mode) {
+    case 'login':
+      return t('Signed in as {accountName}.', { accountName: state.accountName });
+    case 'share':
+      return t('The other device is now signed in as {accountName}.', { accountName: state.accountName });
+    case 'sync':
+      return t('Synced with the other device.');
+  }
+}
+
+/**
+ * Account menu → Sync with another device (D-060, D-178): this device's code for another device to scan, and on
+ * devices with a camera, Scan a code to read another device's code instead.
+ */
+export function SyncDialog({ initialView, onClose }: { initialView: SyncView; onClose(): void }) {
+  const [view, setView] = useState<SyncView>(initialView);
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
-        <View style={styles.panel} testID="sync-with-phone">
-          <Text style={styles.title}>{t('Sync with phone')}</Text>
-          <Text style={styles.text}>
-            {t(
-              'On your phone, open this app → account menu → Connect a TV or computer, and scan the code. Profiles, My List and watch progress are merged on both devices; playback settings stay on each device.',
-            )}
-          </Text>
-          <PairingCode state={state} size={220} />
-          <FocusButton
-            label={state.phase === 'done' ? t('Done') : t('Close')}
-            variant={state.phase === 'done' ? 'primary' : 'ghost'}
-            hasTVPreferredFocus
-            onPress={onClose}
-            testID="sync-with-phone-close"
-          />
+        <View style={styles.panel} testID="sync-devices">
+          <Text style={styles.title}>{t('Sync with another device')}</Text>
+          {view === 'code' ? (
+            <ShowCode onScan={() => setView('scan')} onClose={onClose} />
+          ) : (
+            // A cancelled scan goes back to this device's code, or closes when the scanner was all that was asked for.
+            <ScanCode onCancel={initialView === 'code' ? () => setView('code') : onClose} onClose={onClose} />
+          )}
         </View>
       </View>
     </Modal>
   );
 }
 
-/** Phone: account menu → Connect a TV or computer. Opens the scanner at once, then shows the outcome. */
-export function ConnectTvDialog({ onClose }: { onClose(): void }) {
+function ShowCode({ onScan, onClose }: { onScan(): void; onClose(): void }) {
+  const state = usePairingServer();
+  const done = state.phase === 'done';
+  return (
+    <>
+      <Text style={styles.text}>
+        {t(
+          'Scan this code with the app on another phone or tablet: account menu → Sync with another device → Scan a code. Profiles, My List and watch progress are merged on both devices; playback settings stay on each device.',
+        )}
+      </Text>
+      <PairingCode state={state} size={220} />
+      {!done && canScanQr() ? <FocusButton label={t('Scan a code instead')} variant="ghost" onPress={onScan} testID="sync-scan" /> : null}
+      <FocusButton
+        label={done ? t('Done') : t('Close')}
+        variant={done ? 'primary' : 'ghost'}
+        hasTVPreferredFocus
+        onPress={onClose}
+        testID="sync-close"
+      />
+    </>
+  );
+}
+
+/** Opens the scanner at once, then shows the outcome. */
+function ScanCode({ onCancel, onClose }: { onCancel(): void; onClose(): void }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // One scan per mount, whatever the parent redraws.
+  const cancel = useRef(onCancel);
+  cancel.current = onCancel;
   useEffect(() => {
     let active = true;
-    connectToTv()
+    connectToDevice()
       .then((text) => {
         if (!active) return;
-        if (text === null) onClose();
+        if (text === null) cancel.current();
         else setMessage(text);
       })
       .catch((e: unknown) => active && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       active = false;
     };
-  }, [onClose]);
+  }, []);
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.scrim}>
-        <View style={styles.panel} testID="connect-tv">
-          <Text style={styles.title}>{t('Connect a TV or computer')}</Text>
-          {message ? (
-            <Text style={styles.text}>{message}</Text>
-          ) : error ? (
-            <ErrorText>{error}</ErrorText>
-          ) : (
-            <>
-              <Text style={styles.text}>
-                {t('Scan the QR code on the TV: on its sign-in page, or in its account menu → Sync with phone.')}
-              </Text>
-              <ActivityIndicator color={colors.accent} />
-            </>
-          )}
-          <FocusButton
-            label={message ? t('Done') : t('Close')}
-            variant={message ? 'primary' : 'ghost'}
-            onPress={onClose}
-            testID="connect-tv-close"
-          />
-        </View>
-      </View>
-    </Modal>
+    <>
+      {message ? (
+        <Text style={styles.text}>{message}</Text>
+      ) : error ? (
+        <ErrorText>{error}</ErrorText>
+      ) : (
+        <>
+          <Text style={styles.text}>
+            {t('Scan the QR code on the other device: on its sign-in page, or in its account menu → Sync with another device.')}
+          </Text>
+          <ActivityIndicator color={colors.accent} />
+        </>
+      )}
+      <FocusButton
+        label={message ? t('Done') : t('Close')}
+        variant={message ? 'primary' : 'ghost'}
+        hasTVPreferredFocus
+        onPress={onClose}
+        testID="sync-close"
+      />
+    </>
   );
 }
 

@@ -32,6 +32,7 @@ export const nativeState = {
   pairingListeners: new Set<PairingListener>(),
   pairingReplies: new Map<string, (reply: { status: number; body: string }) => void>(),
   scanResult: null as string | null,
+  hasCamera: true,
   /** Remote play (D-061): the TV's remote server. */
   remoteRunning: false,
   remoteListeners: new Set<PairingListener>(),
@@ -84,6 +85,7 @@ export const nativeState = {
     this.pairingListeners.clear();
     this.pairingReplies.clear();
     this.scanResult = null;
+    this.hasCamera = true;
     this.remoteRunning = false;
     this.remoteListeners.clear();
     this.versionCode = 31;
@@ -217,6 +219,7 @@ export const TvMedia = {
     nativeState.pairingRunning = false;
     nativeState.calls.push('pairing-stop');
   },
+  hasCamera: () => nativeState.hasCamera,
   scanQrCode: async () => nativeState.scanResult,
   startRemote: (ports: number[]) => {
     nativeState.remoteRunning = true;

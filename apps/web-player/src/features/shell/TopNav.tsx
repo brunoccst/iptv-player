@@ -215,7 +215,7 @@ export function TopNav() {
                             openSyncWithPhone();
                           }}
                         >
-                          <Icon name="phone" size={18} /> {t('Sync with phone')}
+                          <Icon name="phone" size={18} /> {t('Sync with another device')}
                         </button>
                       ) : null}
                       <button

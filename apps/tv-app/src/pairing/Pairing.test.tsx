@@ -66,7 +66,7 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(await SecureStore.getItemAsync('settings.playback')).toBeNull();
   });
 
-  it('TV account menu → Sync with phone: refuses another account, then syncs the same one', async () => {
+  it('TV account menu → Sync with another device: refuses another account, then syncs the same one', async () => {
     setupApp();
     await render(<App />);
     await flush();
@@ -84,14 +84,14 @@ describe('phone-to-TV pairing (D-060)', () => {
       await sendPairing(phoneStorages(), offer, { fetch: toTv });
     });
     await flush();
-    expect(await screen.findByText('Synced with the phone.')).toBeTruthy();
+    expect(await screen.findByText('Synced with the other device.')).toBeTruthy();
     // The TV keeps its own sign-in.
     expect(stores.session.getState()).toMatchObject({ token: 'tok', activeProfileId: 'p1' });
-    await fireEvent.press(screen.getByTestId('sync-with-phone-close'));
+    await fireEvent.press(screen.getByTestId('sync-close'));
     expect(nativeState.pairingRunning).toBe(false);
   });
 
-  it('phone account menu → Connect a TV or computer scans the code and signs the TV in, without the playback settings', async () => {
+  it('phone account menu → Sync with another device → Scan a code and signs the TV in, without the playback settings', async () => {
     const backend = setupApp();
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     const tv = { secure: createMemoryStorage(), data: createMemoryStorage() };
@@ -108,9 +108,13 @@ describe('phone-to-TV pairing (D-060)', () => {
     await flush();
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-group-library'));
-    expect(screen.getByText('Connect a TV or computer')).toBeTruthy();
+    expect(screen.getByText('Sync with another device')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('menu-pairing'));
-    expect(await screen.findByText(/The TV or computer is signed in with your account/)).toBeTruthy();
+    expect(screen.getByTestId('pairing-qr')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('sync-scan'));
+    expect(await screen.findByText(/The other device is signed in with your account/)).toBeTruthy();
+    // Scanning stops this phone's own code.
+    expect(nativeState.pairingRunning).toBe(false);
     expect(JSON.parse(tv.secure.data.get('session')!)).toMatchObject({ token: 'tok', activeProfileId: null });
     expect(JSON.stringify([...tv.secure.data, ...tv.data.data])).not.toContain('audioDecoder');
     // The phone keeps the TV for "Play on TV" (D-061).
@@ -127,7 +131,58 @@ describe('phone-to-TV pairing (D-060)', () => {
     await fireEvent.press(screen.getByTestId('nav-account'));
     await fireEvent.press(screen.getByTestId('menu-group-library'));
     await fireEvent.press(screen.getByTestId('menu-pairing'));
+    await fireEvent.press(screen.getByTestId('sync-scan'));
     expect(await screen.findByText(/not a code from this app/)).toBeTruthy();
+  });
+
+  it('phone account menu shows its own code: another phone or tablet that scans it syncs, without a remote-play key (D-178)', async () => {
+    setupApp();
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-library'));
+    await fireEvent.press(screen.getByTestId('menu-pairing'));
+    expect(nativeState.pairingRunning).toBe(true);
+
+    let result: unknown;
+    await act(async () => {
+      result = await sendPairing(phoneStorages(), offer, { fetch: toTv });
+    });
+    await flush();
+    expect(result).toMatchObject({ ok: true, mode: 'sync', remote: undefined });
+    expect(await screen.findByText('Synced with the other device.')).toBeTruthy();
+    expect(screen.queryByTestId('sync-scan')).toBeNull();
+  });
+
+  it('phone sign-in page: shows its code, and Scan a code signs in with a signed-in device (D-178)', async () => {
+    const backend = setupApp({ signedIn: false });
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    const tablet = phoneStorages();
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      if (!String(url).startsWith('http://192.168.1.20:38123/')) return backend.fetch(url, init);
+      const reply = await acceptPairing(tablet, PAIRING_KEY, String(init?.body));
+      return new Response(reply.body, { status: reply.status });
+    }) as typeof fetch;
+    nativeState.scanResult = pairingQrText(offer);
+
+    await render(<App />);
+    await flush();
+    expect(screen.getByTestId('pairing-qr')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('login-scan'));
+    expect(await screen.findByText(/Signed in as demo\./)).toBeTruthy();
+    await flush();
+    expect(stores.session.getState()).toMatchObject({ status: 'authenticated', token: 'phone-token', activeProfileId: null });
+  });
+
+  it('devices without a camera only show their code', async () => {
+    setupApp({ signedIn: false });
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    nativeState.hasCamera = false;
+    await render(<App />);
+    await flush();
+    expect(screen.getByTestId('pairing-qr')).toBeTruthy();
+    expect(screen.queryByTestId('login-scan')).toBeNull();
   });
 
   describe('play on TV (D-061)', () => {
@@ -151,7 +206,7 @@ describe('phone-to-TV pairing (D-060)', () => {
       });
       await flush();
       expect(remote).toMatchObject({ tvName: 'Living room TV', port: 38127 });
-      await fireEvent.press(screen.getByTestId('sync-with-phone-close'));
+      await fireEvent.press(screen.getByTestId('sync-close'));
       const tv: PairedTv = { ...remote!, host: '192.168.1.20', pairedAt: '2026-09-26T12:00:00Z' };
 
       await act(async () => {

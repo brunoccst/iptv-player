@@ -16,7 +16,7 @@ import { Icon, type IconName } from './Icon';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
 import { SubtitleSettings } from './SubtitleSettings';
-import { pairingDialog } from '../pairing/PairingDialogs';
+import { openPairingDialog } from '../pairing/PairingDialogs';
 import { focus } from './focus';
 
 /** Asks first: signing out needs the provider password again and removes this account's downloads (D-050). */
@@ -115,12 +115,12 @@ export function AccountMenu() {
           testID: 'menu-refresh',
           onPress: then(() => void stores.library.getState().sync()),
         },
-        // Phone-to-TV sign-in and sync (D-060): the TV shows a code, the phone scans it.
+        // Sign-in and sync between devices (D-060, D-178): every device shows a code, devices with a camera scan one.
         {
           icon: Platform.isTV ? 'phone' : 'tv',
-          label: Platform.isTV ? t('Sync with phone') : t('Connect a TV or computer'),
+          label: t('Sync with another device'),
           testID: 'menu-pairing',
-          onPress: then(() => pairingDialog.setState({ open: true })),
+          onPress: then(() => openPairingDialog()),
         },
         { icon: 'backup', label: t('Back up data'), testID: 'menu-backup', onPress: then(() => setBackup(true)) },
         // Only builds with the FFmpeg audio decoders have something to choose (D-059).

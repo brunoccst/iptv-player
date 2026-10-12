@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { fluid, t, useUiLanguage } from '@iptv/shared';
-import { Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { stores } from '../appContext';
 import { appConfig } from '../config';
 import { ErrorText, errorText } from '../components/Feedback';
@@ -11,8 +11,8 @@ import { Gradient } from '../components/Gradient';
 import { BackupDialog } from '../components/BackupDialog';
 import { Field } from '../components/Field';
 import { useSession } from '../hooks';
-import { usePairingServer } from '../pairing/pairing';
-import { PairingCode } from '../pairing/PairingDialogs';
+import { canScanQr, usePairingServer } from '../pairing/pairing';
+import { openPairingDialog, PairingCode } from '../pairing/PairingDialogs';
 import { colors, fonts, radius, useSizes } from '../theme';
 
 /** Xtream login: the app talks to the provider directly (D-088). Select a field to open the on-screen keyboard. */
@@ -29,12 +29,13 @@ export function LoginScreen() {
   // the on-screen keyboard shrinks the window, and switching layouts while typing made the keyboard flicker.
   const short = Dimensions.get('screen').height < 600;
   const sizes = useSizes();
-  // TVs also offer sign-in by scanning a code with the phone app (D-060); phones are the ones that scan.
-  const phoneCard = Platform.isTV;
+  // Every device also offers sign-in from another device (D-060, D-178): beside the form when there is room
+  // (TVs, wide tablets), below it otherwise.
+  const side = width >= 760;
   // Enter on the keyboard moves to the next field; on the password it signs in.
   const usernameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
-  const available = width - 32 - (phoneCard ? PHONE_CARD_WIDTH + 16 : 0);
+  const available = width - 32 - (side ? PHONE_CARD_WIDTH + 16 : 0);
 
   const note = (
     <Text style={styles.note}>
@@ -57,7 +58,7 @@ export function LoginScreen() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={[styles.brand, { left: sizes.gutter, fontSize: fluid(width, 26, 3, 38) }]}>{appConfig.appName}</Text>
         {/* Short landscape screens (TVs are ~540 dp tall): two columns so every field fits without scrolling. */}
-        <View style={[styles.cards, { marginTop: short ? 48 : 72 }]}>
+        <View style={[styles.cards, !side && styles.cardsStacked, { marginTop: short ? 48 : 72 }]}>
           <View
             style={[
               styles.panel,
@@ -128,7 +129,7 @@ export function LoginScreen() {
               {short ? null : note}
             </View>
           </View>
-          {phoneCard ? <PhoneSignIn /> : null}
+          <DeviceSignIn width={side ? PHONE_CARD_WIDTH : Math.min(440, available)} />
         </View>
       </ScrollView>
       {restore ? <BackupDialog mode="restore" onClose={() => setRestore(false)} /> : null}
@@ -138,14 +139,25 @@ export function LoginScreen() {
 
 const PHONE_CARD_WIDTH = 230;
 
-/** Sign in by scanning this code with the phone app (account menu → Connect a TV or computer), D-060. */
-function PhoneSignIn() {
+/**
+ * Sign in from another device (D-060, D-178): a signed-in phone or tablet scans this code; devices with a camera can
+ * also scan the code of a signed-in device.
+ */
+function DeviceSignIn({ width }: { width: number }) {
   const state = usePairingServer();
   return (
-    <View style={styles.phoneCard} testID="login-phone">
-      <Text style={styles.phoneTitle}>{t('Sign in with your phone')}</Text>
+    <View style={[styles.phoneCard, { width }]} testID="login-phone">
+      <Text style={styles.phoneTitle}>{t('Sign in with another device')}</Text>
       <PairingCode state={state} size={170} />
-      <Text style={styles.note}>{t('In the app on your phone: account menu → Connect a TV or computer, then scan this code.')}</Text>
+      <Text style={styles.note}>
+        {t('With the app on a signed-in phone or tablet: account menu → Sync with another device → Scan a code.')}
+      </Text>
+      {canScanQr() ? (
+        <>
+          <Text style={styles.note}>{t('Signed in on another device? Scan its code to sign in here.')}</Text>
+          <FocusButton label={t('Scan a code')} variant="ghost" onPress={() => openPairingDialog('scan')} testID="login-scan" />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -155,6 +167,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24, paddingHorizontal: 16 },
   brand: { position: 'absolute', top: 24, color: colors.accent, fontWeight: '900', letterSpacing: -0.5 },
   cards: { flexDirection: 'row', alignItems: 'stretch', gap: 16 },
+  cardsStacked: { flexDirection: 'column', alignItems: 'center' },
   panel: { paddingVertical: 48, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: radius, gap: 16 },
   panelShort: { paddingVertical: 24, flexDirection: 'row', gap: 32 },
   phoneCard: {

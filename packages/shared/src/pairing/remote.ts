@@ -47,7 +47,7 @@ export function remoteMessage(error: RemoteError | 'unreachable' | 'unknown-phon
     case 'unreachable':
       return t('Could not reach {tv}. Open the app on the TV; phone and TV must be on the same home network (Wi-Fi).', { tv: tvName });
     case 'unknown-phone':
-      return t('{tv} does not know this phone any more. Pair again: on the TV, account menu → Sync with phone.', { tv: tvName });
+      return t('{tv} does not know this phone any more. Pair again: on the TV, account menu → Sync with another device.', { tv: tvName });
     case 'other-account':
       return t('{tv} is signed in to a different account.', { tv: tvName });
     case 'no-profile':

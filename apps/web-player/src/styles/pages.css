@@ -96,7 +96,7 @@
   color: var(--color-warning);
 }
 
-/* Sync with phone (desktop app, D-060): a compact card, everything centred with room around it (D-079). */
+/* Sync with another device (desktop app, D-060): a compact card, everything centred with room around it (D-079). */
 .modal__panel:has(.sync-phone) {
   width: min(480px, 100%);
 }

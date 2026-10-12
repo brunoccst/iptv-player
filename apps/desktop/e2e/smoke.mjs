@@ -39,11 +39,11 @@ try {
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible({ timeout: 30_000 });
   console.log('signed in directly to the panel');
 
-  // Sync with phone (D-060): the code names this computer's pairing server; a request with a wrong key goes through
+  // Sync with another device (D-060): the code names this computer's pairing server; a request with a wrong key goes through
   // the app and is refused (403), and the code stays valid.
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: /Library & devices/ }).click();
-  await page.getByRole('menuitem', { name: 'Sync with phone' }).click();
+  await page.getByRole('menuitem', { name: 'Sync with another device' }).click();
   const qr = await page.getByTestId('pairing-qr').getAttribute('data-text');
   const [, host, port] = /^IPTVPAIR:1:([\d.]+):(\d+):/.exec(qr ?? '') ?? [];
   assert.ok(host && port, `pairing code: ${qr}`);
