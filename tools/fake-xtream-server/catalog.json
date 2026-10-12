@@ -44,7 +44,7 @@
   ],
   "live": [
     { "id": "301", "name": "Test News HD", "category": "1", "epg": "news.test" },
-    { "id": "302", "name": "Test Sports FHD", "category": "2", "epg": "sports.test" },
+    { "id": "302", "name": "Test Sports FHD", "category": "2", "epg": "sports.test", "catchup": true },
     { "id": "303", "name": "Test Weather", "category": "1", "epg": "weather.test" },
     { "id": "304", "name": "Test Arena (no XMLTV id)", "category": "2", "epg": "" },
     { "id": "305", "name": "Test Kids", "category": "3", "epg": "KIDS.test" }

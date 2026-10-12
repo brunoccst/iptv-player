@@ -5,6 +5,7 @@ import {
   isBrowserNativeContainer,
   webPlaybackAttempts,
   type ApiClient,
+  type CatchupWindow,
   type PlaybackInfoWithAlternates,
   type PlaybackKind,
   providerUnreachableMessage,
@@ -18,6 +19,8 @@ export interface EngineSource {
   kind: PlaybackKind;
   streamId: string;
   container: string | null;
+  /** Live: a past programme from the provider's recordings (issue #226). */
+  catchup?: CatchupWindow | null;
 }
 
 export interface LoadedSource {
@@ -105,7 +108,7 @@ export class PlaybackEngine {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
       let playback: PlaybackInfoWithAlternates;
       try {
-        playback = await this.api.playback.get(source.kind, source.streamId, attempt.container, signal);
+        playback = await this.api.playback.get(source.kind, source.streamId, attempt.container, signal, { catchup: source.catchup });
       } catch (error) {
         if (signal?.aborted) throw error;
         failures.push(`${attempt.container}: ${error instanceof Error ? error.message : String(error)}`);
@@ -121,7 +124,7 @@ export class PlaybackEngine {
         try {
           const loaded: LoadedSource = { url, engine, offline: false };
           this.attempted.push(url);
-          await this.attach(loaded, signal);
+          await this.attach(loaded, signal, !source.catchup);
           return loaded;
         } catch (error) {
           if (signal?.aborted) throw error;
@@ -160,10 +163,10 @@ export class PlaybackEngine {
     this.mpegtsPlayer = null;
   }
 
-  private attach(source: LoadedSource, signal?: AbortSignal): Promise<void> {
+  private attach(source: LoadedSource, signal?: AbortSignal, live = true): Promise<void> {
     this.detach();
     if (source.engine === 'hls' && this.HlsClass.isSupported()) return this.attachHls(source.url, signal);
-    if (source.engine === 'mpegts') return this.attachMpegts(source.url, signal);
+    if (source.engine === 'mpegts') return this.attachMpegts(source.url, live, signal);
     // Safari plays HLS natively; everything else here is a progressive file.
     return this.attachNative(source.url, signal);
   }
@@ -206,18 +209,21 @@ export class PlaybackEngine {
     });
   }
 
-  /** Live MPEG-TS for panels without HLS output: mpegts.js transmuxes it into the <video> (issue #220). */
-  private async attachMpegts(url: string, signal?: AbortSignal): Promise<void> {
+  /**
+   * MPEG-TS for panels without HLS output: mpegts.js transmuxes it into the <video> (issue #220). A recording
+   * (`live` false, catch-up) is a fixed-length file it can seek in.
+   */
+  private async attachMpegts(url: string, live: boolean, signal?: AbortSignal): Promise<void> {
     const mpegts = await this.mpegts();
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!mpegts.isSupported()) throw new Error('MPEG-TS playback is not supported here');
     const video = this.video;
     const player = mpegts.createPlayer(
-      { type: 'mpegts', isLive: true, url },
+      { type: 'mpegts', isLive: live, url },
       {
         enableWorker: true,
         enableStashBuffer: true,
-        liveBufferLatencyChasing: true,
+        liveBufferLatencyChasing: live,
         liveBufferLatencyMaxLatency: 8,
         liveBufferLatencyMinRemain: 2,
       },
@@ -255,7 +261,7 @@ export class PlaybackEngine {
           return;
         }
         // A live connection that drops is reopened a few times, then the provider is named (D-074).
-        if (type === mpegts.ErrorTypes.NETWORK_ERROR && reconnects++ < MPEGTS_RECONNECTS) {
+        if (type === mpegts.ErrorTypes.NETWORK_ERROR && live && reconnects++ < MPEGTS_RECONNECTS) {
           appLog.warn('player', `MPEG-TS stream dropped (${details}), reconnecting`);
           player.unload();
           player.load();

@@ -206,6 +206,12 @@ The Live TV page: categories on the left, a guide grid of channels and programme
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. ↑/↓ through the categories, Channel +/− and moving the hours with ←/→ are TV only (phone and desktop: Earlier / Later).
 
+### Catch-up
+
+On channels whose provider keeps recordings, past programmes can be watched from the recording, and the programme on now from its start. Recorded programmes carry ↺ in the guide, which goes back up to a day. TV: OK on an ended programme plays it, holding OK on the programme on now starts it from the beginning. Phone and desktop: a programme's details offer Watch (ended) or From the start (on now) next to Watch live. A recording plays like a video: pause, seek and skip work, there is no LIVE tag, and no progress is kept (D-032, issue #226).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ### Guide over the playing channel
 
 A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. TV: ↑; phone: swipe up in the middle of the video (the sides set brightness and volume, D-046) or the Guide button; desktop: the Guide button or G (D-058, D-081).

@@ -18,6 +18,7 @@ import { NotAJsonArray, readJsonArray } from './jsonStream';
 import { bool, int, isObject, items, num, prop, str, strList, unixTime, type Json } from './looseJson';
 import { t } from '../i18n/i18n';
 import { createXmltvReader, type GuideProgramme } from './xmltv';
+import { timeshiftMinutes, timeshiftStart, type CatchupWindow } from '../playback/catchup';
 
 /** The provider's Xtream Codes API (D-011, D-088), turned into the app's types (`api/types.ts`). */
 export interface XtreamCredentials {
@@ -34,6 +35,8 @@ export interface XtreamAccountInfo {
   allowedOutputFormats: string[];
   /** Stream server announced in `server_info` (often differs from the portal address), e.g. `http://1.2.3.4:8080/`. */
   streamBaseUrl?: string | null;
+  /** The panel's time zone (`server_info.timezone`), which timeshift addresses are written in (issue #226). */
+  timezone?: string | null;
 }
 
 /**
@@ -450,6 +453,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
         maxConnections: int(userInfo, 'max_connections'),
         allowedOutputFormats: strList(userInfo, 'allowed_output_formats'),
         streamBaseUrl: streamBase(serverInfo),
+        timezone: str(serverInfo, 'timezone'),
       };
       appLog.info(
         'provider',
@@ -584,14 +588,15 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     },
 
     async shortEpg(channelId: string, limit: number, signal?: AbortSignal): Promise<EpgListing[]> {
-      const root = await getJson('get_short_epg', { stream_id: channelId, limit: String(limit) }, signal);
-      return items(prop(root, 'epg_listings')).flatMap((item) => {
-        const start = unixTime(item, 'start_timestamp');
-        const end = unixTime(item, 'stop_timestamp');
-        const title = decodeMaybeBase64(str(item, 'title'));
-        if (!start || !end || end <= start || !title?.trim()) return [];
-        return [{ start, end, title, description: decodeMaybeBase64(str(item, 'description')) }];
-      });
+      return epgListings(await getJson('get_short_epg', { stream_id: channelId, limit: String(limit) }, signal));
+    },
+
+    /**
+     * Every programme the panel keeps for a channel, past ones included (`get_simple_data_table`): what a channel with
+     * recordings needs for catch-up, since the short EPG starts at the programme on now (issue #226).
+     */
+    async channelEpg(channelId: string, signal?: AbortSignal): Promise<EpgListing[]> {
+      return epgListings(await getJson('get_simple_data_table', { stream_id: channelId }, signal));
     },
 
     /**
@@ -690,12 +695,23 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
     },
 
     /** Direct provider URL on the portal address; `alternateUrls` holds the same stream on the announced stream server.
-     * Live prefers HLS unless the account only allows other formats. */
-    playbackUrl(kind: PlaybackKind, id: string, container: string | null | undefined, account: XtreamAccountInfo | null) {
+     * Live prefers HLS unless the account only allows other formats. `catchup`: the channel's recording of that
+     * programme (`timeshift/<user>/<password>/<minutes>/<start>/<id>`, issue #226). */
+    playbackUrl(
+      kind: PlaybackKind,
+      id: string,
+      container: string | null | undefined,
+      account: XtreamAccountInfo | null,
+      catchup?: CatchupWindow | null,
+    ) {
       const clean = sanitizeContainer(container);
       const segment = kind === 'episode' ? 'series' : kind;
       const chosen = kind === 'live' ? chooseLiveContainer(clean, account?.allowedOutputFormats ?? []) : (clean ?? 'mp4');
-      const path = `${[segment, credentials.username, credentials.password].map(encodeURIComponent).join('/')}/${encodeURIComponent(id)}.${chosen}`;
+      const login = [credentials.username, credentials.password].map(encodeURIComponent).join('/');
+      const shift = kind === 'live' && catchup ? `${timeshiftMinutes(catchup)}/${timeshiftStart(catchup.start, account?.timezone)}/` : null;
+      const path = shift
+        ? `timeshift/${login}/${shift}${encodeURIComponent(id)}.${chosen}`
+        : `${segment}/${login}/${encodeURIComponent(id)}.${chosen}`;
       const stream = account?.streamBaseUrl;
       const alternateUrls = stream && stream !== credentials.serverUrl ? [`${stream}${path}`] : [];
       return { url: `${credentials.serverUrl}${path}`, container: chosen, isLive: kind === 'live', alternateUrls };
@@ -713,6 +729,17 @@ function streamBase(serverInfo: Json): string | null {
   const port = str(serverInfo, protocol === 'https' ? 'https_port' : 'port');
   const host = url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
   return `${protocol}://${host}${port && !host.includes(':') ? `:${port}` : ''}/`;
+}
+
+/** `epg_listings` of a short EPG or data table reply; entries without times or title are left out. */
+function epgListings(root: Json): EpgListing[] {
+  return items(prop(root, 'epg_listings')).flatMap((item) => {
+    const start = unixTime(item, 'start_timestamp');
+    const end = unixTime(item, 'stop_timestamp');
+    const title = decodeMaybeBase64(str(item, 'title'));
+    if (!start || !end || end <= start || !title?.trim()) return [];
+    return [{ start, end, title, description: decodeMaybeBase64(str(item, 'description')) }];
+  });
 }
 
 function sanitizeContainer(container: string | null | undefined): string | null {

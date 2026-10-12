@@ -62,6 +62,7 @@ import {
   connectionLimitMessage,
   holdStreamConnection,
   type ConnectionUse,
+  isLiveStream,
 } from '@iptv/shared';
 import { TvMedia, TvPlayerView, type PlayerSource, type PlayerTrack, type TvPlayerViewRef } from '../../modules/tv-media';
 import { api, appContext, downloadsStore, navStore, playbackSettings, stores } from '../appContext';
@@ -184,7 +185,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   const [nextDismissed, setNextDismissed] = useState(false);
   const timeRef = useRef(0);
   const durationRef = useRef(0);
-  const isLive = target.kind === 'live';
+  // A past programme from the provider's recordings plays like a video: seeking, no LIVE tag (issue #226).
+  const isLive = isLiveStream(target);
   const sizes = useSizes();
   const { width } = useWindowDimensions();
   const timelineWidth = useRef(0);
@@ -318,7 +320,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     alternates.current = [];
-    api.playback.get(target.kind, target.streamId, step.container).then(
+    api.playback.get(target.kind, target.streamId, step.container, undefined, { catchup: target.catchup }).then(
       (info: PlaybackInfoWithAlternates) => {
         if (cancelled) return;
         alternates.current = [...(info.alternateUrls ?? [])];

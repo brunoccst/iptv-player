@@ -87,4 +87,51 @@ describe('LiveTvPage (guide)', () => {
     await act(async () => {});
     expect(requests.at(-1)!.searchParams.get('from')).toBe('2026-09-23T13:00:00.000Z');
   }, 15_000);
+
+  it("plays a channel's past programme from its recording, and the one on now from its start (issue #226)", async () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    const replay = { ...channel('4', 'Replay TV'), hasCatchup: true };
+    const past = { start: at(-60), end: at(0), title: 'Early Match', description: null };
+    const current = { start: at(0), end: at(30), title: 'Late Match', description: null };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        const url = new URL(input);
+        const body =
+          url.pathname === '/api/epg'
+            ? {
+                status: 'ready',
+                updatedAt: at(0),
+                from: url.searchParams.get('from'),
+                to: at(180),
+                totalChannels: 1,
+                channels: [{ channel: replay, programmes: [past, current] }],
+              }
+            : [{ id: '1', name: 'News', kind: 'live' }];
+        return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+      }),
+    );
+    const { LiveTvPage } = await import('./LiveTvPage');
+    const { appContext, uiStore } = await import('../../appContext');
+    const { createFakeApi } = await import('../../../../../packages/shared/src/testing/fakeBackend');
+    appContext.replaceApi(createFakeApi({ fetch }));
+    const play = vi.spyOn(uiStore.getState(), 'play').mockImplementation(() => {});
+
+    render(<LiveTvPage />);
+    fireEvent.click(screen.getByRole('button', { name: '◀ Earlier' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^Early Match,/ }, { timeout: 5000 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Watch' }));
+    expect(play).toHaveBeenLastCalledWith(
+      expect.objectContaining({ kind: 'live', streamId: '4', title: 'Early Match', catchup: { start: past.start, end: past.end } }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^Late Match,/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'From the start' }));
+    expect(play).toHaveBeenLastCalledWith(
+      expect.objectContaining({ title: 'Late Match', catchup: { start: current.start, end: current.end } }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Watch live' }));
+    expect(play).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Replay TV', subtitle: 'Late Match' }));
+    expect(play.mock.lastCall![0].catchup).toBeUndefined();
+  }, 15_000);
 });

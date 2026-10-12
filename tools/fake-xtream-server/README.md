@@ -6,7 +6,7 @@ Fake Xtream Codes panel for local development and end-to-end tests. Python 3.11 
 |------|---------|
 | `server.py` | HTTP server: `player_api.php`, `xmltv.php`, stream redirects, HTTP Range, live HLS window, SVG posters. |
 | `generate_media.py` | Creates test videos in `media/` (git-ignored) with ffmpeg. |
-| `catalog.json` | Movies (with duplicates/sequels/MKV-only), series (2 seasons + duplicate), 5 live channels in 3 categories (one without an XMLTV id). |
+| `catalog.json` | Movies (with duplicates/sequels/MKV-only), series (2 seasons + duplicate), 5 live channels in 3 categories (one without an XMLTV id, one with recordings for catch-up). |
 
 ## Run
 
@@ -31,6 +31,8 @@ Log in to the app with server `http://localhost:8090`, username `demo`, password
 | Stream redirects asked as `localhost:<port>` | Go to `http://127.0.0.1:<port>/…`: another host, like a panel's stream server ([#236](https://github.com/brunoccst/iptv-player/issues/236)). |
 | `/movie|series/{u}/{p}/{id}.{ext}` | `302` → progressive file. Supports `Range`. |
 | `/live/{u}/{p}/{id}.m3u8` | `302` → sliding 5-segment live playlist (looping media). |
+| `/player_api.php?action=get_simple_data_table&stream_id=` | Every programme from a day back to a day ahead (catch-up, issue #226). |
+| `/timeshift/{u}/{p}/{minutes}/{YYYY-MM-DD:HH-MM}/{id}.m3u8` | `302` → the HLS test movie for channels with `catchup` (Test Sports FHD); `404` for others. |
 | `/img/{poster|backdrop|still|logo}/{id}.svg` | Generated artwork. Catalog URLs use the request's host. |
 
 Media codecs: VP9 + Opus by default (`--codec h264` for H.264 + AAC). `movie-mkv` is always H.264 in Matroska.

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
+  catchupMode,
+  catchupTarget,
   EPG_SLOT_MS,
   floorToSlot,
   formatGuideTime,
@@ -24,8 +26,8 @@ import { errorText } from '../../ui/errorText';
 
 const HOURS = 3;
 const STEP_MS = 2 * EPG_SLOT_MS;
-/** Guide window (DECISIONS.md#d-088). */
-const MIN_BACK_MS = 3 * 3600_000;
+/** Guide window (DECISIONS.md#d-088): a day back, for channels with recordings (issue #226). */
+const MIN_BACK_MS = 24 * 3600_000;
 const MAX_AHEAD_MS = 45 * 3600_000;
 
 interface Selection {
@@ -224,6 +226,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
                   >
                     <span className="guide__title">
                       {cell.clippedStart ? '‹ ' : ''}
+                      {past && channel.hasCatchup ? <span title={t('Recorded')}>↺ </span> : null}
                       {programme.title}
                     </span>
                     <span className="guide__time">{formatProgrammeTime(programme)}</span>
@@ -241,6 +244,8 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
 function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; now: number; onClose(): void }) {
   const { channel, programme } = selection;
   const onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
+  const catchup = catchupMode(channel, programme, now);
+  const playRecording = () => uiStore.getState().play(catchupTarget(channel, programme));
   return (
     <section className="guide-details" aria-label={t('Programme details')}>
       <div>
@@ -257,9 +262,23 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
         {programme.description ? <p>{programme.description}</p> : null}
       </div>
       <div className="guide-details__actions">
-        <button type="button" className="button button--primary" onClick={() => play(channel, onNow ? programme : null)}>
+        {catchup === 'past' ? (
+          <button type="button" className="button button--primary" onClick={playRecording}>
+            {t('Watch')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={`button ${catchup === 'past' ? 'button--secondary' : 'button--primary'}`}
+          onClick={() => play(channel, onNow ? programme : null)}
+        >
           {onNow ? t('Watch live') : t('Watch channel')}
         </button>
+        {catchup === 'restart' ? (
+          <button type="button" className="button button--secondary" onClick={playRecording}>
+            {t('From the start')}
+          </button>
+        ) : null}
         <button type="button" className="button button--ghost" onClick={onClose}>
           {t('Close')}
         </button>

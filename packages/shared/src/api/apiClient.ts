@@ -1,3 +1,4 @@
+import type { CatchupWindow } from '../playback/catchup';
 import type {
   AccountDto,
   CatalogSection,
@@ -124,7 +125,14 @@ export interface ApiClient {
     refresh(): Promise<void>;
   };
   playback: {
-    get(kind: PlaybackKind, id: string, container?: string | null, signal?: AbortSignal): Promise<PlaybackInfo>;
+    /** `options.catchup`: a live channel's past programme from the provider's recordings (issue #226). */
+    get(
+      kind: PlaybackKind,
+      id: string,
+      container?: string | null,
+      signal?: AbortSignal,
+      options?: { catchup?: CatchupWindow | null },
+    ): Promise<PlaybackInfo>;
     /** Streams the account has in use and may have (issue #242); null where not reported. Absent without a provider. */
     connections?(signal?: AbortSignal): Promise<{ active: number | null; max: number | null }>;
   };

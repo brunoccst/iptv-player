@@ -65,6 +65,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [TV guide](FEATURES.md#tv-guide) | `packages/shared/src/epg/guide.ts`, `packages/shared/src/stores/epgStore.ts`, `packages/shared/src/react.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx` |
+| [Catch-up](FEATURES.md#catch-up) | `packages/shared/src/playback/catchup.ts`, `packages/shared/src/direct/xtream.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`, `apps/web-player/src/features/player/playbackEngine.ts` |
 | [Guide over the playing channel](FEATURES.md#guide-over-the-playing-channel) | `apps/tv-app/src/player/GuideOverlay.tsx`, `apps/web-player/src/features/player/GuidePanel.tsx` |
 | [Channels watched last](FEATURES.md#channels-watched-last) | `packages/shared/src/playback/recentChannels.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/player/RecentChannelsOverlay.tsx` |
 
