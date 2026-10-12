@@ -911,7 +911,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     /** Stops a guide download that is saving into the database (D-135). */
     stop: AbortController | null;
     memory: { programmes: GuideProgramme[]; builtAt: number } | null;
-  } = { accountId: null, saved: null, opening: null, refreshing: null, stop: null, memory: null };
+    /** Without a database: when the grid last asked for the guide (issue #229), so a failing guide is not asked for on every page. */
+    triedAt: number;
+  } = { accountId: null, saved: null, opening: null, refreshing: null, stop: null, memory: null, triedAt: 0 };
 
   /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next day. */
   const refreshGuide = (): Promise<void> => {
@@ -1077,6 +1079,51 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return result;
   };
 
+  /**
+   * The full guide's programmes for these channels in [from, to), by channel id (issue #229): what the short EPG (12
+   * programmes) cannot reach. Only a guide already downloaded is used; a missing one is downloaded in the background.
+   */
+  const fullGuideFor = async (channels: LiveChannel[], from: number, to: number): Promise<Map<string, EpgListing[]>> => {
+    const byGuideId = new Map<string, string[]>();
+    for (const channel of channels) {
+      const id = channel.epgChannelId?.trim().toLowerCase();
+      if (id) byGuideId.set(id, [...(byGuideId.get(id) ?? []), channel.id]);
+    }
+    const result = new Map<string, EpgListing[]>();
+    if (!byGuideId.size) return result;
+    let programmes: GuideProgramme[] = [];
+    try {
+      if (sqlGuide) {
+        const saved = await savedGuide();
+        if (saved) programmes = await sqlGuide.programmes(saved, [...byGuideId.keys()], from, to);
+      } else {
+        const { stored } = await session();
+        if (guide.accountId !== stored.account.id) Object.assign(guide, { accountId: stored.account.id, memory: null, triedAt: 0 });
+        const at = now().getTime();
+        if (!guide.memory ? at - guide.triedAt > GUIDE_REFRESH_MS : at - guide.memory.builtAt > GUIDE_REFRESH_MS) {
+          guide.triedAt = at;
+          void refreshGuide();
+        }
+        programmes = (guide.memory?.programmes ?? []).filter(
+          (p) => p.stop > from && p.start < to && byGuideId.has(p.channel.toLowerCase()),
+        );
+      }
+    } catch (error) {
+      appLog.warn('provider', `guide: the full TV guide could not fill the grid: ${errorMessage(error)}`);
+      return result;
+    }
+    for (const p of programmes) {
+      const listing: EpgListing = {
+        title: p.title,
+        start: new Date(p.start).toISOString(),
+        end: new Date(p.stop).toISOString(),
+        description: null,
+      };
+      for (const id of byGuideId.get(p.channel.toLowerCase()) ?? []) result.set(id, [...(result.get(id) ?? []), listing]);
+    }
+    return result;
+  };
+
   const epgGrid = async (query: EpgGridQuery = {}, signal?: AbortSignal): Promise<EpgGrid> => {
     const current = now();
     const from = query.from ? new Date(query.from) : new Date(Math.floor(current.getTime() / SLOT_MS) * SLOT_MS);
@@ -1109,12 +1156,22 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       totalChannels = channels.length;
     }
     const programmes = await shortEpg(page, from.getTime());
-    const rows: EpgChannelRow[] = page.map((channel) => ({
-      channel,
-      programmes: (programmes.get(channel.id) ?? [])
-        .filter((programme) => Date.parse(programme.end) > from.getTime() && Date.parse(programme.start) < to.getTime())
-        .sort((a, b) => Date.parse(a.start) - Date.parse(b.start)),
-    }));
+    const inWindow = (programme: EpgListing) => Date.parse(programme.end) > from.getTime() && Date.parse(programme.start) < to.getTime();
+    // Where the short EPG runs out (or has nothing), the full guide fills in (issue #229, D-032).
+    const short = new Map(page.map((channel) => [channel.id, (programmes.get(channel.id) ?? []).filter(inWindow)]));
+    const needFill = page.filter((channel) => {
+      const listed = short.get(channel.id)!;
+      const covered = listed.length ? Math.max(...listed.map((programme) => Date.parse(programme.end))) : from.getTime();
+      return covered < to.getTime() && covered < current.getTime() + GUIDE_WINDOW_MS;
+    });
+    const full = needFill.length ? await fullGuideFor(needFill, from.getTime(), to.getTime()) : new Map<string, EpgListing[]>();
+    const rows: EpgChannelRow[] = page.map((channel) => {
+      const listed = short.get(channel.id)!;
+      const overlaps = (programme: EpgListing) =>
+        listed.some((other) => Date.parse(programme.start) < Date.parse(other.end) && Date.parse(other.start) < Date.parse(programme.end));
+      const filled = (full.get(channel.id) ?? []).filter((programme) => !overlaps(programme));
+      return { channel, programmes: [...listed, ...filled].sort((a, b) => Date.parse(a.start) - Date.parse(b.start)) };
+    });
     return {
       status: 'ready',
       updatedAt: current.toISOString(),

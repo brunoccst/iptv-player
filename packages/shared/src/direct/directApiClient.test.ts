@@ -726,6 +726,26 @@ describe.each([
     }
   });
 
+  it('fills the guide from the full TV guide where the short EPG runs out (issue #229)', async () => {
+    const { api, panel } = setup();
+    await api.auth.login(login);
+    await libraryReady(api);
+    const later = new Date(panel.nowSeconds * 1000 + 2 * 3600_000).toISOString();
+    // The full guide is downloaded in the background: the first pages may come before it.
+    let titles: string[][] = [];
+    for (let attempt = 0; attempt < 200; attempt++) {
+      titles = (await api.epg.grid({ from: later, hours: 3 })).channels.map((row) => row.programmes.map((p) => p.title));
+      if (titles[0]!.length) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    // News has a guide id; the others have none (or none the guide knows).
+    expect(titles).toEqual([['Night Talk'], [], []]);
+    // Where the short EPG reaches, it wins: the guide's copy of the same programme is not added twice.
+    const now = await api.epg.grid({ hours: 3, limit: 1 });
+    expect(now.channels[0]!.programmes.map((p) => p.title)).toEqual(['Evening News', 'Late News', 'Night Talk']);
+    expect(panel.calls.filter((url) => url.includes('xmltv.php'))).toHaveLength(1);
+  });
+
   it('returns direct provider URLs for playback', async () => {
     const { api } = setup();
     await api.auth.login(login);
