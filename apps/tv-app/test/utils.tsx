@@ -58,6 +58,8 @@ export function setupApp(options: { signedIn?: boolean } = {}): FakeBackend {
       ? { status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null, error: null, busy: false }
       : { status: 'authenticated', token: 'tok', account, profiles: [profile], activeProfileId: 'p1', error: null, busy: false },
   );
+  // A profile switch in the previous test reloads the lists; each test starts on the first revision.
+  navStore.setState({ libraryRevision: 0 });
   return backend;
 }
 

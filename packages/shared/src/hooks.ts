@@ -122,6 +122,12 @@ export function createAppHooks({
   /** Every row and grid loads again (after a profile setting that changes what lists show). */
   reloadLists: () => void;
 }) {
+  // Another profile can mean other lists: the app context drops the cached ones when its languages, Kids categories or
+  // hidden categories differ. A profile chosen from the menu leaves the page (Home) on screen, which would stay empty.
+  // The first profile of a start, or one chosen on "Who's watching?", opens a new page that loads on its own.
+  stores.session.subscribe((state, previous) => {
+    if (previous.activeProfileId && state.activeProfileId && state.activeProfileId !== previous.activeProfileId) reloadLists();
+  });
   const useSession = <T>(selector: (state: SessionState) => T) => useAppStore(stores.session, selector);
   const useLibrary = <T>(selector: (state: LibraryState) => T) => useAppStore(stores.library, selector);
   const useProgress = <T>(selector: (state: ProgressState) => T) => useAppStore(stores.progress, selector);

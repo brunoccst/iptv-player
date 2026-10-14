@@ -127,6 +127,33 @@ describe('App (TV)', () => {
     isTV.mockRestore();
   });
 
+  it('another profile chosen from the menu while on Home loads its titles (no empty Home)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    const other = { ...profile, id: 'p2', name: 'Sam' };
+    backend.on('GET', '/api/profiles', { body: [profile, other] });
+    backend.on('GET', '/api/profiles/p2/progress', { body: [] });
+    // Another content language: switching drops the cached lists.
+    await act(async () => void (await stores.profilePrefs.getState().update('p2', { languages: ['ENG'] })));
+
+    await render(<App />);
+    await flush();
+    // Two profiles: the app starts on "Who's watching?".
+    await act(async () => stores.session.getState().selectProfile('p1'));
+    await flush();
+    expect(await screen.findByTestId('hero-play')).toBeTruthy();
+
+    // What the account menu does: the new profile, then Home (already on screen).
+    await act(async () => {
+      stores.session.getState().selectProfile('p2');
+      navStore.getState().goSection('home');
+    });
+    await flush();
+    expect(stores.session.getState().activeProfileId).toBe('p2');
+    expect(await screen.findByTestId('hero-play')).toBeTruthy();
+    expect(screen.queryByTestId('home-loading')).toBeNull();
+  });
+
   it('rows shown before the first library status stay; they reload only after an update (D-121)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
