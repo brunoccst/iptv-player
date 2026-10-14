@@ -7,7 +7,7 @@ vi.stubEnv('APP_SLUG', 'test-app');
 const get = vi.fn(async () => ({ url: 'http://panel/movie/u/p/101.mkv' }));
 vi.mock('../appContext', () => ({
   api: { playback: { get } },
-  stores: { session: { getState: () => ({ offline: false }) } },
+  stores: { session: { getState: () => ({ offline: false }), subscribe: () => () => undefined } },
 }));
 
 describe('Open in VLC (desktop app, D-057)', () => {

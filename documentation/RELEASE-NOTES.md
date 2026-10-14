@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.
 - **Sync phones and tablets with each other** (2026-10-12, D-178): every device now shows a sync QR code, on the sign-in page and under account menu → Library & devices → Sync with another device, so a phone can sync with a tablet and the other way round. Phones and tablets with a camera can also scan a code (Scan a code): signed in, they merge profiles, My List and progress with the other device; on the sign-in page, scanning a signed-in TV, computer or phone signs this device in.
 - **Truly full screen on tablets and phones** (2026-10-12, D-177): the navigation bar and the tablet taskbar no longer cover the app. Swipe up from the bottom edge to show them for a moment.
 - **Better quality on My List** (2026-10-12, D-176): when a movie on My List was only a cinema copy (CAM, TS…) and a better copy arrives, Home tells you with a popup, with Play and More Info.
@@ -100,6 +101,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.
 - **Sync with another device** (2026-10-12, D-178): the account menu's Sync with phone is now Sync with another device. Its code also works for tablets, and a signed-out phone or tablet that scans it gets this computer's sign-in.
 - **Better quality on My List** (2026-10-12, D-176): when a movie on My List was only a cinema copy (CAM, TS…) and a better copy arrives, Home tells you with a popup, with Play and More Info.
 - **My List and progress survive renamed titles** (2026-10-12, D-133, issue #216): when your provider renames a movie or series, it stays on My List and Continue watching instead of disappearing from them.
