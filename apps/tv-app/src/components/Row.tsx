@@ -1,9 +1,11 @@
-import { useState, type ReactElement } from 'react';
+import { useCallback, useRef, useState, type ReactElement } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, useSizes } from '../theme';
 import { Icon } from './Icon';
 import { focus } from './focus';
-import { FocusRow, useRowFocus } from './FocusRow';
+import { FocusRow, RowReveal, useRowFocus, useRowReveal } from './FocusRow';
+import type { Measurable } from './CenterScroll';
+import { revealOffset, tvRowInset } from './rowReveal';
 import { t } from '@iptv/shared';
 
 interface RowProps<T> {
@@ -24,9 +26,37 @@ interface RowProps<T> {
 /** Web `.row`: title (optionally a link) + horizontal track of cards. D-pad focus search moves between cards. */
 export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePress, loading, more }: RowProps<T>) {
   const sizes = useSizes();
+  // TV: the cards start further in than the page gutter, and the focused card keeps that distance from both screen
+  // sides (DECISIONS.md#d-181). The title lines up with the cards.
+  const inset = Platform.isTV ? tvRowInset(sizes.gutter) : sizes.gutter;
+  const list = useRef<FlatList<T>>(null);
+  const track = useRef({ offset: 0, viewport: 0, content: 0 });
+  const reveal = useCallback(
+    (target: Measurable | null) => {
+      const inner = (list.current?.getNativeScrollRef() as { getInnerViewRef?(): unknown } | null | undefined)?.getInnerViewRef?.();
+      if (!target || !inner) return;
+      target.measureLayout(
+        inner,
+        (x, _y, width) => {
+          const now = track.current;
+          if (!now.viewport) return;
+          // From the offset last asked for, not the one on screen: that is stale while a scroll animates (like D-094).
+          const next = revealOffset(x, width, now.offset, now.viewport, now.content, inset);
+          if (next === now.offset) return;
+          now.offset = next;
+          list.current?.scrollToOffset({ offset: next, animated: true });
+        },
+        () => undefined,
+      );
+    },
+    [inset],
+  );
+  const settled = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
+    track.current.offset = event.nativeEvent.contentOffset.x;
+  };
   return (
     <View style={[styles.row, { marginBottom: sizes.rowGap }]} testID={testID} accessibilityLabel={title}>
-      <FocusRow style={[styles.header, { marginHorizontal: sizes.gutter }]}>
+      <FocusRow style={[styles.header, { marginHorizontal: inset }]}>
         {onTitlePress ? (
           <TitleLink title={title} fontSize={sizes.rowTitle} onPress={onTitlePress} testID={testID && `${testID}-open`} />
         ) : (
@@ -35,37 +65,49 @@ export function Row<T>({ title, items, keyOf, render, empty, testID, onTitlePres
       </FocusRow>
       {items.length === 0 ? (
         loading ? (
-          <ActivityIndicator
-            style={[styles.spinner, { marginLeft: sizes.gutter }]}
-            color={colors.accent}
-            accessibilityLabel={t('Loading')}
-          />
+          <ActivityIndicator style={[styles.spinner, { marginLeft: inset }]} color={colors.accent} accessibilityLabel={t('Loading')} />
         ) : (
-          <Text style={[styles.empty, { marginHorizontal: sizes.gutter }]}>{empty ?? ' '}</Text>
+          <Text style={[styles.empty, { marginHorizontal: inset }]}>{empty ?? ' '}</Text>
         )
       ) : (
         <FocusRow>
-          <FlatList
-            horizontal
-            data={items}
-            keyExtractor={keyOf}
-            renderItem={({ item, index }) => render(item, index)}
-            ItemSeparatorComponent={Separator}
-            showsHorizontalScrollIndicator={false}
-            // TV: room above and below for the focused card (it grows 8 % and glows); the scroll view clips its content,
-            // and the ring and glow were cut off at the top and bottom. The negative margin keeps the page layout.
-            style={Platform.isTV ? styles.tvTrack : undefined}
-            contentContainerStyle={[styles.content, Platform.isTV && styles.tvContent, { paddingHorizontal: sizes.gutter }]}
-            removeClippedSubviews={false}
-            // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
-            // cards, and focus fell out of the row (to the nav).
-            initialNumToRender={Platform.isTV ? items.length : 8}
-            maxToRenderPerBatch={Platform.isTV ? items.length : 6}
-            windowSize={Platform.isTV ? 21 : 5}
-            ListFooterComponent={
-              more ? <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} /> : null
-            }
-          />
+          <RowReveal.Provider value={Platform.isTV ? reveal : null}>
+            <FlatList
+              ref={list}
+              horizontal
+              data={items}
+              keyExtractor={keyOf}
+              renderItem={({ item, index }) => render(item, index)}
+              ItemSeparatorComponent={Separator}
+              showsHorizontalScrollIndicator={false}
+              // TV: room above and below for the focused card (it grows 8 % and glows); the scroll view clips its content,
+              // and the ring and glow were cut off at the top and bottom. The negative margin keeps the page layout.
+              style={Platform.isTV ? styles.tvTrack : undefined}
+              contentContainerStyle={[styles.content, Platform.isTV && styles.tvContent, { paddingHorizontal: inset }]}
+              // TV: the row scrolls only through `reveal`; Android's own focus scrolling stopped with the card on the
+              // screen edge (DECISIONS.md#d-181).
+              scrollsChildToFocus={Platform.isTV ? false : undefined}
+              onLayout={(event) => {
+                track.current.viewport = event.nativeEvent.layout.width;
+              }}
+              onContentSizeChange={(width) => {
+                track.current.content = width;
+              }}
+              onScrollEndDrag={settled}
+              onMomentumScrollEnd={settled}
+              removeClippedSubviews={false}
+              // TV: all cards at once (rows hold at most ~10). Holding Right outran a list that was still drawing its last
+              // cards, and focus fell out of the row (to the nav).
+              initialNumToRender={Platform.isTV ? items.length : 8}
+              maxToRenderPerBatch={Platform.isTV ? items.length : 6}
+              windowSize={Platform.isTV ? 21 : 5}
+              ListFooterComponent={
+                more ? (
+                  <MoreCard title={title} landscape={more.landscape} onPress={more.onPress} testID={testID && `${testID}-more`} />
+                ) : null
+              }
+            />
+          </RowReveal.Provider>
         </FocusRow>
       )}
     </View>
@@ -82,9 +124,12 @@ const Separator = () => <View style={{ width: 8 }} />;
 function MoreCard({ title, landscape, onPress, testID }: { title: string; landscape?: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   const rowFocus = useRowFocus();
+  const rowReveal = useRowReveal();
+  const self = useRef<View>(null);
   const { cardWidth } = useSizes();
   return (
     <Pressable
+      ref={self}
       testID={testID}
       accessibilityRole="link"
       accessibilityLabel={t('See all: {title}', { title })}
@@ -92,6 +137,7 @@ function MoreCard({ title, landscape, onPress, testID }: { title: string; landsc
       onFocus={() => {
         setFocused(true);
         rowFocus?.();
+        rowReveal?.(self.current);
       }}
       onBlur={() => setFocused(false)}
       style={[styles.moreCard, { width: cardWidth, marginLeft: 8 }, focused && styles.moreFocused]}

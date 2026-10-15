@@ -29,7 +29,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Continue watching on the TV home screen](FEATURES.md#continue-watching-on-the-tv-home-screen) | `apps/tv-app/src/tv/watchNext.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/WatchNext.kt`, `apps/tv-app/src/App.tsx` |
 | [Movies and Series](FEATURES.md#movies-and-series) | `packages/shared/src/hooks.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `apps/tv-app/src/screens/BrowseScreen.tsx`, `apps/web-player/src/features/browse/BrowsePage.tsx` |
 | [Category chips](FEATURES.md#category-chips) | `packages/shared/src/stores/catalogStore.ts`, `apps/tv-app/src/components/ChipBar.tsx`, `apps/web-player/src/components/ChipBar.tsx` |
-| [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) | `apps/tv-app/src/components/CenterScroll.tsx`, `apps/tv-app/src/components/FocusRow.tsx`, `apps/tv-app/src/screens/titles.tsx` |
+| [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) | `apps/tv-app/src/components/CenterScroll.tsx`, `apps/tv-app/src/components/FocusRow.tsx`, `apps/tv-app/src/components/Row.tsx`, `apps/tv-app/src/components/rowReveal.ts`, `apps/tv-app/src/screens/titles.tsx` |
 | [Colour keys (TV)](FEATURES.md#colour-keys-tv) | `apps/tv-app/src/tv/colourKeys.tsx`, `apps/tv-app/src/tv/remote.ts`, `apps/tv-app/src/tv/remoteEvents.ts`, `apps/tv-app/src/player/PlayerScreen.tsx` |
 
 ## Covers and cards

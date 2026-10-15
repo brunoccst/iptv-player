@@ -4,7 +4,7 @@ import { t } from '@iptv/shared';
 import { colors, radius, useSizes } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { useCenterFocus, type Measurable } from './CenterScroll';
-import { useRowFocus } from './FocusRow';
+import { useRowFocus, useRowReveal } from './FocusRow';
 import { Icon } from './Icon';
 import { WatchedTag } from './WatchedTag';
 
@@ -59,6 +59,7 @@ export function PosterCard({
   const cardSize = width ?? cardWidth;
   const scale = useFocusScale(focused, 1.08);
   const rowFocus = useRowFocus();
+  const rowReveal = useRowReveal();
   const centerFocus = useCenterFocus();
   const self = useRef<Measurable>(null);
 
@@ -74,6 +75,7 @@ export function PosterCard({
       onFocus={() => {
         setFocused(true);
         rowFocus?.();
+        rowReveal?.(self.current);
         centerFocus?.(self.current);
         onFocus?.();
       }}
