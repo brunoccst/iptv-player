@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
-import { Platform } from 'react-native';
+import { Dimensions, Platform, StyleSheet } from 'react-native';
+import { fluidSizes } from '@iptv/shared';
 import { FocusRow, RowFocus } from './FocusRow';
 import { PosterCard } from './PosterCard';
 import { Row } from './Row';
@@ -80,5 +81,27 @@ describe('focus rows (TV)', () => {
     );
     await fireEvent(screen.getByTestId('card-Heat'), 'focus');
     expect(center).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TV rows scroll to the focused card themselves (D-181)', () => {
+  beforeEach(() => jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true));
+  afterEach(() => jest.restoreAllMocks());
+
+  it('turns off Android’s edge-to-edge focus scrolling and insets the cards past the gutter', async () => {
+    await render(
+      <Row
+        title="Drama"
+        items={['a', 'b']}
+        keyOf={(id) => id}
+        render={(id) => <PosterCard title={id} onPress={() => undefined} />}
+        testID="row"
+      />,
+    );
+    let scroll = screen.getByTestId('card-a').parent;
+    while (scroll && scroll.props.horizontal === undefined) scroll = scroll.parent;
+    expect(scroll?.props.scrollsChildToFocus).toBe(false);
+    const padding = StyleSheet.flatten(scroll?.props.contentContainerStyle).paddingHorizontal as number;
+    expect(padding).toBeGreaterThanOrEqual(fluidSizes(Dimensions.get('window').width).gutter + 24);
   });
 });

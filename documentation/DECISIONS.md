@@ -86,6 +86,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-178](#d-178) | Every device shows a sync code; camera devices scan |
 | [D-179](#d-179) | TV: the progress bar takes the focus |
 | [D-180](#d-180) | TV and phone: preview frames on the progress bar |
+| [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
 
 ## Merged and retired IDs
 
@@ -970,3 +971,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - It holds a second provider connection, so it is asked for only where the account has one to spare (`spareConnection`, D-175), and released as soon as the preview ends (the jump, the drag's end, the player closing). Not for downloads (encrypted, D-050), HLS (the retriever cannot read playlists) or live.
 - `useFramePreview` keeps one request decoding and only the latest waiting, so fast presses or a drag never queue up; a frame that arrives after the preview ended is dropped.
 - TV bar: ←/→ move a preview position with the frame and the time over it; the video jumps there `TAP_CHAIN_MS` after the last press, on Select, or when the bar loses the focus, so the stream re-buffers once per series of presses, not once per press. Phone: the frame follows the finger while dragging the timeline.
+
+## D-181
+
+**TV rows keep the end cards clear of the screen sides** — 2026-10-15 (requested by owner)
+
+- Android's horizontal scroll view scrolled a row on focus just enough to show the card, so the first and last cards on screen sat on the screen edge: the focused card's 8 % growth and glow were cut, and TVs that overscan cut the card itself.
+- TV rows (`Row`) turn that off (`scrollsChildToFocus={false}`) and scroll themselves: a focused card (`PosterCard`, the See all card) calls `RowReveal`, which measures it in the row and scrolls (`revealOffset`, `components/rowReveal.ts`) so it keeps `tvRowInset` (the gutter + 24) from both sides, moving as little as possible. The target comes from the offset last asked for, not the one on screen, which is stale while a scroll animates (like D-094).
+- The cards, and the row title above them, start at that inset, so at the row's ends the first and last cards sit there too. Phones keep the gutter and the scroll view's own scrolling.

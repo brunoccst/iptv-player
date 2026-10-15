@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Covers no longer cut at the screen sides** (2026-10-15, D-181): on the TV, the first and last covers of a row used to touch the screen edge and lose a strip, and the focused one its glow. Rows now keep the focused cover a little away from both sides, and start a little further in.
 - **A picture of the moment you are moving to** (2026-10-15, D-180): on the TV progress bar and while dragging it on the phone, a small picture of that point in the movie or episode shows above the bar, like on Netflix. On the TV, the video now jumps there a second after your last press, or straight away with OK. It needs your account to allow a second stream, and is not shown for downloads.
 - **Move through a movie or episode from the progress bar** (2026-10-15, D-179): on the TV, press ↓ for the player's buttons and ↑ once more to focus the progress bar. There ← and → move the video back or forward: 10 s, then further with each press in a row (30 s, 1 min, 2 min, 5 min), and holding the key keeps going. ↓ returns to the buttons.
 - **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.

@@ -98,6 +98,8 @@ Above the grid, the categories sit on one line with "Show all" / "Show less"; ex
 
 On TV the focused title is kept in the middle of the screen on every page, so you always see where you are (D-094). Phones and computers scroll by touch, wheel or keyboard instead.
 
+In a row of covers, the focused cover always stays a little away from the screen sides, the first and last ones included, so it and its glow are never cut (D-181).
+
 On TV, ← and → only move along the row you are in (a row of cards, the Home banner's Play and More Info, a row of buttons or chips) and stop at its ends; ↑ and ↓ change rows (D-069). On Live TV, ← from a channel still goes to the category list beside the guide.
 
 **Apps:** TV ✅ · Phone ➖ · Desktop ➖ (no D-pad).

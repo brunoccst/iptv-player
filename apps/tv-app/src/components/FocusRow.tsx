@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { Platform, TVFocusGuideView, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { Measurable } from './CenterScroll';
 
 /**
  * A horizontal group of focusable items (a row of cards, chips, buttons). On TV, Left/Right stay inside it: at the ends
@@ -44,3 +45,10 @@ export function FocusRow({
 /** Set by a page that scrolls vertically (Home): an item of a row got focus, so the page can centre that row. */
 export const RowFocus = createContext<(() => void) | null>(null);
 export const useRowFocus = () => useContext(RowFocus);
+
+/**
+ * Set by a TV row that scrolls (`Row`): a card that gets the focus calls it with itself, and the row scrolls so the
+ * card sits fully on screen, clear of the screen sides (DECISIONS.md#d-181). Null elsewhere.
+ */
+export const RowReveal = createContext<((target: Measurable | null) => void) | null>(null);
+export const useRowReveal = () => useContext(RowReveal);
