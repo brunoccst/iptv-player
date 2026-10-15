@@ -10,6 +10,9 @@ import { GUIDE_HIDE_MS } from './GuideOverlay';
 import { RECENT_HIDE_MS } from './RecentChannelsOverlay';
 import { playbackErrorText, PlayerScreen } from './PlayerScreen';
 
+/** The account allows a second stream, for preview frames (D-180). */
+const twoStreams = () => stores.session.setState((s) => ({ account: s.account && { ...s.account, maxConnections: 2 } }));
+
 const movie: PlayTarget = { kind: 'movie', streamId: '55', container: 'mkv', title: 'Heat', subtitle: '4K' };
 
 async function flush() {
@@ -576,9 +579,10 @@ describe('PlayerScreen', () => {
     jest.restoreAllMocks();
   });
 
-  it('TV: the progress bar takes the focus; ←/→ on it move the video, further with presses in a row (D-179)', async () => {
+  it('TV: the progress bar takes the focus; ←/→ on it move a preview with a frame, the video jumps after (D-179, D-180)', async () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
     const backend = setupApp();
+    twoStreams();
     backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
     await render(<PlayerScreen target={movie} />);
     await flush();
@@ -600,16 +604,30 @@ describe('PlayerScreen', () => {
       await act(async () => pressRemote(key, 'up'));
       await act(async () => jest.advanceTimersByTime(200));
     };
+    // Presses in a row move the preview 10 s, 30 s, 1 min; the frame of each position is asked for; the video waits.
     await tap('right');
     await tap('right');
     await tap('right');
-    expect(playerState.seeks).toEqual([1_010_000, 1_040_000, 1_100_000]);
+    expect(playerState.seeks).toEqual([]);
     expect(screen.getByTestId('player-timeline-time')).toHaveTextContent('18:20');
-    await act(async () => jest.advanceTimersByTime(1000));
-    await tap('left');
-    expect(playerState.seeks.slice(3)).toEqual([1_090_000]);
+    expect(nativeState.calls.filter((call) => call.startsWith('preview:'))).toEqual([
+      'preview:http://relay/55.mkv@1010000',
+      'preview:http://relay/55.mkv@1040000',
+      'preview:http://relay/55.mkv@1100000',
+    ]);
+    expect(screen.getByTestId('player-preview-frame')).toBeTruthy();
+    // A second after the last press the video jumps there; the preview and its connection go.
+    await act(async () => jest.advanceTimersByTime(TAP_CHAIN_MS));
+    expect(playerState.seeks).toEqual([1_100_000]);
+    expect(screen.queryByTestId('player-preview-frame')).toBeNull();
+    expect(nativeState.calls).toContain('preview-release');
 
-    // Held: Android repeats key-down; the bar skips again every 300 ms, not on every repeat.
+    // Select jumps at once; the other way starts again at 10 s.
+    await tap('left');
+    await act(async () => fireEvent.press(screen.getByTestId('player-timeline')));
+    expect(playerState.seeks.slice(1)).toEqual([1_090_000]);
+
+    // Held: Android repeats key-down; the preview moves again every 300 ms, not on every repeat.
     await act(async () => jest.advanceTimersByTime(1000));
     await act(async () => pressRemote('left', 'down'));
     await act(async () => jest.advanceTimersByTime(100));
@@ -617,13 +635,44 @@ describe('PlayerScreen', () => {
     await act(async () => jest.advanceTimersByTime(250));
     await act(async () => pressRemote('left', 'down'));
     await act(async () => pressRemote('left', 'up'));
-    expect(playerState.seeks.slice(4)).toEqual([1_080_000, 1_050_000]);
+    expect(screen.getByTestId('player-timeline-time')).toHaveTextContent('17:30');
 
-    // Leaving the bar: ←/→ move the focus again.
+    // Leaving the bar jumps to the preview; ←/→ move the focus again.
     await act(async () => fireEvent(screen.getByTestId('player-timeline'), 'blur'));
+    expect(playerState.seeks.slice(2)).toEqual([1_050_000]);
     await tap('right');
-    expect(playerState.seeks).toHaveLength(6);
+    expect(playerState.seeks).toHaveLength(3);
     expect(screen.queryByTestId('player-timeline-time')).toBeNull();
+    jest.restoreAllMocks();
+  });
+
+  it('phone: dragging the timeline shows preview frames, only with a stream to spare (D-180)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(1000, 6000);
+    const timeline = screen.getByTestId('player-timeline');
+    await act(async () =>
+      timeline.props.onLayout({ nativeEvent: { layout: { width: 600 } }, currentTarget: { measure: () => undefined } }),
+    );
+    const drag = async () => {
+      await act(async () =>
+        timeline.props.onResponderGrant({ nativeEvent: { locationX: 300, touches: [] }, touchHistory: { touchBank: [] } }),
+      );
+      await flush();
+    };
+    // The account allows one stream: the player's. No preview.
+    await drag();
+    expect(nativeState.calls.some((call) => call.startsWith('preview:'))).toBe(false);
+    expect(screen.queryByTestId('player-preview-frame')).toBeNull();
+
+    await act(async () => twoStreams());
+    await drag();
+    expect(nativeState.calls).toContain('preview:http://relay/55.mkv@3000000');
+    expect(screen.getByTestId('player-preview-frame')).toBeTruthy();
     jest.restoreAllMocks();
   });
 

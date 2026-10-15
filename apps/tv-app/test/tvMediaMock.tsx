@@ -118,6 +118,11 @@ export const TvMedia = {
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,
+  previewFrame: async (uri: string, timeMs: number) => {
+    nativeState.calls.push(`preview:${uri}@${timeMs}`);
+    return `data:image/jpeg;base64,frame-${timeMs}`;
+  },
+  releasePreview: () => void nativeState.calls.push('preview-release'),
   takeLastCrash: () => {
     const crash = nativeState.lastCrash;
     nativeState.lastCrash = null;

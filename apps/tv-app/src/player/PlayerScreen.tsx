@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   BackHandler,
+  Image,
   PanResponder,
   Platform,
   Pressable,
@@ -21,6 +22,8 @@ import {
   NEXT_UP_COUNTDOWN_SECONDS,
   RemoteSeekController,
   SkipStreak,
+  spareConnection,
+  TAP_CHAIN_MS,
   SKIP_SECONDS,
   clampTime,
   fluid,
@@ -69,7 +72,7 @@ import { providerUserAgent } from '../config';
 import { ErrorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { selectDownload } from '../downloads/downloadsStore';
-import { useLibrary, useNoteRecentChannel, usePlayerTitle } from '../hooks';
+import { useLibrary, useNoteRecentChannel, usePlayerTitle, useSession } from '../hooks';
 import { toggleOnMyList } from '../tv/colourKeys';
 import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
@@ -80,6 +83,7 @@ import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { ScrubBar, TapFlash } from './SeekOverlay';
+import { useFramePreview, type PreviewFrame } from './framePreview';
 import { LevelBar, usePlayerSwipes } from './TouchLevels';
 import { FocusRow } from '../components/FocusRow';
 
@@ -389,6 +393,43 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     [skipStreak, seekTo],
   );
 
+  // Progress bar preview frames (D-180): decoded from the stream over a second connection, so only where the account has
+  // one to spare; not for downloads (encrypted), HLS or live.
+  const maxConnections = useSession((s) => s.account?.maxConnections ?? null);
+  const previewUri = source?.uri && !source.offlineId && !source.isHls && !isLive && spareConnection(maxConnections) ? source.uri : null;
+  const preview = useFramePreview(previewUri);
+  // TV, progress bar: ←/→ move this preview position; the video jumps there TAP_CHAIN_MS after the last press, on Select
+  // or when the bar loses the focus (D-180).
+  const [barPreview, setBarPreview] = useState<number | null>(null);
+  const barPreviewRef = useRef<number | null>(null);
+  const barJump = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopPreview = preview.stop;
+  const commitBar = useCallback(() => {
+    if (barJump.current) clearTimeout(barJump.current);
+    barJump.current = null;
+    const position = barPreviewRef.current;
+    barPreviewRef.current = null;
+    setBarPreview(null);
+    stopPreview();
+    if (position !== null) seekTo(position);
+  }, [seekTo, stopPreview]);
+  const moveBar = (direction: SeekDirection) => {
+    const seconds = skipStreak.press(direction);
+    const from = barPreviewRef.current ?? timeRef.current;
+    const position = clampTime(from + (direction === 'forward' ? seconds : -seconds), durationRef.current);
+    barPreviewRef.current = position;
+    setBarPreview(position);
+    preview.request(position);
+    if (barJump.current) clearTimeout(barJump.current);
+    barJump.current = setTimeout(commitBar, TAP_CHAIN_MS);
+  };
+  useEffect(
+    () => () => {
+      if (barJump.current) clearTimeout(barJump.current);
+    },
+    [],
+  );
+
   // Controls stay up while loading or paused; they hide CONTROLS_HIDE_MS after the last key once playing.
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playing = ready && !paused;
@@ -464,19 +505,23 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       onPanResponderGrant: (event) => {
         dragRef.current = timeAt(event.nativeEvent.locationX);
         setDragTime(dragRef.current);
+        preview.request(dragRef.current);
       },
       onPanResponderMove: (_, gesture) => {
         dragRef.current = timeAt(gesture.moveX - timelineLeft.current);
         setDragTime(dragRef.current);
+        preview.request(dragRef.current);
       },
       onPanResponderRelease: () => {
         if (dragRef.current !== null) seekTo(dragRef.current);
         dragRef.current = null;
         setDragTime(null);
+        preview.stop();
       },
       onPanResponderTerminate: () => {
         dragRef.current = null;
         setDragTime(null);
+        preview.stop();
       },
     }),
   ).current;
@@ -553,8 +598,8 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     }
     if (drawer || guide || recent || error) return;
     wake();
-    // The progress bar: ←/→ skip like the ±10 s buttons, further with each press in a row (D-128); a held key repeats
-    // every BAR_REPEAT_MS. Up/Down leave it (native focus). See DECISIONS.md#d-179.
+    // The progress bar: ←/→ move a preview with a frame, further with each press in a row (D-128); a held key repeats
+    // every BAR_REPEAT_MS. Up/Down leave it (native focus). See DECISIONS.md#d-179, #d-180.
     if (onBar && (key === 'left' || key === 'right')) {
       if (action === 'up') {
         barKey.current = null;
@@ -564,7 +609,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       const held = barKey.current?.key === key;
       if (held && now - barKey.current!.at < BAR_REPEAT_MS) return;
       barKey.current = { key, at: now };
-      skipPress(key === 'left' ? 'back' : 'forward');
+      moveBar(key === 'left' ? 'back' : 'forward');
       return;
     }
     // On the buttons the D-pad moves the focus and Select presses the focused button.
@@ -655,7 +700,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     setRetry((r) => r + 1);
   };
 
-  const percent = duration > 0 ? ((dragTime ?? time) / duration) * 100 : 0;
+  const percent = duration > 0 ? ((dragTime ?? barPreview ?? time) / duration) * 100 : 0;
 
   return (
     <View style={styles.screen} testID="player-screen" {...swipe.panHandlers}>
@@ -839,16 +884,23 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   testID="player-timeline"
                   focusable={tvButtons}
                   onFocus={() => setBarFocused(true)}
-                  onBlur={() => setBarFocused(false)}
-                  onPress={() => setPaused((p) => !p)}
+                  onBlur={() => {
+                    setBarFocused(false);
+                    commitBar();
+                  }}
+                  onPress={() => (barPreviewRef.current !== null ? commitBar() : setPaused((p) => !p))}
+                  onLayout={(event) => (timelineWidth.current = event.nativeEvent.layout.width)}
                 >
+                  {barPreview !== null ? (
+                    <FrameThumb frame={preview.frame} fraction={percent / 100} barWidth={timelineWidth.current} width={288} />
+                  ) : null}
                   <View style={[styles.rail, onBar && styles.railFocused]} pointerEvents="none">
                     <View style={[styles.played, { width: `${percent}%` }]} />
                     <View style={[styles.thumb, onBar && styles.thumbFocused, { left: `${percent}%` }]} />
                   </View>
                   {onBar ? (
                     <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none" testID="player-timeline-time">
-                      {formatClock(time)}
+                      {formatClock(barPreview ?? time)}
                     </Text>
                   ) : null}
                 </Pressable>
@@ -868,6 +920,9 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   <View style={[styles.played, { width: `${percent}%` }]} />
                   <View style={[styles.thumb, dragTime !== null && styles.thumbDragging, { left: `${percent}%` }]} />
                 </View>
+                {dragTime !== null ? (
+                  <FrameThumb frame={preview.frame} fraction={percent / 100} barWidth={timelineWidth.current} width={160} />
+                ) : null}
                 {dragTime !== null ? (
                   <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none">
                     {formatClock(dragTime)}
@@ -1097,6 +1152,27 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   );
 }
 
+/** The preview frame over the progress bar (D-180), centred on the position and kept inside the bar. */
+function FrameThumb({
+  frame,
+  fraction,
+  barWidth,
+  width,
+}: {
+  frame: PreviewFrame | null;
+  fraction: number;
+  barWidth: number;
+  width: number;
+}) {
+  if (!frame) return null;
+  const left = Math.max(0, Math.min(barWidth - width, fraction * barWidth - width / 2));
+  return (
+    <View style={[styles.frame, { left, width, height: (width * 9) / 16 }]} pointerEvents="none" testID="player-preview-frame">
+      <Image source={{ uri: frame.image }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
   center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
@@ -1132,6 +1208,15 @@ const styles = StyleSheet.create({
   played: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent },
   thumb: { position: 'absolute', top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: 7, backgroundColor: colors.accent },
   thumbDragging: { top: -8, width: 20, height: 20, marginLeft: -10, borderRadius: 10 },
+  frame: {
+    position: 'absolute',
+    bottom: 48,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.strong,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
   railFocused: { height: 6, backgroundColor: 'rgba(255,255,255,0.45)' },
   thumbFocused: { top: -9, width: 24, height: 24, marginLeft: -12, borderRadius: 12, backgroundColor: colors.strong },
   dragTime: {
