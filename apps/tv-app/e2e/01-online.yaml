@@ -126,8 +126,8 @@ appId: ${APP_ID}
 - assertNotVisible:
     id: "player-back"
     focused: true
-# Down: the focus goes to the on-screen buttons, play/pause first; Right moves along them, Up reaches Back at the top
-# left. Back returns to the video, a second Back leaves the player (D-077).
+# Down: the focus goes to the on-screen buttons, play/pause first; Right moves along them, Up reaches the progress bar
+# (D-179) and Up again Back at the top left. Back returns to the video, a second Back leaves the player (D-077).
 - pressKey: Remote Dpad Down
 - extendedWaitUntil:
     visible:
@@ -137,6 +137,10 @@ appId: ${APP_ID}
 - pressKey: Remote Dpad Right
 - assertNotVisible:
     id: "player-toggle"
+    focused: true
+- pressKey: Remote Dpad Up
+- assertVisible:
+    id: "player-timeline"
     focused: true
 - pressKey: Remote Dpad Up
 - assertVisible:
