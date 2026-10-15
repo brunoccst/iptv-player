@@ -576,6 +576,57 @@ describe('PlayerScreen', () => {
     jest.restoreAllMocks();
   });
 
+  it('TV: the progress bar takes the focus; ←/→ on it move the video, further with presses in a row (D-179)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+    await render(<PlayerScreen target={movie} />);
+    await flush();
+    await ready();
+    await progress(1000, 6000);
+    expect(screen.getByTestId('player-timeline').props.focusable).toBe(false);
+
+    await act(async () => pressRemote('down', 'down'));
+    expect(screen.getByTestId('player-timeline').props.focusable).toBe(true);
+    // Not focused yet: ←/→ move the focus between the buttons.
+    await act(async () => pressRemote('right', 'down'));
+    await act(async () => pressRemote('right', 'up'));
+    expect(playerState.seeks).toEqual([]);
+
+    await act(async () => fireEvent(screen.getByTestId('player-timeline'), 'focus'));
+    expect(screen.getByTestId('player-timeline-time')).toHaveTextContent('16:40');
+    const tap = async (key: 'left' | 'right') => {
+      await act(async () => pressRemote(key, 'down'));
+      await act(async () => pressRemote(key, 'up'));
+      await act(async () => jest.advanceTimersByTime(200));
+    };
+    await tap('right');
+    await tap('right');
+    await tap('right');
+    expect(playerState.seeks).toEqual([1_010_000, 1_040_000, 1_100_000]);
+    expect(screen.getByTestId('player-timeline-time')).toHaveTextContent('18:20');
+    await act(async () => jest.advanceTimersByTime(1000));
+    await tap('left');
+    expect(playerState.seeks.slice(3)).toEqual([1_090_000]);
+
+    // Held: Android repeats key-down; the bar skips again every 300 ms, not on every repeat.
+    await act(async () => jest.advanceTimersByTime(1000));
+    await act(async () => pressRemote('left', 'down'));
+    await act(async () => jest.advanceTimersByTime(100));
+    await act(async () => pressRemote('left', 'down'));
+    await act(async () => jest.advanceTimersByTime(250));
+    await act(async () => pressRemote('left', 'down'));
+    await act(async () => pressRemote('left', 'up'));
+    expect(playerState.seeks.slice(4)).toEqual([1_080_000, 1_050_000]);
+
+    // Leaving the bar: ←/→ move the focus again.
+    await act(async () => fireEvent(screen.getByTestId('player-timeline'), 'blur'));
+    await tap('right');
+    expect(playerState.seeks).toHaveLength(6);
+    expect(screen.queryByTestId('player-timeline-time')).toBeNull();
+    jest.restoreAllMocks();
+  });
+
   it('episodes: previous/next episode buttons around ±10 s; "from the beginning" seeks to 0 (D-077)', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/playback/episode/e1', { body: playback('http://relay/e1.mp4', 'mp4') });

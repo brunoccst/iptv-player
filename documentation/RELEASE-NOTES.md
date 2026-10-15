@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Move through a movie or episode from the progress bar** (2026-10-15, D-179): on the TV, press ↓ for the player's buttons and ↑ once more to focus the progress bar. There ← and → move the video back or forward: 10 s, then further with each press in a row (30 s, 1 min, 2 min, 5 min), and holding the key keeps going. ↓ returns to the buttons.
 - **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.
 - **Sync phones and tablets with each other** (2026-10-12, D-178): every device now shows a sync QR code, on the sign-in page and under account menu → Library & devices → Sync with another device, so a phone can sync with a tablet and the other way round. Phones and tablets with a camera can also scan a code (Scan a code): signed in, they merge profiles, My List and progress with the other device; on the sign-in page, scanning a signed-in TV, computer or phone signs this device in.
 - **Truly full screen on tablets and phones** (2026-10-12, D-177): the navigation bar and the tablet taskbar no longer cover the app. Swipe up from the bottom edge to show them for a moment.

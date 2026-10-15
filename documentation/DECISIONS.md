@@ -84,6 +84,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-176](#d-176) | Better copies of movies on My List |
 | [D-177](#d-177) | No navigation bar on phones and tablets |
 | [D-178](#d-178) | Every device shows a sync code; camera devices scan |
+| [D-179](#d-179) | TV: the progress bar takes the focus |
 
 ## Merged and retired IDs
 
@@ -951,3 +952,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The scanning device's data wins on conflict, as with the phone before (D-060).
 - A signed-out device that scans a signed-in device's code gets its sign-in ('share' mode): it sends no session, and the device showing the code answers with its session (without its active profile), provider credentials, parental PIN, media, profile settings and automatic subtitles, and keeps its own state. So Scan a code on the sign-in page is useful. An older app showing the code answers "not signed in".
 - The desktop app shows its code but does not scan with a webcam yet (issue #254).
+
+## D-179
+
+**TV: the progress bar takes the focus** — 2026-10-15 (requested by owner)
+
+- With the player's buttons open (D-077), the progress bar above them is one more focusable row: ↑ from the buttons reaches it, ↑ again Back, ↓ the buttons. It is a `FocusRow` of its own, so ←/→ never leave it. Focused, it grows, turns white and shows the time over the thumb; Select plays or pauses.
+- ←/→ on it seek at once with `SkipStreak` (10 s, 30 s, 1 min, 2 min, 5 min for presses in a row, D-128), like the ±10 s buttons, not with `RemoteSeekController`'s preview: its scrub bar replaces the controls, which would unmount the focused bar. The bar itself shows where the video is.
+- A held key (Android repeats key-down) skips again every 300 ms (`BAR_REPEAT_MS`), so holding speeds up through the same steps; remotes that report arrows only on release skip once per press.
