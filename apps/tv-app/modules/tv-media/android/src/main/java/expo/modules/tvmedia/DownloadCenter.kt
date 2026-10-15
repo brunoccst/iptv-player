@@ -103,7 +103,7 @@ object DownloadCenter {
     if (initialized) httpDataSourceFactory.setUserAgent(userAgent)
   }
 
-  private fun savedUserAgent(context: Context): String =
+  fun savedUserAgent(context: Context): String =
     context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).getString(KEY_USER_AGENT, null) ?: USER_AGENT
 
   fun addListener(listener: () -> Unit) = listeners.add(listener)

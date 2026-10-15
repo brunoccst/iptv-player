@@ -51,7 +51,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Playback controls](FEATURES.md#playback-controls) | `packages/shared/src/playback/remoteSeek.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/tv-app/src/player/TouchLevels.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx`, `apps/web-player/src/features/player/frameGrabber.ts` |
+| [Playback controls](FEATURES.md#playback-controls) | `packages/shared/src/playback/remoteSeek.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/tv-app/src/player/TouchLevels.tsx`, `apps/tv-app/src/player/framePreview.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/FramePreview.kt`, `apps/web-player/src/features/player/PlayerOverlay.tsx`, `apps/web-player/src/features/player/frameGrabber.ts` |
 | [Audio, subtitles, versions and episodes](FEATURES.md#audio-subtitles-versions-and-episodes) | `packages/shared/src/playback/playbackChoices.ts`, `apps/tv-app/src/player/QuickDrawer.tsx`, `apps/web-player/src/features/player/TracksMenu.tsx`, `apps/web-player/src/features/player/tracks.ts` |
 | [Automatic subtitles](FEATURES.md#automatic-subtitles) | `packages/shared/src/subtitles/openSubtitles.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx` |
 | [Pause when the headphones go away](FEATURES.md#pause-when-the-headphones-go-away) | `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvPlayerView.kt`, `apps/web-player/src/features/player/audioOutput.ts` |

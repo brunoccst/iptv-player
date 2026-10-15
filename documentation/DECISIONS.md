@@ -85,6 +85,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-177](#d-177) | No navigation bar on phones and tablets |
 | [D-178](#d-178) | Every device shows a sync code; camera devices scan |
 | [D-179](#d-179) | TV: the progress bar takes the focus |
+| [D-180](#d-180) | TV and phone: preview frames on the progress bar |
 
 ## Merged and retired IDs
 
@@ -958,5 +959,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 **TV: the progress bar takes the focus** — 2026-10-15 (requested by owner)
 
 - With the player's buttons open (D-077), the progress bar above them is one more focusable row: ↑ from the buttons reaches it, ↑ again Back, ↓ the buttons. It is a `FocusRow` of its own, so ←/→ never leave it. Focused, it grows, turns white and shows the time over the thumb; Select plays or pauses.
-- ←/→ on it seek at once with `SkipStreak` (10 s, 30 s, 1 min, 2 min, 5 min for presses in a row, D-128), like the ±10 s buttons, not with `RemoteSeekController`'s preview: its scrub bar replaces the controls, which would unmount the focused bar. The bar itself shows where the video is.
+- ←/→ on it move a preview (D-180) by `SkipStreak` (10 s, 30 s, 1 min, 2 min, 5 min for presses in a row, D-128), like the ±10 s buttons, not with `RemoteSeekController`'s preview: its scrub bar replaces the controls, which would unmount the focused bar. The bar itself shows the position.
 - A held key (Android repeats key-down) skips again every 300 ms (`BAR_REPEAT_MS`), so holding speeds up through the same steps; remotes that report arrows only on release skip once per press.
+
+## D-180
+
+**TV and phone: preview frames on the progress bar** — 2026-10-15 (requested by owner)
+
+- Providers ship no thumbnails, so, as on desktop (D-023), frames come from the stream itself: `FramePreview.kt` opens one `MediaMetadataRetriever` on the stream's address (with the app's User-Agent) and returns the key frame nearest the time, 320 px wide, as a JPEG data URI. Key frames only (`OPTION_CLOSEST_SYNC`): exact frames would decode up to several seconds of video per request.
+- It holds a second provider connection, so it is asked for only where the account has one to spare (`spareConnection`, D-175), and released as soon as the preview ends (the jump, the drag's end, the player closing). Not for downloads (encrypted, D-050), HLS (the retriever cannot read playlists) or live.
+- `useFramePreview` keeps one request decoding and only the latest waiting, so fast presses or a drag never queue up; a frame that arrives after the preview ended is dropped.
+- TV bar: ←/→ move a preview position with the frame and the time over it; the video jumps there `TAP_CHAIN_MS` after the last press, on Select, or when the bar loses the focus, so the stream re-buffers once per series of presses, not once per press. Phone: the frame follows the finger while dragging the timeline.

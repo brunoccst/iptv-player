@@ -31,6 +31,12 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   listDownloads(): NativeDownload[];
   /** True when the FFmpeg audio decoders are bundled in this build (D-059). */
   ffmpegAudioAvailable(): boolean;
+  /**
+   * A progress bar preview frame (D-180): the key frame nearest `timeMs` of the stream at `uri`, `width` px wide, as a
+   * JPEG data URI; null when the stream gives none. Keeps a second connection to the stream until `releasePreview`.
+   */
+  previewFrame(uri: string, timeMs: number, width: number): Promise<string | null>;
+  releasePreview(): void;
   /** The native crash of the last run (stack trace), once; null when it ended normally (D-039). */
   takeLastCrash(): string | null;
   /** Java heap limit and use, and the device's RAM, in MB (D-039). */

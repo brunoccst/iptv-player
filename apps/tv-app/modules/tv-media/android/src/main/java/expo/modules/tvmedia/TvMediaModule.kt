@@ -170,6 +170,15 @@ class TvMediaModule : Module() {
         .addOnFailureListener { promise.reject(CodedException("ERR_SCANNER", it.message ?: "Scanner not available", it)) }
     }
 
+    /** A preview frame for the progress bar, as a JPEG data URI, or null (D-180). */
+    AsyncFunction("previewFrame") { uri: String, timeMs: Double, width: Int, promise: Promise ->
+      FramePreview.frame(context, uri, timeMs, width, promise)
+    }
+
+    Function("releasePreview") {
+      FramePreview.release()
+    }
+
     Function("setUserAgent") { userAgent: String ->
       DownloadCenter.setUserAgent(context, userAgent)
     }
