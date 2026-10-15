@@ -134,6 +134,8 @@ const CODEC_NAMES: Record<string, string> = {
 const CONTROLS_HIDE_MS = 4000;
 /** TV: with the focus on the buttons, they stay a little longer after the last key. */
 const BUTTONS_HIDE_MS = 8000;
+/** TV, progress bar focused: a held ←/→ skips again this often (each press of the series skips further, D-128). */
+const BAR_REPEAT_MS = 300;
 /** Two taps on the left/right third within this time seek ∓10 s (phones). */
 const DOUBLE_TAP_MS = 300;
 /** How long a notice (e.g. the subtitle OpenSubtitles added, D-111) stays up. */
@@ -179,6 +181,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // return to the video (D-077).
   const [buttons, setButtons] = useState<false | 'play' | 'back'>(false);
   const tvButtons = Platform.isTV && !!buttons;
+  // TV: the progress bar above the buttons takes the focus too; ←/→ on it move the video (D-179).
+  const [barFocused, setBarFocused] = useState(false);
+  const onBar = tvButtons && barFocused;
+  const barKey = useRef<{ key: string; at: number } | null>(null);
+  useEffect(() => {
+    if (!buttons) setBarFocused(false);
+  }, [buttons]);
   const [flash, setFlash] = useState<{ direction: SeekDirection; key: number; seconds?: number } | null>(null);
   const [scrub, setScrub] = useState<{ preview: number; speed: number; step?: number; direction: SeekDirection } | null>(null);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -544,6 +553,20 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     }
     if (drawer || guide || recent || error) return;
     wake();
+    // The progress bar: ←/→ skip like the ±10 s buttons, further with each press in a row (D-128); a held key repeats
+    // every BAR_REPEAT_MS. Up/Down leave it (native focus). See DECISIONS.md#d-179.
+    if (onBar && (key === 'left' || key === 'right')) {
+      if (action === 'up') {
+        barKey.current = null;
+        return;
+      }
+      const now = Date.now();
+      const held = barKey.current?.key === key;
+      if (held && now - barKey.current!.at < BAR_REPEAT_MS) return;
+      barKey.current = { key, at: now };
+      skipPress(key === 'left' ? 'back' : 'forward');
+      return;
+    }
     // On the buttons the D-pad moves the focus and Select presses the focused button.
     if (tvButtons) return;
     // A row of buttons on screen (Skip ahead's 30 s … 3 min, next-up's Play Now / Cancel): ←/→ move between them and
@@ -807,7 +830,30 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
             {isLive ? <Text style={styles.live}>{t('LIVE')}</Text> : null}
           </View>
           <View style={[styles.bottom, { paddingHorizontal: sizes.gutter }]}>
-            {isLive ? null : (
+            {isLive ? null : Platform.isTV ? (
+              // TV: one more row above the buttons; Left/Right stay on it and move the video (D-179).
+              <FocusRow>
+                <Pressable
+                  style={styles.timeline}
+                  accessibilityLabel={t('Seek')}
+                  testID="player-timeline"
+                  focusable={tvButtons}
+                  onFocus={() => setBarFocused(true)}
+                  onBlur={() => setBarFocused(false)}
+                  onPress={() => setPaused((p) => !p)}
+                >
+                  <View style={[styles.rail, onBar && styles.railFocused]} pointerEvents="none">
+                    <View style={[styles.played, { width: `${percent}%` }]} />
+                    <View style={[styles.thumb, onBar && styles.thumbFocused, { left: `${percent}%` }]} />
+                  </View>
+                  {onBar ? (
+                    <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none" testID="player-timeline-time">
+                      {formatClock(time)}
+                    </Text>
+                  ) : null}
+                </Pressable>
+              </FocusRow>
+            ) : (
               <View
                 style={styles.timeline}
                 accessibilityLabel={t('Seek')}
@@ -1086,6 +1132,8 @@ const styles = StyleSheet.create({
   played: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent },
   thumb: { position: 'absolute', top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: 7, backgroundColor: colors.accent },
   thumbDragging: { top: -8, width: 20, height: 20, marginLeft: -10, borderRadius: 10 },
+  railFocused: { height: 6, backgroundColor: 'rgba(255,255,255,0.45)' },
+  thumbFocused: { top: -9, width: 24, height: 24, marginLeft: -12, borderRadius: 12, backgroundColor: colors.strong },
   dragTime: {
     position: 'absolute',
     bottom: 22,
