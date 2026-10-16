@@ -114,7 +114,7 @@ Remotes with red, green, yellow and blue keys: **Red** adds the focused title (a
 
 ### Card menu
 
-A title card's menu: Go to details, Mark as watched / not watched (movies and series), Add to / Remove from My List; on Continue Watching also Remove (D-078, D-081). TV: hold OK; phone: long touch; desktop: right-click, the menu key or Shift+F10.
+A title card's menu: Go to details, Mark as watched / not watched (movies and series), Add to / Remove from My List; on Continue Watching also Remove (D-078, D-081). Each option, Cancel included, shows its icon after the text, the same on every app (D-182). TV: hold OK; phone: long touch; desktop: right-click, the menu key or Shift+F10.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone: long touch · desktop: right-click, the menu key or Shift+F10.
 

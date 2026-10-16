@@ -208,7 +208,7 @@ function ContinueWatchingRow() {
           subtitle={subtitleOf(menuFor)}
           onClose={() => setMenuFor(null)}
           actions={continueMenuItems(menuFor, (section, masterId) => navStore.getState().push({ name: 'details', section, masterId })).map(
-            (entry) => ({ label: entry.label, testID: `card-menu-${entry.id}`, onPress: entry.run }),
+            (entry) => ({ label: entry.label, icon: entry.icon, testID: `card-menu-${entry.id}`, onPress: entry.run }),
           )}
         />
       ) : null}

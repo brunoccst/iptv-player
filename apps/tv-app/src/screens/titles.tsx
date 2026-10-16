@@ -82,7 +82,9 @@ export function MasterCardItem({
         <CardMenu
           title={item.title}
           onClose={() => setMenu(false)}
-          actions={card.menuItems().map((entry) => ({ label: entry.label, testID: `card-menu-${entry.id}`, onPress: entry.run }))}
+          actions={card
+            .menuItems()
+            .map((entry) => ({ label: entry.label, icon: entry.icon, testID: `card-menu-${entry.id}`, onPress: entry.run }))}
         />
       ) : null}
     </>

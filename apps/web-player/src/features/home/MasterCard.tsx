@@ -31,7 +31,7 @@ export const MasterCard = memo(function MasterCard({ section, item }: { section:
           title={item.title}
           position={menu}
           onClose={() => setMenu(null)}
-          actions={card.menuItems().map((entry) => ({ label: entry.label, onSelect: entry.run }))}
+          actions={card.menuItems().map((entry) => ({ label: entry.label, icon: entry.icon, onSelect: entry.run }))}
         />
       ) : null}
     </>

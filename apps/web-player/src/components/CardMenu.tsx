@@ -9,7 +9,7 @@ export interface CardMenuAction {
   onSelect(): void;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
-  /** Shown after the text (the episode menu, D-078). */
+  /** Shown after the text: every option has one (D-182). */
   icon?: IconName;
 }
 
@@ -125,7 +125,8 @@ export function CardMenu({
         </button>
       ))}
       <button type="button" role="menuitem" className="card-menu__item card-menu__item--cancel" onClick={onClose}>
-        {t('Cancel')}
+        <span>{t('Cancel')}</span>
+        <Icon name="close" size={18} />
       </button>
     </div>,
     document.body,
