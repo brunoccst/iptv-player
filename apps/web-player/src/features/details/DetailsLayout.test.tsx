@@ -8,10 +8,27 @@ const parts = {
   backdrop: 'http://img/backdrop.jpg',
   title: 'Big Test Movie',
   watched: true,
-  actions: <button type="button">Play</button>,
+  play: <button type="button">Play</button>,
+  actions: <button type="button">My List</button>,
   main: <p>A plot.</p>,
   side: <p>Cast: Someone</p>,
 };
+
+describe('details buttons (D-182)', () => {
+  afterEach(cleanup);
+
+  it.each([false, true])('Play stands alone; the icon buttons wrap in a group of their own (two columns: %s)', (split) => {
+    render(
+      <SplitLayout.Provider value={split}>
+        <DetailsLayout {...parts} />
+      </SplitLayout.Provider>,
+    );
+    const icons = screen.getByTestId('details-icon-actions');
+    expect(icons.textContent).toBe('My List');
+    expect(icons.parentElement?.className).toBe('details__actions');
+    expect(icons.parentElement?.firstElementChild?.textContent).toBe('Play');
+  });
+});
 
 describe('details in two columns on wide landscape windows (D-158)', () => {
   afterEach(() => {

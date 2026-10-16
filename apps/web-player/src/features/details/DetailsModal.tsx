@@ -75,11 +75,13 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       backdrop={backdrop}
       title={master.title}
       watched={watched}
+      play={
+        <button type="button" className="button button--primary" onClick={play}>
+          <Icon name="play" /> {canResume ? t('Resume') : t('Play')}
+        </button>
+      }
       actions={
         <>
-          <button type="button" className="button button--primary" onClick={play}>
-            <Icon name="play" /> {canResume ? t('Resume') : t('Play')}
-          </button>
           <DownloadButton target={downloadTarget(target, duration)} />
           <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
           <WatchlistButton section="movies" title={master} />
@@ -132,11 +134,13 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
       backdrop={backdrop}
       title={master.title}
       watched={allWatched}
+      play={
+        <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
+          <Icon name="play" /> {playLabel}
+        </button>
+      }
       actions={
         <>
-          <button type="button" className="button button--primary" onClick={play} disabled={!series.data}>
-            <Icon name="play" /> {playLabel}
-          </button>
           <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
           <WatchlistButton section="series" title={master} />
         </>

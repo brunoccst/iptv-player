@@ -14,6 +14,7 @@ export function DetailsLayout({
   backdrop,
   title,
   watched,
+  play,
   actions,
   main,
   side,
@@ -22,6 +23,9 @@ export function DetailsLayout({
   backdrop: string | null | undefined;
   title: string;
   watched?: boolean;
+  /** The Play/Resume button. */
+  play: ReactNode;
+  /** The icon buttons beside it. */
   actions: ReactNode;
   main: ReactNode;
   side: ReactNode;
@@ -35,7 +39,7 @@ export function DetailsLayout({
         <div className={list ? 'details-split__left' : 'details-split__left details-split__left--single'} data-testid="details-left">
           <h2 className="details__title">{title}</h2>
           {watched ? <WatchedTag className="details__watched" /> : null}
-          <div className="details__actions">{actions}</div>
+          <Actions play={play} actions={actions} />
           <div className="details-split__main">{main}</div>
           <div className="details__side details-split__side">{side}</div>
         </div>
@@ -50,7 +54,7 @@ export function DetailsLayout({
   return (
     <>
       <DetailsHero backdrop={backdrop} title={title} watched={watched}>
-        {actions}
+        <Actions play={play} actions={actions} />
       </DetailsHero>
       <div className="details__body">
         <div>{main}</div>
@@ -58,6 +62,21 @@ export function DetailsLayout({
       </div>
       {list}
     </>
+  );
+}
+
+/**
+ * Play/Resume, then the icon buttons in a group of their own that wraps: an icon that does not fit goes under the
+ * other icons, not under Play (DECISIONS.md#d-182).
+ */
+function Actions({ play, actions }: { play: ReactNode; actions: ReactNode }) {
+  return (
+    <div className="details__actions">
+      {play}
+      <div className="details__icon-actions" data-testid="details-icon-actions">
+        {actions}
+      </div>
+    </div>
   );
 }
 
@@ -79,7 +98,7 @@ function DetailsHero({
       <div className="details__heading">
         <h2 className="details__title">{title}</h2>
         {watched ? <WatchedTag className="details__watched" /> : null}
-        <div className="details__actions">{children}</div>
+        {children}
       </div>
     </div>
   );

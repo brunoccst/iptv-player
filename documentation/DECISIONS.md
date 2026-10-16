@@ -87,6 +87,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-179](#d-179) | TV: the progress bar takes the focus |
 | [D-180](#d-180) | TV and phone: preview frames on the progress bar |
 | [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
+| [D-182](#d-182) | Details: the icon buttons wrap beside Play |
 
 ## Merged and retired IDs
 
@@ -979,3 +980,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Android's horizontal scroll view scrolled a row on focus just enough to show the card, so the first and last cards on screen sat on the screen edge: the focused card's 8 % growth and glow were cut, and TVs that overscan cut the card itself.
 - TV rows (`Row`) turn that off (`scrollsChildToFocus={false}`) and scroll themselves: a focused card (`PosterCard`, the See all card) calls `RowReveal`, which measures it in the row and scrolls (`revealOffset`, `components/rowReveal.ts`) so it keeps `tvRowInset` (the gutter + 24) from both sides, moving as little as possible. The target comes from the offset last asked for, not the one on screen, which is stale while a scroll animates (like D-094).
 - The cards, and the row title above them, start at that inset, so at the row's ends the first and last cards sit there too. Phones keep the gutter and the scroll view's own scrolling.
+
+## D-182
+
+**Details: the icon buttons wrap beside Play** — 2026-10-16 (requested by owner)
+
+- In one wrapping row, a button that did not fit (a wider "Resume" or "Play S1:E5" on a phone) went to the start of the next line, under Play, where nobody looks for an icon. So Play/Resume stands alone and the icon buttons are a group of their own that takes the rest of the width and wraps inside it (`Actions` in the TV app's `DetailsScreen` and the web `DetailsLayout`, the `play` and `actions` parts of the details layout).
+- The outer row does not wrap and aligns to the top, so Play lines up with the first line of icons; Play and the icons are both 40 px high.

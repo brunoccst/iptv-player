@@ -153,16 +153,18 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       backdrop={backdrop}
       title={master.title}
       watched={watched}
+      play={
+        <FocusButton
+          label={canResume ? t('Resume') : t('Play')}
+          icon="play"
+          variant="primary"
+          hasTVPreferredFocus
+          testID="details-play"
+          onPress={() => navStore.getState().push({ name: 'player', target: play })}
+        />
+      }
       actions={
         <>
-          <FocusButton
-            label={canResume ? t('Resume') : t('Play')}
-            icon="play"
-            variant="primary"
-            hasTVPreferredFocus
-            testID="details-play"
-            onPress={() => navStore.getState().push({ name: 'player', target: play })}
-          />
           <DownloadButton target={target} />
           <PlayOnTvButton target={play} testID="details-play-on-tv" />
           <ExternalPlayerButton target={target} testID="details-external" />
@@ -203,17 +205,19 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
       backdrop={backdrop}
       title={master.title}
       watched={allWatched}
+      play={
+        <FocusButton
+          label={playLabel}
+          icon="play"
+          variant="primary"
+          hasTVPreferredFocus
+          disabled={!series.data}
+          onPress={play}
+          testID="details-play"
+        />
+      }
       actions={
         <>
-          <FocusButton
-            label={playLabel}
-            icon="play"
-            variant="primary"
-            hasTVPreferredFocus
-            disabled={!series.data}
-            onPress={play}
-            testID="details-play"
-          />
           <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
           <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
           <WatchlistButton section="series" title={master} />
@@ -681,6 +685,7 @@ function DetailsLayout({
   backdrop,
   title,
   watched,
+  play,
   actions,
   main,
   side,
@@ -689,6 +694,9 @@ function DetailsLayout({
   backdrop: string | null | undefined;
   title: string;
   watched?: boolean;
+  /** The Play/Resume button. */
+  play: ReactNode;
+  /** The icon buttons beside it. */
   actions: ReactNode;
   main: ReactNode;
   side: ReactNode;
@@ -697,11 +705,13 @@ function DetailsLayout({
 }) {
   const split = useContext(SplitLayout);
   if (split)
-    return <SplitDetails backdrop={backdrop} title={title} watched={watched} actions={actions} main={main} side={side} list={list} />;
+    return (
+      <SplitDetails backdrop={backdrop} title={title} watched={watched} play={play} actions={actions} main={main} side={side} list={list} />
+    );
   return (
     <>
       <DetailsHero backdrop={backdrop} title={title} watched={watched}>
-        {actions}
+        <Actions play={play} actions={actions} />
       </DetailsHero>
       <Body main={main} side={side} />
       {list}
@@ -719,6 +729,7 @@ function SplitDetails({
   backdrop,
   title,
   watched,
+  play,
   actions,
   main,
   side,
@@ -727,6 +738,9 @@ function SplitDetails({
   backdrop: string | null | undefined;
   title: string;
   watched?: boolean;
+  /** The Play/Resume button. */
+  play: ReactNode;
+  /** The icon buttons beside it. */
   actions: ReactNode;
   main: ReactNode;
   side: ReactNode;
@@ -754,7 +768,7 @@ function SplitDetails({
         </Text>
         {watched ? <WatchedTag style={styles.titleTag} testID="details-watched" /> : null}
         <FocusRow style={[styles.actions, styles.splitActions]} rightOpen={!!list}>
-          {actions}
+          <Actions play={play} actions={actions} />
         </FocusRow>
         {main}
         <View style={[styles.side, styles.splitSide]}>{side}</View>
@@ -766,6 +780,21 @@ function SplitDetails({
         </View>
       ) : null}
     </View>
+  );
+}
+
+/**
+ * Play/Resume, then the icon buttons in a group of their own that wraps: an icon that does not fit goes under the
+ * other icons, not under Play (DECISIONS.md#d-182).
+ */
+function Actions({ play, actions }: { play: ReactNode; actions: ReactNode }) {
+  return (
+    <>
+      {play}
+      <View style={styles.iconActions} testID="details-icon-actions">
+        {actions}
+      </View>
+    </>
   );
 }
 
@@ -874,7 +903,8 @@ const styles = StyleSheet.create({
   // Phones: 16 px sides, the same as the episode list.
   headingCompact: { left: 16, right: 16 },
   title: { color: colors.strong, fontWeight: '700', marginBottom: 16 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
+  actions: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  iconActions: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'center' },
   body: { paddingTop: 16, paddingHorizontal: 32, paddingBottom: 32, gap: 24 },
   bodyColumns: { flexDirection: 'row' },
   bodyCompact: { paddingHorizontal: 16 },
