@@ -841,7 +841,9 @@ describe('App (TV)', () => {
     const name = /(\S+\.iptvbackup)/.exec(String(saved.props.children))![1]!;
     const text = await new File(Paths.document, name).text();
     expect(JSON.parse(text)).toMatchObject({ format: BACKUP_FORMAT });
-    expect(text).not.toContain('tok');
+    // The saved token in plain JSON would read "tok" with its quotes; base64 ciphertext has no quotes, so it can
+    // contain the letters "tok" by chance.
+    expect(text).not.toContain('"tok"');
   });
 
   it('Restore from backup on the login screen signs in with the restored data (D-056)', async () => {
