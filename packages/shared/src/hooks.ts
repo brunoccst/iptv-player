@@ -516,6 +516,7 @@ export function createAppHooks({
           cardMenuItems({ kind: section === 'movies' ? 'movie' : 'series', watched, onList }).map((entry) => ({
             id: entry.id,
             label: entry.label,
+            icon: entry.icon,
             run: () => {
               if (entry.id === 'details') openDetails();
               else if (entry.id === 'mylist-add' || entry.id === 'mylist-remove') void stores.watchlist.getState().toggle(section, item);
@@ -533,6 +534,7 @@ export function createAppHooks({
       return cardMenuItems({ kind: 'continue', entry, onList }).map((item) => ({
         id: item.id,
         label: item.label,
+        icon: item.icon,
         run: () => {
           if (item.id === 'details') {
             const details = progressDetails(entry);

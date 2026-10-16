@@ -153,6 +153,16 @@ describe('watched titles (D-081)', () => {
       'Mark series as not watched',
       'Add to My List',
     ]);
+    // Every option has its icon, the same on every app (D-182).
+    const icons = (items: { icon: string }[]) => items.map((item) => item.icon);
+    expect(icons(cardMenuItems({ kind: 'continue', entry: entry('e1', 5, { kind: 'episode', masterId: 'show' }), onList: true }))).toEqual([
+      'info',
+      'eye',
+      'bookmarkOutline',
+      'trash',
+    ]);
+    expect(icons(cardMenuItems({ kind: 'movie', watched: false }))).toEqual(['info', 'eye', 'bookmark']);
+    expect(icons(cardMenuItems({ kind: 'series', watched: true, onList: true }))).toEqual(['info', 'eyeOff', 'bookmarkOutline']);
     expect(continueWatchlistEntry(entry('e1', 5, { kind: 'episode', masterId: 'show' }))).toMatchObject({
       section: 'series',
       card: { id: 'show' },

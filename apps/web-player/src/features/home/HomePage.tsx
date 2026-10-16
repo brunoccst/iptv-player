@@ -107,6 +107,7 @@ function ContinueWatchingRow() {
           actions={continueMenuItems(menu.item, (section, masterId) => uiStore.getState().openDetails({ section, masterId })).map(
             (entry) => ({
               label: entry.label,
+              icon: entry.icon,
               onSelect: entry.run,
             }),
           )}
