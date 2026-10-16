@@ -10,7 +10,7 @@ export interface CardMenuAction {
   testID?: string;
   /** Shown but not selectable (an episode already downloaded). */
   disabled?: boolean;
-  /** Shown after the text (the episode menu, D-078). */
+  /** Shown after the text: every option has one (D-182). */
   icon?: IconName;
 }
 
@@ -57,6 +57,8 @@ export function CardMenu({
             label={t('Cancel')}
             variant="ghost"
             hasTVPreferredFocus={actions.every((entry) => entry.disabled)}
+            icon="close"
+            iconAfter
             onPress={onClose}
             testID="card-menu-cancel"
           />

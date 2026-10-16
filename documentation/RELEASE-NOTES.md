@@ -16,7 +16,8 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
-- **Details buttons stay together** (2026-10-16, D-182): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
+- **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
+- **Icons in the card menu** (2026-10-16, D-182): the menu that opens when you hold OK or long-touch a cover now shows an icon next to each option, the same icons the app uses elsewhere.
 - **Covers no longer cut at the screen sides** (2026-10-15, D-181): on the TV, the first and last covers of a row used to touch the screen edge and lose a strip, and the focused one its glow. Rows now keep the focused cover a little away from both sides, and start a little further in.
 - **A picture of the moment you are moving to** (2026-10-15, D-180): on the TV progress bar and while dragging it on the phone, a small picture of that point in the movie or episode shows above the bar, like on Netflix. On the TV, the video now jumps there a second after your last press, or straight away with OK. It needs your account to allow a second stream, and is not shown for downloads.
 - **Move through a movie or episode from the progress bar** (2026-10-15, D-179): on the TV, press ↓ for the player's buttons and ↑ once more to focus the progress bar. There ← and → move the video back or forward: 10 s, then further with each press in a row (30 s, 1 min, 2 min, 5 min), and holding the key keeps going. ↓ returns to the buttons.
@@ -105,7 +106,8 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
-- **Details buttons stay together** (2026-10-16, D-182): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
+- **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
+- **Icons in the card menu** (2026-10-16, D-182): the menu that opens when you right-click a cover now shows an icon next to each option, the same icons the app uses elsewhere.
 - **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.
 - **Sync with another device** (2026-10-12, D-178): the account menu's Sync with phone is now Sync with another device. Its code also works for tablets, and a signed-out phone or tablet that scans it gets this computer's sign-in.
 - **Better quality on My List** (2026-10-12, D-176): when a movie on My List was only a cinema copy (CAM, TS…) and a better copy arrives, Home tells you with a popup, with Play and More Info.

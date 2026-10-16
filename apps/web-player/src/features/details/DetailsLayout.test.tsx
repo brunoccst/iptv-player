@@ -14,7 +14,7 @@ const parts = {
   side: <p>Cast: Someone</p>,
 };
 
-describe('details buttons (D-182)', () => {
+describe('details buttons (D-183)', () => {
   afterEach(cleanup);
 
   it.each([false, true])('Play stands alone; the icon buttons wrap in a group of their own (two columns: %s)', (split) => {

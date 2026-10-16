@@ -583,7 +583,7 @@ describe('landscape: two columns (issue #186, D-158)', () => {
   });
 });
 
-describe('details buttons: the icons wrap among themselves (D-182)', () => {
+describe('details buttons: the icons wrap among themselves (D-183)', () => {
   it('Play/Resume stands alone; an icon that does not fit goes under the other icons, not under Play', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/library/movies/m', {

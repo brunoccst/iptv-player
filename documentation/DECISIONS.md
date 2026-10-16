@@ -87,7 +87,8 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-179](#d-179) | TV: the progress bar takes the focus |
 | [D-180](#d-180) | TV and phone: preview frames on the progress bar |
 | [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
-| [D-182](#d-182) | Details: the icon buttons wrap beside Play |
+| [D-182](#d-182) | Every card menu option has an icon |
+| [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 
 ## Merged and retired IDs
 
@@ -982,6 +983,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The cards, and the row title above them, start at that inset, so at the row's ends the first and last cards sit there too. Phones keep the gutter and the scroll view's own scrolling.
 
 ## D-182
+
+**Every card menu option has an icon** — 2026-10-16 (requested by owner)
+
+- A card's menu (hold OK, long touch, right-click, D-078) shows an icon after each option's text, Cancel included, like the episode menu already did. The icon comes with the option from `cardMenuItems` in shared code, so it is the same on every app.
+- The icons are the ones the apps use for the same thing elsewhere: Go to details `info` (More Info), Mark as watched `eye` and not watched `eyeOff` (the Watched tag, D-081), Add to My List `bookmark` (the cover's My List mark, issue #157) and Remove from My List `bookmarkOutline`, Remove from Continue Watching `trash`, Cancel `close`.
+
+## D-183
 
 **Details: the icon buttons wrap beside Play** — 2026-10-16 (requested by owner)
 

@@ -92,6 +92,8 @@ export type CardMenuItemId = 'details' | 'watched' | 'unwatched' | 'mylist-add' 
 export interface CardMenuItem {
   id: CardMenuItemId;
   label: string;
+  /** Shown after the text, the same on every app (D-182). */
+  icon: IconName;
 }
 
 export function cardMenuItems(
@@ -100,30 +102,34 @@ export function cardMenuItems(
     | { kind: 'movie'; watched: boolean; onList?: boolean }
     | { kind: 'series'; watched: boolean; onList?: boolean },
 ): CardMenuItem[] {
-  const details: CardMenuItem = { id: 'details', label: t('Go to details') };
+  const details: CardMenuItem = { id: 'details', label: t('Go to details'), icon: 'info' };
   // Add to / Remove from My List (D-078): on every card that stands for a title.
   const myList: CardMenuItem = card.onList
-    ? { id: 'mylist-remove', label: t('Remove from My List') }
-    : { id: 'mylist-add', label: t('Add to My List') };
+    ? { id: 'mylist-remove', label: t('Remove from My List'), icon: 'bookmarkOutline' }
+    : { id: 'mylist-add', label: t('Add to My List'), icon: 'bookmark' };
   switch (card.kind) {
     case 'continue':
       return [
         // An episode started without its series title (from search or the guide) has no details page to go to.
         ...(card.entry.masterId ? [details] : []),
-        { id: 'watched', label: card.entry.kind === 'episode' ? t('Mark episode as watched') : t('Mark as watched') },
+        { id: 'watched', label: card.entry.kind === 'episode' ? t('Mark episode as watched') : t('Mark as watched'), icon: 'eye' },
         ...(card.entry.masterId ? [myList] : []),
-        { id: 'remove', label: t('Remove from Continue Watching') },
+        { id: 'remove', label: t('Remove from Continue Watching'), icon: 'trash' },
       ];
     case 'movie':
       return [
         details,
-        card.watched ? { id: 'unwatched', label: t('Mark as not watched') } : { id: 'watched', label: t('Mark as watched') },
+        card.watched
+          ? { id: 'unwatched', label: t('Mark as not watched'), icon: 'eyeOff' }
+          : { id: 'watched', label: t('Mark as watched'), icon: 'eye' },
         myList,
       ];
     case 'series':
       return [
         details,
-        card.watched ? { id: 'unwatched', label: t('Mark series as not watched') } : { id: 'watched', label: t('Mark series as watched') },
+        card.watched
+          ? { id: 'unwatched', label: t('Mark series as not watched'), icon: 'eyeOff' }
+          : { id: 'watched', label: t('Mark series as watched'), icon: 'eye' },
         myList,
       ];
   }

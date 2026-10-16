@@ -616,7 +616,7 @@ test('Categories shown: an unchecked category leaves browsing, but search still 
   await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
 });
 
-test('narrow window: details icon buttons that do not fit wrap under the other icons, not under Play (D-182)', async ({ page }) => {
+test('narrow window: details icon buttons that do not fit wrap under the other icons, not under Play (D-183)', async ({ page }) => {
   await page.setViewportSize({ width: 340, height: 800 });
   await page.getByRole('button', { name: 'Big Test Movie' }).first().click();
   const dialog = page.getByRole('dialog');

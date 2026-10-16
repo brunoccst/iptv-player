@@ -785,7 +785,7 @@ function SplitDetails({
 
 /**
  * Play/Resume, then the icon buttons in a group of their own that wraps: an icon that does not fit goes under the
- * other icons, not under Play (DECISIONS.md#d-182).
+ * other icons, not under Play (DECISIONS.md#d-183).
  */
 function Actions({ play, actions }: { play: ReactNode; actions: ReactNode }) {
   return (
