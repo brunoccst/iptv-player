@@ -582,3 +582,21 @@ describe('landscape: two columns (issue #186, D-158)', () => {
     expect(screen.getByTestId('details-play')).toBeTruthy();
   });
 });
+
+describe('details buttons: the icons wrap among themselves (D-183)', () => {
+  it('Play/Resume stands alone; an icon that does not fit goes under the other icons, not under Play', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m', {
+      body: { id: 'm', title: 'Movie', year: 2020, posterUrl: null, rating: null, bestQuality: null, variants: [variant('en', 'ENG')] },
+    });
+    await render(<DetailsScreen section="movies" masterId="m" />);
+    await flush();
+    const icons = screen.getByTestId('details-icon-actions');
+    expect(within(icons).queryByTestId('details-play')).toBeNull();
+    expect(within(icons).getByTestId('download-button')).toBeTruthy();
+    expect(within(icons).getByTestId('details-mylist')).toBeTruthy();
+    expect(StyleSheet.flatten(icons.props.style)).toMatchObject({ flex: 1, flexWrap: 'wrap' });
+    // The row holding Play and the icons does not wrap itself.
+    expect(StyleSheet.flatten(icons.parent?.props.style).flexWrap).toBeUndefined();
+  });
+});

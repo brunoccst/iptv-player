@@ -88,6 +88,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-180](#d-180) | TV and phone: preview frames on the progress bar |
 | [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
 | [D-182](#d-182) | Every card menu option has an icon |
+| [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 
 ## Merged and retired IDs
 
@@ -987,3 +988,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A card's menu (hold OK, long touch, right-click, D-078) shows an icon after each option's text, Cancel included, like the episode menu already did. The icon comes with the option from `cardMenuItems` in shared code, so it is the same on every app.
 - The icons are the ones the apps use for the same thing elsewhere: Go to details `info` (More Info), Mark as watched `eye` and not watched `eyeOff` (the Watched tag, D-081), Add to My List `bookmark` (the cover's My List mark, issue #157) and Remove from My List `bookmarkOutline`, Remove from Continue Watching `trash`, Cancel `close`.
+
+## D-183
+
+**Details: the icon buttons wrap beside Play** — 2026-10-16 (requested by owner)
+
+- In one wrapping row, a button that did not fit (a wider "Resume" or "Play S1:E5" on a phone) went to the start of the next line, under Play, where nobody looks for an icon. So Play/Resume stands alone and the icon buttons are a group of their own that takes the rest of the width and wraps inside it (`Actions` in the TV app's `DetailsScreen` and the web `DetailsLayout`, the `play` and `actions` parts of the details layout).
+- The outer row does not wrap and aligns to the top, so Play lines up with the first line of icons; Play and the icons are both 40 px high.

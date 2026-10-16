@@ -369,9 +369,18 @@
 
 .details__actions {
   display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* The icon buttons wrap under each other, never under Play/Resume (D-183). */
+.details__icon-actions {
+  display: flex;
+  flex: 1;
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .details__body {
