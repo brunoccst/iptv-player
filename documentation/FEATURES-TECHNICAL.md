@@ -16,6 +16,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Title grouping](FEATURES.md#title-grouping) | `packages/shared/src/direct/normalizer/parser.ts`, `packages/shared/src/direct/normalizer/matching.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/reattach.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/LibraryDb.kt`, `apps/desktop/lib/libraryDb.mjs` |
+| [Split or merge titles](FEATURES.md#split-or-merge-titles) | `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/components/RegroupButton.tsx`, `apps/web-player/src/features/details/RegroupButton.tsx` |
 | [Version choice and "(best)"](FEATURES.md#version-choice-and-best) | `packages/shared/src/playback/playbackChoices.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `apps/web-player/src/features/details/VariantSelect.tsx`, `apps/tv-app/src/screens/DetailsScreen.tsx` |
 | [Library updates](FEATURES.md#library-updates) | `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/ListReader.kt` |
 | [Library banner](FEATURES.md#library-banner) | `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/src/useLibraryWatcher.ts`, `apps/tv-app/src/components/LibraryBanner.tsx`, `apps/web-player/src/features/shell/LibraryBanner.tsx` |
@@ -31,6 +32,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Category chips](FEATURES.md#category-chips) | `packages/shared/src/stores/catalogStore.ts`, `apps/tv-app/src/components/ChipBar.tsx`, `apps/web-player/src/components/ChipBar.tsx` |
 | [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) | `apps/tv-app/src/components/CenterScroll.tsx`, `apps/tv-app/src/components/FocusRow.tsx`, `apps/tv-app/src/components/Row.tsx`, `apps/tv-app/src/components/rowReveal.ts`, `apps/tv-app/src/screens/titles.tsx` |
 | [Colour keys (TV)](FEATURES.md#colour-keys-tv) | `apps/tv-app/src/tv/colourKeys.tsx`, `apps/tv-app/src/tv/remote.ts`, `apps/tv-app/src/tv/remoteEvents.ts`, `apps/tv-app/src/player/PlayerScreen.tsx` |
+| [Page address (desktop)](FEATURES.md#page-address-desktop) | `apps/web-player/src/ui/uiStore.ts` |
 
 ## Covers and cards
 
@@ -103,7 +105,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) | `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/src/pairing/PairingDialogs.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/desktop/main.mjs` |
+| [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) | `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/src/pairing/PairingDialogs.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/web-player/src/features/pairing/WebcamScanner.tsx`, `apps/web-player/src/features/pairing/pairing.ts`, `apps/desktop/main.mjs` |
 | [Play on TV](FEATURES.md#play-on-tv) | `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/components/PlayOnTvButton.tsx`, `apps/tv-app/src/App.tsx` |
 
 ## App

@@ -40,7 +40,7 @@ class TvMediaModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("TvMedia")
-    Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress", "onWatchNextOpen")
+    Events("onDownloadsChanged", "onPairingRequest", "onRemoteRequest", "onUpdateProgress", "onWatchNextOpen", "onExternalPlayerResult")
 
     OnCreate {
       // First, so a native crash from here on is in the next run's Log (D-039).
@@ -52,6 +52,12 @@ class TvMediaModule : Module() {
     // A title chosen in the home screen's "Continue watching" row while the app runs (D-147).
     OnNewIntent { intent ->
       WatchNext.take(intent)?.let { sendEvent("onWatchNextOpen", mapOf("id" to it)) }
+    }
+
+    // Another player returned (issue #234): where it stopped, for the title's progress.
+    OnActivityResult { _, payload ->
+      if (payload.requestCode != EXTERNAL_PLAYER_REQUEST) return@OnActivityResult
+      externalPlayerResult(payload.data)?.let { sendEvent("onExternalPlayerResult", it) }
     }
 
     OnDestroy {
@@ -219,15 +225,20 @@ class TvMediaModule : Module() {
 
     /**
      * Hands a stream to another installed video player (VLC, MX Player, Just Player, …), DECISIONS.md#d-057.
-     * `headers` go in the `headers` extra (["User-Agent", "…"]), which MX Player and Just Player read. Returns "opened"
-     * when a default player took it, "chooser" when the system app chooser was shown, "none" when no app can play it.
+     * `headers` go in the `headers` extra (["User-Agent", "…"]), which MX Player and Just Player read. Started for a
+     * result (issue #234): `return_result` asks MX Player and Just Player for one, VLC always sends one; it arrives as
+     * `onExternalPlayerResult`. `positionMs` > 0 starts there in MX Player and Just Player (their `position` is an int).
+     * Returns "opened" when a default player took it, "chooser" when the system app chooser was shown, "none" when no
+     * app can play it.
      */
-    Function("openExternalPlayer") { uri: String, mimeType: String, title: String, headers: Map<String, String> ->
+    Function("openExternalPlayer") { uri: String, mimeType: String, title: String, headers: Map<String, String>, positionMs: Double ->
       val activity = appContext.currentActivity ?: throw Exceptions.MissingActivity()
       val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(Uri.parse(uri), mimeType)
         putExtra("title", title)
         putExtra("headers", headers.flatMap { (name, value) -> listOf(name, value) }.toTypedArray())
+        putExtra("return_result", true)
+        if (positionMs > 0) putExtra("position", positionMs.toInt())
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
       val packageManager = activity.packageManager
@@ -235,11 +246,11 @@ class TvMediaModule : Module() {
       // Without a default app, Android resolves to its own resolver ("android"): show the chooser instead.
       val default = packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
       if (default == null || default == "android") {
-        // No title: Android shows its own "Open with", in the device language.
-        activity.startActivity(Intent.createChooser(intent, null))
+        // No title: Android shows its own "Open with", in the device language. The chosen app's result comes back.
+        activity.startActivityForResult(Intent.createChooser(intent, null), EXTERNAL_PLAYER_REQUEST)
         "chooser"
       } else {
-        activity.startActivity(intent)
+        activity.startActivityForResult(intent, EXTERNAL_PLAYER_REQUEST)
         "opened"
       }
     }
@@ -370,4 +381,23 @@ class TvMediaModule : Module() {
   companion object {
     private const val STOP_REASON_PAUSED = 1
   }
+}
+
+private const val EXTERNAL_PLAYER_REQUEST = 0x7e57
+
+/**
+ * Where another player stopped (issue #234), in ms: MX Player and Just Player send `position` and `duration` (ints)
+ * and `end_by` ("playback_completion" at the end), VLC `extra_position` and `extra_duration` (longs). Null without a
+ * position.
+ */
+internal fun externalPlayerResult(data: Intent?): Map<String, Any>? {
+  val extras = data?.extras ?: return null
+  // `get`: the players send ints or longs; reading the wrong one gives the default.
+  @Suppress("DEPRECATION")
+  fun millis(vararg names: String): Long? =
+    names.firstNotNullOfOrNull { name -> (extras.get(name) as? Number)?.toLong()?.takeIf { it >= 0 } }
+  val duration = millis("duration", "extra_duration") ?: 0L
+  val ended = extras.getString("end_by") == "playback_completion"
+  val position = (if (ended && duration > 0) duration else millis("position", "extra_position")) ?: return null
+  return mapOf("positionMs" to position.toDouble(), "durationMs" to duration.toDouble())
 }

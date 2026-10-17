@@ -11,14 +11,16 @@ export function Modal({ label, onClose, fill, children }: { label: string; onClo
     const previous = document.activeElement as HTMLElement | null;
     panel.current?.focus();
     const onKey = (event: KeyboardEvent) => {
-      // The player sits above modals and handles Escape itself.
-      if (event.key === 'Escape' && !uiStore.getState().playing) onClose();
+      // The player sits above modals and handles Escape itself; a dialog over this one closes first.
+      const modals = document.querySelectorAll('.modal');
+      if (event.key === 'Escape' && !uiStore.getState().playing && modals[modals.length - 1] === panel.current?.parentElement) onClose();
     };
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
     return () => {
       window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
+      // A dialog opened over another one leaves the page behind them still.
+      document.body.style.overflow = document.querySelector('.modal') ? 'hidden' : '';
       previous?.focus?.();
     };
   }, [onClose]);

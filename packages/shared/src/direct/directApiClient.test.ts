@@ -591,7 +591,10 @@ describe.each([
       await libraryReady(moved);
       expect(await moved.library.list('movies')).toEqual(movies);
       expect(await moved.library.list('series', { categoryId: '20' })).toEqual(series);
-      expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual(details);
+      expect(await moved.library.get('movies', movies.items[1]!.id)).toEqual({
+        ...details,
+        regrouping: { merged: false, splitOff: false },
+      });
       expect(fileKeys()).toEqual([]);
       // Home's snapshot is not needed with a database (D-121).
       expect(snapshots()).toEqual([]);
@@ -609,7 +612,10 @@ describe.each([
       const restarted = setup(first.panel, { secure: first.storages.secure, data: noFiles as typeof first.storages.data, db }).api;
       expect(await restarted.library.list('movies', { search: 'big' })).toMatchObject({ total: 1 });
       expect(await restarted.library.list('movies', { offset: 1, limit: 1 })).toMatchObject({ total: 2, items: [movies.items[1]] });
-      expect(await restarted.library.get('movies', movies.items[1]!.id)).toEqual(details);
+      expect(await restarted.library.get('movies', movies.items[1]!.id)).toEqual({
+        ...details,
+        regrouping: { merged: false, splitOff: false },
+      });
     },
   );
 

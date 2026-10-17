@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { createUiStore } from './uiStore';
+import { createUiStore, parseUiHash, uiHash } from './uiStore';
 
 /** In-memory History: enough for push/replace/back semantics. */
 function fakeHistory() {
   const entries: unknown[] = [null];
+  const urls: string[] = [''];
   let index = 0;
   const history = {
-    pushState: (state: unknown) => {
+    pushState: (state: unknown, _title: string, url?: string) => {
       entries.splice(index + 1);
+      urls.splice(index + 1);
       entries.push(state);
+      urls.push(url ?? '');
       index++;
     },
-    replaceState: (state: unknown) => void (entries[index] = state),
+    replaceState: (state: unknown, _title: string, url?: string) => {
+      entries[index] = state;
+      if (url) urls[index] = url;
+    },
     back: () => {
       index = Math.max(0, index - 1);
     },
@@ -19,7 +25,7 @@ function fakeHistory() {
       return entries.length;
     },
   };
-  return { history: history as unknown as History, entries, current: () => entries[index] };
+  return { history: history as unknown as History, entries, urls, current: () => entries[index] };
 }
 
 describe('ui store', () => {
@@ -60,5 +66,37 @@ describe('ui store', () => {
     ui.getState().openDetails({ section: 'series', masterId: 's' });
     ui.getState().closeDetails();
     expect(ui.getState().details).toBeNull();
+  });
+
+  it('keeps the page in the address, without the player (issue #221)', () => {
+    const { history, urls } = fakeHistory();
+    const ui = createUiStore(history);
+
+    ui.getState().openCategory('movies', '12');
+    ui.getState().openDetails({ section: 'movies', masterId: 'm:1' });
+    ui.getState().play({ kind: 'movie', streamId: '1', container: 'mp4', title: 'A' });
+
+    expect(urls).toEqual(['#/home', '#/movies?category=12', '#/movies?category=12&details=movies%3Am%3A1', urls[2]]);
+    ui.getState().setSearch('the matrix');
+    expect(urls.at(-1)).toBe('#/search?q=the+matrix&details=movies%3Am%3A1');
+  });
+
+  it('opens the page an address names, with the page under its details one Back away', () => {
+    const { history, entries, current } = fakeHistory();
+    const ui = createUiStore(history, '#/series?category=7&details=series:s1');
+
+    expect(ui.getState()).toMatchObject({ view: 'series', categoryId: '7', details: { section: 'series', masterId: 's1' } });
+    expect(entries).toHaveLength(2);
+    ui.getState().closeDetails();
+    expect(current()).toMatchObject({ ui: { view: 'series', categoryId: '7', details: null } });
+  });
+
+  it('reads unknown or partial addresses as Home', () => {
+    expect(parseUiHash('')).toMatchObject({ view: 'home', details: null });
+    expect(parseUiHash('#/nowhere?details=films:1')).toMatchObject({ view: 'home', details: null });
+    expect(parseUiHash('#/search')).toMatchObject({ view: 'home', search: '' });
+    expect(parseUiHash('#/live?category=3')).toMatchObject({ view: 'live', categoryId: null });
+    const page = { view: 'search', categoryId: null, search: 'a&b', details: null, playing: null } as const;
+    expect(parseUiHash(uiHash(page))).toEqual(page);
   });
 });

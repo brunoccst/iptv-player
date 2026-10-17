@@ -761,3 +761,44 @@
   align-self: flex-start;
   margin-bottom: 10px;
 }
+
+/* "Merge with another title" (issue #243): search, then the titles found. */
+.merge-picker {
+  display: grid;
+  gap: 12px;
+  padding: 32px;
+}
+
+.merge-picker h2 {
+  margin: 0;
+}
+
+.merge-picker__list {
+  display: grid;
+  gap: 4px;
+  max-height: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.merge-picker__item {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.merge-picker__item:hover,
+.merge-picker__item:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}

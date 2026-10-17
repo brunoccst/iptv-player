@@ -501,9 +501,20 @@ describe('App (TV)', () => {
     await flush();
     expect(backend.calls.find((c) => c.url.pathname === '/api/playback/movie/101')?.url.searchParams.get('container')).toBe('mkv');
     expect(nativeState.calls).toContain(
-      'external:http://relay.test/101.mkv:video/*:Big Test Movie:{"User-Agent":"VLC/3.0.21 LibVLC/3.0.21"}',
+      'external:http://relay.test/101.mkv:video/*:Big Test Movie:{"User-Agent":"VLC/3.0.21 LibVLC/3.0.21"}:0',
     );
     expect(alert).not.toHaveBeenCalled();
+
+    // Where the other player stopped becomes the movie's progress (issue #234).
+    backend.on('PUT', '/api/profiles/p1/progress/movie/101', ({ body }) => ({
+      body: { ...(body as object), kind: 'movie', itemId: '101' },
+    }));
+    await act(async () => nativeState.returnFromExternalPlayer(1_200_000, 6_000_000));
+    await flush();
+    expect(backend.calls.find((c) => c.method === 'PUT' && c.url.pathname.endsWith('/progress/movie/101'))?.body).toMatchObject({
+      positionSeconds: 1200,
+      durationSeconds: 6000,
+    });
 
     nativeState.externalPlayerResult = 'none';
     await fireEvent.press(screen.getByLabelText('Open Big Test Movie in another player'));

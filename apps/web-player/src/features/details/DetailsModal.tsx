@@ -16,6 +16,7 @@ import { downloadTarget } from '../../ui/targets';
 import type { DetailsTarget } from '../../ui/uiStore';
 import { DetailsLayout, SPLIT_QUERY, SplitLayout } from './DetailsLayout';
 import { EpisodeList } from './EpisodeList';
+import { RegroupButton } from './RegroupButton';
 import { VariantSelect } from './VariantSelect';
 
 /** Title details: backdrop, metadata, version selector, play/resume, download, episodes. */
@@ -86,6 +87,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
           <WatchlistButton section="movies" title={master} />
           <VlcButton target={target} />
+          <RegroupButton section="movies" master={master} variant={variant} />
         </>
       }
       main={
@@ -143,6 +145,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
         <>
           <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
           <WatchlistButton section="series" title={master} />
+          <RegroupButton section="series" master={master} variant={variant} />
         </>
       }
       main={

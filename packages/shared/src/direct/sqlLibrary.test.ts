@@ -93,10 +93,59 @@ describe('library in SQLite (D-121)', () => {
     expect(everything.total).toBeGreaterThan(100);
     // Some titles have only cinema copies (D-141).
     expect(new Set(everything.items.map((card) => card.lowSource))).toEqual(new Set([null, 'CAM', 'TS', 'TC']));
+    // Only the database's titles can be split and merged (issue #243).
     for (const card of everything.items.slice(0, 60))
-      expect(await database.library.get('movies', card.id)).toEqual(await memory.library.get('movies', card.id));
+      expect(await database.library.get('movies', card.id)).toEqual({
+        ...(await memory.library.get('movies', card.id)),
+        regrouping: { merged: false, splitOff: false },
+      });
     expect(await database.library.status()).toEqual(await memory.library.status());
   }, 30_000);
+
+  it('the app splits and merges titles by hand, and says how a title came out (issue #243)', async () => {
+    const panel = createFakePanel();
+    const api = createDirectApiClient({
+      appName: 'Test',
+      secureStorage: createMemoryStorage(),
+      dataStorage: createMemoryStorage(),
+      fetch: panel.fetch,
+      now: () => new Date(panel.nowSeconds * 1000),
+      libraryDb: createNodeSqlDatabase(),
+    });
+    await api.auth.login(login);
+    await ready(api);
+    const titles = async () =>
+      (await api.library.list('movies', { sort: 'title' })).items.map(({ title, variantCount }) => `${title} ${variantCount}`).sort();
+    const idOf = async (title: string) => (await api.library.list('movies', { search: title })).items[0]!.id;
+    expect(await titles()).toEqual(['Another Film 1', 'Big Test Movie 2']);
+    const big = await idOf('Big Test Movie');
+    expect((await api.library.get('movies', big)).regrouping).toEqual({ merged: false, splitOff: false });
+
+    // The rest of the title is what the details show next.
+    expect(await api.library.regroup!('movies', big, { action: 'split', streamId: '102' })).toBe(big);
+    expect(await titles()).toEqual(['Another Film 1', 'Big Test Movie 1', 'Big Test Movie 1']);
+    const split = (await api.library.list('movies', { search: 'big' })).items.find((card) => card.id !== big)!.id;
+    expect((await api.library.get('movies', split)).regrouping).toEqual({ merged: false, splitOff: true });
+
+    const merged = await api.library.regroup!('movies', big, { action: 'merge', fromId: await idOf('Another Film') });
+    expect(await titles()).toEqual(['Big Test Movie 1', 'Big Test Movie 2']);
+    expect((await api.library.get('movies', merged)).regrouping).toEqual({ merged: true, splitOff: false });
+
+    await api.library.regroup!('movies', merged, { action: 'undo' });
+    await api.library.regroup!('movies', split, { action: 'undo' });
+    expect(await titles()).toEqual(['Another Film 1', 'Big Test Movie 2']);
+    // Without a database, titles cannot be split or merged.
+    const memory = createDirectApiClient({
+      appName: 'Test',
+      secureStorage: createMemoryStorage(),
+      dataStorage: createMemoryStorage(),
+      fetch: panel.fetch,
+      now: () => new Date(panel.nowSeconds * 1000),
+    });
+    await memory.auth.login(login);
+    await ready(memory);
+    expect((await memory.library.get('movies', big)).regrouping).toBeUndefined();
+  });
 
   it('a start drops the tables of a build that never finished; the saved library stays', async () => {
     const db = createNodeSqlDatabase();
@@ -428,6 +477,86 @@ describe('library in SQLite (D-121)', () => {
       expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
       // Nothing is left of what the updates worked out, once it is dropped in the background (D-135).
       await vi.waitFor(async () => expect(await leftovers(updated.db, first.saved.table)).toEqual([]));
+    }, 60_000);
+
+    it('splits and merges titles by hand, the same as a whole build with those rules (issue #243)', async () => {
+      const list: Item[] = [
+        ...items(400),
+        { id: 1, name: 'The Shawshank Redemption (1994)', addedAt: 50 },
+        { id: 2, name: 'The Shawshank Redemtion (1994) 720p' },
+        { id: 3, name: 'The Shawshank Redemption (1994) 4K' },
+      ];
+      const make = () => {
+        const db = createNodeSqlDatabase();
+        return { db, library: createSqlLibrary(db, async () => undefined) };
+      };
+      const { db, library } = make();
+      let saved = (await library.build('acc', 'movie', '2026-01-01T00:00:00Z', list)).saved;
+      const shawshank = async () =>
+        (await library.list(saved, { search: 'shawshank', sort: 'title' })).items.map(({ title, variantCount }) => [title, variantCount]);
+      const idOf = async (title: string) =>
+        (await library.list(saved, { search: 'shawshank' })).items.find((card) => card.title === title)!.id;
+      /** The rules changed: grouped again, and the same as a whole build with those rules. */
+      const regroup = async (keys: string[]) => {
+        expect(keys.length).toBeGreaterThan(0);
+        let changedKeys: number | null = null;
+        const result = (await library.regroup('acc', 'movie', '2026-01-02T00:00:00Z', keys, {
+          onTimings: (time) => (changedKeys = time.changedKeys),
+        }))!;
+        expect(changedKeys).toBe(keys.length);
+        saved = result.saved;
+        const fresh = make();
+        await fresh.library.open('acc');
+        const rules = await db.query('SELECT account, kind, rule, src, dst FROM title_rules');
+        if (rules.length) await fresh.db.run([{ sql: 'INSERT INTO title_rules VALUES (?, ?, ?, ?, ?)', rows: rules }]);
+        const whole = await fresh.library.build('acc', 'movie', '2026-01-02T00:00:00Z', list);
+        expect(await contents(db, library, saved)).toEqual(await contents(fresh.db, fresh.library, whole.saved));
+      };
+      expect(await shawshank()).toEqual([
+        ['The Shawshank Redemption', 2],
+        ['The Shawshank Redemtion', 1],
+      ]);
+
+      const into = await idOf('The Shawshank Redemption');
+      await regroup(
+        await library.changeRules('acc', 'movie', saved, { action: 'merge', id: into, fromId: await idOf('The Shawshank Redemtion') }),
+      );
+      expect(await shawshank()).toEqual([['The Shawshank Redemption', 3]]);
+      const merged = await idOf('The Shawshank Redemption');
+      expect(await library.regroupedOf('acc', 'movie', saved, merged)).toEqual({ merged: true, splitOff: false });
+
+      await regroup(await library.changeRules('acc', 'movie', saved, { action: 'split', id: merged, streamId: '3' }));
+      // What is left takes its most common spelling; a tie goes to the best version (D-133).
+      expect(await shawshank()).toEqual([
+        ['The Shawshank Redemption', 1],
+        ['The Shawshank Redemtion', 2],
+      ]);
+      const ids = (await library.list(saved, { search: 'shawshank' })).items.map((card) => card.id);
+      const splitOff = (await library.holdersOf(saved, ['3'])).get('3')!;
+      expect(ids).toContain(splitOff);
+      expect(new Set(ids).size).toBe(2);
+      expect(await library.regroupedOf('acc', 'movie', saved, splitOff)).toEqual({ merged: false, splitOff: true });
+
+      // The same list again changes nothing: the rules stay applied.
+      let sameList = false;
+      saved = (await library.build('acc', 'movie', '2026-01-03T00:00:00Z', list, { onTimings: (time) => (sameList = time.sameList) }))
+        .saved;
+      expect(sameList).toBe(true);
+      expect(await shawshank()).toHaveLength(2);
+
+      // Undo, one title after the other: as built at first.
+      await regroup(await library.changeRules('acc', 'movie', saved, { action: 'undo', id: splitOff }));
+      expect(await shawshank()).toEqual([['The Shawshank Redemption', 3]]);
+      await regroup(await library.changeRules('acc', 'movie', saved, { action: 'undo', id: await idOf('The Shawshank Redemption') }));
+      expect(await shawshank()).toEqual([
+        ['The Shawshank Redemption', 2],
+        ['The Shawshank Redemtion', 1],
+      ]);
+      expect(await db.query('SELECT * FROM title_rules')).toEqual([]);
+      // A single version cannot be split off, and a title cannot be merged into itself.
+      const single = await idOf('The Shawshank Redemtion');
+      expect(await library.changeRules('acc', 'movie', saved, { action: 'split', id: single, streamId: '2' })).toEqual([]);
+      expect(await library.changeRules('acc', 'movie', saved, { action: 'merge', id: single, fromId: single })).toEqual([]);
     }, 60_000);
 
     it('builds a new library beside the last one when many items changed (D-135)', async () => {

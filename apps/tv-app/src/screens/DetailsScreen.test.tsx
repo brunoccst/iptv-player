@@ -600,3 +600,78 @@ describe('details buttons: the icons wrap among themselves (D-183)', () => {
     expect(StyleSheet.flatten(icons.parent?.props.style).flexWrap).toBeUndefined();
   });
 });
+
+describe('split or merge titles by hand (issue #243)', () => {
+  const movie = (id: string, title: string, variants: ReturnType<typeof variant>[]) => ({
+    id,
+    title,
+    year: 2020,
+    posterUrl: null,
+    rating: null,
+    bestQuality: null,
+    variants,
+    regrouping: { merged: false, splitOff: false },
+  });
+
+  it('splits off the chosen version and shows the rest of the title', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m1', { body: movie('m1', 'Big Movie', [variant('a', '4K'), variant('b', 'CAM')]) });
+    backend.on('GET', '/api/catalog/movies/a', { status: 404, body: {} });
+    backend.on('POST', '/api/library/movies/m1/regroup', { body: { masterId: 'm1' } });
+    navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' });
+    const revision = navStore.getState().libraryRevision;
+
+    await render(<DetailsScreen section="movies" masterId="m1" />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('details-regroup'));
+    await fireEvent.press(screen.getByTestId('regroup-split'));
+    await flush();
+    expect(backend.calls.find((call) => call.method === 'POST')?.body).toEqual({ action: 'split', streamId: 'a' });
+    expect(navStore.getState().libraryRevision).toBe(revision + 1);
+    expect(navStore.getState().stack.at(-1)).toEqual({ name: 'details', section: 'movies', masterId: 'm1' });
+  });
+
+  it('merges another title found by its name into this one', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m1', { body: movie('m1', 'Big Movie', [variant('a', '4K')]) });
+    backend.on('GET', '/api/catalog/movies/a', { status: 404, body: {} });
+    backend.on('GET', '/api/library/movies', {
+      body: {
+        total: 2,
+        sorts: ['title'],
+        items: [
+          { id: 'm1', title: 'Big Movie', year: 2020, posterUrl: null, rating: null, bestQuality: null, variantCount: 1 },
+          { id: 'm2', title: 'Big Movie Typo', year: 2020, posterUrl: null, rating: null, bestQuality: null, variantCount: 2 },
+        ],
+      },
+    });
+    backend.on('POST', '/api/library/movies/m1/regroup', { body: { masterId: 'm9' } });
+    navStore.getState().push({ name: 'details', section: 'movies', masterId: 'm1' });
+
+    await render(<DetailsScreen section="movies" masterId="m1" />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('details-regroup'));
+    // One version: nothing to split off.
+    expect(screen.queryByTestId('regroup-split')).toBeNull();
+    await fireEvent.press(screen.getByTestId('regroup-merge'));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    await flush();
+    // This title itself is not offered.
+    expect(screen.queryByTestId('merge-pick-m1')).toBeNull();
+    await fireEvent.press(screen.getByTestId('merge-pick-m2'));
+    await flush();
+    expect(backend.calls.find((call) => call.method === 'POST')?.body).toEqual({ action: 'merge', fromId: 'm2' });
+    expect(navStore.getState().stack.at(-1)).toEqual({ name: 'details', section: 'movies', masterId: 'm9' });
+  });
+
+  it('offers no split or merge without a library database', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies/m1', { body: { ...movie('m1', 'Big Movie', [variant('a', '4K')]), regrouping: undefined } });
+    backend.on('GET', '/api/catalog/movies/a', { status: 404, body: {} });
+    await render(<DetailsScreen section="movies" masterId="m1" />);
+    await flush();
+    expect(screen.queryByTestId('details-regroup')).toBeNull();
+  });
+});

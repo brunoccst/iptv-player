@@ -7,8 +7,8 @@ import { AppLanguageSelect } from '../shell/AppLanguageDialog';
 import { useSession } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 import { BackupDialog } from '../backup/BackupDialog';
-import { usePairingServer } from '../pairing/pairing';
-import { PairingCode } from '../pairing/SyncWithPhone';
+import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
+import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
 
 /**
  * Xtream login, laid out like the TV app's: the app talks to the provider directly (D-088, D-071). The desktop
@@ -105,6 +105,11 @@ function PhoneSignIn() {
       <p className="muted login__note">
         {t('With the app on a signed-in phone or tablet: account menu → Sync with another device → Scan a code.')}
       </p>
+      {canScanWithWebcam() ? (
+        <button type="button" className="button button--ghost" onClick={() => openSyncWithPhone(true)}>
+          {t('Scan a code')}
+        </button>
+      ) : null}
     </section>
   );
 }

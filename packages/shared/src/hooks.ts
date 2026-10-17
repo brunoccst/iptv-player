@@ -14,6 +14,7 @@ import type {
   VariantInfo,
   WatchlistDto,
 } from './api/types';
+import type { RegroupChange } from './api/apiClient';
 import type { AppContext } from './appContext';
 import { offlineAccess } from './playback/offlineAccess';
 import { AVATAR_COLORS, avatarColor } from './design/avatar';
@@ -573,6 +574,66 @@ export function createAppHooks({
     },
 
     useRecentChannels,
+
+    /**
+     * Split or merge titles by hand from a title's details (issue #243, DECISIONS.md#d-185). Rows and details load again
+     * afterwards; `onDone` gets the title that holds the rest of this one, to show it.
+     */
+    useRegroup(section: LibrarySection, master: MasterDetails, onDone: (masterId: string) => void) {
+      const [busy, setBusy] = useState(false);
+      const [error, setError] = useState<string | null>(null);
+      const run = (change: RegroupChange) => {
+        if (!api.library.regroup || busy) return;
+        setBusy(true);
+        setError(null);
+        api.library
+          .regroup(section, master.id, change)
+          .then(
+            (masterId) => {
+              stores.library.getState().invalidate();
+              reloadLists();
+              onDone(masterId);
+            },
+            () => setError(t('The titles could not be changed.')),
+          )
+          .finally(() => setBusy(false));
+      };
+      return {
+        /** Titles can be split and merged here (a library database). */
+        available: !!master.regrouping && !!api.library.regroup,
+        /** Other titles were merged into this one. */
+        merged: !!master.regrouping?.merged,
+        /** This title is a version split off another one. */
+        splitOff: !!master.regrouping?.splitOff,
+        busy,
+        error,
+        split: (streamId: string) => run({ action: 'split', streamId }),
+        merge: (fromId: string) => run({ action: 'merge', fromId }),
+        undo: () => run({ action: 'undo' }),
+      };
+    },
+
+    /** Titles of a section whose name has `query`, other than `exceptId`, for "Merge with another title" (issue #243). */
+    useMergeCandidates(section: LibrarySection, query: string, exceptId: string): MasterCard[] | null {
+      const [found, setFound] = useState<MasterCard[] | null>(null);
+      useEffect(() => {
+        const search = query.trim();
+        setFound(null);
+        if (search.length < 2) return;
+        let cancelled = false;
+        const timer = setTimeout(() => {
+          api.library.list(section, { search, sort: 'title', limit: 30 }).then(
+            (page) => !cancelled && setFound(page.items.filter((item) => item.id !== exceptId)),
+            () => !cancelled && setFound([]),
+          );
+        }, 250);
+        return () => {
+          cancelled = true;
+          clearTimeout(timer);
+        };
+      }, [section, query, exceptId]);
+      return found;
+    },
 
     /**
      * A guide programme's description: its own, or for one filled in from the full guide (which keeps none), the one

@@ -90,6 +90,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-182](#d-182) | Every card menu option has an icon |
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 | [D-184](#d-184) | Guide reminders |
+| [D-185](#d-185) | Split and merge titles by hand |
 
 ## Merged and retired IDs
 
@@ -266,7 +267,7 @@ Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache file
 
 **Web UI architecture** — 2026-09-23 (merges D-048)
 
-- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. No shareable URLs ([#221](https://github.com/brunoccst/iptv-player/issues/221)).
+- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. Each entry also writes the page into the address hash (view, category, search, details; not the player, so a reload never starts playback by itself), and a reload or a typed address opens that page. Details opened from an address get the page under them as their own history entry, so closing them stays in the app (issue #221). A hash, not a path: the desktop serves one `index.html` and needs no route fallback.
 - Rows load when scrolled within 400 px of the viewport. Grid cards are memoized and use `content-visibility: auto`, which keeps scrolling smooth up to thousands of cards (stress test: `FAKE_PANEL_STRESS`, `scripts/stress-web.mjs`).
 - Hero trailer: a muted `youtube-nocookie.com` embed fades in after 3 s when the provider has a trailer id; the backdrop otherwise.
 - When a library update ends, `LibraryBanner` invalidates the library and bumps `libraryRevision`; mounted views reload.
@@ -476,7 +477,9 @@ A round button in details saves a movie or series; saved titles show as a Home r
 - Desktop: **Open in VLC**; the main process finds VLC in the usual folders and on PATH and starts it with the stream and the User-Agent, http(s) only. The player's error offers it too.
 - Not in a browser, not on Kids profiles, not for downloads (encrypted, D-050).
 
-Limits: progress watched elsewhere is not saved ([#234](https://github.com/brunoccst/iptv-player/issues/234)).
+- TV/phone progress (issue #234): the intent is started for a result with `return_result`; MX Player and Just Player send `position`/`duration` (ints, ms) and `end_by`, VLC `extra_position`/`extra_duration` (longs), and the stop point is saved like our player's. The saved progress goes in `position` (an int, what MX Player and Just Player read; VLC reads a long there, so it starts from the beginning). Through the app chooser the chosen app's result still comes back.
+
+Limits: Open in VLC on the desktop reports nothing back, so no progress there (issue #265).
 
 ## D-058
 
@@ -956,7 +959,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Scanning is offered where `TvMedia.hasCamera()` (`FEATURE_CAMERA_ANY`), not by device type: phones and tablets, and a TV with a camera. The dialog opens on this device's code with Scan a code instead; a cancelled scan goes back to the code. Only the TV hands out a Play on TV key.
 - The scanning device's data wins on conflict, as with the phone before (D-060).
 - A signed-out device that scans a signed-in device's code gets its sign-in ('share' mode): it sends no session, and the device showing the code answers with its session (without its active profile), provider credentials, parental PIN, media, profile settings and automatic subtitles, and keeps its own state. So Scan a code on the sign-in page is useful. An older app showing the code answers "not signed in".
-- The desktop app shows its code but does not scan with a webcam yet (issue #254).
+- The desktop app scans with the webcam (issue #254): `getUserMedia` in the page and jsQR (Chromium's BarcodeDetector is missing on Windows), four frames a second; the camera stops once a code is read. The request goes out through the main process (`iptv:pairing-send`), since device servers send no CORS headers, and only to a private IPv4 address of the home network (`pairingUrl`), so the page cannot use it to reach anything else.
 
 ## D-179
 
@@ -1006,3 +1009,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - TV and phone: a popup over any page and the player (focus stays inside it). Desktop: a banner at the top right that does not take focus, over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
 - TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
 - Not with the app closed: that needs Android alarms and notifications (issue #263).
+
+## D-185
+
+**Split and merge titles by hand** — 2026-10-17 (issue #243)
+
+- Rules in the library database (`title_rules`, per account and kind), applied by the grouping queries after the automatic rules (D-133): a `split` gives one provider item (stream id) a group of its own (`'s' || sid`, which also goes into its title id, so it never takes the id of the title it left); a `merge` sends every item of one group key (`gk`: cleaned name and year, or TMDB id and year) to another. Merging into a title whose key other merges point to moves those along, so rules never chain.
+- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
+- A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
+- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).

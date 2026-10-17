@@ -353,6 +353,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     },
   };
   const yieldToUi = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+  /** Splits and merges by hand (issue #243), one at a time; an update waits for the one running. */
+  let regrouping: Promise<unknown> = Promise.resolve();
   const snapshot = createListSnapshot(options.dataStorage, options.snapshotSaveMs);
   /** The library database; null without one, or after it failed to open (the library then stays in memory). */
   let sqlLibrary = options.libraryDb ? createSqlLibrary(options.libraryDb, yieldToUi) : null;
@@ -485,6 +487,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             const groupStarted = Date.now();
             library.status[kind] = { ...library.status[kind], stage: 'grouping', itemCount, parsedCount: 0 };
             // The database keeps the items and groups them itself; only new names are read here (D-133).
+            await regrouping;
             saving.add(kind);
             try {
               const built = database.build(accountId, kind, queuedAt, source, {
@@ -794,7 +797,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
       const sql = sqlLibrary;
       if (!saved || saved.packed || !sql) return null;
       return {
-        stamp: `${saved.table}|${saved.builtAt}`,
+        // A split or merge (issue #243) moves titles without a new date.
+        stamp: `${saved.table}|${saved.builtAt}|${saved.ruleSig}`,
         lookup: { itemsOf: (ids) => sql.itemsOf(saved, ids), holdersOf: (streamIds) => sql.holdersOf(saved, streamIds) },
       };
     }
@@ -1679,7 +1683,52 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               : null
             : indexFor(data?.[librarySection(section)] ?? []).byId.get(masterId);
         if (!master) throw notFound();
-        return toDetails(master);
+        const regrouping =
+          saved && sqlLibrary && credentials
+            ? await sqlLibrary.regroupedOf(credentials.account.id, librarySection(section), saved, masterId).catch(() => null)
+            : null;
+        return regrouping ? { ...toDetails(master), regrouping } : toDetails(master);
+      },
+      async regroup(section, masterId, change) {
+        await session();
+        const kind = librarySection(section);
+        // After an update that is running: it would replace what the change groups.
+        await library.running?.catch(() => undefined);
+        const run = regrouping.then(async () => {
+          const data = await ensureLibrary();
+          const saved = data?.sql?.[kind];
+          const database = sqlLibrary;
+          const accountId = credentials?.account.id;
+          if (!saved || !database || !accountId) throw notFound();
+          const streamIds = (await database.itemsOf(saved, [masterId])).get(masterId) ?? [];
+          // The title that keeps the rest of this one: found again by an item that stays in it.
+          const kept = streamIds.find((streamId) => change.action !== 'split' || streamId !== change.streamId);
+          const keys = await database.changeRules(accountId, kind, saved, { ...change, id: masterId });
+          if (!keys.length) return masterId;
+          const started = Date.now();
+          saving.add(kind);
+          try {
+            const result = await database.regroup(accountId, kind, saved.builtAt, keys, { hashIds: options.hashIds });
+            if (!result || credentials?.account.id !== accountId) return masterId;
+            library.data = {
+              movie: [],
+              series: [],
+              ...library.data,
+              builtAt: library.data?.builtAt ?? saved.builtAt,
+              sql: { ...library.data?.sql, [kind]: result.saved },
+            };
+            appLog.info(
+              'library',
+              `${kind}: ${change.action} by hand, ${keys.length} title keys grouped again in ${Date.now() - started} ms`,
+            );
+            if (!kept) return masterId;
+            return (await database.holdersOf(result.saved, [kept])).get(kept) ?? masterId;
+          } finally {
+            saving.delete(kind);
+          }
+        });
+        regrouping = run.catch(() => undefined);
+        return run;
       },
     },
 

@@ -42,6 +42,12 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Split or merge titles
+
+When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is kept on the device and applied to every library update; My List and progress follow the titles they were on. Splits and merges are not synced between devices (issue #267).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Not in the plain web player, which keeps its library in memory (issue #267).
+
 ### Version choice and "(best)"
 
 A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-087). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-087, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.
@@ -109,6 +115,12 @@ On TV, ← and → only move along the row you are in (a row of cards, the Home 
 Remotes with red, green, yellow and blue keys: **Red** adds the focused title (a cover, the details page, the movie or series playing) to My List or takes it off; **Green** opens audio and subtitles in the player, elsewhere it plays the first title of Continue Watching; **Yellow** starts a search from anywhere; **Blue** opens the guide over a live channel, elsewhere Live TV. A small dot in the key's colour marks the button it also presses (My List in details, the player's Audio and Guide, the search box, Live TV in the nav). Remotes without colour keys reach all of this the usual way (D-154, issue #180).
 
 **Apps:** TV ✅ · Phone ➖ · Desktop ➖ (no colour keys).
+
+### Page address (desktop)
+
+The page you are on, its category, the search and the open details are part of the address (`#/movies?category=12&details=movies:…`), so a reload brings you back to them instead of Home, and Back from details opened that way shows the page under them. The player is not part of it: a reload during playback comes back to the details behind it (D-025, issue #221).
+
+**Apps:** TV ➖ · Phone ➖ (pages have no address; Watch Next opens titles there) · Desktop ✅
 
 ## Covers and cards
 
@@ -196,7 +208,7 @@ FFmpeg decoders for Dolby Digital / Plus and DTS are built in; the account menu 
 
 ### Open in another player
 
-Hands a movie or episode to another player app with the provider's User-Agent: VLC, MX Player, Just Player and others on TV and phone, VLC in the desktop app (D-057, D-081). From movie details and the episode "…" menu. Not for Kids profiles.
+Hands a movie or episode to another player app with the provider's User-Agent: VLC, MX Player, Just Player and others on TV and phone, VLC in the desktop app (D-057, D-081). From movie details and the episode "…" menu. Not for Kids profiles. On TV and phone, MX Player and Just Player start where you left off, and where any of these players stops is saved as the title's progress when you come back (issue #234); Open in VLC on the computer saves none (issue #265).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV and phone: any player app · desktop: VLC.
 
@@ -302,11 +314,11 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 
 ### Sign in and sync by QR code
 
-Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-178). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-178). Both signed in to different accounts are refused.
+Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-178). The desktop app scans with the computer's webcam the same way: Scan a code instead in that dialog, or Scan a code on the sign-in page (issue #254). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-178). Both signed in to different accounts are refused.
 
 Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the scanning device's wins; watched series and recent channels are joined. A parental PIN already set on the device showing the code stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones and tablets with a camera also scan one. Scanning with a computer's webcam: ⏳ [#254](https://github.com/brunoccst/iptv-player/issues/254).
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones, tablets and computers with a camera also scan one.
 
 ### Play on TV
 
