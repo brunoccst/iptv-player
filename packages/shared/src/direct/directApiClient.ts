@@ -45,6 +45,7 @@ import type { GuideProgramme } from './xmltv';
 import { floorToSlot } from '../epg/guide';
 import { reattachTitles, type TitleLookup } from './reattach';
 import { noteRemoval } from './removals';
+import type { NameRow } from './nameRow';
 import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -63,6 +64,8 @@ export interface DirectApiClientOptions {
   listReader?: ListReader;
   /** TV/phone: SHA-1 hex of many texts at once, in native code, for title ids (D-093). */
   hashIds?(texts: string[]): Promise<string[]>;
+  /** TV/phone: provider names read outside the JavaScript thread (issue #228, D-188). */
+  parseNames?(names: string[]): Promise<NameRow[]>;
   now?: () => Date;
   randomId?: () => string;
   /** How long after the last new list the start-up snapshot is saved (D-121); tests use 0. */
@@ -495,6 +498,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             try {
               const built = database.build(accountId, kind, queuedAt, source, {
                 hashIds: options.hashIds,
+                parseNames: options.parseNames,
                 onProgress: (fraction) =>
                   (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor(itemCount * fraction) }),
                 onTimings: (time) => {
@@ -1719,7 +1723,10 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const started = Date.now();
           saving.add(kind);
           try {
-            const result = await database.regroup(accountId, kind, saved.builtAt, keys, { hashIds: options.hashIds });
+            const result = await database.regroup(accountId, kind, saved.builtAt, keys, {
+              hashIds: options.hashIds,
+              parseNames: options.parseNames,
+            });
             if (!result || credentials?.account.id !== accountId) return masterId;
             library.data = {
               movie: [],

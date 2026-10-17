@@ -7,6 +7,7 @@ import { createDirectApiClient } from './directApiClient';
 import { compactKey, parseTitle } from './normalizer/parser';
 import { buildMasters, masterId, type NormalizerItem } from './normalizer/pipeline';
 import { packer } from './libraryCodec';
+import { nameRow, type NameRow } from './nameRow';
 import { createSqlLibrary, listFingerprint, type LibraryBuildTimings, type SqlLibraryKind } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
@@ -230,6 +231,27 @@ describe('library in SQLite (D-121)', () => {
     expect(newNames).toBe(1);
     expect(second.changes).toEqual({ added: 1, changed: 2, removed: 0 });
     expect((await library.open('acc')).movie).toMatchObject({ table: second.saved.table, count: 5, current: true, packed: false });
+  });
+
+  it('names read elsewhere (TV WebView, issue #228) give the same library; a failure reads them here', async () => {
+    const items = Array.from({ length: 2500 }, (_, i) => ({
+      id: i + 1,
+      name: `EN - Title ${i} (${2000 + (i % 20)})${i % 3 ? ' 4K' : ''}`,
+    }));
+    const listOf = async (parseNames?: (names: string[]) => Promise<NameRow[]>) => {
+      const library = createSqlLibrary(createNodeSqlDatabase(), async () => undefined);
+      const { saved } = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items, { parseNames });
+      return (await library.list(saved, { sort: 'title', limit: 500 })).items;
+    };
+    const expected = await listOf();
+    const batches: number[] = [];
+    expect(await listOf(async (names) => (batches.push(names.length), names.map(nameRow)))).toEqual(expected);
+    expect(batches).toEqual([2000, 500]);
+    // Fails after the first batch, or answers too few: the rest is read here.
+    let calls = 0;
+    expect(await listOf(async (names) => (calls++ ? Promise.reject(new Error('renderer gone')) : names.map(nameRow)))).toEqual(expected);
+    expect(calls).toBe(2);
+    expect(await listOf(async (names) => names.slice(1).map(nameRow))).toEqual(expected);
   });
 
   it('a change of grouping rules alone regroups without reading the names again (D-017)', async () => {

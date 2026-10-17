@@ -79,4 +79,5 @@ Release `.apk`: `cd android && ./gradlew assembleRelease` after `prebuild`. It i
 | `modules/tv-media/` | Local Expo native module (Kotlin). |
 | `src/` | Application source. |
 | `test/` | Jest mocks and helpers. |
+| `scripts/` | `build-name-parser.mjs` builds the name parser the app runs in the system WebView (D-188); its test checks the checked-in copy. |
 | `e2e/` | Maestro flows for the Android TV emulator. |

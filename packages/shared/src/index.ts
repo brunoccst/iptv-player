@@ -33,6 +33,7 @@ export { normalizeServerUrl, type ListReader, type ListPiece } from './direct/xt
 export { batchedSha1 } from './direct/normalizer/sha1';
 export { createNativeSqlDatabase } from './direct/nativeSqlDatabase';
 export type { SqlDatabase, SqlValue } from './direct/sqlLibrary';
+export { nameRow, type NameRow } from './direct/nameRow';
 export * from './appContext';
 export * from './i18n/i18n';
 export * from './i18n/uiLanguage';

@@ -3,6 +3,7 @@ import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import type { ListReader } from './direct/xtream';
 import type { SqlDatabase } from './direct/sqlLibrary';
+import type { NameRow } from './direct/nameRow';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
 import { withHiddenCategories } from './profiles/hiddenCategories';
@@ -68,6 +69,8 @@ export interface AppContextOptions {
     listReader?: ListReader;
     /** SHA-1 of title ids in native code (D-093). */
     hashIds?(texts: string[]): Promise<string[]>;
+    /** TV/phone: provider names read outside the JavaScript thread, in the system WebView (issue #228, D-188). */
+    parseNames?(names: string[]): Promise<NameRow[]>;
     /** TV/phone: the library in SQLite (D-121). */
     libraryDb?: SqlDatabase;
   };
@@ -110,6 +113,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     userAgent: direct.userAgent,
     listReader: direct.listReader,
     hashIds: direct.hashIds,
+    parseNames: direct.parseNames,
     libraryDb: direct.libraryDb,
   });
   let replacement: ApiClient | null = testApi ?? null;

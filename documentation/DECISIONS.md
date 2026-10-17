@@ -93,6 +93,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-185](#d-185) | Split and merge titles by hand |
 | [D-186](#d-186) | Automatic sync through the paired TV |
 | [D-187](#d-187) | Desktop: downloads go on with the window closed |
+| [D-188](#d-188) | TV and phone: names read in the system WebView |
 
 ## Merged and retired IDs
 
@@ -1039,3 +1040,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Chosen over moving downloads into the main process (the ranking's idea): the page's downloader, its non-extractable key and the Service Worker that plays the chunks (D-024) stay as they are, with nothing to migrate, and the main process gets no second download and encryption path to keep in step.
 - Several at once: an account with N provider streams runs N−1 downloads at the same time, at most three, so one stream stays free for watching (all apps that use the web downloader: desktop and the browser).
 - Storage stays the page's (Cache API and IndexedDB). Chromium lets one origin use up to 60 % of the disk, so in the desktop app the quota is rarely the limit; a full disk still stops a download with an error.
+
+## D-188
+
+**TV and phone: names read in the system WebView** — 2026-10-17 (issue #228)
+
+- Reading new names (`parseTitle` and the quality columns, `nameRow`) was most of a large library build and ran on the app's only JavaScript thread, under Hermes without a JIT, so the app stopped answering for minutes on 100k+ names. Profiling found no single hotspot to fix, so the work moves off that thread: a WebView that is never shown (`NameParser.kt`) runs the same code, bundled from `nameRow.ts` into `assets/name-parser.js`, in batches of 2000 names; V8's compiler reads them many times faster than Hermes (about 70k names a second on a desktop; a TV is slower).
+- The system WebView over `androidx.javascriptengine` (not on Android 7 and 8 TVs, and a new dependency) and over porting the parser to Kotlin (two copies of the rules to keep in step). The bundle is checked in and `scripts/build-name-parser.test.mjs` fails when it is out of date or reads the shared parser cases differently, so it is rebuilt with `npm run build:name-parser --workspace=@iptv/tv-app` whenever `parseTitle` changes (with `NAME_RULES`, D-133).
+- Any failure (no WebView, the renderer killed, 30 s without an answer, a wrong count) reads that batch on the JavaScript thread as before (`readNewNames`), with a warning in the log. The WebView goes after a minute without work.
+- Desktop keeps reading names in its page: Chromium's V8 already reads them fast, and the window does not wait on it the way the TV remote does.

@@ -2,18 +2,11 @@ import type { LibraryListQuery } from '../api/apiClient';
 import type { LibraryChanges, LibraryPage, LibrarySort, LiveChannel, MasterCard, ProgrammeMatch } from '../api/types';
 import type { GuideProgramme } from './xmltv';
 import { NORMALIZER_RULES, unpacker, type PackedMaster } from './libraryCodec';
-import { compactKey, KEY_ARTICLES, parseTitle } from './normalizer/parser';
-import {
-  lowSourceOf,
-  masterIdText,
-  qualityRank,
-  qualityScore,
-  savedItem,
-  versionsOf,
-  type Master,
-  type NormalizerItem,
-} from './normalizer/pipeline';
+import { KEY_ARTICLES } from './normalizer/parser';
+import { appLog, errorMessage } from '../utils/logger';
+import { lowSourceOf, masterIdText, savedItem, versionsOf, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
+import { nameRow, type NameRow } from './nameRow';
 import * as tags from './normalizer/tags';
 
 export type SqlValue = string | number | null;
@@ -65,6 +58,8 @@ export interface TitleRule {
 
 /** Rows written per statement batch (one native call). */
 const WRITE_BATCH = 1000;
+/** Names per call of `parseNames`. */
+const PARSE_BATCH = 2000;
 /** How long the last build's tables stay after a new one is in place. */
 const RETIRE_MS = 60_000;
 /**
@@ -408,10 +403,6 @@ const placeholders = (count: number) => Array.from({ length: count }, () => '?')
 /** Ids per `IN (…)` lookup: well under SQLite's limit on parameters. */
 const LOOKUP_CHUNK = 400;
 /** ",a,b," : `instr(list, ",a,")` finds a whole entry. */
-const listOf = (values: Iterable<string>) => {
-  const text = [...values].join(',');
-  return text ? `,${text},` : '';
-};
 const codesOf = (value: SqlValue | undefined) => (value ? String(value).split(',') : []);
 const textOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : String(value));
 const numberOrNull = (value: SqlValue | undefined) => (value === null || value === undefined ? null : Number(value));
@@ -489,6 +480,11 @@ export interface LibraryBuildOptions {
   onTimings?(timings: LibraryBuildTimings): void;
   /** Milliseconds of parsing between breaks for the screen. */
   sliceMs?: number;
+  /**
+   * TV and phone (issue #228, DECISIONS.md#d-188): `nameRow` of each name, run outside the JavaScript thread. A failure
+   * or a wrong count reads the rest here.
+   */
+  parseNames?(names: string[]): Promise<NameRow[]>;
   /**
    * Compact keys to group again although their items did not change, because the rules changed for them (issue #243):
    * the last library is then a starting point although it was grouped with other rules.
@@ -1276,39 +1272,43 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     const sliceMs = options.sliceMs ?? 250;
     let rows: SqlValue[][] = [];
     let sliceStarted = Date.now();
-    for (let index = 0; index < names.length; index++) {
-      const name = names[index]!;
-      const title = parseTitle(name);
-      rows.push([
-        name,
-        title.cleanTitle,
-        title.key,
-        compactKey(title),
-        title.year,
-        title.quality,
-        title.source,
-        title.audioLanguages.join(','),
-        title.audioTag,
-        title.isHdr ? 1 : 0,
-        title.subtitleLanguages.join(','),
-        qualityScore(title),
-        title.quality ? qualityRank(title.quality) : 0,
-        listOf([...title.audioLanguages, ...title.subtitleLanguages]),
-        today,
+    // TV and phone: batches go to the system WebView, off the JavaScript thread (issue #228); here when it fails.
+    let parseElsewhere = options.parseNames;
+    const save = async () => {
+      await db.run([
+        {
+          sql: `INSERT OR REPLACE INTO ${NAMES} (name, title, nkey, ckey, nyear, quality, source, audio, atag, hdr, subs, score, qrank,
+            langs, seen) VALUES (${placeholders(15)})`,
+          rows,
+        },
       ]);
-      const last = index === names.length - 1;
-      if (rows.length >= WRITE_BATCH || last) {
-        await db.run([
-          {
-            sql: `INSERT OR REPLACE INTO ${NAMES} (name, title, nkey, ckey, nyear, quality, source, audio, atag, hdr, subs, score, qrank,
-              langs, seen) VALUES (${placeholders(15)})`,
-            rows,
-          },
-        ]);
-        rows = [];
+      rows = [];
+    };
+    for (let index = 0; index < names.length;) {
+      if (parseElsewhere) {
+        const batch = names.slice(index, index + PARSE_BATCH);
+        const parsed = await parseElsewhere(batch).catch((error: unknown) => {
+          appLog.warn('library', `names read here instead: ${errorMessage(error)}`);
+          return null;
+        });
+        if (parsed && parsed.length === batch.length) {
+          parsed.forEach((row, i) => rows.push([batch[i]!, ...row, today]));
+          index += batch.length;
+          await save();
+          progress(index / names.length);
+          await pause();
+          continue;
+        }
+        if (parsed) appLog.warn('library', `names read here instead: ${parsed.length} answers for ${batch.length} names`);
+        parseElsewhere = undefined;
       }
+      const name = names[index]!;
+      rows.push([name, ...nameRow(name), today]);
+      index++;
+      const last = index === names.length;
+      if (rows.length >= WRITE_BATCH || last) await save();
       if (last || Date.now() - sliceStarted >= sliceMs) {
-        progress((index + 1) / names.length);
+        progress(index / names.length);
         await pause();
         sliceStarted = Date.now();
       }
