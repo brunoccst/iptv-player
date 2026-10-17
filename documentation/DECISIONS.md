@@ -266,7 +266,7 @@ Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache file
 
 **Web UI architecture** — 2026-09-23 (merges D-048)
 
-- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. No shareable URLs ([#221](https://github.com/brunoccst/iptv-player/issues/221)).
+- Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. Each entry also writes the page into the address hash (view, category, search, details; not the player, so a reload never starts playback by itself), and a reload or a typed address opens that page. Details opened from an address get the page under them as their own history entry, so closing them stays in the app (issue #221). A hash, not a path: the desktop serves one `index.html` and needs no route fallback.
 - Rows load when scrolled within 400 px of the viewport. Grid cards are memoized and use `content-visibility: auto`, which keeps scrolling smooth up to thousands of cards (stress test: `FAKE_PANEL_STRESS`, `scripts/stress-web.mjs`).
 - Hero trailer: a muted `youtube-nocookie.com` embed fades in after 3 s when the provider has a trailer id; the backdrop otherwise.
 - When a library update ends, `LibraryBanner` invalidates the library and bumps `libraryRevision`; mounted views reload.

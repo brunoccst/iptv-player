@@ -627,3 +627,16 @@ test('narrow window: details icon buttons that do not fit wrap under the other i
   expect(new Set(boxes.map((box) => Math.round(box!.y))).size).toBeGreaterThan(1);
   for (const box of boxes) expect(box!.x).toBeGreaterThanOrEqual(play!.x + play!.width);
 });
+
+test('a reload keeps the page and the open details; Back then shows the page under them (issue #221)', async ({ page }) => {
+  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await expect(page.getByRole('dialog', { name: 'Big Test Movie' })).toBeVisible();
+  await expect(page).toHaveURL(/#\/movies\?details=movies%3A/);
+
+  await page.reload();
+  await expect(page.getByRole('dialog', { name: 'Big Test Movie' })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/movies$/);
+  await expect(page.locator('.grid').getByRole('button', { name: 'Big Test Movie' })).toBeVisible();
+});

@@ -31,6 +31,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Category chips](FEATURES.md#category-chips) | `packages/shared/src/stores/catalogStore.ts`, `apps/tv-app/src/components/ChipBar.tsx`, `apps/web-player/src/components/ChipBar.tsx` |
 | [Focus in the middle (TV)](FEATURES.md#focus-in-the-middle-tv) | `apps/tv-app/src/components/CenterScroll.tsx`, `apps/tv-app/src/components/FocusRow.tsx`, `apps/tv-app/src/components/Row.tsx`, `apps/tv-app/src/components/rowReveal.ts`, `apps/tv-app/src/screens/titles.tsx` |
 | [Colour keys (TV)](FEATURES.md#colour-keys-tv) | `apps/tv-app/src/tv/colourKeys.tsx`, `apps/tv-app/src/tv/remote.ts`, `apps/tv-app/src/tv/remoteEvents.ts`, `apps/tv-app/src/player/PlayerScreen.tsx` |
+| [Page address (desktop)](FEATURES.md#page-address-desktop) | `apps/web-player/src/ui/uiStore.ts` |
 
 ## Covers and cards
 

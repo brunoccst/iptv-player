@@ -110,6 +110,12 @@ Remotes with red, green, yellow and blue keys: **Red** adds the focused title (a
 
 **Apps:** TV ✅ · Phone ➖ · Desktop ➖ (no colour keys).
 
+### Page address (desktop)
+
+The page you are on, its category, the search and the open details are part of the address (`#/movies?category=12&details=movies:…`), so a reload brings you back to them instead of Home, and Back from details opened that way shows the page under them. The player is not part of it: a reload during playback comes back to the details behind it (D-025, issue #221).
+
+**Apps:** TV ➖ · Phone ➖ (pages have no address; Watch Next opens titles there) · Desktop ✅
+
 ## Covers and cards
 
 ### Card menu
