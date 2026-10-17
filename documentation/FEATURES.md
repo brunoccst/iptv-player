@@ -204,7 +204,7 @@ Hands a movie or episode to another player app with the provider's User-Agent: V
 
 ### TV guide
 
-The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The hours start on the local :00 or :30, also in zones such as UTC+5:45 (issue #225). Each channel's own short guide (its next 12 programmes) is filled in from the provider's full TV guide for the next 24 hours, so hours further ahead are not empty (issue #229). The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it; the desktop app plays providers' HLS or, when they have none, MPEG-TS live streams (issue #220). TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179). TV: → on a row's last programme shows the next hour; once the guide is ahead of now, ← on the first programme goes back an hour (issue #240).
+The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The hours start on the local :00 or :30, also in zones such as UTC+5:45 (issue #225). Each channel's own short guide (its next 12 programmes) is filled in from the provider's full TV guide for the next two days, so hours further ahead are not empty (issue #229, issue #248); their descriptions come from the provider's guide for that channel when the programme is opened (issue #248). The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it; the desktop app plays providers' HLS or, when they have none, MPEG-TS live streams (issue #220). TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179). TV: → on a row's last programme shows the next hour; once the guide is ahead of now, ← on the first programme goes back an hour (issue #240).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. ↑/↓ through the categories, Channel +/− and moving the hours with ←/→ are TV only (phone and desktop: Earlier / Later).
 
@@ -236,7 +236,7 @@ Each profile keeps its last 20 channels. Home's live row lists them; on TV, ↓ 
 
 ### Titles, channels and programmes
 
-Finds movies, series, live channels and programmes of the TV guide on now or in the next day, also from guides that leave out when a programme ends (issue #241); a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
+Finds movies, series, live channels and programmes of the TV guide on now or in the next two days, also from guides that leave out when a programme ends (issue #241); a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

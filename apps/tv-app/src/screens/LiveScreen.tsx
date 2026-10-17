@@ -39,7 +39,7 @@ import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { useNavFocusTarget } from '../components/TopNav';
-import { useCatalog, useNav, useReminders } from '../hooks';
+import { useCatalog, useNav, useProgrammeDescription, useReminders } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
 import { usePageFocusable } from '../components/pageFocus';
@@ -641,6 +641,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const reminders = useReminders();
   const remindable = canRemind(programme, now);
   const reminded = !!programme && reminders.has(channel.id, programme.start);
+  const description = useProgrammeDescription(channel.id, programme);
   return (
     <View style={styles.details} testID="guide-info" accessibilityLabel={t('Programme details')}>
       <View style={styles.detailsText}>
@@ -661,9 +662,9 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
             <View style={[styles.detailsFill, { width: `${Math.round(programmeProgress(programme, now) * 100)}%` }]} />
           </View>
         ) : null}
-        {programme?.description ? (
+        {description ? (
           <Text style={styles.detailsDescription} numberOfLines={Platform.isTV ? 2 : 4}>
-            {programme.description}
+            {description}
           </Text>
         ) : null}
       </View>

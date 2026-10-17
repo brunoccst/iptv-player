@@ -107,7 +107,7 @@ export interface ApiClient {
     categories(section: CatalogSection, signal?: AbortSignal, options?: CatalogOptions): Promise<MediaCategory[]>;
     liveChannels(categoryId?: string | null, signal?: AbortSignal, options?: CatalogOptions): Promise<LiveChannel[]>;
     /**
-     * Programmes of the full TV guide (now and the next day) whose title contains `search`, on the channels that show
+     * Programmes of the full TV guide (now and the next two days) whose title contains `search`, on the channels that show
      * them, on now first (issue #119). Empty until the guide is saved; absent where there is no full guide.
      */
     searchProgrammes?(search: string, options?: { limit?: number }, signal?: AbortSignal): Promise<ProgrammeMatch[]>;
@@ -126,6 +126,11 @@ export interface ApiClient {
   epg: {
     grid(query?: EpgGridQuery, signal?: AbortSignal): Promise<EpgGrid>;
     refresh(): Promise<void>;
+    /**
+     * The description of a channel's programme starting at `start` (ISO), from the provider's guide for that channel:
+     * programmes filled in from the full guide carry none (issue #248). Null when the provider has none.
+     */
+    description?(channelId: string, start: string, signal?: AbortSignal): Promise<string | null>;
   };
   playback: {
     /** `options.catchup`: a live channel's past programme from the provider's recordings (issue #226). */

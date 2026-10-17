@@ -1360,7 +1360,7 @@ export interface SqlGuide {
 }
 
 /**
- * The provider's full TV guide in SQLite (issue #119, D-130): the programmes of the next day, saved as they are read
+ * The provider's full TV guide in SQLite (issue #119, D-130): the programmes of the next two days (issue #248), saved as they are read
  * from the (large) XMLTV reply, in a table beside the current one that replaces it in one step, like the channel list
  * (kind "guide" in the same table of contents). Search finds programmes by title and the channels that show them.
  */

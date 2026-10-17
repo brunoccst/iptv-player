@@ -32,6 +32,7 @@ export const {
   useLiveHomeRow,
   useQualityUpgrades,
   useReminders,
+  useProgrammeDescription,
   useDueReminder,
 } = createAppHooks({ api, stores, reloadLists: () => uiStore.getState().bumpLibrary() });
 export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAppStore(downloadsStore, selector);

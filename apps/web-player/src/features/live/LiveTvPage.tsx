@@ -22,7 +22,7 @@ import {
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
-import { useCatalog, useReminders } from '../../hooks/stores';
+import { useCatalog, useProgrammeDescription, useReminders } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 
 const HOURS = 3;
@@ -251,6 +251,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const playRecording = () => uiStore.getState().play(catchupTarget(channel, programme));
   const reminders = useReminders();
   const reminded = reminders.has(channel.id, programme.start);
+  const description = useProgrammeDescription(channel.id, programme);
   const toggleReminder = () => {
     // Desktop: a system notification when the window is in the background (issue #239); asked once, with the first.
     if (!reminded && typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission();
@@ -270,7 +271,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
             <span style={{ width: `${Math.round(programmeProgress(programme, now) * 100)}%` }} />
           </div>
         ) : null}
-        {programme.description ? <p>{programme.description}</p> : null}
+        {description ? <p>{description}</p> : null}
       </div>
       <div className="guide-details__actions">
         {catchup === 'past' ? (

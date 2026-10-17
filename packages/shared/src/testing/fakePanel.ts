@@ -39,7 +39,7 @@ export function createFakePanel() {
     // After the short EPG ends: the guide fills it in (issue #229).
     { channel: 'NEWS', from: 150, to: 210, title: 'Night Talk' },
     { channel: 'NEWS', from: -300, to: -240, title: 'Morning News' },
-    { channel: 'NEWS', from: 60 * 30, to: 60 * 31, title: 'News in two days' },
+    { channel: 'NEWS', from: 60 * 50, to: 60 * 51, title: 'News in two days' },
     { channel: 'unknown', from: 0, to: 60, title: 'News on a channel the provider does not list' },
   ];
 
@@ -83,7 +83,11 @@ export function createFakePanel() {
         return { epg_listings: [programme('Old show', -120, 60), programme('Evening News', 0, 30), programme('Late News', 30, 60)] };
       case 'get_simple_data_table':
         return {
-          epg_listings: [programme('Match replay', -200, 60), programme('Old show', -120, 60), programme('Evening News', 0, 30)],
+          epg_listings: [
+            programme('Match replay', -200, 60),
+            programme('Old show', -120, 60),
+            { ...programme('Evening News', 0, 30), description: btoa('Headlines of the day.') },
+          ],
         };
       default:
         return [];

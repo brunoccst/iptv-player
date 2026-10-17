@@ -574,6 +574,21 @@ export function createAppHooks({
 
     useRecentChannels,
 
+    /**
+     * A guide programme's description: its own, or for one filled in from the full guide (which keeps none), the one
+     * the provider's guide for that channel has (issue #248). Null while loading or when there is none.
+     */
+    useProgrammeDescription(channelId: string, programme: EpgListing | null): string | null {
+      const lookup = !!programme && !programme.description && !!api.epg.description;
+      const fetched = useAsync(lookup ? `epg-description:${channelId}:${programme.start}` : null, () =>
+        // `then`: an API without descriptions (a test double behind the delegating client) throws on the call.
+        Promise.resolve()
+          .then(() => api.epg.description!(channelId, programme!.start))
+          .catch(() => null),
+      );
+      return programme?.description ?? fetched.data ?? null;
+    },
+
     /** The active profile's guide reminders (issue #239, DECISIONS.md#d-184): which programmes have one, and set or clear one. */
     useReminders() {
       const profileId = useSession((s) => s.activeProfileId);

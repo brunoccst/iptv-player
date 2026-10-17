@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Two days of TV guide, with descriptions** (2026-10-17, D-032, issue #248): the guide now has programmes for the next two days, as far as it goes, instead of one, and search finds them too. Programmes filled in from your provider's full guide now show their description when you open them.
 - **Guide reminders** (2026-10-17, D-184, issue #239): ask to be reminded of a programme that has not started (on the TV, hold OK on it; on the phone, Remind me in its details). When it starts, the app says so, also during a movie, and Watch tunes to the channel. The app has to be open.
 - **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.
 - **Fewer doubled titles** (2026-10-17, D-133, issue #217): titles listed with and without a French, Spanish, Italian, German or Dutch article ("La Casa de Papel", "Casa de Papel, La", "Casa de Papel") now show as one title. After the update, the library is grouped again once.
@@ -110,6 +111,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Two days of TV guide, with descriptions** (2026-10-17, D-032, issue #248): the guide now has programmes for the next two days, as far as it goes, instead of one, and search finds them too. Programmes filled in from your provider's full guide now show their description when you open them.
 - **Guide reminders** (2026-10-17, D-184, issue #239): Remind me in a programme's details. When it starts, a banner says so, also during a movie, with Watch to tune in; with the window in the background, a system notification too. The app has to be open.
 - **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.
 - **Fewer doubled titles** (2026-10-17, D-133, issue #217): titles listed with and without a French, Spanish, Italian, German or Dutch article ("La Casa de Papel", "Casa de Papel, La", "Casa de Papel") now show as one title. After the update, the library is grouped again once.
