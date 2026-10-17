@@ -191,17 +191,22 @@ describe('library in SQLite (D-121)', () => {
       { id: 3, name: 'Dune (2021) 4K' },
     ];
     await createSqlLibrary(db, async () => undefined).build('acc', 'movie', '2026-01-01T00:00:00Z', items);
-    // As the app left it before the update: built with rules 7, its names read with 7.
-    await db.run([{ sql: 'ALTER TABLE title_names_8 RENAME TO title_names_7' }, { sql: 'UPDATE library SET rules = 7' }]);
+    // As the app left it before the update: built with rules 8, its names read with 8, which kept "La" in keys.
+    await db.run([
+      { sql: 'ALTER TABLE title_names_9 RENAME TO title_names_8' },
+      { sql: "UPDATE title_names_8 SET nkey = 'la casa de papel' WHERE nkey = 'casa de papel'" },
+      { sql: 'UPDATE library SET rules = 8' },
+    ]);
 
     const library = createSqlLibrary(db, async () => undefined);
     expect((await library.open('acc')).movie).toMatchObject({ current: false });
     let newNames = -1;
     const built = await library.build('acc', 'movie', '2026-01-02T00:00:00Z', items, { onTimings: (time) => (newNames = time.newNames) });
-    expect(newNames).toBe(0);
+    // Only the name whose key started with an article added in 9 is read again (issue #217).
+    expect(newNames).toBe(1);
     expect((await library.open('acc')).movie).toMatchObject({ table: built.saved.table, count: 2, current: true });
     const tables = await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'title_names_*'");
-    expect(tables).toEqual([['title_names_8']]);
+    expect(tables).toEqual([['title_names_9']]);
   });
 
   it('numbers group without their leading zeros, with the same id as in memory (D-133)', async () => {

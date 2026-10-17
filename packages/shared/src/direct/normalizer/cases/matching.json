@@ -1,6 +1,16 @@
 {
   "groups": [
     {
+      "name": "leading and trailing articles in other languages merge (issue #217)",
+      "titles": ["La Casa de Papel (2017)", "Casa de Papel, La (2017) 1080p", "ES: Casa de Papel (2017)"],
+      "groups": 1
+    },
+    {
+      "name": "English first words that are articles elsewhere stay (issue #217)",
+      "titles": ["Die Hard (1988)", "Hard (1988)"],
+      "groups": 2
+    },
+    {
       "name": "quality and language variants merge",
       "titles": [
         "EN - The Matrix (1999) [4K]",
