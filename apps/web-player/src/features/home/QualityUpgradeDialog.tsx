@@ -5,8 +5,9 @@ import { Modal } from '../../components/Modal';
 import { useQualityUpgrades } from '../../hooks/stores';
 
 /**
- * Home: movies on My List that turned from a cinema copy (CAM, TS…) into a better one, as in the TV/phone app
- * (DECISIONS.md#d-176). Play, More info, OK or closing marks them all as shown.
+ * Home: titles on My List that turned from a cinema copy (CAM, TS…) into a better one, as in the TV/phone app
+ * (DECISIONS.md#d-176); a series has only More info, on the better version (issue #251). Play, More info, OK or closing
+ * marks them all as shown.
  */
 export function QualityUpgradeDialog() {
   const { upgrades, dismiss, playTarget } = useQualityUpgrades();
@@ -15,12 +16,14 @@ export function QualityUpgradeDialog() {
   const play = (entry: WatchlistDto) => {
     dismiss();
     void playTarget(entry).then((target) =>
-      target ? uiStore.getState().play(target) : uiStore.getState().openDetails({ section: 'movies', masterId: entry.masterId }),
+      target ? uiStore.getState().play(target) : uiStore.getState().openDetails({ section: entry.section, masterId: entry.masterId }),
     );
   };
   const details = (entry: WatchlistDto) => {
     dismiss();
-    uiStore.getState().openDetails({ section: 'movies', masterId: entry.masterId });
+    const open = () => uiStore.getState().openDetails({ section: entry.section, masterId: entry.masterId });
+    if (entry.section === 'series') void playTarget(entry).then(open, open);
+    else open();
   };
 
   return (
@@ -35,9 +38,11 @@ export function QualityUpgradeDialog() {
                 <strong>{entry.year ? `${entry.title} (${entry.year})` : entry.title}</strong>
                 <span className="upgrades__line">{upgradeLine(entry)}</span>
                 <div className="upgrades__actions">
-                  <button type="button" className="button button--primary" onClick={() => play(entry)}>
-                    <Icon name="play" /> {t('Play')}
-                  </button>
+                  {entry.section === 'movies' ? (
+                    <button type="button" className="button button--primary" onClick={() => play(entry)}>
+                      <Icon name="play" /> {t('Play')}
+                    </button>
+                  ) : null}
                   <button type="button" className="button button--secondary" onClick={() => details(entry)}>
                     <Icon name="info" /> {t('More Info')}
                   </button>

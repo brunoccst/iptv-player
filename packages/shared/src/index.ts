@@ -42,6 +42,7 @@ export * from './utils/logger';
 export * from './react';
 export * from './hooks';
 export * from './playback/recentChannels';
+export * from './playback/reminders';
 export * from './stores/databaseStorage';
 export * from './search/searchDelay';
 export * from './search/useSearchQuery';

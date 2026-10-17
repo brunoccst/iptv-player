@@ -38,7 +38,7 @@ A file, encrypted with a password of your choice, with the sign-in, profiles, pa
 
 ### Title grouping
 
-The provider lists each language, quality and copy of a title separately. The apps group them into one title with several versions: by the cleaned name and year, or by the TMDB id and year (D-133). Two films of one name and year with different TMDB ids ("The Odyssey" 2026 by Christopher Nolan and by Marcel Walz) stay two titles; a copy without a TMDB id then stays apart from both, since the provider's lists do not say who directed it (issue #187, D-133). Language prefixes such as "EN - ", "|DE| ", "PL = " or "GR - " are read as the version's language, also ones not registered yet (D-090, D-017, D-047). A series has one episode list across all its versions (D-066). The grouping runs in a database on the device (SQLite on TV, phone and desktop, D-121). When the provider renames a title so that it gets a new id, its place on My List and its progress follow it (issue #216).
+The provider lists each language, quality and copy of a title separately. The apps group them into one title with several versions: by the cleaned name and year, or by the TMDB id and year (D-133). The cleaned name leaves out a leading article in English, French, Spanish, Italian, German and Dutch ("The", "Le", "La", "El", "Il", "Der", "Das", "Het"…), and a trailing one moves to the front ("Casa de Papel, La" shows as "La Casa de Papel"); "Die", "O" and "As" stay, since English titles start with them (issue #217). Two films of one name and year with different TMDB ids ("The Odyssey" 2026 by Christopher Nolan and by Marcel Walz) stay two titles; a copy without a TMDB id then stays apart from both, since the provider's lists do not say who directed it (issue #187, D-133). Language prefixes such as "EN - ", "|DE| ", "PL = " or "GR - " are read as the version's language, also ones not registered yet (D-090, D-017, D-047). A series has one episode list across all its versions (D-066). The grouping runs in a database on the device (SQLite on TV, phone and desktop, D-121). When the provider renames a title so that it gets a new id, its place on My List and its progress follow it (issue #216).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
@@ -204,7 +204,7 @@ Hands a movie or episode to another player app with the provider's User-Agent: V
 
 ### TV guide
 
-The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The hours start on the local :00 or :30, also in zones such as UTC+5:45 (issue #225). Each channel's own short guide (its next 12 programmes) is filled in from the provider's full TV guide for the next 24 hours, so hours further ahead are not empty (issue #229). The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it; the desktop app plays providers' HLS or, when they have none, MPEG-TS live streams (issue #220). TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179). TV: → on a row's last programme shows the next hour; once the guide is ahead of now, ← on the first programme goes back an hour (issue #240).
+The Live TV page: categories on the left, a guide grid of channels and programmes (now and the next hours) on the right, with Earlier / Now / Later. The hours start on the local :00 or :30, also in zones such as UTC+5:45 (issue #225). Each channel's own short guide (its next 12 programmes) is filled in from the provider's full TV guide for the next two days, so hours further ahead are not empty (issue #229, issue #248); their descriptions come from the provider's guide for that channel when the programme is opened (issue #248). The categories and the guide each scroll on their own; the time header and channel column stay put (D-088, D-032). Selecting a channel plays it; the desktop app plays providers' HLS or, when they have none, MPEG-TS live streams (issue #220). TV: ↑/↓ in the categories move one category at a time and keep the focused one in the middle of the list; Channel +/− move a page up or down (issue #179). TV: → on a row's last programme shows the next hour; once the guide is ahead of now, ← on the first programme goes back an hour (issue #240).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. ↑/↓ through the categories, Channel +/− and moving the hours with ←/→ are TV only (phone and desktop: Earlier / Later).
 
@@ -213,6 +213,12 @@ The Live TV page: categories on the left, a guide grid of channels and programme
 On channels whose provider keeps recordings, past programmes can be watched from the recording, and the programme on now from its start. Recorded programmes carry ↺ in the guide, which goes back up to a day; programmes older than the provider says it keeps them (`tv_archive_duration`) are not offered (issue #247). TV: OK on an ended programme plays it, holding OK on the programme on now starts it from the beginning. Phone and desktop: a programme's details offer Watch (ended) or From the start (on now) next to Watch live. A recording plays like a video: pause, seek and skip work, there is no LIVE tag, and no progress is kept (D-032, issue #226).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
+### Guide reminders
+
+A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile, are carried over when pairing devices, and show only while the app is open, up to 10 minutes after the start (issue #263, D-184, issue #239).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone and desktop: Remind me.
 
 ### Guide over the playing channel
 
@@ -230,7 +236,7 @@ Each profile keeps its last 20 channels. Home's live row lists them; on TV, ↓ 
 
 ### Titles, channels and programmes
 
-Finds movies, series, live channels and programmes of the TV guide on now or in the next day, also from guides that leave out when a programme ends (issue #241); a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
+Finds movies, series, live channels and programmes of the TV guide on now or in the next two days, also from guides that leave out when a programme ends (issue #241); a programme plays the channel that shows it (D-130). Hidden categories are still searched (D-110). Movies and series load in pages as you move down; channels and programmes show the first 30 each. Every app filters them by All, Movies, Series or Live TV (D-094, D-047).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
@@ -246,7 +252,7 @@ A title on My List carries a bookmark at the top right of its cover. The details
 
 ### Better quality on My List
 
-When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR, the tag on its cover) and a better copy arrives, Home shows a popup: "Better quality on My List" with the movie's cover and a line such as "Now 1080p, was TS". **Play** starts the best of the better copies, **More Info** opens its details, **OK** or Back closes it. Several movies that got better are listed in one popup. Each upgrade is shown once to the profile whose list has the movie; a movie that turns into a cinema copy again is announced again when it gets better. Any copy without a cinema tag counts as better, as for the cover's tag. The check runs when the app opens and after each library update (the app updates the library in the background once a day). The popup never shows during playback or over details (DECISIONS.md#d-176). Series are not announced yet (issue #251).
+When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR, the tag on its cover) and a better copy arrives, Home shows a popup: "Better quality on My List" with the movie's cover and a line such as "Now 1080p, was TS". **Play** starts the best of the better copies, **More Info** opens its details, **OK** or Back closes it. Several movies that got better are listed in one popup. Each upgrade is shown once to the profile whose list has the movie; a movie that turns into a cinema copy again is announced again when it gets better. Any copy without a cinema tag counts as better, as for the cover's tag. The check runs when the app opens and after each library update (the app updates the library in the background once a day). The popup never shows during playback or over details (DECISIONS.md#d-176). A series is announced the same way when every version of it was a cinema copy and a better version arrives; it has **More Info** only, which opens it on the better version (issue #251). A single episode that gets better is not announced: the provider's lists tag versions, not episodes.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

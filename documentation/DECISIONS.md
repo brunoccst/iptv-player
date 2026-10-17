@@ -81,7 +81,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-158](#d-158) | Details in columns on landscape screens |
 | [D-174](#d-174) | Known issues and planned work are GitHub issues |
 | [D-175](#d-175) | Connection limit: ask the provider before playing |
-| [D-176](#d-176) | Better copies of movies on My List |
+| [D-176](#d-176) | Better copies on My List |
 | [D-177](#d-177) | No navigation bar on phones and tablets |
 | [D-178](#d-178) | Every device shows a sync code; camera devices scan |
 | [D-179](#d-179) | TV: the progress bar takes the focus |
@@ -89,6 +89,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
 | [D-182](#d-182) | Every card menu option has an icon |
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
+| [D-184](#d-184) | Guide reminders |
 
 ## Merged and retired IDs
 
@@ -319,7 +320,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 **Live TV page and guide** — 2026-09-23, updated 2026-10-04 (merges D-103, D-139, D-140 and D-090's Live TV category)
 
 - `@iptv/shared` owns the guide's layout (`layoutGuideRow`: clip to the window, trim overlaps, fill gaps) and paging (`useEpgGuide`). Cells carry fractions, so the web uses CSS percentages and TV multiplies by the row width.
-- The guide comes from each channel's short EPG (12 programmes). Where it runs out, or has nothing, the full XMLTV guide saved for search (D-130, the next 24 hours, no descriptions: issue #248) fills in by the channel's guide id; a programme that overlaps one of the short EPG is left out, so the short EPG wins (issue #229). The grid only uses a guide already downloaded and starts the download when there is none. Guide windows align to UTC half hours ([#225](https://github.com/brunoccst/iptv-player/issues/225)).
+- The guide comes from each channel's short EPG (12 programmes). Where it runs out, or has nothing, the full XMLTV guide saved for search (D-130, the next two days, no descriptions) fills in by the channel's guide id; a programme that overlaps one of the short EPG is left out, so the short EPG wins (issue #229). The grid only uses a guide already downloaded and starts the download when there is none. Guide windows start on local half hours, also in zones offset by 15 or 45 minutes (issue #225). A filled programme's description is looked up when it is opened, in the provider's guide for that channel (`get_simple_data_table`, cached half an hour), rather than saved: descriptions would make the saved guide several times larger on TV (issue #248).
 - Catch-up (issue #226): a channel with `tv_archive` plays an ended programme from Xtream's `timeshift/<user>/<password>/<minutes>/<YYYY-MM-DD:HH-MM>/<id>.<m3u8|ts>`, the start written in the panel's `server_info.timezone` (UTC when it names none). The short EPG starts at the programme on now, so a recorded channel whose short EPG starts after the guide window also reads `get_simple_data_table` (the panel's full list for that channel, a day back kept, cached like the short EPG). The guides go back a day. A recording is a `PlayTarget` with `catchup`: the players treat it as a video (seeking, no LIVE tag) but save no progress and do not note the channel as watched last. TV: OK on an ended programme plays it, holding OK on the one on now plays it from its start; phone and web: buttons in the programme details. There is no check against `tv_archive_duration` (issue #247): a programme older than the provider keeps fails like any stream.
 - Web/desktop: a 3-hour window, Earlier / Now / Later move 1 hour, a sticky channel column and time header, a red "now" line. The page is as tall as the window; the categories and the guide scroll on their own. Narrow windows (720 px or less) keep a scrolling page with chips.
 - TV: a 2-hour window with fixed-height rows, so focus search moves naturally; the focused programme is described above the grid; Select plays the channel. The page does not scroll: the category list and the channels scroll on their own. Down at the last channel stays in the guide (`trapFocusDown`); Up from Earlier / Now / Later goes to "Live TV" in the nav (`nextFocusUp`). Left from a channel goes to the category list (the one exception to D-069). Right on a row's last programme moves the window an hour later; while the window is ahead of now the channel cell is not focusable and the row keeps Left, so Left on the first programme moves an hour earlier (issue #240). The key arrives before the focus moves, so the focused cell's place in its row decides.
@@ -815,8 +816,8 @@ Hermes has no JIT and a Chromecast is about 9× slower than a PC, so code that r
 
 **Search** — 2026-10-03 (issue #119; merges D-108's search filter)
 
-- Search finds movies, series, live channels and programmes of the provider's full guide (which also fills the TV guide where the short EPG runs out, D-032) that have not ended (next 24 hours), with the channel that shows them; on now first, then by start, at most 30. Hidden categories are still searched (D-110); Kids profiles see only their channels' programmes.
-- The full guide (`xmltv.php`, hundreds of MB) is streamed and only the next 24 hours kept (`xmltv.ts`; on TV and phone native `XmltvFilter` drops the rest first), saved in the database (kind "guide") after the channel list, daily and when older than 12 hours. A provider without one shows no programmes. A programme without `stop` ends where its channel's next one starts (`XmltvFilter` keeps that next one too); a channel's last one without `stop` is dropped (issue #241).
+- Search finds movies, series, live channels and programmes of the provider's full guide (which also fills the TV guide where the short EPG runs out, D-032) that have not ended (next two days, as far as the guide pages ahead: issue #248), with the channel that shows them; on now first, then by start, at most 30. Hidden categories are still searched (D-110); Kids profiles see only their channels' programmes.
+- The full guide (`xmltv.php`, hundreds of MB) is streamed and only the next two days kept (`xmltv.ts`; on TV and phone native `XmltvFilter` drops the rest first), saved in the database (kind "guide") after the channel list, daily and when older than 12 hours. A provider without one shows no programmes. A programme without `stop` ends where its channel's next one starts (`XmltvFilter` keeps that next one too); a channel's last one without `stop` is dropped (issue #241).
 - A filter (All, Movies, Series, Live TV) and the "Results for …" title stay above the results on TV and phone.
 
 ## D-131
@@ -837,7 +838,7 @@ Hermes has no JIT and a Chromecast is about 9× slower than a PC, so code that r
 - A title shows its most common spelling and year, the best version's poster and quality, the highest rating and the newest date; its versions are read only when it opens.
 - Ids: SHA-1 of account, kind, key and year, so My List and progress follow a title across updates. When one key and year hold several TMDB ids, the smallest keeps that id and the others add their TMDB id ("-" for the id-less one).
 - A rename that changes the key or year gives the title a new id (issue #216). My List entries save their title's provider items (stream ids); progress has its movie or series item. Once per library change, reading either list looks up the ids the library no longer has and moves each to the title that now holds most of its items (`reattach.ts`), then saves the list; two entries that became one title keep the newest. Stream ids rather than TMDB ids: every item has one, and Xtream keeps it across renames. Entries saved before this carry no items until the list is read while their title still exists.
-- `NORMALIZER_RULES` (`libraryCodec.ts`) versions the grouping: raising it rebuilds every library once.
+- `NORMALIZER_RULES` (`libraryCodec.ts`) versions the grouping: raising it rebuilds every library once. `NAME_RULES` (`sqlLibrary.ts`) versions what was read from each name; when it rises, names whose old reading cannot differ are kept (9 reads again only keys starting or ending with an article it added, issue #217), so a TV does not parse every name again (issue #228).
 
 ## D-135
 
@@ -932,12 +933,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 ## D-176
 
-**Better copies of movies on My List** — 2026-10-12 (requested by owner)
+**Better copies on My List** — 2026-10-12, series 2026-10-17 (requested by owner)
 
 - A My List movie whose copies are all cinema copies (`lowSource`: CAM, TS, TC, SCR, the cover's tag, D-141) is remembered with that copy in its saved entry (`lowSourceSeen`). Once the library shows it without `lowSource` (any copy without a cinema tag, untagged ones included, as for the cover), it is an upgrade until the popup is closed; then `lowSourceSeen` is cleared. Stateless that way: an upgrade found while the app was closed, or before the popup could show, is still there on the next open.
 - The quality is read on My List's load (app open, profile change) and again for every entry after a library update ends (`recheckQuality`, from the library watchers). Entries added already good, or saved before this, are never announced; a title gone from the library keeps its mark.
 - Shown on Home only, with nothing over it (no details, player, account menu or update prompt), one popup for all upgrades. Play starts the profile's starting version among the non-cinema copies and selects it for the title, so details show it too.
-- Movies only: series' versions differ per episode (issue #251).
+- Series too, by their versions' tags like movies (issue #251). Their popup entry has More info only, which selects the better version first: a series has no one thing to play. Per-episode copies are not tracked: that would read every saved series' episode lists after each update, and episode names rarely carry cinema tags.
 
 ## D-177
 
@@ -995,3 +996,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - In one wrapping row, a button that did not fit (a wider "Resume" or "Play S1:E5" on a phone) went to the start of the next line, under Play, where nobody looks for an icon. So Play/Resume stands alone and the icon buttons are a group of their own that takes the rest of the width and wraps inside it (`Actions` in the TV app's `DetailsScreen` and the web `DetailsLayout`, the `play` and `actions` parts of the details layout).
 - The outer row does not wrap and aligns to the top, so Play lines up with the first line of icons; Play and the icons are both 40 px high.
+
+## D-184
+
+**Guide reminders** — 2026-10-17 (issue #239)
+
+- A reminder is saved in the profile's preferences on the device (`reminders`, like recent channels, D-129): the channel, title and times, enough to show it and tune in without the guide. Pairing joins both devices' lists (D-060). Ended programmes are dropped whenever the list changes; at most 50 are kept.
+- The running app checks when the next one starts (and every 30 s) and shows it from its start for 10 minutes, so an app opened shortly after still shows it. Dismiss or Watch takes it off the list.
+- TV and phone: a popup over any page and the player (focus stays inside it). Desktop: a banner at the top right that does not take focus, over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
+- TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
+- Not with the app closed: that needs Android alarms and notifications (issue #263).

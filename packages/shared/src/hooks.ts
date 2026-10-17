@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from './api/errors';
 import type {
   CatalogSection,
+  EpgListing,
   LibrarySection,
   LiveChannel,
   MasterCard,
@@ -19,7 +20,8 @@ import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t, tn } from './i18n/i18n';
 import { MAX_SEARCH_CHANNELS, MAX_SEARCH_PROGRAMMES } from './search/useSearchQuery';
-import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, type RecentChannel } from './playback/recentChannels';
+import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, recentChannelTarget, type RecentChannel } from './playback/recentChannels';
+import { dueReminders, hasReminder, nextReminderIn, pruneReminders, reminderOf, toggleReminder } from './playback/reminders';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
@@ -406,8 +408,9 @@ export function createAppHooks({
     },
 
     /**
-     * Movies on My List that turned from a cinema copy (CAM, TS…) into a better one, for the popup Home shows
-     * (DECISIONS.md#d-176). `dismiss` once shown; `playTarget` starts the best of the better copies.
+     * Titles on My List that turned from a cinema copy (CAM, TS…) into a better one, for the popup Home shows
+     * (DECISIONS.md#d-176). `dismiss` once shown; `playTarget` selects the best of the better copies and, for a movie,
+     * returns it to play (a series has no one thing to play: its details open on that version, issue #251).
      */
     useQualityUpgrades() {
       const items = useAppStore(stores.watchlist, (s) => s.items.data);
@@ -416,7 +419,7 @@ export function createAppHooks({
         upgrades,
         dismiss: useCallback(() => void stores.watchlist.getState().dismissUpgrades(upgrades), [upgrades]),
         async playTarget(entry: WatchlistDto): Promise<PlayTarget | null> {
-          const master = await stores.library.getState().loadDetails('movies', entry.masterId);
+          const master = await stores.library.getState().loadDetails(entry.section, entry.masterId);
           if (!master) return null;
           const library = stores.library.getState();
           const better = master.variants.filter((variant) => !variant.source || !LOW_SOURCES.includes(variant.source));
@@ -427,7 +430,7 @@ export function createAppHooks({
           });
           if (!variant) return null;
           library.selectVariant(master.id, variant.streamId);
-          return movieTarget(master, variant);
+          return entry.section === 'movies' ? movieTarget(master, variant) : null;
         },
       };
     },
@@ -570,6 +573,67 @@ export function createAppHooks({
     },
 
     useRecentChannels,
+
+    /**
+     * A guide programme's description: its own, or for one filled in from the full guide (which keeps none), the one
+     * the provider's guide for that channel has (issue #248). Null while loading or when there is none.
+     */
+    useProgrammeDescription(channelId: string, programme: EpgListing | null): string | null {
+      const lookup = !!programme && !programme.description && !!api.epg.description;
+      const fetched = useAsync(lookup ? `epg-description:${channelId}:${programme.start}` : null, () =>
+        // `then`: an API without descriptions (a test double behind the delegating client) throws on the call.
+        Promise.resolve()
+          .then(() => api.epg.description!(channelId, programme!.start))
+          .catch(() => null),
+      );
+      return programme?.description ?? fetched.data ?? null;
+    },
+
+    /** The active profile's guide reminders (issue #239, DECISIONS.md#d-184): which programmes have one, and set or clear one. */
+    useReminders() {
+      const profileId = useSession((s) => s.activeProfileId);
+      const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.reminders : null));
+      return {
+        has: useCallback((channelId: string, start: string) => hasReminder(list, channelId, start), [list]),
+        toggle: useCallback(
+          (channel: LiveChannel, programme: EpgListing) => {
+            if (!profileId) return;
+            const prefs = stores.profilePrefs.getState();
+            void prefs.update(profileId, {
+              reminders: toggleReminder(prefs.prefs[profileId]?.reminders, reminderOf(channel, programme), Date.now()),
+            });
+          },
+          [profileId],
+        ),
+      };
+    },
+
+    /**
+     * The first reminder whose programme has started (issue #239): the app shows it over whatever is on screen. Checks
+     * when the next one starts and every half minute. `dismiss` takes it off the list; `target` tunes to its channel.
+     */
+    useDueReminder() {
+      const profileId = useSession((s) => s.activeProfileId);
+      const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.reminders : null));
+      const [now, setNow] = useState(() => Date.now());
+      useEffect(() => {
+        const next = nextReminderIn(list, Date.now());
+        const timer = setTimeout(() => setNow(Date.now()), Math.min(next ?? 30_000, 30_000) + 50);
+        return () => clearTimeout(timer);
+      }, [list, now]);
+      const reminder = dueReminders(list, now)[0] ?? null;
+      const dismiss = useCallback(() => {
+        if (!profileId || !reminder) return;
+        const prefs = stores.profilePrefs.getState();
+        const current = prefs.prefs[profileId]?.reminders ?? [];
+        void prefs.update(profileId, {
+          reminders: pruneReminders(current, Date.now()).filter(
+            (r) => !(r.channel.id === reminder.channel.id && r.start === reminder.start),
+          ),
+        });
+      }, [profileId, reminder]);
+      return { reminder, dismiss, target: reminder ? recentChannelTarget(reminder.channel) : null };
+    },
 
     /**
      * Notes the playing live channel in the active profile's recent channels once it starts (issue #122). A recording

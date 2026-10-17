@@ -313,7 +313,7 @@ describe.each([
     expect(messages).toContain('guide: stopped for the library update; downloaded again after it');
     await vi.waitFor(() =>
       expect(
-        appLog.entries().some((entry) => !logged.has(entry) && /^guide: \d+ programmes of the next day saved/.test(entry.message)),
+        appLog.entries().some((entry) => !logged.has(entry) && /^guide: \d+ programmes of the next two days saved/.test(entry.message)),
       ).toBe(true),
     );
   });
@@ -685,6 +685,15 @@ describe.each([
     // The window from now needs nothing older than the short EPG.
     await api.epg.refresh();
     await api.epg.grid({});
+    expect(panel.calls.filter((url) => url.includes('get_simple_data_table'))).toHaveLength(1);
+  });
+
+  it("finds a programme's description in the channel's own guide (issue #248)", async () => {
+    const { api, panel } = setup();
+    await api.auth.login(login);
+    const start = new Date(panel.nowSeconds * 1000).toISOString();
+    expect(await api.epg.description!('1', start)).toBe('Headlines of the day.');
+    expect(await api.epg.description!('1', new Date(panel.nowSeconds * 1000 + 3600_000).toISOString())).toBeNull();
     expect(panel.calls.filter((url) => url.includes('get_simple_data_table'))).toHaveLength(1);
   });
 

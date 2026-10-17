@@ -1,12 +1,13 @@
 import type { KeyValueStorage } from '../stores/storage';
 import { PROFILE_PREFS_KEY, type ProfilePrefs } from '../stores/profilePrefsStore';
 import { MAX_RECENT_CHANNELS } from '../playback/recentChannels';
+import { mergeReminders } from '../playback/reminders';
 import { SUBTITLE_SETTINGS_KEY, type SubtitleSettings } from '../subtitles/openSubtitles';
 import { parseJson } from '../utils/bytes';
 
 /**
  * The settings pairing carries besides sign-in and media (D-060): each profile's preferences (content languages, app
- * language, subtitle/audio/version choices, hidden and kids categories, watched series, recent channels) and the
+ * language, subtitle/audio/version choices, hidden and kids categories, watched series, recent channels, guide reminders) and the
  * automatic-subtitles settings. Where both devices have a value, the phone's wins; lists are joined. What belongs to
  * the device stays: the audio decoder, the device's own app language, downloads, remote-play keys, update choices.
  */
@@ -38,6 +39,7 @@ export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: Profil
     const localOnly = (local.recentChannels ?? []).filter((c) => !phoneChannels.some((p) => p.id === c.id));
     merged.recentChannels = [...phoneChannels, ...localOnly].slice(0, MAX_RECENT_CHANNELS);
   }
+  if (phone.reminders || local.reminders) merged.reminders = mergeReminders(phone.reminders, local.reminders, Date.now());
   return merged;
 }
 

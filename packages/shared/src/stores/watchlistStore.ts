@@ -52,25 +52,23 @@ const entryKey = (item: Pick<WatchlistDto, 'section' | 'masterId'>) => `${item.s
  * Movies on My List that were seen as cinema copies only (CAM, TS, TC, SCR) and now have a better copy, oldest
  * first (DECISIONS.md#d-176). Any copy without a cinema tag counts as better, as for the cover's badge.
  */
-/** The popup's line for an upgraded movie: "Now 1080p, was TS". */
+/** The popup's line for an upgraded title: "Now 1080p, was TS". */
 export const upgradeLine = (item: WatchlistDto): string =>
   item.quality?.bestQuality
     ? t('Now {quality}, was {source}', { quality: item.quality.bestQuality, source: item.lowSourceSeen ?? '' })
     : t('Better copy, was {source}', { source: item.lowSourceSeen ?? '' });
 
 export const qualityUpgrades = (items: WatchlistDto[] | null): WatchlistDto[] =>
-  (items ?? []).filter((item) => item.section === 'movies' && !!item.lowSourceSeen && !!item.quality && !item.quality.lowSource).reverse();
+  (items ?? []).filter((item) => !!item.lowSourceSeen && !!item.quality && !item.quality.lowSource).reverse();
 
 export function createWatchlistStore({ api, now = () => new Date().toISOString() }: { api: ApiClient; now?: () => string }) {
   return createStore<WatchlistState>()((set, get) => {
     let inFlight: { profileId: string; promise: Promise<void> } | null = null;
     const setData = (data: WatchlistDto[]) => set({ items: { ...get().items, data } });
 
-    /** Saves which cinema copy each movie is now, so a later better copy can be announced (DECISIONS.md#d-176). */
+    /** Saves which cinema copy each title is now, so a later better copy can be announced (DECISIONS.md#d-176). */
     const noteLowSources = async (profileId: string) => {
-      const marks = (get().items.data ?? []).filter(
-        (item) => item.section === 'movies' && item.quality?.lowSource && item.quality.lowSource !== item.lowSourceSeen,
-      );
+      const marks = (get().items.data ?? []).filter((item) => item.quality?.lowSource && item.quality.lowSource !== item.lowSourceSeen);
       if (marks.length === 0) return;
       const seen = new Map(marks.map((item) => [entryKey(item), item.quality!.lowSource!]));
       setData(

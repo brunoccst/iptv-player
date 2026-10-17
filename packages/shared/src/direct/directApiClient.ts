@@ -119,8 +119,11 @@ const SHORT_EPG_PARALLELISM = 2;
 /** How far back the guide keeps programmes of channels with recordings (issue #226); the apps' guides go back as far. */
 const CATCHUP_GUIDE_MS = 24 * 3600_000;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
-/** The full TV guide keeps the programmes of the next day, and is downloaded again after half a day (issue #119). */
-const GUIDE_WINDOW_MS = 24 * 3600_000;
+/**
+ * The full TV guide keeps the programmes of the next two days, as far as the guide pages (issue #248), and is
+ * downloaded again after half a day (issue #119).
+ */
+const GUIDE_WINDOW_MS = 48 * 3600_000;
 const GUIDE_REFRESH_MS = 12 * 3600_000;
 const PROGRAMME_SEARCH_LIMIT = 30;
 const MAX_PROFILES = 5;
@@ -1009,7 +1012,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     triedAt: number;
   } = { accountId: null, saved: null, opening: null, refreshing: null, stop: null, memory: null, triedAt: 0 };
 
-  /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next day. */
+  /** Downloads the provider's full guide (one at a time) and keeps the programmes of the next two days. */
   const refreshGuide = (): Promise<void> => {
     guide.refreshing ??= (async () => {
       // Saved in the database, it waits for a library update (in memory there is nothing to save).
@@ -1044,13 +1047,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         } finally {
           if (guide.stop === stop) guide.stop = null;
         }
-        appLog.info('library', `guide: ${saved.count} programmes of the next day saved in ${Date.now() - started} ms`);
+        appLog.info('library', `guide: ${saved.count} programmes of the next two days saved in ${Date.now() - started} ms`);
         if (credentials?.account.id === accountId) Object.assign(guide, { accountId, saved, opening: Promise.resolve(saved) });
         return;
       }
       const programmes: GuideProgramme[] = [];
       await client.guide(window, async (batch) => void programmes.push(...batch));
-      appLog.info('library', `guide: ${programmes.length} programmes of the next day read in ${Date.now() - started} ms`);
+      appLog.info('library', `guide: ${programmes.length} programmes of the next two days read in ${Date.now() - started} ms`);
       if (credentials?.account.id === accountId) Object.assign(guide, { accountId, memory: { programmes, builtAt: from } });
     })()
       .catch((error: unknown) => appLog.warn('library', `guide: the full TV guide could not be read: ${errorMessage(error)}`))
@@ -1682,6 +1685,15 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
     epg: {
       grid: epgGrid,
+      async description(channelId, start, signal) {
+        const { stored, client } = await session();
+        const programmes = await cached(`epg-all:${stored.account.id}:${channelId}`, SHORT_EPG_CACHE_MS, () =>
+          client.channelEpg(channelId, signal),
+        );
+        const at = Date.parse(start);
+        // Guides of one provider can disagree by a few seconds on a start.
+        return programmes.find((programme) => Math.abs(Date.parse(programme.start) - at) < 60_000)?.description ?? null;
+      },
       async refresh() {
         const { stored } = await session();
         for (const key of [...cache.keys()])

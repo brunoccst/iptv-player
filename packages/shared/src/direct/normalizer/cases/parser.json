@@ -1,6 +1,11 @@
 {
   "parse": [
     {
+      "raw": "Casa de Papel, La (2017)",
+      "title": "La Casa de Papel",
+      "year": 2017
+    },
+    {
       "raw": "EN - The Matrix (1999) [4K] [MULTI]",
       "title": "The Matrix",
       "year": 1999,
@@ -541,6 +546,22 @@
     }
   ],
   "keys": [
+    {
+      "title": "Le Petit Prince",
+      "key": "petit prince"
+    },
+    {
+      "title": "Das Boot",
+      "key": "boot"
+    },
+    {
+      "title": "Die Hard",
+      "key": "die hard"
+    },
+    {
+      "title": "La",
+      "key": "la"
+    },
     {
       "title": "The Matrix",
       "key": "matrix"

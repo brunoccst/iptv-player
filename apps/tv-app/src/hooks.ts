@@ -32,6 +32,9 @@ export const {
   useNoteRecentChannel,
   useLiveHomeRow,
   useQualityUpgrades,
+  useReminders,
+  useProgrammeDescription,
+  useDueReminder,
 } = createAppHooks({ api, stores, reloadLists: () => navStore.getState().bumpLibrary() });
 export const useDownloads = <T>(selector: (state: DownloadsState) => T) => useAppStore(downloadsStore, selector);
 export const useNav = <T>(selector: (state: NavState) => T) => useAppStore(navStore, selector);

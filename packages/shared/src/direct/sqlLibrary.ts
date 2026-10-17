@@ -2,7 +2,7 @@ import type { LibraryListQuery } from '../api/apiClient';
 import type { LibraryChanges, LibraryPage, LibrarySort, LiveChannel, MasterCard, ProgrammeMatch } from '../api/types';
 import type { GuideProgramme } from './xmltv';
 import { NORMALIZER_RULES, unpacker, type PackedMaster } from './libraryCodec';
-import { compactKey, parseTitle } from './normalizer/parser';
+import { compactKey, KEY_ARTICLES, parseTitle } from './normalizer/parser';
 import {
   lowSourceOf,
   masterIdText,
@@ -71,13 +71,24 @@ const NAME_KEEP_DAYS = 30;
 /**
  * Version of what the parser reads from a name (`parseTitle`), apart from the grouping rules (D-017): raise it only when
  * the parser changes, so a change of grouping alone regroups the titles without reading every name again. 8 is the
- * first: the parser did not change from 7 to 8, so names read with 7 are kept.
+ * first: the parser did not change from 7 to 8, so names read with 7 are kept. 9: articles of other languages (issue
+ * #217).
  */
-const NAME_RULES = 8;
+const NAME_RULES = 9;
 /** What the parser read from each name (D-133). The same for every account; read again when `NAME_RULES` changes. */
 const NAMES = `title_names_${NAME_RULES}`;
-/** Names read with these older rules say the same as with `NAME_RULES`: moved into the names, not read again. */
-const SAME_NAMES = ['title_names_7'];
+/**
+ * Names read with these older rules say the same as with `NAME_RULES` where `same` holds: moved into the names, not read
+ * again. From 8, only keys that start or end with an article added in 9 can differ (a trailing ", La" now moves to the
+ * front), so a TV does not read 150k names again for a few (issue #228).
+ */
+const WITHOUT_ADDED_ARTICLES = KEY_ARTICLES.filter((article) => !['the', 'a', 'an'].includes(article))
+  .map((article) => `nkey NOT GLOB '${article} *' AND nkey NOT GLOB '* ${article}'`)
+  .join(' AND ');
+const SAME_NAMES = [
+  { table: 'title_names_7', same: WITHOUT_ADDED_ARTICLES },
+  { table: 'title_names_8', same: WITHOUT_ADDED_ARTICLES },
+];
 
 const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
@@ -518,7 +529,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         .filter((name) => !used.has(name.replace(/_[a-z0-9]+$/, '')));
       const oldNames = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'title_names_*'"))
         .map((row) => String(row[0]))
-        .filter((name) => name !== NAMES && !SAME_NAMES.includes(name));
+        .filter((name) => name !== NAMES && !SAME_NAMES.some((same) => same.table === name));
       if (orphans.length || oldNames.length)
         await db.run([...orphans, ...oldNames].map((name) => ({ sql: `DROP TABLE IF EXISTS ${name}` })));
     })().catch((error: unknown) => {
@@ -1053,11 +1064,17 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
   /** Moves names read with older rules that say the same (`SAME_NAMES`) into the names, so they are not read again (D-017). */
   async function keepSameNames() {
+    const tables = SAME_NAMES.map((same) => same.table);
     for (const [table] of await db.query(
-      `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${SAME_NAMES.map(() => '?').join(', ')})`,
-      SAME_NAMES,
-    ))
-      await db.run([{ sql: `INSERT OR IGNORE INTO ${NAMES} SELECT * FROM ${String(table)}` }, { sql: `DROP TABLE ${String(table)}` }]);
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${tables.map(() => '?').join(', ')})`,
+      tables,
+    )) {
+      const same = SAME_NAMES.find((names) => names.table === String(table))!.same;
+      await db.run([
+        { sql: `INSERT OR IGNORE INTO ${NAMES} SELECT * FROM ${String(table)} WHERE ${same}` },
+        { sql: `DROP TABLE ${String(table)}` },
+      ]);
+    }
   }
 
   /** Reads the names no library had before (in slices, so the screen keeps running) and keeps what they say. */
@@ -1343,7 +1360,7 @@ export interface SqlGuide {
 }
 
 /**
- * The provider's full TV guide in SQLite (issue #119, D-130): the programmes of the next day, saved as they are read
+ * The provider's full TV guide in SQLite (issue #119, D-130): the programmes of the next two days (issue #248), saved as they are read
  * from the (large) XMLTV reply, in a table beside the current one that replaces it in one step, like the channel list
  * (kind "guide" in the same table of contents). Search finds programmes by title and the channels that show them.
  */

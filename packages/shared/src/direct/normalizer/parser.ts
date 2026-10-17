@@ -118,7 +118,13 @@ function extractSubtitles(raw: string): { text: string; languages: string[] } {
 const PREFIX = /^\s*[[(|]?\s*([A-Za-z0-9+]{2,8}(?:[-_ /][A-Za-z0-9+]{2,6}){0,2})\s*(?:[\])|:=]|\s[-–]\s)\s*/;
 const BRACKET = /\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\}/g;
 const EDGE_PUNCTUATION = ' -–:|.,_/';
-const TRAILING_ARTICLE = /^(.+),\s*(the|a|an)$/i;
+/**
+ * Leading articles left out of keys, so "Le Petit Prince" and "Petit Prince" group (issue #217). Only words that are
+ * not also common first words of English titles: "die" (Die Hard), "o" (O Brother), "as", "de" and "i" stay.
+ */
+export const KEY_ARTICLES = ['the', 'a', 'an', 'le', 'la', 'les', 'el', 'los', 'las', 'il', 'gli', 'der', 'das', 'het'];
+const KEY_ARTICLE_SET = new Set(KEY_ARTICLES);
+const TRAILING_ARTICLE = new RegExp(`^(.+),\\s*(${KEY_ARTICLES.join('|')})$`, 'i');
 
 /** Whitespace as `\s` matches it. */
 const isSpace = (code: number) =>
@@ -311,7 +317,7 @@ export function parseYear(value: string | null | undefined): number | null {
 
 const APOSTROPHE = /['’`´]/;
 
-/** Comparison key: accent-free, lowercase, punctuation-free, roman numerals as digits, no leading English article. */
+/** Comparison key: accent-free, lowercase, punctuation-free, roman numerals as digits, no leading article (`KEY_ARTICLES`). */
 export function normalizeKey(title: string): string {
   let text = removeMarks(title).toLowerCase();
   if (text.includes('&')) text = text.replaceAll('&', ' and ');
@@ -321,7 +327,7 @@ export function normalizeKey(title: string): string {
   let tokens = (NON_ASCII.test(text) ? words(text.replace(/[^\p{L}\p{N}]+/gu, ' ')) : splitOn(text, NOT_ALNUM_TABLE, () => false)).map(
     (token) => (tags.has(tags.ROMAN_NUMERALS, token) ? tags.ROMAN_NUMERALS[token]! : token),
   );
-  if (tokens.length > 1 && ['the', 'a', 'an'].includes(tokens[0]!)) tokens = tokens.slice(1);
+  if (tokens.length > 1 && KEY_ARTICLE_SET.has(tokens[0]!)) tokens = tokens.slice(1);
   return tokens.join(' ');
 }
 

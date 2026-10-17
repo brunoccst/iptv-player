@@ -134,4 +134,26 @@ describe('LiveTvPage (guide)', () => {
     expect(play).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Replay TV', subtitle: 'Late Match' }));
     expect(play.mock.lastCall![0].catchup).toBeUndefined();
   }, 15_000);
+
+  it('offers a reminder only for programmes that have not started (issue #239)', async () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        const url = new URL(input);
+        const body = url.pathname === '/api/epg' ? guideResponse(url) : [{ id: '1', name: 'News', kind: 'live' }];
+        return new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } });
+      }),
+    );
+    const { LiveTvPage } = await import('./LiveTvPage');
+    const { appContext } = await import('../../appContext');
+    const { createFakeApi } = await import('../../../../../packages/shared/src/testing/fakeBackend');
+    appContext.replaceApi(createFakeApi({ fetch }));
+
+    render(<LiveTvPage />);
+    fireEvent.click(await screen.findByRole('button', { name: /^World Report,/ }, { timeout: 5000 }));
+    expect(screen.getByRole('button', { name: 'Remind me' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /^Morning Briefing,/ }));
+    expect(screen.queryByRole('button', { name: 'Remind me' })).toBeNull();
+  }, 15_000);
 });

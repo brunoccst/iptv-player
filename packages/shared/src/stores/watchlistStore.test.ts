@@ -150,12 +150,17 @@ describe('watchlist store', () => {
       expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['m1']);
     });
 
-    it('never announces series, titles already good when added, or titles gone from the library', async () => {
-      const { backend, watchlist, load } = await setup([
-        { ...entry('series', 's1'), lowSourceSeen: 'TS' },
-        entry('movies', 'good'),
-        { ...entry('movies', 'gone'), lowSourceSeen: 'TS' },
-      ]);
+    it('announces a series whose versions were all cinema copies once a better one arrives (issue #251)', async () => {
+      const { backend, watchlist, load } = await setup([{ ...entry('series', 's1'), lowSourceSeen: 'TS' }]);
+      backend.on('GET', '/api/library/series/s1', { body: details('s1', '1080p', [variant('1080p', 'WEB')]) });
+      await load();
+      await settle();
+
+      expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['s1']);
+    });
+
+    it('never announces titles already good when added, or titles gone from the library', async () => {
+      const { backend, watchlist, load } = await setup([entry('series', 's1'), { ...entry('movies', 'gone'), lowSourceSeen: 'TS' }]);
       backend.on('POST', '/api/profiles/p1/watchlist/low-sources', { status: 204 });
       backend.on('GET', '/api/library/series/s1', { body: details('s1', '1080p', [variant('1080p', 'WEB')]) });
       backend.on('GET', '/api/library/movies/good', { body: details('good', '4K', [variant('4K', 'BLURAY')]) });

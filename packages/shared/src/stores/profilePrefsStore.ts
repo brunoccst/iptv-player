@@ -4,6 +4,7 @@ import type { KeyValueStorage } from './storage';
 import { t } from '../i18n/i18n';
 import type { PlaybackChoices } from '../playback/playbackChoices';
 import type { RecentChannel } from '../playback/recentChannels';
+import type { Reminder } from '../playback/reminders';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
@@ -31,6 +32,8 @@ export interface ProfilePrefs {
   playback?: PlaybackChoices | null;
   /** Live channels watched, newest first (issue #122, D-129): Home's first live row and the live player's history. */
   recentChannels?: RecentChannel[] | null;
+  /** Guide programmes to be reminded of, soonest first (issue #239, D-184). */
+  reminders?: Reminder[] | null;
 }
 
 export interface ProfilePrefsState {
