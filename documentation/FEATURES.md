@@ -192,9 +192,9 @@ Unplugging headphones or losing a Bluetooth headset pauses playback instead of c
 
 ### Playback errors
 
-When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
+When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). What Chromium cannot decode (HEVC without a decoder, Xvid, MPEG-2, AVI; Dolby Digital, DTS or TrueHD sound) the desktop app converts while it plays, with the FFmpeg it brings along: a video that does not load, or plays without sound, starts again converted from the same point, and seeking past the converted part converts from there (D-189). Only when that fails too does the error offer Open in VLC.
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Desktop plays MKV with H.264/AAC but not HEVC without a decoder or AC3/DTS audio ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
 ### Connection limit
 

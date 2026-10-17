@@ -11,6 +11,13 @@ export interface UpdateProgress {
   percent: number;
 }
 
+/** What the bundled FFmpeg read from a stream (issue #236): length (null for live), the first video, every audio track. */
+export interface StreamProbe {
+  duration: number | null;
+  video: { codec: string; height: number | null; hdr: boolean } | null;
+  audio: { codec: string; language: string | null }[];
+}
+
 export interface DesktopBridge {
   version: string;
   platform: string;
@@ -29,6 +36,22 @@ export interface DesktopBridge {
   setDownloadsActive?(active: boolean): Promise<void>;
   /** The window was closed and hidden while downloads run: stop playing. Returns the unsubscribe function. */
   onBackground?(listener: () => void): () => void;
+  /**
+   * Plays what Chromium cannot decode (issue #236): the app converts the stream with its FFmpeg into an HLS playlist on
+   * its own server, starting at `at` seconds; one at a time. Older apps lack it.
+   */
+  transcode?: {
+    probe(url: string): Promise<StreamProbe>;
+    start(options: {
+      url: string;
+      probe?: StreamProbe;
+      at?: number;
+      live?: boolean;
+      copyVideo?: boolean;
+      audio?: number;
+    }): Promise<{ id: string; playlist: string; duration: number | null; at: number }>;
+    stop(): Promise<void>;
+  };
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** The library database (D-121): statements and queries as JSON text, run by the main process. */

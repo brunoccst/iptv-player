@@ -115,6 +115,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Plays HEVC, Xvid and Dolby sound** (2026-10-17, D-189, issue #236): films and episodes the computer could not play (HEVC video without a decoder, Xvid, MPEG-2, Dolby Digital or DTS sound) now play in the app. It converts them while you watch; a video that played without sound now has it. The app download is bigger because of this.
 - **Downloads go on with the window closed** (2026-10-17, D-187, issue #219): closing the window while something downloads now hides it instead, and the downloads carry on. The tray icon opens the app again or quits it, and the app closes by itself once they are done. Accounts with more than one stream also download up to three titles at once, always keeping one stream free for watching.
 - **Stays in sync with the TV** (2026-10-17, D-186, issue #227): after this computer has scanned the TV's code once, it keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or its window comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
 - **Split or merge titles** (2026-10-17, D-185, issue #243): when two versions that are not the same film or series end up as one title, or one title shows up twice, the Split or merge button in its details splits a version off or merges the other title in. It can be undone the same way.

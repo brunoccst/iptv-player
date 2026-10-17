@@ -11,6 +11,8 @@ module.exports = {
   directories: { output: 'release', buildResources: 'build' },
   files: ['main.mjs', 'preload.cjs', 'lib/**', 'build-config.json', 'package.json'],
   extraResources: [{ from: '../web-player/dist', to: 'web' }],
+  // FFmpeg (issue #236, D-189) has to be a file of its own to be started; its licence goes with it.
+  asarUnpack: ['node_modules/ffmpeg-static/**'],
   // In-app updates (D-073): electron-updater reads latest.yml / latest-linux.yml next to the installers in the
   // `desktop` release. Builds without an update repository (local) get no feed.
   ...(updateRepo ? { publish: { provider: 'generic', url: `https://github.com/${updateRepo}/releases/download/desktop` } } : {}),

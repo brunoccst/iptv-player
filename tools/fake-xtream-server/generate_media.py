@@ -27,12 +27,16 @@ def find_ffmpeg() -> str:
 
 
 def run(ffmpeg: str, seconds: int, size: str, codec: str, output_args: list[str], tone: int) -> None:
-    video = (
-        ["-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "300k"]
-        if codec == "vp9"
-        else ["-c:v", "libx264", "-preset", "veryfast", "-b:v", "400k", "-pix_fmt", "yuv420p"]
-    )
-    audio = ["-c:a", "libopus", "-b:a", "48k"] if codec == "vp9" else ["-c:a", "aac", "-b:a", "64k"]
+    if codec == "vp9":
+        video = ["-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "300k"]
+        audio = ["-c:a", "libopus", "-b:a", "48k"]
+    elif codec == "hevc":
+        # What Chromium cannot decode without help (HEVC, AC-3): the desktop app converts it (issue #236).
+        video = ["-c:v", "libx265", "-preset", "ultrafast", "-x265-params", "log-level=none", "-pix_fmt", "yuv420p"]
+        audio = ["-c:a", "ac3", "-b:a", "96k"]
+    else:
+        video = ["-c:v", "libx264", "-preset", "veryfast", "-b:v", "400k", "-pix_fmt", "yuv420p"]
+        audio = ["-c:a", "aac", "-b:a", "64k"]
     command = [
         ffmpeg,
         "-y",
@@ -97,8 +101,8 @@ def main() -> None:
 
     hls(ffmpeg, "movie-hls", 30, "640x360", args.codec, 440)
     progressive(ffmpeg, "movie-file", 30, "640x360", args.codec, 550)
-    # H.264 MKV: browsers refuse it, exercising the "watch on TV" fallback.
-    progressive(ffmpeg, "movie-mkv", 10, "320x180", "h264", 330, extension="mkv")
+    # HEVC + AC-3 MKV: browsers refuse it ("watch on TV"); the desktop app converts it with FFmpeg (issue #236).
+    progressive(ffmpeg, "movie-mkv", 10, "320x180", "hevc", 330, extension="mkv")
     hls(ffmpeg, "episode-long", 660, "256x144", args.codec, 660)
     progressive(ffmpeg, "episode-short", 30, "640x360", args.codec, 770)
     hls(ffmpeg, "live", 20, "640x360", args.codec, 880)

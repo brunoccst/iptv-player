@@ -7,13 +7,14 @@ Not an npm workspace: it has its own `package-lock.json`, so other pipelines do 
 | Path | Purpose |
 |------|---------|
 | `main.mjs` | Main process: serves the bundled web player on `http://127.0.0.1:47831`, adds the player User-Agent and CORS permission to provider requests, system-encrypted and file storage for the page, the pairing server for phone sync (D-060), one window, in-app updates (electron-updater on Windows and AppImage, the download page elsewhere, D-073). |
-| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `db` (the library database, D-121), `pairing`, `openInVlc`: VLC with the provider User-Agent, D-057; `setTexts`: the update dialogs in the app's language, D-084), read by `apps/web-player/src/desktop.ts`. |
+| `preload.cjs` | Gives the page `window.iptvDesktop` (version, `secure` and `data` storage, `db` (the library database, D-121), `pairing`, `openInVlc`: VLC with the provider User-Agent, D-057; `setTexts`: the update dialogs in the app's language, D-084; `transcode`: FFmpeg conversion, D-189), read by `apps/web-player/src/desktop.ts`. |
 | `lib/libraryDb.mjs` | The library database (D-121): `library.db` in the app's data folder, in the SQLite built into Electron's Node (no library added). The page runs statements and queries through `iptvDesktop.db`, like the TV app's native module. |
+| `lib/transcoder.mjs` | What Chromium cannot decode (D-189): reads a stream with the bundled FFmpeg and writes HLS (H.264, AAC) that `main.mjs` serves under `/transcode/`; a relay hands FFmpeg the provider's stream. |
 | `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version, home network address, where VLC is and its arguments (D-057). |
 | `scripts/prepare.mjs` | Writes `build-config.json` (name, User-Agent, update repository) from the root `.env` and CI variables; copies the icon. |
 | `electron-builder.config.cjs` | Installers: NSIS setup wizard with folder choice (Windows), DMG (macOS universal), AppImage and deb (Linux), with fixed file names; English Chromium texts only, maximum compression (D-071). |
 | `test/` | Unit tests (`npm test`, Node's test runner). |
-| `e2e/smoke.mjs` | Starts the app against the fake panel: sign-in, the phone-sync server answering through the app, a movie that plays, sign-in kept after a restart. |
+| `e2e/smoke.mjs` | Starts the app against the fake panel: sign-in, the phone-sync server answering through the app, a movie that plays, an HEVC and AC-3 movie that plays converted, sign-in kept after a restart. |
 
 ## Commands
 

@@ -94,6 +94,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-186](#d-186) | Automatic sync through the paired TV |
 | [D-187](#d-187) | Desktop: downloads go on with the window closed |
 | [D-188](#d-188) | TV and phone: names read in the system WebView |
+| [D-189](#d-189) | Desktop: FFmpeg converts what Chromium cannot decode |
 
 ## Merged and retired IDs
 
@@ -1049,3 +1050,15 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The system WebView over `androidx.javascriptengine` (not on Android 7 and 8 TVs, and a new dependency) and over porting the parser to Kotlin (two copies of the rules to keep in step). The bundle is checked in and `scripts/build-name-parser.test.mjs` fails when it is out of date or reads the shared parser cases differently, so it is rebuilt with `npm run build:name-parser --workspace=@iptv/tv-app` whenever `parseTitle` changes (with `NAME_RULES`, D-133).
 - Any failure (no WebView, the renderer killed, 30 s without an answer, a wrong count) reads that batch on the JavaScript thread as before (`readNewNames`), with a warning in the log. The WebView goes after a minute without work.
 - Desktop keeps reading names in its page: Chromium's V8 already reads them fast, and the window does not wait on it the way the TV remote does.
+
+## D-189
+
+**Desktop: FFmpeg converts what Chromium cannot decode** — 2026-10-17 (issue #236)
+
+- The desktop app brings FFmpeg (`ffmpeg-static`, unpacked from the app archive) and converts what Chromium cannot play into HLS on the app's own server (`lib/transcoder.mjs`, `/transcode/<id>/`): fragmented MP4 segments of 4 s, H.264 (software, at most 1080 lines, HDR mapped to normal colours where the build has zscale) and stereo AAC. Video Chromium decodes (H.264, HEVC with a decoder) and sound it plays (AAC, MP3, Opus, FLAC) are copied, so a film with only Dolby sound costs almost nothing to convert.
+- Chosen over libmpv (a native player per system, the player and its encrypted downloads rewritten) and over leaving it to VLC. The cost: about 80 MB more download, a GPL FFmpeg binary shipped next to the app (its licence goes with it), and CPU while HEVC is converted.
+- When: the stream does not load at all (FFmpeg reads the provider's file before its HLS), or plays a few seconds with video but no decoded sound (`webkitAudioDecodedByteCount`), or fails with a media error later. FFmpeg reads the stream first (`probe`) and nothing is converted when it finds nothing Chromium lacks. What plays stops before FFmpeg opens the stream, so a one-stream account has its stream free; when conversion fails, the error is the one from before (D-074) with Open in VLC.
+- A conversion starts at a position; the page's player counts from there (`PlaybackEngine.position`, `duration` from FFmpeg). Seeking inside the converted part moves the video; past it, FFmpeg starts again there. One conversion at a time; its files go when it ends and on quit.
+- FFmpeg reads the provider through a relay in the main process (127.0.0.1, one random path per stream): the static Linux build crashes looking up host names itself, and the relay adds the player User-Agent.
+- Limits (issue #270): the first audio track only; no timeline pictures while converted; downloads of such titles still do not play offline; the macOS app carries the FFmpeg of the machine that built it (Apple silicon), so Intel Macs fall back to VLC.
+

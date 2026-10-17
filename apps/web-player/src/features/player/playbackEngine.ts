@@ -2,6 +2,8 @@ import Hls, { type HlsConfig } from 'hls.js';
 import type Mpegts from 'mpegts.js';
 import {
   appLog,
+  clampTime,
+  errorMessage,
   isBrowserNativeContainer,
   webPlaybackAttempts,
   type ApiClient,
@@ -12,7 +14,7 @@ import {
   t,
   unreachableHost,
 } from '@iptv/shared';
-import { desktop } from '../../desktop';
+import { desktop, type DesktopBridge, type StreamProbe } from '../../desktop';
 import { offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
 
 export interface EngineSource {
@@ -27,6 +29,11 @@ export interface LoadedSource {
   url: string;
   engine: 'hls' | 'file' | 'mpegts';
   offline: boolean;
+  /**
+   * Converted by the desktop app's FFmpeg (issue #236, DECISIONS.md#d-189): `url` is its playlist, which starts `at`
+   * seconds into the title; `duration` is the title's (null for live).
+   */
+  converted?: { at: number; duration: number | null };
 }
 
 export class PlaybackUnavailableError extends Error {
@@ -55,6 +62,23 @@ export function undecodableVideoCodec(codecs: string[], video: Pick<HTMLVideoEle
   return null;
 }
 
+/** Audio Chromium plays; other tracks (AC-3, E-AC-3, DTS, TrueHD…) play silently or not at all. */
+const PLAYABLE_AUDIO = new Set(['aac', 'mp3', 'opus', 'vorbis', 'flac']);
+
+/**
+ * What the desktop app must convert for Chromium to play a stream (issue #236): nothing, only the sound (the video is
+ * copied), or the video too.
+ */
+export function conversionNeeded(probe: StreamProbe, video: Pick<HTMLVideoElement, 'canPlayType'>): 'none' | 'audio' | 'video' {
+  const codec = probe.video?.codec;
+  const hevc = VIDEO_CODEC_TYPES.hevc!.type!;
+  const videoPlays = !codec || codec === 'h264' || (codec === 'hevc' && video.canPlayType(hevc) !== '');
+  if (!videoPlays) return 'video';
+  return probe.audio.length === 0 || PLAYABLE_AUDIO.has(probe.audio[0]!.codec) ? 'none' : 'audio';
+}
+
+type Transcode = NonNullable<DesktopBridge['transcode']>;
+
 type HlsFactory = Pick<typeof Hls, 'isSupported' | 'Events' | 'ErrorTypes'> & { new (config?: Partial<HlsConfig>): Hls };
 export type MpegtsModule = Pick<typeof Mpegts, 'isSupported' | 'createPlayer' | 'Events' | 'ErrorTypes'>;
 
@@ -72,6 +96,12 @@ export class PlaybackEngine {
   private hlsInstance: Hls | null = null;
   private mpegtsPlayer: Mpegts.Player | null = null;
   private onFatal: ((message: string, network?: boolean) => void) | null = null;
+  private onConvert: ((loaded: LoadedSource) => void) | null = null;
+  /** What plays now, and the provider address behind it (not set for downloads). */
+  private loaded: LoadedSource | null = null;
+  private current: { url: string; live: boolean } | null = null;
+  /** The stream the desktop app converts (issue #236): a seek outside what is converted starts it again there. */
+  private conversion: { url: string; probe: StreamProbe; live: boolean; copyVideo: boolean } | null = null;
   /** Stream addresses tried, last one last: what the provider sent there explains a failure (D-074, D-079). */
   readonly attempted: string[] = [];
 
@@ -82,10 +112,81 @@ export class PlaybackEngine {
     /** The desktop app's Chromium plays MKV (H.264/AAC), so there a failed MKV is a provider problem (issue #236). */
     private readonly playsMatroska = !!desktop,
     private readonly mpegts: () => Promise<MpegtsModule> = loadMpegts,
+    /** The desktop app's FFmpeg (issue #236); absent in a browser and in older apps. */
+    private readonly transcode: Transcode | undefined = desktop?.transcode,
   ) {}
 
   get hls(): Hls | null {
     return this.hlsInstance;
+  }
+
+  /** Position in the title, also when a conversion started part way into it (issue #236). */
+  get position(): number {
+    return (this.loaded?.converted?.at ?? 0) + this.video.currentTime;
+  }
+
+  /** The title's length; a conversion knows it before the converted part reaches the end. */
+  get duration(): number {
+    const converted = this.loaded?.converted;
+    if (!converted) return this.video.duration;
+    return converted.duration ?? converted.at + this.video.duration;
+  }
+
+  /** How far the title is loaded, as a position in the title. */
+  get bufferedEnd(): number {
+    const ranges = this.video.buffered;
+    return ranges.length > 0 ? (this.loaded?.converted?.at ?? 0) + ranges.end(ranges.length - 1) : 0;
+  }
+
+  /** Moves to `seconds` into the title. A converted stream starts converting there when that part is not ready yet. */
+  seek(seconds: number) {
+    const target = clampTime(seconds, this.duration);
+    const converted = this.loaded?.converted;
+    if (!converted || !this.conversion) {
+      this.video.currentTime = target;
+      return;
+    }
+    const local = target - converted.at;
+    const seekable = this.video.seekable;
+    const ready = seekable.length > 0 ? seekable.end(seekable.length - 1) : 0;
+    if (local >= 0 && local <= ready) {
+      this.video.currentTime = local;
+      return;
+    }
+    const playing = !this.video.paused;
+    void this.startConversion(target).then(
+      (loaded) => {
+        this.onConvert?.(loaded);
+        if (playing) void Promise.resolve(this.video.play()).catch(() => undefined);
+      },
+      (error: unknown) => this.onFatal?.(`Playback stopped (${errorMessage(error)}).`),
+    );
+  }
+
+  /** Called when the engine switched to a converted stream by itself (issue #236): show it, and play. */
+  onConverted(callback: (loaded: LoadedSource) => void) {
+    this.onConvert = callback;
+  }
+
+  /**
+   * Desktop: a video that plays without any decoded sound has audio Chromium cannot decode (AC-3, DTS…). Checked a few
+   * seconds into playback (issue #236).
+   */
+  soundMissing(): boolean {
+    const video = this.video as HTMLVideoElement & { webkitAudioDecodedByteCount?: number; webkitVideoDecodedByteCount?: number };
+    return (
+      !!this.transcode &&
+      !this.conversion &&
+      !!this.current &&
+      video.webkitAudioDecodedByteCount === 0 &&
+      !!video.webkitVideoDecodedByteCount
+    );
+  }
+
+  /** Converts what plays now from where it is (issue #236); null when it needs no conversion or conversion failed. */
+  convertHere(): Promise<LoadedSource | null> {
+    if (!this.current || this.conversion) return Promise.resolve(null);
+    return this.convert([this.current.url], this.current.live, this.position);
   }
 
   /**
@@ -96,12 +197,15 @@ export class PlaybackEngine {
     this.onFatal = callback;
   }
 
-  async load(source: EngineSource, offline: DownloadRecord | null, signal?: AbortSignal): Promise<LoadedSource> {
+  /** `startAt`: where playback will start, where a conversion starts (issue #236). */
+  async load(source: EngineSource, offline: DownloadRecord | null, signal?: AbortSignal, startAt = 0): Promise<LoadedSource> {
     if (offline?.status === 'completed') {
       const loaded: LoadedSource = { url: offlinePlaybackUrl(offline), engine: offline.format === 'hls' ? 'hls' : 'file', offline: true };
       await this.attach(loaded, signal);
+      this.loaded = loaded;
       return loaded;
     }
+    const live = source.kind === 'live' && !source.catchup;
 
     const failures: string[] = [];
     for (const attempt of webPlaybackAttempts(source.kind, source.container)) {
@@ -125,6 +229,8 @@ export class PlaybackEngine {
           const loaded: LoadedSource = { url, engine, offline: false };
           this.attempted.push(url);
           await this.attach(loaded, signal, !source.catchup);
+          this.loaded = loaded;
+          this.current = { url, live };
           return loaded;
         } catch (error) {
           if (signal?.aborted) throw error;
@@ -133,6 +239,17 @@ export class PlaybackEngine {
           this.detach();
         }
       }
+    }
+
+    // Desktop: FFmpeg reads what Chromium could not, the provider's file first (issue #236).
+    if (this.transcode && this.attempted.length > 0) {
+      const files = [
+        ...this.attempted.filter((url) => !/\.m3u8(\?|$)/.test(url)),
+        ...this.attempted.filter((url) => /\.m3u8(\?|$)/.test(url)),
+      ];
+      const converted = await this.convert(files.slice(0, 2), live, startAt, signal);
+      if (converted) return converted;
+      if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     }
 
     const container = (source.container ?? '').toUpperCase();
@@ -151,9 +268,83 @@ export class PlaybackEngine {
   }
 
   destroy() {
+    if (this.conversion) void this.transcode?.stop().catch(() => undefined);
+    this.conversion = null;
     this.detach();
     this.video.removeAttribute('src');
     this.video.load();
+  }
+
+  /**
+   * Converts the first of `urls` whose codecs Chromium lacks, from `at` seconds (issue #236). What plays is stopped
+   * first, so a one-stream account has its stream free; when nothing is converted it plays again from where it was.
+   */
+  private async convert(urls: string[], live: boolean, at: number, signal?: AbortSignal): Promise<LoadedSource | null> {
+    if (!this.transcode) return null;
+    const before = this.loaded;
+    if (before) {
+      this.detach();
+      this.video.removeAttribute('src');
+      this.video.load();
+    }
+    for (const url of urls) {
+      if (signal?.aborted) return null;
+      try {
+        const probe = await this.transcode.probe(url);
+        const needed = conversionNeeded(probe, this.video);
+        appLog.info(
+          'player',
+          `FFmpeg reads ${probe.video?.codec ?? 'no video'} / ${probe.audio.map((track) => track.codec).join(', ') || 'no audio'}: ${needed === 'none' ? 'nothing to convert' : `converting the ${needed}`}`,
+        );
+        if (needed === 'none') continue;
+        this.conversion = { url, probe, live, copyVideo: needed === 'audio' };
+        return await this.startConversion(at, signal);
+      } catch (error) {
+        this.conversion = null;
+        if (signal?.aborted) return null;
+        appLog.warn('player', `conversion failed: ${errorMessage(error)}`);
+      }
+    }
+    if (before && !signal?.aborted) {
+      await this.attach(before, signal, this.current?.live ?? true).catch(() => undefined);
+      if (!before.offline) this.video.currentTime = at;
+    }
+    return null;
+  }
+
+  private async startConversion(at: number, signal?: AbortSignal): Promise<LoadedSource> {
+    const conversion = this.conversion!;
+    this.detach();
+    const started = await this.transcode!.start({
+      url: conversion.url,
+      probe: conversion.probe,
+      at: conversion.live ? 0 : at,
+      live: conversion.live,
+      copyVideo: conversion.copyVideo,
+    });
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const loaded: LoadedSource = {
+      url: started.playlist,
+      engine: 'hls',
+      offline: false,
+      converted: { at: started.at, duration: started.duration },
+    };
+    await this.attachHls(loaded.url, signal, !conversion.live);
+    this.loaded = loaded;
+    return loaded;
+  }
+
+  /** An error after playback started: a codec Chromium lacks is converted (issue #236), anything else is reported. */
+  private fail(message: string, network = false) {
+    if (network || !this.transcode || this.conversion || !this.current) {
+      this.onFatal?.(message, network);
+      return;
+    }
+    void this.convert([this.current.url], this.current.live, this.position).then((loaded) => {
+      if (!loaded) return this.onFatal?.(message, network);
+      this.onConvert?.(loaded);
+      void Promise.resolve(this.video.play()).catch(() => undefined);
+    });
   }
 
   private detach() {
@@ -171,8 +362,15 @@ export class PlaybackEngine {
     return this.attachNative(source.url, signal);
   }
 
-  private attachHls(url: string, signal?: AbortSignal): Promise<void> {
-    const hls = new this.HlsClass({ enableWorker: true, backBufferLength: 60, maxBufferLength: 30, xhrSetup: undefined });
+  /** `fromStart`: a conversion's growing playlist plays from its first segment, not from its end like live. */
+  private attachHls(url: string, signal?: AbortSignal, fromStart = false): Promise<void> {
+    const hls = new this.HlsClass({
+      enableWorker: true,
+      backBufferLength: 60,
+      maxBufferLength: 30,
+      xhrSetup: undefined,
+      ...(fromStart ? { startPosition: 0 } : {}),
+    });
     this.hlsInstance = hls;
     let loaded = false;
     let mediaRecoveries = 0;
@@ -201,7 +399,7 @@ export class PlaybackEngine {
         // Standard hls.js recovery: retry network, recover media once or twice, then give up.
         if (data.type === this.HlsClass.ErrorTypes.NETWORK_ERROR) hls.startLoad();
         else if (data.type === this.HlsClass.ErrorTypes.MEDIA_ERROR && mediaRecoveries++ < 2) hls.recoverMediaError();
-        else this.onFatal?.(`Playback stopped (${data.details}).`);
+        else this.fail(`Playback stopped (${data.details}).`);
       });
 
       hls.loadSource(url);
@@ -267,7 +465,7 @@ export class PlaybackEngine {
           player.load();
           void Promise.resolve(player.play()).catch(() => undefined);
         } else if (type === mpegts.ErrorTypes.NETWORK_ERROR) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
-        else this.onFatal?.(`Playback stopped (${details}).`);
+        else this.fail(`Playback stopped (${details}).`);
       });
       video.addEventListener('loadedmetadata', onLoaded);
       signal?.addEventListener('abort', onAbort);
@@ -292,7 +490,7 @@ export class PlaybackEngine {
           () => {
             // Mid-file, the provider's server stopped answering: say it is their side (D-074).
             if (video.error?.code === MEDIA_ERR_NETWORK) this.onFatal?.(providerUnreachableMessage(unreachableHost(url)), true);
-            else this.onFatal?.('Playback stopped (media error).');
+            else this.fail('Playback stopped (media error).');
           },
           { once: true },
         );

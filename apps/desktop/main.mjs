@@ -27,6 +27,8 @@ import {
   withCors,
 } from './lib/helpers.mjs';
 import { openLibraryDb } from './lib/libraryDb.mjs';
+import { createTranscoder } from './lib/transcoder.mjs';
+import ffmpegPath from 'ffmpeg-static';
 
 const { autoUpdater } = electronUpdater;
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -65,10 +67,23 @@ let tray = null;
 let texts = {};
 const tx = (source, params) => fillText(texts, source, params);
 const isApp = (url) => url === appOrigin || url.startsWith(appOrigin + '/');
+/**
+ * Plays what Chromium cannot decode through the bundled FFmpeg (issue #236, D-189). Packaged, the binary sits outside
+ * the app archive (asarUnpack), where it can be started.
+ */
+const transcodeRoot = path.join(app.getPath('temp'), `${config.appSlug}-transcode`);
+const transcoder = ffmpegPath
+  ? createTranscoder({
+      ffmpeg: ffmpegPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`),
+      root: transcodeRoot,
+      userAgent: config.userAgent,
+    })
+  : null;
 
 /** Serves the web player on 127.0.0.1 (a secure context: offline downloads need it). */
 function startServer() {
   const server = createServer((request, response) => {
+    if (request.url?.startsWith('/transcode/')) return serveConversion(request.url, response);
     let file = staticFile(webRoot, request.url ?? '/');
     if (file && !(existsSync(file) && statSync(file).isFile())) file = path.join(webRoot, 'index.html');
     if (!file || !existsSync(file)) {
@@ -91,6 +106,18 @@ function startServer() {
     });
     server.listen(PORT, '127.0.0.1', () => resolve(server.address().port));
   });
+}
+
+/** A converted stream's playlist and segments (D-189), only while its conversion runs. */
+function serveConversion(url, response) {
+  const file = transcoder?.file(url);
+  if (!file || !existsSync(file)) return response.writeHead(404).end();
+  const playlist = file.endsWith('.m3u8');
+  response.writeHead(200, {
+    'Content-Type': playlist ? 'application/vnd.apple.mpegurl' : 'video/mp4',
+    'Cache-Control': 'no-store',
+  });
+  createReadStream(file).pipe(response);
 }
 
 /** Provider requests look like a player and may be read by the page (CORS). */
@@ -507,10 +534,30 @@ app.whenReady().then(async () => {
     spawn(vlc, args, { detached: true, stdio: 'ignore' }).unref();
     return 'vlc';
   });
+  // Conversion of what Chromium cannot decode (D-189): what a stream holds, start (also for a seek), stop.
+  ipcMain.handle('iptv:transcode', (event, operation, value) => {
+    if (!isApp(event.senderFrame?.url ?? '') || !transcoder) throw new Error('Not allowed');
+    if (operation === 'probe') return transcoder.probe(String(value ?? ''));
+    if (operation === 'start' && value && typeof value === 'object')
+      return transcoder.start({
+        url: String(value.url ?? ''),
+        probe: value.probe ?? null,
+        at: Math.max(0, Number(value.at) || 0),
+        live: value.live === true,
+        copyVideo: value.copyVideo === true,
+        audio: Math.max(0, Math.floor(Number(value.audio) || 0)),
+      });
+    if (operation === 'stop') return transcoder.stopAll();
+    throw new Error('Unknown operation');
+  });
   app.on('activate', () => {
     if (!window || !window.isVisible()) showWindow();
   });
 });
+
+// Left over from a start that did not quit cleanly.
+void rm(transcodeRoot, { recursive: true, force: true }).catch(() => undefined);
+app.on('will-quit', () => void transcoder?.close());
 
 app.on('before-quit', () => {
   quitting = true;

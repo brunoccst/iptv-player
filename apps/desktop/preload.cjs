@@ -29,6 +29,13 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   },
   // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
+  // What Chromium cannot decode, through the bundled FFmpeg (issue #236): what a stream holds, then an HLS playlist
+  // of it as H.264 and AAC on the app's own server.
+  transcode: {
+    probe: (url) => ipcRenderer.invoke('iptv:transcode', 'probe', url),
+    start: (options) => ipcRenderer.invoke('iptv:transcode', 'start', options),
+    stop: () => ipcRenderer.invoke('iptv:transcode', 'stop'),
+  },
   secure: storage('secure'),
   data: storage('data'),
   // The library database (D-121): statements and queries as JSON, like the TV app's native module.
