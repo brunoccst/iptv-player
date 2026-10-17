@@ -11,6 +11,7 @@ Not an npm workspace: it has its own `package-lock.json`, so other pipelines do 
 | `lib/libraryDb.mjs` | The library database (D-121): `library.db` in the app's data folder, in the SQLite built into Electron's Node (no library added). The page runs statements and queries through `iptvDesktop.db`, like the TV app's native module. |
 | `lib/transcoder.mjs` | What Chromium cannot decode (D-189): reads a stream with the bundled FFmpeg and writes HLS (H.264, AAC) that `main.mjs` serves under `/transcode/`; a relay hands FFmpeg the provider's stream. |
 | `lib/helpers.mjs` | Pure helpers: static file paths, CORS and request headers, storage file names, release version, home network address, where VLC is and its arguments (D-057). |
+| `scripts/universal-ffmpeg.mjs` | macOS builds: joins the Intel and Apple silicon FFmpeg into one binary for the universal app (D-189). |
 | `scripts/prepare.mjs` | Writes `build-config.json` (name, User-Agent, update repository) from the root `.env` and CI variables; copies the icon. |
 | `electron-builder.config.cjs` | Installers: NSIS setup wizard with folder choice (Windows), DMG (macOS universal), AppImage and deb (Linux), with fixed file names; English Chromium texts only, maximum compression (D-071). |
 | `test/` | Unit tests (`npm test`, Node's test runner). |

@@ -108,6 +108,7 @@ jobs:
           npm ci
           npm test
           node scripts/prepare.mjs
+          node scripts/universal-ffmpeg.mjs
           npx electron-builder --config electron-builder.config.cjs --publish never ${{ matrix.target }} \
             -c.extraMetadata.version=${{ needs.version.outputs.name }}
       - uses: actions/upload-artifact@v4

@@ -36,6 +36,8 @@ module.exports = {
     category: 'public.app-category.video',
     // No Apple certificate: ad-hoc signed, which Apple silicon needs to start the app at all (D-071).
     identity: '-',
+    // FFmpeg (D-189) is made universal before the build (scripts/universal-ffmpeg.mjs): taken as it is in both halves.
+    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg',
     icon: 'build/icon.png',
     artifactName: `${appSlug}.\${ext}`,
     // Scanning another device's sync code with the webcam (issue #254): macOS asks with this text.

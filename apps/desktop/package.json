@@ -11,7 +11,7 @@
   "scripts": {
     "prepare-build": "node scripts/prepare.mjs",
     "start": "npm run prepare-build && electron .",
-    "dist": "npm run prepare-build && electron-builder --config electron-builder.config.cjs --publish never",
+    "dist": "npm run prepare-build && node scripts/universal-ffmpeg.mjs && electron-builder --config electron-builder.config.cjs --publish never",
     "test": "node --test test/*.test.mjs"
   },
   "devDependencies": {
