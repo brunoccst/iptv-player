@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.
 - **Fewer doubled titles** (2026-10-17, D-133, issue #217): titles listed with and without a French, Spanish, Italian, German or Dutch article ("La Casa de Papel", "Casa de Papel, La", "Casa de Papel") now show as one title. After the update, the library is grouped again once.
 - **Catch-up only offers what your provider keeps** (2026-10-17, D-032, issue #247): programmes older than your provider keeps recordings for no longer carry ↺, so they no longer fail with a provider error. In time zones half an hour or a quarter off the hour, the guide's hours now start on your :00 and :30 (issue #225).
 - **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
@@ -108,6 +109,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.
 - **Fewer doubled titles** (2026-10-17, D-133, issue #217): titles listed with and without a French, Spanish, Italian, German or Dutch article ("La Casa de Papel", "Casa de Papel, La", "Casa de Papel") now show as one title. After the update, the library is grouped again once.
 - **Catch-up only offers what your provider keeps** (2026-10-17, D-032, issue #247): programmes older than your provider keeps recordings for no longer carry ↺, so they no longer fail with a provider error. In time zones half an hour or a quarter off the hour, the guide's hours now start on your :00 and :30 (issue #225).
 - **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.

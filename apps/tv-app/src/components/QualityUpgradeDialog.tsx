@@ -7,8 +7,9 @@ import { FocusButton } from './FocusButton';
 import { FocusRow } from './FocusRow';
 
 /**
- * Home: movies on My List that turned from a cinema copy (CAM, TS…) into a better one (DECISIONS.md#d-176). Each has
- * Play and More info; any choice, OK or Back marks them all as shown. `visible`: Home is on screen with nothing over it.
+ * Home: titles on My List that turned from a cinema copy (CAM, TS…) into a better one (DECISIONS.md#d-176). A movie has
+ * Play and More info, a series More info on the better version (issue #251); any choice, OK or Back marks them all as
+ * shown. `visible`: Home is on screen with nothing over it.
  */
 export function QualityUpgradeDialog({ visible }: { visible: boolean }) {
   const { upgrades, dismiss, playTarget } = useQualityUpgrades();
@@ -18,12 +19,14 @@ export function QualityUpgradeDialog({ visible }: { visible: boolean }) {
   const play = (entry: WatchlistDto) => {
     dismiss();
     void playTarget(entry).then((target) =>
-      navStore.getState().push(target ? { name: 'player', target } : { name: 'details', section: 'movies', masterId: entry.masterId }),
+      navStore.getState().push(target ? { name: 'player', target } : { name: 'details', section: entry.section, masterId: entry.masterId }),
     );
   };
   const details = (entry: WatchlistDto) => {
     dismiss();
-    navStore.getState().push({ name: 'details', section: 'movies', masterId: entry.masterId });
+    const open = () => navStore.getState().push({ name: 'details', section: entry.section, masterId: entry.masterId });
+    if (entry.section === 'series') void playTarget(entry).then(open, open);
+    else open();
   };
 
   return (
@@ -41,17 +44,20 @@ export function QualityUpgradeDialog({ visible }: { visible: boolean }) {
                   </Text>
                   <Text style={styles.line}>{upgradeLine(entry)}</Text>
                   <FocusRow style={styles.actions}>
-                    <FocusButton
-                      label={t('Play')}
-                      icon="play"
-                      variant="primary"
-                      hasTVPreferredFocus={index === 0}
-                      testID={`quality-upgrade-play-${entry.masterId}`}
-                      onPress={() => play(entry)}
-                    />
+                    {entry.section === 'movies' ? (
+                      <FocusButton
+                        label={t('Play')}
+                        icon="play"
+                        variant="primary"
+                        hasTVPreferredFocus={index === 0}
+                        testID={`quality-upgrade-play-${entry.masterId}`}
+                        onPress={() => play(entry)}
+                      />
+                    ) : null}
                     <FocusButton
                       label={t('More Info')}
                       icon="info"
+                      hasTVPreferredFocus={index === 0 && entry.section !== 'movies'}
                       testID={`quality-upgrade-info-${entry.masterId}`}
                       onPress={() => details(entry)}
                     />

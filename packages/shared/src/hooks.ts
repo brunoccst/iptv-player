@@ -406,8 +406,9 @@ export function createAppHooks({
     },
 
     /**
-     * Movies on My List that turned from a cinema copy (CAM, TS…) into a better one, for the popup Home shows
-     * (DECISIONS.md#d-176). `dismiss` once shown; `playTarget` starts the best of the better copies.
+     * Titles on My List that turned from a cinema copy (CAM, TS…) into a better one, for the popup Home shows
+     * (DECISIONS.md#d-176). `dismiss` once shown; `playTarget` selects the best of the better copies and, for a movie,
+     * returns it to play (a series has no one thing to play: its details open on that version, issue #251).
      */
     useQualityUpgrades() {
       const items = useAppStore(stores.watchlist, (s) => s.items.data);
@@ -416,7 +417,7 @@ export function createAppHooks({
         upgrades,
         dismiss: useCallback(() => void stores.watchlist.getState().dismissUpgrades(upgrades), [upgrades]),
         async playTarget(entry: WatchlistDto): Promise<PlayTarget | null> {
-          const master = await stores.library.getState().loadDetails('movies', entry.masterId);
+          const master = await stores.library.getState().loadDetails(entry.section, entry.masterId);
           if (!master) return null;
           const library = stores.library.getState();
           const better = master.variants.filter((variant) => !variant.source || !LOW_SOURCES.includes(variant.source));
@@ -427,7 +428,7 @@ export function createAppHooks({
           });
           if (!variant) return null;
           library.selectVariant(master.id, variant.streamId);
-          return movieTarget(master, variant);
+          return entry.section === 'movies' ? movieTarget(master, variant) : null;
         },
       };
     },
