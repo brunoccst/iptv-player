@@ -8,6 +8,7 @@ import { AccountMenu } from './components/AccountMenu';
 import { createPageFocus, PageFocusContext } from './components/pageFocus';
 import { LibraryNotice } from './components/LibraryBanner';
 import { QualityUpgradeDialog } from './components/QualityUpgradeDialog';
+import { ReminderDialog } from './components/ReminderDialog';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
 import { useNav, useSession } from './hooks';
@@ -181,7 +182,13 @@ function Shell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
-  if (route.name === 'player') return <PlayerScreen key={`${route.target.kind}-${route.target.streamId}`} target={route.target} />;
+  if (route.name === 'player')
+    return (
+      <>
+        <PlayerScreen key={`${route.target.kind}-${route.target.streamId}`} target={route.target} />
+        <ReminderDialog />
+      </>
+    );
 
   return (
     <View style={styles.shell}>
@@ -217,6 +224,7 @@ function Shell() {
       {route.name === 'details' ? null : <LibraryNotice />}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen} />
+      <ReminderDialog />
     </View>
   );
 }

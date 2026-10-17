@@ -8,6 +8,7 @@ import { DownloadsPage } from '../downloads/DownloadsPage';
 import { MyListPage } from '../browse/MyListPage';
 import { HomePage } from '../home/HomePage';
 import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
+import { ReminderToast } from '../live/ReminderToast';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
@@ -50,6 +51,7 @@ export function Shell() {
           <PlayerOverlay key={`${playing.kind}-${playing.streamId}`} target={playing} />
         </Suspense>
       ) : null}
+      <ReminderToast />
     </>
   );
 }

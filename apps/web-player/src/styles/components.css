@@ -541,6 +541,29 @@
   transition: width 0.2s linear;
 }
 
+/* A guide reminder whose programme started (issue #239): top right of any page, over the player too. */
+.banner--reminder {
+  position: fixed;
+  top: 16px;
+  right: var(--gutter);
+  z-index: 110;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 260px;
+  max-width: min(400px, calc(100vw - 2 * var(--gutter)));
+  margin: 0;
+  border: 1px solid var(--color-border);
+  background: rgb(20 20 20 / 95%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
+}
+
+.banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
 /* About and Log (account menu → App, D-079); padded like the other dialogs (D-119). */
 .about,

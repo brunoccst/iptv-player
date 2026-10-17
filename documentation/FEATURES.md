@@ -214,6 +214,12 @@ On channels whose provider keeps recordings, past programmes can be watched from
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Guide reminders
+
+A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile, are carried over when pairing devices, and show only while the app is open, up to 10 minutes after the start (issue #263, D-184, issue #239).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone and desktop: Remind me.
+
 ### Guide over the playing channel
 
 A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. TV: ↑; phone: swipe up in the middle of the video (the sides set brightness and volume, D-046) or the Guide button; desktop: the Guide button or G (D-058, D-081).

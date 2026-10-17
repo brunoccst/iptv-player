@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from './api/errors';
 import type {
   CatalogSection,
+  EpgListing,
   LibrarySection,
   LiveChannel,
   MasterCard,
@@ -19,7 +20,8 @@ import { AVATAR_COLORS, avatarColor } from './design/avatar';
 import { needsPinToManage, needsPinToOpen } from './stores/pinStore';
 import { t, tn } from './i18n/i18n';
 import { MAX_SEARCH_CHANNELS, MAX_SEARCH_PROGRAMMES } from './search/useSearchQuery';
-import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, type RecentChannel } from './playback/recentChannels';
+import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, recentChannelTarget, type RecentChannel } from './playback/recentChannels';
+import { dueReminders, hasReminder, nextReminderIn, pruneReminders, reminderOf, toggleReminder } from './playback/reminders';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
@@ -571,6 +573,52 @@ export function createAppHooks({
     },
 
     useRecentChannels,
+
+    /** The active profile's guide reminders (issue #239, DECISIONS.md#d-184): which programmes have one, and set or clear one. */
+    useReminders() {
+      const profileId = useSession((s) => s.activeProfileId);
+      const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.reminders : null));
+      return {
+        has: useCallback((channelId: string, start: string) => hasReminder(list, channelId, start), [list]),
+        toggle: useCallback(
+          (channel: LiveChannel, programme: EpgListing) => {
+            if (!profileId) return;
+            const prefs = stores.profilePrefs.getState();
+            void prefs.update(profileId, {
+              reminders: toggleReminder(prefs.prefs[profileId]?.reminders, reminderOf(channel, programme), Date.now()),
+            });
+          },
+          [profileId],
+        ),
+      };
+    },
+
+    /**
+     * The first reminder whose programme has started (issue #239): the app shows it over whatever is on screen. Checks
+     * when the next one starts and every half minute. `dismiss` takes it off the list; `target` tunes to its channel.
+     */
+    useDueReminder() {
+      const profileId = useSession((s) => s.activeProfileId);
+      const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.reminders : null));
+      const [now, setNow] = useState(() => Date.now());
+      useEffect(() => {
+        const next = nextReminderIn(list, Date.now());
+        const timer = setTimeout(() => setNow(Date.now()), Math.min(next ?? 30_000, 30_000) + 50);
+        return () => clearTimeout(timer);
+      }, [list, now]);
+      const reminder = dueReminders(list, now)[0] ?? null;
+      const dismiss = useCallback(() => {
+        if (!profileId || !reminder) return;
+        const prefs = stores.profilePrefs.getState();
+        const current = prefs.prefs[profileId]?.reminders ?? [];
+        void prefs.update(profileId, {
+          reminders: pruneReminders(current, Date.now()).filter(
+            (r) => !(r.channel.id === reminder.channel.id && r.start === reminder.start),
+          ),
+        });
+      }, [profileId, reminder]);
+      return { reminder, dismiss, target: reminder ? recentChannelTarget(reminder.channel) : null };
+    },
 
     /**
      * Notes the playing live channel in the active profile's recent channels once it starts (issue #122). A recording

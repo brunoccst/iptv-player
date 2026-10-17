@@ -13,6 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import {
+  canRemind,
   EPG_SLOT_MS,
   floorToSlot,
   formatGuideTime,
@@ -38,7 +39,7 @@ import { ChipBar } from '../components/ChipBar';
 import { ErrorText, errorText, Loading } from '../components/Feedback';
 import { FocusButton } from '../components/FocusButton';
 import { useNavFocusTarget } from '../components/TopNav';
-import { useCatalog, useNav } from '../hooks';
+import { useCatalog, useNav, useReminders } from '../hooks';
 import { colors, fonts, radius, useCompact, useSizes, useNavHeight } from '../theme';
 import { focus } from '../components/focus';
 import { usePageFocusable } from '../components/pageFocus';
@@ -484,6 +485,7 @@ const GuideRow = memo(function GuideRow({
   onEdge,
 }: GuideRowProps) {
   const { channel, programmes } = row;
+  const reminders = useReminders();
   const cells = layoutGuideRow(programmes, from, to);
   const firstCell = cells.findIndex((cell) => cell.programme);
   const lastCell = cells.findLastIndex((cell) => cell.programme);
@@ -541,9 +543,16 @@ const GuideRow = memo(function GuideRow({
                 selected?.programme === programme && styles.programmeSelected,
               ]}
               onPress={() => activate({ channel, programme }, onSelect, () => playProgramme(channel, programme, now))}
-              // TV: holding OK on the programme on now watches it from its start (issue #226).
+              // TV: holding OK on the programme on now watches it from its start (issue #226); on a later one, sets or
+              // clears a reminder (issue #239).
               onLongPress={
-                Platform.isTV && catchupMode(channel, programme, now) === 'restart' ? () => playRecording(channel, programme) : undefined
+                !Platform.isTV
+                  ? undefined
+                  : catchupMode(channel, programme, now) === 'restart'
+                    ? () => playRecording(channel, programme)
+                    : canRemind(programme, now)
+                      ? () => reminders.toggle(channel, programme)
+                      : undefined
               }
               onFocus={() => Platform.isTV && onSelect({ channel, programme })}
               edge={{ first: index === firstCell, last: index === lastCell }}
@@ -552,6 +561,7 @@ const GuideRow = memo(function GuideRow({
               <Text style={styles.programmeTitle} numberOfLines={1}>
                 {cell.clippedStart ? '‹ ' : ''}
                 {catchupMode(channel, programme, now) === 'past' ? '↺ ' : ''}
+                {reminders.has(channel.id, programme.start) ? '🔔 ' : ''}
                 {programme.title}
               </Text>
               <Text style={styles.programmeTime} numberOfLines={1}>
@@ -628,6 +638,9 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const { channel, programme } = selection;
   const onNow = programme ? Date.parse(programme.start) <= now && now < Date.parse(programme.end) : false;
   const catchup = catchupMode(channel, programme, now);
+  const reminders = useReminders();
+  const remindable = canRemind(programme, now);
+  const reminded = !!programme && reminders.has(channel.id, programme.start);
   return (
     <View style={styles.details} testID="guide-info" accessibilityLabel={t('Programme details')}>
       <View style={styles.detailsText}>
@@ -640,6 +653,8 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
           {onNow ? ` · ${t('On now')}` : ''}
           {Platform.isTV && catchup === 'past' ? ` · ${t('Recorded: OK plays it')}` : ''}
           {Platform.isTV && catchup === 'restart' ? ` · ${t('Hold OK to watch from the start')}` : ''}
+          {reminded ? ` · ${t('Reminder set')}` : ''}
+          {Platform.isTV && remindable ? ` · ${reminded ? t('Hold OK to cancel the reminder') : t('Hold OK for a reminder')}` : ''}
         </Text>
         {programme && onNow ? (
           <View style={styles.detailsBar}>
@@ -664,6 +679,14 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
           />
           {programme && catchup === 'restart' ? (
             <FocusButton label={t('From the start')} variant="secondary" onPress={() => playRecording(channel, programme)} />
+          ) : null}
+          {remindable ? (
+            <FocusButton
+              label={reminded ? t('Cancel reminder') : t('Remind me')}
+              variant="secondary"
+              testID="guide-remind"
+              onPress={() => reminders.toggle(channel, programme)}
+            />
           ) : null}
           <FocusButton label={t('Close')} variant="ghost" onPress={onClose} />
         </View>

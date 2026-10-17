@@ -89,6 +89,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-181](#d-181) | TV rows keep the end cards clear of the screen sides |
 | [D-182](#d-182) | Every card menu option has an icon |
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
+| [D-184](#d-184) | Guide reminders |
 
 ## Merged and retired IDs
 
@@ -995,3 +996,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - In one wrapping row, a button that did not fit (a wider "Resume" or "Play S1:E5" on a phone) went to the start of the next line, under Play, where nobody looks for an icon. So Play/Resume stands alone and the icon buttons are a group of their own that takes the rest of the width and wraps inside it (`Actions` in the TV app's `DetailsScreen` and the web `DetailsLayout`, the `play` and `actions` parts of the details layout).
 - The outer row does not wrap and aligns to the top, so Play lines up with the first line of icons; Play and the icons are both 40 px high.
+
+## D-184
+
+**Guide reminders** — 2026-10-17 (issue #239)
+
+- A reminder is saved in the profile's preferences on the device (`reminders`, like recent channels, D-129): the channel, title and times, enough to show it and tune in without the guide. Pairing joins both devices' lists (D-060). Ended programmes are dropped whenever the list changes; at most 50 are kept.
+- The running app checks when the next one starts (and every 30 s) and shows it from its start for 10 minutes, so an app opened shortly after still shows it. Dismiss or Watch takes it off the list.
+- TV and phone: a popup over any page and the player (focus stays inside it). Desktop: a banner at the top right that does not take focus, over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
+- TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
+- Not with the app closed: that needs Android alarms and notifications (issue #263).

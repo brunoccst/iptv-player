@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import {
+  canRemind,
   catchupMode,
   catchupTarget,
   EPG_SLOT_MS,
@@ -21,7 +22,7 @@ import {
 } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { Spinner } from '../../components/Spinner';
-import { useCatalog } from '../../hooks/stores';
+import { useCatalog, useReminders } from '../../hooks/stores';
 import { errorText } from '../../ui/errorText';
 
 const HOURS = 3;
@@ -170,6 +171,7 @@ interface GuideGridProps {
 function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) {
   const slots = useMemo(() => guideSlots(from, to), [from, to]);
   const nowAt = nowFraction(now, from, to);
+  const reminders = useReminders();
   const pct = (fraction: number) => `${(fraction * 100).toFixed(4)}%`;
 
   return (
@@ -227,6 +229,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
                     <span className="guide__title">
                       {cell.clippedStart ? '‹ ' : ''}
                       {catchupMode(channel, programme, now) === 'past' ? <span title={t('Recorded')}>↺ </span> : null}
+                      {reminders.has(channel.id, programme.start) ? <span title={t('Reminder set')}>🔔 </span> : null}
                       {programme.title}
                     </span>
                     <span className="guide__time">{formatProgrammeTime(programme)}</span>
@@ -246,6 +249,13 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
   const onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
   const catchup = catchupMode(channel, programme, now);
   const playRecording = () => uiStore.getState().play(catchupTarget(channel, programme));
+  const reminders = useReminders();
+  const reminded = reminders.has(channel.id, programme.start);
+  const toggleReminder = () => {
+    // Desktop: a system notification when the window is in the background (issue #239); asked once, with the first.
+    if (!reminded && typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission();
+    reminders.toggle(channel, programme);
+  };
   return (
     <section className="guide-details" aria-label={t('Programme details')}>
       <div>
@@ -253,6 +263,7 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
         <p className="muted">
           {channel.name} · {formatProgrammeTime(programme)}
           {onNow ? ` · ${t('On now')}` : ''}
+          {reminded ? ` · ${t('Reminder set')}` : ''}
         </p>
         {onNow ? (
           <div className="guide-details__bar" aria-hidden="true">
@@ -277,6 +288,11 @@ function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; n
         {catchup === 'restart' ? (
           <button type="button" className="button button--secondary" onClick={playRecording}>
             {t('From the start')}
+          </button>
+        ) : null}
+        {canRemind(programme, now) ? (
+          <button type="button" className="button button--secondary" aria-pressed={reminded} onClick={toggleReminder}>
+            {reminded ? t('Cancel reminder') : t('Remind me')}
           </button>
         ) : null}
         <button type="button" className="button button--ghost" onClick={onClose}>
