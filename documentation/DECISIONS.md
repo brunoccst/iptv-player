@@ -92,6 +92,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-184](#d-184) | Guide reminders |
 | [D-185](#d-185) | Split and merge titles by hand |
 | [D-186](#d-186) | Automatic sync through the paired TV |
+| [D-187](#d-187) | Desktop: downloads go on with the window closed |
 
 ## Merged and retired IDs
 
@@ -257,7 +258,7 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 
 - A page-side `DownloadManager` fetches a download, encrypts each segment or 4 MiB chunk with a non-extractable AES-GCM key (IndexedDB), stores the ciphertext in the Cache API, and the Service Worker serves it back under `/__offline__/`, answering `Range` one chunk at a time.
 - HLS downloads keep every playlist resource and a rewritten local playlist, so hls.js plays offline as online.
-- One download at a time (each holds a provider connection); resumable from the last chunk; interrupted downloads come back paused.
+- Downloads at once: one per provider stream beyond the first, at most three (`downloadSlots`, D-187); resumable from the last chunk; interrupted downloads come back paused.
 - The SW also precaches the app shell, so the app opens offline. It is bundled by a small Vite plugin with esbuild, not Workbox.
 
 Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache files are ciphertext. It is not DRM: scripts on the origin can still read decrypted bytes ([#213](https://github.com/brunoccst/iptv-player/issues/213)).
@@ -1029,3 +1030,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Profile settings are left out: they carry no dates, so the newer choice cannot be told apart, and the scanning device winning (D-060) would undo choices made on the TV every 10 minutes. They still merge when a code is scanned.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
 - Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
+
+## D-187
+
+**Desktop: downloads go on with the window closed** — 2026-10-17 (issue #219)
+
+- Closing the window while a download runs or waits hides it instead (`iptv:downloads-active` from the page); the page keeps downloading as before, with background throttling off, and closes the player. A tray icon opens the window again or quits; starting the app again shows it too. When the downloads end, the app quits. Quitting leaves unfinished downloads paused, as before.
+- Chosen over moving downloads into the main process (the ranking's idea): the page's downloader, its non-extractable key and the Service Worker that plays the chunks (D-024) stay as they are, with nothing to migrate, and the main process gets no second download and encryption path to keep in step.
+- Several at once: an account with N provider streams runs N−1 downloads at the same time, at most three, so one stream stays free for watching (all apps that use the web downloader: desktop and the browser).
+- Storage stays the page's (Cache API and IndexedDB). Chromium lets one origin use up to 60 % of the disk, so in the desktop app the quota is rarely the limit; a full disk still stops a download with an error.

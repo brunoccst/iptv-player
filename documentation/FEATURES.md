@@ -274,6 +274,8 @@ When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR,
 
 Download movies and episodes to watch without a connection; My Downloads lists them. Downloads are encrypted, play only in the app, are deleted on sign-out and need the app online every 30 days (D-024, D-029, D-050).
 
+In the desktop app, closing the window while something downloads hides the window instead, and the downloads go on; a tray icon opens the app again or quits it, and the app closes by itself when they are done (issue #219, D-187). Accounts with more than one stream download up to three titles at once, keeping one stream free for watching.
+
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
 ## Profiles

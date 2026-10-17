@@ -81,6 +81,17 @@ try {
     `user data in the database: ${keys.join(', ')}`,
   );
   console.log('profiles are in the database');
+
+  // Downloads go on with the window closed (issue #219, D-187): the window only hides, and the app quits once they end.
+  await page.evaluate(() => window.iptvDesktop.setDownloadsActive(true));
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
+  await expect
+    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((window) => window.isVisible())))
+    .toEqual([false]);
+  const quit = new Promise((resolve) => app.once('close', resolve));
+  await page.evaluate(() => window.iptvDesktop.setDownloadsActive(false)).catch(() => undefined);
+  await quit;
+  console.log('downloads keep the app open with the window closed, then it quits');
 } finally {
-  await app.close();
+  await app.close().catch(() => undefined);
 }

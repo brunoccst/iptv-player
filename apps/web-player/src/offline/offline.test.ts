@@ -84,19 +84,28 @@ const api = {
   },
 } as unknown as ApiClient;
 
-function setup(file = bytes(10), options: { hls?: boolean; honorRange?: boolean } = {}) {
+function setup(file = bytes(10), options: { hls?: boolean; honorRange?: boolean; parallel?: number } = {}) {
   const db = createOfflineDb(new IDBFactory());
   const chunks = createMemoryChunkStore();
   const upstream = fakeUpstream(file, options);
   const changes: string[] = [];
+  const statuses = new Map<string, string>();
+  let mostAtOnce = 0;
   const manager = new DownloadManager({
     api,
     db,
     chunks,
     fetch: upstream.fetch,
-    onChange: (change) => changes.push('deleted' in change ? `deleted:${change.id}` : `${change.status}:${change.completedParts}`),
+    parallel: options.parallel === undefined ? undefined : () => options.parallel!,
+    onChange: (change) => {
+      changes.push('deleted' in change ? `deleted:${change.id}` : `${change.status}:${change.completedParts}`);
+      if ('deleted' in change) statuses.delete(change.id);
+      else statuses.set(change.id, change.status);
+      mostAtOnce = Math.max(mostAtOnce, [...statuses.values()].filter((status) => status === 'downloading').length);
+    },
   });
   return {
+    mostAtOnce: () => mostAtOnce,
     db,
     chunks,
     upstream,
@@ -246,6 +255,29 @@ describe('download manager + offline responder', () => {
     expect(await db.getDownload(id)).toBeNull();
     expect(await db.getKey(id)).toBeNull();
     expect(chunks.parts.size).toBe(0);
+  });
+
+  it('runs one download at a time by default, and as many as allowed (issue #219)', async () => {
+    const one = setup();
+    for (const id of ['1', '2', '3']) await one.manager.enqueue(target(id));
+    await one.manager.idle();
+    expect(one.mostAtOnce()).toBe(1);
+
+    const two = setup(bytes(10), { parallel: 2 });
+    for (const id of ['1', '2', '3']) await two.manager.enqueue(target(id));
+    await two.manager.idle();
+    expect(two.mostAtOnce()).toBe(2);
+    for (const id of ['1', '2', '3']) expect((await two.db.getDownload(downloadId('movie', id)))?.status).toBe('completed');
+  });
+
+  it('a paused download can be resumed straight away', async () => {
+    const { manager, db } = setup();
+    const id = downloadId('movie', '7');
+    await manager.enqueue(target('7'));
+    await manager.pause(id);
+    await manager.resume(id);
+    await manager.idle();
+    expect((await db.getDownload(id))?.status).toBe('completed');
   });
 
   it('restore turns interrupted downloads into paused', async () => {

@@ -11,7 +11,7 @@ import {
 import { appConfig } from './config';
 import { desktop } from './desktop';
 import { createCacheChunkStore, createMemoryChunkStore } from './offline/chunkStore';
-import { createDownloadsStore } from './offline/downloadsStore';
+import { createDownloadsStore, downloadSlots } from './offline/downloadsStore';
 import { createOfflineDb } from './offline/offlineDb';
 import { createUiStore } from './ui/uiStore';
 
@@ -57,6 +57,7 @@ export const downloadsStore = createDownloadsStore({
   db: createOfflineDb(offlineSupported ? indexedDB : undefined),
   chunks: offlineSupported ? createCacheChunkStore(caches, location.origin) : createMemoryChunkStore(),
   storage: navigator.storage,
+  parallel: () => downloadSlots(stores.session.getState().account?.maxConnections),
 });
 
 /** Downloads belong to the signed-in account; `signOut` removes them first (D-050). */

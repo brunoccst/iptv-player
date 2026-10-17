@@ -4,6 +4,7 @@ import { Spinner } from './components/Spinner';
 import { LoginPage } from './features/auth/LoginPage';
 import { SyncWithPhoneHost } from './features/pairing/SyncWithPhone';
 import { useAutoSync } from './features/pairing/pairing';
+import { startBackgroundDownloads } from './features/downloads/backgroundDownloads';
 import { ProfilePicker } from './features/profiles/ProfilePicker';
 import { Shell } from './features/shell/Shell';
 import { UpdateProgress } from './features/shell/UpdateProgress';
@@ -24,6 +25,8 @@ export function App() {
   useEffect(() => {
     void stores.session.getState().restore();
     void downloadsStore.getState().init();
+    // Desktop: downloads go on with the window closed (issue #219).
+    return startBackgroundDownloads();
   }, []);
 
   useEffect(() => {

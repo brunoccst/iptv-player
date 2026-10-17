@@ -22,6 +22,13 @@ export interface DesktopBridge {
   openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
   setTexts(texts: Record<string, string>): Promise<void>;
+  /**
+   * Whether downloads are running (issue #219): closing the window then hides it and the downloads go on, with a tray
+   * icon; the app quits when they end. Older apps lack it.
+   */
+  setDownloadsActive?(active: boolean): Promise<void>;
+  /** The window was closed and hidden while downloads run: stop playing. Returns the unsubscribe function. */
+  onBackground?(listener: () => void): () => void;
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** The library database (D-121): statements and queries as JSON text, run by the main process. */

@@ -20,6 +20,13 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   },
   // The update dialogs' texts in the app's language (D-084).
   setTexts: (texts) => ipcRenderer.invoke('iptv:set-texts', texts),
+  // Downloads go on with the window closed (issue #219): the page says whether any run, and hears when it was hidden.
+  setDownloadsActive: (active) => ipcRenderer.invoke('iptv:downloads-active', active),
+  onBackground(listener) {
+    const handler = () => listener();
+    ipcRenderer.on('iptv:background', handler);
+    return () => ipcRenderer.removeListener('iptv:background', handler);
+  },
   // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
   secure: storage('secure'),

@@ -1,7 +1,7 @@
 // Desktop app (Windows, macOS, Linux), DECISIONS.md#d-071: the web player in its own window. It talks to the IPTV
 // provider directly like the TV app (D-088). The page is served from 127.0.0.1 by this
 // process; provider requests get the player User-Agent and CORS headers added here.
-import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, safeStorage, session, shell, Tray } from 'electron';
 import electronUpdater from 'electron-updater';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -57,6 +57,10 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 let window = null;
 let appOrigin = '';
+/** Downloads go on with the window closed (issue #219, D-187): whether the page has any running, and the tray icon. */
+let downloadsActive = false;
+let quitting = false;
+let tray = null;
 /** Translations of the dialogs below, from the page (D-084). */
 let texts = {};
 const tx = (source, params) => fillText(texts, source, params);
@@ -289,8 +293,53 @@ function createWindow() {
     else return;
     event.preventDefault();
   });
+  // Closing the window while downloads run hides it instead: the page keeps downloading (D-024 storage stays as it is).
+  window.on('close', (event) => {
+    if (quitting || !downloadsActive) return;
+    event.preventDefault();
+    toBackground();
+  });
   window.on('closed', () => (window = null));
   void window.loadURL(appOrigin + '/');
+}
+
+/**
+ * Background downloads (issue #219, DECISIONS.md#d-187): the hidden window keeps downloading, unthrottled; a tray icon
+ * opens it again or quits (unfinished downloads come back paused). The app quits when the downloads end.
+ */
+function toBackground() {
+  if (!window) return;
+  window.hide();
+  window.webContents.setBackgroundThrottling(false);
+  window.webContents.send('iptv:background');
+  if (tray) return;
+  const icon = nativeImage.createFromPath(path.join(webRoot, 'icon-192.png')).resize({ width: 32, height: 32 });
+  tray = new Tray(icon);
+  tray.setToolTip(`${config.appName}: ${tx('Downloading in the background')}`);
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: tx('Open'), click: showWindow },
+      { label: tx('Quit'), click: () => quit() },
+    ]),
+  );
+  tray.on('click', showWindow);
+}
+
+function showWindow() {
+  tray?.destroy();
+  tray = null;
+  if (!window) return createWindow();
+  window.webContents.setBackgroundThrottling(true);
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+}
+
+function quit() {
+  quitting = true;
+  tray?.destroy();
+  tray = null;
+  app.quit();
 }
 
 /**
@@ -420,9 +469,7 @@ async function latestFromRelease() {
 }
 
 app.on('second-instance', () => {
-  if (!window) return;
-  if (window.isMinimized()) window.restore();
-  window.focus();
+  if (window) showWindow();
 });
 
 app.whenReady().then(async () => {
@@ -438,6 +485,12 @@ app.whenReady().then(async () => {
   ipcMain.handle('iptv:set-texts', (event, value) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     texts = cleanTexts(value);
+  });
+  ipcMain.handle('iptv:downloads-active', (event, active) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    downloadsActive = active === true;
+    // Hidden for the downloads, and they ended: done.
+    if (!downloadsActive && tray && window && !window.isVisible()) quit();
   });
   ipcMain.handle('iptv:check-updates', (event) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
@@ -455,8 +508,12 @@ app.whenReady().then(async () => {
     return 'vlc';
   });
   app.on('activate', () => {
-    if (!window) createWindow();
+    if (!window || !window.isVisible()) showWindow();
   });
+});
+
+app.on('before-quit', () => {
+  quitting = true;
 });
 
 app.on('window-all-closed', () => {
