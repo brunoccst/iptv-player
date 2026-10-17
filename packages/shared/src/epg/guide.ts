@@ -1,7 +1,7 @@
 import type { EpgListing } from '../api/types';
 import { intlLocale, t } from '../i18n/i18n';
 
-/** Guide column width; guide windows start on a half hour. */
+/** Guide column width; guide windows start on a local half hour. */
 export const EPG_SLOT_MINUTES = 30;
 export const EPG_SLOT_MS = EPG_SLOT_MINUTES * 60_000;
 
@@ -16,8 +16,13 @@ export interface GuideCell {
   clippedStart: boolean;
 }
 
-export function floorToSlot(ms: number): number {
-  return ms - (((ms % EPG_SLOT_MS) + EPG_SLOT_MS) % EPG_SLOT_MS);
+/**
+ * The start of the local half hour holding `ms`. Local, not UTC, so zones offset by 15 or 45 minutes (UTC+5:45) start
+ * on :00 or :30 too (issue #225). `offsetMinutes` is the zone's offset east of UTC; the device's by default.
+ */
+export function floorToSlot(ms: number, offsetMinutes = -new Date(ms).getTimezoneOffset()): number {
+  const local = ms + offsetMinutes * 60_000;
+  return ms - (((local % EPG_SLOT_MS) + EPG_SLOT_MS) % EPG_SLOT_MS);
 }
 
 /** Start time of every slot in [from, to). */

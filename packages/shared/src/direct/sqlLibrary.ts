@@ -1252,7 +1252,7 @@ export function createSqlLiveChannels(db: SqlDatabase, library: SqlLibrary, paus
               channel.number,
               channel.logoUrl,
               channel.epgChannelId,
-              channel.hasCatchup ? 1 : 0,
+              catchupColumn(channel),
             ]);
           await db.run([
             { sql: `INSERT INTO ${t} (rowid, id, name, lower, cat, num, logo, epg, catchup) VALUES (${placeholders(9)})`, rows },
@@ -1326,7 +1326,7 @@ export function createSqlLiveChannels(db: SqlDatabase, library: SqlLibrary, paus
         number: number === null ? null : Number(number),
         logoUrl: logoUrl === null ? null : String(logoUrl),
         epgChannelId: epgChannelId === null ? null : String(epgChannelId),
-        hasCatchup: Number(catchup) === 1,
+        ...catchupFields(catchup),
       }));
       return { total, channels };
     },
@@ -1434,7 +1434,7 @@ export function createSqlGuide(db: SqlDatabase, library: SqlLibrary) {
           number: number === null ? null : Number(number),
           logoUrl: logoUrl === null ? null : String(logoUrl),
           epgChannelId: epgChannelId === null ? null : String(epgChannelId),
-          hasCatchup: Number(catchup) === 1,
+          ...catchupFields(catchup),
         },
         programme: {
           title: String(title),
@@ -1448,3 +1448,16 @@ export function createSqlGuide(db: SqlDatabase, library: SqlLibrary) {
 }
 
 export type SqlGuideStore = ReturnType<typeof createSqlGuide>;
+
+/**
+ * The `catchup` column of saved channels: 0 without recordings, the days the provider keeps them, or -1 when it does
+ * not say (issue #247). Lists saved before stored 1 for "has recordings", read as one day until the next refresh.
+ */
+function catchupColumn(channel: LiveChannel): number {
+  return channel.hasCatchup ? (channel.catchupDays ?? -1) : 0;
+}
+
+function catchupFields(value: SqlValue | undefined): Pick<LiveChannel, 'hasCatchup' | 'catchupDays'> {
+  const days = Number(value);
+  return { hasCatchup: days !== 0, catchupDays: days > 0 ? days : null };
+}

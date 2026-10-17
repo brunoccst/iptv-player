@@ -80,7 +80,7 @@ describe('createXtreamClient', () => {
         },
         { name: 'no id' },
       ],
-      get_live_streams: [{ stream_id: '9', name: 'News', num: '4', epg_channel_id: 'news.uk', tv_archive: 1 }],
+      get_live_streams: [{ stream_id: '9', name: 'News', num: '4', epg_channel_id: 'news.uk', tv_archive: 1, tv_archive_duration: '3' }],
       get_vod_categories: [{ category_id: 1, category_name: 'Action' }, { category_name: 'broken' }],
     });
     const client = createXtreamClient(credentials, { fetch });
@@ -98,7 +98,7 @@ describe('createXtreamClient', () => {
     ]);
     expect(calls[0]!.url).toContain('action=get_vod_streams&category_id=3');
     expect(await client.liveChannels()).toEqual([
-      { id: '9', name: 'News', categoryId: null, number: 4, logoUrl: null, epgChannelId: 'news.uk', hasCatchup: true },
+      { id: '9', name: 'News', categoryId: null, number: 4, logoUrl: null, epgChannelId: 'news.uk', hasCatchup: true, catchupDays: 3 },
     ]);
     expect(await client.categories('movie')).toEqual([{ id: '1', name: 'Action', kind: 'movie' }]);
   });

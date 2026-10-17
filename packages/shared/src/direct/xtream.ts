@@ -493,6 +493,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
                 logoUrl: str(item, 'stream_icon'),
                 epgChannelId: str(item, 'epg_channel_id'),
                 hasCatchup: bool(item, 'tv_archive'),
+                catchupDays: bool(item, 'tv_archive') ? int(item, 'tv_archive_duration') || null : null,
               },
         signal,
       );

@@ -226,7 +226,7 @@ function GuideGrid({ rows, from, to, now, selected, onSelect }: GuideGridProps) 
                   >
                     <span className="guide__title">
                       {cell.clippedStart ? '‹ ' : ''}
-                      {past && channel.hasCatchup ? <span title={t('Recorded')}>↺ </span> : null}
+                      {catchupMode(channel, programme, now) === 'past' ? <span title={t('Recorded')}>↺ </span> : null}
                       {programme.title}
                     </span>
                     <span className="guide__time">{formatProgrammeTime(programme)}</span>

@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Catch-up only offers what your provider keeps** (2026-10-17, D-032, issue #247): programmes older than your provider keeps recordings for no longer carry ↺, so they no longer fail with a provider error. In time zones half an hour or a quarter off the hour, the guide's hours now start on your :00 and :30 (issue #225).
 - **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
 - **Icons in the card menu** (2026-10-16, D-182): the menu that opens when you hold OK or long-touch a cover now shows an icon next to each option, the same icons the app uses elsewhere.
 - **Covers no longer cut at the screen sides** (2026-10-15, D-181): on the TV, the first and last covers of a row used to touch the screen edge and lose a strip, and the focused one its glow. Rows now keep the focused cover a little away from both sides, and start a little further in.
@@ -106,6 +107,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Catch-up only offers what your provider keeps** (2026-10-17, D-032, issue #247): programmes older than your provider keeps recordings for no longer carry ↺, so they no longer fail with a provider error. In time zones half an hour or a quarter off the hour, the guide's hours now start on your :00 and :30 (issue #225).
 - **Details buttons stay together** (2026-10-16, D-183): when Play reads Resume and not every button fits on one line, the buttons that move down now go under the other small buttons, not under Resume.
 - **Icons in the card menu** (2026-10-16, D-182): the menu that opens when you right-click a cover now shows an icon next to each option, the same icons the app uses elsewhere.
 - **Home loads after switching profiles** (2026-10-14, D-063): choosing another profile from the account menu while on Home left Home empty until you refreshed the library or opened another page. Home now loads the new profile's titles straight away.

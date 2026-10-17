@@ -75,6 +75,8 @@ export interface LiveChannel {
   categoryId: null | string;
   epgChannelId: null | string;
   hasCatchup: boolean;
+  /** Days of recordings the provider keeps (`tv_archive_duration`); null or missing when it does not say (issue #247). */
+  catchupDays?: null | number;
   id: string;
   logoUrl: null | string;
   name: string;

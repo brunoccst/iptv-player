@@ -18,6 +18,12 @@ describe('guide layout', () => {
     expect(guideSlots(min(10), min(120))).toEqual([min(0), min(30), min(60), min(90)]);
   });
 
+  it('aligns to local half hours in zones offset by 15 or 45 minutes (issue #225)', () => {
+    // 12:47 UTC is 18:32 in Kathmandu (UTC+5:45): the slot starts at 18:30 local, 12:45 UTC.
+    expect(floorToSlot(min(47), 345)).toBe(min(45));
+    expect(floorToSlot(min(47), 0)).toBe(min(30));
+  });
+
   it('clips to the window, fills gaps and trims overlaps', () => {
     const cells = layoutGuideRow(
       [show('Late', 90, 150), show('Early', -30, 30), show('Overlap', 20, 60), show('Outside', 200, 230)],
