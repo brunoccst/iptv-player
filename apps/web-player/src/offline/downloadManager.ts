@@ -16,17 +16,22 @@ export interface DownloadManagerDeps {
   onChange: (record: DownloadRecord | { id: string; deleted: true }) => void;
   /** Parallel requests per HLS download. */
   concurrency?: number;
+  /**
+   * How many downloads run at once (issue #219): each holds one of the account's provider connections. Asked before
+   * each start. Default 1.
+   */
+  parallel?: () => number;
 }
 
 export class OfflineUnsupportedError extends Error {}
 
 /**
- * Downloads one item at a time (providers limit connections) into encrypted chunks.
+ * Downloads into encrypted chunks, as many at a time as `parallel` allows (providers limit connections).
  * Resumable: existing chunks are skipped. See DECISIONS.md#d-024.
  */
 export class DownloadManager {
   private readonly queue: string[] = [];
-  private active: { id: string; controller: AbortController } | null = null;
+  private readonly active = new Map<string, AbortController>();
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
 
@@ -70,8 +75,8 @@ export class DownloadManager {
           error: null,
         };
     await this.save(record);
-    if (!this.queue.includes(id) && this.active?.id !== id) this.queue.push(id);
-    void this.pump();
+    if (!this.queue.includes(id) && !this.active.has(id)) this.queue.push(id);
+    this.pump();
     return record;
   }
 
@@ -82,14 +87,14 @@ export class DownloadManager {
 
   async pause(id: string): Promise<void> {
     this.removeFromQueue(id);
-    if (this.active?.id === id) this.active.controller.abort();
+    this.stop(id);
     const record = await this.deps.db.getDownload(id);
     if (record && record.status !== 'completed') await this.save({ ...record, status: 'paused' });
   }
 
   async remove(id: string): Promise<void> {
     this.removeFromQueue(id);
-    if (this.active?.id === id) this.active.controller.abort();
+    this.stop(id);
     await this.deps.chunks.removeAll(id);
     await this.deps.db.deleteKey(id);
     await this.deps.db.deleteDownload(id);
@@ -98,7 +103,13 @@ export class DownloadManager {
 
   /** Resolves when the queue is empty. For tests. */
   async idle(): Promise<void> {
-    while (this.active || this.queue.length > 0) await new Promise((resolve) => setTimeout(resolve, 5));
+    while (this.active.size > 0 || this.queue.length > 0) await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+
+  /** Aborts a running download and frees its place, so it can be queued again straight away. */
+  private stop(id: string) {
+    this.active.get(id)?.abort();
+    this.active.delete(id);
   }
 
   private removeFromQueue(id: string) {
@@ -106,18 +117,21 @@ export class DownloadManager {
     if (index >= 0) this.queue.splice(index, 1);
   }
 
-  private async pump(): Promise<void> {
-    if (this.active) return;
-    const id = this.queue.shift();
-    if (!id) return;
-    const controller = new AbortController();
-    this.active = { id, controller };
-    try {
-      const record = await this.deps.db.getDownload(id);
-      if (record) await this.run(record, controller.signal);
-    } finally {
-      this.active = null;
-      void this.pump();
+  private pump(): void {
+    const limit = Math.max(1, Math.floor(this.deps.parallel?.() ?? 1));
+    while (this.active.size < limit && this.queue.length > 0) {
+      const id = this.queue.shift()!;
+      const controller = new AbortController();
+      this.active.set(id, controller);
+      void (async () => {
+        try {
+          const record = await this.deps.db.getDownload(id);
+          if (record) await this.run(record, controller.signal);
+        } finally {
+          if (this.active.get(id) === controller) this.active.delete(id);
+          this.pump();
+        }
+      })();
     }
   }
 

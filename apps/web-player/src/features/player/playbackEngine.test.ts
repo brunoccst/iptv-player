@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from '@iptv/shared';
 import type { DownloadRecord } from '../../offline/types';
-import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec } from './playbackEngine';
+import type { StreamProbe } from '../../desktop';
+import { conversionNeeded, PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec } from './playbackEngine';
 
 /** Minimal <video>: setting src fires loadedmetadata or error depending on `playable`. */
 function fakeVideo(playable: (url: string) => boolean) {
@@ -269,5 +270,133 @@ describe('undecodableVideoCodec (issue #236)', () => {
     expect(undecodableVideoCodec(['hevc', 'eac3'], video(['hvc1']))).toBeNull();
     expect(undecodableVideoCodec(['h264', 'ac3'], video([]))).toBeNull();
     expect(undecodableVideoCodec(['mpeg2'], video(['hvc1', 'mp4v']))).toBe('MPEG-2');
+  });
+});
+
+describe('conversion by the desktop app (issue #236)', () => {
+  const hevcAc3: StreamProbe = {
+    duration: 3600,
+    video: { codec: 'hevc', height: 2160, hdr: true },
+    audio: [{ codec: 'ac3', language: 'eng' }],
+  };
+  const h264Ac3: StreamProbe = {
+    duration: 3600,
+    video: { codec: 'h264', height: 1080, hdr: false },
+    audio: [{ codec: 'eac3', language: null }],
+  };
+  const decodes = (hevc: boolean) => ({ canPlayType: (type: string) => (hevc && type.includes('hvc1') ? 'probably' : '') }) as never;
+
+  /** A fake bridge: `probes` by address; started conversions are recorded. */
+  function bridge(probes: Record<string, StreamProbe>, fail = false) {
+    const started: Record<string, unknown>[] = [];
+    const transcode = {
+      probe: vi.fn(async (url: string) => {
+        if (!probes[url]) throw new Error('FFmpeg could not read the stream');
+        return probes[url]!;
+      }),
+      start: vi.fn(async (options: Record<string, unknown>) => {
+        if (fail) throw new Error('FFmpeg ended (1)');
+        started.push(options);
+        return { id: 'x', playlist: `/transcode/good${started.length}/index.m3u8`, duration: 3600, at: Math.floor(Number(options.at)) };
+      }),
+      stop: vi.fn(async () => undefined),
+    };
+    return { transcode, started };
+  }
+
+  /** The fake video with a clock, what is converted so far, and the decoded byte counters. */
+  function clockVideo(playable: (url: string) => boolean) {
+    const video = fakeVideo(playable) as HTMLVideoElement & Record<string, unknown>;
+    Object.assign(video, {
+      currentTime: 0,
+      duration: 120,
+      paused: false,
+      play: vi.fn(async () => undefined),
+      canPlayType: () => '',
+      seekable: { length: 1, end: () => 120 },
+      buffered: { length: 1, end: () => 60 },
+    });
+    return video;
+  }
+
+  it('knows what to convert', () => {
+    expect(conversionNeeded(hevcAc3, decodes(false))).toBe('video');
+    expect(conversionNeeded(hevcAc3, decodes(true))).toBe('audio');
+    expect(conversionNeeded(h264Ac3, decodes(false))).toBe('audio');
+    expect(conversionNeeded({ ...h264Ac3, audio: [{ codec: 'aac', language: null }] }, decodes(false))).toBe('none');
+    expect(conversionNeeded({ duration: 10, video: { codec: 'mpeg4', height: 480, hdr: false }, audio: [] }, decodes(true))).toBe('video');
+  });
+
+  it('converts a title Chromium cannot play, from where it resumes, reading the file before HLS', async () => {
+    const { client } = api({ m3u8: 'http://r/bad.m3u8', mkv: 'http://r/movie.mkv' });
+    const { transcode, started } = bridge({ 'http://r/movie.mkv': hevcAc3 });
+    const video = clockVideo(() => false);
+    const engine = new PlaybackEngine(video, client, fakeHls() as never, true, fakeMpegts().load, transcode);
+
+    const loaded = await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null, undefined, 1800.5);
+    expect(loaded).toEqual({ url: '/transcode/good1/index.m3u8', engine: 'hls', offline: false, converted: { at: 1800, duration: 3600 } });
+    expect(transcode.probe.mock.calls[0]).toEqual(['http://r/movie.mkv']);
+    expect(started).toEqual([{ url: 'http://r/movie.mkv', probe: hevcAc3, at: 1800.5, live: false, copyVideo: false }]);
+
+    // The title's clock: the conversion starts 1800 s in.
+    video.currentTime = 30;
+    expect(engine.position).toBe(1830);
+    expect(engine.duration).toBe(3600);
+    expect(engine.bufferedEnd).toBe(1860);
+    // Within what is converted: the video moves; beyond it: the conversion starts again there.
+    engine.seek(1900);
+    expect(video.currentTime).toBe(100);
+    const converted = vi.fn();
+    engine.onConverted(converted);
+    engine.seek(3000);
+    await vi.waitFor(() => expect(converted).toHaveBeenCalled());
+    expect(started[1]).toMatchObject({ at: 3000 });
+    expect(converted.mock.calls[0]![0]).toMatchObject({ converted: { at: 3000 } });
+
+    engine.destroy();
+    expect(transcode.stop).toHaveBeenCalled();
+  });
+
+  it('says what it said before when the conversion fails too', async () => {
+    const { client } = api({ mkv: 'http://r/movie.mkv' });
+    const { transcode } = bridge({ 'http://r/movie.mkv': hevcAc3 }, true);
+    const engine = new PlaybackEngine(
+      clockVideo(() => false),
+      client,
+      fakeHls() as never,
+      true,
+      fakeMpegts().load,
+      transcode,
+    );
+    await expect(engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null)).rejects.toBeInstanceOf(PlaybackUnavailableError);
+  });
+
+  it('a video playing without sound gets its sound converted from where it is, the video copied', async () => {
+    const { client } = api({ m3u8: 'http://r/bad.m3u8', mp4: 'http://r/movie.mp4' });
+    const { transcode, started } = bridge({ 'http://r/movie.mp4': h264Ac3 });
+    const video = clockVideo((url) => url.endsWith('.mp4'));
+    const engine = new PlaybackEngine(video, client, fakeHls() as never, true, fakeMpegts().load, transcode);
+    await engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null);
+
+    Object.assign(video, { webkitAudioDecodedByteCount: 5000, webkitVideoDecodedByteCount: 90000 });
+    expect(engine.soundMissing()).toBe(false);
+    Object.assign(video, { webkitAudioDecodedByteCount: 0, currentTime: 12.4 });
+    expect(engine.soundMissing()).toBe(true);
+    await expect(engine.convertHere()).resolves.toMatchObject({ converted: { at: 12 } });
+    expect(started).toEqual([{ url: 'http://r/movie.mp4', probe: h264Ac3, at: 12.4, live: false, copyVideo: true }]);
+    expect(engine.soundMissing()).toBe(false);
+  });
+
+  it('a video without sound that FFmpeg cannot read plays on as it was', async () => {
+    const { client } = api({ mp4: 'http://r/movie.mp4' });
+    const { transcode, started } = bridge({});
+    const video = clockVideo((url) => url.endsWith('.mp4'));
+    const engine = new PlaybackEngine(video, client, fakeHls() as never, true, fakeMpegts().load, transcode);
+    await engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, null);
+    video.currentTime = 40;
+    await expect(engine.convertHere()).resolves.toBeNull();
+    expect(started).toEqual([]);
+    expect(video.src).toBe('http://r/movie.mp4');
+    expect(video.currentTime).toBe(40);
   });
 });

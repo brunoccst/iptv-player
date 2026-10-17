@@ -98,6 +98,11 @@ class TvMediaModule : Module() {
       Sha1Batch.hash(texts)
     }
 
+    /** Provider names read in the system WebView, off the JavaScript thread (issue #228, D-188): JSON in and out. */
+    AsyncFunction("parseNames") { names: String, promise: Promise ->
+      NameParser.parse(context, names, promise)
+    }
+
     /** The library database (D-121): statements with rows of parameters, all in one transaction (JSON). */
     AsyncFunction("dbRun") { statements: String, promise: Promise ->
       LibraryDb.run(context, statements, promise)

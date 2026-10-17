@@ -20,8 +20,22 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
   },
   // The update dialogs' texts in the app's language (D-084).
   setTexts: (texts) => ipcRenderer.invoke('iptv:set-texts', texts),
+  // Downloads go on with the window closed (issue #219): the page says whether any run, and hears when it was hidden.
+  setDownloadsActive: (active) => ipcRenderer.invoke('iptv:downloads-active', active),
+  onBackground(listener) {
+    const handler = () => listener();
+    ipcRenderer.on('iptv:background', handler);
+    return () => ipcRenderer.removeListener('iptv:background', handler);
+  },
   // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
   openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
+  // What Chromium cannot decode, through the bundled FFmpeg (issue #236): what a stream holds, then an HLS playlist
+  // of it as H.264 and AAC on the app's own server.
+  transcode: {
+    probe: (url) => ipcRenderer.invoke('iptv:transcode', 'probe', url),
+    start: (options) => ipcRenderer.invoke('iptv:transcode', 'start', options),
+    stop: () => ipcRenderer.invoke('iptv:transcode', 'stop'),
+  },
   secure: storage('secure'),
   data: storage('data'),
   // The library database (D-121): statements and queries as JSON, like the TV app's native module.
@@ -34,8 +48,9 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     start: () => ipcRenderer.invoke('iptv:pairing-start'),
     stop: () => ipcRenderer.invoke('iptv:pairing-stop'),
     respond: (id, status, body) => ipcRenderer.invoke('iptv:pairing-respond', id, status, body),
-    // Scanning another device's code with the webcam (issue #254): { status, body } of its answer.
-    send: (host, port, body) => ipcRenderer.invoke('iptv:pairing-send', host, port, body),
+    // Scanning another device's code with the webcam (issue #254), and the automatic sync with the paired TV (issue
+    // #227, path '/remote'): { status, body } of its answer.
+    send: (host, port, body, path) => ipcRenderer.invoke('iptv:pairing-send', host, port, body, path),
     onRequest(listener) {
       const handler = (_event, request) => listener(request);
       ipcRenderer.on('iptv:pairing-request', handler);

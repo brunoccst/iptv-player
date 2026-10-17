@@ -9,6 +9,7 @@ import type {
   WatchNextRow,
 } from '../modules/tv-media/src/types-only';
 import { sha1Hex } from '../../../packages/shared/src/direct/normalizer/sha1';
+import { nameRow } from '../../../packages/shared/src/direct/nameRow';
 
 export type * from '../modules/tv-media/src/types-only';
 
@@ -156,6 +157,7 @@ export const TvMedia = {
   },
   closeList: (id: number) => void lists.delete(id),
   sha1Batch: async (joined: string) => joined.split('\n').map(sha1Hex).join(''),
+  parseNames: async (names: string) => JSON.stringify((JSON.parse(names) as string[]).map(nameRow)),
   // Tests use the fake API, not the provider: the library database is never reached.
   dbRun: async () => {
     throw new Error('no library database in tests');

@@ -11,6 +11,8 @@ module.exports = {
   directories: { output: 'release', buildResources: 'build' },
   files: ['main.mjs', 'preload.cjs', 'lib/**', 'build-config.json', 'package.json'],
   extraResources: [{ from: '../web-player/dist', to: 'web' }],
+  // FFmpeg (issue #236, D-189) has to be a file of its own to be started; its licence goes with it.
+  asarUnpack: ['node_modules/ffmpeg-static/**'],
   // In-app updates (D-073): electron-updater reads latest.yml / latest-linux.yml next to the installers in the
   // `desktop` release. Builds without an update repository (local) get no feed.
   ...(updateRepo ? { publish: { provider: 'generic', url: `https://github.com/${updateRepo}/releases/download/desktop` } } : {}),
@@ -34,6 +36,8 @@ module.exports = {
     category: 'public.app-category.video',
     // No Apple certificate: ad-hoc signed, which Apple silicon needs to start the app at all (D-071).
     identity: '-',
+    // FFmpeg (D-189) is made universal before the build (scripts/universal-ffmpeg.mjs): taken as it is in both halves.
+    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/ffmpeg-static/ffmpeg',
     icon: 'build/icon.png',
     artifactName: `${appSlug}.\${ext}`,
     // Scanning another device's sync code with the webcam (issue #254): macOS asks with this text.

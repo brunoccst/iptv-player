@@ -8,5 +8,6 @@
 | `DownloadCenter.kt` | Singleton `SimpleCache` in `filesDir/offline-media` (AES-encrypted reads/writes), `DownloadManager` (1 parallel download), listeners, list/serialization. |
 | `OfflineKey.kt` | Per-install AES key for downloads, saved wrapped by a non-exportable Android Keystore key. A new key deletes older downloads (D-050). |
 | `TvDownloadService.kt` | Media3 `DownloadService` with progress notification. |
+| `NameParser.kt` | Reads provider names off the JavaScript thread (D-188): a WebView that is never shown runs `assets/name-parser.js`; rejects on any failure, and goes after a minute without work. |
 | `WatchNext.kt` | Home screen "Continue watching" on Android TV and Google TV (D-147): the app's Watch Next rows, inserts / updates / removes them as JS planned, the launch intent with the entry id, and taking that id from the activity's intent. |
 | `AppUpdater.kt` | Self-update (D-062): installed version, APK download with SHA-256 check, same package / newer / same signing key checks, install permission, system installer via `FileProvider`, started from the current activity (D-070). |

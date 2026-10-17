@@ -13,6 +13,7 @@ import {
   type BackupStorages,
   type KeyValueStorage,
   withUserDatabase,
+  type NameRow,
 } from '@iptv/shared';
 import { TvMedia } from '../modules/tv-media';
 import { appConfig, providerUserAgent, updateRepo } from './config';
@@ -61,6 +62,8 @@ export const appContext = createAppContext({
     },
     // Title ids hashed by native code: in JavaScript they took about a minute for 110k titles on a TV (D-093).
     hashIds: batchedSha1((joined) => TvMedia.sha1Batch(joined)),
+    // New names read in the system WebView: on the JavaScript thread 150k took minutes on a TV (issue #228, D-188).
+    parseNames: async (names) => JSON.parse(await TvMedia.parseNames(JSON.stringify(names))) as NameRow[],
     libraryDb,
   },
   deviceLanguages,

@@ -1,6 +1,11 @@
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { createStore } from 'zustand/vanilla';
 import {
+  answerSync,
+  AUTO_SYNC_INTERVAL_MS,
+  createAutoSync,
+  syncWithTv,
   appLog,
   errorMessage,
   openRemoteRequest,
@@ -14,12 +19,14 @@ import {
   t,
 } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
-import { backupStorages, navStore, stores } from '../appContext';
+import { appContext, backupStorages, navStore, stores } from '../appContext';
 import { currentRoute } from '../navigation/navStore';
 import { logReport } from '../diagnostics/logReport';
 
 /** Remote play (D-061). Keys live in the Keystore-backed storage; they are not part of backups. */
 const secure = backupStorages.secure;
+/** Automatic sync (issue #227): sign-in and media data only, as pairing (D-060). */
+const syncStorages = { secure: backupStorages.secure, data: backupStorages.data };
 export const PAIRED_TV_KEY = 'remote.tv';
 export const PAIRED_PHONES_KEY = 'remote.phones';
 const TV_ID_KEY = 'remote.tvId';
@@ -103,6 +110,14 @@ export function useRemoteServer(enabled: boolean) {
           appLog.info('remote', 'log sent to a phone');
           return TvMedia.respondRemote(id, 200, reply({ ok: true, log: logReport() }));
         }
+        if (command.type === 'sync') {
+          // A paired device's profiles, progress and My List, merged with this TV's (issue #227).
+          const { reply: answer, changed } = await answerSync(syncStorages, command);
+          TvMedia.respondRemote(id, 200, reply(answer));
+          appLog.info('sync', answer.ok ? (changed ? 'synced with a device' : 'in step with a device') : `sync refused: ${answer.error}`);
+          if (changed) await appContext.refreshMedia();
+          return;
+        }
         const session = stores.session.getState();
         if (command.type !== 'play' || !command.target?.streamId)
           return TvMedia.respondRemote(id, 200, reply({ ok: false, error: 'bad-request' }));
@@ -121,6 +136,36 @@ export function useRemoteServer(enabled: boolean) {
       subscription.remove();
       TvMedia.stopRemote();
       remotePort = null;
+    };
+  }, [enabled]);
+}
+
+/** Phone and tablet: one automatic sync with the paired TV (issue #227); nothing without one. */
+const autoSync = createAutoSync(async () => {
+  const tv = pairedTv.getState().tv;
+  const accountId = stores.session.getState().account?.id;
+  if (!tv || !accountId) return;
+  const { port, changed } = await syncWithTv(syncStorages, tv, accountId);
+  if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+  appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
+  if (changed) await appContext.refreshMedia();
+});
+
+/**
+ * Phone and tablet: while `enabled` (signed in, a paired TV), syncs profiles, progress and My List with the TV when the
+ * app opens or comes back to the front, and every 10 minutes (issue #227, DECISIONS.md#d-186).
+ */
+export function useAutoSync(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+    void autoSync.request();
+    const timer = setInterval(() => void autoSync.request(), AUTO_SYNC_INTERVAL_MS);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void autoSync.request();
+    });
+    return () => {
+      clearInterval(timer);
+      subscription.remove();
     };
   }, [enabled]);
 }

@@ -7,6 +7,7 @@ dist-e2e/
 test-results/
 coverage/
 apps/tv-app/android/
+apps/tv-app/modules/tv-media/android/src/main/assets/
 apps/tv-app/ios/
 tools/
 documentation/

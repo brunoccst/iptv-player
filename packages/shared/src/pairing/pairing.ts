@@ -1,6 +1,7 @@
 import type { ProfileDto, ProgressDto, WatchlistDto } from '../api/types';
 import { collectUserData, type BackupStorages, type UserDataContents } from '../backup/userData';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
+import { emptyRemovals, pruneRemovals, readRemovals, removalsKey, type Removals } from '../direct/removals';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
@@ -107,29 +108,56 @@ interface Session {
   profiles?: ProfileDto[];
   activeProfileId?: string | null;
 }
-type StoredProfile = ProfileDto & { createdAt?: string };
+type StoredProfile = ProfileDto & { createdAt?: string; updatedAt?: string };
 
 export interface MediaState {
   profiles: StoredProfile[];
   progress: Record<string, ProgressDto[]>;
   watchlist: Record<string, WatchlistDto[]>;
+  /** What was removed and when (issue #227); missing from older apps. */
+  removals?: Removals;
 }
 
 const sameName = (a: StoredProfile, b: StoredProfile) => a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
+const later = (a: string | undefined, b: string | undefined) => (!a ? b : !b ? a : a > b ? a : b);
 
 /**
  * Merges two devices' media data for one account. Profiles match by id, else by name (each device creates a profile
- * named after the provider login on first sign-in); `incoming` keeps its ids and details, profiles only on `local` are
- * added. Progress: per title the most recent. My List: both lists together (the earlier "added" date wins). A title
- * removed on one device but still listed on the other comes back (no record of removals).
+ * named after the provider login on first sign-in); `incoming` keeps its ids, and the details of the profile edited
+ * last (issue #227); profiles only on `local` are added. Progress: per title the most recent. My List: both lists
+ * together (the earlier "added" date wins). Removals (DECISIONS.md#d-186) win over entries saved before them on
+ * either device: a deleted profile, progress taken off Continue watching and a title taken off My List stay gone.
  */
-export function mergeMedia(incoming: MediaState, local: MediaState): { merged: MediaState; localIds: Map<string, string> } {
+export function mergeMedia(
+  incoming: MediaState,
+  local: MediaState,
+  now = new Date(),
+): { merged: MediaState; localIds: Map<string, string> } {
+  const incomingRemovals = incoming.removals ?? emptyRemovals();
+  const localRemovals = local.removals ?? emptyRemovals();
+  const removedProfiles: Record<string, string> = { ...incomingRemovals.profiles };
+  for (const [id, at] of Object.entries(localRemovals.profiles)) removedProfiles[id] = later(removedProfiles[id], at)!;
+  // A profile created after it was deleted elsewhere (same id: never; kept for safety) stays.
+  const alive = (profile: StoredProfile) => !removedProfiles[profile.id] || (profile.createdAt ?? '') > removedProfiles[profile.id]!;
+  // Never remove every profile: an account always has one.
+  const keepAll = ![...incoming.profiles, ...local.profiles].some(alive);
+  const incomingProfiles = keepAll ? incoming.profiles : incoming.profiles.filter(alive);
+  const localProfiles = keepAll ? local.profiles : local.profiles.filter(alive);
+
   const localIds = new Map<string, string>();
-  const profiles = [...incoming.profiles];
-  for (const profile of local.profiles) {
-    const match = incoming.profiles.find((p) => p.id === profile.id) ?? incoming.profiles.find((p) => sameName(p, profile));
-    if (match) localIds.set(profile.id, match.id);
-    else {
+  const profiles = [...incomingProfiles];
+  for (const profile of localProfiles) {
+    const index = incomingProfiles.findIndex((p) => p.id === profile.id);
+    const match = index >= 0 ? index : incomingProfiles.findIndex((p) => sameName(p, profile));
+    if (match >= 0) {
+      const kept = profiles[match]!;
+      localIds.set(profile.id, kept.id);
+      // Edited later on this device: its name, picture and Kids choice, under the incoming id.
+      if (profile.updatedAt && profile.updatedAt > (kept.updatedAt ?? '')) {
+        const { name, avatarKey, isKids, updatedAt } = profile;
+        profiles[match] = { ...kept, name, avatarKey, isKids, updatedAt };
+      }
+    } else {
       localIds.set(profile.id, profile.id);
       profiles.push(profile);
     }
@@ -137,11 +165,24 @@ export function mergeMedia(incoming: MediaState, local: MediaState): { merged: M
 
   const progress: MediaState['progress'] = {};
   const watchlist: MediaState['watchlist'] = {};
+  const removals: Removals = { profiles: removedProfiles, progress: {}, watchlist: {} };
   for (const { id } of profiles) {
-    const localSources = local.profiles.filter((p) => localIds.get(p.id) === id).map((p) => p.id);
+    const localSources = localProfiles.filter((p) => localIds.get(p.id) === id).map((p) => p.id);
+    const removedOf = (list: 'progress' | 'watchlist') => {
+      const entries: Record<string, string> = { ...(incomingRemovals[list][id] ?? {}) };
+      for (const source of localSources)
+        for (const [key, at] of Object.entries(localRemovals[list][source] ?? {})) entries[key] = later(entries[key], at)!;
+      return entries;
+    };
+    const removedProgress = removedOf('progress');
+    const removedList = removedOf('watchlist');
+    if (Object.keys(removedProgress).length) removals.progress[id] = removedProgress;
+    if (Object.keys(removedList).length) removals.watchlist[id] = removedList;
+
     const progressItems = new Map<string, ProgressDto>();
     for (const item of [...(incoming.progress[id] ?? []), ...localSources.flatMap((source) => local.progress[source] ?? [])]) {
       const key = `${item.kind}:${item.itemId}`;
+      if (removedProgress[key] && item.updatedAt <= removedProgress[key]) continue;
       const existing = progressItems.get(key);
       if (!existing || item.updatedAt > existing.updatedAt) progressItems.set(key, item);
     }
@@ -150,18 +191,19 @@ export function mergeMedia(incoming: MediaState, local: MediaState): { merged: M
     const listItems = new Map<string, WatchlistDto>();
     for (const item of [...(incoming.watchlist[id] ?? []), ...localSources.flatMap((source) => local.watchlist[source] ?? [])]) {
       const key = `${item.section}:${item.masterId}`;
+      if (removedList[key] && item.addedAt <= removedList[key]) continue;
       const existing = listItems.get(key);
       if (!existing || item.addedAt < existing.addedAt) listItems.set(key, item);
     }
     watchlist[id] = [...listItems.values()].sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1)).slice(0, MAX_WATCHLIST);
   }
-  return { merged: { profiles, progress, watchlist }, localIds };
+  return { merged: { profiles, progress, watchlist, removals: pruneRemovals(removals, now) }, localIds };
 }
 
 /** Profiles, progress and My List live on each device, so pairing merges them. */
 function mediaFrom(data: Record<string, string>, accountId: string): MediaState {
   const profiles = parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? [];
-  const state: MediaState = { profiles, progress: {}, watchlist: {} };
+  const state: MediaState = { profiles, progress: {}, watchlist: {}, removals: readRemovals(data[removalsKey(accountId)]) };
   for (const { id } of profiles) {
     state.progress[id] = parseJson<ProgressDto[]>(data[progressKey(id)] ?? null) ?? [];
     state.watchlist[id] = parseJson<WatchlistDto[]>(data[watchlistKey(id)] ?? null) ?? [];
@@ -177,6 +219,7 @@ function mediaEntries(state: MediaState, accountId: string): Record<string, stri
     entries[progressKey(id)] = JSON.stringify(state.progress[id] ?? []);
     entries[watchlistKey(id)] = JSON.stringify(state.watchlist[id] ?? []);
   }
+  if (state.removals) entries[removalsKey(accountId)] = JSON.stringify(state.removals);
   return entries;
 }
 
@@ -188,11 +231,56 @@ async function readLocalMedia(storage: BackupStorages['data'], accountId: string
     if (value !== null) data[key] = value;
   };
   await read(profilesKey(accountId));
+  await read(removalsKey(accountId));
   for (const { id } of parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? []) {
     await read(progressKey(id));
     await read(watchlistKey(id));
   }
   return data;
+}
+
+const sessionProfiles = (state: MediaState): ProfileDto[] =>
+  state.profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids }));
+
+/** The saved session with the merged profiles; the open profile follows a new id, and closes when it was deleted. */
+function mergedSession(session: Session, profiles: ProfileDto[], localIds: Map<string, string>): Session {
+  if (!profiles.length) return session;
+  const id = session.activeProfileId;
+  // No profiles saved here (none to match): the id stays.
+  const open = id ? (localIds.size ? (localIds.get(id) ?? null) : id) : null;
+  return { ...session, profiles, activeProfileId: open };
+}
+
+/**
+ * Merges another device's media entries (`data`, as `mediaEntries` makes them) into this device's and saves what
+ * changed. `localIds`: this device's profile ids → merged ids; `dropped`: this device's profiles that are gone (deleted
+ * on the other device, DECISIONS.md#d-186). `changed`: whether anything on this device changed.
+ */
+async function saveMergedMedia(
+  dataStorage: NonNullable<BackupStorages['data']>,
+  accountId: string,
+  data: Record<string, string>,
+  now = new Date(),
+): Promise<{ merged: MediaState; localIds: Map<string, string>; dropped: string[]; entries: Record<string, string>; changed: boolean }> {
+  const before = await readLocalMedia(dataStorage, accountId);
+  const local = mediaFrom(before, accountId);
+  const { merged, localIds } = mergeMedia(mediaFrom(data, accountId), local, now);
+  let changed = false;
+  // This device's ids that were renamed or deleted lose their lists.
+  const dropped = local.profiles.map(({ id }) => id).filter((id) => !localIds.has(id));
+  for (const oldId of [...dropped, ...[...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId)]) {
+    changed = true;
+    await dataStorage.removeItem(progressKey(oldId));
+    await dataStorage.removeItem(watchlistKey(oldId));
+  }
+  const entries = mediaEntries(merged, accountId);
+  for (const [entryKey, value] of Object.entries(entries)) {
+    if (before[entryKey] === value) continue;
+    // The removal record alone changes nothing on screen.
+    if (entryKey !== removalsKey(accountId)) changed = true;
+    await dataStorage.setItem(entryKey, value);
+  }
+  return { merged, localIds, dropped, entries, changed };
 }
 
 /**
@@ -229,21 +317,11 @@ export async function acceptPairing(
   const mode: PairingMode = signedIn ? 'sync' : 'login';
 
   const dataStorage = storages.data ?? storages.secure;
-  const local = mediaFrom(await readLocalMedia(storages.data ?? storages.secure, accountId), accountId);
-  const { merged, localIds } = mergeMedia(mediaFrom(data, accountId), local);
-
-  // Media: the merged lists under the phone's profile ids; this device's old ids that were renamed are removed.
-  for (const [oldId, newId] of localIds) {
-    if (oldId === newId) continue;
-    await dataStorage.removeItem(progressKey(oldId));
-    await dataStorage.removeItem(watchlistKey(oldId));
-  }
-  const entries = mediaEntries(merged, accountId);
-  for (const [entryKey, value] of Object.entries(entries)) await dataStorage.setItem(entryKey, value);
-  const profiles = merged.profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids }));
+  const { merged, localIds, dropped, entries } = await saveMergedMedia(dataStorage, accountId, data);
+  const profiles = sessionProfiles(merged);
 
   // Settings (D-060): each profile's preferences and the automatic subtitles.
-  const renamed = [...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId);
+  const renamed = [...[...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId), ...dropped];
   const prefs = mergePrefsByProfile(
     readPrefs(data[PROFILE_PREFS_KEY]),
     readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)),
@@ -264,9 +342,7 @@ export async function acceptPairing(
       if (secure[copied] !== undefined) await storages.secure.setItem(copied, secure[copied]);
     }
   } else {
-    const active = tvSession!.activeProfileId ? (localIds.get(tvSession!.activeProfileId) ?? tvSession!.activeProfileId) : null;
-    const session = { ...tvSession, profiles: profiles.length ? profiles : tvSession!.profiles, activeProfileId: active };
-    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(tvSession!, profiles, localIds)));
     // A parental PIN set on the phone protects the TV too, unless the TV has its own.
     if (secure[pinKey] !== undefined && (await storages.secure.getItem(pinKey)) === null)
       await storages.secure.setItem(pinKey, secure[pinKey]);
@@ -356,15 +432,15 @@ export async function sendPairing(
   if (reply.mode === 'share') return saveSharedSignIn(storages, reply);
   if (!session || !accountId) throw new PairingFailure('not-signed-in');
 
-  for (const [key, value] of Object.entries(reply.data)) await dataStorage.setItem(key, value);
+  // Merged once more with what is saved now: progress saved while waiting for the answer stays (issue #227).
+  const { merged, localIds, dropped } = await saveMergedMedia(dataStorage, accountId, reply.data);
   if (reply.settings) {
-    await savePrefs(dataStorage, reply.settings.prefs);
+    await savePrefs(dataStorage, reply.settings.prefs, dropped);
     if (reply.settings.subtitles !== null) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, reply.settings.subtitles);
   }
-  const profiles = parseJson<ProfileDto[]>(reply.data[profilesKey(accountId)] ?? null);
-  if (profiles) {
-    const updated = { ...session, profiles: profiles.map(({ id, name, avatarKey, isKids }) => ({ id, name, avatarKey, isKids })) };
-    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(updated));
+  if (merged.profiles.length) {
+    const saved = parseJson<Session>(await storages.secure.getItem(SESSION_STORAGE_KEY)) ?? session;
+    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(saved, sessionProfiles(merged), localIds)));
   }
   return { ok: true, mode: reply.mode, accountName: session.account?.username ?? t('your account'), remote: reply.remote };
 }
@@ -393,4 +469,45 @@ export class PairingFailure extends Error {
   constructor(readonly reason: PairingError | 'unreachable' | 'wrong-code') {
     super(pairingMessage(reason));
   }
+}
+
+/**
+ * Automatic sync (issue #227, DECISIONS.md#d-186): this device's media entries (profiles, progress, My List and what
+ * was removed) for one account, as a sync with the paired TV sends them. Settings are not synced this way: they carry
+ * no dates, so the newer choice cannot be told apart (they still merge when a code is scanned, D-060).
+ */
+export async function mediaForSync(storages: BackupStorages, accountId: string): Promise<Record<string, string>> {
+  return readLocalMedia(storages.data ?? storages.secure, accountId);
+}
+
+/**
+ * Either side of an automatic sync: merges the other device's media entries into this device's (`mergeMedia`), saves
+ * them, and updates the saved session's profiles. Returns the merged entries (the TV answers with them) and whether
+ * anything shown on this device changed (then the app refreshes its lists, `AppContext.refreshMedia`). Null when this
+ * device is not signed in to `accountId`.
+ */
+export async function applySyncedMedia(
+  storages: BackupStorages,
+  accountId: string,
+  data: Record<string, string>,
+  now = new Date(),
+): Promise<{ data: Record<string, string>; changed: boolean } | null> {
+  const session = parseJson<Session>(await storages.secure.getItem(SESSION_STORAGE_KEY));
+  if (!session?.token || session.account?.id !== accountId) return null;
+  const dataStorage = storages.data ?? storages.secure;
+  const { merged, localIds, dropped, entries, changed } = await saveMergedMedia(dataStorage, accountId, data, now);
+  if (changed && merged.profiles.length) {
+    const moved = [...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId);
+    if (moved.length || dropped.length) {
+      const prefs = mergePrefsByProfile(
+        {},
+        readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)),
+        localIds,
+        merged.profiles.map(({ id }) => id),
+      );
+      await savePrefs(dataStorage, prefs, [...moved, ...dropped]);
+    }
+    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(session, sessionProfiles(merged), localIds)));
+  }
+  return { data: entries, changed };
 }

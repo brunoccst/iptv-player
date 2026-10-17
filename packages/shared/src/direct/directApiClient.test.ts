@@ -9,6 +9,7 @@ import { withUserDatabase } from '../stores/databaseStorage';
 import { createDirectApiClient } from './directApiClient';
 import type { SqlDatabase } from './sqlLibrary';
 import { savedItem, type NormalizerItem } from './normalizer/pipeline';
+import { readRemovals, removalsKey } from './removals';
 import { createXtreamClient, type ListPiece, type ListReader } from './xtream';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
@@ -109,6 +110,22 @@ describe.each([
     ]);
     await api.watchlist.remove(profileId, 'movies', 'm1');
     expect((await api.watchlist.list(profileId)).map((item) => item.masterId)).toEqual(['s1']);
+  });
+
+  it('records removals, so syncing does not bring them back (issue #227)', async () => {
+    const { api, storages } = setup();
+    const { profiles, account } = await api.auth.login(login);
+    const profileId = profiles[0]!.id;
+    await api.watchlist.add(profileId, 'movies', 'm1', { title: 'Heat', year: 1995, posterUrl: null });
+    await api.watchlist.remove(profileId, 'movies', 'm1');
+    await api.progress.save(profileId, 'movie', '101', { title: 'Big Test Movie', positionSeconds: 40, durationSeconds: 60 });
+    await api.progress.remove(profileId, 'movie', '101');
+    const guest = await api.profiles.create({ name: 'Guest', isKids: false });
+    await api.profiles.remove(guest.id);
+    const removals = readRemovals(await storages.data.getItem(removalsKey(account.id)));
+    expect(Object.keys(removals.watchlist[profileId]!)).toEqual(['movies:m1']);
+    expect(Object.keys(removals.progress[profileId]!)).toEqual(['movie:101']);
+    expect(Object.keys(removals.profiles)).toEqual([guest.id]);
   });
 
   it('checks the account with the provider on restore (D-050)', async () => {

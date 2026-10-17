@@ -62,6 +62,11 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   closeList(id: number): void;
   /** SHA-1 hex digests of plain-ASCII texts separated by "\n", one after another, over every core (D-093, D-135). */
   sha1Batch(texts: string): Promise<string>;
+  /**
+   * Provider names read in the system WebView, off the JavaScript thread (issue #228, D-188): a JSON array of names in,
+   * a JSON array of `nameRow` results out. Rejects when the WebView is missing or fails.
+   */
+  parseNames(names: string): Promise<string>;
   /** The library database (D-121): `[{ sql, rows? }]` as JSON, run in one transaction. */
   dbRun(statements: string): Promise<void>;
   /** The rows of a query as a JSON array of arrays; `params` is a JSON array (D-121). */

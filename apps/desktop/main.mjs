@@ -1,7 +1,7 @@
 // Desktop app (Windows, macOS, Linux), DECISIONS.md#d-071: the web player in its own window. It talks to the IPTV
 // provider directly like the TV app (D-088). The page is served from 127.0.0.1 by this
 // process; provider requests get the player User-Agent and CORS headers added here.
-import { app, BrowserWindow, dialog, ipcMain, Menu, net, safeStorage, session, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, safeStorage, session, shell, Tray } from 'electron';
 import electronUpdater from 'electron-updater';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -27,6 +27,8 @@ import {
   withCors,
 } from './lib/helpers.mjs';
 import { openLibraryDb } from './lib/libraryDb.mjs';
+import { createTranscoder } from './lib/transcoder.mjs';
+import ffmpegPath from 'ffmpeg-static';
 
 const { autoUpdater } = electronUpdater;
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -57,14 +59,31 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 let window = null;
 let appOrigin = '';
+/** Downloads go on with the window closed (issue #219, D-187): whether the page has any running, and the tray icon. */
+let downloadsActive = false;
+let quitting = false;
+let tray = null;
 /** Translations of the dialogs below, from the page (D-084). */
 let texts = {};
 const tx = (source, params) => fillText(texts, source, params);
 const isApp = (url) => url === appOrigin || url.startsWith(appOrigin + '/');
+/**
+ * Plays what Chromium cannot decode through the bundled FFmpeg (issue #236, D-189). Packaged, the binary sits outside
+ * the app archive (asarUnpack), where it can be started.
+ */
+const transcodeRoot = path.join(app.getPath('temp'), `${config.appSlug}-transcode`);
+const transcoder = ffmpegPath
+  ? createTranscoder({
+      ffmpeg: ffmpegPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`),
+      root: transcodeRoot,
+      userAgent: config.userAgent,
+    })
+  : null;
 
 /** Serves the web player on 127.0.0.1 (a secure context: offline downloads need it). */
 function startServer() {
   const server = createServer((request, response) => {
+    if (request.url?.startsWith('/transcode/')) return serveConversion(request.url, response);
     let file = staticFile(webRoot, request.url ?? '/');
     if (file && !(existsSync(file) && statSync(file).isFile())) file = path.join(webRoot, 'index.html');
     if (!file || !existsSync(file)) {
@@ -87,6 +106,18 @@ function startServer() {
     });
     server.listen(PORT, '127.0.0.1', () => resolve(server.address().port));
   });
+}
+
+/** A converted stream's playlist and segments (D-189), only while its conversion runs. */
+function serveConversion(url, response) {
+  const file = transcoder?.file(url);
+  if (!file || !existsSync(file)) return response.writeHead(404).end();
+  const playlist = file.endsWith('.m3u8');
+  response.writeHead(200, {
+    'Content-Type': playlist ? 'application/vnd.apple.mpegurl' : 'video/mp4',
+    'Cache-Control': 'no-store',
+  });
+  createReadStream(file).pipe(response);
 }
 
 /** Provider requests look like a player and may be read by the page (CORS). */
@@ -224,15 +255,21 @@ function registerPairing() {
   });
   // Scanning with the webcam (issue #254): the page sends to the other device from here, since device servers send no
   // CORS headers. Only to a private address of the home network.
-  ipcMain.handle('iptv:pairing-send', async (event, host, port, body) => {
+  // The automatic sync with the paired TV (issue #227) goes to its remote server (/remote) the same way.
+  ipcMain.handle('iptv:pairing-send', async (event, host, port, body, path = '/pair') => {
     fromApp(event);
-    const url = pairingUrl(host, Number(port));
+    const url = pairingUrl(host, Number(port), path);
     if (!url) throw new Error('Not a home network address');
     const payload = Buffer.from(String(body), 'utf8');
     return new Promise((resolve, reject) => {
       const request = httpRequest(
         url,
-        { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length }, timeout: 30_000 },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length },
+          // A TV that is off: the sync tries the next port soon (D-061 tries five).
+          timeout: path === '/remote' ? 5_000 : 30_000,
+        },
         (response) => {
           const chunks = [];
           let size = 0;
@@ -283,8 +320,53 @@ function createWindow() {
     else return;
     event.preventDefault();
   });
+  // Closing the window while downloads run hides it instead: the page keeps downloading (D-024 storage stays as it is).
+  window.on('close', (event) => {
+    if (quitting || !downloadsActive) return;
+    event.preventDefault();
+    toBackground();
+  });
   window.on('closed', () => (window = null));
   void window.loadURL(appOrigin + '/');
+}
+
+/**
+ * Background downloads (issue #219, DECISIONS.md#d-187): the hidden window keeps downloading, unthrottled; a tray icon
+ * opens it again or quits (unfinished downloads come back paused). The app quits when the downloads end.
+ */
+function toBackground() {
+  if (!window) return;
+  window.hide();
+  window.webContents.setBackgroundThrottling(false);
+  window.webContents.send('iptv:background');
+  if (tray) return;
+  const icon = nativeImage.createFromPath(path.join(webRoot, 'icon-192.png')).resize({ width: 32, height: 32 });
+  tray = new Tray(icon);
+  tray.setToolTip(`${config.appName}: ${tx('Downloading in the background')}`);
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: tx('Open'), click: showWindow },
+      { label: tx('Quit'), click: () => quit() },
+    ]),
+  );
+  tray.on('click', showWindow);
+}
+
+function showWindow() {
+  tray?.destroy();
+  tray = null;
+  if (!window) return createWindow();
+  window.webContents.setBackgroundThrottling(true);
+  if (window.isMinimized()) window.restore();
+  window.show();
+  window.focus();
+}
+
+function quit() {
+  quitting = true;
+  tray?.destroy();
+  tray = null;
+  app.quit();
 }
 
 /**
@@ -414,9 +496,7 @@ async function latestFromRelease() {
 }
 
 app.on('second-instance', () => {
-  if (!window) return;
-  if (window.isMinimized()) window.restore();
-  window.focus();
+  if (window) showWindow();
 });
 
 app.whenReady().then(async () => {
@@ -433,6 +513,12 @@ app.whenReady().then(async () => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     texts = cleanTexts(value);
   });
+  ipcMain.handle('iptv:downloads-active', (event, active) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    downloadsActive = active === true;
+    // Hidden for the downloads, and they ended: done.
+    if (!downloadsActive && tray && window && !window.isVisible()) quit();
+  });
   ipcMain.handle('iptv:check-updates', (event) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     void checkForUpdate(true);
@@ -448,9 +534,33 @@ app.whenReady().then(async () => {
     spawn(vlc, args, { detached: true, stdio: 'ignore' }).unref();
     return 'vlc';
   });
-  app.on('activate', () => {
-    if (!window) createWindow();
+  // Conversion of what Chromium cannot decode (D-189): what a stream holds, start (also for a seek), stop.
+  ipcMain.handle('iptv:transcode', (event, operation, value) => {
+    if (!isApp(event.senderFrame?.url ?? '') || !transcoder) throw new Error('Not allowed');
+    if (operation === 'probe') return transcoder.probe(String(value ?? ''));
+    if (operation === 'start' && value && typeof value === 'object')
+      return transcoder.start({
+        url: String(value.url ?? ''),
+        probe: value.probe ?? null,
+        at: Math.max(0, Number(value.at) || 0),
+        live: value.live === true,
+        copyVideo: value.copyVideo === true,
+        audio: Math.max(0, Math.floor(Number(value.audio) || 0)),
+      });
+    if (operation === 'stop') return transcoder.stopAll();
+    throw new Error('Unknown operation');
   });
+  app.on('activate', () => {
+    if (!window || !window.isVisible()) showWindow();
+  });
+});
+
+// Left over from a start that did not quit cleanly.
+void rm(transcodeRoot, { recursive: true, force: true }).catch(() => undefined);
+app.on('will-quit', () => void transcoder?.close());
+
+app.on('before-quit', () => {
+  quitting = true;
 });
 
 app.on('window-all-closed', () => {

@@ -11,6 +11,13 @@ export interface UpdateProgress {
   percent: number;
 }
 
+/** What the bundled FFmpeg read from a stream (issue #236): length (null for live), the first video, every audio track. */
+export interface StreamProbe {
+  duration: number | null;
+  video: { codec: string; height: number | null; hdr: boolean } | null;
+  audio: { codec: string; language: string | null }[];
+}
+
 export interface DesktopBridge {
   version: string;
   platform: string;
@@ -22,6 +29,29 @@ export interface DesktopBridge {
   openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
   setTexts(texts: Record<string, string>): Promise<void>;
+  /**
+   * Whether downloads are running (issue #219): closing the window then hides it and the downloads go on, with a tray
+   * icon; the app quits when they end. Older apps lack it.
+   */
+  setDownloadsActive?(active: boolean): Promise<void>;
+  /** The window was closed and hidden while downloads run: stop playing. Returns the unsubscribe function. */
+  onBackground?(listener: () => void): () => void;
+  /**
+   * Plays what Chromium cannot decode (issue #236): the app converts the stream with its FFmpeg into an HLS playlist on
+   * its own server, starting at `at` seconds; one at a time. Older apps lack it.
+   */
+  transcode?: {
+    probe(url: string): Promise<StreamProbe>;
+    start(options: {
+      url: string;
+      probe?: StreamProbe;
+      at?: number;
+      live?: boolean;
+      copyVideo?: boolean;
+      audio?: number;
+    }): Promise<{ id: string; playlist: string; duration: number | null; at: number }>;
+    stop(): Promise<void>;
+  };
   secure: KeyValueStorage;
   data: KeyValueStorage;
   /** The library database (D-121): statements and queries as JSON text, run by the main process. */
@@ -34,8 +64,11 @@ export interface DesktopBridge {
     respond(id: number, status: number, body: string): Promise<void>;
     /** Returns the unsubscribe function. */
     onRequest(listener: (request: { id: number; body: string }) => void): () => void;
-    /** Sends a scanned code's pairing request to that device (issue #254); only to home network addresses. Older apps lack it. */
-    send?(host: string, port: number, body: string): Promise<{ status: number; body: string }>;
+    /**
+     * Sends a scanned code's pairing request to that device (issue #254), or a sync to the paired TV (`path` '/remote',
+     * issue #227); only to home network addresses. Older apps lack it.
+     */
+    send?(host: string, port: number, body: string, path?: '/pair' | '/remote'): Promise<{ status: number; body: string }>;
   };
 }
 

@@ -91,6 +91,10 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 | [D-184](#d-184) | Guide reminders |
 | [D-185](#d-185) | Split and merge titles by hand |
+| [D-186](#d-186) | Automatic sync through the paired TV |
+| [D-187](#d-187) | Desktop: downloads go on with the window closed |
+| [D-188](#d-188) | TV and phone: names read in the system WebView |
+| [D-189](#d-189) | Desktop: FFmpeg converts what Chromium cannot decode |
 
 ## Merged and retired IDs
 
@@ -256,7 +260,7 @@ The session store persists one snapshot through a `KeyValueStorage` adapter, wri
 
 - A page-side `DownloadManager` fetches a download, encrypts each segment or 4 MiB chunk with a non-extractable AES-GCM key (IndexedDB), stores the ciphertext in the Cache API, and the Service Worker serves it back under `/__offline__/`, answering `Range` one chunk at a time.
 - HLS downloads keep every playlist resource and a rewritten local playlist, so hls.js plays offline as online.
-- One download at a time (each holds a provider connection); resumable from the last chunk; interrupted downloads come back paused.
+- Downloads at once: one per provider stream beyond the first, at most three (`downloadSlots`, D-187); resumable from the last chunk; interrupted downloads come back paused.
 - The SW also precaches the app shell, so the app opens offline. It is bundled by a small Vite plugin with esbuild, not Workbox.
 
 Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache files are ciphertext. It is not DRM: scripts on the origin can still read decrypted bytes ([#213](https://github.com/brunoccst/iptv-player/issues/213)).
@@ -1018,3 +1022,43 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
 - A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
 - Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).
+
+## D-186
+
+**Automatic sync through the paired TV** — 2026-10-17 (issue #227)
+
+- A middle step short of a sync service (which would need hosting and accounts, against D-088): a device that scanned the TV's code keeps the TV's remote-play key (D-061) and sends a `sync` remote command with its media entries (profiles, progress, My List, removals) when the app opens, comes back to the front, and every 10 minutes (`createAutoSync`, at most once a minute). The TV merges (`applySyncedMedia`, the pairing merge) and answers with the merged entries; the sender merges the answer once more with what it saved meanwhile. The TV is the hub, since only it listens all the time; the desktop app now keeps the TV's key too and sends through the main process (`iptv:pairing-send`, path `/remote` only).
+- Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
+- Profile settings are left out: they carry no dates, so the newer choice cannot be told apart, and the scanning device winning (D-060) would undo choices made on the TV every 10 minutes. They still merge when a code is scanned.
+- A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
+- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
+
+## D-187
+
+**Desktop: downloads go on with the window closed** — 2026-10-17 (issue #219)
+
+- Closing the window while a download runs or waits hides it instead (`iptv:downloads-active` from the page); the page keeps downloading as before, with background throttling off, and closes the player. A tray icon opens the window again or quits; starting the app again shows it too. When the downloads end, the app quits. Quitting leaves unfinished downloads paused, as before.
+- Chosen over moving downloads into the main process (the ranking's idea): the page's downloader, its non-extractable key and the Service Worker that plays the chunks (D-024) stay as they are, with nothing to migrate, and the main process gets no second download and encryption path to keep in step.
+- Several at once: an account with N provider streams runs N−1 downloads at the same time, at most three, so one stream stays free for watching (all apps that use the web downloader: desktop and the browser).
+- Storage stays the page's (Cache API and IndexedDB). Chromium lets one origin use up to 60 % of the disk, so in the desktop app the quota is rarely the limit; a full disk still stops a download with an error.
+
+## D-188
+
+**TV and phone: names read in the system WebView** — 2026-10-17 (issue #228)
+
+- Reading new names (`parseTitle` and the quality columns, `nameRow`) was most of a large library build and ran on the app's only JavaScript thread, under Hermes without a JIT, so the app stopped answering for minutes on 100k+ names. Profiling found no single hotspot to fix, so the work moves off that thread: a WebView that is never shown (`NameParser.kt`) runs the same code, bundled from `nameRow.ts` into `assets/name-parser.js`, in batches of 2000 names; V8's compiler reads them many times faster than Hermes (about 70k names a second on a desktop; a TV is slower).
+- The system WebView over `androidx.javascriptengine` (not on Android 7 and 8 TVs, and a new dependency) and over porting the parser to Kotlin (two copies of the rules to keep in step). The bundle is checked in and `scripts/build-name-parser.test.mjs` fails when it is out of date or reads the shared parser cases differently, so it is rebuilt with `npm run build:name-parser --workspace=@iptv/tv-app` whenever `parseTitle` changes (with `NAME_RULES`, D-133).
+- Any failure (no WebView, the renderer killed, 30 s without an answer, a wrong count) reads that batch on the JavaScript thread as before (`readNewNames`), with a warning in the log. The WebView goes after a minute without work.
+- Desktop keeps reading names in its page: Chromium's V8 already reads them fast, and the window does not wait on it the way the TV remote does.
+
+## D-189
+
+**Desktop: FFmpeg converts what Chromium cannot decode** — 2026-10-17 (issue #236)
+
+- The desktop app brings FFmpeg (`ffmpeg-static`, unpacked from the app archive) and converts what Chromium cannot play into HLS on the app's own server (`lib/transcoder.mjs`, `/transcode/<id>/`): fragmented MP4 segments of 4 s, H.264 (software, at most 1080 lines, HDR mapped to normal colours where the build has zscale) and stereo AAC. Video Chromium decodes (H.264, HEVC with a decoder) and sound it plays (AAC, MP3, Opus, FLAC) are copied, so a film with only Dolby sound costs almost nothing to convert.
+- Chosen over libmpv (a native player per system, the player and its encrypted downloads rewritten) and over leaving it to VLC. The cost: about 80 MB more download, a GPL FFmpeg binary shipped next to the app (its licence goes with it), and CPU while HEVC is converted.
+- When: the stream does not load at all (FFmpeg reads the provider's file before its HLS), or plays a few seconds with video but no decoded sound (`webkitAudioDecodedByteCount`), or fails with a media error later. FFmpeg reads the stream first (`probe`) and nothing is converted when it finds nothing Chromium lacks. What plays stops before FFmpeg opens the stream, so a one-stream account has its stream free; when conversion fails, the error is the one from before (D-074) with Open in VLC.
+- A conversion starts at a position; the page's player counts from there (`PlaybackEngine.position`, `duration` from FFmpeg). Seeking inside the converted part moves the video; past it, FFmpeg starts again there. One conversion at a time; its files go when it ends and on quit.
+- FFmpeg reads the provider through a relay in the main process (127.0.0.1, one random path per stream): the static Linux build crashes looking up host names itself, and the relay adds the player User-Agent.
+- Limits (issue #270): the first audio track only; no timeline pictures while converted; downloads of such titles still do not play offline. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
+

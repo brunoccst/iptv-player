@@ -24,14 +24,23 @@ export interface DownloadsStoreDeps {
   chunks: ChunkStore;
   supported: boolean;
   storage?: Pick<StorageManager, 'estimate' | 'persist'>;
+  /** How many downloads run at once (issue #219); default one. */
+  parallel?: () => number;
 }
 
-export function createDownloadsStore({ api, db, chunks, supported, storage }: DownloadsStoreDeps) {
+/**
+ * Downloads at once for an account with `maxConnections` provider streams (issue #219, DECISIONS.md#d-187): one stream
+ * stays free for watching, at most three. Unknown or one stream: one download.
+ */
+export const downloadSlots = (maxConnections: number | null | undefined) => Math.min(3, Math.max(1, (maxConnections ?? 1) - 1));
+
+export function createDownloadsStore({ api, db, chunks, supported, storage, parallel }: DownloadsStoreDeps) {
   return createStore<DownloadsState>()((set, get) => {
     const manager = new DownloadManager({
       api,
       db,
       chunks,
+      parallel,
       onChange: (change) => {
         const records = { ...get().records };
         if ('deleted' in change) delete records[change.id];

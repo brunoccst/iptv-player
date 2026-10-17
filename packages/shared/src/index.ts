@@ -33,6 +33,7 @@ export { normalizeServerUrl, type ListReader, type ListPiece } from './direct/xt
 export { batchedSha1 } from './direct/normalizer/sha1';
 export { createNativeSqlDatabase } from './direct/nativeSqlDatabase';
 export type { SqlDatabase, SqlValue } from './direct/sqlLibrary';
+export { nameRow, type NameRow } from './direct/nameRow';
 export * from './appContext';
 export * from './i18n/i18n';
 export * from './i18n/uiLanguage';
@@ -51,5 +52,6 @@ export * from './design/icons';
 export * from './design/avatar';
 export * from './pairing/pairing';
 export * from './pairing/remote';
+export * from './pairing/autoSync';
 export * from './pairing/usePairingServer';
 export * from './subtitles/openSubtitles';

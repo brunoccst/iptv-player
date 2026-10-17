@@ -1,5 +1,18 @@
-import { appLog, errorMessage, PairingFailure, parsePairingQr, sendPairing, t, usePairingServer as usePairing } from '@iptv/shared';
-import { appContext, backupStorages } from '../../appContext';
+import { useEffect } from 'react';
+import {
+  appLog,
+  AUTO_SYNC_INTERVAL_MS,
+  createAutoSync,
+  errorMessage,
+  PairingFailure,
+  parsePairingQr,
+  sendPairing,
+  syncWithTv,
+  t,
+  usePairingServer as usePairing,
+  type PairedTv,
+} from '@iptv/shared';
+import { appContext, backupStorages, stores } from '../../appContext';
 import { desktop } from '../../desktop';
 
 /** Sign-in and media data only; settings stay on each device (D-060). */
@@ -19,7 +32,8 @@ export const canScanWithWebcam = () => !!desktop?.pairing.send && !!globalThis.n
 /** `fetch` for `sendPairing` through the main process: device servers send no CORS headers (issue #254). */
 const desktopFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = new URL(String(input));
-  const answer = await desktop!.pairing.send!(url.hostname, Number(url.port), String(init?.body ?? ''));
+  const path = url.pathname === '/remote' ? '/remote' : '/pair';
+  const answer = await desktop!.pairing.send!(url.hostname, Number(url.port), String(init?.body ?? ''), path);
   return new Response(answer.body, { status: answer.status });
 }) as typeof fetch;
 
@@ -39,6 +53,8 @@ export async function connectWithScannedCode(text: string): Promise<string> {
   try {
     const result = await sendPairing(storages, offer, { fetch: desktopFetch });
     appLog.info('pairing', `${result.mode === 'share' ? 'got the sign-in of' : 'synced'} a device (webcam)`);
+    // A TV hands out its remote key: this computer then stays in step with it (issue #227).
+    if (result.remote) await savePairedTv({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     return result.mode === 'share'
       ? `${t('Signed in as {accountName}.', { accountName: result.accountName })} ${t('Both devices now have the same profiles, My List and progress.')}`
@@ -47,4 +63,47 @@ export async function connectWithScannedCode(text: string): Promise<string> {
     appLog.warn('pairing', errorMessage(error));
     throw error instanceof PairingFailure ? error : new Error(t('Something went wrong. Try again.'));
   }
+}
+
+/** The TV this computer scanned, as the phone app keeps it (D-061); in the secure storage, outside backups. */
+const PAIRED_TV_KEY = 'remote.tv';
+const readPairedTv = async (): Promise<PairedTv | null> => {
+  try {
+    return JSON.parse((await backupStorages.secure.getItem(PAIRED_TV_KEY)) ?? 'null') as PairedTv | null;
+  } catch {
+    return null;
+  }
+};
+const savePairedTv = (tv: PairedTv) => backupStorages.secure.setItem(PAIRED_TV_KEY, JSON.stringify(tv));
+
+const autoSync = createAutoSync(async () => {
+  const tv = await readPairedTv();
+  const accountId = stores.session.getState().account?.id;
+  if (!tv || !accountId) return;
+  const { port, changed } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
+  if (port !== tv.port) await savePairedTv({ ...tv, port });
+  appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
+  if (changed) await appContext.refreshMedia();
+});
+
+/**
+ * Desktop app, while signed in: keeps profiles, progress and My List in step with the TV whose code this computer
+ * scanned (issue #227, DECISIONS.md#d-186): when the app opens or its window comes back, and every 10 minutes.
+ */
+export function useAutoSync(signedIn: boolean) {
+  useEffect(() => {
+    if (!signedIn || !desktop?.pairing.send) return;
+    void autoSync.request();
+    const timer = setInterval(() => void autoSync.request(), AUTO_SYNC_INTERVAL_MS);
+    const visible = () => {
+      if (document.visibilityState === 'visible') void autoSync.request();
+    };
+    document.addEventListener('visibilitychange', visible);
+    window.addEventListener('focus', visible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', visible);
+      window.removeEventListener('focus', visible);
+    };
+  }, [signedIn]);
 }

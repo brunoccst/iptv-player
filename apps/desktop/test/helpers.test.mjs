@@ -122,5 +122,9 @@ test('sends a scanned code only to a private address of the home network (issue 
   assert.equal(pairingUrl('example.com', 80), null);
   assert.equal(pairingUrl('192.168.1.20/evil', 80), null);
   assert.equal(pairingUrl('192.168.1.20', 0), null);
+  // The paired TV's remote server, for the automatic sync (issue #227); no other path.
+  assert.equal(pairingUrl('192.168.1.20', 38127, '/remote'), 'http://192.168.1.20:38127/remote');
+  assert.equal(pairingUrl('192.168.1.20', 38127, '/admin'), null);
+  assert.equal(pairingUrl('8.8.8.8', 38127, '/remote'), null);
   assert.equal(pairingUrl('192.168.1.20', 70000), null);
 });

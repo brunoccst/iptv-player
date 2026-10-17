@@ -35,4 +35,4 @@ Log in to the app with server `http://localhost:8090`, username `demo`, password
 | `/timeshift/{u}/{p}/{minutes}/{YYYY-MM-DD:HH-MM}/{id}.m3u8` | `302` → the HLS test movie for channels with `catchup` (Test Sports FHD); `404` for others. |
 | `/img/{poster|backdrop|still|logo}/{id}.svg` | Generated artwork. Catalog URLs use the request's host. |
 
-Media codecs: VP9 + Opus by default (`--codec h264` for H.264 + AAC). `movie-mkv` is always H.264 in Matroska.
+Media codecs: VP9 + Opus by default (`--codec h264` for H.264 + AAC). `movie-mkv` is always HEVC with AC-3 sound in Matroska: browsers refuse it, the desktop app converts it (D-189).

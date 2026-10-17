@@ -3,6 +3,8 @@ import { downloadsStore, stores, uiStore } from './appContext';
 import { Spinner } from './components/Spinner';
 import { LoginPage } from './features/auth/LoginPage';
 import { SyncWithPhoneHost } from './features/pairing/SyncWithPhone';
+import { useAutoSync } from './features/pairing/pairing';
+import { startBackgroundDownloads } from './features/downloads/backgroundDownloads';
 import { ProfilePicker } from './features/profiles/ProfilePicker';
 import { Shell } from './features/shell/Shell';
 import { UpdateProgress } from './features/shell/UpdateProgress';
@@ -17,10 +19,14 @@ export function App() {
   const activeProfileId = useSession((s) => s.activeProfileId);
   const offline = useSession((s) => s.offline);
   const language = useUiLanguage();
+  // The desktop app stays in step with the TV it scanned (issue #227).
+  useAutoSync(status === 'authenticated');
 
   useEffect(() => {
     void stores.session.getState().restore();
     void downloadsStore.getState().init();
+    // Desktop: downloads go on with the window closed (issue #219).
+    return startBackgroundDownloads();
   }, []);
 
   useEffect(() => {

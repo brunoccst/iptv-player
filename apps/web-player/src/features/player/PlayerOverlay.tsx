@@ -10,7 +10,6 @@ import {
   NEXT_UP_COUNTDOWN_SECONDS,
   SKIP_SECONDS,
   SkipStreak,
-  clampTime,
   findProgress,
   formatClock,
   offlineAccess,
@@ -63,6 +62,8 @@ const PROGRESS_SAVE_MS = 10_000;
 const IDLE_MS = 3000;
 /** How long a notice (e.g. the subtitle OpenSubtitles added, D-111) stays up. */
 const NOTICE_MS = 4000;
+/** How long a video plays before a missing sound counts as a codec Chromium lacks (issue #236). */
+const SOUND_CHECK_MS = 4000;
 
 type Status = 'loading' | 'ready' | 'error';
 
@@ -111,8 +112,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   useNoteRecentChannel(target);
 
   const saveProgress = useCallback(() => {
-    const video = videoRef.current;
-    if (video && !isLive) savePlaybackProgress(stores.progress, target, video.currentTime, video.duration);
+    const engine = engineRef.current;
+    if (engine && !isLive) savePlaybackProgress(stores.progress, target, engine.position, engine.duration);
   }, [target, isLive]);
 
   // Another title starts where its own target says.
@@ -186,6 +187,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         if (text) setError(text);
       });
     };
+    // Desktop: what Chromium cannot decode now plays converted by the app's FFmpeg (issue #236).
+    engine.onConverted((loaded) => {
+      setSource(loaded);
+      setStatus('ready');
+    });
     engine.onFatalError((message, network) => {
       setError(message);
       setRetryable(!!network && !isLive);
@@ -193,19 +199,20 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       explain();
     });
 
+    const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
+    const start = isLive ? 0 : (resumeAt.current ?? target.startAt ?? resumePosition(saved));
     engine
       .load(
         { kind: target.kind, streamId: target.streamId, container: target.container, catchup: target.catchup },
         offlineRecord,
         controller.signal,
+        start,
       )
       .then(
         (loaded) => {
           setSource(loaded);
           setStatus('ready');
-          const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
-          const start = resumeAt.current ?? target.startAt ?? resumePosition(saved);
-          if (start > 0 && !isLive) video.currentTime = start;
+          if (start > 0) engine.seek(start);
           void video.play().catch(() => setPlaying(false));
           engine.hls?.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
           engine.hls?.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => setTracksVersion((v) => v + 1));
@@ -298,18 +305,34 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   }, [playing, isLive, saveProgress]);
 
   const seekTo = useCallback((seconds: number) => {
-    const video = videoRef.current;
-    if (video) video.currentTime = clampTime(seconds, video.duration);
+    engineRef.current?.seek(seconds);
   }, []);
+
+  // Desktop: a few seconds in, a video without any sound has audio Chromium cannot decode; the app converts it from
+  // there (issue #236).
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!playing || !engine || !source || source.offline || source.converted) return;
+    const timer = setTimeout(() => {
+      if (!engine.soundMissing()) return;
+      setNotice(t('Converting the sound for this computer…'));
+      void engine.convertHere().then((loaded) => {
+        if (!loaded || engineRef.current !== engine) return;
+        setSource(loaded);
+        void videoRef.current?.play().catch(() => setPlaying(false));
+      });
+    }, SOUND_CHECK_MS);
+    return () => clearTimeout(timer);
+  }, [playing, source]);
 
   // Presses in a row skip 10 s, 30 s, 1 min, 2 min, then 5 min (D-128); a held key's repeats stay at 10 s.
   const skipStreak = useRef(new SkipStreak()).current;
   const skip = useCallback(
     (side: 'back' | 'forward', repeat = false) => {
-      const video = videoRef.current;
-      if (!video) return;
+      const engine = engineRef.current;
+      if (!engine) return;
       const seconds = repeat ? SKIP_SECONDS : skipStreak.press(side);
-      seekTo(video.currentTime + (side === 'back' ? -seconds : seconds));
+      seekTo(engine.position + (side === 'back' ? -seconds : seconds));
       setFlash({ side, key: Date.now(), seconds });
     },
     [seekTo, skipStreak],
@@ -347,7 +370,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   }, [next, series, target.seriesId, playEpisode]);
 
   const switchVariant = (variant: VariantInfo) => {
-    const video = videoRef.current;
+    const engine = engineRef.current;
     saveProgress();
     chooseVersion(stores, target.masterId!, variant);
     uiStore.getState().replacePlayback({
@@ -355,7 +378,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       streamId: variant.streamId,
       container: variant.containerExtension,
       subtitle: variant.label,
-      startAt: video?.currentTime ?? 0,
+      startAt: engine?.position ?? 0,
     });
   };
 
@@ -467,7 +490,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // The preview opens a second connection: only where the account has one to spare (issue #218).
   const maxConnections = useSession((s) => s.account?.maxConnections ?? null);
   const getPreview = useCallback(() => {
-    if (!source || isLive || source.engine === 'mpegts' || !spareConnection(maxConnections)) return null;
+    // A converted stream (issue #236) has no second copy to take pictures from.
+    if (!source || isLive || source.engine === 'mpegts' || source.converted || !spareConnection(maxConnections)) return null;
     previewRef.current ??= new FrameGrabber(source);
     return previewRef.current;
   }, [source, isLive, maxConnections]);
@@ -489,12 +513,16 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           setPlaying(false);
           saveProgress();
         }}
-        onTimeUpdate={(e) => {
-          const video = e.currentTarget;
-          setTime(video.currentTime);
-          if (video.buffered.length > 0) setBuffered(video.buffered.end(video.buffered.length - 1));
+        onTimeUpdate={() => {
+          const engine = engineRef.current;
+          if (!engine) return;
+          setTime(engine.position);
+          setBuffered(engine.bufferedEnd);
+          setDuration(engine.duration);
         }}
-        onDurationChange={(e) => setDuration(e.currentTarget.duration)}
+        onDurationChange={() => {
+          if (engineRef.current) setDuration(engineRef.current.duration);
+        }}
         onVolumeChange={(e) => {
           setVolume(e.currentTarget.volume);
           setMuted(e.currentTarget.muted);
@@ -688,7 +716,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                   type="button"
                   className="button button--primary"
                   onClick={() => {
-                    const at = videoRef.current?.currentTime ?? 0;
+                    const at = engineRef.current?.position ?? 0;
                     if (at > 0) resumeAt.current = at;
                     setRetry((r) => r + 1);
                   }}
@@ -728,7 +756,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
                   aria-label={skipAheadDescription(seconds)}
                   onClick={() => {
                     setSkipOpen(false);
-                    seekTo((videoRef.current?.currentTime ?? time) + seconds);
+                    seekTo((engineRef.current?.position ?? time) + seconds);
                   }}
                 >
                   {skipAheadLabel(seconds)}

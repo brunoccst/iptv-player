@@ -12,7 +12,8 @@ export interface ProgressState {
   profileId: string | null;
   items: Resource<ProgressDto[]>;
   saveError: ApiError | null;
-  load(profileId: string, options?: { force?: boolean }): Promise<void>;
+  /** `quiet`: keeps the shown list until the new one is read (a refresh after a sync, issue #227). */
+  load(profileId: string, options?: { force?: boolean; quiet?: boolean }): Promise<void>;
   save(kind: ProgressKind, itemId: string, request: ProgressRequest): Promise<void>;
   remove(kind: ProgressKind, itemId: string): Promise<void>;
   reset(): void;
@@ -32,14 +33,15 @@ export function createProgressStore({ api, now = () => new Date().toISOString() 
       items: emptyResource(),
       saveError: null,
 
-      load(profileId, { force = false } = {}) {
+      load(profileId, { force = false, quiet = false } = {}) {
         const { items, profileId: current } = get();
         if (!force && current === profileId) {
           if (inFlight?.profileId === profileId) return inFlight.promise;
           if (items.status === 'success') return Promise.resolve();
         }
 
-        set({ profileId, items: { ...emptyResource(), status: 'loading' } });
+        if (!(quiet && current === profileId && items.status === 'success'))
+          set({ profileId, items: { ...emptyResource(), status: 'loading' } });
         const promise = api.progress
           .list(profileId, PROGRESS_LIST_LIMIT)
           .then(

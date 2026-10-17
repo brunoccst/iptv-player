@@ -3,6 +3,7 @@ import type { AppConfig } from './config/appConfig';
 import { createDirectApiClient } from './direct/directApiClient';
 import type { ListReader } from './direct/xtream';
 import type { SqlDatabase } from './direct/sqlLibrary';
+import type { NameRow } from './direct/nameRow';
 import { withKidsFilter } from './profiles/kidsFilter';
 import { languageCategoryIds } from './profiles/contentLanguages';
 import { withHiddenCategories } from './profiles/hiddenCategories';
@@ -45,6 +46,11 @@ export interface AppContext {
   subtitles: SubtitleService;
   /** Re-reads the saved login and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
+  /**
+   * Re-reads the profiles, progress and My List after an automatic sync changed them (issue #227), keeping the lists on
+   * screen until the new ones are read; the open profile stays unless it was deleted.
+   */
+  refreshMedia(): Promise<void>;
   /** Tests only: answer every call from `api` instead of the provider (`null` goes back). */
   replaceApi(api: ApiClient | null): void;
 }
@@ -63,6 +69,8 @@ export interface AppContextOptions {
     listReader?: ListReader;
     /** SHA-1 of title ids in native code (D-093). */
     hashIds?(texts: string[]): Promise<string[]>;
+    /** TV/phone: provider names read outside the JavaScript thread, in the system WebView (issue #228, D-188). */
+    parseNames?(names: string[]): Promise<NameRow[]>;
     /** TV/phone: the library in SQLite (D-121). */
     libraryDb?: SqlDatabase;
   };
@@ -105,6 +113,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     userAgent: direct.userAgent,
     listReader: direct.listReader,
     hashIds: direct.hashIds,
+    parseNames: direct.parseNames,
     libraryDb: direct.libraryDb,
   });
   let replacement: ApiClient | null = testApi ?? null;
@@ -255,10 +264,21 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     }
   };
 
+  const refreshMedia = async () => {
+    await session.getState().refreshProfiles();
+    const profileId = session.getState().activeProfileId;
+    if (profileId)
+      await Promise.all([
+        progress.getState().load(profileId, { force: true, quiet: true }),
+        watchlist.getState().load(profileId, { force: true, quiet: true }),
+      ]);
+  };
+
   return {
     config,
     api,
     reload,
+    refreshMedia,
     replaceApi: (next) => {
       replacement = next;
     },

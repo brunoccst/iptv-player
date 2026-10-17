@@ -62,6 +62,19 @@ try {
     .toBeGreaterThan(1.5);
   console.log('movie plays from the panel');
 
+  // HEVC with AC-3 sound: Chromium plays neither; the app's FFmpeg converts it, sound included (issue #236).
+  await page.getByRole('button', { name: 'Back' }).first().click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Matroska Only' }).first().click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Play' }).click();
+  await expect
+    .poll(() => page.evaluate(() => document.querySelector('.player__video')?.currentTime ?? 0), { timeout: 60_000 })
+    .toBeGreaterThan(1.5);
+  const decoded = await page.evaluate(() => document.querySelector('.player__video')?.webkitAudioDecodedByteCount ?? 0);
+  assert.ok(decoded > 0, 'converted sound plays');
+  console.log('HEVC and AC-3 play converted by FFmpeg');
+
   await app.close();
   app = await launch();
   page = await app.firstWindow();
@@ -81,6 +94,17 @@ try {
     `user data in the database: ${keys.join(', ')}`,
   );
   console.log('profiles are in the database');
+
+  // Downloads go on with the window closed (issue #219, D-187): the window only hides, and the app quits once they end.
+  await page.evaluate(() => window.iptvDesktop.setDownloadsActive(true));
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
+  await expect
+    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((window) => window.isVisible())))
+    .toEqual([false]);
+  const quit = new Promise((resolve) => app.once('close', resolve));
+  await page.evaluate(() => window.iptvDesktop.setDownloadsActive(false)).catch(() => undefined);
+  await quit;
+  console.log('downloads keep the app open with the window closed, then it quits');
 } finally {
-  await app.close();
+  await app.close().catch(() => undefined);
 }

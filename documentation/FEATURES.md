@@ -60,6 +60,8 @@ An "EAR" version (English audio with Arabic subtitles in the picture, D-017) is 
 
 The library is built on the first sign-in and kept on the device; the app starts from it at once (D-121). The account menu → Library & devices → Refresh library downloads the provider's lists again and changes only what changed; a list identical to the last one is not compared at all (D-135, D-119). A message then says how many titles were added, changed and removed. Live channels and the TV guide are downloaded daily and after an update (D-121, D-130).
 
+On the TV and phone, new title names are read in the system WebView, outside the app's JavaScript thread, so the app stays responsive while a large library is built; if the WebView is missing or fails, the app reads them itself as before (D-188).
+
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
 ### Library banner
@@ -190,9 +192,9 @@ Unplugging headphones or losing a Bluetooth headset pauses playback instead of c
 
 ### Playback errors
 
-When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). The desktop app plays what Chromium plays; MKV with Dolby / DTS audio or HEVC without a decoder go to the TV app or VLC, and the error offers Open in VLC ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
+When a stream does not play, the error and the Log say why: the provider's answer (max connections, not found, expired, …), or a video the device cannot decode (D-074). The apps try the provider's stream server when the portal fails (D-088). When the provider's server stops answering in the middle of a video, the TV and phone app say so on screen ("The provider stopped sending the video. Reconnecting…") and carry on from the same point on the stream server, then the HLS copy; when nothing answers, the message says it is a problem on the provider's side and offers Try again, which starts again from where the video stopped. The desktop app gives the same message and Try again (D-074). What Chromium cannot decode (HEVC without a decoder, Xvid, MPEG-2, AVI; Dolby Digital, DTS or TrueHD sound) the desktop app converts while it plays, with the FFmpeg it brings along: a video that does not load, or plays without sound, starts again converted from the same point, and seeking past the converted part converts from there (D-189). Only when that fails too does the error offer Open in VLC.
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Desktop plays MKV with H.264/AAC but not HEVC without a decoder or AC3/DTS audio ([#236](https://github.com/brunoccst/iptv-player/issues/236)).
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
 ### Connection limit
 
@@ -274,6 +276,8 @@ When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR,
 
 Download movies and episodes to watch without a connection; My Downloads lists them. Downloads are encrypted, play only in the app, are deleted on sign-out and need the app online every 30 days (D-024, D-029, D-050).
 
+In the desktop app, closing the window while something downloads hides the window instead, and the downloads go on; a tray icon opens the app again or quits it, and the app closes by itself when they are done (issue #219, D-187). Accounts with more than one stream download up to three titles at once, keeping one stream free for watching.
+
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
 ## Profiles
@@ -319,6 +323,12 @@ Every app shows a QR code: on the sign-in page, and under account menu → Libra
 Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the scanning device's wins; watched series and recent channels are joined. A parental PIN already set on the device showing the code stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones, tablets and computers with a camera also scan one.
+
+### Staying in sync with the TV
+
+After a phone, tablet or computer has scanned the TV's code once, it keeps its profiles, progress and My List in step with that TV on its own (issue #227, D-186): when the app opens, when it comes back to the front, and every 10 minutes while it is open, as long as the TV app is open on the same home network. The TV merges and answers with the merged lists, so two phones paired with the same TV also end up the same through it. Per title the newest progress wins. Removing a title from My List or Continue watching, or deleting a profile, carries over too; adding the title again later brings it back. A renamed profile keeps the name it was given last. Profile settings (languages, subtitles and the like) still only merge when a code is scanned. Devices that never scanned a TV, such as two phones, don't sync on their own (issue #268).
+
+**Apps:** TV ✅ (the other devices sync with it) · Phone ✅ · Desktop ✅
 
 ### Play on TV
 
