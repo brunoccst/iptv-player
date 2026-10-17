@@ -88,12 +88,12 @@ export function transcodeArguments({ url, userAgent, folder, probe, at = 0, live
     '-hls_fmp4_init_filename',
     'init.mp4',
     '-hls_segment_filename',
-    path.join(folder, 's%05d.m4s'),
+    `${toFfmpegPath(folder)}/s%05d.m4s`,
   );
   // Live: a moving window of segments; films and episodes: every segment stays, so going back needs no new conversion.
   if (live) args.push('-hls_list_size', '10', '-hls_flags', 'delete_segments+temp_file+independent_segments');
   else args.push('-hls_list_size', '0', '-hls_playlist_type', 'event', '-hls_flags', 'temp_file+independent_segments');
-  args.push(path.join(folder, 'index.m3u8'));
+  args.push(`${toFfmpegPath(folder)}/index.m3u8`);
   return args;
 }
 
@@ -145,6 +145,12 @@ export async function createRelay({ userAgent, fetch: fetchUrl = fetch }) {
     close: () => new Promise((resolve) => server.close(resolve)),
   };
 }
+
+/**
+ * FFmpeg's HLS writer finds the playlist's folder by its last '/': with Windows backslashes it writes init.mp4 into
+ * the working folder instead. FFmpeg takes '/' on every system.
+ */
+const toFfmpegPath = (folder) => folder.split(path.sep).join('/');
 
 /** Last lines of FFmpeg's error output, for the log (provider addresses are masked by the page's log). */
 const tail = (text) => text.trim().split(/\r?\n/).slice(-3).join(' | ');

@@ -58,7 +58,7 @@ test('converts what Chromium cannot decode and copies the rest', () => {
 test('plays an HEVC and AC-3 file through H.264 and AAC, from the second asked for', { timeout: 120_000 }, async (t) => {
   if (!ffmpeg || !existsSync(ffmpeg)) return t.skip('no FFmpeg binary');
   const folder = mkdtempSync(path.join(tmpdir(), 'transcode-'));
-  t.after(() => rmSync(folder, { recursive: true, force: true }));
+  t.after(() => rmSync(folder, { recursive: true, force: true, maxRetries: 5 }));
   const source = path.join(folder, 'movie.mkv');
   execFileSync(ffmpeg, [
     ...['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=20'],
@@ -77,6 +77,8 @@ test('plays an HEVC and AC-3 file through H.264 and AAC, from the second asked f
   const url = `http://localhost:${server.address().port}/movie/u/p/1.mkv`;
 
   const transcoder = createTranscoder({ ffmpeg, root: path.join(folder, 'out'), userAgent: 'VLC/3.0.21' });
+  // Also when an assertion fails: a running FFmpeg or the relay would keep the test process open.
+  t.after(() => transcoder.close());
   const probe = await transcoder.probe(url);
   assert.equal(agent, 'VLC/3.0.21');
   assert.deepEqual(probe.video, { codec: 'hevc', height: 360, hdr: false });
