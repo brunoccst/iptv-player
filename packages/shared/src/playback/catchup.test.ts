@@ -23,6 +23,13 @@ describe('catch-up (issue #226)', () => {
     expect(catchupMode(channel, null, at('2026-10-12T19:00:00Z'))).toBeNull();
   });
 
+  it('offers only programmes the provider still keeps (issue #247)', () => {
+    const twoDays = { ...channel, catchupDays: 2 };
+    expect(catchupMode(twoDays, programme, at('2026-10-14T17:59:00Z'))).toBe('past');
+    expect(catchupMode(twoDays, programme, at('2026-10-14T18:01:00Z'))).toBeNull();
+    expect(catchupMode({ ...channel, catchupDays: null }, programme, at('2026-10-20T18:00:00Z'))).toBe('past');
+  });
+
   it('makes a seekable target for the programme', () => {
     const target = catchupTarget(channel, programme);
     expect(target).toMatchObject({

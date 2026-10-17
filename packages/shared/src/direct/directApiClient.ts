@@ -42,6 +42,7 @@ import {
   type SqlLiveChannels,
 } from './sqlLibrary';
 import type { GuideProgramme } from './xmltv';
+import { floorToSlot } from '../epg/guide';
 import { reattachTitles, type TitleLookup } from './reattach';
 import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
@@ -122,7 +123,6 @@ const LIBRARY_REFRESH_MS = 24 * 3600_000;
 const GUIDE_WINDOW_MS = 24 * 3600_000;
 const GUIDE_REFRESH_MS = 12 * 3600_000;
 const PROGRAMME_SEARCH_LIMIT = 30;
-const SLOT_MS = 30 * 60_000;
 const MAX_PROFILES = 5;
 const MAX_PROFILE_NAME = 50;
 
@@ -1220,7 +1220,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
 
   const epgGrid = async (query: EpgGridQuery = {}, signal?: AbortSignal): Promise<EpgGrid> => {
     const current = now();
-    const from = query.from ? new Date(query.from) : new Date(Math.floor(current.getTime() / SLOT_MS) * SLOT_MS);
+    const from = query.from ? new Date(query.from) : new Date(floorToSlot(current.getTime()));
     const to = new Date(from.getTime() + clamp(query.hours ?? 3, 1, 12) * 3600_000);
     const offset = Math.max(0, query.offset ?? 0);
     const limit = clamp(query.limit ?? 50, 1, 200);

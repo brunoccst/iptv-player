@@ -11,10 +11,11 @@ export interface CatchupWindow {
 
 /**
  * How a guide programme can be watched: `past` from the recording (it has ended), `restart` from its start (it is on
- * now), or null (no recordings on this channel, or it has not started).
+ * now), or null (no recordings on this channel, it has not started, or it started before the provider's recordings
+ * do, issue #247).
  */
 export function catchupMode(
-  channel: Pick<LiveChannel, 'hasCatchup'>,
+  channel: Pick<LiveChannel, 'hasCatchup' | 'catchupDays'>,
   programme: EpgListing | null,
   now: number,
 ): 'past' | 'restart' | null {
@@ -22,6 +23,7 @@ export function catchupMode(
   const start = Date.parse(programme.start);
   const end = Date.parse(programme.end);
   if (!(start < end) || start > now) return null;
+  if ((channel.catchupDays ?? 0) > 0 && start < now - channel.catchupDays! * 24 * 3600_000) return null;
   return end <= now ? 'past' : 'restart';
 }
 

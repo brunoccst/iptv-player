@@ -542,14 +542,16 @@ const GuideRow = memo(function GuideRow({
               ]}
               onPress={() => activate({ channel, programme }, onSelect, () => playProgramme(channel, programme, now))}
               // TV: holding OK on the programme on now watches it from its start (issue #226).
-              onLongPress={Platform.isTV && onNow && channel.hasCatchup ? () => playRecording(channel, programme) : undefined}
+              onLongPress={
+                Platform.isTV && catchupMode(channel, programme, now) === 'restart' ? () => playRecording(channel, programme) : undefined
+              }
               onFocus={() => Platform.isTV && onSelect({ channel, programme })}
               edge={{ first: index === firstCell, last: index === lastCell }}
               onEdge={onEdge}
             >
               <Text style={styles.programmeTitle} numberOfLines={1}>
                 {cell.clippedStart ? '‹ ' : ''}
-                {past && channel.hasCatchup ? '↺ ' : ''}
+                {catchupMode(channel, programme, now) === 'past' ? '↺ ' : ''}
                 {programme.title}
               </Text>
               <Text style={styles.programmeTime} numberOfLines={1}>
