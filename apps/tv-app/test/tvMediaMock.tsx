@@ -54,6 +54,11 @@ export const nativeState = {
   watchNext: [] as (WatchNextRow & { entry: WatchNextEntry })[],
   watchNextLaunch: null as string | null,
   watchNextListeners: new Set<(event: { id: string }) => void>(),
+  externalPlayerListeners: new Set<(event: { positionMs: number; durationMs: number }) => void>(),
+  /** Another player opened with `openExternalPlayer` returns, stopped at `positionMs` (issue #234). */
+  returnFromExternalPlayer(positionMs: number, durationMs: number) {
+    this.externalPlayerListeners.forEach((listener) => listener({ positionMs, durationMs }));
+  },
   /** Phone player (D-046): the window's brightness (-1: the system's, which is `systemBrightness`) and the media volume in steps. */
   brightness: -1,
   systemBrightness: 0.5,
@@ -96,6 +101,7 @@ export const nativeState = {
     this.watchNext = [];
     this.watchNextLaunch = null;
     this.watchNextListeners.clear();
+    this.externalPlayerListeners.clear();
     this.brightness = -1;
     this.systemBrightness = 0.5;
     this.volumeStep = 5;
@@ -189,19 +195,27 @@ export const TvMedia = {
     return id;
   },
   addListener: ((
-    event: 'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress' | 'onWatchNextOpen',
-    listener: Listener | PairingListener | ((event: { bytes: number; total: number }) => void) | ((event: { id: string }) => void),
+    event:
+      'onDownloadsChanged' | 'onPairingRequest' | 'onRemoteRequest' | 'onUpdateProgress' | 'onWatchNextOpen' | 'onExternalPlayerResult',
+    listener:
+      | Listener
+      | PairingListener
+      | ((event: { bytes: number; total: number }) => void)
+      | ((event: { id: string }) => void)
+      | ((event: { positionMs: number; durationMs: number }) => void),
   ) => {
     const set = (
-      event === 'onWatchNextOpen'
-        ? nativeState.watchNextListeners
-        : event === 'onPairingRequest'
-          ? nativeState.pairingListeners
-          : event === 'onRemoteRequest'
-            ? nativeState.remoteListeners
-            : event === 'onUpdateProgress'
-              ? nativeState.updateListeners
-              : nativeState.listeners
+      event === 'onExternalPlayerResult'
+        ? nativeState.externalPlayerListeners
+        : event === 'onWatchNextOpen'
+          ? nativeState.watchNextListeners
+          : event === 'onPairingRequest'
+            ? nativeState.pairingListeners
+            : event === 'onRemoteRequest'
+              ? nativeState.remoteListeners
+              : event === 'onUpdateProgress'
+                ? nativeState.updateListeners
+                : nativeState.listeners
     ) as Set<typeof listener>;
     set.add(listener);
     return { remove: () => set.delete(listener) };
@@ -210,6 +224,7 @@ export const TvMedia = {
     (event: 'onPairingRequest' | 'onRemoteRequest', listener: PairingListener): { remove(): void };
     (event: 'onUpdateProgress', listener: (event: { bytes: number; total: number }) => void): { remove(): void };
     (event: 'onWatchNextOpen', listener: (event: { id: string }) => void): { remove(): void };
+    (event: 'onExternalPlayerResult', listener: (event: { positionMs: number; durationMs: number }) => void): { remove(): void };
   },
   startPairing: () => {
     nativeState.pairingRunning = true;
@@ -263,8 +278,8 @@ export const TvMedia = {
     nativeState.calls.push('remove-all');
     nativeState.downloads = [];
   },
-  openExternalPlayer: (uri: string, mimeType: string, title: string, headers: Record<string, string>) => {
-    nativeState.calls.push(`external:${uri}:${mimeType}:${title}:${JSON.stringify(headers)}`);
+  openExternalPlayer: (uri: string, mimeType: string, title: string, headers: Record<string, string>, positionMs: number) => {
+    nativeState.calls.push(`external:${uri}:${mimeType}:${title}:${JSON.stringify(headers)}:${positionMs}`);
     return nativeState.externalPlayerResult;
   },
 };

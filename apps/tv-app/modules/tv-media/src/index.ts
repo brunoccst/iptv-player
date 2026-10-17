@@ -23,6 +23,8 @@ type TvMediaEvents = {
   onUpdateProgress(event: { bytes: number; total: number }): void;
   /** A title of this app was chosen in the home screen's "Continue watching" row while the app runs (D-147). */
   onWatchNextOpen(event: { id: string }): void;
+  /** Another player opened with `openExternalPlayer` returned: where it stopped, in ms (issue #234). `durationMs` 0: unknown. */
+  onExternalPlayerResult(event: { positionMs: number; durationMs: number }): void;
 };
 
 declare class TvMediaModule extends NativeModule<TvMediaEvents> {
@@ -71,7 +73,13 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   /** Removes every download (sign-out, account change). */
   removeAllDownloads(): void;
   /** Opens the stream in another video player app (D-057). */
-  openExternalPlayer(uri: string, mimeType: string, title: string, headers: Record<string, string>): ExternalPlayerResult;
+  openExternalPlayer(
+    uri: string,
+    mimeType: string,
+    title: string,
+    headers: Record<string, string>,
+    positionMs: number,
+  ): ExternalPlayerResult;
   /** TV: starts the pairing server on the home network (D-060). `host` is null when not connected. */
   startPairing(): { host: string | null; port: number; key: string };
   respondPairing(id: string, status: number, body: string): void;

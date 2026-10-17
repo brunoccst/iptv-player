@@ -196,7 +196,7 @@ FFmpeg decoders for Dolby Digital / Plus and DTS are built in; the account menu 
 
 ### Open in another player
 
-Hands a movie or episode to another player app with the provider's User-Agent: VLC, MX Player, Just Player and others on TV and phone, VLC in the desktop app (D-057, D-081). From movie details and the episode "…" menu. Not for Kids profiles.
+Hands a movie or episode to another player app with the provider's User-Agent: VLC, MX Player, Just Player and others on TV and phone, VLC in the desktop app (D-057, D-081). From movie details and the episode "…" menu. Not for Kids profiles. On TV and phone, MX Player and Just Player start where you left off, and where any of these players stops is saved as the title's progress when you come back (issue #234); Open in VLC on the computer saves none (issue #265).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV and phone: any player app · desktop: VLC.
 

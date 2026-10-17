@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Progress from other players** (2026-10-17, D-057, issue #234): when you watch a movie or episode in MX Player, Just Player or VLC, where you stopped is saved when you come back to the app, so Continue watching and Resume pick up from there. MX Player and Just Player also start where you left off.
 - **Two days of TV guide, with descriptions** (2026-10-17, D-032, issue #248): the guide now has programmes for the next two days, as far as it goes, instead of one, and search finds them too. Programmes filled in from your provider's full guide now show their description when you open them.
 - **Guide reminders** (2026-10-17, D-184, issue #239): ask to be reminded of a programme that has not started (on the TV, hold OK on it; on the phone, Remind me in its details). When it starts, the app says so, also during a movie, and Watch tunes to the channel. The app has to be open.
 - **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.

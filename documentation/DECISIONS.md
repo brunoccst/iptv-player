@@ -476,7 +476,9 @@ A round button in details saves a movie or series; saved titles show as a Home r
 - Desktop: **Open in VLC**; the main process finds VLC in the usual folders and on PATH and starts it with the stream and the User-Agent, http(s) only. The player's error offers it too.
 - Not in a browser, not on Kids profiles, not for downloads (encrypted, D-050).
 
-Limits: progress watched elsewhere is not saved ([#234](https://github.com/brunoccst/iptv-player/issues/234)).
+- TV/phone progress (issue #234): the intent is started for a result with `return_result`; MX Player and Just Player send `position`/`duration` (ints, ms) and `end_by`, VLC `extra_position`/`extra_duration` (longs), and the stop point is saved like our player's. The saved progress goes in `position` (an int, what MX Player and Just Player read; VLC reads a long there, so it starts from the beginning). Through the app chooser the chosen app's result still comes back.
+
+Limits: Open in VLC on the desktop reports nothing back, so no progress there (issue #265).
 
 ## D-058
 
