@@ -114,6 +114,11 @@ export interface MasterDetails {
   id: string;
   posterUrl: null | string;
   rating: null | number;
+  /**
+   * How the user's splits and merges made the title (issue #243): other titles were merged into it, or it is a version
+   * split off another title. Missing where titles cannot be split or merged (no library database).
+   */
+  regrouping?: { merged: boolean; splitOff: boolean };
   title: string;
   variants: VariantInfo[];
   year: null | number;

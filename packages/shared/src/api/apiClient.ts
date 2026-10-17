@@ -31,6 +31,9 @@ import type {
 } from './types';
 
 /** Omitted `sort` = `added`; omitted `order` = `desc` for dates, `asc` for titles (D-049). */
+/** A split or merge by hand (issue #243). */
+export type RegroupChange = { action: 'split'; streamId: string } | { action: 'merge'; fromId: string } | { action: 'undo' };
+
 export interface LibraryListQuery {
   categoryId?: string | null;
   search?: string | null;
@@ -122,6 +125,13 @@ export interface ApiClient {
     status(signal?: AbortSignal): Promise<LibraryStatus[]>;
     list(section: LibrarySection, query?: LibraryListQuery, signal?: AbortSignal): Promise<LibraryPage>;
     get(section: LibrarySection, masterId: string, signal?: AbortSignal): Promise<MasterDetails>;
+    /**
+     * Splits or merges titles by hand (issue #243), kept as rules the grouping applies on this device, and groups the
+     * library again: `split` makes the version `streamId` a title of its own, `merge` puts the title `fromId` into this
+     * one, `undo` takes this title's merges or split back. Resolves with the id of the title the rest of this one is
+     * in afterwards. Absent where titles cannot be split or merged.
+     */
+    regroup?(section: LibrarySection, masterId: string, change: RegroupChange): Promise<string>;
   };
   epg: {
     grid(query?: EpgGridQuery, signal?: AbortSignal): Promise<EpgGrid>;

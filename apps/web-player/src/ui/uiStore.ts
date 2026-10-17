@@ -29,6 +29,8 @@ export interface UiState extends UiSnapshot {
   setCategory(categoryId: string | null): void;
   setSearch(query: string): void;
   openDetails(target: DetailsTarget): void;
+  /** Shows other details in place of the open ones, without a new history entry (after a split or merge). */
+  replaceDetails(target: DetailsTarget): void;
   closeDetails(): void;
   play(target: PlayTarget): void;
   /** Replaces the current item without a new history entry (next episode, version switch). */
@@ -101,6 +103,10 @@ export function createUiStore(
         replace();
       },
       openDetails: (details) => push({ details }),
+      replaceDetails: (details) => {
+        set({ details });
+        replace();
+      },
       closeDetails: () => (history && get().details ? history.back() : set({ details: null })),
       play: (playing) => push({ playing }),
       replacePlayback: (playing) => {

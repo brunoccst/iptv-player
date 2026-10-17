@@ -151,6 +151,8 @@ export function createFakeApi(
           languageCategoryIds: list(query.languageCategoryIds),
         } as Query),
       get: (section, masterId) => get(`/api/library/${section}/${id(masterId)}`),
+      regroup: async (section, masterId, change) =>
+        ((await request('POST', `/api/library/${section}/${id(masterId)}/regroup`, { body: change })) as { masterId: string }).masterId,
     },
     epg: {
       grid: (query = {}) => get('/api/epg', { ...query, categoryIds: list(query.categoryIds) } as Query),

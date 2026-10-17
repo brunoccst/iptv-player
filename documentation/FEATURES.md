@@ -42,6 +42,12 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Split or merge titles
+
+When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is kept on the device and applied to every library update; My List and progress follow the titles they were on. Splits and merges are not synced between devices (issue #267).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Not in the plain web player, which keeps its library in memory (issue #267).
+
 ### Version choice and "(best)"
 
 A title with several versions marks the highest quality "(best)"; versions of equal quality are ordered by the profile's or the app's language (D-087). A title starts with its best version in the profile's languages (Account menu → Language), even when another language has a better quality (D-087, issue #163); the version last picked sets the quality in that language and, for titles with no version in the profile's languages, the language too (D-087). A version picked for a title stays its choice.

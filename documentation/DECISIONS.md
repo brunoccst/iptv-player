@@ -90,6 +90,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-182](#d-182) | Every card menu option has an icon |
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 | [D-184](#d-184) | Guide reminders |
+| [D-185](#d-185) | Split and merge titles by hand |
 
 ## Merged and retired IDs
 
@@ -1008,3 +1009,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - TV and phone: a popup over any page and the player (focus stays inside it). Desktop: a banner at the top right that does not take focus, over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
 - TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
 - Not with the app closed: that needs Android alarms and notifications (issue #263).
+
+## D-185
+
+**Split and merge titles by hand** — 2026-10-17 (issue #243)
+
+- Rules in the library database (`title_rules`, per account and kind), applied by the grouping queries after the automatic rules (D-133): a `split` gives one provider item (stream id) a group of its own (`'s' || sid`, which also goes into its title id, so it never takes the id of the title it left); a `merge` sends every item of one group key (`gk`: cleaned name and year, or TMDB id and year) to another. Merging into a title whose key other merges point to moves those along, so rules never chain.
+- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
+- A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
+- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).

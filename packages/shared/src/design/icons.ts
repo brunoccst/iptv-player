@@ -36,6 +36,10 @@ export const iconPaths = {
     'M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM4 12h4v2H4zm10 6H4v-2h10zm6 0h-4v-2h4zm0-4H10v-2h10z',
   search: 'M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z',
   plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',
+  /** Merge titles (issue #243). */
+  merge: 'M17 20.4 18.4 19 15 15.6 13.6 17zM7.5 8H11v5.6L5.6 19 7 20.4l6-6V8h3.5L12 3.5z',
+  /** Split a version off (issue #243). */
+  split: 'M14 4l2.3 2.3-2.9 2.9 1.4 1.4 2.9-2.9L20 10V4zm-4 0H4v6l2.3-2.3 4.7 4.7V20h2v-8.4l-5.3-5.3z',
   /** My List (issue #157): a filled bookmark when saved, its outline when not. */
   bookmark: 'M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2z',
   bookmarkOutline: 'M17 3H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2zm0 15-5-2.2L7 18V5h10z',

@@ -49,6 +49,18 @@ export interface SqlLibraryKind {
   orders: string[] | null;
   /** A fingerprint of the provider's list it was built from (D-135): the same list again needs no comparing. */
   fingerprint: string | null;
+  /** A fingerprint of the split and merge rules it was grouped with (issue #243); empty without rules. */
+  ruleSig: string;
+}
+
+/**
+ * A split or merge the user made (issue #243, DECISIONS.md#d-185), per account and kind: `split` takes the item `src`
+ * (a stream id) out of its title; `merge` sends every item of the group `src` (a group key) to the group `dst`.
+ */
+export interface TitleRule {
+  rule: 'split' | 'merge';
+  src: string;
+  dst: string;
 }
 
 /** Rows written per statement batch (one native call). */
@@ -96,6 +108,10 @@ const META = `CREATE TABLE IF NOT EXISTS library (
 
 /** The day each account's movie or series names were last marked as seen (D-135): once a day is enough. */
 const NAMES_SEEN = `CREATE TABLE IF NOT EXISTS names_seen (list TEXT PRIMARY KEY, day INTEGER NOT NULL) WITHOUT ROWID`;
+
+/** The split and merge rules (issue #243). */
+const RULES = `CREATE TABLE IF NOT EXISTS title_rules (account TEXT NOT NULL, kind TEXT NOT NULL, rule TEXT NOT NULL, src TEXT NOT NULL,
+  dst TEXT NOT NULL, PRIMARY KEY (account, kind, rule, src)) WITHOUT ROWID`;
 
 const NAMES_TABLE = `CREATE TABLE IF NOT EXISTS ${NAMES} (name TEXT PRIMARY KEY, title TEXT NOT NULL, nkey TEXT NOT NULL, ckey TEXT NOT NULL,
   nyear INTEGER, quality TEXT, source TEXT, audio TEXT NOT NULL, atag TEXT, hdr INTEGER NOT NULL, subs TEXT NOT NULL,
@@ -206,9 +222,9 @@ const comparing = (t: string, o: string): string[][] => [
  */
 const grouping = (t: string, o: string | null, base: number): string[][] => [
   [
-    `CREATE TABLE ${t}_p (pid INTEGER PRIMARY KEY, ckey TEXT NOT NULL, year INTEGER, tmdb TEXT, gyear INTEGER, k TEXT, tm TEXT,
-      gk TEXT, sx TEXT)`,
-    `INSERT INTO ${t}_p (pid, ckey, year, tmdb) SELECT r.rowid, n.ckey, IFNULL(n.nyear, r.ryear), r.tmdb
+    `CREATE TABLE ${t}_p (pid INTEGER PRIMARY KEY, sid TEXT NOT NULL, ckey TEXT NOT NULL, year INTEGER, tmdb TEXT, gyear INTEGER,
+      k TEXT, tm TEXT, gk TEXT, sx TEXT)`,
+    `INSERT INTO ${t}_p (pid, sid, ckey, year, tmdb) SELECT r.rowid, r.sid, n.ckey, IFNULL(n.nyear, r.ryear), r.tmdb
       FROM ${t}_r r JOIN ${NAMES} n ON n.name = r.name${o ? ` WHERE n.ckey IN (SELECT ckey FROM ${t}_k)` : ''}`,
   ],
   [
@@ -228,6 +244,11 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
     // without one in a key with several.
     `UPDATE ${t}_p SET sx = CASE WHEN tm IS NULL THEN CASE WHEN EXISTS (SELECT 1 FROM ${t}_t WHERE k = ${t}_p.k) THEN '-' ELSE '' END
       WHEN tm > (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k) THEN tm ELSE '' END`,
+    // The user's rules (`_u`, issue #243): a split item gets a group (and title id) of its own, then a merged group
+    // goes into the other one.
+    `UPDATE ${t}_p SET gk = 's' || sid, sx = 's' || sid WHERE sid IN (SELECT src FROM ${t}_u WHERE rule = 'split')`,
+    `UPDATE ${t}_p SET gk = (SELECT dst FROM ${t}_u WHERE rule = 'merge' AND src = ${t}_p.gk)
+      WHERE gk IN (SELECT src FROM ${t}_u WHERE rule = 'merge')`,
   ],
   [
     `CREATE TABLE ${t}_g (g INTEGER PRIMARY KEY, gk TEXT NOT NULL UNIQUE)`,
@@ -249,7 +270,7 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
         o ? ` LEFT JOIN ${t}_x m ON p.pid IS NULL AND m.rid = r.rowid LEFT JOIN ${o}_i x ON x.rowid = m.oid` : ''
       }
       ORDER BY r.rowid`,
-    ...['_r', '_p', '_y', '_t', '_g', ...(o ? ['_x', '_k'] : [])].map((suffix) => `DROP TABLE ${t}${suffix}`),
+    ...['_r', '_p', '_y', '_t', '_g', '_u', ...(o ? ['_x', '_k'] : [])].map((suffix) => `DROP TABLE ${t}${suffix}`),
   ],
   [`CREATE INDEX ${t}_ig ON ${t}_i(g)`, `CREATE INDEX ${t}_is ON ${t}_i(sid)`],
   ...newTitles(t, base),
@@ -379,6 +400,7 @@ const drops = (t: string) =>
     '_k',
     '_e',
     '_z',
+    '_u',
     ...[NEWEST, ...Object.values(ORDERS)].map(({ column }) => `_o${column}`),
   ].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
 
@@ -467,6 +489,11 @@ export interface LibraryBuildOptions {
   onTimings?(timings: LibraryBuildTimings): void;
   /** Milliseconds of parsing between breaks for the screen. */
   sliceMs?: number;
+  /**
+   * Compact keys to group again although their items did not change, because the rules changed for them (issue #243):
+   * the last library is then a starting point although it was grouped with other rules.
+   */
+  changedKeys?: string[];
 }
 
 export interface LibraryBuildTimings {
@@ -489,6 +516,12 @@ export interface LibraryBuildTimings {
   builtTitles: number;
   /** The titles in their row order, indexes and categories. */
   titles: number;
+}
+
+/** How a title came out of the user's split and merge rules (issue #243). */
+export interface TitleRegrouping {
+  merged: boolean;
+  splitOff: boolean;
 }
 
 /** Items native code already saved in a library's items table (`createItems`, D-135). */
@@ -518,11 +551,12 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
    */
   const prepare = () =>
     (ready ??= (async () => {
-      await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }]);
+      await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }, { sql: RULES }]);
       // The orders column came with D-135 (libraries from before keep their orders as columns: null), fp with D-135.
       const columns = (await db.query('PRAGMA table_info(library)')).map((row) => String(row[1]));
       if (!columns.includes('orders')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN orders TEXT' }]);
       if (!columns.includes('fp')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN fp TEXT' }]);
+      if (!columns.includes('rsig')) await db.run([{ sql: "ALTER TABLE library ADD COLUMN rsig TEXT NOT NULL DEFAULT ''" }]);
       const used = new Set((await db.query('SELECT tbl FROM library')).map((row) => String(row[0])));
       const orphans = (await db.query("SELECT name FROM sqlite_master WHERE type = 'table' AND name GLOB 'lib[0-9]*'"))
         .map((row) => String(row[0]))
@@ -554,8 +588,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
   const tableExists = async (name: string) =>
     (await db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", [name])).length > 0;
 
-  const KIND_COLUMNS = 'kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp';
-  const kindOf = ([, table, builtAt, rules, count, sorts, prefixes, orders, fp]: SqlValue[]): SqlLibraryKind => ({
+  const KIND_COLUMNS = 'kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp, rsig';
+  const kindOf = ([, table, builtAt, rules, count, sorts, prefixes, orders, fp, rsig]: SqlValue[]): SqlLibraryKind => ({
     table: String(table),
     builtAt: String(builtAt),
     current: Number(rules) === NORMALIZER_RULES,
@@ -565,7 +599,15 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     prefixes: JSON.parse(String(prefixes)) as string[],
     orders: orders === null || orders === undefined ? null : (JSON.parse(String(orders)) as string[]),
     fingerprint: textOrNull(fp),
+    ruleSig: textOrNull(rsig) ?? '',
   });
+
+  /** The account's rules for a kind (issue #243), in a fixed order. */
+  const rulesOf = async (account: string, kind: LibraryKind): Promise<TitleRule[]> =>
+    (await db.query('SELECT rule, src, dst FROM title_rules WHERE account = ? AND kind = ? ORDER BY rule, src', [account, kind])).map(
+      ([rule, src, dst]) => ({ rule: rule === 'split' ? 'split' : 'merge', src: String(src), dst: String(dst) }),
+    );
+  const signature = (rules: TitleRule[]) => (rules.length ? sha1Hex(JSON.stringify(rules)).slice(0, 16) : '');
 
   /** Libraries being built: tables of replaced ones are not dropped meanwhile (D-135). */
   const building = new Set<string>();
@@ -737,9 +779,20 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const progress = (from: number, to: number) => (fraction: number) => options.onProgress?.(from + (to - from) * fraction);
       const old = (await db.query(`SELECT ${KIND_COLUMNS} FROM library WHERE account = ? AND kind = ?`, [account, kind]))[0];
       const last = old ? kindOf(old) : null;
+      const rules = await rulesOf(account, kind);
+      const ruleSig = signature(rules);
+      const sameRules = last?.ruleSig === ruleSig;
       // The same list as the last library's (D-135): nothing to read or compare; the library stays, its date moves.
       const fingerprint = Array.isArray(source) ? listFingerprint(source) : (source.fingerprint ?? null);
-      if (fingerprint && last?.fingerprint === fingerprint && last.current && !last.packed && (await tableExists(`${last.table}_i`))) {
+      if (
+        fingerprint &&
+        sameRules &&
+        !options.changedKeys &&
+        last?.fingerprint === fingerprint &&
+        last.current &&
+        !last.packed &&
+        (await tableExists(`${last.table}_i`))
+      ) {
         if (!Array.isArray(source)) {
           building.delete(source.table);
           retire(source.table, 0);
@@ -760,23 +813,35 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         took('items');
         await readNewNames(t, account, kind, options, timings, progress(PROGRESS_ITEMS, PROGRESS_NAMES));
         took('names');
-        // The last library is a starting point when its items were saved with the same title rules (D-135).
-        const previous = last && last.current && !last.packed && (await tableExists(`${last.table}_i`)) ? last.table : null;
+        // The last library is a starting point when its items were saved with the same title rules (D-135), and grouped
+        // with the same split and merge rules, or the keys those changed for are grouped again (issue #243).
+        const previous =
+          last && last.current && !last.packed && (sameRules || options.changedKeys) && (await tableExists(`${last.table}_i`))
+            ? last.table
+            : null;
+        await db.run([
+          { sql: `CREATE TABLE ${t}_u (rule TEXT NOT NULL, src TEXT NOT NULL, dst TEXT NOT NULL, PRIMARY KEY (rule, src)) WITHOUT ROWID` },
+          ...(rules.length
+            ? [{ sql: `INSERT INTO ${t}_u (rule, src, dst) VALUES (?, ?, ?)`, rows: rules.map(({ rule, src, dst }) => [rule, src, dst]) }]
+            : []),
+        ]);
         if (previous) {
           await steps(comparing(t, previous));
+          if (options.changedKeys?.length)
+            await db.run([{ sql: `INSERT OR IGNORE INTO ${t}_k (ckey) VALUES (?)`, rows: options.changedKeys.map((key) => [key]) }]);
           timings.changedKeys = Number((await db.query(`SELECT COUNT(*) FROM ${t}_k`))[0]?.[0] ?? 0);
           took('compare');
           if (timings.changedKeys === 0) {
             await db.run([
               {
-                sql: 'UPDATE library SET built_at = ?, fp = ? WHERE account = ? AND kind = ?',
-                rows: [[builtAt, fingerprint, account, kind]],
+                sql: 'UPDATE library SET built_at = ?, fp = ?, rsig = ? WHERE account = ? AND kind = ?',
+                rows: [[builtAt, fingerprint, ruleSig, account, kind]],
               },
             ]);
             retire(t, 0);
             options.onProgress?.(1);
             options.onTimings?.(timings);
-            return { saved: { ...last!, builtAt, fingerprint }, changes: { added: 0, changed: 0, removed: 0 } };
+            return { saved: { ...last!, builtAt, fingerprint, ruleSig }, changes: { added: 0, changed: 0, removed: 0 } };
           }
           base = Number((await db.query(`SELECT IFNULL(MAX(g), 0) FROM ${previous}_i`))[0]?.[0] ?? 0);
         }
@@ -802,7 +867,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         queryProgress((GROUPED_KEYS + rest.length + 1) / total);
         took('ids');
         if (timings.inPlace) {
-          const updated = await updateInPlace(t, last!, account, kind, builtAt, timings.builtTitles, fingerprint);
+          const updated = await updateInPlace(t, last!, account, kind, builtAt, timings.builtTitles, fingerprint, ruleSig);
           took('titles');
           options.onProgress?.(1);
           options.onTimings?.(timings);
@@ -823,14 +888,14 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       await db.run([
         { sql: 'DELETE FROM library WHERE account = ? AND kind = ?', rows: [[account, kind]] },
         {
-          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp) VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?)",
-          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, count, JSON.stringify(sorts), fingerprint]],
+          sql: "INSERT INTO library (account, kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp, rsig) VALUES (?, ?, ?, ?, ?, ?, ?, '[]', '[]', ?, ?)",
+          rows: [[account, kind, t, builtAt, NORMALIZER_RULES, count, JSON.stringify(sorts), fingerprint, ruleSig]],
         },
       ]);
       // Lists still reading the old tables finish first; a start drops them if the app is closed before.
       if (last) retire(last.table);
       return {
-        saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [], orders: [], fingerprint },
+        saved: { table: t, builtAt, current: true, packed: false, count, sorts, prefixes: [], orders: [], fingerprint, ruleSig },
         changes,
       };
     },
@@ -865,6 +930,121 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         for (const [sid, id] of rows) if (id !== null) result.set(String(sid), String(id));
       }
       return result;
+    },
+
+    /**
+     * How a title came out of the user's rules (issue #243): `merged`, other titles were merged into it; `splitOff`, it
+     * is a version split off another title. Null for a library without its items (before D-133).
+     */
+    async regroupedOf(account: string, kind: LibraryKind, saved: SqlLibraryKind, id: string): Promise<TitleRegrouping | null> {
+      if (saved.packed) return null;
+      const gk = (
+        await db.query(`SELECT i.gk FROM ${saved.table} a JOIN ${saved.table}_i i ON i.g = a.g WHERE a.id = ? LIMIT 1`, [id])
+      )[0]?.[0];
+      if (gk === undefined || gk === null) return null;
+      const merged = await db.query("SELECT 1 FROM title_rules WHERE account = ? AND kind = ? AND rule = 'merge' AND dst = ? LIMIT 1", [
+        account,
+        kind,
+        String(gk),
+      ]);
+      return { merged: merged.length > 0, splitOff: String(gk).startsWith('s') };
+    },
+
+    /**
+     * Changes the rules (issue #243, DECISIONS.md#d-185) and says which compact keys to group again (`build` with
+     * `changedKeys`, see `regroup`): those of every item of the titles involved. Empty when nothing changed.
+     * - `split`: the version `streamId` of title `id` becomes a title of its own.
+     * - `merge`: title `fromId` goes into title `id`, and so does whatever was merged into it.
+     * - `undo`: the titles merged into `id` come apart again; a version split off goes back.
+     */
+    async changeRules(
+      account: string,
+      kind: LibraryKind,
+      saved: SqlLibraryKind,
+      change:
+        | { action: 'split'; id: string; streamId: string }
+        | { action: 'merge'; id: string; fromId: string }
+        | { action: 'undo'; id: string },
+    ): Promise<string[]> {
+      if (saved.packed) return [];
+      const t = saved.table;
+      const ids = change.action === 'merge' ? [change.id, change.fromId] : [change.id];
+      const items = await db.query(
+        `SELECT a.id, i.gk, i.ckey, i.sid FROM ${t} a JOIN ${t}_i i ON i.g = a.g WHERE a.id IN (${placeholders(ids.length)})`,
+        ids,
+      );
+      const groupOf = (id: string) => items.find((row) => String(row[0]) === id)?.[1];
+      const gk = groupOf(change.id);
+      if (gk === undefined || gk === null) return [];
+      const keys = [...new Set(items.map((row) => String(row[2])))];
+      const scope = [account, kind];
+      if (change.action === 'split') {
+        if (!items.some((row) => String(row[3]) === change.streamId) || items.length < 2) return [];
+        await db.run([
+          {
+            sql: "INSERT OR REPLACE INTO title_rules (account, kind, rule, src, dst) VALUES (?, ?, 'split', ?, '')",
+            rows: [[...scope, change.streamId]],
+          },
+        ]);
+        return keys;
+      }
+      if (change.action === 'merge') {
+        const from = groupOf(change.fromId);
+        if (from === undefined || from === null || from === gk) return [];
+        await db.run([
+          {
+            sql: "UPDATE title_rules SET dst = ? WHERE account = ? AND kind = ? AND rule = 'merge' AND dst = ?",
+            rows: [[String(gk), ...scope, String(from)]],
+          },
+          {
+            sql: "INSERT OR REPLACE INTO title_rules (account, kind, rule, src, dst) VALUES (?, ?, 'merge', ?, ?)",
+            rows: [[...scope, String(from), String(gk)]],
+          },
+        ]);
+        return keys;
+      }
+      await db.run([
+        { sql: "DELETE FROM title_rules WHERE account = ? AND kind = ? AND rule = 'merge' AND dst = ?", rows: [[...scope, String(gk)]] },
+        ...(String(gk).startsWith('s')
+          ? [
+              {
+                sql: "DELETE FROM title_rules WHERE account = ? AND kind = ? AND rule = 'split' AND src = ?",
+                rows: [[...scope, String(gk).slice(1)]],
+              },
+            ]
+          : []),
+      ]);
+      return keys;
+    },
+
+    /**
+     * Groups the library again after its rules changed (issue #243), from the items it holds (nothing is downloaded):
+     * only the titles with `keys` are built again. The library keeps its list fingerprint, so the next update of the
+     * same list still stops early.
+     */
+    async regroup(
+      account: string,
+      kind: LibraryKind,
+      builtAt: string,
+      keys: string[],
+      options: Omit<LibraryBuildOptions, 'changedKeys'> = {},
+    ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges | null } | null> {
+      const last = (await this.open(account))[kind];
+      if (!last || last.packed || !last.current) return null;
+      const t = await createItems();
+      try {
+        await db.run([
+          {
+            sql: `INSERT INTO ${t}_r (sid, name, cat, poster, rating, added, released, ext, tmdb, ryear)
+              SELECT sid, name, cat, poster, rating, added, released, ext, tmdb, ryear FROM ${last.table}_i ORDER BY rowid`,
+          },
+        ]);
+      } catch (error) {
+        await db.run(drops(t).map((sql) => ({ sql }))).catch(() => undefined);
+        building.delete(t);
+        throw error;
+      }
+      return this.build(account, kind, builtAt, { table: t, fingerprint: last.fingerprint }, { ...options, changedKeys: keys });
     },
 
     /** One page of a list: the same filters and orders as the in-memory library. */
@@ -1018,6 +1198,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     builtAt: string,
     built: number,
     fingerprint: string | null,
+    ruleSig: string,
   ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges }> {
     const o = last.table;
     const number = async (sql: string) => Number((await db.query(sql))[0]?.[0] ?? 0);
@@ -1037,8 +1218,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     await db.run([
       ...applying(t, o, orders).map((sql) => ({ sql })),
       {
-        sql: 'UPDATE library SET built_at = ?, count = ?, orders = ?, fp = ? WHERE account = ? AND kind = ?',
-        rows: [[builtAt, count, JSON.stringify(orders.map(({ column }) => column)), fingerprint, account, kind]],
+        sql: 'UPDATE library SET built_at = ?, count = ?, orders = ?, fp = ?, rsig = ? WHERE account = ? AND kind = ?',
+        rows: [[builtAt, count, JSON.stringify(orders.map(({ column }) => column)), fingerprint, ruleSig, account, kind]],
       },
     ]);
     for (const key of totals.keys()) if (key.startsWith(`${o}|`)) totals.delete(key);
@@ -1046,7 +1227,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     await db.run([{ sql: 'UPDATE library SET sorts = ? WHERE account = ? AND kind = ?', rows: [[JSON.stringify(sorts), account, kind]] }]);
     retire(t, 0);
     return {
-      saved: { ...last, builtAt, count, sorts, orders: orders.map(({ column }) => column), fingerprint },
+      saved: { ...last, builtAt, count, sorts, orders: orders.map(({ column }) => column), fingerprint, ruleSig },
       changes: { added: built - known, changed, removed: Math.max(0, gone - known) },
     };
   }

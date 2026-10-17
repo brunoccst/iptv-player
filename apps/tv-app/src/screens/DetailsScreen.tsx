@@ -58,6 +58,7 @@ import { useLibrary, useMovieDetails, useNav, useProgress, useSeriesDetails } fr
 import { colors, fonts, radius, useCompact } from '../theme';
 import { WatchedTag } from '../components/WatchedTag';
 import { CardMenu } from '../components/CardMenu';
+import { RegroupButton } from '../components/RegroupButton';
 
 /** Space above the panel in the scroll view. */
 const PANEL_TOP = 32;
@@ -170,6 +171,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
           <ExternalPlayerButton target={target} testID="details-external" />
           <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
           <WatchlistButton section="movies" title={master} />
+          <RegroupButton section="movies" master={master} variant={variant} />
         </>
       }
       main={
@@ -221,6 +223,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
           <PlayOnTvButton target={series.data ? playTarget : null} testID="details-play-on-tv" />
           <WatchedButton kind="series" watched={allWatched} onChange={(next) => setSeriesWatched({ api, ...stores }, master.id, next)} />
           <WatchlistButton section="series" title={master} />
+          <RegroupButton section="series" master={master} variant={variant} />
         </>
       }
       main={
