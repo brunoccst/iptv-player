@@ -34,8 +34,9 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     start: () => ipcRenderer.invoke('iptv:pairing-start'),
     stop: () => ipcRenderer.invoke('iptv:pairing-stop'),
     respond: (id, status, body) => ipcRenderer.invoke('iptv:pairing-respond', id, status, body),
-    // Scanning another device's code with the webcam (issue #254): { status, body } of its answer.
-    send: (host, port, body) => ipcRenderer.invoke('iptv:pairing-send', host, port, body),
+    // Scanning another device's code with the webcam (issue #254), and the automatic sync with the paired TV (issue
+    // #227, path '/remote'): { status, body } of its answer.
+    send: (host, port, body, path) => ipcRenderer.invoke('iptv:pairing-send', host, port, body, path),
     onRequest(listener) {
       const handler = (_event, request) => listener(request);
       ipcRenderer.on('iptv:pairing-request', handler);

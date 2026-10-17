@@ -37,10 +37,16 @@ export interface PairedPhone {
   pairedAt: string;
 }
 
-/** `log`: the TV answers with its diagnostics log, masked, so the phone can share it (D-039). */
-export type RemoteCommand = { type: 'play'; accountId: string; target: PlayTarget } | { type: 'log' };
+/**
+ * `log`: the TV answers with its diagnostics log, masked, so the phone can share it (D-039). `sync`: the phone's
+ * profiles, progress and My List; the TV merges them and answers with the merged entries (issue #227).
+ */
+export type RemoteCommand =
+  | { type: 'play'; accountId: string; target: PlayTarget }
+  | { type: 'log' }
+  | { type: 'sync'; accountId: string; data: Record<string, string> };
 export type RemoteError = 'other-account' | 'no-profile' | 'bad-request';
-export type RemoteReply = { ok: true; log?: string } | { ok: false; error: RemoteError };
+export type RemoteReply = { ok: true; log?: string; data?: Record<string, string> } | { ok: false; error: RemoteError };
 
 export function remoteMessage(error: RemoteError | 'unreachable' | 'unknown-phone', tvName = t('the TV')): string {
   switch (error) {
@@ -74,7 +80,7 @@ export async function sendRemoteCommand(
   tv: PairedTv,
   command: RemoteCommand,
   options: { fetch?: typeof fetch; timeoutMs?: number; now?: () => Date } = {},
-): Promise<{ port: number; log?: string }> {
+): Promise<{ port: number; log?: string; data?: Record<string, string> }> {
   const body = JSON.stringify({
     phoneId: tv.phoneId,
     sealed: seal(tv.key, { command, sentAt: (options.now?.() ?? new Date()).toISOString() }),
@@ -102,7 +108,7 @@ export async function sendRemoteCommand(
     const reply = response.ok ? unseal<RemoteReply>(tv.key, await response.text()) : null;
     if (!reply) throw new RemoteFailure('bad-request', tv.tvName);
     if (!reply.ok) throw new RemoteFailure(reply.error, tv.tvName);
-    return { port, log: reply.log };
+    return { port, log: reply.log, data: reply.data };
   }
   throw new RemoteFailure('unreachable', tv.tvName);
 }

@@ -224,15 +224,21 @@ function registerPairing() {
   });
   // Scanning with the webcam (issue #254): the page sends to the other device from here, since device servers send no
   // CORS headers. Only to a private address of the home network.
-  ipcMain.handle('iptv:pairing-send', async (event, host, port, body) => {
+  // The automatic sync with the paired TV (issue #227) goes to its remote server (/remote) the same way.
+  ipcMain.handle('iptv:pairing-send', async (event, host, port, body, path = '/pair') => {
     fromApp(event);
-    const url = pairingUrl(host, Number(port));
+    const url = pairingUrl(host, Number(port), path);
     if (!url) throw new Error('Not a home network address');
     const payload = Buffer.from(String(body), 'utf8');
     return new Promise((resolve, reject) => {
       const request = httpRequest(
         url,
-        { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length }, timeout: 30_000 },
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length },
+          // A TV that is off: the sync tries the next port soon (D-061 tries five).
+          timeout: path === '/remote' ? 5_000 : 30_000,
+        },
         (response) => {
           const chunks = [];
           let size = 0;

@@ -106,6 +106,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) | `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/src/pairing/PairingDialogs.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/web-player/src/features/pairing/WebcamScanner.tsx`, `apps/web-player/src/features/pairing/pairing.ts`, `apps/desktop/main.mjs` |
+| [Staying in sync with the TV](FEATURES.md#staying-in-sync-with-the-tv) | `packages/shared/src/pairing/autoSync.ts`, `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/direct/removals.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/web-player/src/features/pairing/pairing.ts`, `apps/desktop/main.mjs` |
 | [Play on TV](FEATURES.md#play-on-tv) | `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/components/PlayOnTvButton.tsx`, `apps/tv-app/src/App.tsx` |
 
 ## App

@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Stays in sync with the TV** (2026-10-17, D-186, issue #227): a phone or tablet that has scanned the TV's code once now keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
 - **Split or merge titles** (2026-10-17, D-185, issue #243): when two versions that are not the same film or series end up as one title, or one title shows up twice, the Split or merge button in its details splits a version off or merges the other title in. It can be undone the same way.
 - **Progress from other players** (2026-10-17, D-057, issue #234): when you watch a movie or episode in MX Player, Just Player or VLC, where you stopped is saved when you come back to the app, so Continue watching and Resume pick up from there. MX Player and Just Player also start where you left off.
 - **Two days of TV guide, with descriptions** (2026-10-17, D-032, issue #248): the guide now has programmes for the next two days, as far as it goes, instead of one, and search finds them too. Programmes filled in from your provider's full guide now show their description when you open them.
@@ -113,6 +114,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Stays in sync with the TV** (2026-10-17, D-186, issue #227): after this computer has scanned the TV's code once, it keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or its window comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
 - **Split or merge titles** (2026-10-17, D-185, issue #243): when two versions that are not the same film or series end up as one title, or one title shows up twice, the Split or merge button in its details splits a version off or merges the other title in. It can be undone the same way.
 - **A reload keeps your page** (2026-10-17, D-025, issue #221): the page you are on, its category, your search and the open details now stay after a reload instead of going back to Home.
 - **Scan a sync code with the webcam** (2026-10-17, D-178, issue #254): the computer can now read another device's QR code with its camera: Scan a code instead under Sync with another device, or Scan a code on the sign-in page. Signed in, both devices get the same profiles, My List and progress; signed out, the computer signs in with the other device's account.

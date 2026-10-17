@@ -91,6 +91,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-183](#d-183) | Details: the icon buttons wrap beside Play |
 | [D-184](#d-184) | Guide reminders |
 | [D-185](#d-185) | Split and merge titles by hand |
+| [D-186](#d-186) | Automatic sync through the paired TV |
 
 ## Merged and retired IDs
 
@@ -1018,3 +1019,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
 - A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
 - Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).
+
+## D-186
+
+**Automatic sync through the paired TV** — 2026-10-17 (issue #227)
+
+- A middle step short of a sync service (which would need hosting and accounts, against D-088): a device that scanned the TV's code keeps the TV's remote-play key (D-061) and sends a `sync` remote command with its media entries (profiles, progress, My List, removals) when the app opens, comes back to the front, and every 10 minutes (`createAutoSync`, at most once a minute). The TV merges (`applySyncedMedia`, the pairing merge) and answers with the merged entries; the sender merges the answer once more with what it saved meanwhile. The TV is the hub, since only it listens all the time; the desktop app now keeps the TV's key too and sends through the main process (`iptv:pairing-send`, path `/remote` only).
+- Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
+- Profile settings are left out: they carry no dates, so the newer choice cannot be told apart, and the scanning device winning (D-060) would undo choices made on the TV every 10 minutes. They still merge when a code is scanned.
+- A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
+- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.

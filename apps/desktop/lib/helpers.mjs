@@ -102,15 +102,18 @@ export function lanAddress(interfaces) {
 }
 
 /**
- * The pairing address of a scanned code (issue #254): only a private IPv4 address of the home network and a valid
- * port, so the page cannot use the main process to reach anything else. Null otherwise.
+ * The pairing address of a scanned code (issue #254), or of the paired TV's remote server (issue #227): only a private
+ * IPv4 address of the home network, a valid port and one of the two paths, so the page cannot use the main process to
+ * reach anything else. Null otherwise.
  */
-export function pairingUrl(host, port) {
+export function pairingUrl(host, port, path = '/pair') {
   const parts = String(host).split('.');
   const ipv4 = parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
   const isPrivate = ipv4 && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
   const validPort = Number.isInteger(port) && port > 0 && port < 65536;
-  return isPrivate && validPort ? `http://${host}:${port}/pair` : null;
+  // /remote: the TV's remote server, for the automatic sync (issue #227).
+  const validPath = path === '/pair' || path === '/remote';
+  return isPrivate && validPort && validPath ? `http://${host}:${port}${path}` : null;
 }
 
 /**

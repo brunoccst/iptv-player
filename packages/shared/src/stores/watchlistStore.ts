@@ -11,7 +11,8 @@ export interface WatchlistState {
   profileId: string | null;
   items: Resource<WatchlistDto[]>;
   saveError: ApiError | null;
-  load(profileId: string, options?: { force?: boolean }): Promise<void>;
+  /** `quiet`: keeps the shown list until the new one is read (a refresh after a sync, issue #227). */
+  load(profileId: string, options?: { force?: boolean; quiet?: boolean }): Promise<void>;
   /** Adds the title when missing, removes it when present. */
   toggle(section: LibrarySection, card: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>): Promise<void>;
   /** Reads every entry's quality again (after a library update), which may reveal upgrades (DECISIONS.md#d-176). */
@@ -113,13 +114,14 @@ export function createWatchlistStore({ api, now = () => new Date().toISOString()
       items: emptyResource(),
       saveError: null,
 
-      load(profileId, { force = false } = {}) {
+      load(profileId, { force = false, quiet = false } = {}) {
         const { items, profileId: current } = get();
         if (!force && current === profileId) {
           if (inFlight?.profileId === profileId) return inFlight.promise;
           if (items.status === 'success') return Promise.resolve();
         }
-        set({ profileId, items: { ...emptyResource(), status: 'loading' } });
+        if (!(quiet && current === profileId && items.status === 'success'))
+          set({ profileId, items: { ...emptyResource(), status: 'loading' } });
         const promise = api.watchlist
           .list(profileId)
           .then(

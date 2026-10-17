@@ -320,6 +320,12 @@ Each profile's settings go along and end up the same on both devices (D-060): co
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones, tablets and computers with a camera also scan one.
 
+### Staying in sync with the TV
+
+After a phone, tablet or computer has scanned the TV's code once, it keeps its profiles, progress and My List in step with that TV on its own (issue #227, D-186): when the app opens, when it comes back to the front, and every 10 minutes while it is open, as long as the TV app is open on the same home network. The TV merges and answers with the merged lists, so two phones paired with the same TV also end up the same through it. Per title the newest progress wins. Removing a title from My List or Continue watching, or deleting a profile, carries over too; adding the title again later brings it back. A renamed profile keeps the name it was given last. Profile settings (languages, subtitles and the like) still only merge when a code is scanned. Devices that never scanned a TV, such as two phones, don't sync on their own (issue #268).
+
+**Apps:** TV ✅ (the other devices sync with it) · Phone ✅ · Desktop ✅
+
 ### Play on TV
 
 After pairing, the phone app starts a title on the TV (D-061).

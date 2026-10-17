@@ -27,11 +27,11 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
 import { useOpenWatchNext, useWatchNextLaunch, useWatchNextSync } from './tv/watchNext';
-import { pairedTv, useRemoteServer } from './pairing/remote';
+import { pairedTv, useAutoSync, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
 import splashIcon from '../assets/splash-icon.png';
-import { appLog, t, useUiLanguage } from '@iptv/shared';
+import { appLog, t, useAppStore, useUiLanguage } from '@iptv/shared';
 
 const UPDATE_CHECK_DELAY_MS = 15_000;
 
@@ -48,6 +48,9 @@ export function App() {
   const topInset = fullScreen ? 0 : (SystemBars.currentHeight ?? 0);
   // TVs play what a paired phone sends (D-061).
   useRemoteServer(Platform.isTV && status === 'authenticated');
+  // Phones and tablets keep profiles, progress and My List in step with the paired TV (issue #227).
+  const hasTv = useAppStore(pairedTv, (s) => s.tv !== null);
+  useAutoSync(!Platform.isTV && status === 'authenticated' && hasTv);
   // The home screen's "Continue watching" row on Android TV and Google TV (issue #165, D-147).
   useWatchNextSync(Platform.isTV);
   useWatchNextLaunch(Platform.isTV);

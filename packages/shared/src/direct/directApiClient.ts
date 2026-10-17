@@ -44,6 +44,7 @@ import {
 import type { GuideProgramme } from './xmltv';
 import { floorToSlot } from '../epg/guide';
 import { reattachTitles, type TitleLookup } from './reattach';
+import { noteRemoval } from './removals';
 import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
@@ -83,6 +84,8 @@ interface StoredCredentials {
 
 interface StoredProfile extends ProfileDto {
   createdAt: string;
+  /** Last edit (issue #227); missing on profiles never edited since. */
+  updatedAt?: string;
 }
 
 interface StoredLibrary {
@@ -1395,6 +1398,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           name: validateProfile(request, profiles, profileId),
           avatarKey: request.avatarKey ?? null,
           isKids: request.isKids,
+          // Syncing keeps the newest details (issue #227).
+          updatedAt: now().toISOString(),
         };
         await writeJson(
           options.dataStorage,
@@ -1415,6 +1420,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         );
         await options.dataStorage.removeItem(progressKey(profileId));
         await options.dataStorage.removeItem(watchlistKey(profileId));
+        // Recorded, so syncing does not bring it back from another device (issue #227).
+        await noteRemoval(options.dataStorage, stored.account.id, { profile: profileId }, now());
         return undefined;
       },
     },
@@ -1473,6 +1480,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           progressKey(profileId),
           items.filter((item) => !(item.kind === kind && item.itemId === itemId)),
         );
+        const { stored } = await session();
+        await noteRemoval(options.dataStorage, stored.account.id, { list: 'progress', profileId, key: `${kind}:${itemId}` }, now());
         return undefined;
       },
     },
@@ -1545,6 +1554,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           watchlistKey(profileId),
           items.filter((item) => !(item.section === section && item.masterId === masterId)),
         );
+        const { stored } = await session();
+        await noteRemoval(options.dataStorage, stored.account.id, { list: 'watchlist', profileId, key: `${section}:${masterId}` }, now());
         return undefined;
       },
       async noteLowSources(profileId: string, marks: WatchlistLowSource[]) {
