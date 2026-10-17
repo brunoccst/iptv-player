@@ -34,6 +34,8 @@ export interface DesktopBridge {
     respond(id: number, status: number, body: string): Promise<void>;
     /** Returns the unsubscribe function. */
     onRequest(listener: (request: { id: number; body: string }) => void): () => void;
+    /** Sends a scanned code's pairing request to that device (issue #254); only to home network addresses. Older apps lack it. */
+    send?(host: string, port: number, body: string): Promise<{ status: number; body: string }>;
   };
 }
 

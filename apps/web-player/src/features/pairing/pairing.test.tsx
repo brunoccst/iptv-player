@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createMemoryStorage, parsePairingQr, sendPairing, SESSION_STORAGE_KEY } from '@iptv/shared';
+import { acceptPairing, createMemoryStorage, pairingQrText, parsePairingQr, sendPairing, SESSION_STORAGE_KEY } from '@iptv/shared';
 
 // The desktop app's bridge (apps/desktop/preload.cjs): the phone's request arrives through `onRequest`.
 const bridge = vi.hoisted(() => {
@@ -23,7 +23,14 @@ const bridge = vi.hoisted(() => {
         listener = next;
         return () => (listener = null);
       },
+      /** The computer scanned a phone's code (issue #254): the main process sends to it; the test answers as the phone. */
+      send: async (host: string, port: number, body: string) => {
+        bridge.sent.push(`${host}:${port}`);
+        return bridge.answerScan(body);
+      },
     },
+    sent: [] as string[],
+    answerScan: async (_body: string): Promise<{ status: number; body: string }> => ({ status: 404, body: '' }),
     /** What the phone's fetch reaches: the computer's pairing server. */
     phoneFetch: (async (_url: string, init?: RequestInit) => {
       const id = nextId++;
@@ -50,7 +57,7 @@ vi.mock('../../appContext', () => {
   };
 });
 
-const { usePairingServer } = await import('./pairing');
+const { connectWithScannedCode, usePairingServer } = await import('./pairing');
 
 const account = { id: 'acc-1', username: 'demo' };
 const phone = () => ({
@@ -102,5 +109,26 @@ describe('desktop: sign in and sync with the phone app (D-060)', () => {
     bridge.host = null;
     const offline = renderHook(() => usePairingServer());
     await waitFor(() => expect(offline.result.current.phase).toBe('offline'));
+  });
+});
+
+describe("desktop: scanning another device's code with the webcam (issue #254)", () => {
+  it("a signed-out computer gets the phone's sign-in through the main process", async () => {
+    const mobile = phone();
+    const key = 'k'.repeat(43) + '=';
+    bridge.answerScan = async (body) => {
+      const { status, body: answer } = await acceptPairing(mobile, key, body);
+      return { status, body: answer };
+    };
+    const message = await connectWithScannedCode(pairingQrText({ host: '192.168.1.40', port: 41000, key }));
+
+    expect(bridge.sent).toEqual(['192.168.1.40:41000']);
+    expect(message).toMatch(/^Signed in as demo\./);
+    expect(JSON.parse(computer.secure.get(SESSION_STORAGE_KEY)!)).toMatchObject({ token: 't', account });
+    expect(computer.reloads).toBe(1);
+  });
+
+  it('says so when the code is not from this app', async () => {
+    await expect(connectWithScannedCode('https://example.com')).rejects.toThrow(/not a code from this app/);
   });
 });

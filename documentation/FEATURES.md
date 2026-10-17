@@ -302,11 +302,11 @@ English, Português (Brasil), Deutsch and Srpskohrvatski (BiH), per profile: acc
 
 ### Sign in and sync by QR code
 
-Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-178). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-178). Both signed in to different accounts are refused.
+Every app shows a QR code: on the sign-in page, and under account menu → Library & devices → Sync with another device. Phones and tablets with a camera can also scan one: Scan a code in that dialog, or on the sign-in page (D-178). The desktop app scans with the computer's webcam the same way: Scan a code instead in that dialog, or Scan a code on the sign-in page (issue #254). The sign-in is passed on, and profiles, My List and progress are merged on both devices (D-060). Whichever device is signed in passes its sign-in on: a signed-in phone that scans a signed-out device's code signs that device in; a signed-out phone or tablet that scans a signed-in device's code signs itself in (D-178). Both signed in to different accounts are refused.
 
 Each profile's settings go along and end up the same on both devices (D-060): content languages, app language, the subtitles, audio and version last picked, hidden categories, a kids profile's categories, watched series and recently watched channels, plus the automatic-subtitles settings. Where both devices had a different choice, the scanning device's wins; watched series and recent channels are joined. A parental PIN already set on the device showing the code stays. What belongs to the device stays on it: the TV's audio decoder, the language the device shows before a profile is picked, downloads, and update choices.
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones and tablets with a camera also scan one. Scanning with a computer's webcam: ⏳ [#254](https://github.com/brunoccst/iptv-player/issues/254).
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Every app shows the code; phones, tablets and computers with a camera also scan one.
 
 ### Play on TV
 

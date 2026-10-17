@@ -6,7 +6,7 @@ import electronUpdater from 'electron-updater';
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +19,7 @@ import {
   isNewer,
   keyFile,
   lanAddress,
+  pairingUrl,
   releaseVersion,
   staticFile,
   vlcArguments,
@@ -220,6 +221,34 @@ function registerPairing() {
   ipcMain.handle('iptv:pairing-stop', (event) => {
     fromApp(event);
     stop();
+  });
+  // Scanning with the webcam (issue #254): the page sends to the other device from here, since device servers send no
+  // CORS headers. Only to a private address of the home network.
+  ipcMain.handle('iptv:pairing-send', async (event, host, port, body) => {
+    fromApp(event);
+    const url = pairingUrl(host, Number(port));
+    if (!url) throw new Error('Not a home network address');
+    const payload = Buffer.from(String(body), 'utf8');
+    return new Promise((resolve, reject) => {
+      const request = httpRequest(
+        url,
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length }, timeout: 30_000 },
+        (response) => {
+          const chunks = [];
+          let size = 0;
+          response.on('data', (chunk) => {
+            size += chunk.length;
+            if (size > MAX_PAIRING_BODY) request.destroy(new Error('Answer too large'));
+            else chunks.push(chunk);
+          });
+          response.on('end', () => resolve({ status: response.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }));
+          response.on('error', reject);
+        },
+      );
+      request.on('timeout', () => request.destroy(new Error('Timed out')));
+      request.on('error', reject);
+      request.end(payload);
+    });
   });
   app.on('before-quit', stop);
 }

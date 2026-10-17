@@ -112,6 +112,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Scan a sync code with the webcam** (2026-10-17, D-178, issue #254): the computer can now read another device's QR code with its camera: Scan a code instead under Sync with another device, or Scan a code on the sign-in page. Signed in, both devices get the same profiles, My List and progress; signed out, the computer signs in with the other device's account.
 - **Two days of TV guide, with descriptions** (2026-10-17, D-032, issue #248): the guide now has programmes for the next two days, as far as it goes, instead of one, and search finds them too. Programmes filled in from your provider's full guide now show their description when you open them.
 - **Guide reminders** (2026-10-17, D-184, issue #239): Remind me in a programme's details. When it starts, a banner says so, also during a movie, with Watch to tune in; with the window in the background, a system notification too. The app has to be open.
 - **Better series on My List** (2026-10-17, D-176, issue #251): a series on My List that only had cinema copies (CAM, TS…) is now announced on Home when a better version arrives, like movies. More Info opens it on that version.

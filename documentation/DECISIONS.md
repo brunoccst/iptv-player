@@ -958,7 +958,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Scanning is offered where `TvMedia.hasCamera()` (`FEATURE_CAMERA_ANY`), not by device type: phones and tablets, and a TV with a camera. The dialog opens on this device's code with Scan a code instead; a cancelled scan goes back to the code. Only the TV hands out a Play on TV key.
 - The scanning device's data wins on conflict, as with the phone before (D-060).
 - A signed-out device that scans a signed-in device's code gets its sign-in ('share' mode): it sends no session, and the device showing the code answers with its session (without its active profile), provider credentials, parental PIN, media, profile settings and automatic subtitles, and keeps its own state. So Scan a code on the sign-in page is useful. An older app showing the code answers "not signed in".
-- The desktop app shows its code but does not scan with a webcam yet (issue #254).
+- The desktop app scans with the webcam (issue #254): `getUserMedia` in the page and jsQR (Chromium's BarcodeDetector is missing on Windows), four frames a second; the camera stops once a code is read. The request goes out through the main process (`iptv:pairing-send`), since device servers send no CORS headers, and only to a private IPv4 address of the home network (`pairingUrl`), so the page cannot use it to reach anything else.
 
 ## D-179
 

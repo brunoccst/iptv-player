@@ -2,8 +2,12 @@ import { createStore } from 'zustand/vanilla';
 import { useAppStore, t } from '@iptv/shared';
 import { Modal } from '../../components/Modal';
 import { Spinner } from '../../components/Spinner';
-import { usePairingServer, type PairingServerState } from './pairing';
+import { lazy, Suspense, useState } from 'react';
+import { canScanWithWebcam, usePairingServer, type PairingServerState } from './pairing';
 import { QrCode } from './QrCode';
+
+// Loaded when first used: the QR decoder is only needed to scan (issue #254).
+const WebcamScanner = lazy(() => import('./WebcamScanner').then((module) => ({ default: module.WebcamScanner })));
 
 const howTo = () =>
   t(
@@ -43,14 +47,15 @@ export function PairingCode({ state, size = 240 }: { state: PairingServerState; 
 }
 
 /** Open state outside the screens: pairing reloads the app state, which briefly unmounts them (as on the TV). */
-const pairingDialog = createStore<{ open: boolean }>()(() => ({ open: false }));
-export const openSyncWithPhone = () => pairingDialog.setState({ open: true });
-const closeSyncWithPhone = () => pairingDialog.setState({ open: false });
+const pairingDialog = createStore<{ open: boolean; scan: boolean }>()(() => ({ open: false, scan: false }));
+/** `scan`: open on the webcam scanner (the sign-in page's Scan a code, issue #254). */
+export const openSyncWithPhone = (scan = false) => pairingDialog.setState({ open: true, scan });
+const closeSyncWithPhone = () => pairingDialog.setState({ open: false, scan: false });
 
 /** Rendered once at the app root. */
 export function SyncWithPhoneHost() {
-  const open = useAppStore(pairingDialog, (s) => s.open);
-  return open ? <SyncWithPhone onClose={closeSyncWithPhone} /> : null;
+  const { open, scan } = useAppStore(pairingDialog, (s) => s);
+  return open ? <SyncWithPhone onClose={closeSyncWithPhone} scan={scan} /> : null;
 }
 
 /**
@@ -58,19 +63,39 @@ export function SyncWithPhoneHost() {
  * those of the phone or tablet that scans the code; a signed-out one gets this computer's sign-in.
  * The login page shows the same code beside the form, to sign in.
  */
-export function SyncWithPhone({ onClose }: { onClose(): void }) {
-  const state = usePairingServer();
+export function SyncWithPhone({ onClose, scan = false }: { onClose(): void; scan?: boolean }) {
+  const [scanning, setScanning] = useState(scan);
   const title = t('Sync with another device');
   return (
     <Modal label={title} onClose={onClose}>
       <div className="sync-phone">
         <h2>{title}</h2>
-        <p className="muted">{`${howTo()} ${t('Profiles, My List and watch progress end up the same on both devices.')}`}</p>
-        <PairingCode state={state} />
-        <button type="button" className={state.phase === 'done' ? 'button button--accent' : 'button button--ghost'} onClick={onClose}>
-          {state.phase === 'done' ? t('Done') : t('Close')}
-        </button>
+        {scanning ? (
+          <Suspense fallback={<Spinner label={t('Opening the camera')} />}>
+            <WebcamScanner onBack={() => (scan ? onClose() : setScanning(false))} onClose={onClose} />
+          </Suspense>
+        ) : null}
+        {scanning ? null : <ShowCode onScan={() => setScanning(true)} onClose={onClose} />}
       </div>
     </Modal>
+  );
+}
+
+/** This computer's code; with a camera, Scan a code instead reads the other device's (issue #254). */
+function ShowCode({ onScan, onClose }: { onScan(): void; onClose(): void }) {
+  const state = usePairingServer();
+  return (
+    <>
+      <p className="muted">{`${howTo()} ${t('Profiles, My List and watch progress end up the same on both devices.')}`}</p>
+      <PairingCode state={state} />
+      {state.phase !== 'done' && canScanWithWebcam() ? (
+        <button type="button" className="button button--secondary" onClick={onScan}>
+          {t('Scan a code instead')}
+        </button>
+      ) : null}
+      <button type="button" className={state.phase === 'done' ? 'button button--accent' : 'button button--ghost'} onClick={onClose}>
+        {state.phase === 'done' ? t('Done') : t('Close')}
+      </button>
+    </>
   );
 }

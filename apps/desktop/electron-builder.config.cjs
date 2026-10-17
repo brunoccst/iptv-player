@@ -36,6 +36,8 @@ module.exports = {
     identity: '-',
     icon: 'build/icon.png',
     artifactName: `${appSlug}.\${ext}`,
+    // Scanning another device's sync code with the webcam (issue #254): macOS asks with this text.
+    extendInfo: { NSCameraUsageDescription: 'The camera reads the sync QR code of another device.' },
   },
   linux: {
     target: ['AppImage', 'deb'],

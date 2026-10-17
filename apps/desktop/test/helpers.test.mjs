@@ -9,6 +9,7 @@ import {
   isNewer,
   keyFile,
   lanAddress,
+  pairingUrl,
   releaseVersion,
   staticFile,
   vlcArguments,
@@ -109,4 +110,17 @@ test('update dialogs use the texts the page sent, English when missing (D-084)',
   assert.equal(fillText(texts, 'Version {version} is ready.', { version: '1.2.3' }), 'Version 1.2.3 ist bereit.');
   assert.equal(fillText(texts, 'Later'), 'Later');
   assert.deepEqual(cleanTexts(null), {});
+});
+
+test('sends a scanned code only to a private address of the home network (issue #254)', () => {
+  assert.equal(pairingUrl('192.168.1.20', 41234), 'http://192.168.1.20:41234/pair');
+  assert.equal(pairingUrl('10.0.0.5', 8080), 'http://10.0.0.5:8080/pair');
+  assert.equal(pairingUrl('172.20.1.1', 1), 'http://172.20.1.1:1/pair');
+  assert.equal(pairingUrl('8.8.8.8', 80), null);
+  assert.equal(pairingUrl('172.32.0.1', 80), null);
+  assert.equal(pairingUrl('192.168.1.300', 80), null);
+  assert.equal(pairingUrl('example.com', 80), null);
+  assert.equal(pairingUrl('192.168.1.20/evil', 80), null);
+  assert.equal(pairingUrl('192.168.1.20', 0), null);
+  assert.equal(pairingUrl('192.168.1.20', 70000), null);
 });

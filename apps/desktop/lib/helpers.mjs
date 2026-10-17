@@ -102,6 +102,18 @@ export function lanAddress(interfaces) {
 }
 
 /**
+ * The pairing address of a scanned code (issue #254): only a private IPv4 address of the home network and a valid
+ * port, so the page cannot use the main process to reach anything else. Null otherwise.
+ */
+export function pairingUrl(host, port) {
+  const parts = String(host).split('.');
+  const ipv4 = parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255);
+  const isPrivate = ipv4 && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host);
+  const validPort = Number.isInteger(port) && port > 0 && port < 65536;
+  return isPrivate && validPort ? `http://${host}:${port}/pair` : null;
+}
+
+/**
  * Where VLC usually is (D-057, "Open in VLC"): the standard install folders, then every folder on PATH. `env` and
  * `platform` come from the process; `join` is the platform's path join (tests pass path.win32 / path.posix).
  */
