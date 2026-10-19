@@ -6,6 +6,7 @@ import { FocusButton } from '../components/FocusButton';
 import { IconButton } from '../components/IconButton';
 import { colors, fonts, spacing } from '../theme';
 import { FocusRow } from '../components/FocusRow';
+import { Select } from '../components/Select';
 
 export type DrawerTab = 'audio' | 'subtitles' | 'versions' | 'episodes';
 
@@ -52,6 +53,15 @@ export function QuickDrawer({
   const text = tracks.filter((track) => track.type === 'text');
 
   const phone = !Platform.isTV;
+
+  // The episode playing; it may play from another version than the merged list's default one (D-066).
+  const isCurrent = (episode: MergedEpisode) =>
+    episode.id === currentStreamId || episode.versions.some((version) => version.episode.id === currentStreamId);
+  // One season at a time, the one playing first, like the details page and the desktop player.
+  const [seasonNumber, setSeasonNumber] = useState(
+    () => series?.seasons.find((s) => s.episodes.some(isCurrent))?.number ?? series?.seasons[0]?.number ?? 1,
+  );
+  const season = series?.seasons.find((s) => s.number === seasonNumber) ?? series?.seasons[0];
 
   return (
     <>
@@ -118,17 +128,35 @@ export function QuickDrawer({
                 />
               ))
             : null}
-          {tab === 'episodes' && series
-            ? series.seasons
-                .flatMap((season) => season.episodes)
-                .map((e) => (
+          {tab === 'episodes' && series && series.seasons.length > 1 && season ? (
+            <View style={styles.season}>
+              <Select
+                compact
+                label={t('Season')}
+                value={String(season.number)}
+                options={series.seasons.map((s) => ({ value: String(s.number), label: s.name }))}
+                onChange={(value) => setSeasonNumber(Number(value))}
+                testID="quick-drawer-season"
+              />
+            </View>
+          ) : null}
+          {tab === 'episodes' && season
+            ? season.episodes.map((e) =>
+                isCurrent(e) ? (
+                  // The one playing: marked and read-only.
                   <FocusButton
                     key={e.id}
-                    label={`${e.id === currentStreamId ? '▶ ' : ''}${episodeLabel(e)} · ${e.title}`}
-                    variant="ghost"
-                    onPress={() => onEpisode(e)}
+                    label={`▶ ${episodeLabel(e)} · ${e.title}`}
+                    variant="accent"
+                    disabled
+                    style={styles.current}
+                    testID="quick-drawer-current-episode"
+                    onPress={() => undefined}
                   />
-                ))
+                ) : (
+                  <FocusButton key={e.id} label={`${episodeLabel(e)} · ${e.title}`} variant="ghost" onPress={() => onEpisode(e)} />
+                ),
+              )
             : null}
         </ScrollView>
       </TVFocusGuideView>
@@ -142,4 +170,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   options: { gap: spacing.sm, paddingBottom: spacing.xl },
   muted: { color: colors.muted, fontSize: fonts.body },
+  season: { flexDirection: 'row' },
+  // Disabled buttons fade; the episode playing stays bright.
+  current: { opacity: 1 },
 });

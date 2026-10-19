@@ -859,6 +859,19 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               { offset: 1, color: '#000', opacity: 0.85 },
             ]}
           />
+          {/* Phones: a big play/pause in the middle, like Netflix and YouTube; same as the one at the bottom left. */}
+          {!Platform.isTV && ready && !buffering && !drawer ? (
+            <View style={styles.middle} pointerEvents="box-none">
+              <IconButton
+                icon={paused ? 'play' : 'pause'}
+                label={paused ? t('Play') : t('Pause')}
+                size={72}
+                iconSize={40}
+                testID="player-center-toggle"
+                onPress={() => setPaused((p) => !p)}
+              />
+            </View>
+          ) : null}
           <View style={[styles.top, { paddingHorizontal: sizes.gutter }]}>
             <IconButton
               icon="back"
@@ -1187,6 +1200,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
   center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between' },
+  middle: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   top: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 20 },
   heading: { flexShrink: 1 },
   title: { color: colors.strong, fontWeight: '700' },

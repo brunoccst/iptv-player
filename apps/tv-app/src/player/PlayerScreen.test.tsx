@@ -349,7 +349,7 @@ describe('PlayerScreen', () => {
     await act(async () => pressRemote('select', 'up'));
     expect(playerState.props?.paused).toBe(true);
     expect(screen.getByTestId('player-time')).toHaveTextContent('0:08 / 0:30');
-    expect(screen.getByLabelText('Play')).toBeTruthy();
+    expect(screen.getByTestId('player-toggle').props.accessibilityLabel).toBe('Play');
     await act(async () => jest.advanceTimersByTime(10_000));
     expect(screen.getByTestId('player-time')).toBeTruthy();
 
@@ -423,9 +423,9 @@ describe('PlayerScreen', () => {
       playerState.props?.onStatus?.({ nativeEvent: { state: 'ready', isPlaying: false, pausedByAudioOutput: true } } as never),
     );
     expect(playerState.props?.paused).toBe(true);
-    expect(screen.getByLabelText('Play')).toBeTruthy();
+    expect(screen.getByTestId('player-toggle').props.accessibilityLabel).toBe('Play');
 
-    await fireEvent.press(screen.getByLabelText('Play'));
+    await fireEvent.press(screen.getByTestId('player-toggle'));
     expect(playerState.props?.paused).toBe(false);
   });
 
@@ -1328,6 +1328,86 @@ describe('PlayerScreen', () => {
       await act(async () => fireEvent.press(screen.getByTestId('player-audio')));
       await act(async () => fireEvent.press(screen.getByTestId('quick-drawer-backdrop')));
       expect(screen.queryByTestId('quick-drawer')).toBeNull();
+    });
+
+    it('the controls have a big play/pause in the middle that does what the one at the bottom does', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      expect(screen.getByTestId('player-center-toggle').props.accessibilityLabel).toBe('Pause');
+      await act(async () => fireEvent.press(screen.getByTestId('player-center-toggle')));
+      expect(playerState.props?.paused).toBe(true);
+      expect(screen.getByTestId('player-center-toggle').props.accessibilityLabel).toBe('Play');
+      expect(screen.getByTestId('player-toggle').props.accessibilityLabel).toBe('Play');
+      await act(async () => fireEvent.press(screen.getByTestId('player-center-toggle')));
+      expect(playerState.props?.paused).toBe(false);
+      // Not over the drawer.
+      await act(async () => fireEvent.press(screen.getByTestId('player-audio')));
+      expect(screen.queryByTestId('player-center-toggle')).toBeNull();
+    });
+
+    it('the Episodes panel shows one season, the one playing first; the episode playing is read-only', async () => {
+      const backend = setupApp();
+      const ep = (id: string, season: number, n: number) => ({
+        id,
+        seasonNumber: season,
+        episodeNumber: n,
+        title: `Episode ${id}`,
+        plot: null,
+        durationSeconds: 2400,
+        stillUrl: null,
+        containerExtension: 'mp4',
+      });
+      backend.on('GET', '/api/catalog/series/s9', {
+        body: {
+          summary: {
+            id: 's9',
+            name: 'Show',
+            categoryId: null,
+            posterUrl: null,
+            rating: null,
+            plot: null,
+            genre: null,
+            releaseDate: null,
+            lastModifiedAt: null,
+          },
+          cast: null,
+          director: null,
+          backdropUrls: [],
+          trailerYoutubeId: null,
+          seasons: [
+            { number: 1, name: 'Season 1', coverUrl: null, episodes: [ep('a1', 1, 1), ep('a2', 1, 2)] },
+            { number: 2, name: 'Season 2', coverUrl: null, episodes: [ep('b1', 2, 1), ep('b2', 2, 2)] },
+          ],
+        },
+      });
+      backend.on('GET', '/api/playback/episode/b1', { body: playback('http://relay/b1.mp4', 'mp4') });
+      const target: PlayTarget = { kind: 'episode', streamId: 'b1', container: 'mp4', title: 'Show', seriesId: 's9' };
+      navStore.getState().push({ name: 'player', target });
+      await render(<PlayerScreen target={target} />);
+      await flush();
+      await flush();
+      await ready();
+
+      await act(async () => fireEvent.press(screen.getByTestId('player-episodes')));
+      expect(screen.getByTestId('quick-drawer-season')).toBeTruthy();
+      expect(screen.getByText('Season 2')).toBeTruthy();
+      expect(screen.queryByText('S01:E01 · Episode a1')).toBeNull();
+      const current = screen.getByTestId('quick-drawer-current-episode');
+      expect(current.props.accessibilityState).toMatchObject({ disabled: true });
+      expect(screen.getByText('▶ S02:E01 · Episode b1')).toBeTruthy();
+      await act(async () => fireEvent.press(current));
+      expect(navStore.getState().stack.at(-1)).toMatchObject({ target: { streamId: 'b1' } });
+
+      // Another season through the drop-down.
+      await act(async () => fireEvent.press(screen.getByTestId('quick-drawer-season')));
+      await act(async () => fireEvent.press(screen.getByText('Season 1')));
+      expect(screen.getByText('S01:E02 · Episode a2')).toBeTruthy();
+      expect(screen.queryByText('S02:E02 · Episode b2')).toBeNull();
+      await act(async () => fireEvent.press(screen.getByText('S01:E02 · Episode a2')));
+      expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'player', target: { streamId: 'a2' } });
     });
 
     it('live: a swipe up in the middle opens the guide, on the sides it sets brightness or volume (D-046)', async () => {
