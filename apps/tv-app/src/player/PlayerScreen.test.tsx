@@ -1257,6 +1257,11 @@ describe('PlayerScreen', () => {
       const view = await render(<PlayerScreen target={movie} />);
       await flush();
       await ready();
+      await progress(30, 120);
+      // With the controls gone, a bar shows only while sliding.
+      await act(async () => jest.advanceTimersByTime(5000));
+      expect(screen.queryByTestId('player-controls')).toBeNull();
+      expect(screen.queryByTestId('level-brightness')).toBeNull();
       const { width, height } = Dimensions.get('window');
       const middle = height / 2;
       // Up by 30 % of the height: +50 %.
@@ -1268,7 +1273,7 @@ describe('PlayerScreen', () => {
       ).toBe(true);
       expect(nativeState.brightness).toBe(1);
       expect(screen.getByTestId('level-brightness')).toBeTruthy();
-      expect(screen.getByTestId('level-percent')).toHaveTextContent('100%');
+      expect(screen.getByTestId('level-percent-brightness')).toHaveTextContent('100%');
       await act(async () => jest.advanceTimersByTime(900));
       expect(screen.getByTestId('level-brightness')).toBeTruthy();
       await act(async () => jest.advanceTimersByTime(200));
@@ -1280,7 +1285,7 @@ describe('PlayerScreen', () => {
         [width * 0.9, middle + 20 + height * 0.12],
       ]);
       expect(nativeState.volumeStep).toBe(2);
-      expect(screen.getByTestId('level-percent')).toHaveTextContent('13%');
+      expect(screen.getByTestId('level-percent-volume')).toHaveTextContent('13%');
       expect(playerState.seeks).toEqual([]);
 
       // Not in the middle, not sideways, not from the screen's top edge.
@@ -1294,6 +1299,35 @@ describe('PlayerScreen', () => {
       await render(<PlayerScreen target={movie} />);
       await flush();
       expect(nativeState.brightness).toBe(1);
+    });
+
+    it('both level bars show with the controls, so the sides that slide are always visible', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      await progress(30, 120);
+      expect(screen.getByTestId('player-controls')).toBeTruthy();
+      expect(screen.getByTestId('level-brightness')).toBeTruthy();
+      expect(screen.getByTestId('level-volume')).toBeTruthy();
+      await act(async () => fireEvent.press(screen.getByTestId('player-subtitles')));
+      expect(screen.queryByTestId('level-volume')).toBeNull();
+    });
+
+    it('the Audio/Subtitles drawer has a back arrow, and a tap beside it closes it too', async () => {
+      const backend = setupApp();
+      backend.on('GET', '/api/playback/movie/55', { body: playback('http://relay/55.mkv') });
+      await render(<PlayerScreen target={movie} />);
+      await flush();
+      await ready();
+      await act(async () => fireEvent.press(screen.getByTestId('player-subtitles')));
+      expect(screen.getByTestId('quick-drawer')).toBeTruthy();
+      await act(async () => fireEvent.press(screen.getByTestId('quick-drawer-back')));
+      expect(screen.queryByTestId('quick-drawer')).toBeNull();
+      await act(async () => fireEvent.press(screen.getByTestId('player-audio')));
+      await act(async () => fireEvent.press(screen.getByTestId('quick-drawer-backdrop')));
+      expect(screen.queryByTestId('quick-drawer')).toBeNull();
     });
 
     it('live: a swipe up in the middle opens the guide, on the sides it sets brightness or volume (D-046)', async () => {

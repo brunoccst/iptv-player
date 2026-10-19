@@ -99,7 +99,7 @@ export function usePlayerSwipes(enabled: boolean, onSwipeUp: (() => void) | null
   return { panHandlers: pan.panHandlers, level };
 }
 
-/** The brightness or volume bar on the side being slid. */
+/** The brightness or volume bar on its side: while sliding, and on phones whenever the controls are up. */
 export function LevelBar({ kind, value }: { kind: LevelKind; value: number }) {
   const percent = Math.round(value * 100);
   return (
@@ -109,7 +109,7 @@ export function LevelBar({ kind, value }: { kind: LevelKind; value: number }) {
         <View style={styles.track}>
           <View style={[styles.fill, { height: `${percent}%` }]} />
         </View>
-        <Text style={styles.text} testID="level-percent">
+        <Text style={styles.text} testID={`level-percent-${kind}`}>
           {percent}%
         </Text>
       </View>
