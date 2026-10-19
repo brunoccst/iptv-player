@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Clearer phone player** (2026-10-19, D-046, D-190): the Audio, Subtitles and Episodes panel no longer shows Audio lit up as if selected, has a back arrow, and closes with a tap beside it. The brightness and volume bars now show on the sides whenever you tap to show the controls.
 - **Smoother first library build** (2026-10-17, D-188, issue #228): reading the names of a large provider list no longer holds up the app. The TV and phone now do it in the background, so menus and remote presses keep answering while the library is built or updated.
 - **Stays in sync with the TV** (2026-10-17, D-186, issue #227): a phone or tablet that has scanned the TV's code once now keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
 - **Split or merge titles** (2026-10-17, D-185, issue #243): when two versions that are not the same film or series end up as one title, or one title shows up twice, the Split or merge button in its details splits a version off or merges the other title in. It can be undone the same way.

@@ -1,5 +1,5 @@
 import { useState, type ReactNode, useRef } from 'react';
-import { StyleSheet, Text, type FocusDestination, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, type FocusDestination, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, fonts, radius } from '../theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { useCenterFocus, type Measurable } from './CenterScroll';
@@ -42,12 +42,15 @@ export function FocusButton({
   onFocus,
   nextFocusUp,
 }: FocusButtonProps) {
+  // Phones show no focus look: Android still hands focus to the first button when the focused view goes (the player's
+  // drawer opened with its Audio tab lit up), and a touch never moves it on. See DECISIONS.md#d-190.
   const [focused, setFocused] = useState(false);
-  const scale = useFocusScale(focused, 1.06);
+  const lit = focused && Platform.isTV;
+  const scale = useFocusScale(lit, 1.06);
   const centerFocus = useCenterFocus();
   const self = useRef<Measurable>(null);
   // Focused: every variant turns white with dark text, the primary one (already white) gets the glow.
-  const textColor = focused ? focus.onSolid : TEXT[variant];
+  const textColor = lit ? focus.onSolid : TEXT[variant];
   const iconNode = typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon;
   return (
     <AnimatedPressable
@@ -66,7 +69,7 @@ export function FocusButton({
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
-      style={[styles.base, styles[variant], focused && styles.focused, disabled && styles.disabled, { transform: [{ scale }] }, style]}
+      style={[styles.base, styles[variant], lit && styles.focused, disabled && styles.disabled, { transform: [{ scale }] }, style]}
     >
       {iconAfter ? null : iconNode}
       <Text style={[styles.label, { color: textColor }]} numberOfLines={1}>

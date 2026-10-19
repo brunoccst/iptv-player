@@ -95,6 +95,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-187](#d-187) | Desktop: downloads go on with the window closed |
 | [D-188](#d-188) | TV and phone: names read in the system WebView |
 | [D-189](#d-189) | Desktop: FFmpeg converts what Chromium cannot decode |
+| [D-190](#d-190) | Phones show no focus look |
 
 ## Merged and retired IDs
 
@@ -387,12 +388,14 @@ No intro detection: providers send no markers and detection needs server-side pr
 
 <a id="d-097"></a><a id="d-155"></a>
 
-**Phone player gestures** — 2026-09-24, updated 2026-10-07 (merges D-097, D-155)
+**Phone player gestures** — 2026-09-24, updated 2026-10-19 (merges D-097, D-155)
 
 - The player locks to landscape (back to free rotation on close); the navigation bar stays hidden everywhere (D-177). The player keeps the screen on while video plays, on phones and TV.
 - A tap shows or hides the controls; a second tap within 300 ms on the left or right third skips (D-128). The skip circle (`TapFlash`) takes no touches and is removed once faded.
 - The timeline can be dragged and seeks once on release.
 - A vertical slide on the left third sets the brightness, on the right third the media volume (`player/TouchLevels.tsx`); the middle is free for the live guide's swipe up (D-058). 60 % of the screen height is 0 to 100 %; slides from the top or bottom 8 % are left to the system. Brightness is the window's own (at least 1 %; the phone's comes back on close; kept for the next player of the run); volume is the system media volume without the system panel.
+- Both level bars show whenever the controls are up (not with a panel or the guide open), so people see the sides that slide; otherwise one shows while sliding and a second after (2026-10-19).
+- The Audio/Subtitles/Episodes panel has a back arrow and closes on a tap beside it: with the navigation bar hidden, phones have no Back key on screen (2026-10-19).
 - Phones show the status bar outside the player, so screen cut-outs do not cover the header.
 
 ## D-047
@@ -1062,3 +1065,9 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - FFmpeg reads the provider through a relay in the main process (127.0.0.1, one random path per stream): the static Linux build crashes looking up host names itself, and the relay adds the player User-Agent.
 - Limits (issue #270): the first audio track only; no timeline pictures while converted; downloads of such titles still do not play offline. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
 
+## D-190
+
+**Phones show no focus look** — 2026-10-19
+
+- `FocusButton` and `IconButton` light up (white, glow, grow) only on TV. On a phone, Android still gives focus to the first focusable view when the focused one goes, and a touch never moves it on: opening the player's panel left its Audio tab lit like a focused TV button for as long as it was open.
+- Phones show what is chosen with the button's own variant (the panel's open tab is the white one), never with focus.

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { FocusButton } from './FocusButton';
 import { IconButton } from './IconButton';
@@ -11,6 +11,20 @@ describe('preferred focus', () => {
     jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
     await render(<FocusButton label="Play" hasTVPreferredFocus onPress={() => undefined} testID="play" />);
     expect(screen.getByTestId('play').props.hasTVPreferredFocus).toBeUndefined();
+  });
+
+  it('phones: a button that has the focus does not light up (the player drawer kept its Audio tab lit)', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(false);
+    await render(<FocusButton label="Audio" variant="ghost" onPress={() => undefined} testID="audio" />);
+    await act(async () => fireEvent(screen.getByTestId('audio'), 'focus'));
+    expect(screen.getByTestId('audio')).not.toHaveStyle({ backgroundColor: '#fff' });
+  });
+
+  it('TV: a focused button lights up', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    await render(<FocusButton label="Audio" variant="ghost" onPress={() => undefined} testID="audio" />);
+    await act(async () => fireEvent(screen.getByTestId('audio'), 'focus'));
+    expect(screen.getByTestId('audio')).toHaveStyle({ backgroundColor: '#fff' });
   });
 
   it('TV: the remote starts on the preferred button', async () => {

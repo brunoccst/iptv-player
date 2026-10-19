@@ -833,7 +833,16 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         </View>
       ) : null}
 
-      {swipe.level && !halted ? <LevelBar kind={swipe.level.kind} value={swipe.level.value} /> : null}
+      {/* Phones: both bars stay up with the controls, so the sides that slide are always shown; otherwise only while
+          sliding (D-046). */}
+      {!Platform.isTV && controls && !guide && !recent && !drawer && !scrub && !halted ? (
+        <>
+          <LevelBar kind="brightness" value={swipe.level?.kind === 'brightness' ? swipe.level.value : TvMedia.brightness()} />
+          <LevelBar kind="volume" value={swipe.level?.kind === 'volume' ? swipe.level.value : TvMedia.volume()} />
+        </>
+      ) : swipe.level && !halted ? (
+        <LevelBar kind={swipe.level.kind} value={swipe.level.value} />
+      ) : null}
       {flash ? <TapFlash direction={flash.direction} seconds={flash.seconds} flashKey={flash.key} onDone={() => setFlash(null)} /> : null}
       {scrub ? (
         <ScrubBar preview={scrub.preview} speed={scrub.speed} step={scrub.step} direction={scrub.direction} duration={duration} />
@@ -1133,6 +1142,7 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       {drawer ? (
         <QuickDrawer
           initialTab={drawer}
+          onClose={() => setDrawer(false)}
           tracks={tracks}
           variants={variants}
           currentStreamId={target.streamId}

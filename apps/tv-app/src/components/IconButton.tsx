@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Animated, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, type FocusDestination, type View } from 'react-native';
 import { useMemo } from 'react';
 import { focus, useFocusScale } from './focus';
 import { mergeRefs, usePageFocusable } from './pageFocus';
@@ -49,7 +49,9 @@ export function IconButton({
   colourKey?: ColourKey;
 }) {
   const [focused, setFocused] = useState(false);
-  const scale = useFocusScale(focused, 1.12);
+  // Phones show no focus look, like FocusButton.
+  const lit = focused && Platform.isTV;
+  const scale = useFocusScale(lit, 1.12);
   const page = usePageFocusable(hasTVPreferredFocus);
   const ref = useMemo(() => mergeRefs<View>(focusRef, page.ref), [focusRef, page.ref]);
   return (
@@ -78,11 +80,11 @@ export function IconButton({
           styles.button,
           { width: size, height: size, borderRadius: size / 2 },
           plain && styles.plain,
-          focused && (plain ? styles.plainFocused : styles.focused),
+          lit && (plain ? styles.plainFocused : styles.focused),
           { transform: [{ scale }] },
         ]}
       >
-        <Icon name={icon} size={iconSize} color={focused && !plain ? focus.onSolid : undefined} />
+        <Icon name={icon} size={iconSize} color={lit && !plain ? focus.onSolid : undefined} />
       </Animated.View>
       {colourKey ? <ColourDot colour={colourKey} /> : null}
     </Pressable>
