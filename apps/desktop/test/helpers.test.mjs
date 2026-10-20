@@ -99,6 +99,20 @@ test('VLC gets the stream with the provider User-Agent; only http(s) addresses',
     '--no-one-instance',
     'http://panel:8080/movie/u/p/1.mkv',
   ]);
+  // Issue #265: from the saved progress, with the web interface the app reads the time from.
+  assert.deepEqual(
+    vlcArguments('http://panel/movie/u/p/1.mkv', 'UA', null, { startAt: 600.7, control: { port: 5000, password: 'secret' } }),
+    [
+      '--http-user-agent=UA',
+      '--start-time=600',
+      '--extraintf=http',
+      '--http-host=127.0.0.1',
+      '--http-port=5000',
+      '--http-password=secret',
+      '--no-one-instance',
+      'http://panel/movie/u/p/1.mkv',
+    ],
+  );
   assert.equal(vlcArguments('file:///etc/passwd', 'UA', 'x'), null);
   assert.equal(vlcArguments('--help', 'UA', 'x'), null);
   assert.equal(vlcArguments('not a url', 'UA', null), null);

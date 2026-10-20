@@ -1,7 +1,10 @@
 import {
   appLog,
   errorMessage,
+  findProgress,
   probeStream,
+  resumePosition,
+  savePlaybackProgress,
   selectActiveProfile,
   tvPlaybackAttempts,
   type PlaybackInfoWithAlternates,
@@ -55,13 +58,43 @@ export async function openInVlc(target: PlayTarget): Promise<string | null> {
     const playback: PlaybackInfoWithAlternates = await api.playback.get(target.kind, target.streamId, step.container);
     const url = await answeringUrl([playback.url, ...(playback.alternateUrls ?? [])]);
     const title = target.kind === 'episode' && target.subtitle ? `${target.title} · ${target.subtitle}` : target.title;
-    const result = await desktop.openInVlc(url, title);
+    const saved = target.kind === 'live' ? null : findProgress(stores.progress.getState(), target.kind, target.streamId);
+    const startAt = target.startAt ?? resumePosition(saved);
+    const watchId = desktop.onVlcProgress ? watchVlc(target) : undefined;
+    const result = await desktop.openInVlc(url, title, startAt, watchId);
+    if (result === 'none' && watchId) watched.delete(watchId);
     appLog.info('player', `VLC (${result}): ${target.kind} ${target.streamId}`);
     return result === 'none' ? t('VLC is not installed. Install it from videolan.org and try again.') : null;
   } catch (error) {
     appLog.warn('player', `VLC failed: ${errorMessage(error)}`);
     return t('The stream could not be opened in VLC.');
   }
+}
+
+/** Titles playing in VLC, by watch id, with the profile they were opened for (issue #265). */
+const watched = new Map<string, { target: PlayTarget; profileId: string | null }>();
+let listening = false;
+
+/**
+ * Where VLC stops is saved as the title's progress, like our player does (issue #265, DECISIONS.md#d-191): the desktop
+ * app reads it from VLC's web interface while it plays and when it closes. Returns the watch id for that VLC.
+ */
+function watchVlc(target: PlayTarget): string {
+  if (!listening && desktop?.onVlcProgress) {
+    listening = true;
+    desktop.onVlcProgress(({ id, position, duration, ended }) => {
+      const entry = watched.get(id);
+      if (!entry) return;
+      if (ended) watched.delete(id);
+      // Another profile is watching now: the progress belongs to the one that opened VLC.
+      if (stores.session.getState().activeProfileId !== entry.profileId) return;
+      if (ended) appLog.info('player', `VLC closed at ${Math.round(position)} of ${Math.round(duration)} s`);
+      savePlaybackProgress(stores.progress, entry.target, position, duration);
+    });
+  }
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  watched.set(id, { target, profileId: stores.session.getState().activeProfileId ?? null });
+  return id;
 }
 
 /**

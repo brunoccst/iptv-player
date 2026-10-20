@@ -60,7 +60,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Playback errors](FEATURES.md#playback-errors) | `packages/shared/src/playback/sources.ts`, `packages/shared/src/playback/probe.ts`, `apps/web-player/src/features/player/playbackEngine.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/desktop/lib/transcoder.mjs` |
 | [Connection limit](FEATURES.md#connection-limit) | `packages/shared/src/playback/connectionLimit.ts`, `packages/shared/src/direct/xtream.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx` |
 | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) | `apps/tv-app/modules/tv-media/android/build.gradle`, `apps/tv-app/src/playbackSettings.ts`, `apps/tv-app/src/components/PlaybackSettings.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvPlayerView.kt` |
-| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs` |
+| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs`, `apps/desktop/lib/vlc.mjs` |
 
 ## Live TV
 

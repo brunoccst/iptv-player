@@ -25,8 +25,16 @@ export interface DesktopBridge {
   checkForUpdates(): Promise<void>;
   /** While an accepted update downloads: its version and percentage, then null. Returns the unsubscribe function. */
   onUpdateProgress?(listener: (progress: UpdateProgress | null) => void): () => void;
-  /** Plays a stream address in VLC with the provider User-Agent (D-057); 'none' when VLC is not installed. */
-  openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
+  /**
+   * Plays a stream address in VLC with the provider User-Agent (D-057) from `startAt` seconds; 'none' when VLC is not
+   * installed. With `watchId`, where VLC stops comes back through `onVlcProgress` (issue #265). Older apps ignore both.
+   */
+  openInVlc(url: string, title: string | null, startAt?: number, watchId?: string): Promise<'vlc' | 'none'>;
+  /**
+   * Where a watched VLC is (seconds): now and then while it plays, and `ended` when it closed. Returns the unsubscribe
+   * function. Older apps lack it.
+   */
+  onVlcProgress?(listener: (progress: { id: string; position: number; duration: number; ended: boolean }) => void): () => void;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
   setTexts(texts: Record<string, string>): Promise<void>;
   /**

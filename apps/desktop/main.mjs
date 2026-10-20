@@ -28,6 +28,7 @@ import {
 } from './lib/helpers.mjs';
 import { openLibraryDb } from './lib/libraryDb.mjs';
 import { createTranscoder } from './lib/transcoder.mjs';
+import { vlcControl, watchVlc } from './lib/vlc.mjs';
 import ffmpegPath from 'ffmpeg-static';
 
 const { autoUpdater } = electronUpdater;
@@ -524,14 +525,26 @@ app.whenReady().then(async () => {
     void checkForUpdate(true);
   });
   // "Open in VLC", like the TV's "open in another player" (D-057): VLC plays the stream with the provider
-  // User-Agent. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
-  ipcMain.handle('iptv:open-external', (event, url, title) => {
+  // User-Agent from `startAt` seconds. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
+  // With a `watchId`, where VLC stops goes back to the page as 'iptv:vlc-progress' (issue #265, DECISIONS.md#d-191).
+  ipcMain.handle('iptv:open-external', async (event, url, title, startAt, watchId) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
-    const args = vlcArguments(String(url ?? ''), config.userAgent, title ? String(title) : null);
+    const watch = typeof watchId === 'string' && watchId.length <= 64 ? watchId : null;
+    const control = watch ? await vlcControl() : null;
+    const args = vlcArguments(String(url ?? ''), config.userAgent, title ? String(title) : null, {
+      startAt: Math.max(0, Number(startAt) || 0),
+      control,
+    });
     if (!args) throw new Error('Not a stream address');
     const vlc = vlcCandidates(process.platform, process.env).find((file) => existsSync(file));
     if (!vlc) return 'none';
-    spawn(vlc, args, { detached: true, stdio: 'ignore' }).unref();
+    const child = spawn(vlc, args, { detached: true, stdio: 'ignore' });
+    child.unref();
+    const sender = event.sender;
+    if (control)
+      watchVlc(child, control, (progress) => {
+        if (!sender.isDestroyed()) sender.send('iptv:vlc-progress', { id: watch, ...progress });
+      });
     return 'vlc';
   });
   // Conversion of what Chromium cannot decode (D-189): what a stream holds, start (also for a seek), stop.

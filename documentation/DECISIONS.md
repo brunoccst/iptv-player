@@ -96,6 +96,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-188](#d-188) | TV and phone: names read in the system WebView |
 | [D-189](#d-189) | Desktop: FFmpeg converts what Chromium cannot decode |
 | [D-190](#d-190) | Phones show no focus look |
+| [D-191](#d-191) | Desktop: progress from VLC through its web interface |
 
 ## Merged and retired IDs
 
@@ -486,7 +487,7 @@ A round button in details saves a movie or series; saved titles show as a Home r
 
 - TV/phone progress (issue #234): the intent is started for a result with `return_result`; MX Player and Just Player send `position`/`duration` (ints, ms) and `end_by`, VLC `extra_position`/`extra_duration` (longs), and the stop point is saved like our player's. The saved progress goes in `position` (an int, what MX Player and Just Player read; VLC reads a long there, so it starts from the beginning). Through the app chooser the chosen app's result still comes back.
 
-Limits: Open in VLC on the desktop reports nothing back, so no progress there (issue #265).
+On the desktop, VLC starts at the saved progress and the app reads where it stops through its web interface (D-191).
 
 ## D-058
 
@@ -1071,3 +1072,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - `FocusButton` and `IconButton` light up (white, glow, grow) only on TV. On a phone, Android still gives focus to the first focusable view when the focused one goes, and a touch never moves it on: opening the player's panel left its Audio tab lit like a focused TV button for as long as it was open.
 - Phones show what is chosen with the button's own variant (the panel's open tab is the white one), never with focus.
+
+## D-191
+
+**Desktop: progress from VLC through its web interface** — 2026-10-20 (issue #265)
+
+- VLC is a separate program (D-057) that reports nothing back to the app the way Android players do (issue #234). The app starts it with `--start-time` at the saved progress and with its web interface on 127.0.0.1, a free port and a random password per launch (`lib/vlc.mjs`), and asks `/requests/status.json` for `time` and `length` every 3 s.
+- The page gets the latest time after the first answer, after each further minute of playback, and once when VLC closes; it saves it as the progress of the profile that opened VLC (none when another profile is active by then). The periodic saves keep progress when the app closes before VLC.
+- Chosen over reading VLC's own recent-files history: its format and place differ per system and version, and it only holds the time when VLC closes cleanly. A VLC without its Lua web interface simply never answers, which leaves the progress as it was.

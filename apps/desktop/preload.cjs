@@ -27,8 +27,14 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     ipcRenderer.on('iptv:background', handler);
     return () => ipcRenderer.removeListener('iptv:background', handler);
   },
-  // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
-  openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
+  // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed. With a watch id, where VLC
+  // stops comes back as { id, position, duration, ended } (issue #265).
+  openInVlc: (url, title, startAt, watchId) => ipcRenderer.invoke('iptv:open-external', url, title, startAt, watchId),
+  onVlcProgress(listener) {
+    const handler = (_event, progress) => listener(progress);
+    ipcRenderer.on('iptv:vlc-progress', handler);
+    return () => ipcRenderer.removeListener('iptv:vlc-progress', handler);
+  },
   // What Chromium cannot decode, through the bundled FFmpeg (issue #236): what a stream holds, then an HLS playlist
   // of it as H.264 and AAC on the app's own server.
   transcode: {
