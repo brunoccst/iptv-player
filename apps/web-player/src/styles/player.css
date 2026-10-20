@@ -345,7 +345,9 @@
 }
 
 .drawer__episode--current {
-  border-color: var(--color-text-strong);
+  border-color: var(--color-accent);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: default;
 }
 
 .drawer__episode img,

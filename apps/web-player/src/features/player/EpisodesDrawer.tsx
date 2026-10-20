@@ -10,7 +10,10 @@ interface EpisodesDrawerProps {
 
 /** In-player episode picker. */
 export function EpisodesDrawer({ series, currentEpisodeId, onPlay }: EpisodesDrawerProps) {
-  const currentSeason = series.seasons.find((season) => season.episodes.some((e) => e.id === currentEpisodeId))?.number;
+  // The episode playing; it may play from another version than the merged list's default one (D-066).
+  const isCurrent = (episode: MergedEpisode) =>
+    episode.id === currentEpisodeId || episode.versions.some((version) => version.episode.id === currentEpisodeId);
+  const currentSeason = series.seasons.find((season) => season.episodes.some(isCurrent))?.number;
   const [seasonNumber, setSeasonNumber] = useState(currentSeason ?? series.seasons[0]?.number ?? 1);
   const season = series.seasons.find((s) => s.number === seasonNumber);
 
@@ -32,12 +35,15 @@ export function EpisodesDrawer({ series, currentEpisodeId, onPlay }: EpisodesDra
           ))}
         </select>
       ) : null}
+      {/* The episode playing is marked and read-only. */}
       {season?.episodes.map((episode) => (
         <button
           key={episode.id}
           type="button"
           onClick={() => onPlay(episode)}
-          className={`drawer__episode${episode.id === currentEpisodeId ? ' drawer__episode--current' : ''}`}
+          disabled={isCurrent(episode)}
+          aria-current={isCurrent(episode) ? 'true' : undefined}
+          className={`drawer__episode${isCurrent(episode) ? ' drawer__episode--current' : ''}`}
         >
           {episode.stillUrl ? <img src={episode.stillUrl} alt="" loading="lazy" /> : <span className="drawer__still" />}
           <span>

@@ -26,7 +26,7 @@ function expectSameBytes(actual: ArrayBuffer | Uint8Array, expected: Uint8Array)
 }
 
 /** Fake upstream: an HLS VOD (master → media, init map, AES key reference, 3 segments) and a ranged MP4 file. */
-function fakeUpstream(file: Uint8Array<ArrayBuffer>, options: { hls?: boolean; honorRange?: boolean } = {}) {
+function fakeUpstream(file: Uint8Array<ArrayBuffer>, options: { hls?: boolean; honorRange?: boolean; gate?: Promise<void> } = {}) {
   const hls = options.hls ?? true;
   const segments = [bytes(1000, 1), bytes(1500, 2), bytes(800, 3)];
   const requests: string[] = [];
@@ -34,6 +34,8 @@ function fakeUpstream(file: Uint8Array<ArrayBuffer>, options: { hls?: boolean; h
     const url = new URL(String(input));
     const range = new Headers(init?.headers).get('Range');
     requests.push(url.pathname + (range ? ` ${range}` : ''));
+    // Held until the test opens the gate, so no download ends before all are queued.
+    if (options.gate) await options.gate;
     if (init?.signal?.aborted) throw new DOMException('aborted', 'AbortError');
     const ok = (body: BodyInit, headers: Record<string, string> = {}, status = 200) => {
       const response = new Response(body, { status, headers });
@@ -84,7 +86,7 @@ const api = {
   },
 } as unknown as ApiClient;
 
-function setup(file = bytes(10), options: { hls?: boolean; honorRange?: boolean; parallel?: number } = {}) {
+function setup(file = bytes(10), options: { hls?: boolean; honorRange?: boolean; parallel?: number; gate?: Promise<void> } = {}) {
   const db = createOfflineDb(new IDBFactory());
   const chunks = createMemoryChunkStore();
   const upstream = fakeUpstream(file, options);
@@ -263,8 +265,11 @@ describe('download manager + offline responder', () => {
     await one.manager.idle();
     expect(one.mostAtOnce()).toBe(1);
 
-    const two = setup(bytes(10), { parallel: 2 });
+    let open = () => {};
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    const two = setup(bytes(10), { parallel: 2, gate });
     for (const id of ['1', '2', '3']) await two.manager.enqueue(target(id));
+    open();
     await two.manager.idle();
     expect(two.mostAtOnce()).toBe(2);
     for (const id of ['1', '2', '3']) expect((await two.db.getDownload(downloadId('movie', id)))?.status).toBe('completed');

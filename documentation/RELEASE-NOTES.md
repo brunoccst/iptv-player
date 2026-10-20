@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Play / pause in the middle, one season at a time** (2026-10-19, D-046, D-066): on the phone, tapping the video now also shows a big play / pause button in the middle of the screen, like Netflix and YouTube. The player's Episodes panel (phone and TV) shows one season with a season choice, opened on the season playing, and the episode playing is highlighted and can no longer be picked again.
 - **Clearer phone player** (2026-10-19, D-046, D-190): the Audio, Subtitles and Episodes panel no longer shows Audio lit up as if selected, has a back arrow, and closes with a tap beside it. The brightness and volume bars now show on the sides whenever you tap to show the controls.
 - **Smoother first library build** (2026-10-17, D-188, issue #228): reading the names of a large provider list no longer holds up the app. The TV and phone now do it in the background, so menus and remote presses keep answering while the library is built or updated.
 - **Stays in sync with the TV** (2026-10-17, D-186, issue #227): a phone or tablet that has scanned the TV's code once now keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
@@ -116,6 +117,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **The episode playing stands out** (2026-10-19, D-066): in the player's episode list, the episode playing is now highlighted and can no longer be picked again. It also opens on the right season when the episode plays from another version of the series.
 - **Plays HEVC, Xvid and Dolby sound** (2026-10-17, D-189, issue #236): films and episodes the computer could not play (HEVC video without a decoder, Xvid, MPEG-2, Dolby Digital or DTS sound) now play in the app. It converts them while you watch; a video that played without sound now has it. The app download is bigger because of this.
 - **Downloads go on with the window closed** (2026-10-17, D-187, issue #219): closing the window while something downloads now hides it instead, and the downloads carry on. The tray icon opens the app again or quits it, and the app closes by itself once they are done. Accounts with more than one stream also download up to three titles at once, always keeping one stream free for watching.
 - **Stays in sync with the TV** (2026-10-17, D-186, issue #227): after this computer has scanned the TV's code once, it keeps profiles, progress and My List the same as the TV by itself, whenever the app opens or its window comes back and every 10 minutes, while the TV app is open on the same home network. Titles removed from My List or Continue watching and deleted profiles stay removed on both.
