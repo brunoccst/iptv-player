@@ -10,6 +10,7 @@ on:
       - 'apps/desktop/**'
       - 'apps/web-player/**'
       - 'packages/shared/**'
+      - 'packages/screens/**'
       - 'package-lock.json'
       - '.github/workflows/desktop.yml'
       - '!**/*.md'

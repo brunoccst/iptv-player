@@ -12,6 +12,7 @@
     "build:name-parser": "node scripts/build-name-parser.mjs"
   },
   "dependencies": {
+    "@iptv/screens": "*",
     "@iptv/shared": "*",
     "@react-native-tvos/config-tv": "^0.1.6",
     "expo": "~57.0.24",

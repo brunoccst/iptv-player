@@ -23,9 +23,16 @@ function fakeVideo(playable: (url: string) => boolean) {
 
 /** Fake hls.js: manifests containing "good" parse, others raise a fatal error. */
 function fakeHls() {
-  const Events = { MANIFEST_PARSED: 'parsed', ERROR: 'error' };
+  const Events = { MANIFEST_PARSED: 'parsed', ERROR: 'error', AUDIO_TRACK_SWITCHED: 'audioSwitched' };
   const ErrorTypes = { NETWORK_ERROR: 'net', MEDIA_ERROR: 'media' };
   class FakeHls {
+    static instances: FakeHls[] = [];
+    constructor() {
+      FakeHls.instances.push(this);
+    }
+    emit(event: string, data: unknown) {
+      this.handlers.get(event)?.(event, data);
+    }
     static Events = Events;
     static ErrorTypes = ErrorTypes;
     static isSupported = () => true;
@@ -336,7 +343,7 @@ describe('conversion by the desktop app (issue #236)', () => {
     const loaded = await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null, undefined, 1800.5);
     expect(loaded).toEqual({ url: '/transcode/good1/index.m3u8', engine: 'hls', offline: false, converted: { at: 1800, duration: 3600 } });
     expect(transcode.probe.mock.calls[0]).toEqual(['http://r/movie.mkv']);
-    expect(started).toEqual([{ url: 'http://r/movie.mkv', probe: hevcAc3, at: 1800.5, live: false, copyVideo: false }]);
+    expect(started).toEqual([{ url: 'http://r/movie.mkv', probe: hevcAc3, at: 1800.5, live: false, copyVideo: false, audio: 0 }]);
 
     // The title's clock: the conversion starts 1800 s in.
     video.currentTime = 30;
@@ -383,8 +390,80 @@ describe('conversion by the desktop app (issue #236)', () => {
     Object.assign(video, { webkitAudioDecodedByteCount: 0, currentTime: 12.4 });
     expect(engine.soundMissing()).toBe(true);
     await expect(engine.convertHere()).resolves.toMatchObject({ converted: { at: 12 } });
-    expect(started).toEqual([{ url: 'http://r/movie.mp4', probe: h264Ac3, at: 12.4, live: false, copyVideo: true }]);
+    expect(started).toEqual([{ url: 'http://r/movie.mp4', probe: h264Ac3, at: 12.4, live: false, copyVideo: true, audio: 0 }]);
     expect(engine.soundMissing()).toBe(false);
+  });
+
+  it("starts with the profile's audio track and keeps the one picked when a seek converts again (issue #270)", async () => {
+    const twoTracks: StreamProbe = {
+      ...hevcAc3,
+      audio: [
+        { codec: 'ac3', language: 'eng' },
+        { codec: 'ac3', language: 'por' },
+      ],
+    };
+    const { client } = api({ mkv: 'http://r/movie.mkv' });
+    const { transcode, started } = bridge({ 'http://r/movie.mkv': twoTracks });
+    const Hls = fakeHls();
+    const engine = new PlaybackEngine(
+      clockVideo(() => false),
+      client,
+      Hls as never,
+      true,
+      fakeMpegts().load,
+      transcode,
+    );
+    const offered: unknown[] = [];
+    engine.choosesAudio((tracks) => {
+      offered.push(tracks);
+      return tracks.findIndex((track) => track.language === 'por');
+    });
+    await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, null);
+    expect(offered).toEqual([
+      [
+        { language: 'eng', label: 'eng' },
+        { language: 'por', label: 'por' },
+      ],
+    ]);
+    expect(started[0]).toMatchObject({ audio: 1 });
+    expect(engine.convertedStream).toEqual({ url: 'http://r/movie.mkv', hdr: true });
+
+    Hls.instances.at(-1)!.emit(Hls.Events.AUDIO_TRACK_SWITCHED, { id: 0 });
+    engine.onConverted(() => undefined);
+    engine.seek(3000);
+    await vi.waitFor(() => expect(started).toHaveLength(2));
+    expect(started[1]).toMatchObject({ at: 3000, audio: 0 });
+  });
+
+  it('converts a download Chromium cannot play, reading it through the page (issue #270)', async () => {
+    const { client, get } = api({});
+    const { transcode, started } = bridge({ '/__offline__/movie-1/file': hevcAc3 });
+    const engine = new PlaybackEngine(
+      clockVideo(() => false),
+      client,
+      fakeHls() as never,
+      true,
+      fakeMpegts().load,
+      transcode,
+    );
+    const record = { id: 'movie-1', status: 'completed', format: 'file' } as DownloadRecord;
+    const loaded = await engine.load({ kind: 'movie', streamId: '1', container: 'mkv' }, record, undefined, 600);
+    expect(loaded).toMatchObject({ engine: 'hls', offline: true, converted: { at: 600 } });
+    expect(started[0]).toMatchObject({ url: '/__offline__/movie-1/file', at: 600 });
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it('a download playing without sound gets its sound converted (issue #270)', async () => {
+    const { client } = api({});
+    const { transcode, started } = bridge({ '/__offline__/movie-1/file': h264Ac3 });
+    const video = clockVideo(() => true);
+    const engine = new PlaybackEngine(video, client, fakeHls() as never, true, fakeMpegts().load, transcode);
+    const record = { id: 'movie-1', status: 'completed', format: 'file' } as DownloadRecord;
+    await engine.load({ kind: 'movie', streamId: '1', container: 'mp4' }, record);
+    Object.assign(video, { webkitAudioDecodedByteCount: 0, webkitVideoDecodedByteCount: 90000, currentTime: 50 });
+    expect(engine.soundMissing()).toBe(true);
+    await expect(engine.convertHere()).resolves.toMatchObject({ offline: true, converted: { at: 50 } });
+    expect(started[0]).toMatchObject({ url: '/__offline__/movie-1/file', copyVideo: true });
   });
 
   it('a video without sound that FFmpeg cannot read plays on as it was', async () => {

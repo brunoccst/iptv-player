@@ -60,7 +60,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Playback errors](FEATURES.md#playback-errors) | `packages/shared/src/playback/sources.ts`, `packages/shared/src/playback/probe.ts`, `apps/web-player/src/features/player/playbackEngine.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/desktop/lib/transcoder.mjs` |
 | [Connection limit](FEATURES.md#connection-limit) | `packages/shared/src/playback/connectionLimit.ts`, `packages/shared/src/direct/xtream.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx` |
 | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) | `apps/tv-app/modules/tv-media/android/build.gradle`, `apps/tv-app/src/playbackSettings.ts`, `apps/tv-app/src/components/PlaybackSettings.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvPlayerView.kt` |
-| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs` |
+| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs`, `apps/desktop/lib/vlc.mjs` |
 
 ## Live TV
 
@@ -82,14 +82,14 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/web-player/src/features/browse/MyListPage.tsx` |
+| [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `packages/screens/src/MyListScreen.tsx`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/web-player/src/features/browse/MyListPage.tsx`, `apps/web-player/src/features/browse/SharedMyListPage.tsx` |
 | [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/src/components/QualityUpgradeDialog.tsx`, `apps/web-player/src/features/home/QualityUpgradeDialog.tsx` |
 
 ## Downloads
 
 | Feature | Code |
 |---------|------|
-| [Offline downloads](FEATURES.md#offline-downloads) | `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/DownloadCenter.kt`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/OfflineKey.kt`, `apps/web-player/src/offline/downloadManager.ts`, `apps/web-player/src/offline/offlineResponder.ts`, `apps/web-player/src/features/downloads/backgroundDownloads.ts`, `apps/desktop/main.mjs`, `packages/shared/src/playback/offlineAccess.ts` |
+| [Offline downloads](FEATURES.md#offline-downloads) | `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/DownloadCenter.kt`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/OfflineKey.kt`, `apps/web-player/src/offline/downloadManager.ts`, `apps/web-player/src/offline/offlineResponder.ts`, `apps/web-player/src/offline/desktopReads.ts`, `apps/web-player/src/features/downloads/backgroundDownloads.ts`, `apps/desktop/main.mjs`, `packages/shared/src/playback/offlineAccess.ts` |
 
 ## Profiles
 

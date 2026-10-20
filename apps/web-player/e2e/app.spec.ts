@@ -251,6 +251,32 @@ test('My List: save a title from its details and find it on the My List page', a
   await expect(page.getByText('Add movies and series with the + button')).toBeVisible();
 });
 
+test('My List from the screen shared with the TV app, through React Native Web (issue #237)', async ({ page }) => {
+  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Add Big Test Movie to My List' }).click();
+  await page.keyboard.press('Escape');
+
+  await page.goto('/?screens=shared');
+  await page.getByRole('button', { name: 'My List', exact: true }).click();
+  const screen = page.getByTestId('mylist-screen');
+  await expect(screen.getByRole('heading', { name: 'My List' })).toBeVisible();
+  const saved = screen.getByRole('button', { name: 'Big Test Movie' });
+  await expect(saved).toContainText('4K');
+  // Right-click: the card's menu; a click: its details.
+  await saved.click({ button: 'right' });
+  await expect(page.getByRole('menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await saved.click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove Big Test Movie from My List' }).click();
+  await page.keyboard.press('Escape');
+  await expect(screen.getByText('Add movies and series with the + button')).toBeVisible();
+
+  // Back to the app's own page.
+  await page.goto('/?screens=web');
+  await page.getByRole('button', { name: 'My List', exact: true }).click();
+  await expect(page.locator('.page').getByRole('heading', { name: 'My List' })).toBeVisible();
+});
+
 test('optional parental PIN guards opening a regular profile from the picker', async ({ page }) => {
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();

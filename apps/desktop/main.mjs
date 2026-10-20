@@ -28,6 +28,7 @@ import {
 } from './lib/helpers.mjs';
 import { openLibraryDb } from './lib/libraryDb.mjs';
 import { createTranscoder } from './lib/transcoder.mjs';
+import { vlcControl, watchVlc } from './lib/vlc.mjs';
 import ffmpegPath from 'ffmpeg-static';
 
 const { autoUpdater } = electronUpdater;
@@ -77,8 +78,33 @@ const transcoder = ffmpegPath
       ffmpeg: ffmpegPath.replace(`app.asar${path.sep}`, `app.asar.unpacked${path.sep}`),
       root: transcodeRoot,
       userAgent: config.userAgent,
+      readPage,
     })
   : null;
+
+/** Download reads the page answers (issue #270): id → resolve. */
+const pageReads = new Map();
+let lastPageRead = 0;
+
+/**
+ * A piece of a download for FFmpeg (issue #270): the page reads it through its Service Worker, which decrypts it
+ * (D-024), and answers with `iptv:offline-answer`.
+ */
+function readPage(downloadPath, start) {
+  return new Promise((resolve, reject) => {
+    if (!window || window.webContents.isDestroyed()) return reject(new Error('No page'));
+    const id = ++lastPageRead;
+    const timer = setTimeout(() => {
+      pageReads.delete(id);
+      reject(new Error('The page did not answer'));
+    }, 30_000);
+    pageReads.set(id, (answer) => {
+      clearTimeout(timer);
+      resolve(answer);
+    });
+    window.webContents.send('iptv:offline-read', { id, path: downloadPath, start });
+  });
+}
 
 /** Serves the web player on 127.0.0.1 (a secure context: offline downloads need it). */
 function startServer() {
@@ -524,14 +550,26 @@ app.whenReady().then(async () => {
     void checkForUpdate(true);
   });
   // "Open in VLC", like the TV's "open in another player" (D-057): VLC plays the stream with the provider
-  // User-Agent. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
-  ipcMain.handle('iptv:open-external', (event, url, title) => {
+  // User-Agent from `startAt` seconds. Only http(s) addresses; returns 'vlc', or 'none' when VLC is not installed.
+  // With a `watchId`, where VLC stops goes back to the page as 'iptv:vlc-progress' (issue #265, DECISIONS.md#d-191).
+  ipcMain.handle('iptv:open-external', async (event, url, title, startAt, watchId) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
-    const args = vlcArguments(String(url ?? ''), config.userAgent, title ? String(title) : null);
+    const watch = typeof watchId === 'string' && watchId.length <= 64 ? watchId : null;
+    const control = watch ? await vlcControl() : null;
+    const args = vlcArguments(String(url ?? ''), config.userAgent, title ? String(title) : null, {
+      startAt: Math.max(0, Number(startAt) || 0),
+      control,
+    });
     if (!args) throw new Error('Not a stream address');
     const vlc = vlcCandidates(process.platform, process.env).find((file) => existsSync(file));
     if (!vlc) return 'none';
-    spawn(vlc, args, { detached: true, stdio: 'ignore' }).unref();
+    const child = spawn(vlc, args, { detached: true, stdio: 'ignore' });
+    child.unref();
+    const sender = event.sender;
+    if (control)
+      watchVlc(child, control, (progress) => {
+        if (!sender.isDestroyed()) sender.send('iptv:vlc-progress', { id: watch, ...progress });
+      });
     return 'vlc';
   });
   // Conversion of what Chromium cannot decode (D-189): what a stream holds, start (also for a seek), stop.
@@ -547,8 +585,22 @@ app.whenReady().then(async () => {
         copyVideo: value.copyVideo === true,
         audio: Math.max(0, Math.floor(Number(value.audio) || 0)),
       });
+    if (operation === 'frame' && value && typeof value === 'object')
+      return transcoder.frame({ url: String(value.url ?? ''), at: Math.max(0, Number(value.at) || 0), hdr: value.hdr === true });
     if (operation === 'stop') return transcoder.stopAll();
     throw new Error('Unknown operation');
+  });
+  ipcMain.handle('iptv:offline-answer', (event, id, answer) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    const resolve = pageReads.get(id);
+    if (!resolve) return;
+    pageReads.delete(id);
+    resolve({
+      status: Number(answer?.status) || 502,
+      contentType: typeof answer?.contentType === 'string' ? answer.contentType : null,
+      total: Number.isFinite(answer?.total) ? answer.total : null,
+      data: answer?.data instanceof Uint8Array ? Buffer.from(answer.data) : Buffer.alloc(0),
+    });
   });
   app.on('activate', () => {
     if (!window || !window.isVisible()) showWindow();

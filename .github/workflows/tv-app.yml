@@ -5,6 +5,7 @@ on:
     paths:
       - 'apps/tv-app/**'
       - 'packages/shared/**'
+      - 'packages/screens/**'
       - 'tools/**'
       - 'scripts/**'
       - 'package-lock.json'

@@ -145,8 +145,10 @@ export function vlcCandidates(platform, env, join = path.join) {
 /**
  * VLC arguments for one stream: the provider's User-Agent (like the app's own requests) and the title in VLC's window.
  * Only http(s) addresses; anything else returns null, so the page cannot make the app start VLC on local files.
+ * `startAt`: the saved progress in seconds; `control`: VLC's web interface on a local port with a random password, so
+ * the app can read where it stops (issue #265).
  */
-export function vlcArguments(url, userAgent, title) {
+export function vlcArguments(url, userAgent, title, { startAt = 0, control = null } = {}) {
   let parsed;
   try {
     parsed = new URL(url);
@@ -157,6 +159,8 @@ export function vlcArguments(url, userAgent, title) {
   return [
     `--http-user-agent=${userAgent}`,
     ...(title ? [`--meta-title=${String(title).slice(0, 200)}`] : []),
+    ...(startAt > 0 ? [`--start-time=${Math.floor(startAt)}`] : []),
+    ...(control ? ['--extraintf=http', '--http-host=127.0.0.1', `--http-port=${control.port}`, `--http-password=${control.password}`] : []),
     '--no-one-instance',
     parsed.href,
   ];

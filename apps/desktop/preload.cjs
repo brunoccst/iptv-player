@@ -27,14 +27,32 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     ipcRenderer.on('iptv:background', handler);
     return () => ipcRenderer.removeListener('iptv:background', handler);
   },
-  // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed.
-  openInVlc: (url, title) => ipcRenderer.invoke('iptv:open-external', url, title),
+  // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed. With a watch id, where VLC
+  // stops comes back as { id, position, duration, ended } (issue #265).
+  openInVlc: (url, title, startAt, watchId) => ipcRenderer.invoke('iptv:open-external', url, title, startAt, watchId),
+  onVlcProgress(listener) {
+    const handler = (_event, progress) => listener(progress);
+    ipcRenderer.on('iptv:vlc-progress', handler);
+    return () => ipcRenderer.removeListener('iptv:vlc-progress', handler);
+  },
   // What Chromium cannot decode, through the bundled FFmpeg (issue #236): what a stream holds, then an HLS playlist
   // of it as H.264 and AAC on the app's own server.
   transcode: {
     probe: (url) => ipcRenderer.invoke('iptv:transcode', 'probe', url),
     start: (options) => ipcRenderer.invoke('iptv:transcode', 'start', options),
     stop: () => ipcRenderer.invoke('iptv:transcode', 'stop'),
+    // A timeline picture of a converted title (issue #270): JPEG bytes, or null.
+    frame: (options) => ipcRenderer.invoke('iptv:transcode', 'frame', options),
+    // Downloads converted for FFmpeg (issue #270): the page reads a piece of `path` from `start` and answers.
+    onOfflineRead(listener) {
+      const handler = (_event, request) =>
+        void Promise.resolve(listener(request)).then(
+          (answer) => ipcRenderer.invoke('iptv:offline-answer', request.id, answer),
+          () => ipcRenderer.invoke('iptv:offline-answer', request.id, { status: 502 }),
+        );
+      ipcRenderer.on('iptv:offline-read', handler);
+      return () => ipcRenderer.removeListener('iptv:offline-read', handler);
+    },
   },
   secure: storage('secure'),
   data: storage('data'),

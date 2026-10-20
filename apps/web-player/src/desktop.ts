@@ -18,6 +18,14 @@ export interface StreamProbe {
   audio: { codec: string; language: string | null }[];
 }
 
+/** A piece of a download for the app's FFmpeg (issue #270); `total` is null for what comes whole (a playlist, an HLS part). */
+export interface OfflinePiece {
+  status: number;
+  contentType: string | null;
+  total: number | null;
+  data: Uint8Array;
+}
+
 export interface DesktopBridge {
   version: string;
   platform: string;
@@ -25,8 +33,16 @@ export interface DesktopBridge {
   checkForUpdates(): Promise<void>;
   /** While an accepted update downloads: its version and percentage, then null. Returns the unsubscribe function. */
   onUpdateProgress?(listener: (progress: UpdateProgress | null) => void): () => void;
-  /** Plays a stream address in VLC with the provider User-Agent (D-057); 'none' when VLC is not installed. */
-  openInVlc(url: string, title: string | null): Promise<'vlc' | 'none'>;
+  /**
+   * Plays a stream address in VLC with the provider User-Agent (D-057) from `startAt` seconds; 'none' when VLC is not
+   * installed. With `watchId`, where VLC stops comes back through `onVlcProgress` (issue #265). Older apps ignore both.
+   */
+  openInVlc(url: string, title: string | null, startAt?: number, watchId?: string): Promise<'vlc' | 'none'>;
+  /**
+   * Where a watched VLC is (seconds): now and then while it plays, and `ended` when it closed. Returns the unsubscribe
+   * function. Older apps lack it.
+   */
+  onVlcProgress?(listener: (progress: { id: string; position: number; duration: number; ended: boolean }) => void): () => void;
   /** The update dialogs' texts in the app's language, keyed by their English text (D-084). */
   setTexts(texts: Record<string, string>): Promise<void>;
   /**
@@ -51,6 +67,13 @@ export interface DesktopBridge {
       audio?: number;
     }): Promise<{ id: string; playlist: string; duration: number | null; at: number }>;
     stop(): Promise<void>;
+    /** A timeline picture of a converted title at `at` seconds (issue #270): JPEG bytes, or null. Older apps lack it. */
+    frame?(options: { url: string; at: number; hdr?: boolean }): Promise<Uint8Array | null>;
+    /**
+     * Converting a download (issue #270): the app asks the page for a piece of `path` (a `/__offline__/` address) from
+     * byte `start`, read through the Service Worker. Returns the unsubscribe function. Older apps lack it.
+     */
+    onOfflineRead?(listener: (request: { path: string; start: number }) => Promise<OfflinePiece>): () => void;
   };
   secure: KeyValueStorage;
   data: KeyValueStorage;

@@ -117,6 +117,8 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Converted titles keep all their sound tracks** (2026-10-20, D-192, issue #270): when the app converts a film or episode the computer cannot play, every language stays in the audio menu, and your profile's language plays first. Hovering over the timeline shows pictures again, and downloads in HEVC or with Dolby or DTS sound now play offline too.
+- **Progress from VLC** (2026-10-20, D-191, issue #265): Open in VLC now starts where you left off, and where you stop in VLC is saved, so Continue watching and Resume pick up from there.
 - **The episode playing stands out** (2026-10-19, D-066): in the player's episode list, the episode playing is now highlighted and can no longer be picked again. It also opens on the right season when the episode plays from another version of the series.
 - **Plays HEVC, Xvid and Dolby sound** (2026-10-17, D-189, issue #236): films and episodes the computer could not play (HEVC video without a decoder, Xvid, MPEG-2, Dolby Digital or DTS sound) now play in the app. It converts them while you watch; a video that played without sound now has it. The app download is bigger because of this.
 - **Downloads go on with the window closed** (2026-10-17, D-187, issue #219): closing the window while something downloads now hides it instead, and the downloads carry on. The tray icon opens the app again or quits it, and the app closes by itself once they are done. Accounts with more than one stream also download up to three titles at once, always keeping one stream free for watching.

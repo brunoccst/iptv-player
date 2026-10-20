@@ -96,6 +96,9 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-188](#d-188) | TV and phone: names read in the system WebView |
 | [D-189](#d-189) | Desktop: FFmpeg converts what Chromium cannot decode |
 | [D-190](#d-190) | Phones show no focus look |
+| [D-191](#d-191) | Desktop: progress from VLC through its web interface |
+| [D-192](#d-192) | Desktop conversion: every audio track, timeline pictures, downloads |
+| [D-193](#d-193) | Shared screens with React Native Web: the My List trial |
 
 ## Merged and retired IDs
 
@@ -486,7 +489,7 @@ A round button in details saves a movie or series; saved titles show as a Home r
 
 - TV/phone progress (issue #234): the intent is started for a result with `return_result`; MX Player and Just Player send `position`/`duration` (ints, ms) and `end_by`, VLC `extra_position`/`extra_duration` (longs), and the stop point is saved like our player's. The saved progress goes in `position` (an int, what MX Player and Just Player read; VLC reads a long there, so it starts from the beginning). Through the app chooser the chosen app's result still comes back.
 
-Limits: Open in VLC on the desktop reports nothing back, so no progress there (issue #265).
+On the desktop, VLC starts at the saved progress and the app reads where it stops through its web interface (D-191).
 
 ## D-058
 
@@ -1063,7 +1066,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - When: the stream does not load at all (FFmpeg reads the provider's file before its HLS), or plays a few seconds with video but no decoded sound (`webkitAudioDecodedByteCount`), or fails with a media error later. FFmpeg reads the stream first (`probe`) and nothing is converted when it finds nothing Chromium lacks. What plays stops before FFmpeg opens the stream, so a one-stream account has its stream free; when conversion fails, the error is the one from before (D-074) with Open in VLC.
 - A conversion starts at a position; the page's player counts from there (`PlaybackEngine.position`, `duration` from FFmpeg). Seeking inside the converted part moves the video; past it, FFmpeg starts again there. One conversion at a time; its files go when it ends and on quit.
 - FFmpeg reads the provider through a relay in the main process (127.0.0.1, one random path per stream): the static Linux build crashes looking up host names itself, and the relay adds the player User-Agent.
-- Limits (issue #270): the first audio track only; no timeline pictures while converted; downloads of such titles still do not play offline. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
+- Every audio track, timeline pictures and downloads: D-192. Still a limit (issue #274): HEVC becomes software H.264 at most 1080 lines high. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
 
 ## D-190
 
@@ -1071,3 +1074,28 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - `FocusButton` and `IconButton` light up (white, glow, grow) only on TV. On a phone, Android still gives focus to the first focusable view when the focused one goes, and a touch never moves it on: opening the player's panel left its Audio tab lit like a focused TV button for as long as it was open.
 - Phones show what is chosen with the button's own variant (the panel's open tab is the white one), never with focus.
+
+## D-191
+
+**Desktop: progress from VLC through its web interface** — 2026-10-20 (issue #265)
+
+- VLC is a separate program (D-057) that reports nothing back to the app the way Android players do (issue #234). The app starts it with `--start-time` at the saved progress and with its web interface on 127.0.0.1, a free port and a random password per launch (`lib/vlc.mjs`), and asks `/requests/status.json` for `time` and `length` every 3 s.
+- The page gets the latest time after the first answer, after each further minute of playback, and once when VLC closes; it saves it as the progress of the profile that opened VLC (none when another profile is active by then). The periodic saves keep progress when the app closes before VLC.
+- Chosen over reading VLC's own recent-files history: its format and place differ per system and version, and it only holds the time when VLC closes cleanly. A VLC without its Lua web interface simply never answers, which leaves the progress as it was.
+
+## D-192
+
+**Desktop conversion: every audio track, timeline pictures, downloads** — 2026-10-20 (issue #270)
+
+- Every audio track (at most 8) is converted, each its own HLS audio rendition (`-var_stream_map`, folders `video/` and `audioN/`); the app writes the main playlist itself, naming each track by its language, so hls.js and the audio menu list them like a provider's own HLS tracks. One track keeps the plain single playlist. The conversion starts with the profile's audio choice (D-087, `PlaybackEngine.choosesAudio`), and the track picked stays picked when a seek converts again. Chosen over converting one track and starting again on a switch: switching is instant, and AAC for a few more tracks costs little next to the video.
+- Timeline pictures of a converted title: FFmpeg reads one frame at the time asked for and sends a JPEG (`transcoder.frame`, `ConvertedFrames`), one at a time with the latest request next. Like the preview of a stream (issue #218), it opens the provider a second time, so it needs a spare connection; downloads need none.
+- Downloads: FFmpeg reads a download from the page, which fetches it from its Service Worker (decrypted, D-024) a stored chunk at a time (`offline/desktopReads.ts`, `iptv:offline-read`). The relay hands FFmpeg one answer per byte range, and points a download playlist's parts back at itself. Only `/__offline__/` addresses can be read this way. Decrypted bytes leave the page only to FFmpeg on 127.0.0.1, behind a random path, as the Service Worker already serves them to any script on the origin (issue #213). A download that does not load, or plays without sound, is converted like a stream.
+
+## D-193
+
+**Shared screens with React Native Web: the My List trial** — 2026-10-20 (issue #237)
+
+- `packages/screens` holds screens written once in React Native. The TV and phone app render them natively; the web player maps `react-native` to `react-native-web` (Vite and Vitest config) and renders them as DOM. My List is the first: TV uses it for real, desktop only with `?screens=shared` (kept in the browser's storage, `?screens=web` goes back), loaded as its own chunk.
+- What differs per app comes in as parts (`MyListParts`): the scrolling page, a row (a TV focus row, D-069) and a card (TV focus and hold-OK menu; desktop hover, right-click menu, details modal). Parts are defined once per app at module level, never inside render, or every render would mount new components and lose TV focus.
+- Measured on the trial (fake panel, 1440×900, Chromium): the look matches the app's own page after small style changes; the app's main bundle is unchanged and the trial chunk is 95 kB (32 kB gzipped); a cold open of My List took 430 to 480 ms against 110 to 150 ms for the app's own page, most of it loading that chunk on a fresh page.
+- Effort: the shared part of My List is the small part (texts, states, layout); the cards, focus, menus and the details modal stay per app. Each further screen means rewriting the desktop's CSS components as React Native styles. Whether to move more screens is the owner's call on issue #237.

@@ -15,7 +15,7 @@ import {
   unreachableHost,
 } from '@iptv/shared';
 import { desktop, type DesktopBridge, type StreamProbe } from '../../desktop';
-import { offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
+import { OFFLINE_PREFIX, offlinePlaybackUrl, type DownloadRecord } from '../../offline/types';
 
 export interface EngineSource {
   kind: PlaybackKind;
@@ -97,11 +97,15 @@ export class PlaybackEngine {
   private mpegtsPlayer: Mpegts.Player | null = null;
   private onFatal: ((message: string, network?: boolean) => void) | null = null;
   private onConvert: ((loaded: LoadedSource) => void) | null = null;
-  /** What plays now, and the provider address behind it (not set for downloads). */
+  private pickAudio: ((tracks: { language: string | null; label: string }[]) => number | null) | null = null;
+  /** What plays now, and the provider address behind it (a download's own address for downloads). */
   private loaded: LoadedSource | null = null;
   private current: { url: string; live: boolean } | null = null;
-  /** The stream the desktop app converts (issue #236): a seek outside what is converted starts it again there. */
-  private conversion: { url: string; probe: StreamProbe; live: boolean; copyVideo: boolean } | null = null;
+  /**
+   * The stream the desktop app converts (issue #236): a seek outside what is converted starts it again there, with the
+   * audio track picked (`audio`, issue #270).
+   */
+  private conversion: { url: string; probe: StreamProbe; live: boolean; copyVideo: boolean; audio: number } | null = null;
   /** Stream addresses tried, last one last: what the provider sent there explains a failure (D-074, D-079). */
   readonly attempted: string[] = [];
 
@@ -163,6 +167,20 @@ export class PlaybackEngine {
     );
   }
 
+  /** What a converted title's timeline pictures are taken from (issue #270), else null. */
+  get convertedStream(): { url: string; hdr: boolean } | null {
+    if (!this.conversion || !this.loaded?.converted) return null;
+    return { url: this.conversion.url, hdr: this.conversion.probe.video?.hdr ?? false };
+  }
+
+  /**
+   * Which audio track a conversion starts with (issue #270): the profile's choice (D-087) among the stream's tracks,
+   * named as the converted playlist names them; null for the first.
+   */
+  choosesAudio(pick: (tracks: { language: string | null; label: string }[]) => number | null) {
+    this.pickAudio = pick;
+  }
+
   /** Called when the engine switched to a converted stream by itself (issue #236): show it, and play. */
   onConverted(callback: (loaded: LoadedSource) => void) {
     this.onConvert = callback;
@@ -200,9 +218,19 @@ export class PlaybackEngine {
   /** `startAt`: where playback will start, where a conversion starts (issue #236). */
   async load(source: EngineSource, offline: DownloadRecord | null, signal?: AbortSignal, startAt = 0): Promise<LoadedSource> {
     if (offline?.status === 'completed') {
-      const loaded: LoadedSource = { url: offlinePlaybackUrl(offline), engine: offline.format === 'hls' ? 'hls' : 'file', offline: true };
-      await this.attach(loaded, signal);
+      const url = offlinePlaybackUrl(offline);
+      const loaded: LoadedSource = { url, engine: offline.format === 'hls' ? 'hls' : 'file', offline: true };
+      try {
+        await this.attach(loaded, signal);
+      } catch (error) {
+        if (signal?.aborted || !this.transcode) throw error;
+        // Desktop: a download Chromium cannot decode is converted too, read through this page (issue #270).
+        const converted = await this.convert([url], false, startAt, signal);
+        if (converted) return converted;
+        throw error;
+      }
       this.loaded = loaded;
+      this.current = { url, live: false };
       return loaded;
     }
     const live = source.kind === 'live' && !source.catchup;
@@ -297,7 +325,9 @@ export class PlaybackEngine {
           `FFmpeg reads ${probe.video?.codec ?? 'no video'} / ${probe.audio.map((track) => track.codec).join(', ') || 'no audio'}: ${needed === 'none' ? 'nothing to convert' : `converting the ${needed}`}`,
         );
         if (needed === 'none') continue;
-        this.conversion = { url, probe, live, copyVideo: needed === 'audio' };
+        const tracks = probe.audio.map((track, index) => ({ language: track.language, label: track.language ?? `Track ${index + 1}` }));
+        const audio = this.pickAudio?.(tracks) ?? 0;
+        this.conversion = { url, probe, live, copyVideo: needed === 'audio', audio: audio >= 0 ? audio : 0 };
         return await this.startConversion(at, signal);
       } catch (error) {
         this.conversion = null;
@@ -321,15 +351,20 @@ export class PlaybackEngine {
       at: conversion.live ? 0 : at,
       live: conversion.live,
       copyVideo: conversion.copyVideo,
+      audio: conversion.audio,
     });
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     const loaded: LoadedSource = {
       url: started.playlist,
       engine: 'hls',
-      offline: false,
+      offline: conversion.url.startsWith(OFFLINE_PREFIX),
       converted: { at: started.at, duration: started.duration },
     };
     await this.attachHls(loaded.url, signal, !conversion.live);
+    // Every audio track is converted (issue #270): the one picked stays picked when a seek converts again.
+    this.hlsInstance?.on(this.HlsClass.Events.AUDIO_TRACK_SWITCHED, (_event, data) => {
+      if (this.conversion === conversion) conversion.audio = data.id;
+    });
     this.loaded = loaded;
     return loaded;
   }

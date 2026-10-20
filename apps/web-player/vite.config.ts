@@ -46,6 +46,8 @@ function serviceWorker(): Plugin {
 
 export default defineConfig({
   plugins: [react(), serviceWorker()],
+  // Screens shared with the TV app (issue #237, DECISIONS.md#d-193) are React Native; here they render as DOM.
+  resolve: { alias: { 'react-native': 'react-native-web' } },
   // Account menu → App → About (D-079): the commit and time this build was made from, like the TV app's About.
   define: {
     __BUILD_INFO__: JSON.stringify({ commit: process.env.GITHUB_SHA ?? '', date: new Date().toISOString() }),

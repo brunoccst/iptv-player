@@ -11,7 +11,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import ts from 'typescript';
 
-export const SOURCE_DIRS = ['apps/tv-app/src', 'apps/web-player/src', 'packages/shared/src'];
+export const SOURCE_DIRS = ['apps/tv-app/src', 'apps/web-player/src', 'packages/shared/src', 'packages/screens/src'];
 export const CATALOG_DIR = 'packages/shared/src/i18n/catalogs';
 /** Plural forms each language's catalog must give for `tn` texts. */
 export const PLURAL_FORMS = { 'pt-BR': ['one', 'other'], de: ['one', 'other'], 'sh-BA': ['one', 'few', 'other'] };
