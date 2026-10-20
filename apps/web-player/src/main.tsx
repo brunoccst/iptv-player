@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { desktop } from './desktop';
+import { serveOfflineReads } from './offline/desktopReads';
 import { registerServiceWorker } from './offline/registerServiceWorker';
 import './styles/global.css';
 import './styles/components.css';
@@ -13,6 +15,7 @@ if (!rootElement) {
 }
 
 void registerServiceWorker();
+serveOfflineReads(desktop);
 
 createRoot(rootElement).render(
   <StrictMode>

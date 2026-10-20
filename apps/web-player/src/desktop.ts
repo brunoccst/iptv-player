@@ -18,6 +18,14 @@ export interface StreamProbe {
   audio: { codec: string; language: string | null }[];
 }
 
+/** A piece of a download for the app's FFmpeg (issue #270); `total` is null for what comes whole (a playlist, an HLS part). */
+export interface OfflinePiece {
+  status: number;
+  contentType: string | null;
+  total: number | null;
+  data: Uint8Array;
+}
+
 export interface DesktopBridge {
   version: string;
   platform: string;
@@ -59,6 +67,13 @@ export interface DesktopBridge {
       audio?: number;
     }): Promise<{ id: string; playlist: string; duration: number | null; at: number }>;
     stop(): Promise<void>;
+    /** A timeline picture of a converted title at `at` seconds (issue #270): JPEG bytes, or null. Older apps lack it. */
+    frame?(options: { url: string; at: number; hdr?: boolean }): Promise<Uint8Array | null>;
+    /**
+     * Converting a download (issue #270): the app asks the page for a piece of `path` (a `/__offline__/` address) from
+     * byte `start`, read through the Service Worker. Returns the unsubscribe function. Older apps lack it.
+     */
+    onOfflineRead?(listener: (request: { path: string; start: number }) => Promise<OfflinePiece>): () => void;
   };
   secure: KeyValueStorage;
   data: KeyValueStorage;

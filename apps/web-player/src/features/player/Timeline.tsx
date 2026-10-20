@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { formatClock, t } from '@iptv/shared';
-import type { FrameGrabber } from './frameGrabber';
+import type { FramePreview } from './frameGrabber';
 
 interface TimelineProps {
   currentTime: number;
@@ -8,7 +8,7 @@ interface TimelineProps {
   bufferedEnd: number;
   onSeek(time: number): void;
   /** Created lazily by the parent on first hover. */
-  getPreview(): FrameGrabber | null;
+  getPreview(): FramePreview | null;
 }
 
 const PREVIEW_WIDTH = 192;
@@ -30,10 +30,10 @@ export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPrevie
   useEffect(() => {
     const preview = hover !== null ? getPreview() : null;
     if (!preview || hover === null) return;
-    preview.onFrame((video) => {
+    preview.onFrame((image) => {
       const context = canvas.current?.getContext('2d');
       try {
-        context?.drawImage(video, 0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+        context?.drawImage(image, 0, 0, PREVIEW_WIDTH, PREVIEW_HEIGHT);
       } catch {
         // Cross-origin frames without CORS headers taint the canvas; the time label still shows.
       }

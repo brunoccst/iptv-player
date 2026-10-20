@@ -50,7 +50,7 @@ import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
 import { EpisodesDrawer } from './EpisodesDrawer';
 import { GuidePanel } from './GuidePanel';
-import { FrameGrabber } from './frameGrabber';
+import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
@@ -73,7 +73,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   usePauseOnAudioOutputLoss(videoRef);
   const engineRef = useRef<PlaybackEngine | null>(null);
-  const previewRef = useRef<FrameGrabber | null>(null);
+  const previewRef = useRef<FramePreview | null>(null);
   const [source, setSource] = useState<LoadedSource | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -192,6 +192,8 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       setSource(loaded);
       setStatus('ready');
     });
+    // Every audio track is converted (issue #270): it starts with the profile's (D-087).
+    if (usesPlaybackChoices(target)) engine.choosesAudio((tracks) => pickTrack(tracks, playbackChoices(stores).audio));
     engine.onFatalError((message, network) => {
       setError(message);
       setRetryable(!!network && !isLive);
@@ -312,7 +314,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // there (issue #236).
   useEffect(() => {
     const engine = engineRef.current;
-    if (!playing || !engine || !source || source.offline || source.converted) return;
+    if (!playing || !engine || !source || source.converted) return;
     const timer = setTimeout(() => {
       if (!engine.soundMissing()) return;
       setNotice(t('Converting the sound for this computer…'));
@@ -490,8 +492,17 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   // The preview opens a second connection: only where the account has one to spare (issue #218).
   const maxConnections = useSession((s) => s.account?.maxConnections ?? null);
   const getPreview = useCallback(() => {
-    // A converted stream (issue #236) has no second copy to take pictures from.
-    if (!source || isLive || source.engine === 'mpegts' || source.converted || !spareConnection(maxConnections)) return null;
+    if (!source || isLive || source.engine === 'mpegts') return null;
+    // A download needs no connection; anything else opens a second one.
+    if (!source.offline && !spareConnection(maxConnections)) return null;
+    if (source.converted) {
+      // A converted title (issue #236): the app's FFmpeg takes the pictures (issue #270).
+      const stream = engineRef.current?.convertedStream;
+      const frame = desktop?.transcode?.frame;
+      if (!stream || !frame) return null;
+      previewRef.current ??= new ConvertedFrames(stream, frame);
+      return previewRef.current;
+    }
     previewRef.current ??= new FrameGrabber(source);
     return previewRef.current;
   }, [source, isLive, maxConnections]);

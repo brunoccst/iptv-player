@@ -41,6 +41,18 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     probe: (url) => ipcRenderer.invoke('iptv:transcode', 'probe', url),
     start: (options) => ipcRenderer.invoke('iptv:transcode', 'start', options),
     stop: () => ipcRenderer.invoke('iptv:transcode', 'stop'),
+    // A timeline picture of a converted title (issue #270): JPEG bytes, or null.
+    frame: (options) => ipcRenderer.invoke('iptv:transcode', 'frame', options),
+    // Downloads converted for FFmpeg (issue #270): the page reads a piece of `path` from `start` and answers.
+    onOfflineRead(listener) {
+      const handler = (_event, request) =>
+        void Promise.resolve(listener(request)).then(
+          (answer) => ipcRenderer.invoke('iptv:offline-answer', request.id, answer),
+          () => ipcRenderer.invoke('iptv:offline-answer', request.id, { status: 502 }),
+        );
+      ipcRenderer.on('iptv:offline-read', handler);
+      return () => ipcRenderer.removeListener('iptv:offline-read', handler);
+    },
   },
   secure: storage('secure'),
   data: storage('data'),
