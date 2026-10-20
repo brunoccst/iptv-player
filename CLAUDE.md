@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-IPTV player: an Android TV and phone app (`apps/tv-app`, React Native tvOS fork + Expo) and a desktop app (`apps/desktop`, Electron around the React web player in `apps/web-player`). Shared logic lives in `packages/shared` (TypeScript source, no build step; no DOM or React Native imports). There is no server: each app talks to the Xtream Codes provider directly and keeps all data on the device.
+IPTV player: an Android TV and phone app (`apps/tv-app`, React Native tvOS fork + Expo) and a desktop app (`apps/desktop`, Electron around the React web player in `apps/web-player`). Shared logic lives in `packages/shared` (TypeScript source, no build step; no DOM or React Native imports). `packages/screens` holds React Native screens shared by every app (desktop through React Native Web; a one-screen trial, D-193). There is no server: each app talks to the Xtream Codes provider directly and keeps all data on the device.
 
 ## Commands
 

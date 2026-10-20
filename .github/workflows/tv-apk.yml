@@ -9,6 +9,7 @@ on:
     paths:
       - 'apps/tv-app/**'
       - 'packages/shared/**'
+      - 'packages/screens/**'
       - 'package-lock.json'
       - '.github/workflows/tv-apk.yml'
       # Docs and the emulator flows do not change the APK.

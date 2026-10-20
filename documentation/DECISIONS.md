@@ -98,6 +98,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-190](#d-190) | Phones show no focus look |
 | [D-191](#d-191) | Desktop: progress from VLC through its web interface |
 | [D-192](#d-192) | Desktop conversion: every audio track, timeline pictures, downloads |
+| [D-193](#d-193) | Shared screens with React Native Web: the My List trial |
 
 ## Merged and retired IDs
 
@@ -1089,3 +1090,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Every audio track (at most 8) is converted, each its own HLS audio rendition (`-var_stream_map`, folders `video/` and `audioN/`); the app writes the main playlist itself, naming each track by its language, so hls.js and the audio menu list them like a provider's own HLS tracks. One track keeps the plain single playlist. The conversion starts with the profile's audio choice (D-087, `PlaybackEngine.choosesAudio`), and the track picked stays picked when a seek converts again. Chosen over converting one track and starting again on a switch: switching is instant, and AAC for a few more tracks costs little next to the video.
 - Timeline pictures of a converted title: FFmpeg reads one frame at the time asked for and sends a JPEG (`transcoder.frame`, `ConvertedFrames`), one at a time with the latest request next. Like the preview of a stream (issue #218), it opens the provider a second time, so it needs a spare connection; downloads need none.
 - Downloads: FFmpeg reads a download from the page, which fetches it from its Service Worker (decrypted, D-024) a stored chunk at a time (`offline/desktopReads.ts`, `iptv:offline-read`). The relay hands FFmpeg one answer per byte range, and points a download playlist's parts back at itself. Only `/__offline__/` addresses can be read this way. Decrypted bytes leave the page only to FFmpeg on 127.0.0.1, behind a random path, as the Service Worker already serves them to any script on the origin (issue #213). A download that does not load, or plays without sound, is converted like a stream.
+
+## D-193
+
+**Shared screens with React Native Web: the My List trial** — 2026-10-20 (issue #237)
+
+- `packages/screens` holds screens written once in React Native. The TV and phone app render them natively; the web player maps `react-native` to `react-native-web` (Vite and Vitest config) and renders them as DOM. My List is the first: TV uses it for real, desktop only with `?screens=shared` (kept in the browser's storage, `?screens=web` goes back), loaded as its own chunk.
+- What differs per app comes in as parts (`MyListParts`): the scrolling page, a row (a TV focus row, D-069) and a card (TV focus and hold-OK menu; desktop hover, right-click menu, details modal). Parts are defined once per app at module level, never inside render, or every render would mount new components and lose TV focus.
+- Measured on the trial (fake panel, 1440×900, Chromium): the look matches the app's own page after small style changes; the app's main bundle is unchanged and the trial chunk is 95 kB (32 kB gzipped); a cold open of My List took 430 to 480 ms against 110 to 150 ms for the app's own page, most of it loading that chunk on a fresh page.
+- Effort: the shared part of My List is the small part (texts, states, layout); the cards, focus, menus and the details modal stay per app. Each further screen means rewriting the desktop's CSS components as React Native styles. Whether to move more screens is the owner's call on issue #237.

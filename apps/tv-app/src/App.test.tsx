@@ -265,6 +265,29 @@ describe('App (TV)', () => {
     expect(screen.getByTestId('row-mylist')).toBeTruthy();
   });
 
+  it('My List page: the screen shared with the desktop app shows saved titles, else how to add some (issue #237)', async () => {
+    const backend = setupApp();
+    stubLibrary(backend);
+    backend.on('GET', '/api/profiles/p1/watchlist', {
+      body: [{ section: 'movies', masterId: 'm1', title: 'Big Test Movie', year: 2020, posterUrl: null, addedAt: '2026-09-25T00:00:00Z' }],
+    });
+    await render(<App />);
+    await flush();
+    await act(async () => void (await stores.watchlist.getState().load('p1', { force: true })));
+    await act(async () => navStore.getState().goSection('mylist'));
+    await flush();
+    const page = screen.getByTestId('mylist-screen');
+    expect(within(page).getAllByText('Big Test Movie').length).toBeGreaterThan(0);
+    await fireEvent.press(within(page).getByLabelText('Big Test Movie'));
+    await flush();
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'details', section: 'movies', masterId: 'm1' });
+
+    pressBack();
+    await act(async () => stores.watchlist.setState({ items: { status: 'success', data: [], error: null } } as never));
+    await flush();
+    expect(screen.getByText('Add movies and series with the + button on their details to watch them later.')).toBeTruthy();
+  });
+
   it('details: the eye button marks the movie as watched and back (D-081)', async () => {
     const backend = setupApp();
     stubLibrary(backend);
