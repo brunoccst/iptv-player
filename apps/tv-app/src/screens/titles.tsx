@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   TVFocusGuideView,
-  useWindowDimensions,
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -25,71 +24,23 @@ import {
   t,
 } from '@iptv/shared';
 import { navStore } from '../appContext';
-import { CardMenu } from '../components/CardMenu';
-import { useTitleCard } from '../hooks';
 import { ErrorText, errorText } from '../components/Feedback';
 import { CenterFocus, CenteringScrollView, useCenterPage } from '../components/CenterScroll';
 import { FocusRow, RowFocus } from '../components/FocusRow';
-import { PosterCard } from '../components/PosterCard';
 import { Row } from '../components/Row';
 import { Select } from '../components/Select';
 import { colors, useSizes } from '../theme';
 import { usePagedLibrary } from '../hooks';
-import { blurTitle, focusTitle } from '../tv/colourKeys';
+import { TitleCard, useGridColumns } from '@iptv/screens';
+import '../screenHost';
 
 /** Home rows show only the first titles; the arrow card at the end opens the category page. */
 const ROW_SIZE = 10;
 const GRID_PAGE = 100;
 const GRID_GAP = 8;
 
-/**
- * Web `MasterCard`: poster, quality badge ("4K", or "CAM"/"TS" when only cinema copies, D-141), "year · N versions", "Watched" tag on finished movies and fully watched series (D-081), a bookmark on titles on My List (issue #157); opens the details panel.
- * Holding OK (a long touch on phones) opens its menu: Go to details, Mark as (not) watched (D-081).
- */
-export function MasterCardItem({
-  section,
-  item,
-  width,
-  hasTVPreferredFocus,
-}: {
-  section: LibrarySection;
-  item: MasterCard;
-  width?: number;
-  hasTVPreferredFocus?: boolean;
-}) {
-  const [menu, setMenu] = useState(false);
-  const openDetails = () => navStore.getState().push({ name: 'details', section, masterId: item.id });
-  const card = useTitleCard(section, item, openDetails);
-  return (
-    <>
-      <PosterCard
-        title={item.title}
-        posterUrl={item.posterUrl}
-        width={width}
-        hasTVPreferredFocus={hasTVPreferredFocus}
-        reserveSubtitle
-        badge={card.badge}
-        watched={card.watched}
-        onList={card.onList}
-        subtitle={card.subtitle}
-        onPress={openDetails}
-        onLongPress={() => setMenu(true)}
-        // The remote's Red key adds the focused title to My List (D-154).
-        onFocus={() => focusTitle({ section, card: item })}
-        onBlur={() => blurTitle(item.id)}
-      />
-      {menu ? (
-        <CardMenu
-          title={item.title}
-          onClose={() => setMenu(false)}
-          actions={card
-            .menuItems()
-            .map((entry) => ({ label: entry.label, icon: entry.icon, testID: `card-menu-${entry.id}`, onPress: entry.run }))}
-        />
-      ) : null}
-    </>
-  );
-}
+// Shared with the desktop app (issue #237, DECISIONS.md#d-193).
+export { TitleCard, useGridColumns };
 
 /** Home row: the first 10 titles of a section/category. The title and the arrow card open Movies/Series on that category. */
 export function TitleRow({ section, category, title }: { section: LibrarySection; category?: MediaCategory; title: string }) {
@@ -106,7 +57,7 @@ export function TitleRow({ section, category, title }: { section: LibrarySection
       empty={page.error ? t('Could not load this row.') : ' '}
       onTitlePress={open}
       more={page.hasMore ? { onPress: open } : undefined}
-      render={(item) => <MasterCardItem section={section} item={item} />}
+      render={(item) => <TitleCard section={section} item={item} />}
     />
   );
 }
@@ -125,18 +76,9 @@ export function TopRatedRow({ section, title }: { section: LibrarySection; title
       testID={`row-${section}-top-rated`}
       loading={page.loadingFirst}
       empty={page.error ? t('Could not load this row.') : ' '}
-      render={(item) => <MasterCardItem section={section} item={item} />}
+      render={(item) => <TitleCard section={section} item={item} />}
     />
   );
-}
-
-/** Columns and card width of the web `.grid` (auto-fill, minmax(card width, 1fr), 8 px gap) for this screen. */
-export function useGridColumns() {
-  const { width } = useWindowDimensions();
-  const { gutter, cardWidth } = useSizes();
-  const available = width - gutter * 2;
-  const columns = Math.max(1, Math.floor((available + GRID_GAP) / (cardWidth + GRID_GAP)));
-  return { columns, itemWidth: Math.floor((available - GRID_GAP * (columns - 1)) / columns) };
 }
 
 /**
@@ -198,7 +140,7 @@ export function TitleGrid({
   const renderLine = (line: MasterCard[], lineIndex: number) => (
     <FocusRow key={line[0]!.id} style={[styles.line, { paddingHorizontal: gutter }]}>
       {line.map((item, index) => (
-        <MasterCardItem
+        <TitleCard
           key={item.id}
           section={section}
           item={item}

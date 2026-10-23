@@ -1,25 +1,50 @@
-import { watchlistCard, t } from '@iptv/shared';
-import { Spinner } from '../../components/Spinner';
-import { useWatchlist } from '../../hooks/stores';
-import { MasterCard } from '../home/MasterCard';
+import { useState } from 'react';
+import { MyListScreen, ScreenHostProvider, type ScreenHost } from '@iptv/screens';
+import { uiStore } from '../../appContext';
+import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
+import { useTitleCard, useWatchlist } from '../../hooks/stores';
 
-/** "My List": titles the active profile saved, newest first (D-055). */
-export function MyListPage() {
-  const items = useWatchlist((s) => s.items);
-  return (
-    <div className="page">
-      <h1 className="page__title">{t('My List')}</h1>
-      {items.status === 'loading' && !items.data ? (
-        <Spinner />
-      ) : !items.data?.length ? (
-        <p className="muted">{t('Add movies and series with the + button on their details to watch them later.')}</p>
-      ) : (
-        <div className="grid">
-          {items.data.map((item) => (
-            <MasterCard key={`${item.section}-${item.masterId}`} section={item.section} item={watchlistCard(item)} />
-          ))}
-        </div>
-      )}
+/**
+ * The desktop side of the screens shared with the TV app, drawn through React Native Web (issue #237,
+ * DECISIONS.md#d-193): the page scrolls with the window under the top nav, details open as the modal and a right-click
+ * opens a title's menu at the pointer (D-079).
+ */
+const host: ScreenHost = {
+  hooks: { useTitleCard, useWatchlist },
+  openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
+  Page: ({ children, testID }) => (
+    <div data-testid={testID} style={{ padding: 'calc(var(--nav-height) + 24px) 0 60px' }}>
+      {children}
     </div>
+  ),
+  TitleMenu: function TitleMenu({ title, items, children }) {
+    const [menu, setMenu] = useState<MenuPosition | null>(null);
+    return (
+      <div
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setMenu(menuPosition(event));
+        }}
+      >
+        {children()}
+        {menu ? (
+          <CardMenu
+            title={title}
+            position={menu}
+            onClose={() => setMenu(null)}
+            actions={items().map((entry) => ({ label: entry.label, icon: entry.icon, onSelect: entry.run }))}
+          />
+        ) : null}
+      </div>
+    );
+  },
+};
+
+/** "My List" (D-055): the screen shared with the TV app, loaded on its own so the rest of the app does not carry React Native Web. */
+export function MyListPage() {
+  return (
+    <ScreenHostProvider value={host}>
+      <MyListScreen />
+    </ScreenHostProvider>
   );
 }

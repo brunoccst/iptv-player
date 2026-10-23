@@ -1,59 +1,55 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
-import { colorTokens, t, type WatchlistDto } from '@iptv/shared';
+import { ActivityIndicator, StyleSheet, Text, useWindowDimensions } from 'react-native';
+import { t, watchlistCard } from '@iptv/shared';
+import { useScreenHost } from './host';
+import { TitleCard } from './TitleCard';
+import { FocusRow } from './ui/FocusRow';
+import { colors, useSizes } from './ui/theme';
 
-/**
- * What each app brings to a shared screen (issue #237, DECISIONS.md#d-193): how the page scrolls and how a row and a
- * title card behave (TV focus, desktop hover and right-click). The screen itself (texts, states, layout) is written once.
- */
-export interface MyListParts {
-  /** The scrolling page; `children` are the title and the rows. */
-  Page(props: { children: ReactNode; testID: string }): ReactNode;
-  /** One row of cards: on TV a focus row, so Left/Right stop at its ends. */
-  Row(props: { children: ReactNode; style: StyleProp<ViewStyle> }): ReactNode;
-  /** One saved title; `first` is the top-left card (where TV focus starts). */
-  Card(props: { item: WatchlistDto; width: number; first: boolean }): ReactNode;
+/** Cards sit this far apart, like the web grid. */
+const GAP = 8;
+
+/** Cards per line and their width for this screen, like the web grid (`auto-fill` of `--card-width`, stretched). */
+export function useGridColumns() {
+  const { width } = useWindowDimensions();
+  const { gutter, cardWidth } = useSizes();
+  const available = width - gutter * 2;
+  const columns = Math.max(1, Math.floor((available + GAP) / (cardWidth + GAP)));
+  return { columns, itemWidth: Math.floor((available - GAP * (columns - 1)) / columns) };
 }
 
-/** "My List": titles the active profile saved, newest first (D-055). One screen for TV, phone and desktop. */
-export function MyListScreen({
-  items,
-  loading,
-  columns,
-  itemWidth,
-  gutter,
-  titleSize,
-  parts: { Page, Row, Card },
-}: {
-  items: WatchlistDto[] | null;
-  loading: boolean;
-  /** Cards per row and their width, from the screen width (each app measures it its own way). */
-  columns: number;
-  itemWidth: number;
-  gutter: number;
-  titleSize: number;
-  parts: MyListParts;
-}) {
-  const list = items ?? [];
+/** "My List": titles the active profile saved, newest first (D-055). One screen for TV, phone and desktop (D-193). */
+export function MyListScreen() {
+  const { hooks, Page } = useScreenHost();
+  const items = hooks.useWatchlist((s) => s.items);
+  const { columns, itemWidth } = useGridColumns();
+  const sizes = useSizes();
+  const list = items.data ?? [];
   const rows = Array.from({ length: Math.ceil(list.length / columns) }, (_, i) => list.slice(i * columns, (i + 1) * columns));
   return (
     <Page testID="mylist-screen">
-      <Text accessibilityRole="header" style={[styles.title, { fontSize: titleSize, marginHorizontal: gutter }]}>
+      <Text accessibilityRole="header" style={[styles.title, { fontSize: sizes.pageTitle, marginHorizontal: sizes.gutter }]}>
         {t('My List')}
       </Text>
-      {loading && !items ? (
-        <ActivityIndicator size="large" color={colorTokens.accent} accessibilityLabel={t('Loading')} />
+      {items.status === 'loading' && !items.data ? (
+        <ActivityIndicator size="large" color={colors.accent} accessibilityLabel={t('Loading')} />
       ) : list.length === 0 ? (
-        <Text style={[styles.muted, { marginHorizontal: gutter }]}>
+        <Text style={[styles.muted, { marginHorizontal: sizes.gutter }]}>
           {t('Add movies and series with the + button on their details to watch them later.')}
         </Text>
       ) : (
         rows.map((row, index) => (
-          <Row key={index} style={[styles.row, { paddingHorizontal: gutter }]}>
+          // A focus row: on TV Left/Right stop at its ends (D-069).
+          <FocusRow key={index} style={[styles.row, { paddingHorizontal: sizes.gutter }]}>
             {row.map((item, column) => (
-              <Card key={`${item.section}-${item.masterId}`} item={item} width={itemWidth} first={index === 0 && column === 0} />
+              <TitleCard
+                key={`${item.section}-${item.masterId}`}
+                section={item.section}
+                item={watchlistCard(item)}
+                width={itemWidth}
+                hasTVPreferredFocus={index === 0 && column === 0}
+              />
             ))}
-          </Row>
+          </FocusRow>
         ))
       )}
     </Page>
@@ -61,7 +57,7 @@ export function MyListScreen({
 }
 
 const styles = StyleSheet.create({
-  title: { color: colorTokens.textStrong, fontWeight: '700', marginBottom: 24 },
-  muted: { color: colorTokens.muted, fontSize: 16 },
-  row: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 24 },
+  muted: { color: colors.muted, fontSize: 16 },
+  row: { flexDirection: 'row', gap: GAP, marginBottom: 24 },
 });
