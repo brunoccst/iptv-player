@@ -101,6 +101,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-193](#d-193) | Shared screens with React Native Web: the My List trial |
 | [D-194](#d-194) | Shared screens: one card for every app, the app brings a host |
 | [D-195](#d-195) | Shared Movies and Series: one grid, three ways to scroll |
+| [D-196](#d-196) | Shared Search |
 
 ## Merged and retired IDs
 
@@ -1118,3 +1119,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Movies and Series are the screen shared with the desktop (`BrowseScreen`, `TitleGrid`), with the TV's chips, "Sort by" select, buttons and error text moved to `packages/screens/src/ui`. The desktop now draws the TV's chips and select instead of its own.
 - The grid scrolls three ways: TV keeps only the lines near the focus mounted (D-094), phone uses a list, and desktop puts every line in the page, which scrolls with the window, and loads the next page when the app's `EndSensor` at the end comes into view. A React Native Web list scrolls inside its own box, which would leave the window's scroll bar and the nav's page scrolling unused.
 - The host also gives the screens the chosen category (`useCategory`, `setCategory`) and the catalog and library stores. Desktop Movies, Series and My List load as their own chunk with React Native Web; Search keeps the desktop's own grid until it moves too.
+
+## D-196
+
+**Shared Search** — 2026-10-23 (issue #237)
+
+- Search is the screen shared with the desktop (`SearchScreen`). The host gives it the nav's search text (and on TV the Enter presses), the channel and programme search hooks, and `play`.
+- On TV and phone the title and the filter stay above the scrolling results (D-130); on desktop the whole page scrolls with the window, so they scroll away with it. Each grid loads more on its own: TV as the focus nears its end (D-094), desktop through the host's `EndSensor`, phone on "More results".
+- Desktop now says "Keep typing…" and "Searching…" before results, like the TV, and draws the TV's chips for the filter.
+

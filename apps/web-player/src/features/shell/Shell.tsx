@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Spinner } from '../../components/Spinner';
 import { useUi } from '../../hooks/stores';
-import { SearchPage } from '../browse/SearchPage';
 import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
 import { HomePage } from '../home/HomePage';
@@ -14,6 +13,7 @@ import { t } from '@iptv/shared';
 
 // Screens shared with the TV app come with React Native Web (issue #237, DECISIONS.md#d-193): loaded when first shown.
 const MyListPage = lazy(() => import('../browse/MyListPage').then((module) => ({ default: module.MyListPage })));
+const SearchPage = lazy(() => import('../browse/SearchPage').then((module) => ({ default: module.SearchPage })));
 const BrowsePage = lazy(() => import('../browse/BrowsePage').then((module) => ({ default: module.BrowsePage })));
 
 // hls.js is large: load the player only when something plays.
@@ -35,7 +35,11 @@ export function Shell() {
             <BrowsePage section={view} banner={<LibraryBanner />} />
           </Suspense>
         ) : null}
-        {view === 'search' ? <SearchPage /> : null}
+        {view === 'search' ? (
+          <Suspense fallback={<Spinner />}>
+            <SearchPage />
+          </Suspense>
+        ) : null}
         {view === 'live' ? <LiveTvPage /> : null}
         {view === 'mylist' ? (
           <Suspense fallback={<Spinner />}>

@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard } from '@iptv/shared';
+import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard, PlayTarget } from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -15,9 +15,16 @@ export interface TitleMenuItem {
  * the remote's colour keys. Desktop: the window scrolls and a right-click opens a menu at the pointer.
  */
 export interface ScreenHost {
-  hooks: Pick<AppHooks, 'useTitleCard' | 'useWatchlist' | 'usePagedLibrary' | 'useCatalog' | 'useLibrary'>;
+  hooks: Pick<
+    AppHooks,
+    'useTitleCard' | 'useWatchlist' | 'usePagedLibrary' | 'useCatalog' | 'useLibrary' | 'useChannelSearch' | 'useProgrammeSearch'
+  >;
   stores: Pick<AppContext['stores'], 'catalog' | 'library'>;
   openDetails(section: LibrarySection, masterId: string): void;
+  /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
+  play(target: PlayTarget): void;
+  /** The top nav's search box: its text and, on TV, how many times Enter was pressed (search at once, D-079). */
+  useSearch(): { text: string; submits?: number };
   /** The category chosen on the Movies/Series page (`null`: All), kept in the app's navigation. */
   useCategory(): string | null;
   setCategory(categoryId: string | null): void;

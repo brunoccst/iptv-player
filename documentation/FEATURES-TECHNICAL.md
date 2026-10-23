@@ -76,7 +76,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Titles, channels and programmes](FEATURES.md#titles-channels-and-programmes) | `packages/shared/src/search/useSearchQuery.ts`, `packages/shared/src/search/searchDelay.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/XmltvFilter.kt`, `apps/tv-app/src/screens/SearchScreen.tsx`, `apps/web-player/src/features/browse/SearchPage.tsx` |
+| [Titles, channels and programmes](FEATURES.md#titles-channels-and-programmes) | `packages/shared/src/search/useSearchQuery.ts`, `packages/shared/src/search/searchDelay.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/XmltvFilter.kt`, `packages/screens/src/SearchScreen.tsx`, `apps/tv-app/src/screens/SearchScreen.tsx`, `apps/web-player/src/features/browse/SearchPage.tsx` |
 
 ## My List
 
