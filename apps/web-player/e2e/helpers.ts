@@ -16,8 +16,8 @@ export async function waitForLibrary(page: Page) {
   await expect(page.getByRole('button', { name: 'Big Test Movie' })).toBeVisible({ timeout: 60_000 });
 }
 
-/** The titles of a Movies/Series page (the screen shared with the TV app, D-195) or of the search results. */
-export const titleGrid = (page: Page) => page.locator('[data-testid^="browse-"], .grid');
+/** The titles of a Movies/Series page (D-195) or of the search results (D-196): screens shared with the TV app. */
+export const titleGrid = (page: Page) => page.locator('[data-testid^="browse-"], [data-testid="search-results"]');
 
 export const videoTime = (page: Page) => page.evaluate(() => document.querySelector<HTMLVideoElement>('.player__video')?.currentTime ?? 0);
 

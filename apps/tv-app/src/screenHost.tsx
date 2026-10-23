@@ -3,7 +3,7 @@ import { setScreenHost, type ScreenHost } from '@iptv/screens';
 import { navStore, stores } from './appContext';
 import { CardMenu } from './components/CardMenu';
 import { CenteringScrollView } from './components/CenterScroll';
-import { useCatalog, useLibrary, useNav, usePagedLibrary, useTitleCard, useWatchlist } from './hooks';
+import { useCatalog, useChannelSearch, useLibrary, useNav, usePagedLibrary, useProgrammeSearch, useTitleCard, useWatchlist } from './hooks';
 import { colors, useNavHeight } from './theme';
 import { blurTitle, focusTitle } from './tv/colourKeys';
 
@@ -13,9 +13,11 @@ import { blurTitle, focusTitle } from './tv/colourKeys';
  * remote's colour keys (D-154). Imported by the modules that render shared screens, so it is set before they draw.
  */
 const host: ScreenHost = {
-  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary },
+  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary, useChannelSearch, useProgrammeSearch },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
+  play: (target) => navStore.getState().push({ name: 'player', target }),
+  useSearch: () => ({ text: useNav((s) => s.search), submits: useNav((s) => s.searchSubmits) }),
   useCategory: () => useNav((s) => s.categoryId),
   setCategory: (categoryId) => navStore.getState().setCategory(categoryId),
   Page: function Page({ children, testID }) {

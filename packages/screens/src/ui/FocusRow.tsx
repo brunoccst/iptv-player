@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ComponentProps, type ReactNode } from 'react';
 // Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
 import * as ReactNative from 'react-native';
 import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -15,6 +15,7 @@ export function FocusRow({
   style,
   testID,
   accessibilityLabel,
+  accessibilityRole,
   leftOpen,
   rightOpen,
 }: {
@@ -22,12 +23,14 @@ export function FocusRow({
   style?: StyleProp<ViewStyle>;
   testID?: string;
   accessibilityLabel?: string;
+  /** E.g. `tablist` for a row of filter chips. */
+  accessibilityRole?: ComponentProps<typeof View>['accessibilityRole'];
   leftOpen?: boolean;
   rightOpen?: boolean;
 }) {
   if (!Platform.isTV)
     return (
-      <View style={style} testID={testID} accessibilityLabel={accessibilityLabel}>
+      <View style={style} testID={testID} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole}>
         {children}
       </View>
     );
@@ -39,6 +42,7 @@ export function FocusRow({
       style={style}
       testID={testID}
       accessibilityLabel={accessibilityLabel}
+      accessibilityRole={accessibilityRole}
     >
       {children}
     </TVFocusGuideView>

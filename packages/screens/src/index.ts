@@ -3,5 +3,6 @@
 export { ScreenHostProvider, setScreenHost, useScreenHost, type ScreenHost, type TitleMenuItem } from './host';
 export { BrowseScreen } from './BrowseScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';
+export { SearchScreen } from './SearchScreen';
 export { LoadingMoreNote, TitleGrid, TvLines } from './TitleGrid';
 export { TitleCard } from './TitleCard';

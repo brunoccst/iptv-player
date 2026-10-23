@@ -565,11 +565,11 @@ test('search finds programmes of the TV guide and plays the channel that shows t
   await page.getByPlaceholder('Titles, series').fill('Storm');
   await expect(page.getByRole('heading', { name: 'On TV' })).toBeVisible();
   const programme = page
-    .getByTestId('programme-results')
+    .getByTestId('row-programme-search')
     .getByRole('button', { name: /Storm Watch/ })
     .first();
   await expect(programme).toBeVisible();
-  await expect(page.getByTestId('programme-results')).toContainText('Test Weather');
+  await expect(page.getByTestId('row-programme-search')).toContainText('Test Weather');
   await programme.click();
   await expect(page.getByRole('heading', { name: 'Test Weather' })).toBeVisible();
 });

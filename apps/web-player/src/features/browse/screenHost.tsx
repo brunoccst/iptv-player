@@ -3,7 +3,16 @@ import { setScreenHost } from '@iptv/screens';
 import { t } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
-import { useCatalog, useLibrary, usePagedLibrary, useTitleCard, useUi, useWatchlist } from '../../hooks/stores';
+import {
+  useCatalog,
+  useChannelSearch,
+  useLibrary,
+  usePagedLibrary,
+  useProgrammeSearch,
+  useTitleCard,
+  useUi,
+  useWatchlist,
+} from '../../hooks/stores';
 
 /**
  * The desktop side of the screens shared with the TV app, drawn through React Native Web (issue #237,
@@ -12,9 +21,11 @@ import { useCatalog, useLibrary, usePagedLibrary, useTitleCard, useUi, useWatchl
  * pages that show shared screens, which load on their own so the rest of the app does not carry React Native Web.
  */
 setScreenHost({
-  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary },
+  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary, useChannelSearch, useProgrammeSearch },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
+  play: (target) => uiStore.getState().play(target),
+  useSearch: () => ({ text: useUi((s) => s.search) }),
   useCategory: () => useUi((s) => s.categoryId),
   setCategory: (categoryId) => uiStore.getState().setCategory(categoryId),
   Page: ({ children, testID }) => (
