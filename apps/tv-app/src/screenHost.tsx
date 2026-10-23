@@ -3,6 +3,10 @@ import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screen
 
 const NO_NOTES: string[] = [];
 import { downloadsStore, navStore, stores } from './appContext';
+import { t } from '@iptv/shared';
+import { appConfig } from './config';
+import { BackupDialog } from './components/BackupDialog';
+import { chooseUiLanguage } from './components/AppLanguageDialog';
 import { CardMenu } from './components/CardMenu';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
@@ -18,10 +22,13 @@ import {
   usePagedLibrary,
   useProgrammeSearch,
   useProgress,
+  useSession,
   useTitleCard,
   useWatchlist,
 } from './hooks';
 import { colors, useNavHeight } from './theme';
+import { canScanQr, usePairingServer } from './pairing/pairing';
+import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
 import { blurTitle, focusTitle } from './tv/colourKeys';
 
 /**
@@ -43,6 +50,7 @@ const host: ScreenHost = {
     useLiveHomeRow,
     continueMenuItems,
     useOfflineAccess,
+    useSession,
   },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
@@ -50,6 +58,16 @@ const host: ScreenHost = {
   openSection: (section, categoryId = null) =>
     section === 'mylist' ? navStore.getState().goSection('mylist') : navStore.getState().openCategory(section, categoryId),
   setScrolled: (scrolled) => navStore.getState().setScrolled(scrolled),
+  signIn: {
+    appName: appConfig.appName,
+    note: () => t('The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.'),
+    chooseLanguage: chooseUiLanguage,
+    Restore: ({ onClose }) => <BackupDialog mode="restore" onClose={onClose} />,
+    DeviceCode: function DeviceCode() {
+      return <PairingCode state={usePairingServer()} size={170} />;
+    },
+    scan: { available: canScanQr, open: () => openPairingDialog('scan') },
+  },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);
     useEffect(() => downloadsStore.getState().refresh(), []);

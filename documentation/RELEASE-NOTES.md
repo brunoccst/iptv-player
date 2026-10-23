@@ -119,6 +119,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Sign-in looks like the TV's** (2026-10-23, D-199, issue #237): the sign-in page is now the same screen as on the TV and phone app, with the language choice in the panel and the code to sign in from your phone beside it.
 - **My Downloads looks like the TV's** (2026-10-23, D-198, issue #237): My Downloads is now the same screen as on the TV and phone app, with the same list, progress bar and round buttons.
 - **Home looks like the TV's** (2026-10-23, D-197, issue #237): Home is now the same screen as on the TV and phone app. Each row shows its first 30 titles and ends with a "See all" card that opens the whole category.
 - **Search looks like the TV's** (2026-10-23, D-196, issue #237): the search page is now the same screen as on the TV and phone app, with the same filter, results and "Keep typing…" note.

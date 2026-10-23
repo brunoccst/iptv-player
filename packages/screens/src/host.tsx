@@ -50,8 +50,9 @@ export interface ScreenHost {
     | 'useLiveHomeRow'
     | 'continueMenuItems'
     | 'useOfflineAccess'
+    | 'useSession'
   >;
-  stores: Pick<AppContext['stores'], 'catalog' | 'library'>;
+  stores: Pick<AppContext['stores'], 'catalog' | 'library' | 'session'>;
   openDetails(section: LibrarySection, masterId: string): void;
   /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
   play(target: PlayTarget): void;
@@ -59,6 +60,19 @@ export interface ScreenHost {
   openSection(section: LibrarySection | 'live' | 'mylist', categoryId?: string | null): void;
   /** TV and phone: Home scrolled away from its top (the top nav darkens, like the web's on scroll). */
   setScrolled?(scrolled: boolean): void;
+  /** The sign-in page, before any profile (D-088). */
+  signIn: {
+    appName: string;
+    /** Under the form: how the password is kept on this device; `null` for none (a plain browser). Read when drawn (`t`). */
+    note(): string | null;
+    chooseLanguage(language: string): void;
+    /** The app's restore-from-backup dialog, drawn while open. */
+    Restore(props: { onClose(): void }): ReactNode;
+    /** The code a signed-in phone or tablet scans (D-060, D-178). None where the app cannot pair (a plain browser). */
+    DeviceCode?(): ReactNode;
+    /** Scanning a signed-in device's code instead, where there is a camera (D-178). */
+    scan?: { available(): boolean; open(): void };
+  };
   /** My Downloads: the downloads, newest first, and notes above them (desktop: no offline support, storage used). */
   useDownloads(): { entries: DownloadEntry[]; notes: string[] };
   /** The top nav's search box: its text and, on TV, how many times Enter was pressed (search at once, D-079). */
