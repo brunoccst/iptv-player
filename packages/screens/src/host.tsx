@@ -1,17 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { View } from 'react-native';
-import type {
-  AppContext,
-  AppHooks,
-  DownloadMenuState,
-  IconName,
-  LibrarySection,
-  MasterCard,
-  MasterDetails,
-  PinGate,
-  PlayTarget,
-  VariantInfo,
-} from '@iptv/shared';
+import type { AppContext, AppHooks, DownloadMenuState, IconName, LibrarySection, MasterCard, PinGate, PlayTarget } from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -26,15 +15,16 @@ export interface MenuItem extends TitleMenuItem {
   disabled?: boolean;
 }
 
-/** What an episode's menu offers besides Watched, where this app has it (D-078). */
-export interface EpisodeOptions {
-  download?: { menu: DownloadMenuState; toggle(): void } | null;
-  /** The paired TV's name, for "Play on …" (D-061). */
-  tvName?: string | null;
-  playOnTv?(): void;
-  /** Another player app (TV and phone) or VLC (desktop), D-057. */
-  externalPlayer?: 'app' | 'vlc' | null;
-  openExternal?(): void;
+/** A movie or episode's download as this app keeps it: the round button and the episode menu (D-078) show it. */
+export interface TitleDownload {
+  status: 'none' | 'queued' | 'downloading' | 'paused' | 'completed' | 'failed';
+  /** 0..1 */
+  progress: number;
+  /** What selecting the button does, for screen readers and the desktop's tooltip. */
+  label: string;
+  menu: DownloadMenuState;
+  /** Start, pause, resume or retry. */
+  toggle(): void;
 }
 
 /** One download on My Downloads, from the app's own downloads store (the TV's native downloader, the desktop's cache). */
@@ -92,6 +82,8 @@ export interface ScreenHost {
     | 'useMovieDetails'
     | 'useSeriesDetails'
     | 'useWatchlistToggle'
+    | 'useRegroup'
+    | 'useMergeCandidates'
   >;
   api: AppContext['api'];
   stores: AppContext['stores'];
@@ -144,14 +136,14 @@ export interface ScreenHost {
     close(): void;
     /** Goes up when the library was read again, so the open details load again. */
     useRevision(): number;
-    DownloadButton(props: { target: PlayTarget; durationSeconds?: number | null }): ReactNode;
-    /** Phones with a paired TV (D-061). */
-    PlayOnTvButton?(props: { target: PlayTarget | null }): ReactNode;
-    /** Another player app, or VLC on the desktop (D-057); nothing where there is none. */
-    ExternalPlayerButton(props: { target: PlayTarget }): ReactNode;
-    /** Split or merge titles by hand (issue #243). */
-    RegroupButton(props: { section: LibrarySection; master: MasterDetails; variant: VariantInfo }): ReactNode;
-    useEpisodeOptions(target: PlayTarget, durationSeconds: number | null | undefined): EpisodeOptions;
+    /** A movie or episode's download, where this app can download it (D-050); `null` where it cannot. */
+    useDownload(target: PlayTarget, durationSeconds?: number | null): TitleDownload | null;
+    /** Phones with a paired TV (D-061): starting the title there; `null` without one. */
+    usePlayOnTv?(target: PlayTarget | null): { tvName: string; label: string; play(): void } | null;
+    /** Another player app, or VLC on the desktop (D-057); `null` where there is none (Kids profiles, a plain browser). */
+    useExternalPlayer(target: PlayTarget): { kind: 'app' | 'vlc'; label: string; open(): void } | null;
+    /** Shows another title's details in place of these: where a split or merge left the title (issue #243). */
+    replace(section: LibrarySection, masterId: string): void;
     /** TV: the title the remote's Red key adds to My List while no card has the focus (D-154). */
     usePageTitle?(section: LibrarySection, title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>): void;
     /**

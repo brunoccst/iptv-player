@@ -10,17 +10,24 @@ import {
   sendPairing,
   sendRemoteCommand,
   type PairedTv,
+  type PlayTarget,
   type RemoteOffer,
 } from '@iptv/shared';
-import { Alert, Share } from 'react-native';
+import { Alert, Pressable, Share } from 'react-native';
 import { navStore } from '../appContext';
-import { PlayOnTvButton } from '../components/PlayOnTvButton';
+import { usePlayOnTv } from './usePlayOnTv';
 import { LogScreen } from '../screens/LogScreen';
 import { pairedTv } from './remote';
 import { App } from '../App';
 import { stores } from '../appContext';
 import { account, profile, setupApp } from '../../test/utils';
 import { nativeState, PAIRING_KEY } from '../../test/tvMediaMock';
+
+/** The details' Play on TV button, as the shared screen draws it from `usePlayOnTv`. */
+function PlayOnTvButton({ target, testID }: { target: PlayTarget; testID: string }) {
+  const tv = usePlayOnTv(target);
+  return tv ? <Pressable testID={testID} accessibilityLabel={tv.label} onPress={tv.play} /> : null;
+}
 
 async function flush() {
   await act(async () => {

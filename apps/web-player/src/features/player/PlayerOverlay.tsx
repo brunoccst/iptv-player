@@ -41,7 +41,7 @@ import {
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
-import { useVlc } from '../../components/VlcButton';
+import { useVlc } from '../../components/vlc';
 import { desktop } from '../../desktop';
 import { useNoteRecentChannel, usePlayerTitle, useSession, useUi } from '../../hooks/stores';
 import { savePlaybackProgress } from '@iptv/shared';

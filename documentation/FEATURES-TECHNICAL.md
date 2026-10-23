@@ -16,7 +16,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Title grouping](FEATURES.md#title-grouping) | `packages/shared/src/direct/normalizer/parser.ts`, `packages/shared/src/direct/normalizer/matching.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/reattach.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/LibraryDb.kt`, `apps/desktop/lib/libraryDb.mjs` |
-| [Split or merge titles](FEATURES.md#split-or-merge-titles) | `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/components/RegroupButton.tsx`, `apps/web-player/src/features/details/RegroupButton.tsx` |
+| [Split or merge titles](FEATURES.md#split-or-merge-titles) | `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/hooks.ts`, `packages/screens/src/ui/RegroupButton.tsx` |
 | [Version choice and "(best)"](FEATURES.md#version-choice-and-best) | `packages/shared/src/playback/playbackChoices.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/screens/src/DetailsScreen.tsx` |
 | [Library updates](FEATURES.md#library-updates) | `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/ListReader.kt`, `packages/shared/src/direct/nameRow.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/NameParser.kt`, `apps/tv-app/scripts/build-name-parser.mjs` |
 | [Library banner](FEATURES.md#library-banner) | `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/src/useLibraryWatcher.ts`, `apps/tv-app/src/components/LibraryBanner.tsx`, `apps/web-player/src/features/shell/LibraryBanner.tsx` |
@@ -60,7 +60,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Playback errors](FEATURES.md#playback-errors) | `packages/shared/src/playback/sources.ts`, `packages/shared/src/playback/probe.ts`, `apps/web-player/src/features/player/playbackEngine.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/desktop/lib/transcoder.mjs` |
 | [Connection limit](FEATURES.md#connection-limit) | `packages/shared/src/playback/connectionLimit.ts`, `packages/shared/src/direct/xtream.ts`, `apps/tv-app/src/player/PlayerScreen.tsx`, `apps/web-player/src/features/player/PlayerOverlay.tsx` |
 | [Audio decoder (TV and phone)](FEATURES.md#audio-decoder-tv-and-phone) | `apps/tv-app/modules/tv-media/android/build.gradle`, `apps/tv-app/src/playbackSettings.ts`, `apps/tv-app/src/components/PlaybackSettings.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvPlayerView.kt` |
-| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/components/ExternalPlayerButton.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/VlcButton.tsx`, `apps/desktop/main.mjs`, `apps/desktop/lib/vlc.mjs` |
+| [Open in another player](FEATURES.md#open-in-another-player) | `apps/tv-app/src/player/externalPlayer.ts`, `apps/tv-app/src/player/useExternalPlayer.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/TvMediaModule.kt`, `apps/web-player/src/components/vlc.ts`, `apps/desktop/main.mjs`, `apps/desktop/lib/vlc.mjs` |
 
 ## Live TV
 
@@ -107,7 +107,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 |---------|------|
 | [Sign in and sync by QR code](FEATURES.md#sign-in-and-sync-by-qr-code) | `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/settings.ts`, `packages/shared/src/pairing/sealed.ts`, `packages/shared/src/pairing/usePairingServer.ts`, `apps/tv-app/src/pairing/pairing.ts`, `apps/tv-app/src/pairing/PairingDialogs.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/PairingServer.kt`, `apps/web-player/src/features/pairing/SyncWithPhone.tsx`, `apps/web-player/src/features/pairing/WebcamScanner.tsx`, `apps/web-player/src/features/pairing/pairing.ts`, `apps/desktop/main.mjs` |
 | [Staying in sync with the TV](FEATURES.md#staying-in-sync-with-the-tv) | `packages/shared/src/pairing/autoSync.ts`, `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/direct/removals.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/web-player/src/features/pairing/pairing.ts`, `apps/desktop/main.mjs` |
-| [Play on TV](FEATURES.md#play-on-tv) | `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/components/PlayOnTvButton.tsx`, `apps/tv-app/src/App.tsx` |
+| [Play on TV](FEATURES.md#play-on-tv) | `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/pairing/usePlayOnTv.ts`, `apps/tv-app/src/App.tsx` |
 
 ## App
 

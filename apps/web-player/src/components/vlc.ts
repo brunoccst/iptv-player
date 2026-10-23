@@ -15,29 +15,12 @@ import {
 import { api, stores } from '../appContext';
 import { desktop } from '../desktop';
 import { useSession } from '../hooks/stores';
-import { Icon } from './Icon';
 
 /**
- * Desktop app: "Open in VLC" next to Play, the TV's "open in another player" (D-057). VLC gets the original
- * file (else HLS) with the provider User-Agent. Not in a browser (it cannot start other programs), not on Kids profiles.
+ * Desktop app: "Open in VLC" next to Play and in an episode's menu, the TV's "open in another player" (D-057). VLC gets
+ * the original file (else HLS) with the provider User-Agent. Not in a browser (it cannot start other programs), not on
+ * Kids profiles.
  */
-export function VlcButton({ target }: { target: PlayTarget }) {
-  const vlc = useVlc();
-  if (!vlc) return null;
-  const name = target.kind === 'episode' && target.subtitle ? target.subtitle : target.title;
-  return (
-    <button
-      type="button"
-      className="icon-button"
-      aria-label={t('Open {name} in VLC', { name })}
-      title={t('Open in VLC')}
-      onClick={() => vlc(target)}
-    >
-      <Icon name="external" />
-    </button>
-  );
-}
-
 /** Opening a title in VLC, where it can be (the desktop app, not Kids profiles); else null. */
 export function useVlc() {
   const kids = useSession((s) => selectActiveProfile(s)?.isKids === true);

@@ -7,6 +7,7 @@ export {
   type DownloadEntry,
   type RemoteEvent,
   type ScreenHost,
+  type TitleDownload,
   type TitleMenuItem,
 } from './host';
 export { DetailsScreen } from './DetailsScreen';

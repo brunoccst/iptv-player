@@ -21,6 +21,7 @@ import {
   useHeroTitle,
   useLibrary,
   useLiveHomeRow,
+  useMergeCandidates,
   useNav,
   useOfflineAccess,
   usePagedLibrary,
@@ -30,6 +31,7 @@ import {
   useMovieDetails,
   useProgrammeDescription,
   useProgress,
+  useRegroup,
   useReminders,
   useSeriesDetails,
   useSession,
@@ -41,10 +43,9 @@ import { colors, useNavHeight } from './theme';
 import { canScanQr, usePairingServer } from './pairing/pairing';
 import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
 import { blurTitle, focusTitle, useColourPageTitle } from './tv/colourKeys';
-import { DownloadButton, useDownload } from './components/DownloadButton';
-import { ExternalPlayerButton, useExternalPlayer } from './components/ExternalPlayerButton';
-import { PlayOnTvButton, usePlayOnTv } from './components/PlayOnTvButton';
-import { RegroupButton } from './components/RegroupButton';
+import { useDownload } from './downloads/useDownload';
+import { useExternalPlayer } from './player/useExternalPlayer';
+import { usePlayOnTv } from './pairing/usePlayOnTv';
 import { useRemote } from './tv/remote';
 import { useNavFocusTarget } from './components/TopNav';
 
@@ -75,6 +76,8 @@ const host: ScreenHost = {
     useMovieDetails,
     useSeriesDetails,
     useWatchlistToggle,
+    useRegroup,
+    useMergeCandidates,
   },
   api,
   stores,
@@ -160,22 +163,10 @@ const host: ScreenHost = {
   details: {
     close: () => navStore.getState().back(),
     useRevision: () => useNav((s) => s.libraryRevision),
-    DownloadButton: ({ target }) => <DownloadButton target={target} />,
-    PlayOnTvButton: ({ target }) => <PlayOnTvButton target={target} testID="details-play-on-tv" />,
-    ExternalPlayerButton: ({ target }) => <ExternalPlayerButton target={target} testID="details-external" />,
-    RegroupButton,
-    useEpisodeOptions: function useEpisodeOptions(target) {
-      const download = useDownload(target);
-      const playOnTv = usePlayOnTv(target);
-      const external = useExternalPlayer(target);
-      return {
-        download,
-        tvName: playOnTv?.tvName,
-        playOnTv: playOnTv?.play,
-        externalPlayer: external ? 'app' : null,
-        openExternal: external?.open,
-      };
-    },
+    useDownload,
+    usePlayOnTv,
+    useExternalPlayer,
+    replace: (section, masterId) => navStore.getState().replaceTop({ name: 'details', section, masterId }),
     usePageTitle: (section, card) => useColourPageTitle({ section, card }),
   },
   Menu: ({ title, subtitle, items, onClose }) => (

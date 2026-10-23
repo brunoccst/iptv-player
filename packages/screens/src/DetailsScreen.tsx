@@ -43,12 +43,14 @@ import {
   setSeasonWatched,
 } from '@iptv/shared';
 import { useScreenHost } from './host';
+import { DownloadButton } from './ui/DownloadButton';
 import { ErrorText, errorText } from './ui/Feedback';
 import { FocusButton } from './ui/FocusButton';
 import { alignedColumn, useFocusGrid } from './ui/focusGrid';
 import { FocusRow } from './ui/FocusRow';
 import { Gradient } from './ui/Gradient';
 import { IconButton } from './ui/IconButton';
+import { RegroupButton } from './ui/RegroupButton';
 import { Select } from './ui/Select';
 import { colors, fonts, radius, useCompact } from './ui/theme';
 import { WatchedButton } from './ui/WatchedButton';
@@ -151,7 +153,6 @@ export function DetailsScreen({ section, masterId }: { section: LibrarySection; 
 
 function MovieDetails({ master }: { master: MasterDetails }) {
   const host = useScreenHost();
-  const { DownloadButton, PlayOnTvButton, ExternalPlayerButton, RegroupButton } = host.details;
   const { variant, meta, watched, canResume, target, play, backdrop, duration, rating, setWatched } = host.hooks.useMovieDetails(master);
   if (!variant || !target || !play) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
@@ -173,7 +174,7 @@ function MovieDetails({ master }: { master: MasterDetails }) {
       actions={
         <>
           <DownloadButton target={target} durationSeconds={duration} />
-          {PlayOnTvButton ? <PlayOnTvButton target={play} /> : null}
+          <PlayOnTvButton target={play} />
           <ExternalPlayerButton target={target} />
           <WatchedButton kind="movie" watched={watched} onChange={setWatched} />
           <WatchlistButton section="movies" title={master} />
@@ -202,7 +203,6 @@ function MovieDetails({ master }: { master: MasterDetails }) {
 function SeriesDetailsView({ master }: { master: MasterDetails }) {
   // All versions' episode lists merged (D-066); resume; every episode watched (the tag, D-081).
   const host = useScreenHost();
-  const { PlayOnTvButton, RegroupButton } = host.details;
   const { variant, series, allWatched, backdrop, play: playTarget, playLabel, startSeason } = host.hooks.useSeriesDetails(master);
   if (!variant) return <Text style={[styles.text, styles.padded]}>{t('No playable versions.')}</Text>;
 
@@ -228,7 +228,7 @@ function SeriesDetailsView({ master }: { master: MasterDetails }) {
       }
       actions={
         <>
-          {PlayOnTvButton ? <PlayOnTvButton target={series.data ? playTarget : null} /> : null}
+          <PlayOnTvButton target={series.data ? playTarget : null} />
           <WatchedButton
             kind="series"
             watched={allWatched}
@@ -651,19 +651,21 @@ function EpisodeMenu({
   onClose(): void;
 }) {
   const host = useScreenHost();
-  const options = host.details.useEpisodeOptions(target, episode.durationSeconds);
+  const download = host.details.useDownload(target, episode.durationSeconds);
+  const playOnTv = (host.details.usePlayOnTv ?? noTv)(target);
+  const external = host.details.useExternalPlayer(target);
   const run: Record<EpisodeMenuItemId, () => void> = {
     watched: () => onWatched(true),
     unwatched: () => onWatched(false),
-    download: () => options.download?.toggle(),
-    'play-on-tv': () => options.playOnTv?.(),
-    external: () => options.openExternal?.(),
+    download: () => download?.toggle(),
+    'play-on-tv': () => playOnTv?.play(),
+    external: () => external?.open(),
   };
   const items = episodeMenuItems({
     watched,
-    download: options.download?.menu,
-    tvName: options.tvName,
-    externalPlayer: options.externalPlayer ?? null,
+    download: download?.menu,
+    tvName: playOnTv?.tvName,
+    externalPlayer: external?.kind ?? null,
   });
   return (
     <host.Menu
@@ -674,6 +676,21 @@ function EpisodeMenu({
       items={items.map((item) => ({ id: item.id, label: item.label, disabled: item.disabled, icon: item.icon, run: run[item.id] }))}
     />
   );
+}
+
+/** Phones with a paired TV: a round button that starts the title there instead (D-061). */
+function PlayOnTvButton({ target }: { target: PlayTarget | null }) {
+  const playOnTv = (useScreenHost().details.usePlayOnTv ?? noTv)(target);
+  if (!playOnTv) return null;
+  return <IconButton icon="tv" label={playOnTv.label} testID="details-play-on-tv" onPress={playOnTv.play} />;
+}
+const noTv = () => null;
+
+/** Round button next to Play: the title in another player app, or VLC on the desktop (D-057). */
+function ExternalPlayerButton({ target }: { target: PlayTarget }) {
+  const external = useScreenHost().details.useExternalPlayer(target);
+  if (!external) return null;
+  return <IconButton icon="external" label={external.label} testID="details-external" onPress={external.open} />;
 }
 
 /** Web `VariantSelect`: "Version / Stream Quality" dropdown, best first; "(best)" only when one is (D-087). */

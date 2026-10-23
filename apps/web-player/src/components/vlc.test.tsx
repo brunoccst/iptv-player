@@ -27,7 +27,7 @@ describe('Open in VLC (desktop app, D-057)', () => {
   it('asks for the original file and hands it to VLC with the title', async () => {
     const openInVlc = vi.fn(async () => 'vlc' as const);
     (globalThis as { iptvDesktop?: unknown }).iptvDesktop = { openInVlc };
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     expect(await open(movie)).toBeNull();
     expect(get).toHaveBeenLastCalledWith('movie', '101', 'mkv');
     expect(openInVlc).toHaveBeenCalledWith('http://panel/movie/u/p/101.mkv', 'Heat', 0, undefined);
@@ -43,14 +43,14 @@ describe('Open in VLC (desktop app, D-057)', () => {
         : new Response('', { status: 401 }),
     );
     vi.stubGlobal('fetch', fetch);
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     expect(await open(movie)).toBeNull();
     expect(openInVlc).toHaveBeenCalledWith('http://streams/movie/u/p/101.mkv', 'Heat', 0, undefined);
     vi.unstubAllGlobals();
   });
 
   it('keeps the portal address when it answers, and when nothing does', async () => {
-    const { answeringUrl } = await import('./VlcButton');
+    const { answeringUrl } = await import('./vlc');
     const probe =
       (status: number, text: string | null = null) =>
       async () => ({ status, contentType: null, length: 10, host: null, text, hex: null, error: null, codecs: [] });
@@ -68,7 +68,7 @@ describe('Open in VLC (desktop app, D-057)', () => {
     let listener: ((p: { id: string; position: number; duration: number; ended: boolean }) => void) | null = null;
     const openInVlc = vi.fn(async (..._args: unknown[]) => 'vlc' as const);
     (globalThis as { iptvDesktop?: unknown }).iptvDesktop = { openInVlc, onVlcProgress: (l: typeof listener) => (listener = l) };
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     expect(await open(movie)).toBeNull();
     const [, , startAt, watchId] = openInVlc.mock.calls[0]!;
     expect(startAt).toBe(600);
@@ -90,7 +90,7 @@ describe('Open in VLC (desktop app, D-057)', () => {
     let listener: ((p: { id: string; position: number; duration: number; ended: boolean }) => void) | null = null;
     const openInVlc = vi.fn(async (..._args: unknown[]) => 'vlc' as const);
     (globalThis as { iptvDesktop?: unknown }).iptvDesktop = { openInVlc, onVlcProgress: (l: typeof listener) => (listener = l) };
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     await open(movie);
     session.activeProfileId = 'p2';
     listener!({ id: openInVlc.mock.calls[0]![3] as string, position: 1800, duration: 6000, ended: true });
@@ -100,12 +100,12 @@ describe('Open in VLC (desktop app, D-057)', () => {
 
   it('says so when VLC is not installed', async () => {
     (globalThis as { iptvDesktop?: unknown }).iptvDesktop = { openInVlc: vi.fn(async () => 'none' as const) };
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     expect(await open(movie)).toMatch(/VLC is not installed/);
   });
 
   it('does nothing in a browser', async () => {
-    const { openInVlc: open } = await import('./VlcButton');
+    const { openInVlc: open } = await import('./vlc');
     expect(await open(movie)).toBeNull();
   });
 });
