@@ -20,4 +20,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/SearchScreen.tsx` | Search: "Results for …", the All / Movies / Series / Live TV filter, title grids, channels, guide programmes |
 | `src/MyListScreen.tsx` | My List: title, loading, empty text, focus rows of cards; `useGridColumns` (the web grid's columns) |
 | `src/TitleCard.tsx` | One title's cover: badge, "Watched", My List bookmark, opens details, menu on hold OK or right-click |
+| `src/QualityUpgradeDialog.tsx` | "Better quality on My List" over Home: Play or More info per title (D-176, D-204) |
+| `src/KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-053, D-204) |
+| `src/HiddenCategories.tsx` | Account menu → Categories shown: what this profile browses (D-110, D-204) |
 | `src/ui/` | Building blocks from the TV app, see its README |

@@ -7,7 +7,6 @@ import { desktop } from '../../desktop';
 import { BackupDialog } from '../backup/BackupDialog';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
-import { KidsCategories } from '../profiles/KidsCategories';
 import { LanguageSettings } from '../profiles/LanguageSettings';
 import { usePinGate } from '../profiles/PinDialog';
 import { chooseUiLanguage } from '../shell/AppLanguageDialog';
@@ -24,6 +23,8 @@ import {
   useChannelSearch,
   useDownloads,
   useHeroTitle,
+  useHiddenCategories,
+  useKidsCategories,
   useLibrary,
   useLiveHomeRow,
   useMergeCandidates,
@@ -35,6 +36,7 @@ import {
   useProfilePicker,
   useProgrammeDescription,
   useProgress,
+  useQualityUpgrades,
   useRegroup,
   useReminders,
   useSeriesDetails,
@@ -75,6 +77,9 @@ setScreenHost({
     useWatchlistToggle,
     useRegroup,
     useMergeCandidates,
+    useQualityUpgrades,
+    useKidsCategories,
+    useHiddenCategories,
   },
   api,
   stores,
@@ -101,7 +106,6 @@ setScreenHost({
   },
   profiles: {
     usePinGate,
-    KidsCategories,
     LanguageSettings,
     signOut: confirmSignOut,
   },

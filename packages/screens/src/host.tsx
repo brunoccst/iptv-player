@@ -84,6 +84,9 @@ export interface ScreenHost {
     | 'useWatchlistToggle'
     | 'useRegroup'
     | 'useMergeCandidates'
+    | 'useQualityUpgrades'
+    | 'useKidsCategories'
+    | 'useHiddenCategories'
   >;
   api: AppContext['api'];
   stores: AppContext['stores'];
@@ -107,12 +110,10 @@ export interface ScreenHost {
     /** Scanning a signed-in device's code instead, where there is a camera (D-178). */
     scan?: { available(): boolean; open(): void };
   };
-  /** "Who's watching?" (D-054): the app's PIN prompt, its profile dialogs and signing out. */
+  /** "Who's watching?" (D-054): the app's PIN prompt, its content language dialog and signing out. */
   profiles: {
     /** `gate(needed, title, action)` runs `action` at once, or after the PIN when `needed`; `dialog` is the open prompt. */
     usePinGate(): { gate: PinGate; dialog: ReactNode };
-    /** The categories a Kids profile may see (D-053). */
-    KidsCategories(props: { profileId: string; name: string; onClose(): void }): ReactNode;
     /** A profile's content languages (D-063). */
     LanguageSettings(props: { profile: { id: string; name: string }; onClose(): void }): ReactNode;
     /** Asks first (downloads on this device are deleted, D-050), then signs out. */

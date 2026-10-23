@@ -83,7 +83,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `packages/screens/src/MyListScreen.tsx`, `packages/screens/src/TitleCard.tsx`, `packages/screens/src/ui/pageFocus.ts`, `apps/tv-app/src/screenHost.tsx`, `apps/web-player/src/features/browse/MyListPage.tsx` |
-| [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/src/components/QualityUpgradeDialog.tsx`, `apps/web-player/src/features/home/QualityUpgradeDialog.tsx` |
+| [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/screens/src/QualityUpgradeDialog.tsx` |
 
 ## Downloads
 
@@ -95,10 +95,10 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Profiles and Kids](FEATURES.md#profiles-and-kids) | `packages/shared/src/profiles/kidsFilter.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/stores/sessionStore.ts`, `packages/screens/src/ProfilesScreen.tsx`, `apps/tv-app/src/screens/ProfilesScreen.tsx`, `apps/web-player/src/features/profiles/ProfilePicker.tsx` |
+| [Profiles and Kids](FEATURES.md#profiles-and-kids) | `packages/shared/src/profiles/kidsFilter.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/stores/sessionStore.ts`, `packages/screens/src/ProfilesScreen.tsx`, `packages/screens/src/KidsCategories.tsx`, `apps/tv-app/src/screens/ProfilesScreen.tsx`, `apps/web-player/src/features/profiles/ProfilePicker.tsx` |
 | [Parental PIN](FEATURES.md#parental-pin) | `packages/shared/src/stores/pinStore.ts`, `apps/tv-app/src/components/PinPad.tsx`, `apps/web-player/src/features/profiles/PinDialog.tsx` |
 | [Content language filter](FEATURES.md#content-language-filter) | `packages/shared/src/profiles/contentLanguages.ts`, `packages/shared/src/stores/profilePrefsStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/playback/playbackChoices.ts`, `apps/tv-app/src/components/LanguageSettings.tsx`, `apps/web-player/src/features/profiles/LanguageSettings.tsx` |
-| [Categories shown](FEATURES.md#categories-shown) | `packages/shared/src/profiles/hiddenCategories.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `apps/tv-app/src/components/HiddenCategories.tsx`, `apps/web-player/src/features/profiles/HiddenCategories.tsx` |
+| [Categories shown](FEATURES.md#categories-shown) | `packages/shared/src/profiles/hiddenCategories.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/screens/src/HiddenCategories.tsx` |
 | [App language](FEATURES.md#app-language) | `packages/shared/src/i18n/i18n.ts`, `packages/shared/src/i18n/uiLanguage.ts`, `packages/shared/src/i18n/catalogs`, `apps/tv-app/src/components/AppLanguageDialog.tsx`, `apps/web-player/src/features/shell/AppLanguageDialog.tsx` |
 
 ## Devices
