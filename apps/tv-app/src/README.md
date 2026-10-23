@@ -6,6 +6,7 @@
 | `appContext.ts`        | Shared app context with direct mode enabled (secure-store credentials, file data storage), navigation store, downloads store; sets the provider User-Agent on the native player.                                  |
 | `dataStorage.ts`       | `fileStorage`: JSON files in app-private storage for profiles, progress and the library cache (direct mode).                                                                                                      |
 | `playbackSettings.ts`  | Player settings (audio decoder choice, D-059), saved in `fileStorage` and included in backups (D-056).                                                                                                            |
+| `about.ts` | The rows of the shared About dialog: installed build, commit, FFmpeg audio, Android; Check for updates (D-070, D-206). |
 | `config.ts`            | `appConfig` from `Constants.expoConfig.extra` (API address optional), `providerUserAgent`.                                                                                                                        |
 | `hooks.ts`             | Store hooks (`useSession`, `useConnection`, `useLibrary`, `useDownloads`, `useNav`, …) and `connectionStore`.                                                                                                     |
 | `secureRandom.ts`      | `crypto.getRandomValues` from Android's SecureRandom where Hermes lacks it (backup salts, pairing nonces, issue #233).                                                                                            |

@@ -99,7 +99,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Parental PIN](FEATURES.md#parental-pin) | `packages/shared/src/stores/pinStore.ts`, `apps/tv-app/src/components/PinPad.tsx`, `apps/web-player/src/features/profiles/PinDialog.tsx` |
 | [Content language filter](FEATURES.md#content-language-filter) | `packages/shared/src/profiles/contentLanguages.ts`, `packages/shared/src/stores/profilePrefsStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/playback/playbackChoices.ts`, `packages/screens/src/LanguageSettings.tsx` |
 | [Categories shown](FEATURES.md#categories-shown) | `packages/shared/src/profiles/hiddenCategories.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/screens/src/HiddenCategories.tsx` |
-| [App language](FEATURES.md#app-language) | `packages/shared/src/i18n/i18n.ts`, `packages/shared/src/i18n/uiLanguage.ts`, `packages/shared/src/i18n/catalogs`, `apps/tv-app/src/components/AppLanguageDialog.tsx`, `apps/web-player/src/features/shell/AppLanguageDialog.tsx` |
+| [App language](FEATURES.md#app-language) | `packages/shared/src/i18n/i18n.ts`, `packages/shared/src/i18n/uiLanguage.ts`, `packages/shared/src/i18n/catalogs`, `packages/screens/src/AppLanguageDialog.tsx` |
 
 ## Devices
 
@@ -114,7 +114,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Account menu](FEATURES.md#account-menu) | `apps/tv-app/src/components/AccountMenu.tsx`, `apps/tv-app/src/navigation/navStore.ts`, `apps/web-player/src/features/shell/TopNav.tsx` |
-| [About](FEATURES.md#about) | `apps/tv-app/src/components/AboutDialog.tsx`, `apps/tv-app/app.config.ts`, `apps/web-player/src/features/shell/AboutDialog.tsx`, `apps/web-player/src/buildInfo.ts`, `apps/web-player/vite.config.ts` |
+| [About](FEATURES.md#about) | `packages/screens/src/AboutDialog.tsx`, `apps/tv-app/src/about.ts`, `apps/tv-app/app.config.ts`, `apps/web-player/src/features/shell/about.ts`, `apps/web-player/src/buildInfo.ts`, `apps/web-player/vite.config.ts` |
 | [Diagnostics log](FEATURES.md#diagnostics-log) | `packages/shared/src/utils/logger.ts`, `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/diagnostics/logReport.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/src/diagnostics/stallWatch.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx` |
 | [App updates](FEATURES.md#app-updates) | `apps/tv-app/src/update/updates.ts`, `apps/tv-app/src/update/UpdateDialog.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/AppUpdater.kt`, `apps/desktop/main.mjs`, `apps/desktop/preload.cjs`, `apps/web-player/src/features/shell/UpdateProgress.tsx`, `scripts/release-notes.mjs` |
 | [Full screen (phone and tablet)](FEATURES.md#full-screen-phone-and-tablet) | `apps/tv-app/src/App.tsx`, `apps/tv-app/app.config.ts` |

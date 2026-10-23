@@ -3,10 +3,10 @@ import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screen
 
 const NO_NOTES: string[] = [];
 import { api, appContext, downloadsStore, navStore, stores } from './appContext';
-import { t } from '@iptv/shared';
+import { t, type UiLanguage } from '@iptv/shared';
 import { appConfig } from './config';
 import { BackupDialog } from './components/BackupDialog';
-import { chooseUiLanguage } from './components/AppLanguageDialog';
+import { about } from './about';
 import { confirmSignOut } from './components/AccountMenu';
 import { CardMenu } from './components/CardMenu';
 import { usePinGate } from './components/PinPad';
@@ -96,13 +96,14 @@ const host: ScreenHost = {
   signIn: {
     appName: appConfig.appName,
     note: () => t('The app talks to your IPTV provider directly. Your password stays on this device, stored encrypted.'),
-    chooseLanguage: chooseUiLanguage,
+    chooseLanguage: (language) => void appContext.uiLanguage.choose(language as UiLanguage),
     Restore: ({ onClose }) => <BackupDialog mode="restore" onClose={onClose} />,
     DeviceCode: function DeviceCode() {
       return <PairingCode state={usePairingServer()} size={170} />;
     },
     scan: { available: canScanQr, open: () => openPairingDialog('scan') },
   },
+  about,
   profiles: { usePinGate, signOut: confirmSignOut },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);

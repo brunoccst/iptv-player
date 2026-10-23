@@ -25,4 +25,6 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/HiddenCategories.tsx` | Account menu → Categories shown: what this profile browses (D-110, D-204) |
 | `src/LanguageSettings.tsx` | Content language filter: the chosen languages in tick order (D-063, D-205) |
 | `src/SubtitleSettings.tsx` | Automatic subtitles: OpenSubtitles key, account and languages (D-111, D-205) |
+| `src/AboutDialog.tsx` | About: the host's rows (version, build) and Check for updates (D-070, D-206) |
+| `src/AppLanguageDialog.tsx` | App language: the app's own words in one of its languages (D-084, D-206) |
 | `src/ui/` | Building blocks from the TV app, see its README |

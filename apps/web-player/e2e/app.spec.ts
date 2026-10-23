@@ -470,7 +470,7 @@ test('app language (D-084): the whole app switches, and the choice stays after a
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'App' }).click();
   await page.getByRole('menuitem', { name: 'App language' }).click();
-  await page.getByRole('dialog', { name: 'App language' }).getByLabel('Deutsch').click();
+  await page.getByRole('dialog', { name: 'App language' }).getByRole('button', { name: 'Deutsch' }).click();
   const nav = page.getByRole('navigation', { name: 'Hauptmenü' });
   await expect(nav.getByRole('button', { name: 'Startseite' })).toBeVisible();
   await expect(nav.getByRole('button', { name: 'Meine Liste' })).toBeVisible();
