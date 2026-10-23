@@ -3,6 +3,7 @@
 export { ScreenHostProvider, setScreenHost, useScreenHost, type DownloadEntry, type ScreenHost, type TitleMenuItem } from './host';
 export { DownloadsScreen } from './DownloadsScreen';
 export { LoginScreen } from './LoginScreen';
+export { ProfilesScreen } from './ProfilesScreen';
 export { BrowseScreen } from './BrowseScreen';
 export { HomeScreen } from './HomeScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';

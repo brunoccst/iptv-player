@@ -7,8 +7,12 @@ import { desktop } from '../../desktop';
 import { BackupDialog } from '../backup/BackupDialog';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
+import { KidsCategories } from '../profiles/KidsCategories';
+import { LanguageSettings } from '../profiles/LanguageSettings';
+import { usePinGate } from '../profiles/PinDialog';
 import { chooseUiLanguage } from '../shell/AppLanguageDialog';
 import { downloadProgress, posterPath } from '../../offline/types';
+import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
 import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
 import {
@@ -22,6 +26,8 @@ import {
   useOfflineAccess,
   usePagedLibrary,
   useProgrammeSearch,
+  useProfileEditor,
+  useProfilePicker,
   useProgress,
   useSession,
   useTitleCard,
@@ -50,6 +56,8 @@ setScreenHost({
     continueMenuItems,
     useOfflineAccess,
     useSession,
+    useProfilePicker,
+    useProfileEditor,
   },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
@@ -72,6 +80,12 @@ setScreenHost({
         }
       : undefined,
     scan: { available: canScanWithWebcam, open: () => openSyncWithPhone(true) },
+  },
+  profiles: {
+    usePinGate,
+    KidsCategories,
+    LanguageSettings,
+    signOut: confirmSignOut,
   },
   useDownloads: function useDesktopDownloads() {
     const records = useDownloads((s) => s.records);

@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard, PlayTarget } from '@iptv/shared';
+import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard, PinGate, PlayTarget } from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -51,6 +51,8 @@ export interface ScreenHost {
     | 'continueMenuItems'
     | 'useOfflineAccess'
     | 'useSession'
+    | 'useProfilePicker'
+    | 'useProfileEditor'
   >;
   stores: Pick<AppContext['stores'], 'catalog' | 'library' | 'session'>;
   openDetails(section: LibrarySection, masterId: string): void;
@@ -72,6 +74,17 @@ export interface ScreenHost {
     DeviceCode?(): ReactNode;
     /** Scanning a signed-in device's code instead, where there is a camera (D-178). */
     scan?: { available(): boolean; open(): void };
+  };
+  /** "Who's watching?" (D-054): the app's PIN prompt, its profile dialogs and signing out. */
+  profiles: {
+    /** `gate(needed, title, action)` runs `action` at once, or after the PIN when `needed`; `dialog` is the open prompt. */
+    usePinGate(): { gate: PinGate; dialog: ReactNode };
+    /** The categories a Kids profile may see (D-053). */
+    KidsCategories(props: { profileId: string; name: string; onClose(): void }): ReactNode;
+    /** A profile's content languages (D-063). */
+    LanguageSettings(props: { profile: { id: string; name: string }; onClose(): void }): ReactNode;
+    /** Asks first (downloads on this device are deleted, D-050), then signs out. */
+    signOut(): void;
   };
   /** My Downloads: the downloads, newest first, and notes above them (desktop: no offline support, storage used). */
   useDownloads(): { entries: DownloadEntry[]; notes: string[] };

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { needsPinToOpen, selectActiveProfile, t, useUiLanguage } from '@iptv/shared';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
-import { downloadsStore, signOut, stores, uiStore } from '../../appContext';
+import { stores, uiStore } from '../../appContext';
+import { confirmSignOut } from '../../ui/signOut';
 import { Icon } from '../../components/Icon';
 import { usePin, useSession, useUi } from '../../hooks/stores';
 import type { View } from '../../ui/uiStore';
@@ -340,17 +341,7 @@ export function TopNav() {
                     </button>
                   ))}
                   {kids ? null : (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="menu__item"
-                      onClick={() => {
-                        // Downloads belong to this account and are deleted on sign-out (D-050).
-                        const hasDownloads = Object.keys(downloadsStore.getState().records).length > 0;
-                        if (hasDownloads && !window.confirm(t('Signing out deletes the downloads on this device. Sign out?'))) return;
-                        void signOut();
-                      }}
-                    >
+                    <button type="button" role="menuitem" className="menu__item" onClick={confirmSignOut}>
                       <Icon name="logout" size={18} /> {t('Sign out of {appName}', { appName: appConfig.appName })}
                     </button>
                   )}

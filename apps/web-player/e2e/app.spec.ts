@@ -282,7 +282,7 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Manage Profiles' }).click();
   await expect(page.getByRole('heading', { name: "Who's watching?" })).toBeVisible();
-  await page.locator('.profile-tile').first().click();
+  await page.getByTestId('profile-tile').first().click();
   const prompt = page.getByRole('dialog', { name: /Enter the parental PIN/ });
   await prompt.getByLabel('Parental PIN').fill('1111');
   await prompt.getByRole('button', { name: 'OK' }).click();
@@ -290,6 +290,19 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await prompt.getByLabel('Parental PIN').fill('2468');
   await prompt.getByRole('button', { name: 'OK' }).click();
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+});
+
+test('profiles: the editor opens from Manage Profiles and Escape closes it (D-200)', async ({ page }) => {
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Manage Profiles' }).click();
+  await page.getByRole('button', { name: 'Manage Profiles' }).click();
+  await expect(page.getByRole('heading', { name: 'Manage Profiles' })).toBeVisible();
+  await page.getByTestId('profile-tile').first().click();
+  const editor = page.getByRole('dialog', { name: 'Edit profile' });
+  await expect(editor.getByLabel('Name')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(editor).toBeHidden();
 });
 
 test('back up to an encrypted file and restore it in another browser (D-056)', async ({ page, browser }) => {
