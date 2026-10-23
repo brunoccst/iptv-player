@@ -99,6 +99,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-191](#d-191) | Desktop: progress from VLC through its web interface |
 | [D-192](#d-192) | Desktop conversion: every audio track, timeline pictures, downloads |
 | [D-193](#d-193) | Shared screens with React Native Web: the My List trial |
+| [D-194](#d-194) | Shared screens: one card for every app, the app brings a host |
 
 ## Merged and retired IDs
 
@@ -1098,4 +1099,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - `packages/screens` holds screens written once in React Native. The TV and phone app render them natively; the web player maps `react-native` to `react-native-web` (Vite and Vitest config) and renders them as DOM. My List is the first: TV uses it for real, desktop only with `?screens=shared` (kept in the browser's storage, `?screens=web` goes back), loaded as its own chunk.
 - What differs per app comes in as parts (`MyListParts`): the scrolling page, a row (a TV focus row, D-069) and a card (TV focus and hold-OK menu; desktop hover, right-click menu, details modal). Parts are defined once per app at module level, never inside render, or every render would mount new components and lose TV focus.
 - Measured on the trial (fake panel, 1440×900, Chromium): the look matches the app's own page after small style changes; the app's main bundle is unchanged and the trial chunk is 95 kB (32 kB gzipped); a cold open of My List took 430 to 480 ms against 110 to 150 ms for the app's own page, most of it loading that chunk on a fresh page.
-- Effort: the shared part of My List is the small part (texts, states, layout); the cards, focus, menus and the details modal stay per app. Each further screen means rewriting the desktop's CSS components as React Native styles. Whether to move more screens is the owner's call on issue #237.
+- Effort: the shared part of My List is the small part (texts, states, layout); the cards, focus, menus and the details modal stay per app. Each further screen means rewriting the desktop's CSS components as React Native styles. Whether to move more screens is the owner's call on issue #237. The owner chose to (D-194): parts became a host, and desktop My List is the shared screen.
+
+## D-194
+
+**Shared screens: one card for every app, the app brings a host** — 2026-10-23 (issue #237)
+
+- The owner chose to share as much as possible (2026-10-23), so screens move to `packages/screens` one at a time. My List is the first: desktop shows the shared screen for everyone (no `?screens=` switch) and the app's own page is gone.
+- The TV's building blocks (theme, icons, focus look, focus rows, the centring scroll view, the cover card) moved to `packages/screens/src/ui`; the TV keeps one-line re-exports at their old paths. The desktop draws the same cover card, so both apps look alike; the mouse lights it up like the focus.
+- An app gives the shared screens a `ScreenHost` (`setScreenHost`, or `ScreenHostProvider` in tests) instead of per-screen parts: its stores (the shared hooks), how details open, the scrolling page, a title's menu (TV: hold OK, a panel; desktop: right-click, at the pointer) and the TV colour keys (D-154). `TitleCard` is the one title cover of every app.
+- On the desktop, a file's `X.web.tsx` takes the place of `X.tsx` (Vite and Vitest `resolve.extensions`): `Icon.web.tsx` draws a plain SVG, so the desktop needs no react-native-svg. Vite defines `global` as `globalThis`, which React Native Web's animations use; without it, a card's animation threw when the card left the page.

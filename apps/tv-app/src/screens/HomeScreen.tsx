@@ -22,7 +22,7 @@ import { continueMenuItems, useLiveHomeRow, useCatalog, useHeroTitle, useLibrary
 import { colors, useNavHeight, useSizes } from '../theme';
 
 import { LibraryBanner } from '../components/LibraryBanner';
-import { MasterCardItem, TitleRow, TopRatedRow } from './titles';
+import { TitleCard, TitleRow, TopRatedRow } from './titles';
 
 /** Movies the hero picks its featured title from. */
 const HERO_CANDIDATES = 30;
@@ -229,7 +229,7 @@ function MyListRow() {
       testID="row-mylist"
       onTitlePress={open}
       more={items.length > 10 ? { onPress: open } : undefined}
-      render={(item) => <MasterCardItem section={item.section} item={watchlistCard(item)} />}
+      render={(item) => <TitleCard section={item.section} item={watchlistCard(item)} />}
     />
   );
 }
