@@ -3,6 +3,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDime
 import { avatarColor, fluid, type ProfileDto, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { KidsCategories } from './KidsCategories';
+import { LanguageSettings } from './LanguageSettings';
 import { ErrorText, errorText } from './ui/Feedback';
 import { Field } from './ui/Field';
 import { focus } from './ui/focus';
@@ -115,8 +116,7 @@ function ProfileTile({
 
 /** Name, colour, Kids profile; Save or Delete. */
 function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClose(): void }) {
-  const { hooks, profiles: host } = useScreenHost();
-  const { LanguageSettings } = host;
+  const { hooks } = useScreenHost();
   const {
     busy,
     error,

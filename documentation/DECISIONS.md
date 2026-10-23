@@ -110,6 +110,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-202](#d-202) | Shared details |
 | [D-203](#d-203) | Shared details buttons |
 | [D-204](#d-204) | Shared dialogs |
+| [D-205](#d-205) | Shared language and subtitle settings |
 
 ## Merged and retired IDs
 
@@ -1198,3 +1199,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - "Better quality on My List" (D-176), Kids categories (D-053) and Categories shown (D-110) are dialogs shared with the desktop (`packages/screens`), drawn in one frame, `Dialog`: a React Native `Modal` with the panel and its title. The host adds their hooks (`useQualityUpgrades`, `useKidsCategories`, `useHiddenCategories`); the TV app keeps the quality dialog away while an update prompt shows by passing `visible`.
 - On the desktop Escape closes a `Dialog` from a window listener in the capture phase (React Native Web's text fields keep their key presses, D-200) and stops the key there, so the dialog or details under it stay open. Only the top `Dialog` closes: they keep a stack of the open ones. The merge picker (D-203) uses the same frame.
 - Category lists are rows with a check box (`CheckRow`). React Native Web reads `aria-checked`, not `accessibilityState`, so the row sets both.
+
+## D-205
+
+**Shared language and subtitle settings** — 2026-10-23 (issue #237)
+
+- The Content language filter (D-063) and Automatic subtitles (D-111) are dialogs shared with the desktop (`packages/screens`), in the shared `Dialog` frame (D-204). The host adds `useLanguageSettings` and the app's OpenSubtitles service (`subtitles`); `profiles.LanguageSettings` is gone.
+- Both keep the TV's look on every app: languages are buttons marked "✓ 1." in the order they were ticked, and automatic subtitles are switched with an On / Off button, not check boxes.
+- The parental PIN stays per app for now: the TV asks with a number pad one step at a time, the desktop with a form, and sharing it would change one of them for the worse.

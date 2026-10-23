@@ -23,4 +23,6 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/QualityUpgradeDialog.tsx` | "Better quality on My List" over Home: Play or More info per title (D-176, D-204) |
 | `src/KidsCategories.tsx` | Profile editor → Choose categories: what a Kids profile may see per section (D-053, D-204) |
 | `src/HiddenCategories.tsx` | Account menu → Categories shown: what this profile browses (D-110, D-204) |
+| `src/LanguageSettings.tsx` | Content language filter: the chosen languages in tick order (D-063, D-205) |
+| `src/SubtitleSettings.tsx` | Automatic subtitles: OpenSubtitles key, account and languages (D-111, D-205) |
 | `src/ui/` | Building blocks from the TV app, see its README |
