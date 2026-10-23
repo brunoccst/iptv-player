@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Details look like the TV's** (2026-10-23, D-202, issue #237): a movie's or series' details are now the same screen as on the TV and phone app, with the TV's episode rows. The version and season choices are the usual drop-downs.
 - **Live TV looks like the TV's** (2026-10-23, D-201, issue #237): the Live TV guide is now the same screen as on the TV and phone app. More channels load by themselves as you scroll down the guide.
 - **Sign-in looks like the TV's** (2026-10-23, D-199, issue #237): the sign-in page is now the same screen as on the TV and phone app, with the language choice in the panel and the code to sign in from your phone beside it.
 - **"Who's watching?" looks like the TV's** (2026-10-23, D-200, issue #237): the profile page and its editor are now the same screens as on the TV and phone app, and the page has Sign out too.

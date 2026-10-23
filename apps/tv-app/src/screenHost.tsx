@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
 
 const NO_NOTES: string[] = [];
-import { downloadsStore, navStore, stores } from './appContext';
+import { api, downloadsStore, navStore, stores } from './appContext';
 import { t } from '@iptv/shared';
 import { appConfig } from './config';
 import { BackupDialog } from './components/BackupDialog';
@@ -27,17 +27,24 @@ import {
   useProgrammeSearch,
   useProfileEditor,
   useProfilePicker,
+  useMovieDetails,
   useProgrammeDescription,
   useProgress,
   useReminders,
+  useSeriesDetails,
   useSession,
   useTitleCard,
   useWatchlist,
+  useWatchlistToggle,
 } from './hooks';
 import { colors, useNavHeight } from './theme';
 import { canScanQr, usePairingServer } from './pairing/pairing';
 import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
-import { blurTitle, focusTitle } from './tv/colourKeys';
+import { blurTitle, focusTitle, useColourPageTitle } from './tv/colourKeys';
+import { DownloadButton, useDownload } from './components/DownloadButton';
+import { ExternalPlayerButton, useExternalPlayer } from './components/ExternalPlayerButton';
+import { PlayOnTvButton, usePlayOnTv } from './components/PlayOnTvButton';
+import { RegroupButton } from './components/RegroupButton';
 import { useRemote } from './tv/remote';
 import { useNavFocusTarget } from './components/TopNav';
 
@@ -65,7 +72,11 @@ const host: ScreenHost = {
     useProfileEditor,
     useReminders,
     useProgrammeDescription,
+    useMovieDetails,
+    useSeriesDetails,
+    useWatchlistToggle,
   },
+  api,
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
   play: (target) => navStore.getState().push({ name: 'player', target }),
@@ -146,6 +157,41 @@ const host: ScreenHost = {
       </>
     );
   },
+  details: {
+    close: () => navStore.getState().back(),
+    useRevision: () => useNav((s) => s.libraryRevision),
+    DownloadButton: ({ target }) => <DownloadButton target={target} />,
+    PlayOnTvButton: ({ target }) => <PlayOnTvButton target={target} testID="details-play-on-tv" />,
+    ExternalPlayerButton: ({ target }) => <ExternalPlayerButton target={target} testID="details-external" />,
+    RegroupButton,
+    useEpisodeOptions: function useEpisodeOptions(target) {
+      const download = useDownload(target);
+      const playOnTv = usePlayOnTv(target);
+      const external = useExternalPlayer(target);
+      return {
+        download,
+        tvName: playOnTv?.tvName,
+        playOnTv: playOnTv?.play,
+        externalPlayer: external ? 'app' : null,
+        openExternal: external?.open,
+      };
+    },
+    usePageTitle: (section, card) => useColourPageTitle({ section, card }),
+  },
+  Menu: ({ title, subtitle, items, onClose }) => (
+    <CardMenu
+      title={title}
+      subtitle={subtitle}
+      onClose={onClose}
+      actions={items.map((item) => ({
+        label: item.label,
+        disabled: item.disabled,
+        icon: item.icon,
+        testID: `card-menu-${item.id}`,
+        onPress: item.run,
+      }))}
+    />
+  ),
   focusTitle: (section, card) => focusTitle({ section, card }),
   blurTitle,
 };

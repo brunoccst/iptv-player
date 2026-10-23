@@ -12,8 +12,8 @@ jest.mock('react-native/Libraries/Components/TV/tagForComponentOrHandle', () => 
 
 // Counts how often each icon button is drawn, by its testID (a focus move draws only the episodes it touches).
 const mockIconButtonRenders = new Map<string, number>();
-jest.mock('../components/IconButton', () => {
-  const actual = jest.requireActual('../components/IconButton');
+jest.mock('@iptv/screens/src/ui/IconButton', () => {
+  const actual = jest.requireActual('@iptv/screens/src/ui/IconButton');
   return {
     IconButton: (props: { testID?: string }) => {
       if (props.testID) mockIconButtonRenders.set(props.testID, (mockIconButtonRenders.get(props.testID) ?? 0) + 1);

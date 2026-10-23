@@ -22,4 +22,7 @@ Building blocks of the shared screens, from the TV app (which re-exports them at
 | `IconButton.tsx` | Web `.icon-button`: round, or plain for player controls; optional TV colour-key dot |
 | `ColourDot.tsx` | The TV remote's colour keys (D-154) and the dot on the button each key presses |
 | `focusGrid.ts` | TV: Up/Down to the button straight above or below in lines of buttons (`useFocusGrid`, `moveFocus`) |
+| `WatchedButton.tsx` | Round "Watched" toggle on the details panel (D-081) |
+| `WatchlistButton.tsx` | Round "My List" toggle on the details panel (D-055); TV: the Red key too (D-154) |
+| `Select.web.tsx` | Desktop: the browser's own drop-down in place of the TV's option list (D-202) |
 | `Field.tsx` | Labelled text field; `onSubmit` + `inputRef` let Enter move to the next field |
