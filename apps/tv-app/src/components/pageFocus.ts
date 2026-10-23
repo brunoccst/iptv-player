@@ -21,20 +21,33 @@ export const PageFocusContext = createContext<PageFocus | null>(null);
 /**
  * The page's buttons and covers, and the one that last had the focus. When the details panel closes, the focus goes
  * back to the one that opened it, or else to the first one on screen (D-069): Android used to hand it to any view.
+ * `wait` is how long a requested focus may take to arrive before the next view is tried.
  */
-export function createPageFocus() {
+export function createPageFocus(wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))) {
   const views = new Set<PageView>();
+  // Kept when its view unregisters: an animated card detaches and re-attaches its ref whenever its style changes (on
+  // focus and on blur), which used to forget it right as the details opened (DECISIONS.md#d-069).
   let last: PageView | null = null;
+  // Counts the page's focus events, to tell whether a requested focus arrived.
+  let seen = 0;
+  const live = (view: PageView) => views.has(view) || view.isConnected === true;
+  /** Asks `view` for the focus; false when no focus reached the page soon after. */
+  const request = async (view: PageView) => {
+    const before = seen;
+    view.requestTVFocus?.();
+    await wait(FOCUS_WAIT_MS);
+    return seen !== before;
+  };
   return {
     register(view: PageView) {
       views.add(view);
       return () => {
         views.delete(view);
-        if (last === view) last = null;
       };
     },
     /** `onFocusCapture` of the page: remembers the view that got the focus. */
     focused(event: NativeSyntheticEvent<unknown>) {
+      seen++;
       const target = event.target as unknown;
       if (target && typeof target === 'object' && typeof (target as PageView).requestTVFocus === 'function') {
         last = target as PageView;
@@ -46,17 +59,19 @@ export function createPageFocus() {
     },
     /** Focus back on the view that had it, or the first one on screen. Resolves to the view focused, if any. */
     async restore(screen: { width: number; height: number }): Promise<PageView | null> {
-      if (last && (views.has(last) || last.isConnected === true)) {
-        last.requestTVFocus?.();
-        return last;
-      }
-      const boxes = await Promise.all([...views].map((view) => measure(view).then((box) => ({ view, box }))));
+      if (last && live(last) && (await request(last))) return last;
+      const boxes = await Promise.all(
+        [...views].filter((view) => view !== last).map((view) => measure(view).then((box) => ({ view, box }))),
+      );
       const first = firstOnScreen(boxes, screen);
-      first?.requestTVFocus?.();
+      if (first) await request(first);
       return first;
     },
   };
 }
+
+/** How long a focus asked of a view may take to reach the page (a frame or two on a TV). */
+const FOCUS_WAIT_MS = 250;
 export type PageFocusController = ReturnType<typeof createPageFocus>;
 
 const measure = (view: PageView) =>
