@@ -9,6 +9,27 @@ export interface TitleMenuItem {
   run(): void;
 }
 
+/** One download on My Downloads, from the app's own downloads store (the TV's native downloader, the desktop's cache). */
+export interface DownloadEntry {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  posterUrl?: string | null;
+  /** Tried when `posterUrl` does not load (desktop: the saved copy first, then the provider's). */
+  posterFallback?: string | null;
+  /** `unknown`: the TV's downloader cannot say (Resume tries again). */
+  state: 'queued' | 'downloading' | 'paused' | 'completed' | 'failed' | 'unknown';
+  /** 0..1 */
+  progress: number;
+  bytesDownloaded: number;
+  /** Why it failed, when the app knows. */
+  error?: string | null;
+  play(): void;
+  pause(): void;
+  resume(): void;
+  remove(): void;
+}
+
 /**
  * What an app brings to the shared screens (issue #237, DECISIONS.md#d-193): its stores (through the shared hooks), how
  * details open, how a page scrolls and how a title's menu opens. TV/phone: a focus page, hold OK for a pop-up menu and
@@ -28,6 +49,7 @@ export interface ScreenHost {
     | 'useHeroTitle'
     | 'useLiveHomeRow'
     | 'continueMenuItems'
+    | 'useOfflineAccess'
   >;
   stores: Pick<AppContext['stores'], 'catalog' | 'library'>;
   openDetails(section: LibrarySection, masterId: string): void;
@@ -37,6 +59,8 @@ export interface ScreenHost {
   openSection(section: LibrarySection | 'live' | 'mylist', categoryId?: string | null): void;
   /** TV and phone: Home scrolled away from its top (the top nav darkens, like the web's on scroll). */
   setScrolled?(scrolled: boolean): void;
+  /** My Downloads: the downloads, newest first, and notes above them (desktop: no offline support, storage used). */
+  useDownloads(): { entries: DownloadEntry[]; notes: string[] };
   /** The top nav's search box: its text and, on TV, how many times Enter was pressed (search at once, D-079). */
   useSearch(): { text: string; submits?: number };
   /** The category chosen on the Movies/Series page (`null`: All), kept in the app's navigation. */

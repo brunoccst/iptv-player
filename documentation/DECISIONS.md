@@ -103,6 +103,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-195](#d-195) | Shared Movies and Series: one grid, three ways to scroll |
 | [D-196](#d-196) | Shared Search |
 | [D-197](#d-197) | Shared Home |
+| [D-198](#d-198) | Shared My Downloads |
 
 ## Merged and retired IDs
 
@@ -1137,3 +1138,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Every app now has the TV's rows: the first titles, then a "See all" card that opens the full list. Desktop rows show 30 titles (TV and phone 10) instead of loading more as they scroll sideways. Desktop keeps its arrows over a row's sides while the pointer is on it, each hidden at that end (D-040).
 - Rows are built a few at a time on TV and desktop: TV as the focus or the scroll nears the last one, desktop when the host's `EndSensor` at the end of the page comes into view; phone keeps its virtualized list. The host also opens a page from a row (`openSection`) and, on TV and phone, darkens the nav once Home scrolls (`setScrolled`).
 - Desktop Home comes with the app rather than loading on its own: it is the first page after sign-in, so a separate chunk would only add a step.
+
+## D-198
+
+**Shared My Downloads** — 2026-10-23 (issue #237)
+
+- My Downloads is the screen shared with the desktop (`DownloadsScreen`). Each app keeps its own downloader (the TV's native download service, the desktop's encrypted cache) and the host turns its records into `DownloadEntry` items: title, poster, state, progress, size, and play / pause / resume / delete. The desktop also hands over its notes (no offline support in this browser, storage used).
+- The desktop shows the poster saved with the download first, so it shows offline, and the provider's when that one does not load.
+- The round `IconButton` and the TV colour-key dot (`ColourDot`, D-154) moved to `packages/screens/src/ui`; the TV keeps re-exports at their old paths. The status texts go through `t()` now; the TV showed them in English only.

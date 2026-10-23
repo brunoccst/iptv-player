@@ -1,16 +1,20 @@
-import { useState } from 'react';
-import { setScreenHost, type ScreenHost } from '@iptv/screens';
-import { navStore, stores } from './appContext';
+import { useEffect, useMemo, useState } from 'react';
+import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
+
+const NO_NOTES: string[] = [];
+import { downloadsStore, navStore, stores } from './appContext';
 import { CardMenu } from './components/CardMenu';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
   continueMenuItems,
   useCatalog,
   useChannelSearch,
+  useDownloads,
   useHeroTitle,
   useLibrary,
   useLiveHomeRow,
   useNav,
+  useOfflineAccess,
   usePagedLibrary,
   useProgrammeSearch,
   useProgress,
@@ -38,6 +42,7 @@ const host: ScreenHost = {
     useHeroTitle,
     useLiveHomeRow,
     continueMenuItems,
+    useOfflineAccess,
   },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
@@ -45,6 +50,30 @@ const host: ScreenHost = {
   openSection: (section, categoryId = null) =>
     section === 'mylist' ? navStore.getState().goSection('mylist') : navStore.getState().openCategory(section, categoryId),
   setScrolled: (scrolled) => navStore.getState().setScrolled(scrolled),
+  useDownloads: function useTvDownloads() {
+    const records = useDownloads((s) => s.records);
+    useEffect(() => downloadsStore.getState().refresh(), []);
+    const entries = useMemo(
+      () =>
+        Object.values(records)
+          .filter((record) => record.state !== 'removing')
+          .map((record): DownloadEntry => ({
+            id: record.id,
+            title: record.target.title,
+            subtitle: record.target.subtitle,
+            posterUrl: record.target.posterUrl,
+            state: record.state === 'removing' ? 'unknown' : record.state,
+            progress: record.progress,
+            bytesDownloaded: record.bytesDownloaded,
+            play: () => navStore.getState().push({ name: 'player', target: record.target }),
+            pause: () => downloadsStore.getState().pause(record.id),
+            resume: () => downloadsStore.getState().resume(record.id),
+            remove: () => downloadsStore.getState().remove(record.id),
+          })),
+      [records],
+    );
+    return { entries, notes: NO_NOTES };
+  },
   useSearch: () => ({ text: useNav((s) => s.search), submits: useNav((s) => s.searchSubmits) }),
   useCategory: () => useNav((s) => s.categoryId),
   setCategory: (categoryId) => navStore.getState().setCategory(categoryId),

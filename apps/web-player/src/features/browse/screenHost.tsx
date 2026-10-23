@@ -1,15 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { setScreenHost } from '@iptv/screens';
-import { t } from '@iptv/shared';
-import { stores, uiStore } from '../../appContext';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { setScreenHost, type DownloadEntry } from '@iptv/screens';
+import { formatBytes, t } from '@iptv/shared';
+import { downloadsStore, stores, uiStore } from '../../appContext';
+import { downloadProgress, posterPath } from '../../offline/types';
+import { playTargetFromDownload } from '../../ui/targets';
 import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
 import {
   continueMenuItems,
   useCatalog,
   useChannelSearch,
+  useDownloads,
   useHeroTitle,
   useLibrary,
   useLiveHomeRow,
+  useOfflineAccess,
   usePagedLibrary,
   useProgrammeSearch,
   useProgress,
@@ -37,6 +41,7 @@ setScreenHost({
     useHeroTitle,
     useLiveHomeRow,
     continueMenuItems,
+    useOfflineAccess,
   },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
@@ -46,6 +51,45 @@ setScreenHost({
     section === 'mylist' || section === 'live'
       ? uiStore.getState().navigate(section)
       : uiStore.getState().openCategory(section, categoryId),
+  useDownloads: function useDesktopDownloads() {
+    const records = useDownloads((s) => s.records);
+    const supported = useDownloads((s) => s.supported);
+    const estimate = useDownloads((s) => s.estimate);
+    const entries = useMemo(
+      () =>
+        Object.values(records)
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .map((record): DownloadEntry => ({
+            id: record.id,
+            title: record.title,
+            subtitle: record.subtitle,
+            // The copy saved with the download, so it shows offline; the provider's when there is none.
+            posterUrl: record.posterUrl ? posterPath(record.id) : null,
+            posterFallback: record.posterUrl,
+            state: record.status === 'error' ? 'failed' : record.status,
+            progress: downloadProgress(record),
+            bytesDownloaded: record.bytesDownloaded,
+            error: record.error,
+            play: () => uiStore.getState().play(playTargetFromDownload(record)),
+            pause: () => void downloadsStore.getState().pause(record.id),
+            resume: () => void downloadsStore.getState().resume(record.id),
+            remove: () => void downloadsStore.getState().remove(record.id),
+          })),
+      [records],
+    );
+    const notes = [
+      ...(supported ? [] : [t('This browser does not support offline downloads.')]),
+      ...(estimate
+        ? [
+            t('Using {used} of {available} available to this app.', {
+              used: formatBytes(estimate.usage),
+              available: formatBytes(estimate.quota),
+            }),
+          ]
+        : []),
+    ];
+    return { entries, notes };
+  },
   useSearch: () => ({ text: useUi((s) => s.search) }),
   useCategory: () => useUi((s) => s.categoryId),
   setCategory: (categoryId) => uiStore.getState().setCategory(categoryId),

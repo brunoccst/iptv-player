@@ -845,54 +845,6 @@
   gap: 8px;
 }
 
-/* Downloads */
-.downloads__list {
-  display: grid;
-  gap: 12px;
-}
-
-.download-item {
-  display: grid;
-  grid-template-columns: 90px 1fr auto;
-  gap: 16px;
-  align-items: center;
-  padding: 12px;
-  border-radius: var(--radius);
-  background: var(--color-surface);
-}
-
-.download-item img,
-.download-item__art {
-  width: 90px;
-  aspect-ratio: 2 / 3;
-  object-fit: cover;
-  border-radius: var(--radius);
-  background: #333;
-}
-
-.download-item__title {
-  margin: 0 0 4px;
-  font-weight: 700;
-  color: var(--color-text-strong);
-}
-
-.download-item__bar {
-  height: 4px;
-  margin-top: 8px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.download-item__bar span {
-  display: block;
-  height: 100%;
-  background: var(--color-accent);
-}
-
-.download-item__actions {
-  display: flex;
-  gap: 8px;
-}
-
 @media (max-width: 720px) {
   /* Phones: brand, search and account on the first row; page links scroll sideways on the second. */
   :root {
