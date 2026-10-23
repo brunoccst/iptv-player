@@ -1,7 +1,6 @@
 # home
 
-| File             | Purpose                                                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `HomePage.tsx`   | Hero + rows: Continue Watching, Live TV, Series, movie categories, series categories. Rows load when scrolled near. |
-| `Hero.tsx`       | Random featured movie: backdrop, plot, Play / More Info; muted YouTube trailer after 3 s when available.            |
-| `MasterCard.tsx` | Card for one deduplicated title (4K badge, version count).                                                          |
+| File                       | Purpose                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `HomePage.tsx`             | Home: the screen shared with the TV app (`@iptv/screens`, D-197), with the library banner above the rows. |
+| `QualityUpgradeDialog.tsx` | "Better quality now available" for a My List movie, over Home (D-176).                                 |

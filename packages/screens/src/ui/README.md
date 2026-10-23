@@ -16,3 +16,6 @@ Building blocks of the shared screens, from the TV app (which re-exports them at
 | `Select.tsx` | Web `.select`: a box with the current value that opens an option list |
 | `FocusButton.tsx` | Web `.button` (primary, secondary, accent, ghost) with an optional icon |
 | `Feedback.tsx` | Loading indicator, error text, `errorText()` |
+| `Row.tsx`, `rowReveal.ts` | Home row: title (optionally a link), horizontal cards, "See all" card; TV keeps the focused card off the screen edge (D-181), desktop has arrows (D-040) |
+| `Gradient.tsx`, `Gradient.web.tsx` | CSS-like `linear-gradient`: react-native-svg on TV and phone, CSS on the desktop |
+| `Trailer.tsx`, `Trailer.web.tsx` | Desktop: the featured movie's muted trailer (D-025); nothing on TV and phone |

@@ -17,12 +17,26 @@ export interface TitleMenuItem {
 export interface ScreenHost {
   hooks: Pick<
     AppHooks,
-    'useTitleCard' | 'useWatchlist' | 'usePagedLibrary' | 'useCatalog' | 'useLibrary' | 'useChannelSearch' | 'useProgrammeSearch'
+    | 'useTitleCard'
+    | 'useWatchlist'
+    | 'usePagedLibrary'
+    | 'useCatalog'
+    | 'useLibrary'
+    | 'useProgress'
+    | 'useChannelSearch'
+    | 'useProgrammeSearch'
+    | 'useHeroTitle'
+    | 'useLiveHomeRow'
+    | 'continueMenuItems'
   >;
   stores: Pick<AppContext['stores'], 'catalog' | 'library'>;
   openDetails(section: LibrarySection, masterId: string): void;
   /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
   play(target: PlayTarget): void;
+  /** Opens a page from a Home row's title or its "See all" card: Movies/Series or Live TV (on a category), or My List. */
+  openSection(section: LibrarySection | 'live' | 'mylist', categoryId?: string | null): void;
+  /** TV and phone: Home scrolled away from its top (the top nav darkens, like the web's on scroll). */
+  setScrolled?(scrolled: boolean): void;
   /** The top nav's search box: its text and, on TV, how many times Enter was pressed (search at once, D-079). */
   useSearch(): { text: string; submits?: number };
   /** The category chosen on the Movies/Series page (`null`: All), kept in the app's navigation. */
@@ -34,7 +48,12 @@ export interface ScreenHost {
    * Wraps a title's card with its menu. `children` gets `openMenu` for the card's long press (hold OK on TV); the desktop
    * opens it on a right-click and gives none.
    */
-  TitleMenu(props: { title: string; items: () => TitleMenuItem[]; children(openMenu?: () => void): ReactNode }): ReactNode;
+  TitleMenu(props: {
+    title: string;
+    subtitle?: string | null;
+    items: () => TitleMenuItem[];
+    children(openMenu?: () => void): ReactNode;
+  }): ReactNode;
   /**
    * Desktop: shown at the end of a grid while more titles can load; calls `onReached` when it comes into view (the
    * window scrolls there). TV and phone grids scroll on their own and need none.

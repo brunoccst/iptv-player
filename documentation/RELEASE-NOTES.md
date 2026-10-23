@@ -118,6 +118,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Home looks like the TV's** (2026-10-23, D-197, issue #237): Home is now the same screen as on the TV and phone app. Each row shows its first 30 titles and ends with a "See all" card that opens the whole category.
 - **Search looks like the TV's** (2026-10-23, D-196, issue #237): the search page is now the same screen as on the TV and phone app, with the same filter, results and "Keep typing…" note.
 - **Movies and Series look like the TV's** (2026-10-23, D-195, issue #237): the Movies and Series pages are now the same screens as on the TV and phone app, with the same category chips and "Sort by" menu. More titles still load as you scroll down.
 - **My List looks like the TV's** (2026-10-23, D-194, issue #237): the My List page is now the same screen as on the TV and phone app. Covers grow and light up when the mouse is over them, and a right-click still opens a title's menu.

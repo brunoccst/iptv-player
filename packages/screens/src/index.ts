@@ -2,6 +2,7 @@
 // them natively, the desktop app through React Native Web. No app imports; each app brings its `ScreenHost`.
 export { ScreenHostProvider, setScreenHost, useScreenHost, type ScreenHost, type TitleMenuItem } from './host';
 export { BrowseScreen } from './BrowseScreen';
+export { HomeScreen } from './HomeScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';
 export { SearchScreen } from './SearchScreen';
 export { LoadingMoreNote, TitleGrid, TvLines } from './TitleGrid';

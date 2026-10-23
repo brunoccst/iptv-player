@@ -240,7 +240,7 @@ test('My List: save a title from its details and find it on the My List page', a
   // Saved titles keep their cover's quality tag, in the Home row and on the My List page.
   await page.getByRole('button', { name: 'Home', exact: true }).click();
   const row = page.getByRole('region', { name: 'My List' });
-  await expect(row.getByRole('button', { name: 'Big Test Movie' }).locator('.card__badge')).toHaveText('4K');
+  await expect(row.getByRole('button', { name: 'Big Test Movie' })).toContainText('4K');
   await page.getByRole('button', { name: 'My List', exact: true }).click();
   // The page is the screen shared with the TV app, through React Native Web (issue #237, D-193).
   const screen = page.getByTestId('mylist-screen');
@@ -477,29 +477,36 @@ test('Home rows show the left arrow only once scrolled, the right one until the 
   // Narrow enough that the fake panel's rows do not fit.
   await page.setViewportSize({ width: 560, height: 900 });
   await page.getByRole('button', { name: 'Home', exact: true }).click();
-  const right = page.locator('.row__arrow--right').first();
-  await expect(right).toBeAttached();
-  const row = page.locator('.row', { has: right });
+  // Home is the screen shared with the TV app (D-197): arrows are buttons named after their row.
+  const first = page.getByRole('button', { name: /^Scroll .+ right$/ }).first();
+  await expect(first).toBeAttached();
+  const title = (await first.getAttribute('aria-label'))!.replace(/^Scroll (.+) right$/, '$1');
+  const row = page.getByRole('region', { name: title, exact: true });
+  const left = row.getByRole('button', { name: `Scroll ${title} left` });
+  const right = row.getByRole('button', { name: `Scroll ${title} right` });
   await row.scrollIntoViewIfNeeded();
   await row.hover();
-  // The cards snap into place first (scroll-snap): the row is still at its beginning.
-  await page.waitForTimeout(300);
-  await expect(row.locator('.row__arrow--left')).toHaveCount(0);
-  await row.locator('.row__arrow--right').click();
-  await expect(row.locator('.row__arrow--left')).toBeVisible();
-  // Back at the beginning, the first card snaps in line with the title, and the left arrow goes again.
-  await row.locator('.row__arrow--left').click();
-  await expect(row.locator('.row__arrow--left')).toHaveCount(0);
-  await expect(row.locator('.row__arrow--right')).toBeVisible();
+  await expect(left).toHaveCount(0);
+  await right.click();
+  await expect(left).toBeVisible();
+  // Back at the beginning, the left arrow goes again.
+  await left.click();
+  await expect(left).toHaveCount(0);
+  await expect(right).toBeVisible();
 });
 
 test('Home row titles take the mouse over their whole text, above the cards’ hover room (D-047)', async ({ page }) => {
   await page.getByRole('button', { name: 'Home', exact: true }).click();
-  const link = page.getByRole('button', { name: 'Open Action' });
+  const link = page.getByRole('link', { name: 'Open Action' });
+  // The next rows come as the end of the page scrolls near (D-040).
+  await expect(async () => {
+    await page.mouse.wheel(0, 1500);
+    await expect(link).toBeAttached({ timeout: 500 });
+  }).toPass();
   await link.scrollIntoViewIfNeeded();
   // Rows load as they come near the screen and grow when they do: measure once the ones around it are in.
-  await expect(page.getByRole('region', { name: 'Action' }).locator('.row__track')).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Series', exact: true }).locator('.row__track')).toBeAttached();
+  await expect(page.getByRole('region', { name: 'Action' }).locator('[data-testid^="card-"]').first()).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Series', exact: true }).locator('[data-testid^="card-"]').first()).toBeAttached();
   await link.scrollIntoViewIfNeeded();
   const box = (await link.boundingBox())!;
   for (const [fx, fy] of [
@@ -508,7 +515,7 @@ test('Home row titles take the mouse over their whole text, above the cards’ h
     [0.9, 0.8],
   ]) {
     const onTitle = await page.evaluate(
-      ([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('.row__link'),
+      ([x, y]) => !!document.elementFromPoint(x!, y!)?.closest('[aria-label="Open Action"]'),
       [box.x + box.width * fx!, box.y + box.height * fy!],
     );
     expect(onTitle).toBe(true);
