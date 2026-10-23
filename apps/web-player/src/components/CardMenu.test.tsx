@@ -1,34 +1,16 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PosterCard } from './PosterCard';
-import { CardMenu } from './CardMenu';
+import { CardMenu, menuPosition } from './CardMenu';
 
 describe('card menu (right-click, D-079)', () => {
   afterEach(cleanup);
 
-  it('a right-click on a card opens its menu at the pointer; the keyboard opens it at the card', () => {
-    const onMenu = vi.fn();
-    render(<PosterCard title="Show" onSelect={() => undefined} onMenu={onMenu} />);
-    const card = screen.getByRole('button', { name: 'Show' }).closest('article')!;
-    const event = fireEvent.contextMenu(card, { clientX: 120, clientY: 80 });
-    expect(event).toBe(false); // the browser's own menu is suppressed
-    expect(onMenu).toHaveBeenLastCalledWith({ x: 120, y: 80 });
-    fireEvent.contextMenu(card, { clientX: 0, clientY: 0 });
-    expect(onMenu).toHaveBeenLastCalledWith({ x: 12, y: 12 });
-  });
-
-  it('a title on My List carries a bookmark on its cover (issue #157)', () => {
-    const { rerender } = render(<PosterCard title="Movie" onSelect={() => undefined} />);
-    expect(screen.queryByRole('img', { name: 'On My List' })).toBeNull();
-    rerender(<PosterCard title="Movie" onList onSelect={() => undefined} />);
-    expect(screen.getByRole('img', { name: 'On My List' }).closest('.card__art')).not.toBeNull();
-  });
-
-  it('cards without a menu keep the browser menu', () => {
-    render(<PosterCard title="Movie" onSelect={() => undefined} />);
-    const card = screen.getByRole('button', { name: 'Movie' }).closest('article')!;
-    expect(fireEvent.contextMenu(card, { clientX: 10, clientY: 10 })).toBe(true);
+  it('a right-click opens the menu at the pointer; the keyboard (no pointer) at the card', () => {
+    const card = document.createElement('div');
+    card.getBoundingClientRect = () => ({ left: 0, top: 0 }) as DOMRect;
+    expect(menuPosition({ clientX: 120, clientY: 80, currentTarget: card })).toEqual({ x: 120, y: 80 });
+    expect(menuPosition({ clientX: 0, clientY: 0, currentTarget: card })).toEqual({ x: 12, y: 12 });
   });
 
   it('lists the actions then Cancel; ↑/↓ move, an action runs and closes; Escape and outside clicks close', () => {

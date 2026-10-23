@@ -102,6 +102,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-194](#d-194) | Shared screens: one card for every app, the app brings a host |
 | [D-195](#d-195) | Shared Movies and Series: one grid, three ways to scroll |
 | [D-196](#d-196) | Shared Search |
+| [D-197](#d-197) | Shared Home |
 
 ## Merged and retired IDs
 
@@ -1128,3 +1129,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - On TV and phone the title and the filter stay above the scrolling results (D-130); on desktop the whole page scrolls with the window, so they scroll away with it. Each grid loads more on its own: TV as the focus nears its end (D-094), desktop through the host's `EndSensor`, phone on "More results".
 - Desktop now says "Keep typing…" and "Searching…" before results, like the TV, and draws the TV's chips for the filter.
 
+## D-197
+
+**Shared Home** — 2026-10-23 (issue #237)
+
+- Home is the screen shared with the desktop (`HomeScreen`): featured movie, Continue Watching, My List, Live TV, Top rated and category rows. The TV's row (`Row`, with `rowReveal`) and shade (`Gradient`) moved to `packages/screens/src/ui`; on the desktop `Gradient.web.tsx` draws a CSS gradient, and `Trailer.web.tsx` keeps the muted trailer over the featured movie (D-025), which TV and phone do without.
+- Every app now has the TV's rows: the first titles, then a "See all" card that opens the full list. Desktop rows show 30 titles (TV and phone 10) instead of loading more as they scroll sideways. Desktop keeps its arrows over a row's sides while the pointer is on it, each hidden at that end (D-040).
+- Rows are built a few at a time on TV and desktop: TV as the focus or the scroll nears the last one, desktop when the host's `EndSensor` at the end of the page comes into view; phone keeps its virtualized list. The host also opens a page from a row (`openSection`) and, on TV and phone, darkens the nav once Home scrolls (`setScrolled`).
+- Desktop Home comes with the app rather than loading on its own: it is the first page after sign-in, so a separate chunk would only add a step.

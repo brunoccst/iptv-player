@@ -25,7 +25,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Home](FEATURES.md#home) | `packages/shared/src/hooks.ts`, `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/src/screens/HomeScreen.tsx`, `apps/web-player/src/features/home/HomePage.tsx`, `apps/web-player/src/components/Row.tsx` |
+| [Home](FEATURES.md#home) | `packages/shared/src/hooks.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/screens/src/HomeScreen.tsx`, `packages/screens/src/ui/Row.tsx`, `apps/tv-app/src/screens/HomeScreen.tsx`, `apps/web-player/src/features/home/HomePage.tsx` |
 | [Continue Watching](FEATURES.md#continue-watching) | `packages/shared/src/playback/rules.ts`, `packages/shared/src/stores/progressStore.ts`, `packages/shared/src/playback/targets.ts`, `apps/tv-app/src/navigation/navStore.ts`, `apps/web-player/src/ui/targets.ts` |
 | [Continue watching on the TV home screen](FEATURES.md#continue-watching-on-the-tv-home-screen) | `apps/tv-app/src/tv/watchNext.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/WatchNext.kt`, `apps/tv-app/src/App.tsx` |
 | [Movies and Series](FEATURES.md#movies-and-series) | `packages/shared/src/hooks.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/screens/src/BrowseScreen.tsx`, `packages/screens/src/TitleGrid.tsx`, `apps/tv-app/src/screens/BrowseScreen.tsx`, `apps/web-player/src/features/browse/BrowsePage.tsx`, `apps/web-player/src/features/browse/screenHost.tsx` |

@@ -3,7 +3,20 @@ import { setScreenHost, type ScreenHost } from '@iptv/screens';
 import { navStore, stores } from './appContext';
 import { CardMenu } from './components/CardMenu';
 import { CenteringScrollView } from './components/CenterScroll';
-import { useCatalog, useChannelSearch, useLibrary, useNav, usePagedLibrary, useProgrammeSearch, useTitleCard, useWatchlist } from './hooks';
+import {
+  continueMenuItems,
+  useCatalog,
+  useChannelSearch,
+  useHeroTitle,
+  useLibrary,
+  useLiveHomeRow,
+  useNav,
+  usePagedLibrary,
+  useProgrammeSearch,
+  useProgress,
+  useTitleCard,
+  useWatchlist,
+} from './hooks';
 import { colors, useNavHeight } from './theme';
 import { blurTitle, focusTitle } from './tv/colourKeys';
 
@@ -13,10 +26,25 @@ import { blurTitle, focusTitle } from './tv/colourKeys';
  * remote's colour keys (D-154). Imported by the modules that render shared screens, so it is set before they draw.
  */
 const host: ScreenHost = {
-  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary, useChannelSearch, useProgrammeSearch },
+  hooks: {
+    useTitleCard,
+    useWatchlist,
+    usePagedLibrary,
+    useCatalog,
+    useLibrary,
+    useProgress,
+    useChannelSearch,
+    useProgrammeSearch,
+    useHeroTitle,
+    useLiveHomeRow,
+    continueMenuItems,
+  },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
   play: (target) => navStore.getState().push({ name: 'player', target }),
+  openSection: (section, categoryId = null) =>
+    section === 'mylist' ? navStore.getState().goSection('mylist') : navStore.getState().openCategory(section, categoryId),
+  setScrolled: (scrolled) => navStore.getState().setScrolled(scrolled),
   useSearch: () => ({ text: useNav((s) => s.search), submits: useNav((s) => s.searchSubmits) }),
   useCategory: () => useNav((s) => s.categoryId),
   setCategory: (categoryId) => navStore.getState().setCategory(categoryId),
@@ -33,7 +61,7 @@ const host: ScreenHost = {
       </CenteringScrollView>
     );
   },
-  TitleMenu: function TitleMenu({ title, items, children }) {
+  TitleMenu: function TitleMenu({ title, subtitle, items, children }) {
     const [open, setOpen] = useState(false);
     return (
       <>
@@ -41,6 +69,7 @@ const host: ScreenHost = {
         {open ? (
           <CardMenu
             title={title}
+            subtitle={subtitle}
             onClose={() => setOpen(false)}
             actions={items().map((entry) => ({
               label: entry.label,

@@ -4,11 +4,15 @@ import { t } from '@iptv/shared';
 import { stores, uiStore } from '../../appContext';
 import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
 import {
+  continueMenuItems,
   useCatalog,
   useChannelSearch,
+  useHeroTitle,
   useLibrary,
+  useLiveHomeRow,
   usePagedLibrary,
   useProgrammeSearch,
+  useProgress,
   useTitleCard,
   useUi,
   useWatchlist,
@@ -18,13 +22,30 @@ import {
  * The desktop side of the screens shared with the TV app, drawn through React Native Web (issue #237,
  * DECISIONS.md#d-194): the page scrolls with the window under the top nav, details open as the modal, a right-click
  * opens a title's menu at the pointer (D-079) and grids load more as their end scrolls into view. Imported by the
- * pages that show shared screens, which load on their own so the rest of the app does not carry React Native Web.
+ * pages that show shared screens.
  */
 setScreenHost({
-  hooks: { useTitleCard, useWatchlist, usePagedLibrary, useCatalog, useLibrary, useChannelSearch, useProgrammeSearch },
+  hooks: {
+    useTitleCard,
+    useWatchlist,
+    usePagedLibrary,
+    useCatalog,
+    useLibrary,
+    useProgress,
+    useChannelSearch,
+    useProgrammeSearch,
+    useHeroTitle,
+    useLiveHomeRow,
+    continueMenuItems,
+  },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
   play: (target) => uiStore.getState().play(target),
+  // The desktop's Live TV page has its own category list, so it opens on All.
+  openSection: (section, categoryId = null) =>
+    section === 'mylist' || section === 'live'
+      ? uiStore.getState().navigate(section)
+      : uiStore.getState().openCategory(section, categoryId),
   useSearch: () => ({ text: useUi((s) => s.search) }),
   useCategory: () => useUi((s) => s.categoryId),
   setCategory: (categoryId) => uiStore.getState().setCategory(categoryId),
@@ -33,7 +54,7 @@ setScreenHost({
       {children}
     </div>
   ),
-  TitleMenu: function TitleMenu({ title, items, children }) {
+  TitleMenu: function TitleMenu({ title, subtitle, items, children }) {
     const [menu, setMenu] = useState<MenuPosition | null>(null);
     return (
       <div
@@ -46,6 +67,7 @@ setScreenHost({
         {menu ? (
           <CardMenu
             title={title}
+            subtitle={subtitle}
             position={menu}
             onClose={() => setMenu(null)}
             actions={items().map((entry) => ({ label: entry.label, icon: entry.icon, onSelect: entry.run }))}
