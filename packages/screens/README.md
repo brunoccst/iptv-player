@@ -10,6 +10,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 |------|------|
 | `src/host.tsx` | `ScreenHost`, `setScreenHost`, `ScreenHostProvider`, `useScreenHost` |
 | `src/DownloadsScreen.tsx` | My Downloads: each download with progress and Play / Pause / Resume / Delete; the app's host gives the list (D-198) |
+| `src/LiveScreen.tsx` | Live TV: categories, Earlier / Now / Later, programme details, 3-hour channel × time grid; TV focus describes and Select plays, elsewhere a click or tap selects (D-032, D-201) |
 | `src/LoginScreen.tsx` | Sign-in: provider address, username, password, app language, restore from a backup, sign in from another device (D-199) |
 | `src/ProfilesScreen.tsx` | "Who's watching?" and the profile editor (name, colour, Kids, categories, languages); the app's PIN prompt (D-200) |
 | `src/HomeScreen.tsx` | Home: featured movie, Continue Watching, My List, Live TV, Top rated and category rows, built a few at a time (D-197) |

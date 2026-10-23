@@ -135,12 +135,12 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await page.getByRole('button', { name: 'Live TV' }).click();
   const guide = page.getByRole('region', { name: 'TV guide' });
   // Five channels, each with a programme on now; "Test Arena" has no XMLTV id and comes from short EPG.
-  await expect(guide.locator('.guide__programme--now')).toHaveCount(5);
+  await expect(guide.getByTestId(/^guide-now-/)).toHaveCount(5);
   await expect(guide.getByRole('button', { name: /^Warm-up,|^Arena Live,/ }).first()).toBeVisible();
   await page.screenshot({ path: 'test-results/guide.png' });
 
-  const onNow = guide.locator('.guide__programme--now').first();
-  const title = (await onNow.locator('.guide__title').textContent())!.replace('‹ ', '');
+  const onNow = guide.getByTestId(/^guide-now-/).first();
+  const title = (await onNow.getAttribute('aria-label'))!.split(',')[0]!;
   await onNow.click();
   await expect(page.getByRole('region', { name: 'Programme details' })).toContainText('On now');
   await page.getByRole('button', { name: 'Watch live' }).click();
@@ -167,11 +167,11 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
 test("catch-up: a past programme plays from the channel's recording, with seeking and no LIVE tag (issue #226)", async ({ page }) => {
   await page.getByRole('button', { name: 'Live TV' }).click();
   const guide = page.getByRole('region', { name: 'TV guide' });
-  await expect(guide.locator('.guide__programme--now')).toHaveCount(5);
+  await expect(guide.getByTestId(/^guide-now-/)).toHaveCount(5);
   await page.getByRole('button', { name: '◀ Earlier' }).click();
   await page.getByRole('button', { name: '◀ Earlier' }).click();
   // Only Test Sports FHD keeps recordings: its ended programmes carry the ↺ mark.
-  const recorded = guide.locator('.guide__programme--past', { hasText: '↺' });
+  const recorded = guide.getByRole('button').filter({ hasText: '↺' });
   await expect(recorded.first()).toBeVisible();
   await expect(recorded.first()).toHaveAttribute('aria-label', /Test Sports FHD$/);
   const title = (await recorded.first().getAttribute('aria-label'))!.split(',')[0]!;

@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import type { View } from 'react-native';
 import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard, PinGate, PlayTarget } from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
@@ -30,6 +31,12 @@ export interface DownloadEntry {
   remove(): void;
 }
 
+/** A key of the TV remote: `left`, `right`, `select`, `channelUp`, … and whether it went down or up. */
+export interface RemoteEvent {
+  key: string;
+  action: 'down' | 'up' | 'unknown';
+}
+
 /**
  * What an app brings to the shared screens (issue #237, DECISIONS.md#d-193): its stores (through the shared hooks), how
  * details open, how a page scrolls and how a title's menu opens. TV/phone: a focus page, hold OK for a pop-up menu and
@@ -53,8 +60,10 @@ export interface ScreenHost {
     | 'useSession'
     | 'useProfilePicker'
     | 'useProfileEditor'
+    | 'useReminders'
+    | 'useProgrammeDescription'
   >;
-  stores: Pick<AppContext['stores'], 'catalog' | 'library' | 'session'>;
+  stores: Pick<AppContext['stores'], 'catalog' | 'library' | 'session' | 'epg'>;
   openDetails(section: LibrarySection, masterId: string): void;
   /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
   play(target: PlayTarget): void;
@@ -93,6 +102,12 @@ export interface ScreenHost {
   /** The category chosen on the Movies/Series page (`null`: All), kept in the app's navigation. */
   useCategory(): string | null;
   setCategory(categoryId: string | null): void;
+  /** TV: the remote's keys while the screen is shown, as down/up pairs (D-028). None on the desktop. */
+  useRemote?(handler: (event: RemoteEvent) => void): void;
+  /** TV: where Up from the top of a page goes, the current page's link in the top nav. */
+  useNavFocusTarget?(): View | undefined;
+  /** Desktop: a reminder is about to be set; asks once to show system notifications while the window is away (issue #239). */
+  allowReminders?(): void;
   /** The scrolling page under the top nav; `children` are the title and the rows. */
   Page(props: { children: ReactNode; testID: string }): ReactNode;
   /**

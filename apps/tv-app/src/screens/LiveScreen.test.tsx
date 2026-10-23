@@ -11,11 +11,11 @@ jest.mock('react-native/Libraries/Components/TV/tagForComponentOrHandle', () => 
   __esModule: true,
   default: (component?: { props?: { testID?: string } } | null) => component?.props?.testID,
 }));
-jest.mock('../components/focusGrid', () => ({
-  ...jest.requireActual('../components/focusGrid'),
+jest.mock('@iptv/screens/src/ui/focusGrid', () => ({
+  ...jest.requireActual('@iptv/screens/src/ui/focusGrid'),
   moveFocus: jest.fn(),
 }));
-const moveFocus = jest.requireMock<{ moveFocus: jest.Mock }>('../components/focusGrid').moveFocus;
+const moveFocus = jest.requireMock<{ moveFocus: jest.Mock }>('@iptv/screens/src/ui/focusGrid').moveFocus;
 const focusedTo = () => moveFocus.mock.calls.map(([view]: [{ props?: { testID?: string } } | undefined]) => view?.props?.testID);
 
 const NOW = Date.parse('2026-09-23T12:10:00Z');
