@@ -47,7 +47,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Movie and series details](FEATURES.md#movie-and-series-details) | `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/tv-app/src/App.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx`, `apps/web-player/src/hooks/useMediaQuery.ts` |
-| [Seasons and episodes](FEATURES.md#seasons-and-episodes) | `packages/shared/src/playback/seriesVersions.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/components/focusGrid.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/EpisodeList.tsx` |
+| [Seasons and episodes](FEATURES.md#seasons-and-episodes) | `packages/shared/src/playback/seriesVersions.ts`, `packages/shared/src/playback/watched.ts`, `packages/screens/src/ui/focusGrid.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/EpisodeList.tsx` |
 
 ## Player
 
@@ -66,9 +66,9 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [TV guide](FEATURES.md#tv-guide) | `packages/shared/src/epg/guide.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/stores/epgStore.ts`, `packages/shared/src/react.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx` |
-| [Catch-up](FEATURES.md#catch-up) | `packages/shared/src/playback/catchup.ts`, `packages/shared/src/direct/xtream.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`, `apps/web-player/src/features/player/playbackEngine.ts`, `packages/shared/src/direct/sqlLibrary.ts` |
-| [Guide reminders](FEATURES.md#guide-reminders) | `packages/shared/src/playback/reminders.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/screens/LiveScreen.tsx`, `apps/tv-app/src/components/ReminderDialog.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`, `apps/web-player/src/features/live/ReminderToast.tsx` |
+| [TV guide](FEATURES.md#tv-guide) | `packages/shared/src/epg/guide.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/stores/epgStore.ts`, `packages/shared/src/react.ts`, `packages/screens/src/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx` |
+| [Catch-up](FEATURES.md#catch-up) | `packages/shared/src/playback/catchup.ts`, `packages/shared/src/direct/xtream.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/screens/src/LiveScreen.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`, `apps/web-player/src/features/player/playbackEngine.ts`, `packages/shared/src/direct/sqlLibrary.ts` |
+| [Guide reminders](FEATURES.md#guide-reminders) | `packages/shared/src/playback/reminders.ts`, `packages/shared/src/hooks.ts`, `packages/screens/src/LiveScreen.tsx`, `apps/tv-app/src/components/ReminderDialog.tsx`, `apps/web-player/src/features/live/LiveTvPage.tsx`, `apps/web-player/src/features/live/ReminderToast.tsx` |
 | [Guide over the playing channel](FEATURES.md#guide-over-the-playing-channel) | `apps/tv-app/src/player/GuideOverlay.tsx`, `apps/web-player/src/features/player/GuidePanel.tsx` |
 | [Channels watched last](FEATURES.md#channels-watched-last) | `packages/shared/src/playback/recentChannels.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/player/RecentChannelsOverlay.tsx` |
 

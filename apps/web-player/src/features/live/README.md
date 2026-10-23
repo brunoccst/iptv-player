@@ -1,8 +1,6 @@
 # live
 
-| File                  | Purpose                                                                                                                                                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LiveTvPage.tsx`      | Live TV guide: categories, a 3-hour channel × time grid (Earlier / Now / Later, "More channels" paging), programme details. Clicking a channel plays it; a programme opens details with "Watch live". See [D-032](../../../../../documentation/DECISIONS.md#d-032). |
-| `LiveTvPage.test.tsx` | Grid rendering, selection, playback target, paging and window shift.                                                                                                                                                                                                |
-
-Layout math (`layoutGuideRow`, `nowFraction`) and paging/polling (`useEpgGuide`) come from `@iptv/shared`.
+| File               | Purpose                                                                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LiveTvPage.tsx`   | Live TV guide: the screen shared with the TV app (`@iptv/screens`, [D-201](../../../../../documentation/DECISIONS.md#d-201)); its tests are the TV app's and e2e. |
+| `ReminderToast.tsx` | A guide reminder whose programme started (issue #239), over any page. |

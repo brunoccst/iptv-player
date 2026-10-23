@@ -28,7 +28,9 @@ import {
   useProgrammeSearch,
   useProfileEditor,
   useProfilePicker,
+  useProgrammeDescription,
   useProgress,
+  useReminders,
   useSession,
   useTitleCard,
   useUi,
@@ -58,6 +60,8 @@ setScreenHost({
     useSession,
     useProfilePicker,
     useProfileEditor,
+    useReminders,
+    useProgrammeDescription,
   },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
@@ -129,6 +133,10 @@ setScreenHost({
   useSearch: () => ({ text: useUi((s) => s.search) }),
   useCategory: () => useUi((s) => s.categoryId),
   setCategory: (categoryId) => uiStore.getState().setCategory(categoryId),
+  // A system notification when the window is in the background (issue #239); asked once, with the first reminder.
+  allowReminders: () => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission();
+  },
   Page: ({ children, testID }) => (
     <div data-testid={testID} style={{ padding: 'calc(var(--nav-height) + 24px) 0 60px' }}>
       {children}

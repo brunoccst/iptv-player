@@ -27,7 +27,9 @@ import {
   useProgrammeSearch,
   useProfileEditor,
   useProfilePicker,
+  useProgrammeDescription,
   useProgress,
+  useReminders,
   useSession,
   useTitleCard,
   useWatchlist,
@@ -36,6 +38,8 @@ import { colors, useNavHeight } from './theme';
 import { canScanQr, usePairingServer } from './pairing/pairing';
 import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
 import { blurTitle, focusTitle } from './tv/colourKeys';
+import { useRemote } from './tv/remote';
+import { useNavFocusTarget } from './components/TopNav';
 
 /**
  * The TV and phone side of the screens shared with the desktop app (issue #237, DECISIONS.md#d-193): a page that keeps
@@ -59,6 +63,8 @@ const host: ScreenHost = {
     useSession,
     useProfilePicker,
     useProfileEditor,
+    useReminders,
+    useProgrammeDescription,
   },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
@@ -104,6 +110,8 @@ const host: ScreenHost = {
   useSearch: () => ({ text: useNav((s) => s.search), submits: useNav((s) => s.searchSubmits) }),
   useCategory: () => useNav((s) => s.categoryId),
   setCategory: (categoryId) => navStore.getState().setCategory(categoryId),
+  useRemote,
+  useNavFocusTarget,
   Page: function Page({ children, testID }) {
     const navH = useNavHeight();
     return (

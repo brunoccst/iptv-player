@@ -1,0 +1,822 @@
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+// Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
+import * as ReactNative from 'react-native';
+import {
+  Image,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type NativeScrollEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import {
+  canRemind,
+  EPG_SLOT_MS,
+  floorToSlot,
+  formatGuideTime,
+  formatProgrammeTime,
+  guideSlots,
+  layoutGuideRow,
+  liveTarget,
+  catchupMode,
+  catchupTarget,
+  nowFraction,
+  programmeAt,
+  programmeProgress,
+  useEpgGuide,
+  useNow,
+  type EpgChannelRow,
+  type EpgListing,
+  type LiveChannel,
+  t,
+  intlLocale,
+} from '@iptv/shared';
+import { useScreenHost, type ScreenHost } from './host';
+import { CenteringScrollView, useCenterFocus, type Measurable } from './ui/CenterScroll';
+import { ChipBar } from './ui/ChipBar';
+import { ErrorText, errorText, Loading } from './ui/Feedback';
+import { focus } from './ui/focus';
+import { FocusButton } from './ui/FocusButton';
+import { moveFocus, useFocusGrid } from './ui/focusGrid';
+import { FocusRow } from './ui/FocusRow';
+import { usePageFocusable } from './ui/pageFocus';
+import { colors, fonts, radius, useCompact, useNavHeight, useSizes } from './ui/theme';
+
+/** Same 3-hour window as the web guide (DECISIONS.md#d-088). */
+const HOURS = 3;
+const STEP_MS = 2 * EPG_SLOT_MS;
+// A day back, for channels with recordings (issue #226).
+const MIN_BACK_MS = 24 * 3600_000;
+const MAX_AHEAD_MS = 46 * 3600_000;
+const CHANNEL_WIDTH = 200;
+const ROW_HEIGHT = 64;
+const CATEGORY_WIDTH = 220;
+/** Web `.guide__row`: the timeline keeps a readable width and scrolls sideways on narrow screens. */
+const MIN_TIMELINE = 640;
+
+/** Where the focused guide cell sits in its row: the first or last programme (issue #240). */
+interface Edge {
+  first: boolean;
+  last: boolean;
+}
+
+interface Selection {
+  channel: LiveChannel;
+  programme: EpgListing | null;
+}
+
+function play(host: ScreenHost, channel: LiveChannel, programme: EpgListing | null) {
+  host.play(liveTarget(channel, programme?.title));
+}
+
+/** A programme from the provider's recordings (issue #226). */
+function playRecording(host: ScreenHost, channel: LiveChannel, programme: EpgListing) {
+  host.play(catchupTarget(channel, programme));
+}
+
+/** Desktop: no remote, so nothing to listen to. */
+const noRemote: NonNullable<ScreenHost['useRemote']> = () => {};
+
+/**
+ * TV Select on a programme: an ended one on a channel with recordings plays from the recording (issue #226), the one on
+ * now plays live, others the channel.
+ */
+function playProgramme(host: ScreenHost, channel: LiveChannel, programme: EpgListing, now: number) {
+  if (catchupMode(channel, programme, now) === 'past') playRecording(host, channel, programme);
+  else play(host, channel, Date.parse(programme.start) <= now && now < Date.parse(programme.end) ? programme : null);
+}
+
+/**
+ * Same layout as the web Live TV page: category list, Earlier/Now/Later, programme details, channel × time grid.
+ * TV: focusing a programme shows its details and Select plays. Phone: a tap selects it (web), "Watch live" plays. See DECISIONS.md#d-032.
+ */
+export function LiveScreen() {
+  const host = useScreenHost();
+  const useRemote = host.useRemote ?? noRemote;
+  const categories = host.hooks.useCatalog((s) => s.categories.live?.data ?? []);
+  // Kept in the app's navigation so it survives opening the player and pressing Back (null = All channels).
+  const categoryId = host.useCategory();
+  const now = useNow();
+  const [from, setFrom] = useState(() => floorToSlot(Date.now()));
+  const [pages, setPages] = useState(1);
+  const [selected, setSelected] = useState<Selection | null>(null);
+  const [pageWidth, setPageWidth] = useState(0);
+  // Height left for the guide (time header and channels) under the toolbar and the programme details.
+  const [guideHeight, setGuideHeight] = useState(0);
+  // Desktop (React Native Web) has no focus guides: there the channels are a plain view.
+  const { TVFocusGuideView } = ReactNative;
+  const ChannelsTrap = TVFocusGuideView ?? View;
+  const guide = useEpgGuide(host.stores.epg, { categoryId, from, hours: HOURS }, pages);
+  const sizes = useSizes();
+  const navH = useNavHeight();
+  const { height: windowHeight } = useWindowDimensions();
+  const to = from + HOURS * 3600_000;
+  const nowSlot = floorToSlot(now);
+  // Web phones: category list becomes a sideways row; the channel column shows only the logo (64 px).
+  const compact = useCompact();
+  const channelWidth = compact ? 64 : CHANNEL_WIDTH;
+  const timelineWidth = Math.max(MIN_TIMELINE, pageWidth - channelWidth);
+  // TV: Up from Earlier/Now/Later goes to the nav, not to a category scrolled out of sight above them.
+  const navUp = host.useNavFocusTarget?.();
+  const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
+  const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
+  // The guide shows later hours than now: Left on a row's first programme goes back an hour instead of to the channel.
+  const ahead = from > nowSlot;
+
+  // TV: Right on a row's last programme shows the next hour, Left on its first the hour before while the guide is
+  // ahead of now (issue #240, D-032). The key arrives before the focus moves, so `edge` is still the focused cell's.
+  const edge = useRef<(Edge & { cell: object }) | null>(null);
+  // A cell clears only its own edge: its blur can arrive after the next cell's focus.
+  const onEdge = useCallback((cell: object, value: Edge | null) => {
+    if (value) edge.current = { ...value, cell };
+    else if (edge.current?.cell === cell) edge.current = null;
+  }, []);
+  useRemote(({ key, action }) => {
+    if (!Platform.isTV || action !== 'down' || !edge.current) return;
+    if (key === 'right' && edge.current.last && canLater) setFrom(from + STEP_MS);
+    else if (key === 'left' && edge.current.first && ahead) setFrom(from - STEP_MS);
+  });
+
+  useEffect(() => {
+    void host.stores.catalog.getState().loadCategories('live');
+  }, [host]);
+
+  const chooseCategory = (id: string | null) => {
+    host.setCategory(id);
+    setPages(1);
+    setSelected(null);
+  };
+
+  // TV: before anything is focused, describe what is on now on the first channel.
+  const first = guide.rows[0];
+  const described = selected ?? (Platform.isTV && first ? { channel: first.channel, programme: programmeAt(first.programmes, now) } : null);
+  const nowAt = nowFraction(now, from, to);
+  const moreChannels = guide.rows.length < guide.totalChannels;
+  // Near the end of the channels (the page on phones, the guide elsewhere), the next ones load.
+  const loadMoreNearEnd = ({ layoutMeasurement, contentOffset, contentSize }: NativeScrollEvent) => {
+    if (moreChannels && !guide.loading && layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) setPages(pages + 1);
+  };
+
+  const rows = guide.rows.map((row, index) => (
+    <GuideRow
+      key={row.channel.id}
+      row={row}
+      from={from}
+      to={to}
+      now={now}
+      width={timelineWidth}
+      preferred={index === 0}
+      compact={compact}
+      // Only this row's selection: moving focus re-renders two rows, not the whole guide.
+      selected={selected?.channel.id === row.channel.id ? selected : null}
+      onSelect={setSelected}
+      ahead={ahead}
+      onEdge={onEdge}
+    />
+  ));
+  const more = moreChannels ? (
+    <FocusButton
+      label={t('More channels ({count} of {totalChannels})', { count: guide.rows.length, totalChannels: guide.totalChannels })}
+      variant="secondary"
+      disabled={guide.loading}
+      style={styles.more}
+      onPress={() => setPages(pages + 1)}
+    />
+  ) : null;
+
+  const content = (
+    <>
+      <Text style={[styles.title, { fontSize: sizes.pageTitle }]}>{t('Live TV')}</Text>
+      <View style={[styles.live, compact ? styles.liveCompact : styles.liveFill]} testID="live-body">
+        {compact ? (
+          // Phones (portrait): the same expandable chips as Movies/Series.
+          <ChipBar
+            label={t('Channel categories')}
+            testID="live-chips"
+            chips={[
+              { key: 'all', label: t('All channels'), active: categoryId === null, onPress: () => chooseCategory(null) },
+              ...categories.map((c) => ({ key: c.id, label: c.name, active: categoryId === c.id, onPress: () => chooseCategory(c.id) })),
+            ]}
+          />
+        ) : (
+          // The page fits the screen; the list and the guide each scroll on their own (D-032).
+          <CategoryList categories={categories} categoryId={categoryId} onChoose={chooseCategory} navUp={navUp} />
+        )}
+
+        <View style={compact ? undefined : styles.page} testID="guide-page" onLayout={(e) => setPageWidth(e.nativeEvent.layout.width)}>
+          <FocusRow leftOpen style={styles.toolbar}>
+            <FocusButton
+              label={`◀ ${t('Earlier')}`}
+              variant="ghost"
+              disabled={!canEarlier}
+              onPress={() => setFrom(from - STEP_MS)}
+              nextFocusUp={navUp}
+              testID="guide-earlier"
+            />
+            <FocusButton
+              label={t('Now')}
+              variant="secondary"
+              disabled={from === nowSlot}
+              onPress={() => setFrom(nowSlot)}
+              nextFocusUp={navUp}
+            />
+            <FocusButton
+              label={`${t('Later')} ▶`}
+              variant="ghost"
+              disabled={!canLater}
+              onPress={() => setFrom(from + STEP_MS)}
+              testID="guide-later"
+              nextFocusUp={navUp}
+            />
+            <Text style={styles.day}>
+              {new Date(from).toLocaleDateString(intlLocale(), { weekday: 'long', month: 'short', day: 'numeric' })}
+            </Text>
+          </FocusRow>
+
+          {guide.status === 'refreshing' ? <Text style={styles.banner}>{t('Downloading the TV guide…')}</Text> : null}
+          {guide.status === 'unavailable' ? (
+            <Text style={styles.banner}>{t('Your provider has no full TV guide. Showing what is available per channel.')}</Text>
+          ) : null}
+          {guide.error ? <ErrorText>{errorText(guide.error)}</ErrorText> : null}
+
+          {described ? <ProgrammeDetails selection={described} now={now} onClose={() => setSelected(null)} /> : null}
+
+          {guide.loading && guide.rows.length === 0 ? (
+            <Loading />
+          ) : compact ? (
+            pageWidth > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
+                <View
+                  style={[styles.guide, { width: channelWidth + timelineWidth }]}
+                  testID="guide"
+                  role="region"
+                  accessibilityLabel={t('TV guide')}
+                >
+                  <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
+                  {rows}
+                  {nowAt != null ? (
+                    <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
+                  ) : null}
+                </View>
+              </ScrollView>
+            ) : null
+          ) : (
+            // The rest of the screen; the time header stays put while the channels scroll under it.
+            <View style={styles.guideArea} testID="guide-area" onLayout={(e) => setGuideHeight(e.nativeEvent.layout.height)}>
+              {pageWidth > 0 && guideHeight > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={pageWidth - channelWidth < MIN_TIMELINE}>
+                  <View
+                    style={[styles.guide, { width: channelWidth + timelineWidth, height: guideHeight }]}
+                    testID="guide"
+                    role="region"
+                    accessibilityLabel={t('TV guide')}
+                  >
+                    <TimeHeader from={from} to={to} width={timelineWidth} channelWidth={channelWidth} />
+                    {/* TV: Down at the last channel (or "More channels") stays in the guide; Android otherwise jumped
+                        to the nearest category below, on the left. */}
+                    <ChannelsTrap trapFocusDown={Platform.isTV} style={styles.channels} testID="guide-trap">
+                      <ScrollView
+                        testID="guide-channels"
+                        onScroll={(event) => loadMoreNearEnd(event.nativeEvent)}
+                        scrollEventThrottle={200}
+                      >
+                        {rows}
+                        {more}
+                      </ScrollView>
+                    </ChannelsTrap>
+                    {nowAt != null ? (
+                      <View pointerEvents="none" style={[styles.nowLine, { left: channelWidth + nowAt * timelineWidth }]} />
+                    ) : null}
+                  </View>
+                </ScrollView>
+              ) : null}
+            </View>
+          )}
+          {compact ? more : null}
+        </View>
+      </View>
+    </>
+  );
+
+  const padding = { paddingTop: navH + 24, paddingHorizontal: sizes.gutter };
+  // Desktop: the page is the window's height (its own views scroll, not the window).
+  const fit = Platform.OS === 'web' ? { height: windowHeight } : null;
+  // Phones: the whole page scrolls. Elsewhere it fits the screen and only the category list and the guide scroll.
+  return compact ? (
+    <ScrollView
+      style={[styles.screen, fit]}
+      testID="live-screen"
+      contentContainerStyle={[padding, { paddingBottom: 60 }]}
+      onScroll={(event) => loadMoreNearEnd(event.nativeEvent)}
+      scrollEventThrottle={200}
+    >
+      {content}
+    </ScrollView>
+  ) : (
+    <View style={[styles.screen, fit, padding, { paddingBottom: 24 }]} testID="live-screen">
+      {content}
+    </View>
+  );
+}
+
+/** Categories that Channel +/− skip at once: a screenful, less one so the last one stays in sight. */
+export function categoryPage(viewport: number, itemHeight: number): number {
+  if (viewport <= 0 || itemHeight <= 0) return 5;
+  return Math.max(1, Math.floor(viewport / itemHeight) - 1);
+}
+
+/**
+ * The category list beside the guide. TV: ↑/↓ move exactly one category and the list keeps the focused one in the
+ * middle; Android's scroll view no longer scrolls on its own first, which skipped like a page down (D-094). ↓ stops at
+ * the last category, ↑ from the first goes to the nav. Channel +/− move a page up or down (issue #179).
+ */
+function CategoryList({
+  categories,
+  categoryId,
+  onChoose,
+  navUp,
+}: {
+  categories: { id: string; name: string }[];
+  categoryId: string | null;
+  onChoose(id: string | null): void;
+  navUp: View | undefined;
+}) {
+  const host = useScreenHost();
+  const useRemote = host.useRemote ?? noRemote;
+  const grid = useFocusGrid();
+  const focused = useRef<number | null>(null);
+  const viewport = useRef(0);
+  const itemHeight = useRef(0);
+  const items = [{ id: null as string | null, name: t('All channels') }, ...categories];
+  const last = items.length - 1;
+
+  useRemote(({ key, action }) => {
+    if ((key !== 'channelUp' && key !== 'channelDown') || action === 'up' || focused.current === null) return;
+    const page = categoryPage(viewport.current, itemHeight.current);
+    const target = Math.max(0, Math.min(last, focused.current + (key === 'channelDown' ? page : -page)));
+    moveFocus(grid.at(String(target)));
+  });
+
+  return (
+    <CenteringScrollView
+      onlyCentering
+      style={styles.categories}
+      accessibilityLabel={t('Channel categories')}
+      testID="live-categories"
+      onLayout={(event) => (viewport.current = event.nativeEvent.layout.height)}
+    >
+      {items.map((item, index) => (
+        <CategoryItem
+          key={item.id ?? 'all'}
+          testID={`live-category-${index}`}
+          label={item.name}
+          active={categoryId === item.id}
+          onPress={() => onChoose(item.id)}
+          focusRef={grid.ref(String(index))}
+          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+          onFocus={() => (focused.current = index)}
+          onBlur={() => {
+            if (focused.current === index) focused.current = null;
+          }}
+          onLayout={index === 0 ? (height) => (itemHeight.current = height) : undefined}
+        />
+      ))}
+    </CenteringScrollView>
+  );
+}
+
+interface CategoryItemProps {
+  testID?: string;
+  label: string;
+  active: boolean;
+  onPress(): void;
+  focusRef?: (view: View | null) => void;
+  nextFocusUp?: View;
+  nextFocusDown?: View;
+  onFocus?(): void;
+  onBlur?(): void;
+  onLayout?(height: number): void;
+}
+
+function CategoryItem({
+  testID,
+  label,
+  active,
+  onPress,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
+  onFocus,
+  onBlur,
+  onLayout,
+}: CategoryItemProps) {
+  const [focused, setFocused] = useState(false);
+  const centerFocus = useCenterFocus();
+  const self = useRef<View | null>(null);
+  // Stable, so the focus grid does not redraw on every render.
+  const ref = useCallback(
+    (view: View | null) => {
+      self.current = view;
+      focusRef?.(view);
+    },
+    [focusRef],
+  );
+  return (
+    <Pressable
+      ref={ref}
+      testID={testID}
+      accessibilityRole="tab"
+      aria-selected={active}
+      accessibilityLabel={label}
+      onPress={onPress}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
+      onFocus={() => {
+        setFocused(true);
+        centerFocus?.(self.current as unknown as Measurable);
+        onFocus?.();
+      }}
+      onBlur={() => {
+        setFocused(false);
+        onBlur?.();
+      }}
+      onLayout={onLayout ? (event) => onLayout(event.nativeEvent.layout.height) : undefined}
+      style={[styles.category, active && styles.categoryActive, focused && styles.categoryFocused]}
+    >
+      <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function TimeHeader({ from, to, width, channelWidth }: { from: number; to: number; width: number; channelWidth: number }) {
+  const slots = useMemo(() => guideSlots(from, to), [from, to]);
+  return (
+    <View style={styles.timeHeader}>
+      <View style={{ width: channelWidth }} />
+      <View style={{ width }}>
+        {slots.map((slot) => (
+          <Text key={slot} style={[styles.slot, { left: ((slot - from) / (to - from)) * width }]}>
+            {formatGuideTime(slot)}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+interface GuideRowProps {
+  row: EpgChannelRow;
+  from: number;
+  to: number;
+  now: number;
+  width: number;
+  preferred: boolean;
+  compact: boolean;
+  selected: Selection | null;
+  onSelect(selection: Selection): void;
+  /** The guide shows later hours: the channel cell steps aside so Left on the first programme goes back an hour. */
+  ahead: boolean;
+  onEdge(cell: object, edge: Edge | null): void;
+}
+
+/** TV: Select plays (focus already selects). Phone: a tap selects, like a click on the web. */
+const activate = (selection: Selection, onSelect: (selection: Selection) => void, playNow: () => void) =>
+  Platform.isTV ? playNow() : onSelect(selection);
+
+/** Memoized: loading more channels or moving focus renders only the rows that changed (hundreds of channels, D-025). */
+const GuideRow = memo(function GuideRow({
+  row,
+  from,
+  to,
+  now,
+  width,
+  preferred,
+  compact,
+  selected,
+  onSelect,
+  ahead,
+  onEdge,
+}: GuideRowProps) {
+  const host = useScreenHost();
+  const { channel, programmes } = row;
+  const reminders = host.hooks.useReminders();
+  const cells = layoutGuideRow(programmes, from, to);
+  const firstCell = cells.findIndex((cell) => cell.programme);
+  const lastCell = cells.reduce((last, cell, index) => (cell.programme ? index : last), -1);
+  return (
+    <FocusRow leftOpen={!ahead} style={styles.row}>
+      <GuideCellButton
+        focusable={!ahead}
+        onEdge={onEdge}
+        style={[styles.channel, compact && styles.channelCompact]}
+        testID={`guide-channel-${channel.id}`}
+        label={t('Watch {name}', { name: channel.name })}
+        onPress={() => play(host, channel, programmeAt(programmes, now))}
+        onFocus={() => Platform.isTV && onSelect({ channel, programme: programmeAt(programmes, now) })}
+      >
+        {channel.logoUrl ? (
+          <Image source={{ uri: channel.logoUrl }} style={styles.logo} resizeMode="contain" />
+        ) : (
+          <View style={styles.logo} />
+        )}
+        {compact ? null : (
+          <Text style={styles.channelName} numberOfLines={1}>
+            {channel.number != null ? <Text style={styles.channelNumber}>{`${channel.number} `}</Text> : null}
+            {channel.name}
+          </Text>
+        )}
+      </GuideCellButton>
+      <View style={[styles.timeline, { width }]}>
+        {cells.map((cell, index) => {
+          const cellWidth = cell.width * width;
+          if (!cell.programme) {
+            return (
+              <View key={`gap-${cell.startMs}`} style={[styles.gap, { width: cellWidth }]}>
+                {programmes.length === 0 ? (
+                  <Text style={styles.gapText} numberOfLines={1}>
+                    {t('No guide information')}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          }
+          const programme = cell.programme;
+          const onNow = cell.startMs <= now && now < Date.parse(programme.end);
+          const past = Date.parse(programme.end) <= now;
+          return (
+            <GuideCellButton
+              key={programme.start}
+              testID={onNow ? `guide-now-${channel.id}` : undefined}
+              label={`${programme.title}, ${formatProgrammeTime(programme)}, ${channel.name}`}
+              hasTVPreferredFocus={preferred && onNow}
+              style={[
+                styles.programme,
+                { width: cellWidth - 2 },
+                onNow && styles.programmeNow,
+                past && styles.programmePast,
+                selected?.programme === programme && styles.programmeSelected,
+              ]}
+              onPress={() => activate({ channel, programme }, onSelect, () => playProgramme(host, channel, programme, now))}
+              // TV: holding OK on the programme on now watches it from its start (issue #226); on a later one, sets or
+              // clears a reminder (issue #239).
+              onLongPress={
+                !Platform.isTV
+                  ? undefined
+                  : catchupMode(channel, programme, now) === 'restart'
+                    ? () => playRecording(host, channel, programme)
+                    : canRemind(programme, now)
+                      ? () => reminders.toggle(channel, programme)
+                      : undefined
+              }
+              onFocus={() => Platform.isTV && onSelect({ channel, programme })}
+              edge={{ first: index === firstCell, last: index === lastCell }}
+              onEdge={onEdge}
+            >
+              <Text style={styles.programmeTitle} numberOfLines={1}>
+                {cell.clippedStart ? '‹ ' : ''}
+                {catchupMode(channel, programme, now) === 'past' ? '↺ ' : ''}
+                {reminders.has(channel.id, programme.start) ? '🔔 ' : ''}
+                {programme.title}
+              </Text>
+              <Text style={styles.programmeTime} numberOfLines={1}>
+                {formatProgrammeTime(programme)}
+              </Text>
+            </GuideCellButton>
+          );
+        })}
+      </View>
+    </FocusRow>
+  );
+});
+
+interface GuideCellButtonProps {
+  label: string;
+  onPress(): void;
+  onLongPress?(): void;
+  onFocus(): void;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  hasTVPreferredFocus?: boolean;
+  focusable?: boolean;
+  /** Reported while focused (issue #240); a cell that is no programme reports no edge. */
+  edge?: Edge;
+  onEdge?(cell: object, edge: Edge | null): void;
+  children: ReactNode;
+}
+
+/** Focusable guide block: white border when focused (Android focus search moves by geometry). */
+function GuideCellButton({
+  label,
+  onPress,
+  onLongPress,
+  onFocus,
+  style,
+  testID,
+  hasTVPreferredFocus,
+  focusable,
+  edge,
+  onEdge,
+  children,
+}: GuideCellButtonProps) {
+  const [focused, setFocused] = useState(false);
+  // Desktop: the cell under the mouse lights up, like a focused one on TV.
+  const [hovered, setHovered] = useState(false);
+  const page = usePageFocusable(hasTVPreferredFocus);
+  // Also when the window moves under the focused cell: it may no longer be the row's last programme.
+  const self = useRef({}).current;
+  const first = edge?.first ?? false;
+  const last = edge?.last ?? false;
+  useEffect(() => {
+    onEdge?.(self, focused ? { first, last } : null);
+  }, [focused, first, last, onEdge, self]);
+  return (
+    <Pressable
+      focusable={focusable}
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hasTVPreferredFocus={page.preferred}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      onFocus={() => {
+        setFocused(true);
+        onFocus();
+      }}
+      onBlur={() => setFocused(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={[style, hovered && styles.hovered, focused && styles.focused]}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+function ProgrammeDetails({ selection, now, onClose }: { selection: Selection; now: number; onClose(): void }) {
+  const { channel, programme } = selection;
+  const onNow = programme ? Date.parse(programme.start) <= now && now < Date.parse(programme.end) : false;
+  const host = useScreenHost();
+  const catchup = catchupMode(channel, programme, now);
+  const reminders = host.hooks.useReminders();
+  const remindable = canRemind(programme, now);
+  const reminded = !!programme && reminders.has(channel.id, programme.start);
+  const description = host.hooks.useProgrammeDescription(channel.id, programme);
+  const toggleReminder = () => {
+    if (!programme) return;
+    if (!reminded) host.allowReminders?.();
+    reminders.toggle(channel, programme);
+  };
+  return (
+    <View style={styles.details} testID="guide-info" role="region" accessibilityLabel={t('Programme details')}>
+      <View style={styles.detailsText}>
+        <Text style={styles.detailsTitle} numberOfLines={1}>
+          {programme?.title ?? channel.name}
+        </Text>
+        <Text style={styles.muted} numberOfLines={1}>
+          {channel.name}
+          {programme ? ` · ${formatProgrammeTime(programme)}` : ''}
+          {onNow ? ` · ${t('On now')}` : ''}
+          {Platform.isTV && catchup === 'past' ? ` · ${t('Recorded: OK plays it')}` : ''}
+          {Platform.isTV && catchup === 'restart' ? ` · ${t('Hold OK to watch from the start')}` : ''}
+          {reminded ? ` · ${t('Reminder set')}` : ''}
+          {Platform.isTV && remindable ? ` · ${reminded ? t('Hold OK to cancel the reminder') : t('Hold OK for a reminder')}` : ''}
+        </Text>
+        {programme && onNow ? (
+          <View style={styles.detailsBar}>
+            <View style={[styles.detailsFill, { width: `${Math.round(programmeProgress(programme, now) * 100)}%` }]} />
+          </View>
+        ) : null}
+        {description ? (
+          <Text style={styles.detailsDescription} numberOfLines={Platform.isTV ? 2 : 4}>
+            {description}
+          </Text>
+        ) : null}
+      </View>
+      {Platform.isTV ? null : (
+        <View style={styles.detailsActions}>
+          {programme && catchup === 'past' ? (
+            <FocusButton label={t('Watch')} variant="primary" onPress={() => playRecording(host, channel, programme)} />
+          ) : null}
+          <FocusButton
+            label={onNow ? t('Watch live') : t('Watch channel')}
+            variant={catchup === 'past' ? 'secondary' : 'primary'}
+            onPress={() => play(host, channel, onNow ? programme : null)}
+          />
+          {programme && catchup === 'restart' ? (
+            <FocusButton label={t('From the start')} variant="secondary" onPress={() => playRecording(host, channel, programme)} />
+          ) : null}
+          {remindable ? (
+            <FocusButton
+              label={reminded ? t('Cancel reminder') : t('Remind me')}
+              variant="secondary"
+              testID="guide-remind"
+              onPress={toggleReminder}
+            />
+          ) : null}
+          <FocusButton label={t('Close')} variant="ghost" onPress={onClose} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  title: { color: colors.strong, fontWeight: '700', marginBottom: 20 },
+  live: { flexDirection: 'row', gap: 24 },
+  liveFill: { flex: 1, minHeight: 0 },
+  categories: { width: CATEGORY_WIDTH, flexGrow: 0 },
+  liveCompact: { flexDirection: 'column', gap: 12 },
+  category: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius, borderWidth: 2, borderColor: 'transparent' },
+  categoryActive: { backgroundColor: colors.raised },
+  categoryFocused: { borderColor: 'transparent', backgroundColor: focus.fill },
+  categoryText: { color: colors.text, fontSize: fonts.body },
+  categoryTextActive: { color: colors.strong, fontWeight: '700' },
+  page: { flex: 1, minWidth: 0, minHeight: 0 },
+  guideArea: { flex: 1, minHeight: 0 },
+  channels: { flex: 1, minHeight: 0 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 },
+  day: { color: colors.muted, fontSize: fonts.body, marginLeft: 'auto' },
+  banner: {
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius,
+    backgroundColor: colors.raised,
+    color: colors.text,
+    fontSize: 14.4,
+  },
+  details: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: radius,
+    backgroundColor: colors.surface,
+  },
+  detailsText: { flexGrow: 1, flexShrink: 1, flexBasis: 320 },
+  detailsTitle: { color: colors.strong, fontSize: 20.8, fontWeight: '700', marginBottom: 4 },
+  detailsBar: { height: 4, maxWidth: 320, marginVertical: 8, backgroundColor: 'rgba(255,255,255,0.2)' },
+  detailsFill: { height: 4, backgroundColor: colors.accent },
+  detailsDescription: { color: colors.text, fontSize: fonts.body, marginTop: 8 },
+  detailsActions: { flexDirection: 'row', gap: 8 },
+  muted: { color: colors.muted, fontSize: fonts.body },
+  guide: { borderTopWidth: 1, borderTopColor: colors.border },
+  timeHeader: { flexDirection: 'row', height: 32, borderBottomWidth: 1, borderBottomColor: colors.border },
+  slot: {
+    position: 'absolute',
+    top: 6,
+    paddingLeft: 6,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.border,
+    color: colors.muted,
+    fontSize: 12.8,
+  },
+  row: { flexDirection: 'row', height: ROW_HEIGHT, borderBottomWidth: 1, borderBottomColor: colors.border },
+  channel: {
+    width: CHANNEL_WIDTH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    paddingRight: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    borderRadius: radius,
+  },
+  logo: { width: 44, height: 44 },
+  channelCompact: { width: 64, paddingRight: 8 },
+  channelName: { flex: 1, color: colors.text, fontSize: fonts.body },
+  channelNumber: { color: colors.muted },
+  timeline: { flexDirection: 'row', paddingVertical: 4 },
+  programme: {
+    marginRight: 2,
+    justifyContent: 'center',
+    gap: 2,
+    paddingHorizontal: 10,
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: radius,
+  },
+  programmeNow: { backgroundColor: '#3a3a3a' },
+  programmePast: { opacity: 0.55 },
+  programmeSelected: { borderColor: colors.strong },
+  programmeTitle: { color: colors.text, fontSize: fonts.body, fontWeight: '600' },
+  programmeTime: { color: colors.muted, fontSize: fonts.tiny },
+  gap: { justifyContent: 'center', paddingHorizontal: 10 },
+  gapText: { color: colors.muted, fontSize: 12.8 },
+  hovered: { backgroundColor: '#4a4a4a' },
+  focused: { borderColor: focus.ring, backgroundColor: '#4a4a4a', ...focus.glow },
+  nowLine: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.accent },
+  more: { alignSelf: 'flex-start', marginTop: 16 },
+});

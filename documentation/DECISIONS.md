@@ -106,6 +106,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-198](#d-198) | Shared My Downloads |
 | [D-199](#d-199) | Shared sign-in |
 | [D-200](#d-200) | Shared profiles |
+| [D-201](#d-201) | Shared Live TV |
 
 ## Merged and retired IDs
 
@@ -1163,3 +1164,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - "Who's watching?" and its profile editor are the screen shared with the desktop (`ProfilesScreen`). The host's `profiles` gives the app's PIN prompt (D-054), its Kids categories and content language dialogs (D-053, D-063), and signing out (it asks first when there are downloads, D-050). The desktop now also has Sign out on this page, like the TV.
 - The editor is a React Native `Modal`. On the desktop, Escape closes it through a window listener in the capture phase: React Native Web's text field keeps its key presses from bubbling, so the modal's own Escape handling never saw them.
+
+## D-201
+
+**Shared Live TV** — 2026-10-23 (issue #237)
+
+- The Live TV guide is the screen shared with the desktop (`LiveScreen`), with the TV's focus grid (`focusGrid`) moved to `packages/screens/src/ui`. The host adds the guide's store (`stores.epg`), reminders and programme descriptions, and on the TV the remote's keys (`useRemote`: Channel +/− and the guide's hour paging, D-028) and the top nav link that Up goes to (`useNavFocusTarget`). The desktop's `allowReminders` asks once to show system notifications (issue #239).
+- On the desktop the page is as tall as the window, like the TV: the categories and the guide scroll on their own and more channels load near the end of the list. A narrow window gets the phone's layout (category chips, the whole page scrolls). The channels keep the TV's focus guide only where React Native has one; React Native Web gets a plain view.

@@ -21,4 +21,5 @@ Building blocks of the shared screens, from the TV app (which re-exports them at
 | `Trailer.tsx`, `Trailer.web.tsx` | Desktop: the featured movie's muted trailer (D-025); nothing on TV and phone |
 | `IconButton.tsx` | Web `.icon-button`: round, or plain for player controls; optional TV colour-key dot |
 | `ColourDot.tsx` | The TV remote's colour keys (D-154) and the dot on the button each key presses |
+| `focusGrid.ts` | TV: Up/Down to the button straight above or below in lines of buttons (`useFocusGrid`, `moveFocus`) |
 | `Field.tsx` | Labelled text field; `onSubmit` + `inputRef` let Enter move to the next field |
