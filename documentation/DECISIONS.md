@@ -105,6 +105,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-197](#d-197) | Shared Home |
 | [D-198](#d-198) | Shared My Downloads |
 | [D-199](#d-199) | Shared sign-in |
+| [D-200](#d-200) | Shared profiles |
 
 ## Merged and retired IDs
 
@@ -1155,3 +1156,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The sign-in page is the screen shared with the desktop (`LoginScreen`), with the TV's text field (`Field`) moved to `packages/screens/src/ui`. The host's `signIn` gives the app's name, the note on how the password is kept, the app-language choice, the restore-from-backup dialog and, where the app can pair, the code a signed-in device scans and the camera scan (D-060, D-178).
 - A plain browser gets no note and no device card: it keeps nothing it could encrypt and cannot pair. On the desktop the page is as tall as the window, so the form sits in its middle.
 - The language choice is the TV's compact select on every app, and the button says "Restore from a backup" everywhere.
+
+## D-200
+
+**Shared profiles** — 2026-10-23 (issue #237)
+
+- "Who's watching?" and its profile editor are the screen shared with the desktop (`ProfilesScreen`). The host's `profiles` gives the app's PIN prompt (D-054), its Kids categories and content language dialogs (D-053, D-063), and signing out (it asks first when there are downloads, D-050). The desktop now also has Sign out on this page, like the TV.
+- The editor is a React Native `Modal`. On the desktop, Escape closes it through a window listener in the capture phase: React Native Web's text field keeps its key presses from bubbling, so the modal's own Escape handling never saw them.

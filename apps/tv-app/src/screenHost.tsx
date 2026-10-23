@@ -7,7 +7,11 @@ import { t } from '@iptv/shared';
 import { appConfig } from './config';
 import { BackupDialog } from './components/BackupDialog';
 import { chooseUiLanguage } from './components/AppLanguageDialog';
+import { confirmSignOut } from './components/AccountMenu';
 import { CardMenu } from './components/CardMenu';
+import { KidsCategories } from './components/KidsCategories';
+import { LanguageSettings } from './components/LanguageSettings';
+import { usePinGate } from './components/PinPad';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
   continueMenuItems,
@@ -21,6 +25,8 @@ import {
   useOfflineAccess,
   usePagedLibrary,
   useProgrammeSearch,
+  useProfileEditor,
+  useProfilePicker,
   useProgress,
   useSession,
   useTitleCard,
@@ -51,6 +57,8 @@ const host: ScreenHost = {
     continueMenuItems,
     useOfflineAccess,
     useSession,
+    useProfilePicker,
+    useProfileEditor,
   },
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
@@ -68,6 +76,7 @@ const host: ScreenHost = {
     },
     scan: { available: canScanQr, open: () => openPairingDialog('scan') },
   },
+  profiles: { usePinGate, KidsCategories, LanguageSettings, signOut: confirmSignOut },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);
     useEffect(() => downloadsStore.getState().refresh(), []);

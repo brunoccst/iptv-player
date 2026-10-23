@@ -1,5 +1,5 @@
 import { useState, type Ref } from 'react';
-import { StyleSheet, Text, TextInput, View, type ReturnKeyTypeOptions } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View, type ReturnKeyTypeOptions } from 'react-native';
 import { colors, fonts, radius } from './theme';
 import { focus } from './focus';
 
@@ -20,6 +20,7 @@ export function Field({
   inputRef,
   returnKeyType,
   onSubmit,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -32,6 +33,7 @@ export function Field({
   inputRef?: Ref<TextInput>;
   returnKeyType?: ReturnKeyTypeOptions;
   onSubmit?(): void;
+  maxLength?: number;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -49,6 +51,9 @@ export function Field({
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         hasTVPreferredFocus={autoFocus}
+        // Desktop: the caret starts here. TV and phone wait for the field to be selected, which opens the keyboard.
+        autoFocus={Platform.OS === 'web' && autoFocus}
+        maxLength={maxLength}
         returnKeyType={returnKeyType}
         onSubmitEditing={onSubmit}
         submitBehavior={onSubmit ? 'submit' : undefined}
