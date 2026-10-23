@@ -61,13 +61,16 @@ describe('preferred focus', () => {
   });
 
   it('TV: closing the details puts the focus back on what opened them, or on the first view on screen (D-069)', async () => {
-    const view = (x: number, y: number) =>
-      ({
-        requestTVFocus: jest.fn(),
+    const page = createPageFocus(async () => {});
+    // A view whose focus request reaches the page, like on a TV; `deaf` ones never get it.
+    const view = (x: number, y: number, deaf = false) => {
+      const self = {
+        requestTVFocus: jest.fn(() => (deaf ? undefined : page.focused({ target: self, nativeEvent: {} } as never))),
         measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => callback(x, y, 100, 150),
-      }) as unknown as PageView & { requestTVFocus: jest.Mock };
+      } as unknown as PageView & { requestTVFocus: jest.Mock };
+      return self;
+    };
     const screenSize = { width: 960, height: 540 };
-    const page = createPageFocus();
     const hero = view(40, 300);
     const offScreen = view(40, 700);
     const card = view(400, 380);
@@ -79,11 +82,24 @@ describe('preferred focus', () => {
     expect(await page.restore(screenSize)).toBe(card);
     expect(card.requestTVFocus).toHaveBeenCalledTimes(1);
 
-    // The card went away (taken off My List): the first view on screen, top first, then left.
+    // An animated card re-attaches its ref when its style changes on focus or blur: it is still the one to go back to.
     unregisterCard();
+    const unregisterAgain = page.register(card);
+    expect(await page.restore(screenSize)).toBe(card);
+    expect(card.requestTVFocus).toHaveBeenCalledTimes(2);
+
+    // The card went away (taken off My List): the first view on screen, top first, then left.
+    unregisterAgain();
     expect(await page.restore(screenSize)).toBe(hero);
     expect(hero.requestTVFocus).toHaveBeenCalledTimes(1);
     expect(offScreen.requestTVFocus).not.toHaveBeenCalled();
+
+    // A view that never gets the focus it asked for hands over to the first one on screen.
+    const deaf = view(400, 380, true);
+    page.register(deaf);
+    page.focused({ target: deaf, nativeEvent: {} } as never);
+    expect(await page.restore(screenSize)).toBe(hero);
+    expect(deaf.requestTVFocus).toHaveBeenCalledTimes(1);
 
     expect(
       firstOnScreen(

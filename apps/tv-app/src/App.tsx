@@ -180,7 +180,10 @@ function Shell() {
     }
     const over = openedOver.current;
     openedOver.current = null;
-    if (Platform.isTV && over === section && route.name === 'section' && !searchRequested) void pageFocus.restore(Dimensions.get('window'));
+    if (!Platform.isTV || over !== section || route.name !== 'section' || searchRequested) return;
+    // A frame later, so the focus is asked once the panel has left the screen.
+    const frame = requestAnimationFrame(() => void pageFocus.restore(Dimensions.get('window')));
+    return () => cancelAnimationFrame(frame);
     // Only a change of route closes the details.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
