@@ -100,6 +100,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-192](#d-192) | Desktop conversion: every audio track, timeline pictures, downloads |
 | [D-193](#d-193) | Shared screens with React Native Web: the My List trial |
 | [D-194](#d-194) | Shared screens: one card for every app, the app brings a host |
+| [D-195](#d-195) | Shared Movies and Series: one grid, three ways to scroll |
 
 ## Merged and retired IDs
 
@@ -1109,3 +1110,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The TV's building blocks (theme, icons, focus look, focus rows, the centring scroll view, the cover card) moved to `packages/screens/src/ui`; the TV keeps one-line re-exports at their old paths. The desktop draws the same cover card, so both apps look alike; the mouse lights it up like the focus.
 - An app gives the shared screens a `ScreenHost` (`setScreenHost`, or `ScreenHostProvider` in tests) instead of per-screen parts: its stores (the shared hooks), how details open, the scrolling page, a title's menu (TV: hold OK, a panel; desktop: right-click, at the pointer) and the TV colour keys (D-154). `TitleCard` is the one title cover of every app.
 - On the desktop, a file's `X.web.tsx` takes the place of `X.tsx` (Vite and Vitest `resolve.extensions`): `Icon.web.tsx` draws a plain SVG, so the desktop needs no react-native-svg. Vite defines `global` as `globalThis`, which React Native Web's animations use; without it, a card's animation threw when the card left the page.
+
+## D-195
+
+**Shared Movies and Series: one grid, three ways to scroll** — 2026-10-23 (issue #237)
+
+- Movies and Series are the screen shared with the desktop (`BrowseScreen`, `TitleGrid`), with the TV's chips, "Sort by" select, buttons and error text moved to `packages/screens/src/ui`. The desktop now draws the TV's chips and select instead of its own.
+- The grid scrolls three ways: TV keeps only the lines near the focus mounted (D-094), phone uses a list, and desktop puts every line in the page, which scrolls with the window, and loads the next page when the app's `EndSensor` at the end comes into view. A React Native Web list scrolls inside its own box, which would leave the window's scroll bar and the nav's page scrolling unused.
+- The host also gives the screens the chosen category (`useCategory`, `setCategory`) and the catalog and library stores. Desktop Movies, Series and My List load as their own chunk with React Native Web; Search keeps the desktop's own grid until it moves too.

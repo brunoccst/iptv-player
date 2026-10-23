@@ -3,7 +3,7 @@ import { liveTarget, programmeWhen, SEARCH_BY_TITLE, SEARCH_KINDS, type SearchKi
 import { uiStore } from '../../appContext';
 import { PosterCard } from '../../components/PosterCard';
 import { useChannelSearch, useProgrammeSearch, useUi } from '../../hooks/stores';
-import { PagedGrid } from './BrowsePage';
+import { PagedGrid } from './PagedGrid';
 import { t } from '@iptv/shared';
 
 /** Searches movies and series (title or normalized key) and live channels by name; same as the TV app. */

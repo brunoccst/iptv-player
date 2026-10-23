@@ -118,6 +118,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Movies and Series look like the TV's** (2026-10-23, D-195, issue #237): the Movies and Series pages are now the same screens as on the TV and phone app, with the same category chips and "Sort by" menu. More titles still load as you scroll down.
 - **My List looks like the TV's** (2026-10-23, D-194, issue #237): the My List page is now the same screen as on the TV and phone app. Covers grow and light up when the mouse is over them, and a right-click still opens a title's menu.
 - **Converted titles keep all their sound tracks** (2026-10-20, D-192, issue #270): when the app converts a film or episode the computer cannot play, every language stays in the audio menu, and your profile's language plays first. Hovering over the timeline shows pictures again, and downloads in HEVC or with Dolby or DTS sound now play offline too.
 - **Progress from VLC** (2026-10-20, D-191, issue #265): Open in VLC now starts where you left off, and where you stop in VLC is saved, so Continue watching and Resume pick up from there.

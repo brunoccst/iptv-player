@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectPlaying, login, seek, videoTime, waitForLibrary } from './helpers';
+import { expectPlaying, login, seek, titleGrid, videoTime, waitForLibrary } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await login(page);
@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('library is deduplicated into master titles with a version selector', async ({ page }) => {
-  const grid = page.locator('.grid');
+  const grid = titleGrid(page);
   await expect(grid.getByRole('button', { name: 'Big Test Movie' })).toHaveCount(1);
   await expect(grid.getByRole('button', { name: 'Sequel Test 2' })).toBeVisible();
   await expect(grid.getByRole('button', { name: 'Sequel Test 3' })).toBeVisible();
@@ -55,7 +55,7 @@ test('MKV-only titles explain they need the TV app', async ({ page }) => {
 
 test('episodes: skip ahead, continue watching + resume, next-episode countdown', async ({ page }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
-  await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
+  await titleGrid(page).getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('Version / Stream Quality').selectOption({ label: 'ENG' });
   // One episode list for both versions (D-066): the 1080p listing has only the pilot.
@@ -231,7 +231,7 @@ test('downloads are encrypted in-app and play offline, even after reload', async
 });
 
 test('My List: save a title from its details and find it on the My List page', async ({ page }) => {
-  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await titleGrid(page).getByRole('button', { name: 'Big Test Movie' }).click();
   const details = page.getByRole('dialog');
   await details.getByRole('button', { name: 'Add Big Test Movie to My List' }).click();
   await expect(details.getByRole('button', { name: 'Remove Big Test Movie from My List' })).toHaveAttribute('aria-pressed', 'true');
@@ -338,29 +338,30 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
 });
 
 test('right-click on a movie: Mark as watched tags the cover and the details; Mark as not watched removes it (D-081)', async ({ page }) => {
-  const grid = page.locator('.grid');
-  const card = grid.locator('.card', { has: page.getByRole('button', { name: 'Sequel Test 2' }) });
+  // The cover is the shared screen's card (D-195): the button itself, its tag found by test id.
+  const card = titleGrid(page).getByRole('button', { name: 'Sequel Test 2' });
+  const tag = page.getByTestId('card-Sequel Test 2-watched');
   await expect(card).toBeVisible();
-  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+  await expect(tag).toHaveCount(0);
 
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await card.click({ button: 'right' });
   const menu = page.getByRole('menu', { name: 'Options for Sequel Test 2' });
   await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark as watched', 'Add to My List', 'Cancel']);
   await menu.getByRole('menuitem', { name: 'Mark as watched' }).click();
-  await expect(card.getByTestId('watched-tag')).toHaveText('Watched');
+  await expect(tag).toHaveText('Watched');
 
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await card.click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Go to details' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByTestId('watched-tag')).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await card.click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
-  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+  await expect(tag).toHaveCount(0);
 
   // The details' eye button does the same (D-081).
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click();
+  await card.click();
   await dialog.getByRole('button', { name: 'Mark as watched' }).click();
   await expect(dialog.getByTestId('watched-tag')).toBeVisible();
   await dialog.getByRole('button', { name: 'Mark as not watched' }).click();
@@ -368,9 +369,9 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await page.keyboard.press('Escape');
 
   // My List from the card menu (D-078).
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await card.click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Add to My List' }).click();
-  await card.getByRole('button', { name: 'Sequel Test 2' }).click({ button: 'right' });
+  await card.click({ button: 'right' });
   await expect(menu.getByRole('menuitem', { name: 'Remove from My List' })).toBeVisible();
   await menu.getByRole('menuitem', { name: 'Remove from My List' }).click();
 });
@@ -379,14 +380,15 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   page,
 }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
-  const card = page.locator('.grid .card', { has: page.getByRole('button', { name: 'Test Series' }) });
-  await card.getByRole('button', { name: 'Test Series' }).click({ button: 'right' });
+  const card = titleGrid(page).getByRole('button', { name: 'Test Series' });
+  const tag = page.getByTestId('card-Test Series-watched');
+  await card.click({ button: 'right' });
   const menu = page.getByRole('menu', { name: 'Options for Test Series' });
   await expect(menu.getByRole('menuitem')).toHaveText(['Go to details', 'Mark series as watched', 'Add to My List', 'Cancel']);
   await menu.getByRole('menuitem', { name: 'Mark series as watched' }).click();
-  await expect(card.getByTestId('watched-tag')).toBeVisible();
+  await expect(tag).toBeVisible();
 
-  await card.getByRole('button', { name: 'Test Series' }).click();
+  await card.click();
   const dialog = page.getByRole('dialog');
   const episodes = dialog.getByRole('region', { name: 'Episodes' });
   await expect(dialog.locator('.details__watched')).toBeVisible();
@@ -408,12 +410,12 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   await expect(episodes.getByTestId('watched-tag')).toHaveCount(count - 1);
   await expect(dialog.locator('.details__watched')).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await expect(card.getByTestId('watched-tag')).toHaveCount(0);
+  await expect(tag).toHaveCount(0);
 });
 
 test('details: two columns on a wide window, the panel on a narrow one (D-158)', async ({ page }) => {
   await page.getByRole('button', { name: 'Series', exact: true }).click();
-  await page.locator('.grid').getByRole('button', { name: 'Test Series' }).click();
+  await titleGrid(page).getByRole('button', { name: 'Test Series' }).click();
   const dialog = page.getByRole('dialog', { name: 'Test Series' });
   const left = dialog.getByTestId('details-left');
   const right = dialog.getByTestId('details-right');
@@ -443,7 +445,7 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158)',
 });
 
 test('details: a movie keeps its facts in one column, 2/3 of a wide window (D-158)', async ({ page }) => {
-  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await titleGrid(page).getByRole('button', { name: 'Big Test Movie' }).click();
   const dialog = page.getByRole('dialog', { name: 'Big Test Movie' });
   const left = dialog.getByTestId('details-left');
   await expect(left.getByText('Cast:')).toBeVisible();
@@ -541,7 +543,7 @@ test('search: All, Movies, Series or Live TV shows only those results (D-130)', 
   await page.getByPlaceholder('Titles, series').fill('Test');
   await expect(page.getByRole('heading', { name: 'Results for “Test”' })).toBeVisible();
   const filter = page.getByRole('tablist', { name: 'Search' });
-  const grid = (name: string) => page.locator('.grid').getByRole('button', { name });
+  const grid = (name: string) => titleGrid(page).getByRole('button', { name });
   await expect(grid('Big Test Movie')).toBeVisible();
   await expect(grid('Test Series')).toBeVisible();
 
@@ -610,7 +612,7 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
 
 test('Categories shown: an unchecked category leaves browsing, but search still finds its titles (D-110)', async ({ page }) => {
   await page.getByRole('button', { name: 'Movies', exact: true }).first().click();
-  const grid = page.locator('.grid');
+  const grid = titleGrid(page);
   await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
 
   await page.locator('.menu__avatar').click();
@@ -641,7 +643,7 @@ test('narrow window: details icon buttons that do not fit wrap under the other i
 });
 
 test('a reload keeps the page and the open details; Back then shows the page under them (issue #221)', async ({ page }) => {
-  await page.locator('.grid').getByRole('button', { name: 'Big Test Movie' }).click();
+  await titleGrid(page).getByRole('button', { name: 'Big Test Movie' }).click();
   await expect(page.getByRole('dialog', { name: 'Big Test Movie' })).toBeVisible();
   await expect(page).toHaveURL(/#\/movies\?details=movies%3A/);
 
@@ -650,5 +652,5 @@ test('a reload keeps the page and the open details; Back then shows the page und
   await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/#\/movies$/);
-  await expect(page.locator('.grid').getByRole('button', { name: 'Big Test Movie' })).toBeVisible();
+  await expect(titleGrid(page).getByRole('button', { name: 'Big Test Movie' })).toBeVisible();
 });
