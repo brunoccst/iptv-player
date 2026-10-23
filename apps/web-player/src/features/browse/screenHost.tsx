@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t } from '@iptv/shared';
 import { downloadsStore, stores, uiStore } from '../../appContext';
+import { appConfig } from '../../config';
+import { desktop } from '../../desktop';
+import { BackupDialog } from '../backup/BackupDialog';
+import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
+import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
+import { chooseUiLanguage } from '../shell/AppLanguageDialog';
 import { downloadProgress, posterPath } from '../../offline/types';
 import { playTargetFromDownload } from '../../ui/targets';
 import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
@@ -17,6 +23,7 @@ import {
   usePagedLibrary,
   useProgrammeSearch,
   useProgress,
+  useSession,
   useTitleCard,
   useUi,
   useWatchlist,
@@ -42,6 +49,7 @@ setScreenHost({
     useLiveHomeRow,
     continueMenuItems,
     useOfflineAccess,
+    useSession,
   },
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
@@ -51,6 +59,20 @@ setScreenHost({
     section === 'mylist' || section === 'live'
       ? uiStore.getState().navigate(section)
       : uiStore.getState().openCategory(section, categoryId),
+  signIn: {
+    appName: appConfig.appName,
+    // A plain browser keeps nothing it could encrypt, and cannot pair (D-060).
+    note: () =>
+      desktop ? t('The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.') : null,
+    chooseLanguage: chooseUiLanguage,
+    Restore: ({ onClose }) => <BackupDialog restoreOnly onClose={onClose} />,
+    DeviceCode: desktop
+      ? function DeviceCode() {
+          return <PairingCode state={usePairingServer()} size={180} />;
+        }
+      : undefined,
+    scan: { available: canScanWithWebcam, open: () => openSyncWithPhone(true) },
+  },
   useDownloads: function useDesktopDownloads() {
     const records = useDownloads((s) => s.records);
     const supported = useDownloads((s) => s.supported);

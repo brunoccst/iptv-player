@@ -104,6 +104,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-196](#d-196) | Shared Search |
 | [D-197](#d-197) | Shared Home |
 | [D-198](#d-198) | Shared My Downloads |
+| [D-199](#d-199) | Shared sign-in |
 
 ## Merged and retired IDs
 
@@ -1146,3 +1147,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - My Downloads is the screen shared with the desktop (`DownloadsScreen`). Each app keeps its own downloader (the TV's native download service, the desktop's encrypted cache) and the host turns its records into `DownloadEntry` items: title, poster, state, progress, size, and play / pause / resume / delete. The desktop also hands over its notes (no offline support in this browser, storage used).
 - The desktop shows the poster saved with the download first, so it shows offline, and the provider's when that one does not load.
 - The round `IconButton` and the TV colour-key dot (`ColourDot`, D-154) moved to `packages/screens/src/ui`; the TV keeps re-exports at their old paths. The status texts go through `t()` now; the TV showed them in English only.
+
+## D-199
+
+**Shared sign-in** — 2026-10-23 (issue #237)
+
+- The sign-in page is the screen shared with the desktop (`LoginScreen`), with the TV's text field (`Field`) moved to `packages/screens/src/ui`. The host's `signIn` gives the app's name, the note on how the password is kept, the app-language choice, the restore-from-backup dialog and, where the app can pair, the code a signed-in device scans and the camera scan (D-060, D-178).
+- A plain browser gets no note and no device card: it keeps nothing it could encrypt and cannot pair. On the desktop the page is as tall as the window, so the form sits in its middle.
+- The language choice is the TV's compact select on every app, and the button says "Restore from a backup" everywhere.
