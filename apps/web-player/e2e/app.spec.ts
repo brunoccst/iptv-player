@@ -637,7 +637,7 @@ test('Categories shown: an unchecked category leaves browsing, but search still 
   await page.locator('.menu__avatar').click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Categories shown' }).click();
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('dialog', { name: /^Categories shown/ });
   await dialog.getByRole('checkbox', { name: 'Drama' }).uncheck();
   await dialog.getByRole('button', { name: 'Save' }).click();
 

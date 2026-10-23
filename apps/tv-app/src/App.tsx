@@ -173,6 +173,7 @@ function Shell() {
   const openedOver = useRef<Section | null>(null);
   const searchRequested = useNav((s) => s.searchRequested);
   const menuOpen = useNav((s) => s.menuOpen);
+  const updatePrompt = useAppStore(updater.store, (s) => s.prompt);
   useEffect(() => {
     if (route.name === 'details') {
       openedOver.current ??= section;
@@ -229,7 +230,7 @@ function Shell() {
       <AccountMenu />
       {route.name === 'details' ? null : <LibraryNotice />}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
-      <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen} />
+      <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
       <ReminderDialog />
     </View>
   );

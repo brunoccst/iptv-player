@@ -109,6 +109,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-201](#d-201) | Shared Live TV |
 | [D-202](#d-202) | Shared details |
 | [D-203](#d-203) | Shared details buttons |
+| [D-204](#d-204) | Shared dialogs |
 
 ## Merged and retired IDs
 
@@ -1189,3 +1190,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The details' Download (with its progress ring), Play on TV, another player (VLC on the desktop) and Split or merge buttons are drawn by the shared screen (`packages/screens/src/ui`). The host gives hooks, not buttons: `details.useDownload`, `usePlayOnTv` (phones), `useExternalPlayer` and `replace` (show the details a split or merge left). An episode's "…" menu takes its choices from the same hooks, so `useEpisodeOptions` is gone.
 - Split or merge opens the host's `Menu` (desktop: under the button) and its picker is a React Native `Modal`. On the desktop, Escape closes the picker from a window listener in the capture phase and stops there, so the details' dialog under it stays open (the text field keeps its key presses, D-200).
 - The progress ring has a `.web.tsx` twin drawn as a plain SVG element, like `Icon`, so the desktop needs no react-native-svg.
+
+## D-204
+
+**Shared dialogs** — 2026-10-23 (issue #237)
+
+- "Better quality on My List" (D-176), Kids categories (D-053) and Categories shown (D-110) are dialogs shared with the desktop (`packages/screens`), drawn in one frame, `Dialog`: a React Native `Modal` with the panel and its title. The host adds their hooks (`useQualityUpgrades`, `useKidsCategories`, `useHiddenCategories`); the TV app keeps the quality dialog away while an update prompt shows by passing `visible`.
+- On the desktop Escape closes a `Dialog` from a window listener in the capture phase (React Native Web's text fields keep their key presses, D-200) and stops the key there, so the dialog or details under it stay open. Only the top `Dialog` closes: they keep a stack of the open ones. The merge picker (D-203) uses the same frame.
+- Category lists are rows with a check box (`CheckRow`). React Native Web reads `aria-checked`, not `accessibilityState`, so the row sets both.

@@ -310,58 +310,6 @@
   overflow-wrap: anywhere;
 }
 
-.upgrades {
-  display: grid;
-  gap: 16px;
-  width: min(560px, 80vw);
-  padding: 32px;
-}
-
-.upgrades h2 {
-  margin: 0;
-  padding-right: 40px;
-}
-
-.upgrades__list {
-  display: grid;
-  gap: 16px;
-  max-height: 60vh;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.upgrades__entry {
-  display: flex;
-  gap: 16px;
-}
-
-.upgrades__poster {
-  flex: none;
-  width: 80px;
-  height: 120px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.upgrades__text {
-  display: grid;
-  align-content: start;
-  gap: 6px;
-}
-
-.upgrades__line {
-  color: var(--color-muted);
-}
-
-.upgrades__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
 .log__actions {
   display: flex;
   flex-wrap: wrap;

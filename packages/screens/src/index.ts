@@ -13,8 +13,10 @@ export {
 export { DetailsScreen } from './DetailsScreen';
 export { DownloadsScreen } from './DownloadsScreen';
 export { categoryPage, LiveScreen } from './LiveScreen';
+export { HiddenCategories } from './HiddenCategories';
 export { LoginScreen } from './LoginScreen';
 export { ProfilesScreen } from './ProfilesScreen';
+export { QualityUpgradeDialog } from './QualityUpgradeDialog';
 export { BrowseScreen } from './BrowseScreen';
 export { HomeScreen } from './HomeScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';
