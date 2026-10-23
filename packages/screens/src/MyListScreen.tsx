@@ -6,15 +6,15 @@ import { FocusRow } from './ui/FocusRow';
 import { colors, useSizes } from './ui/theme';
 
 /** Cards sit this far apart, like the web grid. */
-const GAP = 8;
+export const GRID_GAP = 8;
 
 /** Cards per line and their width for this screen, like the web grid (`auto-fill` of `--card-width`, stretched). */
 export function useGridColumns() {
   const { width } = useWindowDimensions();
   const { gutter, cardWidth } = useSizes();
   const available = width - gutter * 2;
-  const columns = Math.max(1, Math.floor((available + GAP) / (cardWidth + GAP)));
-  return { columns, itemWidth: Math.floor((available - GAP * (columns - 1)) / columns) };
+  const columns = Math.max(1, Math.floor((available + GRID_GAP) / (cardWidth + GRID_GAP)));
+  return { columns, itemWidth: Math.floor((available - GRID_GAP * (columns - 1)) / columns) };
 }
 
 /** "My List": titles the active profile saved, newest first (D-055). One screen for TV, phone and desktop (D-193). */
@@ -59,5 +59,5 @@ export function MyListScreen() {
 const styles = StyleSheet.create({
   title: { color: colors.strong, fontWeight: '700', marginBottom: 24 },
   muted: { color: colors.muted, fontSize: 16 },
-  row: { flexDirection: 'row', gap: GAP, marginBottom: 24 },
+  row: { flexDirection: 'row', gap: GRID_GAP, marginBottom: 24 },
 });

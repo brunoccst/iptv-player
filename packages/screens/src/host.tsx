@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AppHooks, IconName, LibrarySection, MasterCard } from '@iptv/shared';
+import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard } from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -15,8 +15,12 @@ export interface TitleMenuItem {
  * the remote's colour keys. Desktop: the window scrolls and a right-click opens a menu at the pointer.
  */
 export interface ScreenHost {
-  hooks: Pick<AppHooks, 'useTitleCard' | 'useWatchlist'>;
+  hooks: Pick<AppHooks, 'useTitleCard' | 'useWatchlist' | 'usePagedLibrary' | 'useCatalog' | 'useLibrary'>;
+  stores: Pick<AppContext['stores'], 'catalog' | 'library'>;
   openDetails(section: LibrarySection, masterId: string): void;
+  /** The category chosen on the Movies/Series page (`null`: All), kept in the app's navigation. */
+  useCategory(): string | null;
+  setCategory(categoryId: string | null): void;
   /** The scrolling page under the top nav; `children` are the title and the rows. */
   Page(props: { children: ReactNode; testID: string }): ReactNode;
   /**
@@ -24,6 +28,11 @@ export interface ScreenHost {
    * opens it on a right-click and gives none.
    */
   TitleMenu(props: { title: string; items: () => TitleMenuItem[]; children(openMenu?: () => void): ReactNode }): ReactNode;
+  /**
+   * Desktop: shown at the end of a grid while more titles can load; calls `onReached` when it comes into view (the
+   * window scrolls there). TV and phone grids scroll on their own and need none.
+   */
+  EndSensor?(props: { onReached(): void }): ReactNode;
   /** A title card got or lost the focus (the TV remote's Red key adds the focused title to My List, D-154). */
   focusTitle?(section: LibrarySection, card: MasterCard): void;
   blurTitle?(id: string): void;

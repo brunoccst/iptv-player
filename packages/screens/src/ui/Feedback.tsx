@@ -1,0 +1,42 @@
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { t, type ApiError } from '@iptv/shared';
+import { colors, fonts, spacing } from './theme';
+
+export function Loading({ label = t('Loading') }: { label?: string }) {
+  return (
+    <View style={styles.center} accessibilityLabel={label}>
+      <ActivityIndicator size="large" color={colors.accent} />
+    </View>
+  );
+}
+
+/** User-facing text for ApiError codes (same wording as the web app). */
+export function errorText(error: ApiError | null | undefined): string {
+  if (!error) return '';
+  switch (error.code) {
+    case 'invalid_provider_credentials':
+      return t('Your IPTV provider rejected this username or password.');
+    case 'provider_credentials_rejected':
+      return t('Your IPTV provider no longer accepts the saved login. Sign out and sign in again.');
+    case 'provider_unavailable':
+    case 'network_error':
+    case 'timeout':
+      // The detail (network error, timeout, HTTP status, bad reply) is the only clue about what went wrong.
+      return `${t('Your IPTV provider is not responding. Try again in a moment.')}${error.message ? `\n${t('Details: {details}', { details: error.message })}` : ''}`;
+    default:
+      return error.message || t('Something went wrong.');
+  }
+}
+
+export function ErrorText({ children }: { children: string }) {
+  return (
+    <Text style={styles.error} accessibilityRole="alert">
+      {children}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  error: { color: colors.warning, fontSize: fonts.body, marginVertical: spacing.sm },
+});
