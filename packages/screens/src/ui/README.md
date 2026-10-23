@@ -26,3 +26,6 @@ Building blocks of the shared screens, from the TV app (which re-exports them at
 | `WatchlistButton.tsx` | Round "My List" toggle on the details panel (D-055); TV: the Red key too (D-154) |
 | `Select.web.tsx` | Desktop: the browser's own drop-down in place of the TV's option list (D-202) |
 | `Field.tsx` | Labelled text field; `onSubmit` + `inputRef` let Enter move to the next field |
+| `DownloadButton.tsx` | Round download button: start / pause / resume / retry, from the host's `details.useDownload` (D-203) |
+| `ProgressRing.tsx`, `ProgressRing.web.tsx` | Download progress circle: react-native-svg on TV and phone, a plain SVG on the desktop |
+| `RegroupButton.tsx` | Split or merge titles by hand (issue #243): the host's `Menu`, then a picker that finds the title by name (D-203) |

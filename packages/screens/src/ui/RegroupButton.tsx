@@ -1,49 +1,57 @@
-import { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { t, tn, type LibrarySection, type MasterDetails, type VariantInfo } from '@iptv/shared';
-import { navStore } from '../appContext';
-import { useMergeCandidates, useRegroup } from '../hooks';
-import { colors, fonts } from '../theme';
-import { CardMenu, type CardMenuAction } from './CardMenu';
+import { useScreenHost, type MenuItem } from '../host';
+import { colors, fonts } from './theme';
 import { Field } from './Field';
 import { FocusButton } from './FocusButton';
 import { IconButton } from './IconButton';
 
 /**
- * Web `RegroupButton`: split or merge titles by hand (issue #243, DECISIONS.md#d-185). A round button beside My List
- * opens the options for this title; "Merge with another title" asks which one by its name.
+ * Split or merge titles by hand (issue #243, DECISIONS.md#d-185): a round button beside My List opens the options for
+ * this title; "Merge with another title" asks which one by its name. Only where the library is in a database.
  */
 export function RegroupButton({ section, master, variant }: { section: LibrarySection; master: MasterDetails; variant: VariantInfo }) {
-  const regroup = useRegroup(section, master, (masterId) => navStore.getState().replaceTop({ name: 'details', section, masterId }));
-  const [menu, setMenu] = useState(false);
+  const host = useScreenHost();
+  const regroup = host.hooks.useRegroup(section, master, (masterId) => host.details.replace(section, masterId));
+  const button = useRef<View | null>(null);
+  const [menu, setMenu] = useState<{ anchor?: View } | null>(null);
   const [merging, setMerging] = useState(false);
   if (!regroup.available) return null;
   if (regroup.busy) return <ActivityIndicator color={colors.accent} style={styles.busy} accessibilityLabel={t('Loading')} />;
 
-  const actions: CardMenuAction[] = [
+  const items: MenuItem[] = [
     ...(master.variants.length > 1
       ? [
           {
+            id: 'split',
             label: t('Split off this version ({version})', { version: variant.label }),
             icon: 'split' as const,
-            testID: 'regroup-split',
-            onPress: () => regroup.split(variant.streamId),
+            run: () => regroup.split(variant.streamId),
           },
         ]
       : []),
-    { label: t('Merge with another title…'), icon: 'merge', testID: 'regroup-merge', onPress: () => setMerging(true) },
-    ...(regroup.merged
-      ? [{ label: t('Separate the merged titles'), icon: 'split' as const, testID: 'regroup-undo', onPress: regroup.undo }]
-      : []),
-    ...(regroup.splitOff
-      ? [{ label: t('Put back with its title'), icon: 'merge' as const, testID: 'regroup-undo', onPress: regroup.undo }]
-      : []),
+    { id: 'merge', label: t('Merge with another title…'), icon: 'merge', run: () => setMerging(true) },
+    ...(regroup.merged ? [{ id: 'undo', label: t('Separate the merged titles'), icon: 'split' as const, run: regroup.undo }] : []),
+    ...(regroup.splitOff ? [{ id: 'undo', label: t('Put back with its title'), icon: 'merge' as const, run: regroup.undo }] : []),
   ];
   return (
     <>
-      <IconButton icon="merge" label={t('Split or merge')} testID="details-regroup" onPress={() => setMenu(true)} />
-      {regroup.error ? <Text style={styles.error}>{regroup.error}</Text> : null}
-      {menu ? <CardMenu title={master.title} actions={actions} onClose={() => setMenu(false)} /> : null}
+      <IconButton
+        icon="merge"
+        label={t('Split or merge')}
+        testID="details-regroup"
+        focusRef={(view) => {
+          button.current = view;
+        }}
+        onPress={() => setMenu({ anchor: button.current ?? undefined })}
+      />
+      {regroup.error ? (
+        <Text style={styles.error} role="alert">
+          {regroup.error}
+        </Text>
+      ) : null}
+      {menu ? <host.Menu title={master.title} items={items} anchor={menu.anchor} onClose={() => setMenu(null)} /> : null}
       {merging ? (
         <MergePicker
           section={section}
@@ -59,7 +67,7 @@ export function RegroupButton({ section, master, variant }: { section: LibrarySe
   );
 }
 
-/** Finds the title to merge into this one by its name; Back closes it. */
+/** Finds the title to merge into this one by its name; Back (Escape on the desktop) closes it. */
 function MergePicker({
   section,
   master,
@@ -71,13 +79,29 @@ function MergePicker({
   onPick(fromId: string): void;
   onClose(): void;
 }) {
+  const host = useScreenHost();
   const [query, setQuery] = useState(master.title);
-  const found = useMergeCandidates(section, query, master.id);
+  const found = host.hooks.useMergeCandidates(section, query, master.id);
+  // Desktop: Escape closes only this picker, not the details under it (their dialog closes on the same key).
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopPropagation();
+      onClose();
+    };
+    // Capture: before the search field and the details' dialog see the key.
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+  const title = t('Merge with another title');
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
-        <View style={styles.panel} testID="merge-picker">
-          <Text style={styles.title}>{t('Merge with another title')}</Text>
+        <View style={styles.panel} testID="merge-picker" role="dialog" accessibilityLabel={title}>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
           <Text style={styles.line}>{t('The title you pick joins “{title}”, with all its versions.', { title: master.title })}</Text>
           <Field label={t('Title to merge')} value={query} onChange={setQuery} testID="merge-search" compact autoFocus />
           <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>

@@ -1,6 +1,6 @@
 import Svg, { Circle } from 'react-native-svg';
-import { colors } from '../theme';
 import { t } from '@iptv/shared';
+import { colors } from './theme';
 
 /** Circular download progress (0..1). */
 export function ProgressRing({ value, size = 32, stroke = 3 }: { value: number; size?: number; stroke?: number }) {

@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Details buttons look like the TV's** (2026-10-23, D-203, issue #237): Download, Open in VLC and Split or merge in a title's details are now the TV app's buttons, and "Merge with another title" is the TV's picker. Escape closes the picker without closing the details.
 - **Details look like the TV's** (2026-10-23, D-202, issue #237): a movie's or series' details are now the same screen as on the TV and phone app, with the TV's episode rows. The version and season choices are the usual drop-downs.
 - **Live TV looks like the TV's** (2026-10-23, D-201, issue #237): the Live TV guide is now the same screen as on the TV and phone app. More channels load by themselves as you scroll down the guide.
 - **Sign-in looks like the TV's** (2026-10-23, D-199, issue #237): the sign-in page is now the same screen as on the TV and phone app, with the language choice in the panel and the code to sign in from your phone beside it.

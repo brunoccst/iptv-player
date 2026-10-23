@@ -15,6 +15,7 @@ Downloads are deleted on sign-out and play only while the subscription is active
 | `offlineResponder.ts`      | SW      | Serves `/__offline__/{id}/index.m3u8`, `/r/{n}`, `/file` (ranged), `/poster`.        |
 | `downloadManager.ts`       | page    | Queue (1 at a time), HLS or chunked-file download, encrypt, resume, pause, remove.   |
 | `downloadsStore.ts`        | page    | Zustand store over the manager for the UI.                                           |
+| `useDownload.ts` | page | A title's download for the shared details' button and episode menu (D-203). |
 | `serviceWorker.ts`         | SW      | Entry: offline responder + app-shell cache. Bundled to `/sw.js` by `vite.config.ts`. |
 | `registerServiceWorker.ts` | page    | Registers `/sw.js`.                                                                  |
 

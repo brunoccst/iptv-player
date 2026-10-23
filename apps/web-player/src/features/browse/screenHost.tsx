@@ -15,11 +15,9 @@ import { downloadProgress, posterPath } from '../../offline/types';
 import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
 import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
-import { DownloadButton, useDownload } from '../../components/DownloadButton';
 import { Modal } from '../../components/Modal';
-import { useVlc, VlcButton } from '../../components/VlcButton';
-import { downloadTarget } from '../../ui/targets';
-import { RegroupButton } from '../details/RegroupButton';
+import { useVlc } from '../../components/vlc';
+import { useDownload } from '../../offline/useDownload';
 import {
   continueMenuItems,
   useCatalog,
@@ -28,6 +26,7 @@ import {
   useHeroTitle,
   useLibrary,
   useLiveHomeRow,
+  useMergeCandidates,
   useMovieDetails,
   useOfflineAccess,
   usePagedLibrary,
@@ -36,6 +35,7 @@ import {
   useProfilePicker,
   useProgrammeDescription,
   useProgress,
+  useRegroup,
   useReminders,
   useSeriesDetails,
   useSession,
@@ -73,6 +73,8 @@ setScreenHost({
     useMovieDetails,
     useSeriesDetails,
     useWatchlistToggle,
+    useRegroup,
+    useMergeCandidates,
   },
   api,
   stores,
@@ -152,14 +154,14 @@ setScreenHost({
   details: {
     close: () => uiStore.getState().closeDetails(),
     useRevision: () => useUi((s) => s.libraryRevision),
-    DownloadButton: ({ target, durationSeconds }) => <DownloadButton target={downloadTarget(target, durationSeconds)} />,
-    ExternalPlayerButton: VlcButton,
-    RegroupButton,
-    useEpisodeOptions: function useEpisodeOptions(target, durationSeconds) {
-      const download = useDownload(downloadTarget(target, durationSeconds));
+    useDownload,
+    useExternalPlayer: function useVlcPlayer(target) {
       const vlc = useVlc();
-      return { download, externalPlayer: vlc ? 'vlc' : null, openExternal: vlc ? () => vlc(target) : undefined };
+      if (!vlc) return null;
+      const name = target.kind === 'episode' && target.subtitle ? target.subtitle : target.title;
+      return { kind: 'vlc', label: t('Open {name} in VLC', { name }), open: () => vlc(target) };
     },
+    replace: (section, masterId) => uiStore.getState().replaceDetails({ section, masterId }),
     Frame: ({ label, split, onClose, children }) => (
       <Modal label={label} onClose={onClose} fill={split}>
         {children}

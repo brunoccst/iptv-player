@@ -624,7 +624,7 @@ describe('split or merge titles by hand (issue #243)', () => {
     await render(<DetailsScreen section="movies" masterId="m1" />);
     await flush();
     await fireEvent.press(screen.getByTestId('details-regroup'));
-    await fireEvent.press(screen.getByTestId('regroup-split'));
+    await fireEvent.press(screen.getByTestId('card-menu-split'));
     await flush();
     expect(backend.calls.find((call) => call.method === 'POST')?.body).toEqual({ action: 'split', streamId: 'a' });
     expect(navStore.getState().libraryRevision).toBe(revision + 1);
@@ -652,8 +652,8 @@ describe('split or merge titles by hand (issue #243)', () => {
     await flush();
     await fireEvent.press(screen.getByTestId('details-regroup'));
     // One version: nothing to split off.
-    expect(screen.queryByTestId('regroup-split')).toBeNull();
-    await fireEvent.press(screen.getByTestId('regroup-merge'));
+    expect(screen.queryByTestId('card-menu-split')).toBeNull();
+    await fireEvent.press(screen.getByTestId('card-menu-merge'));
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
     });

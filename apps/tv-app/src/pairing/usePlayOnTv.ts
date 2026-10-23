@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import { useAppStore, type PlayTarget, t } from '@iptv/shared';
-import { pairedTv, playOnTv } from '../pairing/remote';
-import { IconButton } from './IconButton';
+import { pairedTv, playOnTv } from './remote';
 
 /** Phones with a paired TV (D-060): the TV's name and starting the title there (D-061). Null elsewhere. */
 export function usePlayOnTv(target: PlayTarget | null) {
@@ -22,11 +21,4 @@ export function usePlayOnTv(target: PlayTarget | null) {
         .finally(() => setBusy(false));
     },
   };
-}
-
-/** Round button that starts the title on the paired TV instead. */
-export function PlayOnTvButton({ target, testID }: { target: PlayTarget | null; testID?: string }) {
-  const playOnTv = usePlayOnTv(target);
-  if (!playOnTv) return null;
-  return <IconButton icon="tv" label={playOnTv.label} testID={testID} onPress={playOnTv.play} />;
 }

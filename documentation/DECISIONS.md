@@ -108,6 +108,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-200](#d-200) | Shared profiles |
 | [D-201](#d-201) | Shared Live TV |
 | [D-202](#d-202) | Shared details |
+| [D-203](#d-203) | Shared details buttons |
 
 ## Merged and retired IDs
 
@@ -1177,6 +1178,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 **Shared details** — 2026-10-23 (issue #237)
 
-- A title's details are the screen shared with the desktop (`DetailsScreen`), with the TV's Watched and My List buttons moved to `packages/screens/src/ui`. The host's `details` gives how they close, the library revision that reloads them, and the buttons only that app has: Download, Play on the paired TV (phones), another player (VLC on the desktop) and Split or merge (each app keeps its own for now). `useEpisodeOptions` gives the same choices for an episode's "…" menu, which the host's `Menu` draws (desktop: under the button).
+- A title's details are the screen shared with the desktop (`DetailsScreen`), with the TV's Watched and My List buttons moved to `packages/screens/src/ui`. The host's `details` gives how they close, the library revision that reloads them, and the buttons only that app has: Download, Play on the paired TV (phones), another player (VLC on the desktop) and Split or merge (shared since D-203). `useEpisodeOptions` gives the same choices for an episode's "…" menu, which the host's `Menu` draws (desktop: under the button).
 - On the desktop the details sit in the app's own dialog (`details.Frame`): Escape, a click beside it and its close button close it, and a dialog over it closes first. Wide landscape windows get the two columns (D-158) by the same rule as the TV: wider than tall and at least 700 wide.
 - On the desktop the drop-downs (version, season, an episode's version, and also the sort and sign-in language) are the browser's own (`Select.web.tsx`), which the mouse and keyboard already know; TV and phone keep the option list.
+
+## D-203
+
+**Shared details buttons** — 2026-10-23 (issue #237)
+
+- The details' Download (with its progress ring), Play on TV, another player (VLC on the desktop) and Split or merge buttons are drawn by the shared screen (`packages/screens/src/ui`). The host gives hooks, not buttons: `details.useDownload`, `usePlayOnTv` (phones), `useExternalPlayer` and `replace` (show the details a split or merge left). An episode's "…" menu takes its choices from the same hooks, so `useEpisodeOptions` is gone.
+- Split or merge opens the host's `Menu` (desktop: under the button) and its picker is a React Native `Modal`. On the desktop, Escape closes the picker from a window listener in the capture phase and stops there, so the details' dialog under it stays open (the text field keeps its key presses, D-200).
+- The progress ring has a `.web.tsx` twin drawn as a plain SVG element, like `Icon`, so the desktop needs no react-native-svg.
