@@ -18,7 +18,7 @@ import { navStore } from '../appContext';
 import { PosterCard } from '../components/PosterCard';
 import { useNav } from '../hooks';
 import { colors, useSizes, useNavHeight } from '../theme';
-import { MasterCardItem, TvLines, useGridColumns } from './titles';
+import { TitleCard, TvLines, useGridColumns } from './titles';
 import { useChannelSearch, usePagedLibrary, useProgrammeSearch } from '../hooks';
 
 const PAGE = 100;
@@ -91,7 +91,7 @@ function SearchGrid({ section, query, title }: { section: LibrarySection; query:
   const renderLine = (line: (typeof lines)[number]) => (
     <FocusRow key={line[0]!.id} style={[styles.line, { paddingHorizontal: sizes.gutter }]}>
       {line.map((item) => (
-        <MasterCardItem key={item.id} section={section} item={item} width={itemWidth} />
+        <TitleCard key={item.id} section={section} item={item} width={itemWidth} />
       ))}
     </FocusRow>
   );

@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { build as esbuild } from 'esbuild';
 import { defineConfig, type Plugin } from 'vite';
 
+// A shared screen's `X.web.tsx` takes the place of its `X.tsx` here (DECISIONS.md#d-193).
+const WEB_FIRST = ['.web.tsx', '.web.ts', '.web.js', '.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'];
+
 // Root .env is the single config source. See DECISIONS.md#d-003.
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const serviceWorkerEntry = fileURLToPath(new URL('./src/offline/serviceWorker.ts', import.meta.url));
@@ -47,9 +50,11 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   plugins: [react(), serviceWorker()],
   // Screens shared with the TV app (issue #237, DECISIONS.md#d-193) are React Native; here they render as DOM.
-  resolve: { alias: { 'react-native': 'react-native-web' } },
+  resolve: { alias: { 'react-native': 'react-native-web' }, extensions: WEB_FIRST },
   // Account menu → App → About (D-079): the commit and time this build was made from, like the TV app's About.
   define: {
+    // React Native Web's animations stop through Node's `global` (shared screens, DECISIONS.md#d-193).
+    global: 'globalThis',
     __BUILD_INFO__: JSON.stringify({ commit: process.env.GITHUB_SHA ?? '', date: new Date().toISOString() }),
   },
   envDir: repoRoot,

@@ -82,7 +82,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `packages/screens/src/MyListScreen.tsx`, `apps/tv-app/src/screens/MyListScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/web-player/src/features/browse/MyListPage.tsx`, `apps/web-player/src/features/browse/SharedMyListPage.tsx` |
+| [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `packages/screens/src/MyListScreen.tsx`, `packages/screens/src/TitleCard.tsx`, `packages/screens/src/ui/pageFocus.ts`, `apps/tv-app/src/screenHost.tsx`, `apps/web-player/src/features/browse/MyListPage.tsx` |
 | [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/src/components/QualityUpgradeDialog.tsx`, `apps/web-player/src/features/home/QualityUpgradeDialog.tsx` |
 
 ## Downloads

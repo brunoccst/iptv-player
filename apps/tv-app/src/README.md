@@ -11,7 +11,8 @@
 | `secureRandom.ts`      | `crypto.getRandomValues` from Android's SecureRandom where Hermes lacks it (backup salts, pairing nonces, issue #233).                                                                                            |
 | `useAsync.ts`          | Cached one-off reads (movie metadata, series episodes).                                                                                                                                                           |
 | `useLibraryWatcher.ts` | Polls library status while empty/processing; reloads rows when done.                                                                                                                                              |
-| `theme.ts`             | Colours, spacing, TV-safe margins, font and card sizes.                                                                                                                                                           |
+| `theme.ts`             | Moved to `packages/screens/src/ui` (shared with the desktop, D-194); re-exported here. |
+| `screenHost.tsx` | What the TV and phone app give the shared screens (`ScreenHost`, D-194): focus page, details panel, hold-OK menu, colour keys. |
 | `components/`          | Focusable building blocks.                                                                                                                                                                                        |
 | `navigation/`          | Stack navigation store.                                                                                                                                                                                           |
 | `screens/`             | Login, profiles, home, browse, live, details, downloads.                                                                                                                                                          |

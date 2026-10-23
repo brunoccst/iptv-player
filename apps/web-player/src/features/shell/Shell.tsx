@@ -5,8 +5,6 @@ import { BrowsePage } from '../browse/BrowsePage';
 import { SearchPage } from '../browse/SearchPage';
 import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
-import { MyListPage } from '../browse/MyListPage';
-import { sharedScreensOn } from '../browse/sharedScreens';
 import { HomePage } from '../home/HomePage';
 import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
 import { ReminderToast } from '../live/ReminderToast';
@@ -15,9 +13,8 @@ import { LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
 import { t } from '@iptv/shared';
 
-// The React Native Web trial (issue #237, DECISIONS.md#d-193): loaded only when it is switched on.
-const SharedMyListPage = lazy(() => import('../browse/SharedMyListPage').then((module) => ({ default: module.SharedMyListPage })));
-const sharedMyList = sharedScreensOn();
+// Screens shared with the TV app come with React Native Web (issue #237, DECISIONS.md#d-193): loaded when first shown.
+const MyListPage = lazy(() => import('../browse/MyListPage').then((module) => ({ default: module.MyListPage })));
 
 // hls.js is large: load the player only when something plays.
 const PlayerOverlay = lazy(() => import('../player/PlayerOverlay').then((module) => ({ default: module.PlayerOverlay })));
@@ -36,10 +33,9 @@ export function Shell() {
         {view === 'movies' || view === 'series' ? <BrowsePage section={view} banner={<LibraryBanner />} /> : null}
         {view === 'search' ? <SearchPage /> : null}
         {view === 'live' ? <LiveTvPage /> : null}
-        {view === 'mylist' && !sharedMyList ? <MyListPage /> : null}
-        {view === 'mylist' && sharedMyList ? (
+        {view === 'mylist' ? (
           <Suspense fallback={<Spinner />}>
-            <SharedMyListPage />
+            <MyListPage />
           </Suspense>
         ) : null}
         {view === 'downloads' ? <DownloadsPage /> : null}
