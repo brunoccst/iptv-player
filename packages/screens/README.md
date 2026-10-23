@@ -1,6 +1,6 @@
 # @iptv/screens
 
-Screens written once in React Native for every app: the TV and phone app render them natively, the desktop app through React Native Web (issue #237, [D-193](../../documentation/DECISIONS.md#d-193), [D-194](../../documentation/DECISIONS.md#d-194)). Screens move here one at a time: My List, Movies and Series, Search, then Home.
+Screens written once in React Native for every app: the TV and phone app render them natively, the desktop app through React Native Web (issue #237, [D-193](../../documentation/DECISIONS.md#d-193), [D-194](../../documentation/DECISIONS.md#d-194)). Screens move here one at a time: My List, Movies and Series, Search, Home, then My Downloads.
 
 - TypeScript source, no build step, like `@iptv/shared`. Imports `react`, `react-native` and `@iptv/shared` only, never an app.
 - Each app calls `setScreenHost` once with what differs per app (`ScreenHost`): its hooks, how details open, the scrolling page, a title's menu, the TV colour keys.
@@ -9,6 +9,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | File | What |
 |------|------|
 | `src/host.tsx` | `ScreenHost`, `setScreenHost`, `ScreenHostProvider`, `useScreenHost` |
+| `src/DownloadsScreen.tsx` | My Downloads: each download with progress and Play / Pause / Resume / Delete; the app's host gives the list (D-198) |
 | `src/HomeScreen.tsx` | Home: featured movie, Continue Watching, My List, Live TV, Top rated and category rows, built a few at a time (D-197) |
 | `src/BrowseScreen.tsx` | Movies or Series: title, category chips, "Sort by", the title grid |
 | `src/TitleGrid.tsx` | Paged title grid: TV mounts only the lines near the focus (`TvLines`, D-094), phone a list, desktop every line with the app's `EndSensor` |

@@ -89,7 +89,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Offline downloads](FEATURES.md#offline-downloads) | `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/DownloadCenter.kt`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/OfflineKey.kt`, `apps/web-player/src/offline/downloadManager.ts`, `apps/web-player/src/offline/offlineResponder.ts`, `apps/web-player/src/offline/desktopReads.ts`, `apps/web-player/src/features/downloads/backgroundDownloads.ts`, `apps/desktop/main.mjs`, `packages/shared/src/playback/offlineAccess.ts` |
+| [Offline downloads](FEATURES.md#offline-downloads) | `packages/screens/src/DownloadsScreen.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/DownloadCenter.kt`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/OfflineKey.kt`, `apps/web-player/src/offline/downloadManager.ts`, `apps/web-player/src/offline/offlineResponder.ts`, `apps/web-player/src/offline/desktopReads.ts`, `apps/web-player/src/features/downloads/backgroundDownloads.ts`, `apps/desktop/main.mjs`, `packages/shared/src/playback/offlineAccess.ts` |
 
 ## Profiles
 

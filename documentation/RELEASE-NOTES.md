@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **My Downloads in your language** (2026-10-23, D-198, issue #237): a download's status (Waiting…, Downloading, Paused, Downloaded) now follows the app language instead of always showing in English.
 - **Focus back on the cover after closing details** (2026-10-23, D-069): on the TV, closing a movie's or series' details left nothing focused. The focus now goes back to the cover or button you opened them from, or to the first one on screen if it is gone.
 - **Play / pause in the middle, one season at a time** (2026-10-19, D-046, D-066): on the phone, tapping the video now also shows a big play / pause button in the middle of the screen, like Netflix and YouTube. The player's Episodes panel (phone and TV) shows one season with a season choice, opened on the season playing, and the episode playing is highlighted and can no longer be picked again.
 - **Clearer phone player** (2026-10-19, D-046, D-190): the Audio, Subtitles and Episodes panel no longer shows Audio lit up as if selected, has a back arrow, and closes with a tap beside it. The brightness and volume bars now show on the sides whenever you tap to show the controls.
@@ -118,6 +119,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **My Downloads looks like the TV's** (2026-10-23, D-198, issue #237): My Downloads is now the same screen as on the TV and phone app, with the same list, progress bar and round buttons.
 - **Home looks like the TV's** (2026-10-23, D-197, issue #237): Home is now the same screen as on the TV and phone app. Each row shows its first 30 titles and ends with a "See all" card that opens the whole category.
 - **Search looks like the TV's** (2026-10-23, D-196, issue #237): the search page is now the same screen as on the TV and phone app, with the same filter, results and "Keep typing…" note.
 - **Movies and Series look like the TV's** (2026-10-23, D-195, issue #237): the Movies and Series pages are now the same screens as on the TV and phone app, with the same category chips and "Sort by" menu. More titles still load as you scroll down.
