@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t } from '@iptv/shared';
-import { api, downloadsStore, stores, uiStore } from '../../appContext';
+import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
 import { BackupDialog } from '../backup/BackupDialog';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
-import { LanguageSettings } from '../profiles/LanguageSettings';
 import { usePinGate } from '../profiles/PinDialog';
 import { chooseUiLanguage } from '../shell/AppLanguageDialog';
 import { downloadProgress, posterPath } from '../../offline/types';
@@ -25,6 +24,7 @@ import {
   useHeroTitle,
   useHiddenCategories,
   useKidsCategories,
+  useLanguageSettings,
   useLibrary,
   useLiveHomeRow,
   useMergeCandidates,
@@ -80,8 +80,10 @@ setScreenHost({
     useQualityUpgrades,
     useKidsCategories,
     useHiddenCategories,
+    useLanguageSettings,
   },
   api,
+  subtitles: appContext.subtitles,
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
   play: (target) => uiStore.getState().play(target),
@@ -106,7 +108,6 @@ setScreenHost({
   },
   profiles: {
     usePinGate,
-    LanguageSettings,
     signOut: confirmSignOut,
   },
   useDownloads: function useDesktopDownloads() {

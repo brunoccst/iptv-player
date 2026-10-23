@@ -614,8 +614,8 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
   await page.locator('.menu__avatar').click();
   await page.getByRole('menuitem', { name: 'App' }).click();
   await page.getByRole('menuitem', { name: 'Automatic subtitles' }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByRole('checkbox', { name: 'On' }).check();
+  const dialog = page.getByRole('dialog', { name: 'Automatic subtitles' });
+  await dialog.getByRole('button', { name: 'Off' }).click();
   await dialog.getByLabel('API key').fill('test-key');
   await dialog.getByRole('button', { name: 'Save' }).click();
 

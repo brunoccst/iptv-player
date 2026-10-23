@@ -2,14 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
 
 const NO_NOTES: string[] = [];
-import { api, downloadsStore, navStore, stores } from './appContext';
+import { api, appContext, downloadsStore, navStore, stores } from './appContext';
 import { t } from '@iptv/shared';
 import { appConfig } from './config';
 import { BackupDialog } from './components/BackupDialog';
 import { chooseUiLanguage } from './components/AppLanguageDialog';
 import { confirmSignOut } from './components/AccountMenu';
 import { CardMenu } from './components/CardMenu';
-import { LanguageSettings } from './components/LanguageSettings';
 import { usePinGate } from './components/PinPad';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
@@ -20,6 +19,7 @@ import {
   useHeroTitle,
   useHiddenCategories,
   useKidsCategories,
+  useLanguageSettings,
   useLibrary,
   useLiveHomeRow,
   useMergeCandidates,
@@ -83,8 +83,10 @@ const host: ScreenHost = {
     useQualityUpgrades,
     useKidsCategories,
     useHiddenCategories,
+    useLanguageSettings,
   },
   api,
+  subtitles: appContext.subtitles,
   stores,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
   play: (target) => navStore.getState().push({ name: 'player', target }),
@@ -101,7 +103,7 @@ const host: ScreenHost = {
     },
     scan: { available: canScanQr, open: () => openPairingDialog('scan') },
   },
-  profiles: { usePinGate, LanguageSettings, signOut: confirmSignOut },
+  profiles: { usePinGate, signOut: confirmSignOut },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);
     useEffect(() => downloadsStore.getState().refresh(), []);

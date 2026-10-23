@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Language and subtitle settings look like the TV's** (2026-10-23, D-205, issue #237): the Content language filter and Automatic subtitles are now the same dialogs as on the TV and phone app.
 - **Dialogs look like the TV's** (2026-10-23, D-204, issue #237): "Better quality on My List", a Kids profile's categories and Categories shown are now the same dialogs as on the TV and phone app.
 - **Details buttons look like the TV's** (2026-10-23, D-203, issue #237): Download, Open in VLC and Split or merge in a title's details are now the TV app's buttons, and "Merge with another title" is the TV's picker. Escape closes the picker without closing the details.
 - **Details look like the TV's** (2026-10-23, D-202, issue #237): a movie's or series' details are now the same screen as on the TV and phone app, with the TV's episode rows. The version and season choices are the usual drop-downs.
