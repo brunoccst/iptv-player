@@ -17,7 +17,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 |---------|------|
 | [Title grouping](FEATURES.md#title-grouping) | `packages/shared/src/direct/normalizer/parser.ts`, `packages/shared/src/direct/normalizer/matching.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/reattach.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/LibraryDb.kt`, `apps/desktop/lib/libraryDb.mjs` |
 | [Split or merge titles](FEATURES.md#split-or-merge-titles) | `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/components/RegroupButton.tsx`, `apps/web-player/src/features/details/RegroupButton.tsx` |
-| [Version choice and "(best)"](FEATURES.md#version-choice-and-best) | `packages/shared/src/playback/playbackChoices.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `apps/web-player/src/features/details/VariantSelect.tsx`, `apps/tv-app/src/screens/DetailsScreen.tsx` |
+| [Version choice and "(best)"](FEATURES.md#version-choice-and-best) | `packages/shared/src/playback/playbackChoices.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/screens/src/DetailsScreen.tsx` |
 | [Library updates](FEATURES.md#library-updates) | `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/ListReader.kt`, `packages/shared/src/direct/nameRow.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/NameParser.kt`, `apps/tv-app/scripts/build-name-parser.mjs` |
 | [Library banner](FEATURES.md#library-banner) | `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/src/useLibraryWatcher.ts`, `apps/tv-app/src/components/LibraryBanner.tsx`, `apps/web-player/src/features/shell/LibraryBanner.tsx` |
 
@@ -39,15 +39,15 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Card menu](FEATURES.md#card-menu) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/components/CardMenu.tsx`, `apps/web-player/src/components/CardMenu.tsx` |
-| [Watched tag](FEATURES.md#watched-tag) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/components/WatchedTag.tsx`, `apps/web-player/src/components/WatchedTag.tsx` |
+| [Watched tag](FEATURES.md#watched-tag) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/components/WatchedTag.tsx` |
 | [Quality tag](FEATURES.md#quality-tag) | `packages/shared/src/hooks.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/normalizer/tags.ts`, `packages/shared/src/stores/watchlistStore.ts` |
 
 ## Details
 
 | Feature | Code |
 |---------|------|
-| [Movie and series details](FEATURES.md#movie-and-series-details) | `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/tv-app/src/App.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx`, `apps/web-player/src/hooks/useMediaQuery.ts` |
-| [Seasons and episodes](FEATURES.md#seasons-and-episodes) | `packages/shared/src/playback/seriesVersions.ts`, `packages/shared/src/playback/watched.ts`, `packages/screens/src/ui/focusGrid.ts`, `apps/tv-app/src/screens/DetailsScreen.tsx`, `apps/web-player/src/features/details/EpisodeList.tsx` |
+| [Movie and series details](FEATURES.md#movie-and-series-details) | `packages/shared/src/hooks.ts`, `packages/shared/src/playback/watched.ts`, `packages/screens/src/DetailsScreen.tsx`, `apps/tv-app/src/components/pageFocus.ts`, `apps/tv-app/src/App.tsx`, `apps/web-player/src/features/details/DetailsModal.tsx` |
+| [Seasons and episodes](FEATURES.md#seasons-and-episodes) | `packages/shared/src/playback/seriesVersions.ts`, `packages/shared/src/playback/watched.ts`, `packages/screens/src/ui/focusGrid.ts`, `packages/screens/src/DetailsScreen.tsx` |
 
 ## Player
 

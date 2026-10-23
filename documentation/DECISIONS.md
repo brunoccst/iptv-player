@@ -107,6 +107,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-199](#d-199) | Shared sign-in |
 | [D-200](#d-200) | Shared profiles |
 | [D-201](#d-201) | Shared Live TV |
+| [D-202](#d-202) | Shared details |
 
 ## Merged and retired IDs
 
@@ -1171,3 +1172,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The Live TV guide is the screen shared with the desktop (`LiveScreen`), with the TV's focus grid (`focusGrid`) moved to `packages/screens/src/ui`. The host adds the guide's store (`stores.epg`), reminders and programme descriptions, and on the TV the remote's keys (`useRemote`: Channel +/− and the guide's hour paging, D-028) and the top nav link that Up goes to (`useNavFocusTarget`). The desktop's `allowReminders` asks once to show system notifications (issue #239).
 - On the desktop the page is as tall as the window, like the TV: the categories and the guide scroll on their own and more channels load near the end of the list. A narrow window gets the phone's layout (category chips, the whole page scrolls). The channels keep the TV's focus guide only where React Native has one; React Native Web gets a plain view.
+
+## D-202
+
+**Shared details** — 2026-10-23 (issue #237)
+
+- A title's details are the screen shared with the desktop (`DetailsScreen`), with the TV's Watched and My List buttons moved to `packages/screens/src/ui`. The host's `details` gives how they close, the library revision that reloads them, and the buttons only that app has: Download, Play on the paired TV (phones), another player (VLC on the desktop) and Split or merge (each app keeps its own for now). `useEpisodeOptions` gives the same choices for an episode's "…" menu, which the host's `Menu` draws (desktop: under the button).
+- On the desktop the details sit in the app's own dialog (`details.Frame`): Escape, a click beside it and its close button close it, and a dialog over it closes first. Wide landscape windows get the two columns (D-158) by the same rule as the TV: wider than tall and at least 700 wide.
+- On the desktop the drop-downs (version, season, an episode's version, and also the sort and sign-in language) are the browser's own (`Select.web.tsx`), which the mouse and keyboard already know; TV and phone keep the option list.

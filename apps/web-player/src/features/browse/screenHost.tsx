@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t } from '@iptv/shared';
-import { downloadsStore, stores, uiStore } from '../../appContext';
+import { api, downloadsStore, stores, uiStore } from '../../appContext';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
 import { BackupDialog } from '../backup/BackupDialog';
@@ -14,7 +14,12 @@ import { chooseUiLanguage } from '../shell/AppLanguageDialog';
 import { downloadProgress, posterPath } from '../../offline/types';
 import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
-import { CardMenu, menuPosition, type MenuPosition } from '../../components/CardMenu';
+import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
+import { DownloadButton, useDownload } from '../../components/DownloadButton';
+import { Modal } from '../../components/Modal';
+import { useVlc, VlcButton } from '../../components/VlcButton';
+import { downloadTarget } from '../../ui/targets';
+import { RegroupButton } from '../details/RegroupButton';
 import {
   continueMenuItems,
   useCatalog,
@@ -23,6 +28,7 @@ import {
   useHeroTitle,
   useLibrary,
   useLiveHomeRow,
+  useMovieDetails,
   useOfflineAccess,
   usePagedLibrary,
   useProgrammeSearch,
@@ -31,10 +37,12 @@ import {
   useProgrammeDescription,
   useProgress,
   useReminders,
+  useSeriesDetails,
   useSession,
   useTitleCard,
   useUi,
   useWatchlist,
+  useWatchlistToggle,
 } from '../../hooks/stores';
 
 /**
@@ -62,7 +70,11 @@ setScreenHost({
     useProfileEditor,
     useReminders,
     useProgrammeDescription,
+    useMovieDetails,
+    useSeriesDetails,
+    useWatchlistToggle,
   },
+  api,
   stores,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
   play: (target) => uiStore.getState().play(target),
@@ -137,6 +149,33 @@ setScreenHost({
   allowReminders: () => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission();
   },
+  details: {
+    close: () => uiStore.getState().closeDetails(),
+    useRevision: () => useUi((s) => s.libraryRevision),
+    DownloadButton: ({ target, durationSeconds }) => <DownloadButton target={downloadTarget(target, durationSeconds)} />,
+    ExternalPlayerButton: VlcButton,
+    RegroupButton,
+    useEpisodeOptions: function useEpisodeOptions(target, durationSeconds) {
+      const download = useDownload(downloadTarget(target, durationSeconds));
+      const vlc = useVlc();
+      return { download, externalPlayer: vlc ? 'vlc' : null, openExternal: vlc ? () => vlc(target) : undefined };
+    },
+    Frame: ({ label, split, onClose, children }) => (
+      <Modal label={label} onClose={onClose} fill={split}>
+        {children}
+      </Modal>
+    ),
+  },
+  Menu: ({ title, subtitle, items, anchor, onClose }) => (
+    <CardMenu
+      title={title}
+      subtitle={subtitle}
+      // React Native Web's views are the page's elements: the menu opens under the button.
+      position={anchor instanceof Element ? menuBelow(anchor) : { x: window.innerWidth / 2 - 100, y: window.innerHeight / 3 }}
+      onClose={onClose}
+      actions={items.map((item) => ({ label: item.label, icon: item.icon, disabled: item.disabled, onSelect: item.run }))}
+    />
+  ),
   Page: ({ children, testID }) => (
     <div data-testid={testID} style={{ padding: 'calc(var(--nav-height) + 24px) 0 60px' }}>
       {children}

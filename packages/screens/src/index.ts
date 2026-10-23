@@ -9,6 +9,7 @@ export {
   type ScreenHost,
   type TitleMenuItem,
 } from './host';
+export { DetailsScreen } from './DetailsScreen';
 export { DownloadsScreen } from './DownloadsScreen';
 export { categoryPage, LiveScreen } from './LiveScreen';
 export { LoginScreen } from './LoginScreen';

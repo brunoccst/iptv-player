@@ -1,6 +1,17 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { View } from 'react-native';
-import type { AppContext, AppHooks, IconName, LibrarySection, MasterCard, PinGate, PlayTarget } from '@iptv/shared';
+import type {
+  AppContext,
+  AppHooks,
+  DownloadMenuState,
+  IconName,
+  LibrarySection,
+  MasterCard,
+  MasterDetails,
+  PinGate,
+  PlayTarget,
+  VariantInfo,
+} from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -8,6 +19,22 @@ export interface TitleMenuItem {
   label: string;
   icon: IconName;
   run(): void;
+}
+
+/** One option of a menu the screen opens itself (an episode's "…"); `disabled` ones show but cannot be picked. */
+export interface MenuItem extends TitleMenuItem {
+  disabled?: boolean;
+}
+
+/** What an episode's menu offers besides Watched, where this app has it (D-078). */
+export interface EpisodeOptions {
+  download?: { menu: DownloadMenuState; toggle(): void } | null;
+  /** The paired TV's name, for "Play on …" (D-061). */
+  tvName?: string | null;
+  playOnTv?(): void;
+  /** Another player app (TV and phone) or VLC (desktop), D-057. */
+  externalPlayer?: 'app' | 'vlc' | null;
+  openExternal?(): void;
 }
 
 /** One download on My Downloads, from the app's own downloads store (the TV's native downloader, the desktop's cache). */
@@ -62,8 +89,12 @@ export interface ScreenHost {
     | 'useProfileEditor'
     | 'useReminders'
     | 'useProgrammeDescription'
+    | 'useMovieDetails'
+    | 'useSeriesDetails'
+    | 'useWatchlistToggle'
   >;
-  stores: Pick<AppContext['stores'], 'catalog' | 'library' | 'session' | 'epg'>;
+  api: AppContext['api'];
+  stores: AppContext['stores'];
   openDetails(section: LibrarySection, masterId: string): void;
   /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
   play(target: PlayTarget): void;
@@ -108,6 +139,29 @@ export interface ScreenHost {
   useNavFocusTarget?(): View | undefined;
   /** Desktop: a reminder is about to be set; asks once to show system notifications while the window is away (issue #239). */
   allowReminders?(): void;
+  /** A title's details (D-069): how they close and the buttons only this app has. */
+  details: {
+    close(): void;
+    /** Goes up when the library was read again, so the open details load again. */
+    useRevision(): number;
+    DownloadButton(props: { target: PlayTarget; durationSeconds?: number | null }): ReactNode;
+    /** Phones with a paired TV (D-061). */
+    PlayOnTvButton?(props: { target: PlayTarget | null }): ReactNode;
+    /** Another player app, or VLC on the desktop (D-057); nothing where there is none. */
+    ExternalPlayerButton(props: { target: PlayTarget }): ReactNode;
+    /** Split or merge titles by hand (issue #243). */
+    RegroupButton(props: { section: LibrarySection; master: MasterDetails; variant: VariantInfo }): ReactNode;
+    useEpisodeOptions(target: PlayTarget, durationSeconds: number | null | undefined): EpisodeOptions;
+    /** TV: the title the remote's Red key adds to My List while no card has the focus (D-154). */
+    usePageTitle?(section: LibrarySection, title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>): void;
+    /**
+     * Desktop: the app's dialog the details are drawn in (Escape, a click beside it and its close button close it).
+     * TV and phone: none, the screen draws its own panel. `split`: two columns over the whole window (D-158).
+     */
+    Frame?(props: { label: string; split: boolean; onClose(): void; children: ReactNode }): ReactNode;
+  };
+  /** A menu the screen opens itself (an episode's "…"); desktop: under `anchor`, the button it came from. */
+  Menu(props: { title: string; subtitle?: string | null; items: MenuItem[]; anchor?: View; onClose(): void }): ReactNode;
   /** The scrolling page under the top nav; `children` are the title and the rows. */
   Page(props: { children: ReactNode; testID: string }): ReactNode;
   /**

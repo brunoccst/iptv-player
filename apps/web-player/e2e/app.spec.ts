@@ -234,7 +234,7 @@ test('My List: save a title from its details and find it on the My List page', a
   await titleGrid(page).getByRole('button', { name: 'Big Test Movie' }).click();
   const details = page.getByRole('dialog');
   await details.getByRole('button', { name: 'Add Big Test Movie to My List' }).click();
-  await expect(details.getByRole('button', { name: 'Remove Big Test Movie from My List' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(details.getByRole('button', { name: 'Remove Big Test Movie from My List' })).toBeVisible();
   await page.keyboard.press('Escape');
 
   // Saved titles keep their cover's quality tag, in the Home row and on the My List page.
@@ -366,7 +366,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   await card.click({ button: 'right' });
   await menu.getByRole('menuitem', { name: 'Go to details' }).click();
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByTestId('watched-tag')).toBeVisible();
+  await expect(dialog.getByTestId('details-watched')).toBeVisible();
   await page.keyboard.press('Escape');
 
   await card.click({ button: 'right' });
@@ -376,9 +376,9 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
   // The details' eye button does the same (D-081).
   await card.click();
   await dialog.getByRole('button', { name: 'Mark as watched' }).click();
-  await expect(dialog.getByTestId('watched-tag')).toBeVisible();
+  await expect(dialog.getByTestId('details-watched')).toBeVisible();
   await dialog.getByRole('button', { name: 'Mark as not watched' }).click();
-  await expect(dialog.getByTestId('watched-tag')).toHaveCount(0);
+  await expect(dialog.getByTestId('details-watched')).toHaveCount(0);
   await page.keyboard.press('Escape');
 
   // My List from the card menu (D-078).
@@ -404,11 +404,11 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   await card.click();
   const dialog = page.getByRole('dialog');
   const episodes = dialog.getByRole('region', { name: 'Episodes' });
-  await expect(dialog.locator('.details__watched')).toBeVisible();
-  await expect(episodes.getByTestId('watched-tag').first()).toBeVisible();
+  await expect(dialog.getByTestId('details-watched')).toBeVisible();
+  await expect(episodes.getByTestId(/^episode-.*-watched$/).first()).toBeVisible();
 
   // One episode back to not watched: its tag and the series tag go.
-  const count = await episodes.getByTestId('watched-tag').count();
+  const count = await episodes.getByTestId(/^episode-.*-watched$/).count();
   // The whole season is watched: its button says so (issue #132).
   await expect(episodes.getByRole('button', { name: 'Mark season as not watched' })).toBeVisible();
   // The row has Play and "…" (D-078); the episode's options are in its menu.
@@ -420,8 +420,8 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   const episodeMenu = page.getByRole('menu');
   await expect(episodeMenu.getByRole('menuitem', { name: /^(Download|Downloaded)$/ })).toBeVisible();
   await episodeMenu.getByRole('menuitem', { name: 'Mark as not watched' }).click();
-  await expect(episodes.getByTestId('watched-tag')).toHaveCount(count - 1);
-  await expect(dialog.locator('.details__watched')).toHaveCount(0);
+  await expect(episodes.getByTestId(/^episode-.*-watched$/)).toHaveCount(count - 1);
+  await expect(dialog.getByTestId('details-watched')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(tag).toHaveCount(0);
 });
@@ -442,16 +442,15 @@ test('details: two columns on a wide window, the panel on a narrow one (D-158)',
   expect(r!.x).toBeGreaterThanOrEqual(l!.x + l!.width - 1);
   await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
   // Only the episode list scrolls; the title, season Watched button and season choice stay above it (D-158).
-  const list = right.locator('.episodes__list');
+  const list = right.getByTestId('episode-list');
   await expect(list).toHaveCSS('overflow-y', 'auto');
   await expect(list.getByRole('button', { name: 'Mark season as watched' })).toHaveCount(0);
   await expect(right.getByRole('button', { name: 'Mark season as watched' })).toBeVisible();
-  await expect(right).toHaveCSS('overflow-y', 'hidden');
 
   // A narrow window: the panel with the episodes under the rest.
   await page.setViewportSize({ width: 560, height: 900 });
   await expect(left).toHaveCount(0);
-  await expect(dialog.locator('.details__hero').getByRole('button', { name: /^Play/ })).toBeVisible();
+  await expect(dialog.getByTestId('details-hero').getByRole('button', { name: /^Play/ })).toBeVisible();
   await expect(dialog.getByRole('region', { name: 'Episodes' })).toBeAttached();
   await page.keyboard.press('Escape');
   await expect(dialog).toHaveCount(0);

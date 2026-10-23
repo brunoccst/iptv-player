@@ -9,6 +9,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | File | What |
 |------|------|
 | `src/host.tsx` | `ScreenHost`, `setScreenHost`, `ScreenHostProvider`, `useScreenHost` |
+| `src/DetailsScreen.tsx` | A title's details: backdrop, Play/Resume and the app's buttons, facts, version, episodes with their menu; two columns on wide landscape screens (D-158, D-202) |
 | `src/DownloadsScreen.tsx` | My Downloads: each download with progress and Play / Pause / Resume / Delete; the app's host gives the list (D-198) |
 | `src/LiveScreen.tsx` | Live TV: categories, Earlier / Now / Later, programme details, 3-hour channel × time grid; TV focus describes and Select plays, elsewhere a click or tap selects (D-032, D-201) |
 | `src/LoginScreen.tsx` | Sign-in: provider address, username, password, app language, restore from a backup, sign in from another device (D-199) |
