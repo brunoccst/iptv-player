@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
-import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
+import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
 
 const NO_NOTES: string[] = [];
 import { api, appContext, downloadsStore, navStore, stores } from './appContext';
 import { t, type UiLanguage } from '@iptv/shared';
 import { appConfig } from './config';
-import { BackupDialog } from './components/BackupDialog';
+import { backupFiles } from './backupFiles';
 import { about } from './about';
 import { confirmCloseApp, confirmSignOut } from './signOut';
 import { PinSettings } from './components/PinSettings';
@@ -112,6 +112,7 @@ const host: ScreenHost = {
     scan: { available: canScanQr, open: () => openPairingDialog('scan') },
   },
   about,
+  backup: backupFiles,
   account: {
     PinSettings,
     backup: { label: () => t('Back up data'), Dialog: ({ onClose }) => <BackupDialog mode="backup" onClose={onClose} /> },

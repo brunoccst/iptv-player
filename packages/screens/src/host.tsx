@@ -1,6 +1,16 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { View } from 'react-native';
-import type { AppContext, AppHooks, DownloadMenuState, IconName, LibrarySection, MasterCard, PinGate, PlayTarget } from '@iptv/shared';
+import type {
+  AppContext,
+  AppHooks,
+  BackupStorages,
+  DownloadMenuState,
+  IconName,
+  LibrarySection,
+  MasterCard,
+  PinGate,
+  PlayTarget,
+} from '@iptv/shared';
 
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
@@ -117,6 +127,22 @@ export interface ScreenHost {
     DeviceCode?(): ReactNode;
     /** Scanning a signed-in device's code instead, where there is a camera (D-178). */
     scan?: { available(): boolean; open(): void };
+  };
+  /** Backing up to an encrypted file and restoring it (D-056, DECISIONS.md#d-216): where the file goes and comes from. */
+  backup: {
+    storages: BackupStorages;
+    /** The file's name, e.g. `iptv-player-backup-2026-10-24.iptvbackup`. */
+    fileName(): string;
+    /** What a backup holds, for the dialog. Read when drawn (`t`). */
+    contents(): string;
+    /** Saves the file where the user picks (TV) or as a download (desktop): what to say then, `null` if they backed out. */
+    save(name: string, text: string): Promise<string | null>;
+    /** The system's file picker; `null` if they backed out. */
+    pick(): Promise<{ name: string; text(): Promise<string> } | null>;
+    /** After a restore: the TV reloads its data, the desktop the page. */
+    restored(): Promise<void>;
+    /** What a failure that is not the backup's own says (a picker or file error). */
+    failure(error: unknown): string;
   };
   /** Account menu → App → About (D-070): rows of what the app knows about itself, and checking for updates where it can. */
   about: { rows(): [label: string, value: string][]; checkForUpdates?(): void };
