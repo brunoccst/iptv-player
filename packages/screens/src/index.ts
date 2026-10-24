@@ -25,6 +25,7 @@ export { NextUp } from './NextUp';
 export { PlayerHeader } from './PlayerHeader';
 export { ProfilesScreen } from './ProfilesScreen';
 export { QualityUpgradeDialog } from './QualityUpgradeDialog';
+export { ReminderDialog } from './ReminderDialog';
 export { QuickDrawer, type DrawerTab, type TrackOption } from './QuickDrawer';
 export { BrowseScreen } from './BrowseScreen';
 export { HomeScreen } from './HomeScreen';

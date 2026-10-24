@@ -119,6 +119,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-211](#d-211) | Shared next-episode card |
 | [D-212](#d-212) | Shared Skip ahead button |
 | [D-213](#d-213) | Shared player top bar |
+| [D-214](#d-214) | Shared guide reminder dialog |
 
 ## Merged and retired IDs
 
@@ -1036,7 +1037,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A reminder is saved in the profile's preferences on the device (`reminders`, like recent channels, D-129): the channel, title and times, enough to show it and tune in without the guide. Pairing joins both devices' lists (D-060). Ended programmes are dropped whenever the list changes; at most 50 are kept.
 - The running app checks when the next one starts (and every 30 s) and shows it from its start for 10 minutes, so an app opened shortly after still shows it. Dismiss or Watch takes it off the list.
-- TV and phone: a popup over any page and the player (focus stays inside it). Desktop: a banner at the top right that does not take focus, over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
+- TV and phone: a popup over any page and the player (focus stays inside it). Desktop: the same dialog since D-214 (first a banner at the top right that did not take focus), over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
 - TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
 - Not with the app closed: that needs Android alarms and notifications (issue #263).
 
@@ -1273,3 +1274,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The bar at the top of the player (back arrow, title, subtitle with "Downloaded", LIVE) is one component for every app (`packages/screens/src/PlayerHeader.tsx`); the desktop's own markup and styles are gone. A download with no subtitle now says "Downloaded" on the desktop too, as on the TV.
 - Each app keeps what Back does and when the bar shows. On the TV the back arrow is focusable only while the player's buttons are open (D-077). On the desktop the title is a level-2 heading, and the e2e tests find the parts by test id (`player-title`, `player-subtitle`, `player-live`).
+
+## D-214
+
+**Shared guide reminder dialog** — 2026-10-24 (issue #237)
+
+- The reminder shown when a programme starts (D-184) is the TV's dialog on every app (`packages/screens/src/ReminderDialog.tsx`), over any page and the player. The desktop's banner at the top right, which did not take focus, is gone: like the other dialogs, Escape dismisses it.
+- Each app says what Watch does: the TV replaces an open player so Back returns to the page under it; the desktop plays over the page. The desktop keeps its system notification while the window is in the background (`apps/web-player/src/features/live/Reminder.tsx`).

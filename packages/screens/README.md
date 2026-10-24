@@ -31,6 +31,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/NextUp.tsx` | The next-episode countdown card at the end of an episode (D-211) |
 | `src/SkipAhead.tsx` | The player's Skip ahead button and its 30 s … 3 min options (D-042, D-212) |
 | `src/PlayerHeader.tsx` | The bar at the top of the player: back arrow, title, subtitle, LIVE (D-213) |
+| `src/ReminderDialog.tsx` | The guide reminder when its programme starts: Watch or Dismiss (D-184, D-214) |
 | `src/QuickDrawer.tsx` | The player's Audio, Subtitles, Versions and Episodes panel; the app lists its tracks as `TrackOption`s (D-077, D-210) |
 | `src/TopNav.tsx` | The top nav: brand, page links, search box, account avatar; `useNavFocusTarget` (TV: Up from a page, D-079, D-208) |
 | `src/AccountMenu.tsx` | The menu under the top nav's avatar: other profiles, the Profiles, Library & devices and App groups, Sign out (D-079, D-207) |
