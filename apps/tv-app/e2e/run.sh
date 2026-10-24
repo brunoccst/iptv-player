@@ -115,7 +115,14 @@ for presses in 16 40; do
   run_flow 05-hold-right
   echo "Focused before the presses:"; settle_focus
   adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
-  echo "Focused after $presses quick Right presses:"; settle_focus
+  echo "Focused after $presses quick Right presses:"; focused="$(settle_focus)"; printf '%s\n' "$focused"
+  # The emulator drops presses of a burst now and then (issue #301: 8 of 16 moved the focus). Still on a card of the
+  # row: more presses, once; a focus that left the row still fails the check below.
+  if printf '%s' "$focused" | grep -q 'resource-id="card-Stress Movie '; then
+    echo "Presses were dropped: $presses more."
+    adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
+    echo "Focused after $presses more:"; settle_focus
+  fi
   run_flow 06-hold-right-check || hold_failed=1
 done
 
