@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createAppContext } from '../appContext';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
+import { titleRulesKey } from '../direct/titleRules';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
@@ -25,12 +26,14 @@ function device() {
     [progressKey('p1')]: JSON.stringify([{ itemId: '55', positionSeconds: 100 }]),
     [watchlistKey('p2')]: JSON.stringify([{ section: 'series', masterId: 's1', title: 'Die Sendung mit der Maus' }]),
     'direct.library.v3.acc-1.movie': 'huge cache stays out',
+    // Splits and merges of titles (issue #267).
+    [titleRulesKey('acc-1')]: JSON.stringify([{ kind: 'movie', rule: 'split', src: '7', dst: '', at: '2026-10-24T00:00:00.000Z' }]),
   });
   return { secure, data };
 }
 
 describe('user-data backup (D-056)', () => {
-  it('round-trips settings, credentials, PIN, profiles, progress and My List to another device', async () => {
+  it('round-trips settings, credentials, PIN, profiles, progress, My List and title splits to another device', async () => {
     const old = device();
     const text = await exportUserData(old, 'correct horse');
     const file = JSON.parse(text) as { format: string; data: string };
@@ -45,6 +48,7 @@ describe('user-data backup (D-056)', () => {
     expect(fresh.data.data.get(progressKey('p1'))).toBe(old.data.data.get(progressKey('p1')));
     expect(fresh.data.data.get(watchlistKey('p2'))).toBe(old.data.data.get(watchlistKey('p2')));
     expect(fresh.data.data.get(profilesKey('acc-1'))).toBe(JSON.stringify(profiles));
+    expect(fresh.data.data.get(titleRulesKey('acc-1'))).toBe(old.data.data.get(titleRulesKey('acc-1')));
     expect([...fresh.data.data.keys()].some((key) => key.startsWith('direct.library'))).toBe(false);
   });
 
