@@ -611,7 +611,7 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
     route.fulfill({ headers: cors, body: '1\n00:00:00,000 --> 00:59:00,000\nHello from OpenSubtitles\n' }),
   );
 
-  await page.locator('.menu__avatar').click();
+  await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'App' }).click();
   await page.getByRole('menuitem', { name: 'Automatic subtitles' }).click();
   const dialog = page.getByRole('dialog', { name: 'Automatic subtitles' });
@@ -634,7 +634,7 @@ test('Categories shown: an unchecked category leaves browsing, but search still 
   const grid = titleGrid(page);
   await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
 
-  await page.locator('.menu__avatar').click();
+  await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Categories shown' }).click();
   const dialog = page.getByRole('dialog', { name: /^Categories shown/ });

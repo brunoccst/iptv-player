@@ -54,7 +54,7 @@ import { useDownload } from './downloads/useDownload';
 import { useExternalPlayer } from './player/useExternalPlayer';
 import { usePlayOnTv } from './pairing/usePlayOnTv';
 import { useRemote } from './tv/remote';
-import { useNavFocusTarget } from './components/TopNav';
+import { useNavFocusTarget } from '@iptv/screens';
 
 /**
  * The TV and phone side of the screens shared with the desktop app (issue #237, DECISIONS.md#d-193): a page that keeps

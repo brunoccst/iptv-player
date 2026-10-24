@@ -27,5 +27,6 @@ export { HomeScreen } from './HomeScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';
 export { SearchScreen } from './SearchScreen';
 export { SubtitleSettings } from './SubtitleSettings';
+export { TopNav, useNavFocusTarget, type NavSection } from './TopNav';
 export { LoadingMoreNote, TitleGrid, TvLines } from './TitleGrid';
 export { TitleCard } from './TitleCard';

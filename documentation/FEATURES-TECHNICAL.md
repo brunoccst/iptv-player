@@ -76,7 +76,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Titles, channels and programmes](FEATURES.md#titles-channels-and-programmes) | `packages/shared/src/search/useSearchQuery.ts`, `packages/shared/src/search/searchDelay.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/XmltvFilter.kt`, `packages/screens/src/SearchScreen.tsx`, `apps/tv-app/src/screens/SearchScreen.tsx`, `apps/web-player/src/features/browse/SearchPage.tsx` |
+| [Titles, channels and programmes](FEATURES.md#titles-channels-and-programmes) | `packages/screens/src/TopNav.tsx`, `packages/shared/src/search/useSearchQuery.ts`, `packages/shared/src/search/searchDelay.ts`, `packages/shared/src/direct/directApiClient.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/XmltvFilter.kt`, `packages/screens/src/SearchScreen.tsx`, `apps/tv-app/src/screens/SearchScreen.tsx`, `apps/web-player/src/features/browse/SearchPage.tsx` |
 
 ## My List
 
@@ -113,7 +113,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Account menu](FEATURES.md#account-menu) | `packages/screens/src/AccountMenu.tsx`, `apps/tv-app/src/components/AccountMenu.tsx`, `apps/tv-app/src/navigation/navStore.ts`, `apps/web-player/src/features/shell/TopNav.tsx` |
+| [Account menu](FEATURES.md#account-menu) | `packages/screens/src/AccountMenu.tsx`, `packages/screens/src/TopNav.tsx`, `apps/tv-app/src/components/AccountMenu.tsx`, `apps/tv-app/src/navigation/navStore.ts`, `apps/web-player/src/features/shell/TopNav.tsx` |
 | [About](FEATURES.md#about) | `packages/screens/src/AboutDialog.tsx`, `apps/tv-app/src/about.ts`, `apps/tv-app/app.config.ts`, `apps/web-player/src/features/shell/about.ts`, `apps/web-player/src/buildInfo.ts`, `apps/web-player/vite.config.ts` |
 | [Diagnostics log](FEATURES.md#diagnostics-log) | `packages/shared/src/utils/logger.ts`, `packages/shared/src/pairing/remote.ts`, `apps/tv-app/src/diagnostics/logReport.ts`, `apps/tv-app/src/pairing/remote.ts`, `apps/tv-app/src/startupLog.ts`, `apps/tv-app/src/screens/LogScreen.tsx`, `apps/tv-app/src/diagnostics/stallWatch.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/CrashLog.kt`, `apps/web-player/src/features/shell/LogDialog.tsx` |
 | [App updates](FEATURES.md#app-updates) | `apps/tv-app/src/update/updates.ts`, `apps/tv-app/src/update/UpdateDialog.tsx`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/AppUpdater.kt`, `apps/desktop/main.mjs`, `apps/desktop/preload.cjs`, `apps/web-player/src/features/shell/UpdateProgress.tsx`, `scripts/release-notes.mjs` |

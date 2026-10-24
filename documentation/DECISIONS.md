@@ -113,6 +113,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-205](#d-205) | Shared language and subtitle settings |
 | [D-206](#d-206) | Shared About and app language |
 | [D-207](#d-207) | Shared account menu |
+| [D-208](#d-208) | Shared top nav |
 
 ## Merged and retired IDs
 
@@ -1223,4 +1224,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The account menu under the avatar (D-079) is shared with the desktop (`packages/screens/src/AccountMenu.tsx`) and opens the shared dialogs itself. The app keeps whether it is open and which group shows (TV: in the nav store, so Back leaves a group first) and gives, in the host's `account`, only what differs: its PIN settings and backup dialogs, Sync with another device (none in a plain browser), Playback (TV builds with FFmpeg), Log (the TV's page, the desktop's dialog) and Close the app (TV and phone).
 - The desktop's top bar stays its own HTML for now and hangs the menu under its avatar. A click beside the menu lands on a see-through layer over the window and closes it, so a click on the avatar closes it too instead of opening it again; Escape closes it from a window listener in the capture phase, like `Dialog` (D-204), and the focus goes back to the avatar.
+
+## D-208
+
+**Shared top nav** — 2026-10-24 (issue #237)
+
+- The top nav (brand, page links, search box, account avatar) is shared with the desktop (`packages/screens/src/TopNav.tsx`). The app keeps the page, the search text, whether the bar is solid (TV: Home scrolled; desktop: the window scrolled past 10 px) and whether the account menu is open, and passes them in; the desktop hangs the account menu (D-207) under the avatar, the TV draws it over the whole screen.
+- On the desktop the bar is `position: fixed`, a `banner` with the links in a `navigation` landmark named "Main", like the HTML it replaces; a `header` role would make the whole bar a heading. Links say `aria-current="page"`, the avatar `aria-expanded`. The focus goes back to the avatar whenever the menu closes.
+- The desktop's `--nav-height` stays in its CSS for the pages under the bar; it matches the shared bar's heights (68, or 104 when the bar takes two rows at 720 px and below).
 
