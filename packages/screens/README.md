@@ -30,6 +30,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/GuideOverlay.tsx` | Live TV: the category's channels with now and next over the playing channel (D-058, D-209) |
 | `src/NextUp.tsx` | The next-episode countdown card at the end of an episode (D-211) |
 | `src/SkipAhead.tsx` | The player's Skip ahead button and its 30 s … 3 min options (D-042, D-212) |
+| `src/CardMenu.tsx` | A title's or episode's options panel and `TitleMenu`, which opens it from a card (D-221) |
 | `src/LogView.tsx` | The diagnostics log: notes, the app's send buttons, Clear log, last lines (D-220) |
 | `src/PinPad.tsx` | Parental PIN keypad (D-pad, touch, mouse, keyboard) and `usePinGate` (D-219) |
 | `src/PinSettings.tsx` | Account menu → Parental PIN: set, change or remove (D-219) |

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { BackupDialog, setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t, type UiLanguage } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
@@ -12,7 +12,6 @@ import { LogDialog } from '../shell/LogDialog';
 import { downloadProgress, posterPath } from '../../offline/types';
 import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
-import { CardMenu, menuBelow, menuPosition, type MenuPosition } from '../../components/CardMenu';
 import { Modal } from '../../components/Modal';
 import { useVlc } from '../../components/vlc';
 import { useDownload } from '../../offline/useDownload';
@@ -185,43 +184,21 @@ setScreenHost({
       </Modal>
     ),
   },
-  Menu: ({ title, subtitle, items, anchor, onClose }) => (
-    <CardMenu
-      title={title}
-      subtitle={subtitle}
-      // React Native Web's views are the page's elements: the menu opens under the button.
-      position={anchor instanceof Element ? menuBelow(anchor) : { x: window.innerWidth / 2 - 100, y: window.innerHeight / 3 }}
-      onClose={onClose}
-      actions={items.map((item) => ({ label: item.label, icon: item.icon, disabled: item.disabled, onSelect: item.run }))}
-    />
-  ),
   Page: ({ children, testID }) => (
     <div data-testid={testID} style={{ padding: 'calc(var(--nav-height) + 24px) 0 60px' }}>
       {children}
     </div>
   ),
-  TitleMenu: function TitleMenu({ title, subtitle, items, children }) {
-    const [menu, setMenu] = useState<MenuPosition | null>(null);
-    return (
-      <div
-        onContextMenu={(event) => {
-          event.preventDefault();
-          setMenu(menuPosition(event));
-        }}
-      >
-        {children()}
-        {menu ? (
-          <CardMenu
-            title={title}
-            subtitle={subtitle}
-            position={menu}
-            onClose={() => setMenu(null)}
-            actions={items().map((entry) => ({ label: entry.label, icon: entry.icon, onSelect: entry.run }))}
-          />
-        ) : null}
-      </div>
-    );
-  },
+  MenuTrigger: ({ children, onOpen }) => (
+    <div
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onOpen();
+      }}
+    >
+      {children()}
+    </div>
+  ),
   EndSensor: function EndSensor({ onReached }) {
     const sensor = useRef<HTMLDivElement>(null);
     const reached = useRef(onReached);

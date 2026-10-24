@@ -42,6 +42,7 @@ import {
   isSeasonWatched,
   setSeasonWatched,
 } from '@iptv/shared';
+import { CardMenu } from './CardMenu';
 import { useScreenHost } from './host';
 import { DownloadButton } from './ui/DownloadButton';
 import { ErrorText, errorText } from './ui/Feedback';
@@ -290,10 +291,9 @@ function Episodes({
   const split = useContext(SplitLayout);
   // The phone's episode rows (smaller still, buttons under the text) also in the narrow right column (D-158).
   const compact = useCompact() || split;
-  // The episode's menu (D-078): its "…" button, or holding OK on its Play button (a long touch on phones). Desktop: it
-  // opens under the button it came from (`anchor`).
-  const [menuFor, setMenuFor] = useState<{ episode: MergedEpisode; anchor?: View } | null>(null);
-  const onMenu = useCallback((episode: MergedEpisode, anchor?: View) => setMenuFor({ episode, anchor }), []);
+  // The episode's menu (D-078): its "…" button, or holding OK on its Play button (a long touch on phones).
+  const [menuFor, setMenuFor] = useState<{ episode: MergedEpisode } | null>(null);
+  const onMenu = useCallback((episode: MergedEpisode) => setMenuFor({ episode }), []);
   const closeMenu = useCallback(() => setMenuFor(null), []);
   // TV: the episode whose buttons have the D-pad focus, so its description can roll. Moving between its own buttons
   // blurs one and focuses the next; the short wait keeps that from counting as leaving the episode.
@@ -374,7 +374,6 @@ function Episodes({
       {menuFor ? (
         <EpisodeMenu
           episode={menuFor.episode}
-          anchor={menuFor.anchor}
           target={episodeTarget(episodeContext(series, master, menuFor.episode), menuFor.episode)}
           watched={isEpisodeWatched(progress, menuFor.episode)}
           onWatched={(watched) =>
@@ -437,7 +436,7 @@ const EpisodeRow = memo(function EpisodeRow({
   onEpisodeFocus(id: string): void;
   onEpisodeBlur(id: string): void;
   onChoose(id: string, episodeId: string): void;
-  onMenu(episode: MergedEpisode, anchor?: View): void;
+  onMenu(episode: MergedEpisode): void;
 }) {
   const host = useScreenHost();
   const episode = episodeInVersion(listed, chosenId);
@@ -467,7 +466,7 @@ const EpisodeRow = memo(function EpisodeRow({
       <IconButton
         icon="more"
         label={t('More options for {title}', { title: episode.title })}
-        onPress={() => onMenu(episode, gridAt(`${listed.id}:1`))}
+        onPress={() => onMenu(episode)}
         testID={`episode-${episode.id}-more`}
         {...focusEvents}
         {...cell(1)}
@@ -637,14 +636,12 @@ function EpisodePlot({ text, testID, rolling = false }: { text: string; testID: 
 /** An episode's options (D-078): Mark as (not) watched, Download, Play on the paired TV, Open in another player. */
 function EpisodeMenu({
   episode,
-  anchor,
   target,
   watched,
   onWatched,
   onClose,
 }: {
   episode: MergedEpisode;
-  anchor?: View;
   target: PlayTarget;
   watched: boolean;
   onWatched(watched: boolean): void;
@@ -668,10 +665,9 @@ function EpisodeMenu({
     externalPlayer: external?.kind ?? null,
   });
   return (
-    <host.Menu
+    <CardMenu
       title={episode.title}
       subtitle={episodeLabel(episode)}
-      anchor={anchor}
       onClose={onClose}
       items={items.map((item) => ({ id: item.id, label: item.label, disabled: item.disabled, icon: item.icon, run: run[item.id] }))}
     />

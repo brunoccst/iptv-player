@@ -16,7 +16,6 @@ Same look as the web components ([D-079](../../../../documentation/DECISIONS.md#
 | `Icon.tsx`                 | Moved to `packages/screens/src/ui` (shared with the desktop, D-194); re-exported here. |
 | `Gradient.tsx`             | Moved to `packages/screens/src/ui` (shared with the desktop, D-197); re-exported here. |
 | `PosterCard.tsx`           | Moved to `packages/screens/src/ui` (shared with the desktop, D-194); re-exported here. |
-| `CardMenu.tsx`             | A card's options, opened by holding OK or a "…" button: actions (some greyed out), then Cancel; Back closes it (D-078).                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `ChipBar.tsx`              | Moved to `packages/screens/src/ui` (shared with the desktop, D-195); re-exported here. |
 | `Row.tsx`, `rowReveal.ts`  | Moved to `packages/screens/src/ui` (shared with the desktop, D-197); re-exported here. |
 | `Select.tsx`               | Moved to `packages/screens/src/ui` (shared with the desktop, D-195); re-exported here. |

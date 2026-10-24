@@ -16,6 +16,7 @@ import {
   type MediaCategory,
   type ProgressDto,
 } from '@iptv/shared';
+import { TitleMenu } from './CardMenu';
 import { useScreenHost } from './host';
 import { TitleCard } from './TitleCard';
 import { FocusButton } from './ui/FocusButton';
@@ -214,7 +215,7 @@ const episodeLabel = (p: ProgressDto) =>
 
 /** Started titles; holding OK (a right-click on desktop) opens a card's options (D-078). */
 function ContinueWatchingRow() {
-  const { hooks, openDetails, play, TitleMenu } = useScreenHost();
+  const { hooks, openDetails, play } = useScreenHost();
   const items = hooks.useProgress((s) => s.items.data) ?? NO_PROGRESS;
   const resume = continueWatching(items);
   if (resume.length === 0) return null;

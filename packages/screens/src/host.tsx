@@ -199,20 +199,13 @@ export interface ScreenHost {
      */
     Frame?(props: { label: string; split: boolean; onClose(): void; children: ReactNode }): ReactNode;
   };
-  /** A menu the screen opens itself (an episode's "…"); desktop: under `anchor`, the button it came from. */
-  Menu(props: { title: string; subtitle?: string | null; items: MenuItem[]; anchor?: View; onClose(): void }): ReactNode;
   /** The scrolling page under the top nav; `children` are the title and the rows. */
   Page(props: { children: ReactNode; testID: string }): ReactNode;
   /**
-   * Wraps a title's card with its menu. `children` gets `openMenu` for the card's long press (hold OK on TV); the desktop
-   * opens it on a right-click and gives none.
+   * Wraps a title's card so it can open its menu (`TitleMenu`). `children` gets `openMenu` for the card's long press
+   * (hold OK on TV); the desktop calls `onOpen` on a right-click and passes none.
    */
-  TitleMenu(props: {
-    title: string;
-    subtitle?: string | null;
-    items: () => TitleMenuItem[];
-    children(openMenu?: () => void): ReactNode;
-  }): ReactNode;
+  MenuTrigger(props: { children(openMenu?: () => void): ReactNode; onOpen(): void }): ReactNode;
   /**
    * Desktop: shown at the end of a grid while more titles can load; calls `onReached` when it comes into view (the
    * window scrolls there). TV and phone grids scroll on their own and need none.
