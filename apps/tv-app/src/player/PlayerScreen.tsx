@@ -36,10 +36,7 @@ import {
   offlineAccess,
   formatClock,
   isInSkipAheadWindow,
-  skipAheadDescription,
-  skipAheadLabel,
   skipAheadWindow,
-  SKIP_AHEAD_OPTIONS,
   nextUpCountdown,
   resumePosition,
   chooseVersion,
@@ -85,6 +82,7 @@ import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { NextUp } from './NextUp';
+import { SkipAhead } from './SkipAhead';
 import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
@@ -1104,35 +1102,16 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {showSkipAhead ? (
-        <View style={[styles.corner, { right: sizes.gutter }]} testID="skip-ahead-panel">
-          {skipOpen ? (
-            <FocusRow style={styles.skipOptions} accessibilityLabel={t('Skip ahead by')}>
-              {SKIP_AHEAD_OPTIONS.map((seconds, index) => (
-                <FocusButton
-                  key={seconds}
-                  label={skipAheadLabel(seconds)}
-                  accessibilityLabel={skipAheadDescription(seconds)}
-                  hasTVPreferredFocus={index === 0}
-                  testID={`skip-ahead-${seconds}`}
-                  onPress={() => {
-                    setSkipOpen(false);
-                    seekTo(timeRef.current + seconds);
-                    // Show where it landed.
-                    wake();
-                  }}
-                />
-              ))}
-            </FocusRow>
-          ) : null}
-          <FocusButton
-            label={t('Skip ahead')}
-            icon={skipOpen ? 'close' : 'forward10'}
-            accessibilityLabel={skipOpen ? t('Close skip options') : t('Skip ahead: choose how far')}
-            hasTVPreferredFocus={!skipOpen}
-            onPress={() => setSkipOpen((open) => !open)}
-            testID="skip-ahead"
-          />
-        </View>
+        <SkipAhead
+          open={skipOpen}
+          onToggle={() => setSkipOpen((open) => !open)}
+          onSkip={(seconds) => {
+            setSkipOpen(false);
+            seekTo(timeRef.current + seconds);
+            // Show where it landed.
+            wake();
+          }}
+        />
       ) : null}
 
       {countdown !== null && next ? (
@@ -1266,6 +1245,4 @@ const styles = StyleSheet.create({
   controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
   time: { color: colors.strong, fontSize: 14.4, fontVariant: ['tabular-nums'] },
   spacer: { flex: 1 },
-  corner: { position: 'absolute', bottom: 120, alignItems: 'flex-end', gap: 8 },
-  skipOptions: { flexDirection: 'row', gap: 8 },
 });
