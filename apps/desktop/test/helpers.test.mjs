@@ -3,6 +3,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import {
   asPlayer,
+  autostartEntry,
   cleanTexts,
   contentType,
   fillText,
@@ -141,4 +142,13 @@ test('sends a scanned code only to a private address of the home network (issue 
   assert.equal(pairingUrl('192.168.1.20', 38127, '/admin'), null);
   assert.equal(pairingUrl('8.8.8.8', 38127, '/remote'), null);
   assert.equal(pairingUrl('192.168.1.20', 70000), null);
+});
+
+test('the Linux autostart entry starts the app hidden, with quoted paths', () => {
+  const entry = autostartEntry('IPTV Player', ['/opt/IPTV Player/iptv-player']);
+  assert.match(entry, /^\[Desktop Entry\]\n/);
+  assert.match(entry, /\nName=IPTV Player\n/);
+  assert.match(entry, /\nExec="\/opt\/IPTV Player\/iptv-player" "--hidden"\n/);
+  assert.match(autostartEntry('X', ['/a/electron', '/b/app']), /\nExec="\/a\/electron" "\/b\/app" "--hidden"\n/);
+  assert.match(autostartEntry('X', ['/a/"$x`.AppImage']), /\nExec="\/a\/\\"\\\$x\\`\.AppImage" "--hidden"\n/);
 });

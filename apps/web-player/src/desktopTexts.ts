@@ -28,6 +28,8 @@ export const desktopTexts = (): Record<string, string> => ({
   'When I close the app': t('When I close the app'),
   // The tray icon while downloads go on with the window closed (issue #219).
   'Downloading in the background': t('Downloading in the background'),
+  // …and with "Start with the computer" on (issue #309).
+  'Running in the background': t('Running in the background'),
   Open: t('Open'),
   Quit: t('Quit'),
 });

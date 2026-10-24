@@ -27,6 +27,13 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
     ipcRenderer.on('iptv:background', handler);
     return () => ipcRenderer.removeListener('iptv:background', handler);
   },
+  // Start with the computer, in the tray (issue #309): whether it is on; `set` turns it on or off first.
+  startup: {
+    get: () => ipcRenderer.invoke('iptv:startup'),
+    set: (on) => ipcRenderer.invoke('iptv:startup', on === true),
+  },
+  // Brings the window back, from the tray too (a reminder's notification was clicked).
+  show: () => ipcRenderer.invoke('iptv:show'),
   // "Open in VLC" (D-057): 'vlc' when VLC started, 'none' when it is not installed. With a watch id, where VLC
   // stops comes back as { id, position, duration, ended } (issue #265).
   openInVlc: (url, title, startAt, watchId) => ipcRenderer.invoke('iptv:open-external', url, title, startAt, watchId),

@@ -4,6 +4,7 @@ import { t } from '@iptv/shared';
 import '../browse/screenHost';
 import { uiStore } from '../../appContext';
 import { useDueReminder } from '../../hooks/stores';
+import { desktop } from '../../desktop';
 
 /**
  * A guide reminder whose programme has started (issue #239, DECISIONS.md#d-184): the TV's dialog over any page, over the
@@ -19,7 +20,8 @@ export function Reminder() {
       body: reminder.channel.name,
       tag: key!,
     });
-    notification.onclick = () => window.focus();
+    // A hidden window (in the tray, issue #309) does not come back with focus() alone.
+    notification.onclick = () => (desktop?.show ? void desktop.show() : window.focus());
     return () => notification.close();
     // One notification per reminder.
     // eslint-disable-next-line react-hooks/exhaustive-deps
