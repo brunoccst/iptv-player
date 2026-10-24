@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Library messages look like the TV's** (2026-10-24, D-215, issue #237): the offline and "organizing your library" box at the bottom of Home and Movies/Series, and the message after Refresh library, are now the same as on the TV and phone app.
 - **Reminders look like the TV's** (2026-10-24, D-214, issue #237): when a programme with a reminder starts, the app now shows the TV's dialog in the middle of the window, with Watch and Dismiss, instead of a box at the top right.
 - **Player title bar looks like the TV's** (2026-10-24, D-213, issue #237): the back arrow, title and LIVE tag at the top of the player are now the same as on the TV and phone app.
 - **Skip ahead looks like the TV's** (2026-10-24, D-212, issue #237): the Skip ahead button and its 30 s to 3 min choices are now the same as on the TV and phone app.
