@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
 
 const NO_NOTES: string[] = [];
@@ -7,7 +8,10 @@ import { t, type UiLanguage } from '@iptv/shared';
 import { appConfig } from './config';
 import { BackupDialog } from './components/BackupDialog';
 import { about } from './about';
-import { confirmSignOut } from './components/AccountMenu';
+import { confirmCloseApp, confirmSignOut } from './signOut';
+import { PinSettings } from './components/PinSettings';
+import { PlaybackSettings } from './components/PlaybackSettings';
+import { TvMedia } from '../modules/tv-media';
 import { CardMenu } from './components/CardMenu';
 import { usePinGate } from './components/PinPad';
 import { CenteringScrollView } from './components/CenterScroll';
@@ -26,6 +30,7 @@ import {
   useNav,
   useOfflineAccess,
   usePagedLibrary,
+  usePin,
   useProgrammeSearch,
   useProfileEditor,
   useProfilePicker,
@@ -84,6 +89,7 @@ const host: ScreenHost = {
     useKidsCategories,
     useHiddenCategories,
     useLanguageSettings,
+    usePin,
   },
   api,
   subtitles: appContext.subtitles,
@@ -104,6 +110,18 @@ const host: ScreenHost = {
     scan: { available: canScanQr, open: () => openPairingDialog('scan') },
   },
   about,
+  account: {
+    PinSettings,
+    backup: { label: () => t('Back up data'), Dialog: ({ onClose }) => <BackupDialog mode="backup" onClose={onClose} /> },
+    sync: { icon: Platform.isTV ? 'phone' : 'tv', run: () => openPairingDialog() },
+    // Read when the menu draws: only builds with the FFmpeg audio decoders have something to choose (D-059).
+    get playback() {
+      return TvMedia.ffmpegAudioAvailable() ? { Dialog: PlaybackSettings } : null;
+    },
+    log: { run: () => navStore.getState().goSection('log') },
+    closeApp: confirmCloseApp,
+    goHome: () => navStore.getState().goSection('home'),
+  },
   profiles: { usePinGate, signOut: confirmSignOut },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);

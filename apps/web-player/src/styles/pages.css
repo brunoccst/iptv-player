@@ -133,47 +133,6 @@
   color: var(--color-text-strong);
 }
 
-.menu__list {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  display: grid;
-  min-width: 220px;
-  padding: 8px 0;
-  border: 1px solid var(--color-border);
-  background: rgba(0, 0, 0, 0.92);
-}
-
-.menu__item {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 16px;
-  border: 0;
-  background: none;
-  text-align: left;
-  font-size: 0.9rem;
-}
-
-.menu__item:hover {
-  background: var(--color-surface-raised);
-}
-
-/* A group's title row: its name with a back arrow (account menu groups). */
-.menu__item--header {
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--color-border);
-  font-weight: 700;
-  color: var(--color-text-strong);
-}
-
-.menu__chevron {
-  display: flex;
-  margin-left: auto;
-  padding-left: 16px;
-  color: var(--color-muted);
-}
-
 @media (max-width: 720px) {
   /* Phones: brand, search and account on the first row; page links scroll sideways on the second. */
   :root {
