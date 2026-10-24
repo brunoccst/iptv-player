@@ -27,6 +27,7 @@ import { LoginScreen } from './screens/LoginScreen';
 import { ProfilesScreen } from './screens/ProfilesScreen';
 import { PairingDialogHost } from './pairing/PairingDialogs';
 import { useOpenWatchNext, useWatchNextLaunch, useWatchNextSync } from './tv/watchNext';
+import { useReminderAlarms } from './tv/reminderAlarms';
 import { pairedTv, useAutoSync, useRemoteServer } from './pairing/remote';
 import { UpdateDialog } from './update/UpdateDialog';
 import { colors } from './theme';
@@ -54,6 +55,8 @@ export function App() {
   // The home screen's "Continue watching" row on Android TV and Google TV (issue #165, D-147).
   useWatchNextSync(Platform.isTV);
   useWatchNextLaunch(Platform.isTV);
+  // Phone and tablet: guide reminders also notify with the app closed (issue #263, D-222).
+  useReminderAlarms(!Platform.isTV);
 
   useEffect(() => {
     void stores.session.getState().restore();

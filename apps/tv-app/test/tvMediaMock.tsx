@@ -23,6 +23,8 @@ export const nativeState = {
   downloads: [] as NativeDownload[],
   listeners: new Set<Listener>(),
   calls: [] as string[],
+  /** The guide reminders' system alarms last handed over (issue #263), parsed. */
+  reminderAlarms: [] as { id: string; startMs: number; title: string; text: string }[],
   externalPlayerResult: 'chooser' as ExternalPlayerResult,
   ffmpegAudio: false,
   /** The native crash the last run left (D-039). */
@@ -100,6 +102,7 @@ export const nativeState = {
     this.updateVerdict = 'ok';
     this.updateListeners.clear();
     this.watchNext = [];
+    this.reminderAlarms = [];
     this.watchNextLaunch = null;
     this.watchNextListeners.clear();
     this.externalPlayerListeners.clear();
@@ -122,6 +125,9 @@ const watchNextRow = (entry: WatchNextEntry, rowId: number) => ({
 });
 
 export const TvMedia = {
+  scheduleReminders: (list: string) => {
+    nativeState.reminderAlarms = JSON.parse(list) as typeof nativeState.reminderAlarms;
+  },
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],
   ffmpegAudioAvailable: () => nativeState.ffmpegAudio,

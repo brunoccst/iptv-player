@@ -127,6 +127,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-219](#d-219) | Shared parental PIN keypad |
 | [D-220](#d-220) | Shared log view |
 | [D-221](#d-221) | Shared card menu |
+| [D-222](#d-222) | Phone: guide reminders as system alarms |
 
 ## Merged and retired IDs
 
@@ -1046,7 +1047,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The running app checks when the next one starts (and every 30 s) and shows it from its start for 10 minutes, so an app opened shortly after still shows it. Dismiss or Watch takes it off the list.
 - TV and phone: a popup over any page and the player (focus stays inside it). Desktop: the same dialog since D-214 (first a banner at the top right that did not take focus), over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
 - TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
-- Not with the app closed: that needs Android alarms and notifications (issue #263).
+- With the app closed: the phone and tablet set a system alarm per reminder (D-222); the TV and desktop show them only while the app runs.
 
 ## D-185
 
@@ -1337,3 +1338,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A title's or an episode's options (D-078) are the TV's panel in the middle of the screen on every app (`packages/screens/src/CardMenu.tsx`), Bruno's choice. The desktop's small menu at the pointer is gone: a right-click, the menu key, Shift+F10 or an episode's "…" open the same panel, and Escape closes it like the other dialogs.
 - Each app only says how a card opens it (`ScreenHost.MenuTrigger`): holding OK or a long touch on TV and phone, a right-click on the desktop. The screens draw the menu themselves, so the hosts no longer pass `Menu` or draw `TitleMenu`.
+
+## D-222
+
+**Phone: guide reminders as system alarms** — 2026-10-24 (issue #263)
+
+- The phone and tablet hand every reminder of the account's profiles to Android (`ReminderAlarms.kt`, from `apps/tv-app/src/tv/reminderAlarms.ts`) whenever the list changes: one alarm per programme, which posts a notification "Starting now: …" with the channel (and the profiles who set it, when the account has several). All profiles, not only the active one, since the app may be closed or on another profile when it starts. The words are translated by JS beforehand, since no JavaScript runs when the alarm goes off.
+- Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
+- While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
+- Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which notifies only while it runs (issue #309).
