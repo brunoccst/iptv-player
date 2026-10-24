@@ -339,6 +339,11 @@ class TvMediaModule : Module() {
     }.runOnQueue(Queues.MAIN)
 
     /** Home screen "Continue watching" on Android TV and Google TV (DECISIONS.md#d-147): the app's rows. */
+    /** Phone: the guide reminders as system alarms (issue #263, D-222); JSON `[{ id, startMs, title, text }]`. */
+    Function("scheduleReminders") { list: String, channelName: String ->
+      ReminderAlarms.schedule(context, list, channelName)
+    }
+
     AsyncFunction("watchNextRows") {
       WatchNext.rows(context)
     }

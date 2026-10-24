@@ -230,7 +230,7 @@ On channels whose provider keeps recordings, past programmes can be watched from
 
 ### Guide reminders
 
-A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile, are carried over when pairing devices, and show only while the app is open, up to 10 minutes after the start (issue #263, D-184, issue #239).
+A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile and are carried over when pairing devices. On the phone and tablet a notification says so too, even with the app closed; tapping it opens the app with Watch. The TV and desktop show them only while the app is open, up to 10 minutes after the start (D-222, issue #263, issue #309, D-184, issue #239).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone and desktop: Remind me.
 
