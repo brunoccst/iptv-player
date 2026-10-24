@@ -5,7 +5,6 @@ import { ScreenHostProvider, type ScreenHost } from '@iptv/screens';
 
 const profile = { id: 'p1', name: 'Bruno', isKids: false };
 const state = { view: 'home', search: '', profiles: [profile], activeProfileId: 'p1', status: 'none' };
-vi.mock('../../config', () => ({ appConfig: { appName: 'Player', appSlug: 'player' } }));
 vi.mock('../../appContext', () => ({ uiStore: { getState: () => ({ navigate: vi.fn(), setSearch: vi.fn() }) } }));
 vi.mock('../../hooks/stores', () => ({
   useSession: (select: (s: typeof state) => unknown) => select(state),
