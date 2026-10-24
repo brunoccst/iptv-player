@@ -3,6 +3,7 @@ import { pbkdf2Async } from '@noble/hashes/pbkdf2';
 import { sha256 } from '@noble/hashes/sha256';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { removalsKey } from '../direct/removals';
+import { titleRulesKey } from '../direct/titleRules';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import type { KeyValueStorage } from '../stores/storage';
@@ -90,6 +91,7 @@ export async function collectUserData(storages: BackupStorages): Promise<BackupC
   if (storages.data) {
     await read(storages.data, profilesKey(accountId), data);
     await read(storages.data, removalsKey(accountId), data);
+    await read(storages.data, titleRulesKey(accountId), data);
     const profiles = parseJson<{ id: string }[]>(data[profilesKey(accountId)] ?? null) ?? session?.profiles ?? [];
     for (const { id } of profiles) {
       await read(storages.data, progressKey(id), data);

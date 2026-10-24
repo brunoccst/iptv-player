@@ -71,6 +71,8 @@ const IN_PLACE_SHARE = 0.2;
 const GROUPED_KEYS = 4;
 /** Rows read per query when all of them are needed. */
 const READ_BATCH = 5000;
+/** Values per `IN (…)` query: older Android SQLite allows 999 parameters. */
+const RULE_BATCH = 500;
 /** Libraries built with these rules or later keep the provider's items and group them by query (D-133). */
 const ITEM_RULES = 6;
 /** Names not seen in any update for this long are forgotten. */
@@ -1011,6 +1013,53 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
           : []),
       ]);
       return keys;
+    },
+
+    /** The account's split and merge rules of a kind (issue #243), in a fixed order. */
+    rules: rulesOf,
+
+    /**
+     * Sets the rules of a kind to `rules`, as another device or a backup had them (issue #267, DECISIONS.md#d-223), and
+     * says which compact keys to group again (`regroup`): those of the items whose rule came, went or changed. Empty
+     * when nothing changed.
+     */
+    async replaceRules(account: string, kind: LibraryKind, saved: SqlLibraryKind | null, rules: TitleRule[]): Promise<string[]> {
+      const before = await rulesOf(account, kind);
+      const id = (rule: TitleRule) => `${rule.rule}|${rule.src}|${rule.dst}`;
+      const kept = new Set(before.map(id));
+      const wanted = new Set(rules.map(id));
+      const changed = [...before.filter((rule) => !wanted.has(id(rule))), ...rules.filter((rule) => !kept.has(id(rule)))];
+      if (!changed.length) return [];
+      const scope = [account, kind];
+      await db.run([
+        { sql: 'DELETE FROM title_rules WHERE account = ? AND kind = ?', rows: [scope] },
+        ...(rules.length
+          ? [
+              {
+                sql: 'INSERT OR REPLACE INTO title_rules (account, kind, rule, src, dst) VALUES (?, ?, ?, ?, ?)',
+                rows: rules.map(({ rule, src, dst }) => [...scope, rule, src, dst]),
+              },
+            ]
+          : []),
+      ]);
+      if (!saved || saved.packed) return [];
+      // A merge moved its items to `dst` (their group key there now); a split gave its item the group `'s' || sid`.
+      const groups = [...new Set(changed.flatMap((rule) => (rule.rule === 'merge' ? [rule.src, rule.dst] : [`s${rule.src}`])))];
+      const sids = [...new Set(changed.filter((rule) => rule.rule === 'split').map((rule) => rule.src))];
+      const keys = new Set<string>();
+      for (let i = 0; i < groups.length; i += RULE_BATCH)
+        for (const [ckey] of await db.query(
+          `SELECT DISTINCT ckey FROM ${saved.table}_i WHERE gk IN (${placeholders(Math.min(RULE_BATCH, groups.length - i))})`,
+          groups.slice(i, i + RULE_BATCH),
+        ))
+          keys.add(String(ckey));
+      for (let i = 0; i < sids.length; i += RULE_BATCH)
+        for (const [ckey] of await db.query(
+          `SELECT DISTINCT ckey FROM ${saved.table}_i WHERE sid IN (${placeholders(Math.min(RULE_BATCH, sids.length - i))})`,
+          sids.slice(i, i + RULE_BATCH),
+        ))
+          keys.add(String(ckey));
+      return [...keys];
     },
 
     /**

@@ -44,9 +44,9 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 ### Split or merge titles
 
-When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is kept on the device and applied to every library update; My List and progress follow the titles they were on. Splits and merges are not synced between devices (issue #267).
+When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is applied to every library update, and reaches your other devices with the next sync and goes into backups (D-223); My List and progress follow the titles they were on. A merge comes undone if the provider changes that title's year or TMDB id (issue #311).
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Not in the plain web player, which keeps its library in memory (issue #267).
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. Not in the plain web player, which keeps its library in memory (D-185).
 
 ### Version choice and "(best)"
 

@@ -2,6 +2,7 @@ import type { ProfileDto, ProgressDto, WatchlistDto } from '../api/types';
 import { collectUserData, type BackupStorages, type UserDataContents } from '../backup/userData';
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { emptyRemovals, pruneRemovals, readRemovals, removalsKey, type Removals } from '../direct/removals';
+import { mergeTitleRules, readTitleRules, titleRulesKey, type RecordedRule } from '../direct/titleRules';
 import { pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
@@ -116,6 +117,8 @@ export interface MediaState {
   watchlist: Record<string, WatchlistDto[]>;
   /** What was removed and when (issue #227); missing from older apps. */
   removals?: Removals;
+  /** Splits and merges of titles, with their dates (issue #267); missing from older apps. */
+  titleRules?: RecordedRule[];
 }
 
 const sameName = (a: StoredProfile, b: StoredProfile) => a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
@@ -197,13 +200,20 @@ export function mergeMedia(
     }
     watchlist[id] = [...listItems.values()].sort((a, b) => (a.addedAt < b.addedAt ? 1 : -1)).slice(0, MAX_WATCHLIST);
   }
-  return { merged: { profiles, progress, watchlist, removals: pruneRemovals(removals, now) }, localIds };
+  const titleRules = mergeTitleRules(incoming.titleRules ?? [], local.titleRules ?? [], now);
+  return { merged: { profiles, progress, watchlist, removals: pruneRemovals(removals, now), titleRules }, localIds };
 }
 
 /** Profiles, progress and My List live on each device, so pairing merges them. */
 function mediaFrom(data: Record<string, string>, accountId: string): MediaState {
   const profiles = parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? [];
-  const state: MediaState = { profiles, progress: {}, watchlist: {}, removals: readRemovals(data[removalsKey(accountId)]) };
+  const state: MediaState = {
+    profiles,
+    progress: {},
+    watchlist: {},
+    removals: readRemovals(data[removalsKey(accountId)]),
+    titleRules: readTitleRules(data[titleRulesKey(accountId)]),
+  };
   for (const { id } of profiles) {
     state.progress[id] = parseJson<ProgressDto[]>(data[progressKey(id)] ?? null) ?? [];
     state.watchlist[id] = parseJson<WatchlistDto[]>(data[watchlistKey(id)] ?? null) ?? [];
@@ -220,6 +230,7 @@ function mediaEntries(state: MediaState, accountId: string): Record<string, stri
     entries[watchlistKey(id)] = JSON.stringify(state.watchlist[id] ?? []);
   }
   if (state.removals) entries[removalsKey(accountId)] = JSON.stringify(state.removals);
+  if (state.titleRules?.length) entries[titleRulesKey(accountId)] = JSON.stringify(state.titleRules);
   return entries;
 }
 
@@ -232,6 +243,7 @@ async function readLocalMedia(storage: BackupStorages['data'], accountId: string
   };
   await read(profilesKey(accountId));
   await read(removalsKey(accountId));
+  await read(titleRulesKey(accountId));
   for (const { id } of parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? []) {
     await read(progressKey(id));
     await read(watchlistKey(id));
@@ -276,8 +288,8 @@ async function saveMergedMedia(
   const entries = mediaEntries(merged, accountId);
   for (const [entryKey, value] of Object.entries(entries)) {
     if (before[entryKey] === value) continue;
-    // The removal record alone changes nothing on screen.
-    if (entryKey !== removalsKey(accountId)) changed = true;
+    // The removal record alone changes nothing on screen; nor do title rules until the lists are read (issue #267).
+    if (entryKey !== removalsKey(accountId) && entryKey !== titleRulesKey(accountId)) changed = true;
     await dataStorage.setItem(entryKey, value);
   }
   return { merged, localIds, dropped, entries, changed };
@@ -472,9 +484,9 @@ export class PairingFailure extends Error {
 }
 
 /**
- * Automatic sync (issue #227, DECISIONS.md#d-186): this device's media entries (profiles, progress, My List and what
- * was removed) for one account, as a sync with the paired TV sends them, and its profiles' preferences: each dated
- * when it changes, so the later choice wins (issue #268, DECISIONS.md#d-225).
+ * Automatic sync (issue #227, DECISIONS.md#d-186): this device's media entries (profiles, progress, My List, what
+ * was removed, and title splits and merges) for one account, as a sync with the paired TV sends them, and its
+ * profiles' preferences: each dated when it changes, so the later choice wins (issue #268, DECISIONS.md#d-225).
  */
 export async function mediaForSync(storages: BackupStorages, accountId: string): Promise<Record<string, string>> {
   const dataStorage = storages.data ?? storages.secure;

@@ -128,6 +128,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-220](#d-220) | Shared log view |
 | [D-221](#d-221) | Shared card menu |
 | [D-222](#d-222) | Phone: guide reminders as system alarms |
+| [D-223](#d-223) | Title splits and merges sync and back up |
 | [D-224](#d-224) | Desktop: hardware H.264 encoders for conversions |
 | [D-225](#d-225) | Profile settings carry dates and sync automatically |
 
@@ -1056,9 +1057,9 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 **Split and merge titles by hand** — 2026-10-17 (issue #243)
 
 - Rules in the library database (`title_rules`, per account and kind), applied by the grouping queries after the automatic rules (D-133): a `split` gives one provider item (stream id) a group of its own (`'s' || sid`, which also goes into its title id, so it never takes the id of the title it left); a `merge` sends every item of one group key (`gk`: cleaned name and year, or TMDB id and year) to another. Merging into a title whose key other merges point to moves those along, so rules never chain.
-- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
+- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #311).
 - A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
-- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).
+- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Since D-223 the rules sync between devices and go into backups.
 
 ## D-186
 
@@ -1349,6 +1350,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
 - Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which notifies only while it runs (issue #309).
+
+## D-223
+
+**Title splits and merges sync and back up** — 2026-10-24 (issue #267)
+
+- The library database's `title_rules` (D-185) stay what the grouping reads. Beside them, a record in the device's data (`direct.titleRules.<account>`, `packages/shared/src/direct/titleRules.ts`) dates each rule when it is made or undone; an undone rule stays as removed for 180 days, like other removals (D-186). Pairing, automatic sync and backups carry the record like My List (keys are the provider's: group keys and stream ids are the same on every device of one account), and per rule the later change wins.
+- A device applies a record that differs from what it last wrote or applied when a list is read (at most every 10 s, not while the library updates): the rules go into the database (`replaceRules`) and only the titles they touch are grouped again, without downloading. Merges are applied oldest first the way one device makes them, so two devices' merges never chain or loop.
+- A device with rules from before the record starts the record with them on its first list. A merge still stops applying when the provider changes the title's key (issue #311).
 
 ## D-224
 
