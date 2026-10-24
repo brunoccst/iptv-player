@@ -40,3 +40,4 @@ export { TopNav, useNavFocusTarget, type NavSection } from './TopNav';
 export { LoadingMoreNote, TitleGrid, TvLines } from './TitleGrid';
 export { TitleCard } from './TitleCard';
 export { IconButton } from './ui/IconButton';
+export { TimelineRail } from './TimelineRail';

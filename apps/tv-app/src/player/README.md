@@ -11,5 +11,6 @@
 | `SkipAhead.tsx`     | Re-exports the Skip ahead button and options, shared with the desktop (`packages/screens`, D-212). |
 | `PlayerControls.tsx` | Re-exports the player's button row, shared with the desktop (`packages/screens`, D-217). |
 | `PlayerHeader.tsx`  | Re-exports the player's top bar, shared with the desktop (`packages/screens`, D-213). |
+| `TimelineRail.tsx` | Re-exports the progress bar's drawing, shared with the desktop (`packages/screens`, D-218). |
 | `QuickDrawer.tsx`   | Re-exports the Audio, Subtitles, Versions and Episodes panel, shared with the desktop (`packages/screens`, D-046, D-210). |
 | `useExternalPlayer.ts` | The details' "open in another player" for the shared screen (D-057, D-203); none on Kids profiles. |

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { formatClock, t } from '@iptv/shared';
+import { TimelineRail } from '@iptv/screens';
+import '../browse/screenHost';
 import type { FramePreview } from './frameGrabber';
 
 interface TimelineProps {
@@ -14,16 +16,16 @@ interface TimelineProps {
 const PREVIEW_WIDTH = 192;
 const PREVIEW_HEIGHT = 108;
 
-/** Seek bar: hover shows time + frame preview, click/drag seeks. */
+/** Seek bar: hover shows time + frame preview, click/drag seeks. The bar itself is the TV's (DECISIONS.md#d-218). */
 export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPreview }: TimelineProps) {
-  const rail = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [dragTime, setDragTime] = useState<number | null>(null);
   const valid = Number.isFinite(duration) && duration > 0;
 
   const timeAt = (clientX: number) => {
-    const bounds = rail.current!.getBoundingClientRect();
+    const bounds = bar.current!.getBoundingClientRect();
     return Math.min(1, Math.max(0, (clientX - bounds.left) / bounds.width)) * duration;
   };
 
@@ -59,10 +61,10 @@ export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPrevie
   };
 
   const shown = dragTime ?? currentTime;
-  const percent = (value: number) => `${(Math.min(value, duration) / duration) * 100}%`;
 
   return (
     <div
+      ref={bar}
       className="timeline"
       role="slider"
       tabIndex={0}
@@ -76,18 +78,16 @@ export function Timeline({ currentTime, duration, bufferedEnd, onSeek, getPrevie
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
-      <div className="timeline__rail" ref={rail}>
-        <div className="timeline__buffered" style={{ width: percent(bufferedEnd) }} />
-        {hover !== null ? <div className="timeline__hover-fill" style={{ width: percent(hover) }} /> : null}
-        <div className="timeline__played" style={{ width: percent(shown) }} />
-        <div className="timeline__thumb" style={{ left: percent(shown) }} />
-      </div>
-      {hover !== null ? (
-        <div className="timeline__preview" style={{ left: percent(hover) }} data-testid="timeline-preview">
-          <canvas ref={canvas} width={PREVIEW_WIDTH} height={PREVIEW_HEIGHT} />
-          <span>{formatClock(hover)}</span>
-        </div>
-      ) : null}
+      <TimelineRail
+        played={shown / duration}
+        buffered={bufferedEnd / duration}
+        hover={hover !== null ? hover / duration : null}
+        state={dragTime !== null ? 'dragging' : hover !== null ? 'hover' : 'idle'}
+        label={hover !== null ? formatClock(hover) : null}
+        at={hover !== null ? hover / duration : undefined}
+        frame={hover !== null ? <canvas ref={canvas} width={PREVIEW_WIDTH} height={PREVIEW_HEIGHT} className="timeline__frame" /> : null}
+        frameWidth={PREVIEW_WIDTH}
+      />
     </div>
   );
 }
