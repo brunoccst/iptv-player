@@ -33,4 +33,25 @@ describe('settings merged by pairing (D-060)', () => {
     expect(mergeSubtitleSettings(JSON.stringify({ enabled: false, apiKey: '' }), tv)).toBe(tv);
     expect(mergeSubtitleSettings(null, null)).toBeNull();
   });
+
+  it('a dated preference: the one changed later wins, from either device (issue #268)', () => {
+    const early = '2026-10-20T10:00:00.000Z';
+    const late = '2026-10-24T10:00:00.000Z';
+    const phone = { languages: ['ENG'], appLanguage: 'de', changedAt: { languages: early, appLanguage: late } };
+    const tv = { languages: ['POR'], appLanguage: 'pt-BR', language: 'POR', changedAt: { languages: late, appLanguage: early } };
+    expect(mergeProfilePrefs(phone, tv)).toEqual({
+      languages: ['POR'],
+      language: 'POR',
+      appLanguage: 'de',
+      changedAt: { languages: late, appLanguage: late },
+    });
+    // Dated on one side only: that one wins, even over the phone.
+    expect(mergeProfilePrefs({ appLanguage: 'de' }, { appLanguage: 'pt-BR', changedAt: { appLanguage: early } }).appLanguage).toBe('pt-BR');
+    // Per section: the later choice's sections, the other's elsewhere.
+    const merged = mergeProfilePrefs(
+      { hiddenCategories: { movies: ['1'] }, changedAt: { hiddenCategories: early } },
+      { hiddenCategories: { movies: ['2'], series: ['9'] }, changedAt: { hiddenCategories: late } },
+    );
+    expect(merged.hiddenCategories).toEqual({ movies: ['2'], series: ['9'] });
+  });
 });

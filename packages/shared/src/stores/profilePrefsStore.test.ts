@@ -8,12 +8,15 @@ import { createMemoryStorage } from './storage';
 describe('profile preferences', () => {
   it('are saved per profile and survive a restart', async () => {
     const storage = createMemoryStorage();
-    const prefs = createProfilePrefsStore(storage);
+    const at = new Date('2026-10-24T12:00:00Z');
+    const prefs = createProfilePrefsStore(storage, () => at);
     await prefs.getState().update('p1', { languages: ['GER', 'ENG'] });
     const again = createProfilePrefsStore(storage);
     await again.getState().load();
-    expect(again.getState().prefs).toEqual({ p1: { languages: ['GER', 'ENG'] } });
-    expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual({ p1: { languages: ['GER', 'ENG'] } });
+    // Each change is dated, so a sync keeps the later choice (issue #268).
+    const saved = { p1: { languages: ['GER', 'ENG'], changedAt: { languages: at.toISOString() } } };
+    expect(again.getState().prefs).toEqual(saved);
+    expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual(saved);
   });
 
   it('several languages per profile; the single language of earlier versions still counts (D-063)', () => {
