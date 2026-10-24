@@ -128,6 +128,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-220](#d-220) | Shared log view |
 | [D-221](#d-221) | Shared card menu |
 | [D-222](#d-222) | Phone: guide reminders as system alarms |
+| [D-225](#d-225) | Profile settings carry dates and sync automatically |
 
 ## Merged and retired IDs
 
@@ -1064,7 +1065,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A middle step short of a sync service (which would need hosting and accounts, against D-088): a device that scanned the TV's code keeps the TV's remote-play key (D-061) and sends a `sync` remote command with its media entries (profiles, progress, My List, removals) when the app opens, comes back to the front, and every 10 minutes (`createAutoSync`, at most once a minute). The TV merges (`applySyncedMedia`, the pairing merge) and answers with the merged entries; the sender merges the answer once more with what it saved meanwhile. The TV is the hub, since only it listens all the time; the desktop app now keeps the TV's key too and sends through the main process (`iptv:pairing-send`, path `/remote` only).
 - Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
-- Profile settings are left out: they carry no dates, so the newer choice cannot be told apart, and the scanning device winning (D-060) would undo choices made on the TV every 10 minutes. They still merge when a code is scanned.
+- Profile settings came along from D-225 on, once each carried a date: undated, the scanning device winning (D-060) would undo choices made on the TV every 10 minutes.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
 - Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
 
@@ -1347,3 +1348,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
 - Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which notifies only while it runs (issue #309).
+
+## D-225
+
+**Profile settings carry dates and sync automatically** — 2026-10-24 (issue #268)
+
+- Each profile's preferences (content languages, app language, subtitle/audio/version choices, hidden and kids categories, …) keep the time each one was last changed (`changedAt`, set by `profilePrefsStore.update`). The automatic sync with the TV (D-186) carries them for the account's profiles, and per preference the later change wins on both sides; kids and hidden categories go per section, and the lists (watched series, recent channels, reminders) are joined as in pairing.
+- Values from before have no date: there the sending device wins, as pairing always did (D-060), and a dated value wins over an undated one. Pairing uses the same merge, so a code scanned later no longer undoes a newer choice on the TV.
+- A sync that changes a preference refreshes the app's preferences (`refreshMedia`). Device settings (the audio decoder, the device's own app language before a profile, downloads, update choices) still stay on each device.

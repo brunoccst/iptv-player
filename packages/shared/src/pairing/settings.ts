@@ -15,23 +15,41 @@ export { PROFILE_PREFS_KEY, SUBTITLE_SETTINGS_KEY };
 
 type PrefsByProfile = Record<string, ProfilePrefs>;
 
-/** One profile's preferences from both devices: the phone's values first, lists joined. */
+/** Preferences that are lists both devices add to: joined, not one side's. */
+const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', 'reminders', 'changedAt']);
+
+/**
+ * One profile's preferences from both devices. Each preference is the one changed later (`changedAt`, issue #268,
+ * DECISIONS.md#d-225); where neither is dated (set before), the phone's (the scanning or sending device) wins, as
+ * pairing always did (D-060). Kids and hidden categories go per section the same way; lists are joined.
+ */
 export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: ProfilePrefs | undefined): ProfilePrefs {
   if (!phone) return { ...local };
   if (!local) return { ...phone };
-  const merged: ProfilePrefs = { ...local, ...withoutUndefined(phone) };
-  // `languages` and the older single `language` are one choice: take both from the device that has one.
-  if (phone.languages !== undefined || phone.language !== undefined) {
-    merged.languages = phone.languages;
-    merged.language = phone.language;
-    if (merged.languages === undefined) delete merged.languages;
-    if (merged.language === undefined) delete merged.language;
+  const dateOf = (prefs: ProfilePrefs, key: keyof ProfilePrefs) =>
+    // The older single `language` is one choice with `languages`.
+    prefs.changedAt?.[key === 'language' ? 'languages' : (key as Exclude<keyof ProfilePrefs, 'changedAt'>)] ?? '';
+  /** Which side's value: the later date; undated on both, the phone's where it has one. */
+  const phoneWins = (key: keyof ProfilePrefs) => {
+    const [ours, theirs] = [dateOf(phone, key), dateOf(local, key)];
+    if (ours || theirs) return ours >= theirs;
+    return key === 'language' || key === 'languages'
+      ? phone.languages !== undefined || phone.language !== undefined
+      : phone[key] !== undefined;
+  };
+  const merged: ProfilePrefs = {};
+  const keys = new Set([...Object.keys(local), ...Object.keys(phone)] as (keyof ProfilePrefs)[]);
+  for (const key of keys) {
+    if (JOINED.has(key)) continue;
+    const from = phoneWins(key) ? phone : local;
+    if (from[key] !== undefined) (merged as Record<string, unknown>)[key] = from[key];
   }
-  // Per section: the phone's where it chose, the other device's elsewhere.
-  if (phone.kidsCategories && local.kidsCategories)
-    merged.kidsCategories = { ...local.kidsCategories, ...withoutUndefined(phone.kidsCategories) };
-  if (phone.hiddenCategories && local.hiddenCategories)
-    merged.hiddenCategories = { ...local.hiddenCategories, ...withoutUndefined(phone.hiddenCategories) };
+  // Per section, when both chose some: the winner's sections, the other's elsewhere.
+  for (const key of ['kidsCategories', 'hiddenCategories'] as const) {
+    if (!phone[key] || !local[key]) continue;
+    const [winner, other] = phoneWins(key) ? [phone[key], local[key]] : [local[key], phone[key]];
+    (merged as Record<string, unknown>)[key] = { ...other, ...withoutUndefined(winner) };
+  }
   if (phone.watchedSeries || local.watchedSeries)
     merged.watchedSeries = [...new Set([...(phone.watchedSeries ?? []), ...(local.watchedSeries ?? [])])];
   if (phone.recentChannels || local.recentChannels) {
@@ -40,6 +58,12 @@ export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: Profil
     merged.recentChannels = [...phoneChannels, ...localOnly].slice(0, MAX_RECENT_CHANNELS);
   }
   if (phone.reminders || local.reminders) merged.reminders = mergeReminders(phone.reminders, local.reminders, Date.now());
+  if (phone.changedAt || local.changedAt) {
+    const changedAt: NonNullable<ProfilePrefs['changedAt']> = { ...local.changedAt };
+    for (const [key, at] of Object.entries(phone.changedAt ?? {}) as [keyof typeof changedAt, string][])
+      if (at > (changedAt[key] ?? '')) changedAt[key] = at;
+    merged.changedAt = changedAt;
+  }
   return merged;
 }
 
