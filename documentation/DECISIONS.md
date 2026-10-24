@@ -111,6 +111,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-203](#d-203) | Shared details buttons |
 | [D-204](#d-204) | Shared dialogs |
 | [D-205](#d-205) | Shared language and subtitle settings |
+| [D-206](#d-206) | Shared About and app language |
 
 ## Merged and retired IDs
 
@@ -1207,3 +1208,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The Content language filter (D-063) and Automatic subtitles (D-111) are dialogs shared with the desktop (`packages/screens`), in the shared `Dialog` frame (D-204). The host adds `useLanguageSettings` and the app's OpenSubtitles service (`subtitles`); `profiles.LanguageSettings` is gone.
 - Both keep the TV's look on every app: languages are buttons marked "✓ 1." in the order they were ticked, and automatic subtitles are switched with an On / Off button, not check boxes.
 - The parental PIN stays per app for now: the TV asks with a number pad one step at a time, the desktop with a form, and sharing it would change one of them for the worse.
+
+## D-206
+
+**Shared About and app language** — 2026-10-23 (issue #237)
+
+- About (D-070, D-079) and App language (D-084) are dialogs shared with the desktop (`packages/screens`). The host's `about` gives the rows each app knows about itself (TV: installed build, FFmpeg audio, Android; desktop: which app and its version) and `checkForUpdates` where it can; the language choice uses the host's `signIn.chooseLanguage`.
+- About shows the app's name as its title but is called "About" for screen readers (`Dialog`'s `label`). App language lists the languages as buttons with a ✓ on the current one, like the TV.

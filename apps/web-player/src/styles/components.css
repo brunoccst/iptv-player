@@ -273,8 +273,7 @@
 }
 
 /* Card options (D-079): opens at the pointer on right-click; the TV app opens the same options by holding OK (D-078). */
-/* About and Log (account menu → App, D-079); padded like the other dialogs (D-119). */
-.about,
+/* Log (account menu → App, D-079); padded like the other dialogs (D-119). */
 .log {
   display: grid;
   gap: 14px;
@@ -282,32 +281,9 @@
   padding: 32px;
 }
 
-.about h2,
 .log h2 {
   margin: 0;
   padding-right: 40px;
-}
-
-.about__rows {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.about__row {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.about__row dt {
-  color: var(--color-muted);
-}
-
-.about__row dd {
-  margin: 0;
-  text-align: right;
-  overflow-wrap: anywhere;
 }
 
 .log__actions {

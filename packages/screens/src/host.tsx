@@ -113,6 +113,8 @@ export interface ScreenHost {
     /** Scanning a signed-in device's code instead, where there is a camera (D-178). */
     scan?: { available(): boolean; open(): void };
   };
+  /** Account menu → App → About (D-070): rows of what the app knows about itself, and checking for updates where it can. */
+  about: { rows(): [label: string, value: string][]; checkForUpdates?(): void };
   /** "Who's watching?" (D-054): the app's PIN prompt, and signing out. */
   profiles: {
     /** `gate(needed, title, action)` runs `action` at once, or after the PIN when `needed`; `dialog` is the open prompt. */

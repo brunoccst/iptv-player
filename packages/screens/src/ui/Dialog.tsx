@@ -12,12 +12,15 @@ const open: object[] = [];
  */
 export function Dialog({
   title,
+  label = title,
   onClose,
   testID,
   width = 560,
   children,
 }: {
   title: string;
+  /** What screen readers call it, when not its title (About shows the app's name). */
+  label?: string;
   onClose(): void;
   testID?: string;
   width?: number;
@@ -42,7 +45,7 @@ export function Dialog({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
-        <View style={[styles.panel, { width }]} testID={testID} role="dialog" accessibilityLabel={title}>
+        <View style={[styles.panel, { width }]} testID={testID} role="dialog" accessibilityLabel={label}>
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { setScreenHost, type DownloadEntry } from '@iptv/screens';
-import { formatBytes, t } from '@iptv/shared';
+import { formatBytes, t, type UiLanguage } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
@@ -8,7 +8,7 @@ import { BackupDialog } from '../backup/BackupDialog';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
 import { usePinGate } from '../profiles/PinDialog';
-import { chooseUiLanguage } from '../shell/AppLanguageDialog';
+import { about } from '../shell/about';
 import { downloadProgress, posterPath } from '../../offline/types';
 import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
@@ -97,7 +97,7 @@ setScreenHost({
     // A plain browser keeps nothing it could encrypt, and cannot pair (D-060).
     note: () =>
       desktop ? t('The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.') : null,
-    chooseLanguage: chooseUiLanguage,
+    chooseLanguage: (language) => void appContext.uiLanguage.choose(language as UiLanguage),
     Restore: ({ onClose }) => <BackupDialog restoreOnly onClose={onClose} />,
     DeviceCode: desktop
       ? function DeviceCode() {
@@ -106,6 +106,7 @@ setScreenHost({
       : undefined,
     scan: { available: canScanWithWebcam, open: () => openSyncWithPhone(true) },
   },
+  about,
   profiles: {
     usePinGate,
     signOut: confirmSignOut,

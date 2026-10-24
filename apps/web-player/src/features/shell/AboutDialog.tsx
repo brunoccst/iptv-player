@@ -1,38 +1,4 @@
-import { buildInfo } from '../../buildInfo';
-import { Modal } from '../../components/Modal';
-import { appConfig } from '../../config';
-import { desktop } from '../../desktop';
-import { t, intlLocale } from '@iptv/shared';
+import '../browse/screenHost';
 
-/** Account menu → App → About, like the TV app's (D-070, D-079): version, and the commit and date it was built from. */
-export function AboutDialog({ onClose }: { onClose(): void }) {
-  const rows: [string, string][] = [
-    [t('App'), desktop ? t('Desktop app for {platform}', { platform: desktop.platform }) : t('Development build (browser)')],
-    ...(desktop ? ([[t('Version'), desktop.version]] as [string, string][]) : []),
-    [t('Built from'), buildInfo.commit ? buildInfo.commit.slice(0, 7) : t('a local build')],
-    ...(buildInfo.date ? ([[t('Built on'), new Date(buildInfo.date).toLocaleString(intlLocale())]] as [string, string][]) : []),
-  ];
-  return (
-    <Modal label={t('About')} onClose={onClose}>
-      <div className="about" data-testid="about-dialog">
-        <h2>{appConfig.appName}</h2>
-        <dl className="about__rows">
-          {rows.map(([label, value]) => (
-            <div key={label} className="about__row">
-              <dt>{label}</dt>
-              <dd>{value}</dd>
-            </div>
-          ))}
-        </dl>
-        {desktop ? (
-          <button type="button" className="button button--accent" onClick={() => void desktop?.checkForUpdates()}>
-            {t('Check for updates')}
-          </button>
-        ) : null}
-        <button type="button" className="button button--ghost" onClick={onClose}>
-          {t('Close')}
-        </button>
-      </div>
-    </Modal>
-  );
-}
+// Shared with the TV app (issue #237, DECISIONS.md#d-206).
+export { AboutDialog } from '@iptv/screens';
