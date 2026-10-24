@@ -49,7 +49,8 @@ import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
 import { EpisodesDrawer } from './EpisodesDrawer';
-import { GuidePanel } from './GuidePanel';
+import { GuideOverlay } from '@iptv/screens';
+import '../browse/screenHost';
 import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
@@ -822,7 +823,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         <EpisodesDrawer series={series} currentEpisodeId={target.streamId} onPlay={playEpisode} />
       ) : null}
       {panel === 'guide' && isLive ? (
-        <GuidePanel
+        <GuideOverlay
           channelId={target.streamId}
           categoryId={target.categoryId ?? null}
           onClose={() => setPanel(null)}

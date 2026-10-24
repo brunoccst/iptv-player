@@ -9,5 +9,4 @@
 | `TracksMenu.tsx`     | Audio, subtitles, version switch; each pick becomes the profile's choice for every title (D-087).                                                     |
 | `tracks.ts`          | Subtitle tracks (hls.js or the video element) and hls.js audio tracks: list, current, show; the profile's choices are applied once per title (D-087). |
 | `EpisodesDrawer.tsx` | In-player episode list by season.                                                                                                                     |
-| `GuidePanel.tsx`     | Live: guide over the playing channel (Guide button or G): the category's channels with now and next; a click switches channel (D-058).                |
 | `NextUp.tsx`         | Next-episode countdown card.                                                                                                                          |

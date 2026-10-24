@@ -17,6 +17,7 @@ export {
 export { DetailsScreen } from './DetailsScreen';
 export { DownloadsScreen } from './DownloadsScreen';
 export { categoryPage, LiveScreen } from './LiveScreen';
+export { GUIDE_HIDE_MS, GuideOverlay } from './GuideOverlay';
 export { HiddenCategories } from './HiddenCategories';
 export { LanguageSettings } from './LanguageSettings';
 export { LoginScreen } from './LoginScreen';
