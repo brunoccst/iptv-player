@@ -41,8 +41,11 @@ test('plays HLS through the relay with keyboard skip, hover frame preview and ve
     )
     .toBeGreaterThan(10_000);
 
+  // The TV's panel (D-210): Audio, Subtitles and Versions tabs.
   await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
-  await page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: '1080p' }).click();
+  const tracks = page.getByRole('dialog', { name: 'Audio, subtitles and version' });
+  await tracks.getByRole('button', { name: 'Versions' }).click();
+  await tracks.getByRole('button', { name: '1080p' }).click();
   await expect(page.locator('.player__subtitle')).toHaveText(/^1080p/);
   await expectPlaying(page);
 });
@@ -625,9 +628,9 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
   await expect(page.getByRole('status')).toHaveText('Subtitles: English · OpenSubtitles');
   expect(calls).toEqual(['/subtitles?languages=en&query=big+test+movie&type=movie&year=2020', '/download']);
   await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
-  await expect(
-    page.getByRole('dialog', { name: 'Audio, subtitles and version' }).getByRole('button', { name: 'English · OpenSubtitles' }),
-  ).toBeVisible();
+  const tracks = page.getByRole('dialog', { name: 'Audio, subtitles and version' });
+  await tracks.getByRole('button', { name: 'Subtitles', exact: true }).click();
+  await expect(tracks.getByRole('button', { name: '✓ English · OpenSubtitles' })).toBeVisible();
 });
 
 test('Categories shown: an unchecked category leaves browsing, but search still finds its titles (D-110)', async ({ page }) => {

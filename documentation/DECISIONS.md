@@ -115,6 +115,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-207](#d-207) | Shared account menu |
 | [D-208](#d-208) | Shared top nav |
 | [D-209](#d-209) | Shared guide over the playing channel |
+| [D-210](#d-210) | Shared player panel (audio, subtitles, versions, episodes) |
 
 ## Merged and retired IDs
 
@@ -1240,4 +1241,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The guide over a playing channel (D-058) is the first part of the player shared with the desktop (`packages/screens/src/GuideOverlay.tsx`); the desktop's player draws it over its HTML controls through React Native Web. The player stays per app for now: the video itself is the TV's ExoPlayer and the desktop's `<video>`, so the shared parts come in one at a time around it.
 - TV and phones close it by themselves after 6 seconds without input; the desktop keeps it until Escape, a click beside it or the Guide button, since the mouse can rest on it without moving. There it is a `complementary` region named "Guide", and the playing channel has the focus first.
+
+## D-210
+
+**Shared player panel** — 2026-10-24 (issue #237)
+
+- The TV's Audio, Subtitles, Versions and Episodes panel (D-077) replaces the desktop's tracks menu and episode drawer (`packages/screens/src/QuickDrawer.tsx`). The desktop's subtitles button opens it on Audio and its episodes button on Episodes, like the TV's buttons.
+- The panel does not know a player: each app lists its tracks as options with a name, whether they are on and what picking does (`TrackOption`). The TV builds them from ExoPlayer's tracks, the desktop from hls.js and the video element (`tracks.ts` `trackOptions`); both keep a pick as the profile's choice (D-087).
+- On the desktop it is a dialog named "Audio, subtitles and version" (or "Episodes"), with the phone's back arrow; a click beside it or Escape closes it.
 

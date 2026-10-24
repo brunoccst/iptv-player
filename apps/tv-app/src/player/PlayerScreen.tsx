@@ -27,7 +27,9 @@ import {
   SKIP_SECONDS,
   clampTime,
   fluid,
+  audioTrackLabels,
   episodeLabel,
+  trackLabel,
   episodeTarget,
   findProgress,
   liveTarget,
@@ -82,6 +84,7 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
+import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
 import { LevelBar, usePlayerSwipes } from './TouchLevels';
@@ -264,6 +267,17 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     return () => clearTimeout(timer);
   }, [notice]);
 
+  // The drawer's options: audio named so versions of one language tell apart, subtitles by language (D-087).
+  const audioTracks = tracks.filter((track) => track.type === 'audio');
+  const audioNames = audioTrackLabels(audioTracks);
+  const optionOf = (track: PlayerTrack, label: string): TrackOption => ({
+    key: `${track.groupIndex}-${track.trackIndex}`,
+    label,
+    selected: track.selected,
+    pick: () => chooseTrack(track.type === 'audio' ? 'audio' : 'text', track.groupIndex, track.trackIndex),
+  });
+  const audioOptions = audioTracks.map((track, index) => optionOf(track, audioNames[index] ?? trackLabel(track)));
+  const subtitleOptions = tracks.filter((track) => track.type === 'text').map((track) => optionOf(track, trackLabel(track)));
   const chooseTrack = (type: 'audio' | 'text', groupIndex: number, trackIndex: number) => {
     void playerRef.current?.selectTrack(type, groupIndex, trackIndex);
     if (!usesPlaybackChoices(target)) return;
@@ -1156,11 +1170,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
         <QuickDrawer
           initialTab={drawer}
           onClose={() => setDrawer(false)}
-          tracks={tracks}
+          audio={audioOptions}
+          subtitles={subtitleOptions}
+          subtitlesOff={() => chooseTrack('text', -1, 0)}
           variants={variants}
           currentStreamId={target.streamId}
           series={series}
-          onTrack={chooseTrack}
           onVariant={(v) => {
             setDrawer(false);
             switchVariant(v);

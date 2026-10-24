@@ -23,6 +23,7 @@ export { LanguageSettings } from './LanguageSettings';
 export { LoginScreen } from './LoginScreen';
 export { ProfilesScreen } from './ProfilesScreen';
 export { QualityUpgradeDialog } from './QualityUpgradeDialog';
+export { QuickDrawer, type DrawerTab, type TrackOption } from './QuickDrawer';
 export { BrowseScreen } from './BrowseScreen';
 export { HomeScreen } from './HomeScreen';
 export { MyListScreen, useGridColumns } from './MyListScreen';
