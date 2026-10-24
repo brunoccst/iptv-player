@@ -10,15 +10,22 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ## TV and phone app
 
-### 2.0
+### 3.0
 
-A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before your provider refuses a stream, and fix more playback and guide problems on their own.
+A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach the phone with the app closed, and settings and title splits now sync between your devices.
 
 #### Latest
 
 - **Guide reminders with the app closed** (2026-10-24, D-222, issue #263): on the phone and tablet, a reminder now also comes as a notification when the programme starts, even when the app is closed. Tap it to open the app and tune in with Watch. The app asks once to allow notifications.
 - **Profile settings sync on their own** (2026-10-24, D-225, issue #268): with a TV paired, a profile's languages, subtitle and audio choices, hidden categories and other settings now follow along like My List, keeping whatever was changed last on any device.
 - **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
+
+### 2.0
+
+A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before your provider refuses a stream, and fix more playback and guide problems on their own.
+
+#### Latest
+
 - **Backup buttons renamed** (2026-10-24, D-216, issue #237): Back up data now says "Save backup file" (it still asks where to save) and Restore from backup says "Restore backup", the same as on the desktop.
 - **"Add Profile" in your language** (2026-10-23, D-200, issue #237): the tile that adds a profile was always in English; it now follows the app language.
 - **My Downloads in your language** (2026-10-23, D-198, issue #237): a download's status (Waiting…, Downloading, Paused, Downloaded) now follows the app language instead of always showing in English.
@@ -118,15 +125,22 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 ## Desktop app
 
-### 2.0
+### 3.0
 
-A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before your provider refuses a stream.
+A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the graphics card and keep 4K, and settings and title splits now sync between your devices.
 
 #### Latest
 
 - **Profile settings sync on their own** (2026-10-24, D-225, issue #268): with a TV paired, a profile's languages, subtitle and audio choices, hidden categories and other settings now follow along like My List, keeping whatever was changed last on any device.
 - **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
 - **Faster conversions in 4K, HDR in true colours** (2026-10-24, D-224, issue #274): videos the app has to convert (HEVC, Dolby sound…) now use your computer's graphics chip (NVIDIA, Intel, AMD or Apple) when it has one, so 4K stays 4K and the processor stays free; without one, nothing changes. HDR videos no longer look grey while converted.
+
+### 2.0
+
+A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before your provider refuses a stream.
+
+#### Latest
+
 - **Options panel like the TV's** (2026-10-24, D-221, issue #237): right-clicking a cover or pressing an episode's "…" opens the TV app's options panel in the middle of the window instead of a small menu at the mouse.
 - **Log like the TV's** (2026-10-24, D-220, issue #237): the Log dialog uses the TV app's log view; warnings and errors are coloured.
 - **Parental PIN keypad** (2026-10-24, D-219, issue #237): the parental PIN is typed on the TV app's keypad (keyboard digits work too), and Parental PIN in the account menu takes the TV's steps: the current PIN, then the new one twice.
