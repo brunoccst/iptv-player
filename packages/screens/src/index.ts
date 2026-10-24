@@ -3,6 +3,7 @@
 export { AboutDialog } from './AboutDialog';
 export { AccountMenu, type AccountMenuGroup } from './AccountMenu';
 export { AppLanguageDialog } from './AppLanguageDialog';
+export { StartupDialog } from './StartupDialog';
 export { BackupDialog } from './BackupDialog';
 export {
   ScreenHostProvider,

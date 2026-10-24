@@ -7,15 +7,17 @@ import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { createServer, request as httpRequest } from 'node:http';
-import { networkInterfaces } from 'node:os';
+import { homedir, networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import {
   asPlayer,
+  autostartEntry,
   cleanTexts,
   contentType,
   fillText,
+  HIDDEN_ARG,
   isNewer,
   keyFile,
   lanAddress,
@@ -64,6 +66,8 @@ let appOrigin = '';
 let downloadsActive = false;
 let quitting = false;
 let tray = null;
+/** Start with the computer (issue #309, DECISIONS.md#d-226): closing the window keeps the app in the tray. */
+let startWithSystem = false;
 /** Translations of the dialogs below, from the page (D-084). */
 let texts = {};
 const tx = (source, params) => fillText(texts, source, params);
@@ -317,7 +321,7 @@ function registerPairing() {
   app.on('before-quit', stop);
 }
 
-function createWindow() {
+function createWindow(hidden = false) {
   window = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -329,7 +333,8 @@ function createWindow() {
     show: false,
     webPreferences: { preload: path.join(here, 'preload.cjs'), contextIsolation: true, sandbox: true },
   });
-  window.once('ready-to-show', () => window.show());
+  if (hidden) toBackground();
+  else window.once('ready-to-show', () => window.show());
   // Links to other sites open in the browser; the window only ever shows the app.
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) void shell.openExternal(url);
@@ -348,8 +353,9 @@ function createWindow() {
     event.preventDefault();
   });
   // Closing the window while downloads run hides it instead: the page keeps downloading (D-024 storage stays as it is).
+  // With "Start with the computer" on, it always does, so guide reminders still show (issue #309).
   window.on('close', (event) => {
-    if (quitting || !downloadsActive) return;
+    if (quitting || !(downloadsActive || startWithSystem)) return;
     event.preventDefault();
     toBackground();
   });
@@ -369,7 +375,7 @@ function toBackground() {
   if (tray) return;
   const icon = nativeImage.createFromPath(path.join(webRoot, 'icon-192.png')).resize({ width: 32, height: 32 });
   tray = new Tray(icon);
-  tray.setToolTip(`${config.appName}: ${tx('Downloading in the background')}`);
+  trayTooltip();
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: tx('Open'), click: showWindow },
@@ -377,6 +383,43 @@ function toBackground() {
     ]),
   );
   tray.on('click', showWindow);
+}
+
+function trayTooltip() {
+  tray?.setToolTip(`${config.appName}: ${tx(downloadsActive ? 'Downloading in the background' : 'Running in the background')}`);
+}
+
+/**
+ * Start with the computer (issue #309, DECISIONS.md#d-226): the system starts the app at sign-in with HIDDEN_ARG, in
+ * the tray. Windows and macOS through the login items; Linux through an XDG autostart entry. Kept in a file in the
+ * app's data, read before the window opens.
+ */
+const startupSettingFile = () => path.join(app.getPath('userData'), 'start-with-system.txt');
+const autostartFile = () =>
+  path.join(process.env.XDG_CONFIG_HOME || path.join(homedir(), '.config'), 'autostart', `${config.appSlug}.desktop`);
+
+async function setStartWithSystem(on) {
+  // While developing, the program is Electron and needs the app folder.
+  const args = app.isPackaged ? [] : [app.getAppPath()];
+  if (process.platform === 'linux') {
+    const program = app.isPackaged && process.env.APPIMAGE ? process.env.APPIMAGE : process.execPath;
+    if (on) {
+      await mkdir(path.dirname(autostartFile()), { recursive: true });
+      await writeFile(autostartFile(), autostartEntry(config.appName, [program, ...args]));
+    } else await rm(autostartFile(), { force: true });
+  } else {
+    app.setLoginItemSettings({ openAtLogin: on, openAsHidden: on, path: process.execPath, args: [...args, HIDDEN_ARG] });
+  }
+  await writeFile(startupSettingFile(), on ? 'on' : 'off');
+  startWithSystem = on;
+}
+
+/** Started at sign-in: the argument (Windows, Linux), or macOS's login item. */
+function startedBySystem() {
+  if (process.argv.includes(HIDDEN_ARG)) return true;
+  if (process.platform !== 'darwin') return false;
+  const login = app.getLoginItemSettings();
+  return Boolean(login.wasOpenedAsHidden || login.wasOpenedAtLogin);
 }
 
 function showWindow() {
@@ -533,7 +576,12 @@ app.whenReady().then(async () => {
   prepareSession();
   registerStorage();
   registerPairing();
-  createWindow();
+  try {
+    startWithSystem = readFileSync(startupSettingFile(), 'utf8').trim() === 'on';
+  } catch {
+    startWithSystem = false;
+  }
+  createWindow(startWithSystem && startedBySystem());
   setTimeout(() => void checkForUpdate(), UPDATE_CHECK_DELAY_MS);
   // The update dialogs' texts in the app's language (D-084), sent by the page when the language changes.
   ipcMain.handle('iptv:set-texts', (event, value) => {
@@ -543,8 +591,19 @@ app.whenReady().then(async () => {
   ipcMain.handle('iptv:downloads-active', (event, active) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
     downloadsActive = active === true;
-    // Hidden for the downloads, and they ended: done.
-    if (!downloadsActive && tray && window && !window.isVisible()) quit();
+    trayTooltip();
+    // Hidden for the downloads, and they ended: done, unless the app stays in the tray (issue #309).
+    if (!downloadsActive && !startWithSystem && tray && window && !window.isVisible()) quit();
+  });
+  ipcMain.handle('iptv:startup', async (event, on) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    if (typeof on === 'boolean') await setStartWithSystem(on);
+    return startWithSystem;
+  });
+  // A reminder's notification was clicked (issue #309): bring the window back, from the tray too.
+  ipcMain.handle('iptv:show', (event) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+    showWindow();
   });
   ipcMain.handle('iptv:check-updates', (event) => {
     if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');

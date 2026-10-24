@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ScreenHostProvider, type ScreenHost } from '@iptv/screens';
 
@@ -36,10 +36,10 @@ const host = {
 describe('account menu (issue #155)', () => {
   afterEach(cleanup);
 
-  const open = async () => {
+  const open = async (value: ScreenHost = host) => {
     const { TopNav } = await import('./TopNav');
     render(
-      <ScreenHostProvider value={host}>
+      <ScreenHostProvider value={value}>
         <TopNav />
       </ScreenHostProvider>,
     );
@@ -74,5 +74,23 @@ describe('account menu (issue #155)', () => {
     await open();
     fireEvent.click(screen.getByRole('button', { name: 'Account menu' }));
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('App → Start with the computer shows the setting and turns it on (issue #309)', async () => {
+    const set = vi.fn(async (on: boolean) => on);
+    await open({ ...host, account: { ...host.account, startup: { get: async () => false, set } } } as ScreenHost);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Start with the computer' }));
+    const toggle = await screen.findByRole('checkbox', { name: 'Start with the computer' });
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+    fireEvent.click(toggle);
+    expect(set).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'));
+  });
+
+  it('has no start-up item where the app cannot start with the computer', async () => {
+    await open();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
+    expect(screen.queryByRole('menuitem', { name: 'Start with the computer' })).toBeNull();
   });
 });

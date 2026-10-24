@@ -53,6 +53,13 @@ export interface DesktopBridge {
   /** The window was closed and hidden while downloads run: stop playing. Returns the unsubscribe function. */
   onBackground?(listener: () => void): () => void;
   /**
+   * Start with the computer (issue #309): the app starts hidden in the tray at sign-in, and closing the window keeps it
+   * there, so guide reminders still show. `set` returns the new state. Older apps lack it.
+   */
+  startup?: { get(): Promise<boolean>; set(on: boolean): Promise<boolean> };
+  /** Brings the window back, from the tray too. Older apps lack it. */
+  show?(): Promise<void>;
+  /**
    * Plays what Chromium cannot decode (issue #236): the app converts the stream with its FFmpeg into an HLS playlist on
    * its own server, starting at `at` seconds; one at a time. Older apps lack it.
    */

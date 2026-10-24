@@ -10,6 +10,7 @@ import { HiddenCategories } from './HiddenCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
+import { StartupDialog } from './StartupDialog';
 import { SubtitleSettings } from './SubtitleSettings';
 import { Icon, type IconName } from './ui/Icon';
 import { focus } from './ui/focus';
@@ -18,7 +19,8 @@ import { colors, fonts, radius, useNavHeight, useSizes } from './ui/theme';
 /** The groups of the main list (D-079); each opens in place with its name and a back arrow. */
 export type AccountMenuGroup = 'profiles' | 'library' | 'app';
 
-type DialogName = 'pin' | 'backup' | 'playback' | 'language' | 'hidden' | 'subtitles' | 'about' | 'appLanguage' | 'log' | 'sync';
+type DialogName =
+  'pin' | 'backup' | 'playback' | 'language' | 'hidden' | 'subtitles' | 'about' | 'appLanguage' | 'log' | 'sync' | 'startup';
 
 /**
  * The account menu under the top nav's avatar (D-079), the same on every app (issue #237, DECISIONS.md#d-207): other
@@ -79,6 +81,7 @@ export function AccountMenu({
       {shown === 'about' ? <AboutDialog onClose={hide} /> : null}
       {shown === 'subtitles' ? <SubtitleSettings onClose={hide} /> : null}
       {shown === 'appLanguage' ? <AppLanguageDialog onClose={hide} /> : null}
+      {shown === 'startup' ? <StartupDialog onClose={hide} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -142,6 +145,10 @@ export function AccountMenu({
           testID: 'menu-app-language',
           onPress: show('appLanguage'),
         },
+        // The desktop starts in the tray at sign-in, so guide reminders show with the window closed (issue #309).
+        ...(account.startup
+          ? [{ icon: 'restart' as const, label: t('Start with the computer'), testID: 'menu-startup', onPress: show('startup') }]
+          : []),
         // OpenSubtitles (D-111).
         { icon: 'subtitles', label: t('Automatic subtitles'), testID: 'menu-subtitles', onPress: show('subtitles') },
         { icon: 'info', label: t('About'), testID: 'menu-about', onPress: show('about') },

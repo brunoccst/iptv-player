@@ -153,6 +153,8 @@ export interface ScreenHost {
     sync?: MenuAction & { icon: IconName };
     /** Library & devices → Playback: TV builds with the FFmpeg audio decoders (D-059). */
     playback?: MenuAction | null;
+    /** App → Start with the computer, in the tray (issue #309): the desktop app; `set` returns the new state. */
+    startup?: { get(): Promise<boolean>; set(on: boolean): Promise<boolean> };
     /** App → Log: the TV's Log page, the desktop's dialog (D-079). */
     log: MenuAction;
     /** TV and phone: closes the app like "Force stop", after asking. */

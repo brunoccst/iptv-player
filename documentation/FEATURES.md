@@ -230,7 +230,7 @@ On channels whose provider keeps recordings, past programmes can be watched from
 
 ### Guide reminders
 
-A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile and are carried over when pairing devices. On the phone and tablet a notification says so too, even with the app closed; tapping it opens the app with Watch. The TV and desktop show them only while the app is open, up to 10 minutes after the start (D-222, issue #263, issue #309, D-184, issue #239).
+A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile and are carried over when pairing devices. On the phone and tablet a notification says so too, even with the app closed; tapping it opens the app with Watch. The desktop app shows them with its window closed too when **Start with the computer** is on (D-226). The TV shows them only while the app is open, up to 10 minutes after the start (D-222, issue #263, issue #309, D-184, issue #239).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone and desktop: Remind me.
 
@@ -377,3 +377,9 @@ The app hides Android's navigation bar, and the taskbar on tablets, on every pag
 Account menu → Close the app ends the app completely, like "Force stop" in the system settings.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ➖ (closing the window does it).
+
+### Start with the computer (desktop)
+
+Account menu → App → **Start with the computer** turns it on or off. When on, the app opens in the tray (the menu bar on macOS) when you sign in to the computer, without a window, and closing the window keeps it there instead of quitting. Guide reminders then still show, as a system notification and the dialog, and downloads go on; clicking the notification or the tray icon opens the window, and **Quit** in the tray icon's menu ends the app (issue #309, D-226).
+
+**Apps:** TV ➖ (the TV app runs while the TV is on; Android TV shows notifications poorly) · Phone ➖ (Android alarms show reminders with the app closed, D-222) · Desktop ✅

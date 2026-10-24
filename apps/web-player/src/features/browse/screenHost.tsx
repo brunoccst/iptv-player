@@ -115,6 +115,7 @@ setScreenHost({
     backup: { label: () => t('Back up & restore'), Dialog: ({ onClose }) => <BackupDialog mode="both" onClose={onClose} /> },
     // The desktop app pairs; a plain browser cannot (D-060).
     sync: desktop ? { icon: 'phone', run: () => openSyncWithPhone() } : undefined,
+    startup: desktop?.startup,
     log: { Dialog: LogDialog },
     goHome: () => uiStore.getState().navigate('home'),
   },

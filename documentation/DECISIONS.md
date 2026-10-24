@@ -131,6 +131,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-223](#d-223) | Title splits and merges sync and back up |
 | [D-224](#d-224) | Desktop: hardware H.264 encoders for conversions |
 | [D-225](#d-225) | Profile settings carry dates and sync automatically |
+| [D-226](#d-226) | Desktop: start with the computer, in the tray |
 
 ## Merged and retired IDs
 
@@ -1050,7 +1051,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The running app checks when the next one starts (and every 30 s) and shows it from its start for 10 minutes, so an app opened shortly after still shows it. Dismiss or Watch takes it off the list.
 - TV and phone: a popup over any page and the player (focus stays inside it). Desktop: the same dialog since D-214 (first a banner at the top right that did not take focus), over the player too, plus a system notification while the window is in the background (permission asked with the first reminder).
 - TV sets one by holding OK on a programme that has not started: OK on it still tunes to the channel, and holding OK on the programme on now still starts it over (issue #226).
-- With the app closed: the phone and tablet set a system alarm per reminder (D-222); the TV and desktop show them only while the app runs.
+- With the app closed: the phone and tablet set a system alarm per reminder (D-222); the desktop, when it starts with the computer, waits in the tray (D-226); the TV shows them only while the app runs.
 
 ## D-185
 
@@ -1349,7 +1350,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The phone and tablet hand every reminder of the account's profiles to Android (`ReminderAlarms.kt`, from `apps/tv-app/src/tv/reminderAlarms.ts`) whenever the list changes: one alarm per programme, which posts a notification "Starting now: …" with the channel (and the profiles who set it, when the account has several). All profiles, not only the active one, since the app may be closed or on another profile when it starts. The words are translated by JS beforehand, since no JavaScript runs when the alarm goes off.
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
-- Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which notifies only while it runs (issue #309).
+- Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which can start with the computer and wait in the tray instead (D-226).
 
 ## D-223
 
@@ -1376,3 +1377,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Each profile's preferences (content languages, app language, subtitle/audio/version choices, hidden and kids categories, …) keep the time each one was last changed (`changedAt`, set by `profilePrefsStore.update`). The automatic sync with the TV (D-186) carries them for the account's profiles, and per preference the later change wins on both sides; kids and hidden categories go per section, and the lists (watched series, recent channels, reminders) are joined as in pairing.
 - Values from before have no date: there the sending device wins, as pairing always did (D-060), and a dated value wins over an undated one. Pairing uses the same merge, so a code scanned later no longer undoes a newer choice on the TV.
 - A sync that changes a preference refreshes the app's preferences (`refreshMedia`). Device settings (the audio decoder, the device's own app language before a profile, downloads, update choices) still stay on each device.
+
+## D-226
+
+**Desktop: start with the computer, in the tray** — 2026-10-24 (issue #309)
+
+- Account menu → App → Start with the computer (off by default). When on, the system starts the app at sign-in with `--hidden`: the window loads but stays hidden, with the tray icon of background downloads (D-187), so guide reminders (D-184) show as a system notification and the dialog. Closing the window then always goes to the tray, not only while downloads run, and the app no longer quits when downloads end; Quit in the tray menu ends it.
+- Windows and macOS through Electron's login items (`setLoginItemSettings`; macOS reports `wasOpenedAtLogin`); Linux through an XDG autostart entry (`~/.config/autostart/<app>.desktop`, the AppImage when there is one). The choice is kept in `start-with-system.txt` in the app's data, read before the window opens.
+- Chosen over a separate background process or a native scheduler: the hidden page already checks reminders and runs downloads, so nothing is added that must stay in step with it. The cost is the page's memory while hidden, as for background downloads. The page stops playing when hidden, so no provider connection is held.
+- Clicking a reminder's notification brings the window back (`iptv:show`); `window.focus()` alone does not show a hidden window.
+- Tested here only through its parts (the autostart entry, the menu and dialog): the login items need a check on a real Windows and macOS sign-in.

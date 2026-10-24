@@ -184,3 +184,22 @@ export function cleanTexts(value) {
       .slice(0, 100),
   );
 }
+
+/** Started by the system at sign-in (issue #309): the app stays in the tray, with no window shown. */
+export const HIDDEN_ARG = '--hidden';
+
+/**
+ * Linux has no login item API: an XDG autostart entry starts the app at sign-in, hidden. `command` is the AppImage, or
+ * the program with its arguments (the app folder while developing).
+ */
+export function autostartEntry(name, command) {
+  const quote = (part) => `"${String(part).replace(/(["`$\\])/g, '\\$1')}"`;
+  return [
+    '[Desktop Entry]',
+    'Type=Application',
+    `Name=${name}`,
+    `Exec=${[...command, HIDDEN_ARG].map(quote).join(' ')}`,
+    'X-GNOME-Autostart-enabled=true',
+    '',
+  ].join('\n');
+}
