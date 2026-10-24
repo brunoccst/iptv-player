@@ -26,7 +26,6 @@ import {
   TAP_CHAIN_MS,
   SKIP_SECONDS,
   clampTime,
-  fluid,
   audioTrackLabels,
   episodeLabel,
   trackLabel,
@@ -83,6 +82,7 @@ import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { NextUp } from './NextUp';
 import { SkipAhead } from './SkipAhead';
+import { PlayerHeader } from './PlayerHeader';
 import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
@@ -885,30 +885,15 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
               />
             </View>
           ) : null}
-          <View style={[styles.top, { paddingHorizontal: sizes.gutter }]}>
-            <IconButton
-              icon="back"
-              label={t('Back')}
-              testID="player-back"
-              plain
-              focusable={!Platform.isTV || !!buttons}
-              hasTVPreferredFocus={tvButtons && buttons === 'back'}
-              size={44}
-              iconSize={28}
-              onPress={() => navStore.getState().back()}
-            />
-            <View style={styles.heading}>
-              <Text style={[styles.title, { fontSize: fluid(width, 16, 2, 22) }]} numberOfLines={1}>
-                {target.title}
-              </Text>
-              {target.subtitle || source?.offlineId ? (
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {[target.subtitle, source?.offlineId ? t('Downloaded') : null].filter(Boolean).join(' · ')}
-                </Text>
-              ) : null}
-            </View>
-            {isLive ? <Text style={styles.live}>{t('LIVE')}</Text> : null}
-          </View>
+          <PlayerHeader
+            title={target.title}
+            subtitle={target.subtitle}
+            downloaded={!!source?.offlineId}
+            live={isLive}
+            onBack={() => navStore.getState().back()}
+            backFocusable={!Platform.isTV || !!buttons}
+            backPreferredFocus={tvButtons && buttons === 'back'}
+          />
           <View style={[styles.bottom, { paddingHorizontal: sizes.gutter }]}>
             {isLive ? null : Platform.isTV ? (
               // TV: one more row above the buttons; Left/Right stay on it and move the video (D-179).
@@ -1190,10 +1175,6 @@ const styles = StyleSheet.create({
   center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between' },
   middle: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 20 },
-  heading: { flexShrink: 1 },
-  title: { color: colors.strong, fontWeight: '700' },
-  subtitle: { color: colors.muted, fontSize: 14.4, marginTop: 2 },
   notice: {
     position: 'absolute',
     top: 24,
@@ -1204,16 +1185,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
   },
   noticeText: { color: colors.strong, fontSize: 16 },
-  live: {
-    color: colors.strong,
-    backgroundColor: colors.accent,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 2,
-    overflow: 'hidden',
-    fontSize: fonts.tiny,
-    fontWeight: '700',
-  },
   bottom: { paddingBottom: 20 },
   // Tall enough to grab with a finger; the rail is drawn in the middle.
   timeline: { height: 32, justifyContent: 'center' },

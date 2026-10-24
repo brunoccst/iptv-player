@@ -22,6 +22,7 @@ export { HiddenCategories } from './HiddenCategories';
 export { LanguageSettings } from './LanguageSettings';
 export { LoginScreen } from './LoginScreen';
 export { NextUp } from './NextUp';
+export { PlayerHeader } from './PlayerHeader';
 export { ProfilesScreen } from './ProfilesScreen';
 export { QualityUpgradeDialog } from './QualityUpgradeDialog';
 export { QuickDrawer, type DrawerTab, type TrackOption } from './QuickDrawer';

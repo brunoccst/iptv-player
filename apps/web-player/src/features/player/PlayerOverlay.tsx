@@ -45,7 +45,7 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
-import { GuideOverlay, NextUp, QuickDrawer, SkipAhead } from '@iptv/screens';
+import { GuideOverlay, NextUp, PlayerHeader, QuickDrawer, SkipAhead } from '@iptv/screens';
 import '../browse/screenHost';
 import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
@@ -547,21 +547,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       ) : null}
 
       <div className="player__overlay">
-        <div className="player__top">
-          <button type="button" className="player__control" onClick={close} aria-label={t('Back')}>
-            <Icon name="back" size={32} />
-          </button>
-          <div className="player__heading">
-            <h2 className="player__title">{target.title}</h2>
-            {target.subtitle ? (
-              <p className="player__subtitle">
-                {target.subtitle}
-                {source?.offline ? ` · ${t('Downloaded')}` : ''}
-              </p>
-            ) : null}
-          </div>
-          {isLive ? <span className="player__live">{t('LIVE')}</span> : null}
-        </div>
+        <PlayerHeader title={target.title} subtitle={target.subtitle} downloaded={!!source?.offline} live={isLive} onBack={close} />
 
         <div className="player__bottom">
           {!isLive ? (

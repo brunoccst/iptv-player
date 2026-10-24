@@ -32,39 +32,6 @@
   opacity: 0;
 }
 
-.player__top {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px var(--gutter);
-}
-
-.player__heading {
-  min-width: 0;
-}
-
-.player__title {
-  margin: 0;
-  overflow: hidden;
-  font-size: clamp(1rem, 2vw, 1.4rem);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.player__subtitle {
-  margin: 2px 0 0;
-  font-size: 0.9rem;
-  color: var(--color-muted);
-}
-
-.player__live {
-  padding: 2px 8px;
-  border-radius: 2px;
-  background: var(--color-accent);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
 .player__center {
   position: absolute;
   inset: 0;
