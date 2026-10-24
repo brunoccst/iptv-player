@@ -121,6 +121,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Log like the TV's** (2026-10-24, D-220, issue #237): the Log dialog uses the TV app's log view; warnings and errors are coloured.
 - **Parental PIN keypad** (2026-10-24, D-219, issue #237): the parental PIN is typed on the TV app's keypad (keyboard digits work too), and Parental PIN in the account menu takes the TV's steps: the current PIN, then the new one twice.
 - **Progress bar like the TV's** (2026-10-24, D-218, issue #237): the player's progress bar is the TV app's; the time on hover shows above the bar and the preview picture stays inside the window.
 - **Player buttons like the TV's** (2026-10-24, D-217, issue #237): the player's buttons are the TV app's; Audio and Subtitles each open their own tab of the panel.

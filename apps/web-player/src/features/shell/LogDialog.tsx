@@ -1,19 +1,17 @@
 import { useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
 import { appLog, t } from '@iptv/shared';
-import { Modal } from '../../components/Modal';
+import { Dialog, LogView } from '@iptv/screens';
+import '../browse/screenHost';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
 
-const PREVIEW_LINES = 150;
-
 /**
- * Account menu → App → Log: the diagnostics log, like the TV app's Log screen (D-079). The TV shares it through the
- * Android share sheet; here it is copied or saved as a text file. Usernames and passwords are masked.
+ * Account menu → App → Log: the TV's log view in a dialog (D-079, DECISIONS.md#d-220). The TV shares it through the
+ * Android share sheet; here it is saved as a text file or copied.
  */
 export function LogDialog({ onClose }: { onClose(): void }) {
-  const [, refresh] = useState(0);
   const [copied, setCopied] = useState(false);
-  const entries = appLog.entries();
 
   const exportText = () => {
     const { text, lines, omitted } = appLog.shareText(Number.MAX_SAFE_INTEGER);
@@ -39,42 +37,18 @@ export function LogDialog({ onClose }: { onClose(): void }) {
   };
 
   return (
-    <Modal label={t('Log')} onClose={onClose}>
-      <div className="log" data-testid="log-dialog">
-        <h2>{t('Log')}</h2>
-        <p className="muted">
-          {t('Send this to support when something goes wrong. The server address, usernames, passwords and keys are hidden.')}
-        </p>
-        <div className="log__actions">
-          <button type="button" className="button button--accent" onClick={save}>
-            {t('Save log')}
-          </button>
-          <button type="button" className="button" onClick={() => void copy()}>
-            {copied ? t('Copied') : t('Copy log')}
-          </button>
-          <button
-            type="button"
-            className="button button--ghost"
-            onClick={() => {
-              appLog.clear();
-              refresh((n) => n + 1);
-            }}
-          >
-            {t('Clear log')}
-          </button>
-        </div>
-        <pre className="log__lines">
-          {entries.length === 0
-            ? t('Nothing logged yet.')
-            : entries
-                .slice(-PREVIEW_LINES)
-                .map(
-                  (entry) =>
-                    `${entry.at.slice(11, 19)} ${entry.level === 'info' ? '' : `${entry.level.toUpperCase()} `}[${entry.area}] ${entry.message}`,
-                )
-                .join('\n')}
-        </pre>
-      </div>
-    </Modal>
+    <Dialog title={t('Log')} onClose={onClose} testID="log-dialog" width={760}>
+      <ScrollView style={styles.scroll}>
+        <LogView
+          hints={[t('Send this to support when something goes wrong. The server address, usernames, passwords and keys are hidden.')]}
+          actions={[
+            { label: t('Save log'), onPress: save, testID: 'log-save' },
+            { label: copied ? t('Copied') : t('Copy log'), onPress: () => void copy(), testID: 'log-copy' },
+          ]}
+        />
+      </ScrollView>
+    </Dialog>
   );
 }
+
+const styles = StyleSheet.create({ scroll: { flexShrink: 1 } });
