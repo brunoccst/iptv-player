@@ -81,6 +81,7 @@ export interface ScreenHost {
     | 'useProfilePicker'
     | 'useProfileEditor'
     | 'useReminders'
+    | 'useDueReminder'
     | 'useProgrammeDescription'
     | 'useMovieDetails'
     | 'useSeriesDetails'

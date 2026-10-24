@@ -5,7 +5,7 @@ import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
 import { HomePage } from '../home/HomePage';
 import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
-import { ReminderToast } from '../live/ReminderToast';
+import { Reminder } from '../live/Reminder';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
@@ -65,7 +65,7 @@ export function Shell() {
           <PlayerOverlay key={`${playing.kind}-${playing.streamId}`} target={playing} />
         </Suspense>
       ) : null}
-      <ReminderToast />
+      <Reminder />
     </>
   );
 }
