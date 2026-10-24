@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
 - **Backup buttons renamed** (2026-10-24, D-216, issue #237): Back up data now says "Save backup file" (it still asks where to save) and Restore from backup says "Restore backup", the same as on the desktop.
 - **"Add Profile" in your language** (2026-10-23, D-200, issue #237): the tile that adds a profile was always in English; it now follows the app language.
 - **My Downloads in your language** (2026-10-23, D-198, issue #237): a download's status (Waiting…, Downloading, Paused, Downloaded) now follows the app language instead of always showing in English.
@@ -121,6 +122,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
 - **Options panel like the TV's** (2026-10-24, D-221, issue #237): right-clicking a cover or pressing an episode's "…" opens the TV app's options panel in the middle of the window instead of a small menu at the mouse.
 - **Log like the TV's** (2026-10-24, D-220, issue #237): the Log dialog uses the TV app's log view; warnings and errors are coloured.
 - **Parental PIN keypad** (2026-10-24, D-219, issue #237): the parental PIN is typed on the TV app's keypad (keyboard digits work too), and Parental PIN in the account menu takes the TV's steps: the current PIN, then the new one twice.

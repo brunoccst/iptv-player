@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { noteRemoval, readRemovals, removalsKey } from '../direct/removals';
+import { titleRulesKey } from '../direct/titleRules';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { PROFILE_PREFS_KEY } from '../stores/profilePrefsStore';
@@ -113,6 +114,30 @@ describe('automatic sync with the paired TV (issue #227)', () => {
       expect(read(d, watchlistKey('p1')).map((w: { masterId: string }) => w.masterId)).toEqual(['m3']);
       expect(readRemovals(d.data.data.get(removalsKey('acc-1'))).watchlist.p1).toEqual({ 'movies:m1': '2026-10-16T00:00:00.000Z' });
     }
+  });
+
+  it("each device's title splits and merges reach the other, the later change winning (issue #267)", async () => {
+    const rule = (src: string, at: string, removed?: boolean) => ({
+      kind: 'movie',
+      rule: 'merge',
+      src,
+      dst: 'kZ|',
+      at,
+      ...(removed ? { removed } : {}),
+    });
+    const phone = device([profile('p1', 'demo')], {
+      [titleRulesKey('acc-1')]: [rule('kA|', '2026-10-16T00:00:00.000Z'), rule('kB|', '2026-10-16T00:00:00.000Z', true)],
+    });
+    const tvDevice = device([profile('p1', 'demo')], {
+      [titleRulesKey('acc-1')]: [rule('kB|', '2026-10-10T00:00:00.000Z'), rule('kC|', '2026-10-12T00:00:00.000Z')],
+    });
+    await syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice), now: () => now });
+    for (const d of [phone, tvDevice])
+      expect(read(d, titleRulesKey('acc-1'))).toEqual([
+        rule('kA|', '2026-10-16T00:00:00.000Z'),
+        rule('kB|', '2026-10-16T00:00:00.000Z', true),
+        rule('kC|', '2026-10-12T00:00:00.000Z'),
+      ]);
   });
 
   it('a title added again after its removal comes back', () => {

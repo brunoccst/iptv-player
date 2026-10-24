@@ -103,6 +103,52 @@ describe('library in SQLite (D-121)', () => {
     expect(await database.library.status()).toEqual(await memory.library.status());
   }, 30_000);
 
+  it("another device's splits and merges apply once a sync or backup brings them (issue #267)", async () => {
+    const panel = createFakePanel();
+    let later = 0;
+    const device = () => {
+      const dataStorage = createMemoryStorage();
+      const api = createDirectApiClient({
+        appName: 'Test',
+        secureStorage: createMemoryStorage(),
+        dataStorage,
+        fetch: panel.fetch,
+        now: () => new Date(panel.nowSeconds * 1000 + later),
+        libraryDb: createNodeSqlDatabase(),
+      });
+      return { api, dataStorage };
+    };
+    const phone = device();
+    const tv = device();
+    for (const { api } of [phone, tv]) {
+      await api.auth.login(login);
+      await ready(api);
+    }
+    const titles = async (api: ReturnType<typeof createDirectApiClient>) =>
+      (await api.library.list('movies', { sort: 'title' })).items.map(({ title, variantCount }) => `${title} ${variantCount}`).sort();
+    const idOf = async (title: string) => (await phone.api.library.list('movies', { search: title })).items[0]!.id;
+    expect(await titles(tv.api)).toEqual(['Another Film 1', 'Big Test Movie 2']);
+    const accountId = (await phone.api.auth.me()).id;
+    const key = `direct.titleRules.${accountId}`;
+    const carry = async () => {
+      await tv.dataStorage.setItem(key, (await phone.dataStorage.getItem(key))!);
+      // The TV looks for a new record every 10 s.
+      later += 11_000;
+    };
+
+    const big = await idOf('Big Test Movie');
+    await phone.api.library.regroup!('movies', big, { action: 'split', streamId: '102' });
+    const merged = await phone.api.library.regroup!('movies', big, { action: 'merge', fromId: await idOf('Another Film') });
+    expect(await titles(phone.api)).toEqual(['Big Test Movie 1', 'Big Test Movie 2']);
+    await carry();
+    expect(await titles(tv.api)).toEqual(['Big Test Movie 1', 'Big Test Movie 2']);
+
+    // Undoing on the phone undoes on the TV too.
+    await phone.api.library.regroup!('movies', merged, { action: 'undo' });
+    await carry();
+    expect(await titles(tv.api)).toEqual(['Another Film 1', 'Big Test Movie 1', 'Big Test Movie 1']);
+  });
+
   it('the app splits and merges titles by hand, and says how a title came out (issue #243)', async () => {
     const panel = createFakePanel();
     const api = createDirectApiClient({

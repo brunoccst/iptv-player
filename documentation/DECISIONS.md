@@ -127,6 +127,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-219](#d-219) | Shared parental PIN keypad |
 | [D-220](#d-220) | Shared log view |
 | [D-221](#d-221) | Shared card menu |
+| [D-223](#d-223) | Title splits and merges sync and back up |
 
 ## Merged and retired IDs
 
@@ -1053,9 +1054,9 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 **Split and merge titles by hand** — 2026-10-17 (issue #243)
 
 - Rules in the library database (`title_rules`, per account and kind), applied by the grouping queries after the automatic rules (D-133): a `split` gives one provider item (stream id) a group of its own (`'s' || sid`, which also goes into its title id, so it never takes the id of the title it left); a `merge` sends every item of one group key (`gk`: cleaned name and year, or TMDB id and year) to another. Merging into a title whose key other merges point to moves those along, so rules never chain.
-- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #267).
+- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #311).
 - A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
-- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Rules stay on the device (issue #267).
+- Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Since D-223 the rules sync between devices and go into backups.
 
 ## D-186
 
@@ -1337,3 +1338,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A title's or an episode's options (D-078) are the TV's panel in the middle of the screen on every app (`packages/screens/src/CardMenu.tsx`), Bruno's choice. The desktop's small menu at the pointer is gone: a right-click, the menu key, Shift+F10 or an episode's "…" open the same panel, and Escape closes it like the other dialogs.
 - Each app only says how a card opens it (`ScreenHost.MenuTrigger`): holding OK or a long touch on TV and phone, a right-click on the desktop. The screens draw the menu themselves, so the hosts no longer pass `Menu` or draw `TitleMenu`.
+
+## D-223
+
+**Title splits and merges sync and back up** — 2026-10-24 (issue #267)
+
+- The library database's `title_rules` (D-185) stay what the grouping reads. Beside them, a record in the device's data (`direct.titleRules.<account>`, `packages/shared/src/direct/titleRules.ts`) dates each rule when it is made or undone; an undone rule stays as removed for 180 days, like other removals (D-186). Pairing, automatic sync and backups carry the record like My List (keys are the provider's: group keys and stream ids are the same on every device of one account), and per rule the later change wins.
+- A device applies a record that differs from what it last wrote or applied when a list is read (at most every 10 s, not while the library updates): the rules go into the database (`replaceRules`) and only the titles they touch are grouped again, without downloading. Merges are applied oldest first the way one device makes them, so two devices' merges never chain or loop.
+- A device with rules from before the record starts the record with them on its first list. A merge still stops applying when the provider changes the title's key (issue #311).

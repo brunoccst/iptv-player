@@ -45,6 +45,7 @@ import type { GuideProgramme } from './xmltv';
 import { floorToSlot } from '../epg/guide';
 import { reattachTitles, type TitleLookup } from './reattach';
 import { noteRemoval } from './removals';
+import { liveRules, readTitleRules, recordRules, titleRulesKey } from './titleRules';
 import type { NameRow } from './nameRow';
 import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
@@ -125,6 +126,8 @@ const SHORT_EPG_PARALLELISM = 2;
 /** How far back the guide keeps programmes of channels with recordings (issue #226); the apps' guides go back as far. */
 const CATCHUP_GUIDE_MS = 24 * 3600_000;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
+/** How often a list looks whether a sync or a backup brought other split and merge rules (issue #267). */
+const TITLE_RULES_CHECK_MS = 10_000;
 /**
  * The full TV guide keeps the programmes of the next two days, as far as the guide pages (issue #248), and is
  * downloaded again after half a day (issue #119).
@@ -786,7 +789,93 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const data = await loadLibrary();
     const age = data ? now().getTime() - Date.parse(data.builtAt) : Infinity;
     if (age > LIBRARY_REFRESH_MS) void syncLibrary().catch(() => undefined);
-    return data;
+    return (await applyStoredRules(data)) ?? data;
+  };
+
+  /** Groups the titles with `keys` again after the rules of `kind` changed (issue #243), from the items the library holds. */
+  const regroupKeys = async (accountId: string, kind: LibraryKind, saved: SqlLibraryKind, keys: string[]) => {
+    const database = sqlLibrary;
+    if (!database) return null;
+    saving.add(kind);
+    try {
+      const result = await database.regroup(accountId, kind, saved.builtAt, keys, {
+        hashIds: options.hashIds,
+        parseNames: options.parseNames,
+      });
+      if (!result || credentials?.account.id !== accountId) return null;
+      library.data = {
+        movie: [],
+        series: [],
+        ...library.data,
+        builtAt: library.data?.builtAt ?? saved.builtAt,
+        sql: { ...library.data?.sql, [kind]: result.saved },
+      };
+      return result.saved;
+    } finally {
+      saving.delete(kind);
+    }
+  };
+
+  /** The rules record (issue #267) as this device last wrote or applied it, so an unchanged one is not read again. */
+  let appliedRules: { accountId: string; text: string | null; checkedAt: number } | null = null;
+
+  /** Dates this device's rules of `kind` in the record that syncs and backups carry (issue #267, DECISIONS.md#d-223). */
+  const recordTitleRules = async (accountId: string, kinds: readonly LibraryKind[]) => {
+    const database = sqlLibrary;
+    if (!database) return;
+    const key = titleRulesKey(accountId);
+    const before = await options.dataStorage.getItem(key);
+    let record = readTitleRules(before);
+    // No record yet (rules from before it, issue #267): both kinds go in, or the other kind's would be dropped.
+    for (const kind of before === null ? (['movie', 'series'] as const) : kinds)
+      record = recordRules(record, kind, await database.rules(accountId, kind), now());
+    const text = JSON.stringify(record);
+    await options.dataStorage.setItem(key, text);
+    appliedRules = { accountId, text, checkedAt: now().getTime() };
+  };
+
+  /**
+   * Splits and merges that came with a sync or a backup (issue #267, DECISIONS.md#d-223): when the record differs from
+   * what this device last saw, its rules go into the database and the titles they touch are grouped again. Not while
+   * the library updates (it groups with the database's rules; the next list looks again). A device with rules from
+   * before the record starts it with them.
+   */
+  const applyStoredRules = async (data: StoredLibrary | null): Promise<StoredLibrary | null> => {
+    const database = sqlLibrary;
+    const accountId = credentials?.account.id;
+    if (!database || !data?.sql || !accountId || library.running) return null;
+    const checked = appliedRules?.accountId === accountId ? appliedRules : null;
+    if (checked && now().getTime() - checked.checkedAt < TITLE_RULES_CHECK_MS) return null;
+    const text = await Promise.resolve(options.dataStorage.getItem(titleRulesKey(accountId))).catch(() => null);
+    if (checked && checked.text === text) {
+      checked.checkedAt = now().getTime();
+      return null;
+    }
+    const run = regrouping.then(async () => {
+      if (text === null) return recordTitleRules(accountId, ['movie', 'series']);
+      const record = readTitleRules(text);
+      for (const kind of ['movie', 'series'] as const) {
+        const saved = library.data?.sql?.[kind] ?? null;
+        const keys = await database.replaceRules(accountId, kind, saved, liveRules(record, kind));
+        if (keys.length && saved) {
+          const started = Date.now();
+          await regroupKeys(accountId, kind, saved, keys);
+          appLog.info(
+            'library',
+            `${kind}: splits and merges from another device, ${keys.length} title keys grouped again in ${Date.now() - started} ms`,
+          );
+        }
+      }
+      appliedRules = { accountId, text, checkedAt: now().getTime() };
+    });
+    regrouping = run.catch(() => undefined);
+    try {
+      await run;
+    } catch (error) {
+      appLog.warn('library', `splits and merges from another device not applied: ${errorMessage(error)}`);
+      appliedRules = { accountId, text, checkedAt: now().getTime() };
+    }
+    return library.data;
   };
 
   const librarySection = (section: LibrarySection): LibraryKind => (section === 'movies' ? 'movie' : 'series');
@@ -1710,7 +1799,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         // After an update that is running: it would replace what the change groups.
         await library.running?.catch(() => undefined);
         const run = regrouping.then(async () => {
-          const data = await ensureLibrary();
+          // Not `ensureLibrary`: it would wait for this very change to apply the rules record.
+          const data = await loadLibrary();
           const saved = data?.sql?.[kind];
           const database = sqlLibrary;
           const accountId = credentials?.account.id;
@@ -1720,30 +1810,19 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const kept = streamIds.find((streamId) => change.action !== 'split' || streamId !== change.streamId);
           const keys = await database.changeRules(accountId, kind, saved, { ...change, id: masterId });
           if (!keys.length) return masterId;
+          // Other devices get the change with the next sync (issue #267).
+          await recordTitleRules(accountId, [kind]).catch((error: unknown) =>
+            appLog.warn('library', `splits and merges not recorded for syncing: ${errorMessage(error)}`),
+          );
           const started = Date.now();
-          saving.add(kind);
-          try {
-            const result = await database.regroup(accountId, kind, saved.builtAt, keys, {
-              hashIds: options.hashIds,
-              parseNames: options.parseNames,
-            });
-            if (!result || credentials?.account.id !== accountId) return masterId;
-            library.data = {
-              movie: [],
-              series: [],
-              ...library.data,
-              builtAt: library.data?.builtAt ?? saved.builtAt,
-              sql: { ...library.data?.sql, [kind]: result.saved },
-            };
-            appLog.info(
-              'library',
-              `${kind}: ${change.action} by hand, ${keys.length} title keys grouped again in ${Date.now() - started} ms`,
-            );
-            if (!kept) return masterId;
-            return (await database.holdersOf(result.saved, [kept])).get(kept) ?? masterId;
-          } finally {
-            saving.delete(kind);
-          }
+          const regrouped = await regroupKeys(accountId, kind, saved, keys);
+          if (!regrouped) return masterId;
+          appLog.info(
+            'library',
+            `${kind}: ${change.action} by hand, ${keys.length} title keys grouped again in ${Date.now() - started} ms`,
+          );
+          if (!kept) return masterId;
+          return (await database.holdersOf(regrouped, [kept])).get(kept) ?? masterId;
         });
         regrouping = run.catch(() => undefined);
         return run;
