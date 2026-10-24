@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Guide reminders with the app closed** (2026-10-24, D-222, issue #263): on the phone and tablet, a reminder now also comes as a notification when the programme starts, even when the app is closed. Tap it to open the app and tune in with Watch. The app asks once to allow notifications.
 - **Profile settings sync on their own** (2026-10-24, D-225, issue #268): with a TV paired, a profile's languages, subtitle and audio choices, hidden categories and other settings now follow along like My List, keeping whatever was changed last on any device.
 - **Backup buttons renamed** (2026-10-24, D-216, issue #237): Back up data now says "Save backup file" (it still asks where to save) and Restore from backup says "Restore backup", the same as on the desktop.
 - **"Add Profile" in your language** (2026-10-23, D-200, issue #237): the tile that adds a profile was always in English; it now follows the app language.
