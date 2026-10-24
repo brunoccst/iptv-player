@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
 
@@ -11,7 +11,6 @@ import { about } from './about';
 import { confirmCloseApp, confirmSignOut } from './signOut';
 import { PlaybackSettings } from './components/PlaybackSettings';
 import { TvMedia } from '../modules/tv-media';
-import { CardMenu } from './components/CardMenu';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
   continueMenuItems,
@@ -165,27 +164,7 @@ const host: ScreenHost = {
       </CenteringScrollView>
     );
   },
-  TitleMenu: function TitleMenu({ title, subtitle, items, children }) {
-    const [open, setOpen] = useState(false);
-    return (
-      <>
-        {children(() => setOpen(true))}
-        {open ? (
-          <CardMenu
-            title={title}
-            subtitle={subtitle}
-            onClose={() => setOpen(false)}
-            actions={items().map((entry) => ({
-              label: entry.label,
-              icon: entry.icon,
-              testID: `card-menu-${entry.id}`,
-              onPress: entry.run,
-            }))}
-          />
-        ) : null}
-      </>
-    );
-  },
+  MenuTrigger: ({ children, onOpen }) => children(onOpen),
   details: {
     close: () => navStore.getState().back(),
     useRevision: () => useNav((s) => s.libraryRevision),
@@ -195,20 +174,6 @@ const host: ScreenHost = {
     replace: (section, masterId) => navStore.getState().replaceTop({ name: 'details', section, masterId }),
     usePageTitle: (section, card) => useColourPageTitle({ section, card }),
   },
-  Menu: ({ title, subtitle, items, onClose }) => (
-    <CardMenu
-      title={title}
-      subtitle={subtitle}
-      onClose={onClose}
-      actions={items.map((item) => ({
-        label: item.label,
-        disabled: item.disabled,
-        icon: item.icon,
-        testID: `card-menu-${item.id}`,
-        onPress: item.run,
-      }))}
-    />
-  ),
   focusTitle: (section, card) => focusTitle({ section, card }),
   blurTitle,
 };

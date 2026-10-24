@@ -38,7 +38,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 
 | Feature | Code |
 |---------|------|
-| [Card menu](FEATURES.md#card-menu) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/hooks.ts`, `apps/tv-app/src/components/CardMenu.tsx`, `apps/web-player/src/components/CardMenu.tsx` |
+| [Card menu](FEATURES.md#card-menu) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/hooks.ts`, `packages/screens/src/CardMenu.tsx` |
 | [Watched tag](FEATURES.md#watched-tag) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/components/WatchedTag.tsx` |
 | [Quality tag](FEATURES.md#quality-tag) | `packages/shared/src/hooks.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/normalizer/tags.ts`, `packages/shared/src/stores/watchlistStore.ts` |
 

@@ -45,3 +45,4 @@ export { TimelineRail } from './TimelineRail';
 export { PinPad, pinMessage, usePinGate } from './PinPad';
 export { PinSettings } from './PinSettings';
 export { LogView, type LogAction } from './LogView';
+export { CardMenu, TitleMenu } from './CardMenu';

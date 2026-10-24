@@ -126,6 +126,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-218](#d-218) | Shared progress bar |
 | [D-219](#d-219) | Shared parental PIN keypad |
 | [D-220](#d-220) | Shared log view |
+| [D-221](#d-221) | Shared card menu |
 
 ## Merged and retired IDs
 
@@ -1329,3 +1330,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The diagnostics log (D-079) shows the same on every app (`packages/screens/src/LogView.tsx`): the app's notes, its buttons for sending the log, Clear log, and the last 150 lines, coloured by level with WARN or ERROR in front. The TV shows it as its Log page, the desktop in the shared dialog.
 - Each app keeps how the log leaves the device, because that is the device's: the TV and phone use the Android share sheet and the phone's "Get TV log" (D-039); the desktop saves a text file or copies it.
+
+## D-221
+
+**Shared card menu** — 2026-10-24 (issue #237)
+
+- A title's or an episode's options (D-078) are the TV's panel in the middle of the screen on every app (`packages/screens/src/CardMenu.tsx`), Bruno's choice. The desktop's small menu at the pointer is gone: a right-click, the menu key, Shift+F10 or an episode's "…" open the same panel, and Escape closes it like the other dialogs.
+- Each app only says how a card opens it (`ScreenHost.MenuTrigger`): holding OK or a long touch on TV and phone, a right-click on the desktop. The screens draw the menu themselves, so the hosts no longer pass `Menu` or draw `TitleMenu`.

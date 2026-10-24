@@ -14,24 +14,6 @@ const host = {
         : [{ id: 'm2', title: 'Big Movie Typo', year: 2020, posterUrl: null, rating: null, bestQuality: null, variantCount: 2 }],
   },
   details: { replace: vi.fn() },
-  // The desktop's menu, as far as this needs it: one menu item per option.
-  Menu: ({ items, onClose }: Parameters<ScreenHost['Menu']>[0]) => (
-    <div role="menu">
-      {items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            onClose();
-            item.run();
-          }}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  ),
 } as unknown as ScreenHost;
 
 const variant = (streamId: string, label: string) => ({
@@ -68,15 +50,15 @@ describe('split or merge titles by hand on the desktop (issue #243)', () => {
       </ScreenHostProvider>,
     );
     fireEvent.click(screen.getByTestId('details-regroup'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Split off this version (CAM)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Split off this version (CAM)' }));
     expect(regroup.split).toHaveBeenCalledWith('b');
 
     fireEvent.click(screen.getByTestId('details-regroup'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Put back with its title' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Put back with its title' }));
     expect(regroup.undo).toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId('details-regroup'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Merge with another title…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Merge with another title…' }));
     expect(screen.getByRole('dialog', { name: 'Merge with another title' })).toBeTruthy();
     expect(screen.getByLabelText('Title to merge')).toHaveProperty('value', 'Big Movie');
     fireEvent.click(screen.getByRole('button', { name: /Big Movie Typo \(2020\)/ }));
@@ -94,7 +76,7 @@ describe('split or merge titles by hand on the desktop (issue #243)', () => {
       </ScreenHostProvider>,
     );
     fireEvent.click(screen.getByTestId('details-regroup'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Merge with another title…' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Merge with another title…' }));
     act(() => {
       screen.getByLabelText('Title to merge').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     });

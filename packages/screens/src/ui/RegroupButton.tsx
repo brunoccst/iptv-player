@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import { t, tn, type LibrarySection, type MasterDetails, type VariantInfo } from '@iptv/shared';
 import { useScreenHost, type MenuItem } from '../host';
+import { CardMenu } from '../CardMenu';
 import { colors, fonts } from './theme';
 import { Dialog } from './Dialog';
 import { Field } from './Field';
@@ -15,8 +16,7 @@ import { IconButton } from './IconButton';
 export function RegroupButton({ section, master, variant }: { section: LibrarySection; master: MasterDetails; variant: VariantInfo }) {
   const host = useScreenHost();
   const regroup = host.hooks.useRegroup(section, master, (masterId) => host.details.replace(section, masterId));
-  const button = useRef<View | null>(null);
-  const [menu, setMenu] = useState<{ anchor?: View } | null>(null);
+  const [menu, setMenu] = useState(false);
   const [merging, setMerging] = useState(false);
   if (!regroup.available) return null;
   if (regroup.busy) return <ActivityIndicator color={colors.accent} style={styles.busy} accessibilityLabel={t('Loading')} />;
@@ -38,21 +38,13 @@ export function RegroupButton({ section, master, variant }: { section: LibrarySe
   ];
   return (
     <>
-      <IconButton
-        icon="merge"
-        label={t('Split or merge')}
-        testID="details-regroup"
-        focusRef={(view) => {
-          button.current = view;
-        }}
-        onPress={() => setMenu({ anchor: button.current ?? undefined })}
-      />
+      <IconButton icon="merge" label={t('Split or merge')} testID="details-regroup" onPress={() => setMenu(true)} />
       {regroup.error ? (
         <Text style={styles.error} role="alert">
           {regroup.error}
         </Text>
       ) : null}
-      {menu ? <host.Menu title={master.title} items={items} anchor={menu.anchor} onClose={() => setMenu(null)} /> : null}
+      {menu ? <CardMenu title={master.title} items={items} onClose={() => setMenu(false)} /> : null}
       {merging ? (
         <MergePicker
           section={section}

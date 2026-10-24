@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { LibrarySection, MasterCard } from '@iptv/shared';
+import { TitleMenu } from './CardMenu';
 import { useScreenHost } from './host';
 import { PosterCard } from './ui/PosterCard';
 
@@ -23,7 +24,7 @@ export const TitleCard = memo(function TitleCard({
   const openDetails = () => host.openDetails(section, item.id);
   const card = host.hooks.useTitleCard(section, item, openDetails);
   return (
-    <host.TitleMenu title={item.title} items={card.menuItems}>
+    <TitleMenu title={item.title} items={card.menuItems}>
       {(openMenu) => (
         <PosterCard
           title={item.title}
@@ -41,6 +42,6 @@ export const TitleCard = memo(function TitleCard({
           onBlur={() => host.blurTitle?.(item.id)}
         />
       )}
-    </host.TitleMenu>
+    </TitleMenu>
   );
 });

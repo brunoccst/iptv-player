@@ -128,7 +128,7 @@ The page you are on, its category, the search and the open details are part of t
 
 ### Card menu
 
-A title card's menu: Go to details, Mark as watched / not watched (movies and series), Add to / Remove from My List; on Continue Watching also Remove (D-078, D-081). Each option, Cancel included, shows its icon after the text, the same on every app (D-182). TV: hold OK; phone: long touch; desktop: right-click, the menu key or Shift+F10.
+A title card's menu: Go to details, Mark as watched / not watched (movies and series), Add to / Remove from My List; on Continue Watching also Remove (D-078, D-081). Each option, Cancel included, shows its icon after the text, the same on every app (D-182). TV: hold OK; phone: long touch; desktop: right-click, the menu key or Shift+F10. It opens as a panel in the middle of the screen on every app; Back or Escape closes it (D-221).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone: long touch · desktop: right-click, the menu key or Shift+F10.
 
