@@ -156,11 +156,12 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await page.keyboard.press('Escape');
   await expect(panel).toBeHidden();
   await page.getByRole('button', { name: 'Guide', exact: true }).click();
+  // The guide is the overlay shared with the TV app (D-209); a channel's name comes first in its label.
   const other = panel.getByRole('button').filter({ hasNotText: playing }).first();
-  const otherName = (await other.locator('strong').textContent())!.trim();
+  const otherName = (await other.getAttribute('aria-label'))!.split(', ')[0]!;
   await other.click();
   await expect(panel).toBeHidden();
-  await expect(page.locator('.player__title')).toHaveText(otherName.replace(/^\d+\s+/, ''));
+  await expect(page.locator('.player__title')).toHaveText(otherName);
   await expectPlaying(page, 1);
 });
 

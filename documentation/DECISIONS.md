@@ -114,6 +114,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-206](#d-206) | Shared About and app language |
 | [D-207](#d-207) | Shared account menu |
 | [D-208](#d-208) | Shared top nav |
+| [D-209](#d-209) | Shared guide over the playing channel |
 
 ## Merged and retired IDs
 
@@ -1232,4 +1233,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The top nav (brand, page links, search box, account avatar) is shared with the desktop (`packages/screens/src/TopNav.tsx`). The app keeps the page, the search text, whether the bar is solid (TV: Home scrolled; desktop: the window scrolled past 10 px) and whether the account menu is open, and passes them in; the desktop hangs the account menu (D-207) under the avatar, the TV draws it over the whole screen.
 - On the desktop the bar is `position: fixed`, a `banner` with the links in a `navigation` landmark named "Main", like the HTML it replaces; a `header` role would make the whole bar a heading. Links say `aria-current="page"`, the avatar `aria-expanded`. The focus goes back to the avatar whenever the menu closes.
 - The desktop's `--nav-height` stays in its CSS for the pages under the bar; it matches the shared bar's heights (68, or 104 when the bar takes two rows at 720 px and below).
+
+## D-209
+
+**Shared guide over the playing channel** — 2026-10-24 (issue #237)
+
+- The guide over a playing channel (D-058) is the first part of the player shared with the desktop (`packages/screens/src/GuideOverlay.tsx`); the desktop's player draws it over its HTML controls through React Native Web. The player stays per app for now: the video itself is the TV's ExoPlayer and the desktop's `<video>`, so the shared parts come in one at a time around it.
+- TV and phones close it by themselves after 6 seconds without input; the desktop keeps it until Escape, a click beside it or the Guide button, since the mouse can rest on it without moving. There it is a `complementary` region named "Guide", and the playing channel has the focus first.
 
