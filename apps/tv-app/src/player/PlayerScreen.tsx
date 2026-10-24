@@ -24,10 +24,8 @@ import {
   SkipStreak,
   spareConnection,
   TAP_CHAIN_MS,
-  SKIP_SECONDS,
   clampTime,
   audioTrackLabels,
-  episodeLabel,
   trackLabel,
   episodeTarget,
   findProgress,
@@ -83,6 +81,7 @@ import { QuickDrawer, type DrawerTab } from './QuickDrawer';
 import { NextUp } from './NextUp';
 import { SkipAhead } from './SkipAhead';
 import { PlayerHeader } from './PlayerHeader';
+import { PlayerControls } from './PlayerControls';
 import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
@@ -950,138 +949,37 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                 ) : null}
               </View>
             )}
-            <FocusRow style={styles.controls}>
-              <IconButton
-                icon={paused ? 'play' : 'pause'}
-                label={paused ? t('Play') : t('Pause')}
-                plain
-                focusable={!Platform.isTV || !!buttons}
-                size={44}
-                iconSize={30}
-                testID="player-toggle"
-                hasTVPreferredFocus={tvButtons && buttons === 'play'}
-                onPress={() => setPaused((p) => !p)}
-              />
-              {isLive ? null : (
-                <>
-                  <IconButton
-                    icon="restart"
-                    label={t('Play from the beginning')}
-                    plain
-                    focusable={!Platform.isTV || !!buttons}
-                    size={44}
-                    iconSize={28}
-                    testID="player-restart"
-                    onPress={() => seekTo(0)}
-                  />
-                  {previous ? (
-                    <IconButton
-                      icon="previous"
-                      label={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
-                      plain
-                      focusable={!Platform.isTV || !!buttons}
-                      size={44}
-                      iconSize={28}
-                      testID="player-previous"
-                      onPress={() => playEpisode(previous)}
-                    />
-                  ) : null}
-                  <IconButton
-                    icon="rewind10"
-                    label={t('Back {seconds} seconds', { seconds: SKIP_SECONDS })}
-                    plain
-                    focusable={!Platform.isTV || !!buttons}
-                    size={44}
-                    iconSize={28}
-                    onPress={() => skipPress('back')}
-                  />
-                  <IconButton
-                    icon="forward10"
-                    label={t('Forward {seconds} seconds', { seconds: SKIP_SECONDS })}
-                    plain
-                    focusable={!Platform.isTV || !!buttons}
-                    size={44}
-                    iconSize={28}
-                    onPress={() => skipPress('forward')}
-                  />
-                  {next ? (
-                    <IconButton
-                      icon="next"
-                      label={t('Next episode: {episode}', { episode: episodeLabel(next) })}
-                      plain
-                      focusable={!Platform.isTV || !!buttons}
-                      size={44}
-                      iconSize={28}
-                      testID="player-next"
-                      onPress={() => playEpisode(next)}
-                    />
-                  ) : null}
-                  <Text style={styles.time} testID="player-time">
-                    {formatClock(time)} / {formatClock(duration)}
-                  </Text>
-                </>
-              )}
-              <View style={styles.spacer} />
-              {isLive ? (
-                <IconButton
-                  icon="guide"
-                  label={t('Guide')}
-                  plain
-                  focusable={!Platform.isTV || !!buttons}
-                  size={44}
-                  iconSize={26}
-                  testID="player-guide"
-                  colourKey="blue"
-                  onPress={() => {
-                    setButtons(false);
-                    setGuide(true);
-                  }}
-                />
-              ) : null}
-              {/* Same order as the drawer's tabs: Audio, Subtitles, Episodes (D-077). */}
-              <IconButton
-                icon="audio"
-                label={t('Audio')}
-                plain
-                focusable={!Platform.isTV || !!buttons}
-                size={44}
-                iconSize={26}
-                testID="player-audio"
-                colourKey="green"
-                onPress={() => {
-                  setButtons(false);
-                  setDrawer('audio');
-                }}
-              />
-              <IconButton
-                icon="subtitles"
-                label={t('Subtitles')}
-                plain
-                focusable={!Platform.isTV || !!buttons}
-                size={44}
-                iconSize={26}
-                testID="player-subtitles"
-                onPress={() => {
-                  setButtons(false);
-                  setDrawer('subtitles');
-                }}
-              />
-              {series ? (
-                <IconButton
-                  icon="episodes"
-                  label={t('Episodes')}
-                  plain
-                  focusable={!Platform.isTV || !!buttons}
-                  size={44}
-                  iconSize={26}
-                  testID="player-episodes"
-                  onPress={() => {
-                    setButtons(false);
-                    setDrawer('episodes');
-                  }}
-                />
-              ) : null}
-            </FocusRow>
+            <PlayerControls
+              playing={!paused}
+              live={isLive}
+              time={time}
+              duration={duration}
+              previous={previous}
+              next={next}
+              episodes={!!series}
+              onTogglePlay={() => setPaused((p) => !p)}
+              onRestart={() => seekTo(0)}
+              onSkip={skipPress}
+              onEpisode={playEpisode}
+              onGuide={() => {
+                setButtons(false);
+                setGuide(true);
+              }}
+              onAudio={() => {
+                setButtons(false);
+                setDrawer('audio');
+              }}
+              onSubtitles={() => {
+                setButtons(false);
+                setDrawer('subtitles');
+              }}
+              onEpisodes={() => {
+                setButtons(false);
+                setDrawer('episodes');
+              }}
+              focusable={!Platform.isTV || !!buttons}
+              preferredFocus={tvButtons && buttons === 'play' ? 'play' : null}
+            />
           </View>
         </View>
       ) : null}
@@ -1213,7 +1111,4 @@ const styles = StyleSheet.create({
     fontSize: fonts.small,
     fontWeight: '700',
   },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
-  time: { color: colors.strong, fontSize: 14.4, fontVariant: ['tabular-nums'] },
-  spacer: { flex: 1 },
 });

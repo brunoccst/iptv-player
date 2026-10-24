@@ -42,7 +42,7 @@ test('plays HLS through the relay with keyboard skip, hover frame preview and ve
     .toBeGreaterThan(10_000);
 
   // The TV's panel (D-210): Audio, Subtitles and Versions tabs.
-  await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
+  await page.getByRole('button', { name: 'Audio', exact: true }).click();
   const tracks = page.getByRole('dialog', { name: 'Audio, subtitles and version' });
   await tracks.getByRole('button', { name: 'Versions' }).click();
   await tracks.getByRole('button', { name: '1080p' }).click();
@@ -630,7 +630,7 @@ test('automatic subtitles: set up once, then a movie gets an OpenSubtitles subti
   await page.getByRole('dialog').getByRole('button', { name: 'Play' }).click();
   await expect(page.getByRole('status')).toHaveText('Subtitles: English · OpenSubtitles');
   expect(calls).toEqual(['/subtitles?languages=en&query=big+test+movie&type=movie&year=2020', '/download']);
-  await page.getByRole('button', { name: 'Audio, subtitles and version' }).click();
+  await page.getByRole('button', { name: 'Audio', exact: true }).click();
   const tracks = page.getByRole('dialog', { name: 'Audio, subtitles and version' });
   await tracks.getByRole('button', { name: 'Subtitles', exact: true }).click();
   await expect(tracks.getByRole('button', { name: '✓ English · OpenSubtitles' })).toBeVisible();

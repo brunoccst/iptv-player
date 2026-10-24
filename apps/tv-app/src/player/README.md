@@ -9,6 +9,7 @@
 | `GuideOverlay.tsx`  | Re-exports the guide over the playing channel, shared with the desktop (`packages/screens`, D-058, D-209). |
 | `NextUp.tsx`        | Re-exports the next-episode countdown card, shared with the desktop (`packages/screens`, D-211). |
 | `SkipAhead.tsx`     | Re-exports the Skip ahead button and options, shared with the desktop (`packages/screens`, D-212). |
+| `PlayerControls.tsx` | Re-exports the player's button row, shared with the desktop (`packages/screens`, D-217). |
 | `PlayerHeader.tsx`  | Re-exports the player's top bar, shared with the desktop (`packages/screens`, D-213). |
 | `QuickDrawer.tsx`   | Re-exports the Audio, Subtitles, Versions and Episodes panel, shared with the desktop (`packages/screens`, D-046, D-210). |
 | `useExternalPlayer.ts` | The details' "open in another player" for the shared screen (D-057, D-203); none on Kids profiles. |
