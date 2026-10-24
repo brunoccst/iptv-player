@@ -485,18 +485,32 @@ export class PairingFailure extends Error {
 
 /**
  * Automatic sync (issue #227, DECISIONS.md#d-186): this device's media entries (profiles, progress, My List, what
- * was removed, and title splits and merges) for one account, as a sync with the paired TV sends them. Settings are not synced this way: they carry
- * no dates, so the newer choice cannot be told apart (they still merge when a code is scanned, D-060).
+ * was removed, and title splits and merges) for one account, as a sync with the paired TV sends them, and its
+ * profiles' preferences: each dated when it changes, so the later choice wins (issue #268, DECISIONS.md#d-225).
  */
 export async function mediaForSync(storages: BackupStorages, accountId: string): Promise<Record<string, string>> {
-  return readLocalMedia(storages.data ?? storages.secure, accountId);
+  const dataStorage = storages.data ?? storages.secure;
+  const data = await readLocalMedia(dataStorage, accountId);
+  const profileIds = (parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? []).map(({ id }) => id);
+  const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);
+  if (prefs) data[PROFILE_PREFS_KEY] = prefs;
+  return data;
 }
 
+/** JSON with sorted keys: the same preferences compare equal whatever order they were written in. */
+const stableJson = (value: unknown): string =>
+  JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)))
+      : v,
+  );
+
 /**
- * Either side of an automatic sync: merges the other device's media entries into this device's (`mergeMedia`), saves
- * them, and updates the saved session's profiles. Returns the merged entries (the TV answers with them) and whether
- * anything shown on this device changed (then the app refreshes its lists, `AppContext.refreshMedia`). Null when this
- * device is not signed in to `accountId`.
+ * Either side of an automatic sync: merges the other device's media entries into this device's (`mergeMedia`) and
+ * the profiles' preferences (`mergePrefsByProfile`, the later change of each), saves them, and updates the saved
+ * session's profiles. Returns the merged entries (the TV answers with them) and whether anything shown on this device
+ * changed (then the app refreshes its lists and preferences, `AppContext.refreshMedia`). Null when this device is not
+ * signed in to `accountId`.
  */
 export async function applySyncedMedia(
   storages: BackupStorages,
@@ -507,19 +521,22 @@ export async function applySyncedMedia(
   const session = parseJson<Session>(await storages.secure.getItem(SESSION_STORAGE_KEY));
   if (!session?.token || session.account?.id !== accountId) return null;
   const dataStorage = storages.data ?? storages.secure;
-  const { merged, localIds, dropped, entries, changed } = await saveMergedMedia(dataStorage, accountId, data, now);
-  if (changed && merged.profiles.length) {
+  const { merged, localIds, dropped, entries, changed: mediaChanged } = await saveMergedMedia(dataStorage, accountId, data, now);
+  let changed = mediaChanged;
+  if (merged.profiles.length) {
     const moved = [...localIds].filter(([oldId, newId]) => oldId !== newId).map(([oldId]) => oldId);
-    if (moved.length || dropped.length) {
-      const prefs = mergePrefsByProfile(
-        {},
-        readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)),
-        localIds,
-        merged.profiles.map(({ id }) => id),
-      );
+    const profileIds = merged.profiles.map(({ id }) => id);
+    const local = readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY));
+    const prefs = mergePrefsByProfile(readPrefs(data[PROFILE_PREFS_KEY]), local, localIds, profileIds);
+    const before = prefsFor(local, profileIds);
+    const after = prefsFor(prefs, profileIds);
+    if (moved.length || dropped.length || stableJson(readPrefs(before)) !== stableJson(readPrefs(after))) {
       await savePrefs(dataStorage, prefs, [...moved, ...dropped]);
+      changed = true;
     }
-    await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(session, sessionProfiles(merged), localIds)));
+    if (after) entries[PROFILE_PREFS_KEY] = after;
+    if (mediaChanged)
+      await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(session, sessionProfiles(merged), localIds)));
   }
   return { data: entries, changed };
 }

@@ -129,6 +129,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-221](#d-221) | Shared card menu |
 | [D-222](#d-222) | Phone: guide reminders as system alarms |
 | [D-223](#d-223) | Title splits and merges sync and back up |
+| [D-225](#d-225) | Profile settings carry dates and sync automatically |
 
 ## Merged and retired IDs
 
@@ -1065,7 +1066,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - A middle step short of a sync service (which would need hosting and accounts, against D-088): a device that scanned the TV's code keeps the TV's remote-play key (D-061) and sends a `sync` remote command with its media entries (profiles, progress, My List, removals) when the app opens, comes back to the front, and every 10 minutes (`createAutoSync`, at most once a minute). The TV merges (`applySyncedMedia`, the pairing merge) and answers with the merged entries; the sender merges the answer once more with what it saved meanwhile. The TV is the hub, since only it listens all the time; the desktop app now keeps the TV's key too and sends through the main process (`iptv:pairing-send`, path `/remote` only).
 - Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
-- Profile settings are left out: they carry no dates, so the newer choice cannot be told apart, and the scanning device winning (D-060) would undo choices made on the TV every 10 minutes. They still merge when a code is scanned.
+- Profile settings came along from D-225 on, once each carried a date: undated, the scanning device winning (D-060) would undo choices made on the TV every 10 minutes.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
 - Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
 
@@ -1356,3 +1357,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The library database's `title_rules` (D-185) stay what the grouping reads. Beside them, a record in the device's data (`direct.titleRules.<account>`, `packages/shared/src/direct/titleRules.ts`) dates each rule when it is made or undone; an undone rule stays as removed for 180 days, like other removals (D-186). Pairing, automatic sync and backups carry the record like My List (keys are the provider's: group keys and stream ids are the same on every device of one account), and per rule the later change wins.
 - A device applies a record that differs from what it last wrote or applied when a list is read (at most every 10 s, not while the library updates): the rules go into the database (`replaceRules`) and only the titles they touch are grouped again, without downloading. Merges are applied oldest first the way one device makes them, so two devices' merges never chain or loop.
 - A device with rules from before the record starts the record with them on its first list. A merge still stops applying when the provider changes the title's key (issue #311).
+
+## D-225
+
+**Profile settings carry dates and sync automatically** — 2026-10-24 (issue #268)
+
+- Each profile's preferences (content languages, app language, subtitle/audio/version choices, hidden and kids categories, …) keep the time each one was last changed (`changedAt`, set by `profilePrefsStore.update`). The automatic sync with the TV (D-186) carries them for the account's profiles, and per preference the later change wins on both sides; kids and hidden categories go per section, and the lists (watched series, recent channels, reminders) are joined as in pairing.
+- Values from before have no date: there the sending device wins, as pairing always did (D-060), and a dated value wins over an undated one. Pairing uses the same merge, so a code scanned later no longer undoes a newer choice on the TV.
+- A sync that changes a preference refreshes the app's preferences (`refreshMedia`). Device settings (the audio decoder, the device's own app language before a profile, downloads, update choices) still stay on each device.

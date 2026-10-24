@@ -140,6 +140,36 @@ describe('automatic sync with the paired TV (issue #227)', () => {
       ]);
   });
 
+  it('profile preferences sync too: each the one changed later (issue #268)', async () => {
+    const phone = device([profile('p1', 'demo')], {
+      [PROFILE_PREFS_KEY]: { p1: { appLanguage: 'de', languages: ['GER'], changedAt: { appLanguage: '2026-10-16T00:00:00.000Z' } } },
+    });
+    const tvDevice = device([profile('p1', 'demo')], {
+      [PROFILE_PREFS_KEY]: {
+        p1: { appLanguage: 'pt-BR', languages: ['POR'], changedAt: { languages: '2026-10-15T00:00:00.000Z' } },
+        // Another account's profile on the TV stays as it is.
+        other: { appLanguage: 'sh-BA' },
+      },
+    });
+    const changes: boolean[] = [];
+    await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now })).resolves.toMatchObject({
+      changed: true,
+    });
+    const p1 = {
+      appLanguage: 'de',
+      languages: ['POR'],
+      changedAt: { appLanguage: '2026-10-16T00:00:00.000Z', languages: '2026-10-15T00:00:00.000Z' },
+    };
+    expect(read(phone, PROFILE_PREFS_KEY).p1).toEqual(p1);
+    expect(read(tvDevice, PROFILE_PREFS_KEY)).toEqual({ p1, other: { appLanguage: 'sh-BA' } });
+    expect(changes).toEqual([true]);
+    // In step: the next sync changes nothing.
+    await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now })).resolves.toMatchObject({
+      changed: false,
+    });
+    expect(changes).toEqual([true, false]);
+  });
+
   it('a title added again after its removal comes back', () => {
     const removals = { profiles: {}, progress: {}, watchlist: { p1: { 'movies:m1': '2026-10-10T00:00:00Z' } } };
     const local: MediaState = { profiles: [profile('p1', 'demo')], progress: {}, watchlist: { p1: [] }, removals };
