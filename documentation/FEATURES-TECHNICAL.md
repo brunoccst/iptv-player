@@ -96,7 +96,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Profiles and Kids](FEATURES.md#profiles-and-kids) | `packages/shared/src/profiles/kidsFilter.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/stores/sessionStore.ts`, `packages/screens/src/ProfilesScreen.tsx`, `packages/screens/src/KidsCategories.tsx`, `apps/tv-app/src/screens/ProfilesScreen.tsx`, `apps/web-player/src/features/profiles/ProfilePicker.tsx` |
-| [Parental PIN](FEATURES.md#parental-pin) | `packages/shared/src/stores/pinStore.ts`, `apps/tv-app/src/components/PinPad.tsx`, `apps/web-player/src/features/profiles/PinDialog.tsx` |
+| [Parental PIN](FEATURES.md#parental-pin) | `packages/shared/src/stores/pinStore.ts`, `packages/screens/src/PinPad.tsx`, `packages/screens/src/PinSettings.tsx` |
 | [Content language filter](FEATURES.md#content-language-filter) | `packages/shared/src/profiles/contentLanguages.ts`, `packages/shared/src/stores/profilePrefsStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/appContext.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/playback/playbackChoices.ts`, `packages/screens/src/LanguageSettings.tsx` |
 | [Categories shown](FEATURES.md#categories-shown) | `packages/shared/src/profiles/hiddenCategories.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/screens/src/HiddenCategories.tsx` |
 | [App language](FEATURES.md#app-language) | `packages/shared/src/i18n/i18n.ts`, `packages/shared/src/i18n/uiLanguage.ts`, `packages/shared/src/i18n/catalogs`, `packages/screens/src/AppLanguageDialog.tsx` |

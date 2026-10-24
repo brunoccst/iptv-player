@@ -124,6 +124,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-216](#d-216) | Shared backup dialog |
 | [D-217](#d-217) | Shared player buttons |
 | [D-218](#d-218) | Shared progress bar |
+| [D-219](#d-219) | Shared parental PIN keypad |
 
 ## Merged and retired IDs
 
@@ -1313,3 +1314,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - How the player's progress bar looks (rail, played and loaded parts, thumb, time and preview frame) is one component for every app (`packages/screens/src/TimelineRail.tsx`). The desktop's hover time now sits above the bar with the preview frame over it, kept inside the bar as on the TV, instead of under a frame that could run off the window's edge.
 - What moves the video stays with each app, because the input differs: TV keys with the preview jump (D-179, D-180), the phone's drag, and the desktop's mouse hover, click and drag with its own frame grabber. The rail takes no input itself.
+
+## D-219
+
+**Shared parental PIN keypad** — 2026-10-24 (issue #237)
+
+- The parental PIN (D-054) is asked for on the TV's keypad on every app (`packages/screens/src/PinPad.tsx`, with `usePinGate`), and set, changed or removed with the TV's steps (`packages/screens/src/PinSettings.tsx`): the current PIN first, then the new one typed twice. The desktop's form with three fields is gone.
+- On the desktop the keyboard's digits and Backspace type on the keypad as well as clicks, and 4 digits submit at once, so no OK button is needed. The apps no longer pass a PIN prompt or PIN settings to the shared screens.

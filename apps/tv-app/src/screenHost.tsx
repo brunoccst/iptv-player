@@ -9,11 +9,9 @@ import { appConfig } from './config';
 import { backupFiles } from './backupFiles';
 import { about } from './about';
 import { confirmCloseApp, confirmSignOut } from './signOut';
-import { PinSettings } from './components/PinSettings';
 import { PlaybackSettings } from './components/PlaybackSettings';
 import { TvMedia } from '../modules/tv-media';
 import { CardMenu } from './components/CardMenu';
-import { usePinGate } from './components/PinPad';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
   continueMenuItems,
@@ -114,7 +112,6 @@ const host: ScreenHost = {
   about,
   backup: backupFiles,
   account: {
-    PinSettings,
     backup: { label: () => t('Back up data'), Dialog: ({ onClose }) => <BackupDialog mode="backup" onClose={onClose} /> },
     sync: { icon: Platform.isTV ? 'phone' : 'tv', run: () => openPairingDialog() },
     // Read when the menu draws: only builds with the FFmpeg audio decoders have something to choose (D-059).
@@ -125,7 +122,7 @@ const host: ScreenHost = {
     closeApp: confirmCloseApp,
     goHome: () => navStore.getState().goSection('home'),
   },
-  profiles: { usePinGate, signOut: confirmSignOut },
+  profiles: { signOut: confirmSignOut },
   useDownloads: function useTvDownloads() {
     const records = useDownloads((s) => s.records);
     useEffect(() => downloadsStore.getState().refresh(), []);

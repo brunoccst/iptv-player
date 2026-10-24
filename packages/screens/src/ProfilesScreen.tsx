@@ -4,6 +4,7 @@ import { avatarColor, fluid, type ProfileDto, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { KidsCategories } from './KidsCategories';
 import { LanguageSettings } from './LanguageSettings';
+import { usePinGate } from './PinPad';
 import { ErrorText, errorText } from './ui/Feedback';
 import { Field } from './ui/Field';
 import { focus } from './ui/focus';
@@ -18,7 +19,7 @@ import { colors, fonts, radius } from './ui/theme';
  */
 export function ProfilesScreen() {
   const { hooks, profiles: host } = useScreenHost();
-  const { gate, dialog } = host.usePinGate();
+  const { gate, dialog } = usePinGate();
   const { profiles, managing, editing, canAdd, select, add, toggleManaging, closeEditor } = hooks.useProfilePicker(gate);
   const { width, height } = useWindowDimensions();
   const tile = fluid(width, 90, 10, 150);

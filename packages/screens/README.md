@@ -30,6 +30,8 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/GuideOverlay.tsx` | Live TV: the category's channels with now and next over the playing channel (D-058, D-209) |
 | `src/NextUp.tsx` | The next-episode countdown card at the end of an episode (D-211) |
 | `src/SkipAhead.tsx` | The player's Skip ahead button and its 30 s … 3 min options (D-042, D-212) |
+| `src/PinPad.tsx` | Parental PIN keypad (D-pad, touch, mouse, keyboard) and `usePinGate` (D-219) |
+| `src/PinSettings.tsx` | Account menu → Parental PIN: set, change or remove (D-219) |
 | `src/PlayerControls.tsx` | The player's button row: play, restart, episodes, time, Guide, Audio, Subtitles (D-217) |
 | `src/PlayerHeader.tsx` | The bar at the top of the player: back arrow, title, subtitle, LIVE (D-213) |
 | `src/ReminderDialog.tsx` | The guide reminder when its programme starts: Watch or Dismiss (D-184, D-214) |

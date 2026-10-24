@@ -41,3 +41,5 @@ export { LoadingMoreNote, TitleGrid, TvLines } from './TitleGrid';
 export { TitleCard } from './TitleCard';
 export { IconButton } from './ui/IconButton';
 export { TimelineRail } from './TimelineRail';
+export { PinPad, pinMessage, usePinGate } from './PinPad';
+export { PinSettings } from './PinSettings';
