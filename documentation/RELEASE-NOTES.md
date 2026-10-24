@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Guide reminders with the app closed** (2026-10-24, D-222, issue #263): on the phone and tablet, a reminder now also comes as a notification when the programme starts, even when the app is closed. Tap it to open the app and tune in with Watch. The app asks once to allow notifications.
 - **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
 - **Backup buttons renamed** (2026-10-24, D-216, issue #237): Back up data now says "Save backup file" (it still asks where to save) and Restore from backup says "Restore backup", the same as on the desktop.
 - **"Add Profile" in your language** (2026-10-23, D-200, issue #237): the tile that adds a profile was always in English; it now follows the app language.

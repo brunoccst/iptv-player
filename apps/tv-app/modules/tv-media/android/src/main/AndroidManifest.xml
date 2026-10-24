@@ -7,6 +7,9 @@
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
   <!-- Home screen "Continue watching" on Android TV and Google TV (Watch Next, D-147). -->
   <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
+  <!-- Guide reminders with the app closed (issue #263, D-222): an alarm at the start, set again after a restart. -->
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
   <!-- External players (D-057): Android 11+ only lists apps the manifest declares interest in. -->
   <queries>
@@ -41,5 +44,12 @@
         <category android:name="android.intent.category.DEFAULT" />
       </intent-filter>
     </service>
+    <!-- Guide reminders (issue #263, D-222): posts the notification when a programme starts. -->
+    <receiver android:name="expo.modules.tvmedia.ReminderReceiver" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>
