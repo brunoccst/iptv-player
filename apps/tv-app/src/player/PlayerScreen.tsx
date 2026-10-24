@@ -84,6 +84,7 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
 import { QuickDrawer, type DrawerTab } from './QuickDrawer';
+import { NextUp } from './NextUp';
 import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
@@ -1135,18 +1136,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       ) : null}
 
       {countdown !== null && next ? (
-        <View style={[styles.nextUp, { right: sizes.gutter }]} testID="next-up">
-          <Text style={styles.nextLabel}>
-            {t('Next episode in {seconds}', { seconds: Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS) })}
-          </Text>
-          <Text style={styles.nextTitle}>
-            {episodeLabel(next)} · {next.title}
-          </Text>
-          <FocusRow style={styles.row}>
-            <FocusButton label={t('Play Now')} variant="primary" hasTVPreferredFocus onPress={playNext} testID="play-next" />
-            <FocusButton label={t('Cancel')} onPress={() => setNextDismissed(true)} />
-          </FocusRow>
-        </View>
+        <NextUp
+          episode={next}
+          secondsLeft={Math.min(countdown, NEXT_UP_COUNTDOWN_SECONDS)}
+          onPlayNow={playNext}
+          onDismiss={() => setNextDismissed(true)}
+        />
       ) : null}
 
       {guide ? (
@@ -1273,17 +1268,4 @@ const styles = StyleSheet.create({
   spacer: { flex: 1 },
   corner: { position: 'absolute', bottom: 120, alignItems: 'flex-end', gap: 8 },
   skipOptions: { flexDirection: 'row', gap: 8 },
-  nextUp: {
-    position: 'absolute',
-    bottom: 120,
-    width: 360,
-    maxWidth: '90%',
-    padding: 16,
-    gap: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(20,20,20,0.95)',
-  },
-  nextLabel: { color: colors.muted, fontSize: fonts.small },
-  nextTitle: { color: colors.strong, fontSize: fonts.body, fontWeight: '700' },
-  row: { flexDirection: 'row', gap: 8 },
 });

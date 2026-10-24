@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Next episode card looks like the TV's** (2026-10-24, D-211, issue #237): the card that counts down to the next episode is now the same as on the TV and phone app.
 - **Audio, subtitles and episodes in one panel** (2026-10-24, D-210, issue #237): the player's subtitles and episodes buttons now open the TV's panel at the side, with Audio, Subtitles, Versions and Episodes tabs; the playing episode is marked ▶.
 - **Guide over the channel looks like the TV's** (2026-10-24, D-209, issue #237): the list of channels you open with G or the Guide button while watching live TV is now the same as on the TV and phone app.
 - **Top bar looks like the TV's** (2026-10-24, D-208, issue #237): the bar with the page links, search box and avatar is now the same as on the TV and phone app; the link under the mouse is lit up, and a × clears the search.

@@ -250,35 +250,6 @@
   color: #000;
 }
 
-.next-up {
-  position: absolute;
-  right: var(--gutter);
-  bottom: 120px;
-  display: grid;
-  gap: 12px;
-  width: min(360px, 90vw);
-  padding: 16px;
-  border-radius: 8px;
-  background: rgba(20, 20, 20, 0.92);
-  box-shadow: var(--shadow);
-}
-
-.next-up__label {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-muted);
-}
-
-.next-up__title {
-  margin: 0;
-  font-weight: 700;
-}
-
-.next-up__actions {
-  display: flex;
-  gap: 8px;
-}
-
 .skip-flash {
   position: absolute;
   top: 50%;
