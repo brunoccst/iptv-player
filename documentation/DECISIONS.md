@@ -1348,6 +1348,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
 - Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which notifies only while it runs (issue #309).
+
 ## D-225
 
 **Profile settings carry dates and sync automatically** — 2026-10-24 (issue #268)
