@@ -48,15 +48,13 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
-import { EpisodesDrawer } from './EpisodesDrawer';
-import { GuideOverlay } from '@iptv/screens';
+import { GuideOverlay, QuickDrawer } from '@iptv/screens';
 import '../browse/screenHost';
 import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { NextUp } from './NextUp';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
 import { Timeline } from './Timeline';
-import { TracksMenu } from './TracksMenu';
-import { activeSubtitle, addSubtitle, audioTracks, removeAddedSubtitle, showSubtitle, subtitleTracks } from './tracks';
+import { activeSubtitle, addSubtitle, audioTracks, removeAddedSubtitle, showSubtitle, subtitleTracks, trackOptions } from './tracks';
 import { usePauseOnAudioOutputLoss } from './audioOutput';
 
 const PROGRESS_SAVE_MS = 10_000;
@@ -803,24 +801,33 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         />
       ) : null}
 
-      {panel === 'tracks' ? (
-        <TracksMenu
-          hls={engineRef.current?.hls ?? null}
-          video={videoRef.current}
+      {/* The TV's Audio, Subtitles, Versions and Episodes panel (DECISIONS.md#d-210): the subtitles button opens it on
+          Audio, the episodes button on Episodes. */}
+      {panel === 'tracks' || panel === 'episodes' ? (
+        <QuickDrawer
+          initialTab={panel === 'episodes' ? 'episodes' : 'audio'}
+          onClose={() => setPanel(null)}
+          {...trackOptions(engineRef.current?.hls ?? null, videoRef.current, {
+            audio: (choice) => {
+              if (usesPlaybackChoices(target)) rememberPlayback(stores, { audio: choice });
+            },
+            subtitles: (choice) => {
+              if (usesPlaybackChoices(target)) rememberPlayback(stores, { subtitles: choice });
+            },
+            changed: () => setTracksVersion((v) => v + 1),
+          })}
           variants={variants}
           currentStreamId={target.streamId}
-          onVariant={switchVariant}
-          onSubtitle={(choice) => {
-            if (usesPlaybackChoices(target)) rememberPlayback(stores, { subtitles: choice });
+          series={series && target.seriesId ? series : null}
+          onVariant={(variant) => {
+            setPanel(null);
+            switchVariant(variant);
           }}
-          onAudio={(choice) => {
-            if (usesPlaybackChoices(target)) rememberPlayback(stores, { audio: choice });
+          onEpisode={(episode) => {
+            setPanel(null);
+            playEpisode(episode);
           }}
-          onChange={() => setTracksVersion((v) => v + 1)}
         />
-      ) : null}
-      {panel === 'episodes' && series && target.seriesId ? (
-        <EpisodesDrawer series={series} currentEpisodeId={target.streamId} onPlay={playEpisode} />
       ) : null}
       {panel === 'guide' && isLive ? (
         <GuideOverlay

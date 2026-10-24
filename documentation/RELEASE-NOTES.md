@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Audio, subtitles and episodes in one panel** (2026-10-24, D-210, issue #237): the player's subtitles and episodes buttons now open the TV's panel at the side, with Audio, Subtitles, Versions and Episodes tabs; the playing episode is marked ▶.
 - **Guide over the channel looks like the TV's** (2026-10-24, D-209, issue #237): the list of channels you open with G or the Guide button while watching live TV is now the same as on the TV and phone app.
 - **Top bar looks like the TV's** (2026-10-24, D-208, issue #237): the bar with the page links, search box and avatar is now the same as on the TV and phone app; the link under the mouse is lit up, and a × clears the search.
 - **Account menu looks like the TV's** (2026-10-24, D-207, issue #237): the menu under your avatar is now the same as on the TV and phone app, with an icon on every item and the highlighted item lit up as you move over it.

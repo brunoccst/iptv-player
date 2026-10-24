@@ -28,6 +28,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/AboutDialog.tsx` | About: the host's rows (version, build) and Check for updates (D-070, D-206) |
 | `src/AppLanguageDialog.tsx` | App language: the app's own words in one of its languages (D-084, D-206) |
 | `src/GuideOverlay.tsx` | Live TV: the category's channels with now and next over the playing channel (D-058, D-209) |
+| `src/QuickDrawer.tsx` | The player's Audio, Subtitles, Versions and Episodes panel; the app lists its tracks as `TrackOption`s (D-077, D-210) |
 | `src/TopNav.tsx` | The top nav: brand, page links, search box, account avatar; `useNavFocusTarget` (TV: Up from a page, D-079, D-208) |
 | `src/AccountMenu.tsx` | The menu under the top nav's avatar: other profiles, the Profiles, Library & devices and App groups, Sign out (D-079, D-207) |
 | `src/ui/` | Building blocks from the TV app, see its README |

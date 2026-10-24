@@ -1,5 +1,6 @@
 import type Hls from 'hls.js';
-import { t, type SubtitleChoice, type TrackInfo } from '@iptv/shared';
+import type { TrackOption } from '@iptv/screens';
+import { audioTrackLabels, t, trackLabel, type SubtitleChoice, type TrackChoice, type TrackInfo } from '@iptv/shared';
 
 /** The `<track>` id of a subtitle added from OpenSubtitles (D-111). */
 export const ADDED_TRACK_ID = 'opensubtitles';
@@ -81,4 +82,43 @@ export function removeAddedSubtitle(video: HTMLVideoElement): void {
     URL.revokeObjectURL(element.src);
     element.remove();
   });
+}
+
+/**
+ * The player panel's audio and subtitle options (shared with the TV app, DECISIONS.md#d-210). A pick shows the track,
+ * reports what to keep as the profile's choice (D-087) and calls `changed` so the panel redraws.
+ */
+export function trackOptions(
+  hls: Hls | null,
+  video: HTMLVideoElement | null,
+  on: { audio(choice: TrackChoice): void; subtitles(choice: SubtitleChoice): void; changed(): void },
+): { audio: TrackOption[]; subtitles: TrackOption[]; subtitlesOff(): void } {
+  const audio = audioTracks(hls);
+  const audioNames = audioTrackLabels(audio);
+  const subtitles = subtitleTracks(hls, video);
+  const current = activeSubtitle(hls, video);
+  const setSubtitle = (index: number) => {
+    showSubtitle(hls, video, index);
+    on.subtitles(choiceOf(subtitles, index));
+    on.changed();
+  };
+  return {
+    audio: audio.map((track, index) => ({
+      key: `audio-${index}`,
+      label: audioNames[index] ?? track.label,
+      selected: hls?.audioTrack === index,
+      pick: () => {
+        if (hls) hls.audioTrack = index;
+        on.audio(track);
+        on.changed();
+      },
+    })),
+    subtitles: subtitles.map((track, index) => ({
+      key: `text-${index}`,
+      label: trackLabel(track),
+      selected: current === index,
+      pick: () => setSubtitle(index),
+    })),
+    subtitlesOff: () => setSubtitle(-1),
+  };
 }
