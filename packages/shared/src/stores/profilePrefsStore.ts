@@ -34,6 +34,11 @@ export interface ProfilePrefs {
   recentChannels?: RecentChannel[] | null;
   /** Guide programmes to be reminded of, soonest first (issue #239, D-184). */
   reminders?: Reminder[] | null;
+  /**
+   * When each preference was last changed here or on a synced device (ISO time, issue #268, DECISIONS.md#d-225): a sync
+   * keeps the later choice. Missing for values set before.
+   */
+  changedAt?: Partial<Record<Exclude<keyof ProfilePrefs, 'changedAt'>, string>> | null;
 }
 
 export interface ProfilePrefsState {
@@ -43,7 +48,7 @@ export interface ProfilePrefsState {
   update(profileId: string, patch: Partial<ProfilePrefs>): Promise<void>;
 }
 
-export function createProfilePrefsStore(storage: KeyValueStorage) {
+export function createProfilePrefsStore(storage: KeyValueStorage, now: () => Date = () => new Date()) {
   return createStore<ProfilePrefsState>()((set, get) => ({
     prefs: {},
     loaded: false,
@@ -56,7 +61,11 @@ export function createProfilePrefsStore(storage: KeyValueStorage) {
       }
     },
     async update(profileId, patch) {
-      const prefs = { ...get().prefs, [profileId]: { ...get().prefs[profileId], ...patch } };
+      const current = get().prefs[profileId];
+      const at = now().toISOString();
+      const changedAt = { ...current?.changedAt };
+      for (const key of Object.keys(patch)) if (key !== 'changedAt') changedAt[key as keyof typeof changedAt] = at;
+      const prefs = { ...get().prefs, [profileId]: { ...current, ...patch, changedAt } };
       set({ prefs });
       await storage.setItem(PROFILE_PREFS_KEY, JSON.stringify(prefs));
     },

@@ -47,8 +47,8 @@ export interface AppContext {
   /** Re-reads the saved login and profile data, e.g. after restoring a backup (D-056). */
   reload(): Promise<void>;
   /**
-   * Re-reads the profiles, progress and My List after an automatic sync changed them (issue #227), keeping the lists on
-   * screen until the new ones are read; the open profile stays unless it was deleted.
+   * Re-reads the profiles, their preferences (issue #268), progress and My List after an automatic sync changed them
+   * (issue #227), keeping the lists on screen until the new ones are read; the open profile stays unless it was deleted.
    */
   refreshMedia(): Promise<void>;
   /** Tests only: answer every call from `api` instead of the provider (`null` goes back). */
@@ -265,7 +265,8 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   };
 
   const refreshMedia = async () => {
-    await session.getState().refreshProfiles();
+    // An automatic sync also brings the profiles' preferences (issue #268).
+    await Promise.all([session.getState().refreshProfiles(), profilePrefs.getState().load()]);
     const profileId = session.getState().activeProfileId;
     if (profileId)
       await Promise.all([
