@@ -16,6 +16,8 @@ export const SEGMENT_SECONDS = 4;
 /** The playlist must name its first segment within this time (a slow provider, a 4K conversion). */
 const START_TIMEOUT_MS = 45_000;
 const PROBE_TIMEOUT_MS = 20_000;
+/** A hardware encoder's test picture (issue #274): a driver that hangs counts as missing. */
+const ENCODER_TEST_TIMEOUT_MS = 10_000;
 /** Audio Chromium plays in fragmented MP4 as it is; everything else (AC-3, E-AC-3, DTS, TrueHD, MP2…) becomes AAC. */
 const PLAYABLE_AUDIO = new Set(['aac', 'mp3', 'opus', 'flac']);
 /** At most this many audio tracks are converted (some files carry a dozen commentaries and dubs). */
@@ -28,6 +30,44 @@ const OFFLINE_PATH = /^\/__offline__\/[\w-]+\/(?:file|index\.m3u8)$/;
 
 /** Whether `url` is something FFmpeg may read: a provider stream or one of the page's downloads. */
 export const readable = (url) => /^https?:\/\//i.test(url) || OFFLINE_PATH.test(url);
+
+/**
+ * Hardware H.264 encoders to try, best first (issue #274, DECISIONS.md#d-224): NVIDIA, Intel and AMD on Windows and
+ * Linux, Apple's on macOS. The first that converts a test picture is used; otherwise libx264 in software.
+ */
+export const hardwareEncoders = (platform = process.platform) =>
+  platform === 'darwin' ? ['h264_videotoolbox'] : ['h264_nvenc', 'h264_qsv', 'h264_amf'];
+/** Lines a conversion keeps at most: software is too slow for 4K on most computers, hardware is not. */
+export const maxLines = (encoder) => (encoder === 'libx264' ? 1080 : 2160);
+
+/**
+ * The encoder's own arguments, with a key frame that starts a new picture group (IDR) at every segment, so every
+ * segment plays on its own. The test conversion uses the same ones: an FFmpeg or driver without an option fails there.
+ */
+export function videoEncoderArguments(encoder = 'libx264', lines = 1080) {
+  const big = lines > 1080;
+  const keys = ['-force_key_frames', `expr:gte(t,n_forced*${SEGMENT_SECONDS})`];
+  switch (encoder) {
+    case 'h264_nvenc':
+      return ['-c:v', encoder, '-preset', 'p4', '-tune', 'll', '-rc', 'vbr', '-cq', '23', '-b:v', '0', '-forced-idr', '1', ...keys];
+    case 'h264_qsv':
+      return ['-c:v', encoder, '-preset', 'veryfast', '-global_quality', '23', '-forced_idr', '1', ...keys];
+    case 'h264_amf':
+      return ['-c:v', encoder, '-usage', 'lowlatency', '-quality', 'speed', '-rc', 'cqp', '-qp_i', '22', '-qp_p', '24', ...keys];
+    case 'h264_videotoolbox':
+      return ['-c:v', encoder, '-realtime', '1', '-b:v', big ? '20M' : '8M', ...keys];
+    case 'libx264':
+      return ['-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', ...keys];
+    default:
+      return ['-c:v', encoder, '-b:v', big ? '20M' : '8M', ...keys];
+  }
+}
+
+/** One second of a 1080p test picture through `encoder`, written nowhere: succeeds only where the hardware is there. */
+export const encoderTestArguments = (encoder) => [
+  ...['-hide_banner', '-nostdin', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1920x1080:rate=25', '-t', '1'],
+  ...['-vf', 'format=nv12', ...videoEncoderArguments(encoder), '-f', 'null', '-'],
+];
 
 /** HDR10 and HLG mapped to normal colours (needs zscale), else the picture looks grey. */
 const TONEMAP = 'zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv';
@@ -64,9 +104,21 @@ export function parseProbe(text) {
 
 /**
  * FFmpeg's arguments for one conversion. `at`: start second (films and episodes); `copyVideo`: Chromium decodes the
- * video as it is; `audio`: which audio track (0 = first); `tonemap`: this FFmpeg has zscale for HDR.
+ * video as it is; `audio`: which audio track (0 = first); `tonemap`: this FFmpeg has zscale for HDR; `encoder`: the
+ * H.264 encoder (`hardwareEncoders` or libx264).
  */
-export function transcodeArguments({ url, userAgent, folder, probe, at = 0, live = false, copyVideo = false, audio = 0, tonemap = false }) {
+export function transcodeArguments({
+  url,
+  userAgent,
+  folder,
+  probe,
+  at = 0,
+  live = false,
+  copyVideo = false,
+  audio = 0,
+  tonemap = false,
+  encoder = 'libx264',
+}) {
   const args = ['-hide_banner', '-nostdin', '-loglevel', 'error', '-user_agent', userAgent];
   // A dropped connection is reopened instead of ending the video.
   if (/^https?:/i.test(url)) args.push('-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5');
@@ -83,14 +135,14 @@ export function transcodeArguments({ url, userAgent, folder, probe, at = 0, live
     args.push('-c:v', 'copy');
     if (probe.video?.codec === 'hevc') args.push('-tag:v', 'hvc1');
   } else {
-    // Software H.264, at most 1080 lines: 4K would be too slow to convert on most computers.
+    // H.264 at most 1080 lines in software, 2160 with a hardware encoder (issue #274).
+    const lines = Math.min(probe.video?.height ?? 0, maxLines(encoder)) || 1080;
     const filters = [];
     if (probe.video?.hdr && tonemap) filters.push(TONEMAP);
-    if ((probe.video?.height ?? 0) > 1080) filters.push('scale=-2:1080');
-    filters.push('format=yuv420p');
-    args.push('-vf', filters.join(','), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21');
-    // A key frame at every segment start, so every segment can be played on its own.
-    args.push('-force_key_frames', `expr:gte(t,n_forced*${SEGMENT_SECONDS})`);
+    if ((probe.video?.height ?? 0) > maxLines(encoder)) filters.push(`scale=-2:${maxLines(encoder)}`);
+    // 8-bit 4:2:0, the layout hardware encoders take (nv12) or libx264's.
+    filters.push(encoder === 'libx264' ? 'format=yuv420p' : 'format=nv12');
+    args.push('-vf', filters.join(','), ...videoEncoderArguments(encoder, lines));
   }
   if (several)
     tracks.forEach(({ codec }, index) => {
@@ -268,7 +320,15 @@ const tail = (text) => text.trim().split(/\r?\n/).slice(-3).join(' | ');
  * Conversions for one app: at most one runs (one player). `root`: a temporary folder of its own, emptied on start
  * and on quit.
  */
-export function createTranscoder({ ffmpeg, root, userAgent, spawn = spawnProcess, readPage = null }) {
+export function createTranscoder({
+  ffmpeg,
+  root,
+  userAgent,
+  spawn = spawnProcess,
+  readPage = null,
+  encoders = hardwareEncoders(),
+  onLog = () => undefined,
+}) {
   /** id → { process, folder } */
   const running = new Map();
   let tonemap = null;
@@ -280,11 +340,14 @@ export function createTranscoder({ ffmpeg, root, userAgent, spawn = spawnProcess
     return (await relay).local(url);
   };
 
+  /** FFmpeg's output: lists (`-filters`, `-encoders`) come on stdout, everything else on stderr. */
   const run = (args, timeoutMs) =>
     new Promise((resolve) => {
-      const child = spawn(ffmpeg, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+      const child = spawn(ffmpeg, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
       let text = '';
-      child.stderr.on('data', (chunk) => (text = (text + chunk).slice(-64_000)));
+      const add = (chunk) => (text = (text + chunk).slice(-64_000));
+      child.stdout?.on('data', add);
+      child.stderr.on('data', add);
       const timer = setTimeout(() => child.kill('SIGKILL'), timeoutMs);
       child.on('error', (error) => {
         clearTimeout(timer);
@@ -295,6 +358,22 @@ export function createTranscoder({ ffmpeg, root, userAgent, spawn = spawnProcess
         resolve({ text, code });
       });
     });
+
+  /** The hardware encoder that works here, else libx264 (issue #274); found once, on the first conversion. */
+  let encoderSearch = null;
+  /** Encoders that failed a real conversion: the next one goes in software. */
+  const failedEncoders = new Set();
+  const videoEncoder = async () => {
+    encoderSearch ??= (async () => {
+      const { text } = await run(['-hide_banner', '-encoders'], PROBE_TIMEOUT_MS);
+      for (const encoder of encoders.filter((name) => new RegExp(`\\b${name}\\b`).test(text))) {
+        if ((await run(encoderTestArguments(encoder), ENCODER_TEST_TIMEOUT_MS)).code === 0) return encoder;
+      }
+      return 'libx264';
+    })();
+    const encoder = await encoderSearch;
+    return failedEncoders.has(encoder) ? 'libx264' : encoder;
+  };
 
   const hasTonemap = async () => {
     tonemap ??= run(['-hide_banner', '-filters'], PROBE_TIMEOUT_MS).then(({ text }) => /\bzscale\b/.test(text) && /\btonemap\b/.test(text));
@@ -332,48 +411,62 @@ export function createTranscoder({ ffmpeg, root, userAgent, spawn = spawnProcess
       if (!readable(url)) throw new Error('Only provider streams and downloads can be converted');
       await stopAll();
       const probe = known && Array.isArray(known.audio) ? known : await this.probe(url);
-      const id = randomBytes(12).toString('hex');
-      const folder = path.join(root, id);
-      await mkdir(folder, { recursive: true });
-      const args = transcodeArguments({
-        url: await local(url),
-        userAgent,
-        folder,
-        probe,
-        at,
-        live,
-        copyVideo,
-        audio,
-        tonemap: await hasTonemap(),
-      });
-      const child = spawn(ffmpeg, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
-      let text = '';
-      child.stderr.on('data', (chunk) => (text = (text + chunk).slice(-16_000)));
-      running.set(id, { process: child, folder });
+      const tonemap = await hasTonemap();
+      const encoder = copyVideo ? 'libx264' : await videoEncoder();
+      const input = await local(url);
+      const convert = async (encoder) => {
+        const id = randomBytes(12).toString('hex');
+        const folder = path.join(root, id);
+        await mkdir(folder, { recursive: true });
+        const args = transcodeArguments({ url: input, userAgent, folder, probe, at, live, copyVideo, audio, tonemap, encoder });
+        const child = spawn(ffmpeg, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+        let text = '';
+        child.stderr.on('data', (chunk) => (text = (text + chunk).slice(-16_000)));
+        running.set(id, { process: child, folder });
+        await new Promise((resolve, reject) => {
+          const started = Date.now();
+          const fail = (message) => {
+            clearInterval(timer);
+            void stop(id);
+            reject(Object.assign(new Error(message), { ended: child.exitCode !== null }));
+          };
+          const timer = setInterval(() => {
+            if (!running.has(id)) return fail('Conversion stopped');
+            if (playlists(folder).every((file) => existsSync(file) && /\.m4s/.test(readFileSync(file, 'utf8')))) {
+              clearInterval(timer);
+              resolve();
+            } else if (child.exitCode !== null) fail(`FFmpeg ended (${child.exitCode}): ${tail(text)}`);
+            else if (Date.now() - started > START_TIMEOUT_MS) fail('Conversion did not start in time');
+          }, 200);
+        });
+        return { id, folder, encoder };
+      };
       const several = probe.audio.length > 1;
       const chosen = probe.audio[audio] && audio < MAX_AUDIO_TRACKS ? audio : 0;
       // Several audio tracks: ready once the video and the default track have a segment; the app writes the playlist.
-      const playlists = several
-        ? [path.join(folder, 'video', 'index.m3u8'), path.join(folder, `audio${chosen}`, 'index.m3u8')]
-        : [path.join(folder, 'index.m3u8')];
-      await new Promise((resolve, reject) => {
-        const started = Date.now();
-        const fail = (message) => {
-          clearInterval(timer);
-          void stop(id);
-          reject(new Error(message));
-        };
-        const timer = setInterval(() => {
-          if (!running.has(id)) return fail('Conversion stopped');
-          if (playlists.every((file) => existsSync(file) && /\.m4s/.test(readFileSync(file, 'utf8')))) {
-            clearInterval(timer);
-            resolve();
-          } else if (child.exitCode !== null) fail(`FFmpeg ended (${child.exitCode}): ${tail(text)}`);
-          else if (Date.now() - started > START_TIMEOUT_MS) fail('Conversion did not start in time');
-        }, 200);
-      });
+      const playlists = (folder) =>
+        several
+          ? [path.join(folder, 'video', 'index.m3u8'), path.join(folder, `audio${chosen}`, 'index.m3u8')]
+          : [path.join(folder, 'index.m3u8')];
+      let converted;
+      try {
+        converted = await convert(encoder);
+      } catch (error) {
+        // A hardware encoder that passed the test but failed this video (its size, a busy GPU): software from now on.
+        if (encoder === 'libx264' || !error.ended) throw error;
+        failedEncoders.add(encoder);
+        onLog(`${encoder} failed, converting in software: ${error.message}`);
+        converted = await convert('libx264');
+      }
+      const { id, folder } = converted;
       if (several) await writeFile(path.join(folder, 'index.m3u8'), masterPlaylist(probe, chosen));
-      return { id, playlist: `/transcode/${id}/index.m3u8`, duration: live ? null : probe.duration, at: live ? 0 : Math.floor(at) };
+      return {
+        id,
+        playlist: `/transcode/${id}/index.m3u8`,
+        duration: live ? null : probe.duration,
+        at: live ? 0 : Math.floor(at),
+        encoder: copyVideo ? null : converted.encoder,
+      };
     },
 
     /**

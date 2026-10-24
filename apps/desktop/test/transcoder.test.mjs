@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -9,7 +9,9 @@ import ffmpeg from 'ffmpeg-static';
 import {
   createRelay,
   createTranscoder,
+  encoderTestArguments,
   frameArguments,
+  hardwareEncoders,
   masterPlaylist,
   parseProbe,
   readable,
@@ -73,6 +75,75 @@ test('converts what Chromium cannot decode and copies the rest', () => {
   const mixed = { duration: 10, video: { codec: 'h264' }, audio: [{ codec: 'ac3' }, { codec: 'aac' }] };
   assert.match(transcodeArguments({ ...base, probe: mixed, copyVideo: true }).join(' '), /-c:a:0 aac .* -c:a:1 copy/);
 });
+
+test('converts with a hardware encoder up to 2160 lines, in software up to 1080 (issue #274)', () => {
+  assert.deepEqual(hardwareEncoders('win32'), ['h264_nvenc', 'h264_qsv', 'h264_amf']);
+  assert.deepEqual(hardwareEncoders('darwin'), ['h264_videotoolbox']);
+  const base = { url: 'http://x/1.mkv', userAgent: 'VLC', folder: '/tmp/t' };
+  const wide = parseProbe(MKV_HEVC_EAC3);
+  const nvenc = transcodeArguments({ ...base, probe: wide, tonemap: true, encoder: 'h264_nvenc' }).join(' ');
+  assert.match(nvenc, /tonemap=hable[^ ]*,format=nv12 -c:v h264_nvenc .*-forced-idr 1 -force_key_frames expr:gte\(t,n_forced\*4\)/);
+  assert.doesNotMatch(nvenc, /scale=-2:/);
+  const eightK = { ...wide, video: { codec: 'hevc', height: 4320, hdr: false } };
+  assert.match(transcodeArguments({ ...base, probe: eightK, encoder: 'h264_qsv' }).join(' '), /scale=-2:2160,format=nv12 -c:v h264_qsv/);
+  assert.match(
+    transcodeArguments({ ...base, probe: eightK, encoder: 'h264_videotoolbox' }).join(' '),
+    /-c:v h264_videotoolbox -realtime 1 -b:v 20M/,
+  );
+  assert.match(transcodeArguments({ ...base, probe: eightK }).join(' '), /scale=-2:1080,format=yuv420p -c:v libx264/);
+  // The test picture goes through the same encoder arguments, into nothing.
+  assert.match(encoderTestArguments('h264_amf').join(' '), /-f lavfi -i testsrc2=.* -c:v h264_amf -usage lowlatency .* -f null -$/);
+});
+
+test(
+  'falls back to software when the hardware encoder fails, for the test picture or a real video (issue #274)',
+  { timeout: 120_000 },
+  async (t) => {
+    if (!ffmpeg || !existsSync(ffmpeg) || process.platform === 'win32') return t.skip('no FFmpeg binary, or no shell');
+    const folder = mkdtempSync(path.join(tmpdir(), 'transcode-'));
+    t.after(() => rmSync(folder, { recursive: true, force: true, maxRetries: 5 }));
+    const source = path.join(folder, 'movie.mkv');
+    execFileSync(ffmpeg, [
+      ...['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=12'],
+      ...['-c:v', 'libx265', '-preset', 'ultrafast', '-x265-params', 'log-level=none', '-an', source],
+    ]);
+    // "h264_fake" is listed and passes the test picture, but no real video converts with it.
+    const wrapper = path.join(folder, 'ffmpeg.sh');
+    writeFileSync(
+      wrapper,
+      `#!/bin/sh\ncase "$*" in *-encoders*) echo " V..... h264_fake  Fake"; echo " V..... h264_gone  Gone"; exit 0;; esac\n` +
+        `case "$*" in *h264_gone*) exit 1;; *"-f null"*) exit 0;; esac\nexec "${ffmpeg}" "$@"\n`,
+    );
+    chmodSync(wrapper, 0o755);
+    const server = createServer((request, response) => {
+      const data = readFileSync(source);
+      response.writeHead(200, { 'Content-Type': 'video/x-matroska', 'Content-Length': data.length }).end(data);
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => server.close());
+    const url = `http://localhost:${server.address().port}/movie/u/p/1.mkv`;
+    const logs = [];
+    const transcoder = createTranscoder({
+      ffmpeg: wrapper,
+      root: path.join(folder, 'out'),
+      userAgent: 'VLC',
+      // Gone fails the test picture, missing is not listed, fake passes it.
+      encoders: ['h264_gone', 'h264_missing', 'h264_fake'],
+      onLog: (line) => logs.push(line),
+    });
+    t.after(() => transcoder.close());
+    const probe = { duration: 12, video: { codec: 'hevc', height: 360, hdr: false }, audio: [] };
+    const started = await transcoder.start({ url, probe });
+    assert.equal(started.encoder, 'libx264');
+    assert.match(readFileSync(transcoder.file(started.playlist), 'utf8'), /s00000\.m4s/);
+    assert.match(logs.join('\n'), /^h264_fake failed, converting in software/);
+    // From then on in software straight away.
+    assert.equal((await transcoder.start({ url, probe, at: 4 })).encoder, 'libx264');
+    assert.equal(logs.length, 1);
+    // Video Chromium decodes is copied: no encoder.
+    assert.equal((await transcoder.start({ url, probe, copyVideo: true })).encoder, null);
+  },
+);
 
 test('names each converted audio track by its language, the chosen one first to play (issue #270)', () => {
   const probe = {
