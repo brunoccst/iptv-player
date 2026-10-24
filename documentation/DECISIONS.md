@@ -116,6 +116,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-208](#d-208) | Shared top nav |
 | [D-209](#d-209) | Shared guide over the playing channel |
 | [D-210](#d-210) | Shared player panel (audio, subtitles, versions, episodes) |
+| [D-211](#d-211) | Shared next-episode card |
 
 ## Merged and retired IDs
 
@@ -1250,3 +1251,9 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The panel does not know a player: each app lists its tracks as options with a name, whether they are on and what picking does (`TrackOption`). The TV builds them from ExoPlayer's tracks, the desktop from hls.js and the video element (`tracks.ts` `trackOptions`); both keep a pick as the profile's choice (D-087).
 - On the desktop it is a dialog named "Audio, subtitles and version" (or "Episodes"), with the phone's back arrow; a click beside it or Escape closes it.
 
+## D-211
+
+**Shared next-episode card** — 2026-10-24 (issue #237)
+
+- The countdown card at the end of an episode (Next episode in …, Play Now, Cancel) is one component for every app (`packages/screens/src/NextUp.tsx`); the desktop's own card and its styles are gone.
+- Each app keeps the countdown and what Play Now does (`nextUpCountdown`); the card only shows them. On the desktop it is a polite status, so screen readers announce it without taking the focus.

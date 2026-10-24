@@ -21,6 +21,7 @@ export { GUIDE_HIDE_MS, GuideOverlay } from './GuideOverlay';
 export { HiddenCategories } from './HiddenCategories';
 export { LanguageSettings } from './LanguageSettings';
 export { LoginScreen } from './LoginScreen';
+export { NextUp } from './NextUp';
 export { ProfilesScreen } from './ProfilesScreen';
 export { QualityUpgradeDialog } from './QualityUpgradeDialog';
 export { QuickDrawer, type DrawerTab, type TrackOption } from './QuickDrawer';

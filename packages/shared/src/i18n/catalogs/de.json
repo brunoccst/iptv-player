@@ -249,7 +249,6 @@
   "Next {guideTime} · {title}": "Danach {guideTime} · {title}",
   "Next categories": "Nächste Kategorien",
   "Next episode in {seconds}": "Nächste Folge in {seconds}",
-  "Next episode in {secondsLeft}": "Nächste Folge in {secondsLeft}",
   "Next episode: {episode}": "Nächste Folge: {episode}",
   "No answer from {host} after {seconds} s.": "Keine Antwort von {host} nach {seconds} s.",
   "No categories.": "Keine Kategorien.",
