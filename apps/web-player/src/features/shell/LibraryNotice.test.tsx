@@ -1,18 +1,19 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { createStore } from 'zustand/vanilla';
+import { useStore } from 'zustand';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LibraryNotice, NOTICE_MS, ScreenHostProvider, type ScreenHost } from '@iptv/screens';
 
-const library = createStore<{ refreshNotice: string | null; dismissRefreshNotice(): void }>((set) => ({
+type Library = { refreshNotice: string | null; dismissRefreshNotice(): void };
+const library = createStore<Library>((set) => ({
   refreshNotice: null,
   dismissRefreshNotice: () => set({ refreshNotice: null }),
 }));
-vi.mock('../../appContext', () => ({
-  api: {},
-  stores: { library, session: { subscribe: () => () => undefined } },
-  downloadsStore: library,
-  uiStore: library,
-}));
+const host = {
+  hooks: { useLibrary: <T,>(select: (s: Library) => T) => useStore(library, select) },
+  stores: { library },
+} as unknown as ScreenHost;
 
 describe('"Refresh library" result (D-119)', () => {
   afterEach(() => {
@@ -20,10 +21,13 @@ describe('"Refresh library" result (D-119)', () => {
     vi.useRealTimers();
   });
 
-  it('shows what the refresh did, and goes after a few seconds or on Close', async () => {
-    const { LibraryNotice, NOTICE_MS } = await import('./LibraryBanner');
+  it('shows what the refresh did, and goes after a few seconds or on Close', () => {
     vi.useFakeTimers();
-    render(<LibraryNotice />);
+    render(
+      <ScreenHostProvider value={host}>
+        <LibraryNotice />
+      </ScreenHostProvider>,
+    );
     expect(screen.queryByTestId('library-notice')).toBeNull();
 
     act(() => library.setState({ refreshNotice: 'Your library is up to date: nothing new from your provider.' }));

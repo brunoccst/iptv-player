@@ -120,6 +120,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-212](#d-212) | Shared Skip ahead button |
 | [D-213](#d-213) | Shared player top bar |
 | [D-214](#d-214) | Shared guide reminder dialog |
+| [D-215](#d-215) | Shared library banner and refresh notice |
 
 ## Merged and retired IDs
 
@@ -1281,3 +1282,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The reminder shown when a programme starts (D-184) is the TV's dialog on every app (`packages/screens/src/ReminderDialog.tsx`), over any page and the player. The desktop's banner at the top right, which did not take focus, is gone: like the other dialogs, Escape dismisses it.
 - Each app says what Watch does: the TV replaces an open player so Back returns to the page under it; the desktop plays over the page. The desktop keeps its system notification while the window is in the background (`apps/web-player/src/features/live/Reminder.tsx`).
+
+## D-215
+
+**Shared library banner and refresh notice** — 2026-10-24 (issue #237)
+
+- The banner at the bottom of Home and Movies/Series (offline, "organizing your library" with per-kind progress, D-119) and the notice after "Refresh library" are one component each for every app (`packages/screens/src/LibraryBanner.tsx`). The notice's timer is shared too. The desktop's own markup and styles are gone.
+- Each app keeps how it watches the library (TV `useLibraryWatcher`, desktop `LibraryBanner.tsx` polling) and passes `processing`. Only the desktop passes `onRefresh`, for its empty-library hint with Refresh library. On the desktop both float at the bottom of the window (`position: fixed`), and the notice keeps its Close button, which TV focus cannot reach.

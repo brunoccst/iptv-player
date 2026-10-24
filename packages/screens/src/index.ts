@@ -16,6 +16,7 @@ export {
 } from './host';
 export { DetailsScreen } from './DetailsScreen';
 export { DownloadsScreen } from './DownloadsScreen';
+export { LibraryBanner, LibraryNotice, NOTICE_MS } from './LibraryBanner';
 export { categoryPage, LiveScreen } from './LiveScreen';
 export { GUIDE_HIDE_MS, GuideOverlay } from './GuideOverlay';
 export { HiddenCategories } from './HiddenCategories';
