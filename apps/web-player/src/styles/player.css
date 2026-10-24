@@ -64,38 +64,6 @@
   padding: 0 var(--gutter) 20px;
 }
 
-.player__controls {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.5vw, 20px);
-  margin-top: 8px;
-}
-
-.player__controls .spacer {
-  flex: 1;
-}
-
-.player__time {
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.player__control {
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--color-text-strong);
-}
-
-.player__control:hover {
-  transform: scale(1.15);
-}
-
 .player__volume {
   width: 90px;
   accent-color: var(--color-accent);

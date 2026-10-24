@@ -122,6 +122,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-214](#d-214) | Shared guide reminder dialog |
 | [D-215](#d-215) | Shared library banner and refresh notice |
 | [D-216](#d-216) | Shared backup dialog |
+| [D-217](#d-217) | Shared player buttons |
 
 ## Merged and retired IDs
 
@@ -1297,3 +1298,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - Backing up to an encrypted file and restoring it (D-056) is one dialog for every app (`packages/screens/src/BackupDialog.tsx`): `backup` from the TV's account menu, `restore` from the sign-in page, `both` from the desktop's account menu, which can also restore while signed in.
 - Each app says where the file goes and comes from (`ScreenHost.backup`): the TV asks for a folder and a file with the system pickers and reloads its data after a restore (`apps/tv-app/src/backupFiles.ts`); the desktop downloads the file, picks one with the browser's file chooser and reloads the page (`apps/web-player/src/features/backup/backupFiles.ts`). What a backup holds differs (the TV also keeps its playback settings), so each app writes that line.
+
+## D-217
+
+**Shared player buttons** — 2026-10-24 (issue #237)
+
+- The row of buttons under the player's timeline (play/pause, from the beginning, previous/next episode, time, Guide, Audio, Subtitles, Episodes) is one component for every app (`packages/screens/src/PlayerControls.tsx`). The desktop's Audio and Subtitles buttons now open the panel on their own tab, as on the TV; before, one button opened it on Audio.
+- Each app keeps what the buttons do and adds its own: the desktop passes its mute button and volume slider (`volume`) and fullscreen (`trailing`), which the TV and phone do not have. On the TV the row is focusable only while the buttons are open (D-077), and Play takes focus when they open.

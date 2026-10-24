@@ -15,7 +15,6 @@ import {
   offlineAccess,
   isInSkipAheadWindow,
   skipAheadWindow,
-  episodeLabel,
   nextUpCountdown,
   resumePosition,
   chooseVersion,
@@ -36,7 +35,6 @@ import {
   isLiveStream,
 } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
-import { Icon } from '../../components/Icon';
 import { Spinner } from '../../components/Spinner';
 import { useVlc } from '../../components/vlc';
 import { desktop } from '../../desktop';
@@ -45,7 +43,7 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
-import { GuideOverlay, NextUp, PlayerHeader, QuickDrawer, SkipAhead } from '@iptv/screens';
+import { GuideOverlay, IconButton, NextUp, PlayerControls, PlayerHeader, QuickDrawer, SkipAhead } from '@iptv/screens';
 import '../browse/screenHost';
 import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
@@ -88,7 +86,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
-  const [panel, setPanel] = useState<'tracks' | 'episodes' | 'guide' | null>(null);
+  const [panel, setPanel] = useState<'audio' | 'subtitles' | 'episodes' | 'guide' | null>(null);
   // "Skip ahead" options (30 s … 3 min) open under the button; the button or Escape closes them.
   const [skipOpen, setSkipOpen] = useState(false);
   const [nextDismissed, setNextDismissed] = useState(false);
@@ -553,119 +551,61 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
           {!isLive ? (
             <Timeline currentTime={time} duration={duration} bufferedEnd={buffered} onSeek={seekTo} getPreview={getPreview} />
           ) : null}
-          <div className="player__controls">
-            <button type="button" className="player__control" onClick={togglePlay} aria-label={playing ? t('Pause') : t('Play')}>
-              <Icon name={playing ? 'pause' : 'play'} size={36} />
-            </button>
-            {!isLive ? (
+          <PlayerControls
+            playing={playing}
+            live={isLive}
+            time={time}
+            duration={duration}
+            previous={previous}
+            next={next}
+            episodes={!!series}
+            onTogglePlay={togglePlay}
+            onRestart={() => seekTo(0)}
+            onSkip={skip}
+            onEpisode={playEpisode}
+            onGuide={() => setPanel(panel === 'guide' ? null : 'guide')}
+            onAudio={() => setPanel(panel === 'audio' ? null : 'audio')}
+            onSubtitles={() => setPanel(panel === 'subtitles' ? null : 'subtitles')}
+            onEpisodes={() => setPanel(panel === 'episodes' ? null : 'episodes')}
+            volume={
               <>
-                <button
-                  type="button"
-                  className="player__control"
-                  onClick={() => seekTo(0)}
-                  aria-label={t('Play from the beginning')}
-                  title={t('Play from the beginning')}
-                >
-                  <Icon name="restart" size={30} />
-                </button>
-                {previous ? (
-                  <button
-                    type="button"
-                    className="player__control"
-                    onClick={() => playEpisode(previous)}
-                    aria-label={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
-                    title={t('Previous episode: {episode}', { episode: episodeLabel(previous) })}
-                  >
-                    <Icon name="previous" size={30} />
-                  </button>
-                ) : null}
-                <button type="button" className="player__control" onClick={() => skip('back')} aria-label={t('Back 10 seconds')}>
-                  <Icon name="rewind10" size={32} />
-                </button>
-                <button type="button" className="player__control" onClick={() => skip('forward')} aria-label={t('Forward 10 seconds')}>
-                  <Icon name="forward10" size={32} />
-                </button>
-                {next ? (
-                  <button
-                    type="button"
-                    className="player__control"
-                    onClick={() => playEpisode(next)}
-                    aria-label={t('Next episode: {episode}', { episode: episodeLabel(next) })}
-                    title={t('Next episode: {episode}', { episode: episodeLabel(next) })}
-                  >
-                    <Icon name="next" size={30} />
-                  </button>
-                ) : null}
+                <IconButton
+                  icon={muted || volume === 0 ? 'mute' : 'volume'}
+                  label={muted ? t('Unmute') : t('Mute')}
+                  plain
+                  size={44}
+                  iconSize={28}
+                  onPress={() => videoRef.current && (videoRef.current.muted = !muted)}
+                />
+                <input
+                  className="player__volume"
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={muted ? 0 : volume}
+                  aria-label={t('Volume')}
+                  onChange={(e) => {
+                    const video = videoRef.current;
+                    if (video) {
+                      video.volume = Number(e.target.value);
+                      video.muted = false;
+                    }
+                  }}
+                />
               </>
-            ) : null}
-            <button
-              type="button"
-              className="player__control"
-              onClick={() => videoRef.current && (videoRef.current.muted = !muted)}
-              aria-label={muted ? t('Unmute') : t('Mute')}
-            >
-              <Icon name={muted || volume === 0 ? 'mute' : 'volume'} size={28} />
-            </button>
-            <input
-              className="player__volume"
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={muted ? 0 : volume}
-              aria-label={t('Volume')}
-              onChange={(e) => {
-                const video = videoRef.current;
-                if (video) {
-                  video.volume = Number(e.target.value);
-                  video.muted = false;
-                }
-              }}
-            />
-            {!isLive ? (
-              <span className="player__time">
-                {formatClock(time)} / {formatClock(duration)}
-              </span>
-            ) : null}
-            <span className="spacer" />
-            {isLive ? (
-              <button
-                type="button"
-                className="player__control"
-                onClick={() => setPanel(panel === 'guide' ? null : 'guide')}
-                aria-label={t('Guide')}
-                title={t('Guide (G)')}
-              >
-                <Icon name="guide" size={28} />
-              </button>
-            ) : null}
-            {series ? (
-              <button
-                type="button"
-                className="player__control"
-                onClick={() => setPanel(panel === 'episodes' ? null : 'episodes')}
-                aria-label={t('Episodes')}
-              >
-                <Icon name="episodes" size={28} />
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="player__control"
-              onClick={() => setPanel(panel === 'tracks' ? null : 'tracks')}
-              aria-label={t('Audio, subtitles and version')}
-            >
-              <Icon name="subtitles" size={28} />
-            </button>
-            <button
-              type="button"
-              className="player__control"
-              onClick={toggleFullscreen}
-              aria-label={fullscreen ? t('Exit full screen') : t('Full screen')}
-            >
-              <Icon name={fullscreen ? 'exitFullscreen' : 'fullscreen'} size={30} />
-            </button>
-          </div>
+            }
+            trailing={
+              <IconButton
+                icon={fullscreen ? 'exitFullscreen' : 'fullscreen'}
+                label={fullscreen ? t('Exit full screen') : t('Full screen')}
+                plain
+                size={44}
+                iconSize={30}
+                onPress={toggleFullscreen}
+              />
+            }
+          />
         </div>
       </div>
 
@@ -762,11 +702,11 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         />
       ) : null}
 
-      {/* The TV's Audio, Subtitles, Versions and Episodes panel (DECISIONS.md#d-210): the subtitles button opens it on
-          Audio, the episodes button on Episodes. */}
-      {panel === 'tracks' || panel === 'episodes' ? (
+      {/* The TV's Audio, Subtitles, Versions and Episodes panel (DECISIONS.md#d-210): each button opens it on its own
+          tab (DECISIONS.md#d-217). */}
+      {panel === 'audio' || panel === 'subtitles' || panel === 'episodes' ? (
         <QuickDrawer
-          initialTab={panel === 'episodes' ? 'episodes' : 'audio'}
+          initialTab={panel}
           onClose={() => setPanel(null)}
           {...trackOptions(engineRef.current?.hls ?? null, videoRef.current, {
             audio: (choice) => {
