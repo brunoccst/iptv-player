@@ -23,6 +23,8 @@ interface FocusButtonProps {
   onFocus?(): void;
   /** TV: the view that Up goes to, instead of the nearest one. */
   nextFocusUp?: FocusDestination;
+  /** For a button that opens options: whether they are open (`aria-expanded`). */
+  expanded?: boolean;
 }
 
 const TEXT: Record<Variant, string> = { primary: '#000', secondary: colors.strong, accent: colors.strong, ghost: colors.text };
@@ -41,6 +43,7 @@ export function FocusButton({
   style,
   onFocus,
   nextFocusUp,
+  expanded,
 }: FocusButtonProps) {
   // Phones show no focus look: Android still hands focus to the first button when the focused view goes (the player's
   // drawer opened with its Audio tab lit up), and a touch never moves it on. See DECISIONS.md#d-190.
@@ -59,6 +62,7 @@ export function FocusButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       aria-disabled={!!disabled}
+      aria-expanded={expanded}
       disabled={disabled}
       hasTVPreferredFocus={hasTVPreferredFocus}
       nextFocusUp={nextFocusUp}

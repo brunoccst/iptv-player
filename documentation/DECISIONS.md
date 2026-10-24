@@ -117,6 +117,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-209](#d-209) | Shared guide over the playing channel |
 | [D-210](#d-210) | Shared player panel (audio, subtitles, versions, episodes) |
 | [D-211](#d-211) | Shared next-episode card |
+| [D-212](#d-212) | Shared Skip ahead button |
 
 ## Merged and retired IDs
 
@@ -1257,3 +1258,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The countdown card at the end of an episode (Next episode in …, Play Now, Cancel) is one component for every app (`packages/screens/src/NextUp.tsx`); the desktop's own card and its styles are gone.
 - Each app keeps the countdown and what Play Now does (`nextUpCountdown`); the card only shows them. On the desktop it is a polite status, so screen readers announce it without taking the focus.
+
+## D-212
+
+**Shared Skip ahead button** — 2026-10-24 (issue #237)
+
+- The player's "Skip ahead" button and its 30 s … 3 min options (D-042) are one component for every app (`packages/screens/src/SkipAhead.tsx`); the desktop's own buttons and styles are gone.
+- Each app keeps when it shows (`isInSkipAheadWindow`), what a pick seeks to and how Back or Escape closes the options. `FocusButton` gained `expanded` so the desktop still says whether the options are open.

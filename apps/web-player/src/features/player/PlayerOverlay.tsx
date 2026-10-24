@@ -14,10 +14,7 @@ import {
   formatClock,
   offlineAccess,
   isInSkipAheadWindow,
-  skipAheadDescription,
-  skipAheadLabel,
   skipAheadWindow,
-  SKIP_AHEAD_OPTIONS,
   episodeLabel,
   nextUpCountdown,
   resumePosition,
@@ -48,7 +45,7 @@ import { savePlaybackProgress } from '@iptv/shared';
 import { selectDownload } from '../../offline/downloadsStore';
 import { episodeTarget } from '../../ui/targets';
 import type { PlayTarget } from '../../ui/uiStore';
-import { GuideOverlay, NextUp, QuickDrawer } from '@iptv/screens';
+import { GuideOverlay, NextUp, QuickDrawer, SkipAhead } from '@iptv/screens';
 import '../browse/screenHost';
 import { ConvertedFrames, FrameGrabber, type FramePreview } from './frameGrabber';
 import { PlaybackEngine, PlaybackUnavailableError, undecodableVideoCodec, type LoadedSource } from './playbackEngine';
@@ -754,35 +751,14 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
       ) : null}
 
       {status === 'ready' && (skipOpen || isInSkipAheadWindow(skipWindow, time)) ? (
-        <div className="player__skip-ahead">
-          {skipOpen ? (
-            <div className="player__skip-options" role="group" aria-label={t('Skip ahead by')}>
-              {SKIP_AHEAD_OPTIONS.map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  className="player__skip-button"
-                  aria-label={skipAheadDescription(seconds)}
-                  onClick={() => {
-                    setSkipOpen(false);
-                    seekTo((engineRef.current?.position ?? time) + seconds);
-                  }}
-                >
-                  {skipAheadLabel(seconds)}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <button
-            type="button"
-            className="player__skip-button"
-            aria-expanded={skipOpen}
-            aria-label={skipOpen ? t('Close skip options') : t('Skip ahead: choose how far')}
-            onClick={() => setSkipOpen(!skipOpen)}
-          >
-            <Icon name={skipOpen ? 'close' : 'forward10'} size={20} /> {t('Skip ahead')}
-          </button>
-        </div>
+        <SkipAhead
+          open={skipOpen}
+          onToggle={() => setSkipOpen(!skipOpen)}
+          onSkip={(seconds) => {
+            setSkipOpen(false);
+            seekTo((engineRef.current?.position ?? time) + seconds);
+          }}
+        />
       ) : null}
 
       {notice && status !== 'error' ? (
