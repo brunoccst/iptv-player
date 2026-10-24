@@ -121,6 +121,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Progress bar like the TV's** (2026-10-24, D-218, issue #237): the player's progress bar is the TV app's; the time on hover shows above the bar and the preview picture stays inside the window.
 - **Player buttons like the TV's** (2026-10-24, D-217, issue #237): the player's buttons are the TV app's; Audio and Subtitles each open their own tab of the panel.
 - **Backup looks like the TV's** (2026-10-24, D-216, issue #237): Back up & restore and Restore from a backup on the sign-in page now use the TV app's dialog; Choose backup file opens the file picker.
 - **Library messages look like the TV's** (2026-10-24, D-215, issue #237): the offline and "organizing your library" box at the bottom of Home and Movies/Series, and the message after Refresh library, are now the same as on the TV and phone app.

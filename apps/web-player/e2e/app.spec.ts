@@ -26,14 +26,14 @@ test('plays HLS through the relay with keyboard skip, hover frame preview and ve
   await page.keyboard.press('ArrowRight');
   await expect.poll(() => videoTime(page)).toBeGreaterThan(before + 8);
 
-  const rail = await page.locator('.timeline__rail').boundingBox();
+  const rail = await page.getByTestId('timeline-rail').boundingBox();
   await page.mouse.move(rail!.x + rail!.width * 0.5, rail!.y + 2);
-  await expect(page.getByTestId('timeline-preview')).toBeVisible();
+  await expect(page.getByTestId('player-preview-frame')).toBeVisible();
   await expect
     .poll(
       () =>
         page.evaluate(() => {
-          const canvas = document.querySelector<HTMLCanvasElement>('.timeline__preview canvas')!;
+          const canvas = document.querySelector<HTMLCanvasElement>('.timeline__frame')!;
           const pixels = canvas.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, canvas.width, canvas.height).data;
           return pixels.reduce((sum, value, index) => (index % 4 === 3 ? sum : sum + value), 0);
         }),

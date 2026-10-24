@@ -123,6 +123,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-215](#d-215) | Shared library banner and refresh notice |
 | [D-216](#d-216) | Shared backup dialog |
 | [D-217](#d-217) | Shared player buttons |
+| [D-218](#d-218) | Shared progress bar |
 
 ## Merged and retired IDs
 
@@ -1305,3 +1306,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The row of buttons under the player's timeline (play/pause, from the beginning, previous/next episode, time, Guide, Audio, Subtitles, Episodes) is one component for every app (`packages/screens/src/PlayerControls.tsx`). The desktop's Audio and Subtitles buttons now open the panel on their own tab, as on the TV; before, one button opened it on Audio.
 - Each app keeps what the buttons do and adds its own: the desktop passes its mute button and volume slider (`volume`) and fullscreen (`trailing`), which the TV and phone do not have. On the TV the row is focusable only while the buttons are open (D-077), and Play takes focus when they open.
+
+## D-218
+
+**Shared progress bar** — 2026-10-24 (issue #237)
+
+- How the player's progress bar looks (rail, played and loaded parts, thumb, time and preview frame) is one component for every app (`packages/screens/src/TimelineRail.tsx`). The desktop's hover time now sits above the bar with the preview frame over it, kept inside the bar as on the TV, instead of under a frame that could run off the window's edge.
+- What moves the video stays with each app, because the input differs: TV keys with the preview jump (D-179, D-180), the phone's drag, and the desktop's mouse hover, click and drag with its own frame grabber. The rail takes no input itself.

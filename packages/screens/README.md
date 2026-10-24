@@ -35,6 +35,7 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/ReminderDialog.tsx` | The guide reminder when its programme starts: Watch or Dismiss (D-184, D-214) |
 | `src/LibraryBanner.tsx` | Offline / "organizing your library" banner and the Refresh library notice (D-119, D-215) |
 | `src/BackupDialog.tsx` | Back up to an encrypted file and restore it; the app saves and picks the file (D-056, D-216) |
+| `src/TimelineRail.tsx` | The player's progress bar as drawn: rail, thumb, time, preview frame (D-218) |
 | `src/QuickDrawer.tsx` | The player's Audio, Subtitles, Versions and Episodes panel; the app lists its tracks as `TrackOption`s (D-077, D-210) |
 | `src/TopNav.tsx` | The top nav: brand, page links, search box, account avatar; `useNavFocusTarget` (TV: Up from a page, D-079, D-208) |
 | `src/AccountMenu.tsx` | The menu under the top nav's avatar: other profiles, the Profiles, Library & devices and App groups, Sign out (D-079, D-207) |

@@ -73,7 +73,7 @@ import { toggleOnMyList } from '../tv/colourKeys';
 import { useRemote } from '../tv/remote';
 import { Gradient } from '../components/Gradient';
 import { IconButton } from '../components/IconButton';
-import { colors, fonts, useSizes } from '../theme';
+import { colors, useSizes } from '../theme';
 import { savePlaybackProgress } from '@iptv/shared';
 import { GuideOverlay } from './GuideOverlay';
 import { RecentChannelsOverlay } from './RecentChannelsOverlay';
@@ -82,6 +82,7 @@ import { NextUp } from './NextUp';
 import { SkipAhead } from './SkipAhead';
 import { PlayerHeader } from './PlayerHeader';
 import { PlayerControls } from './PlayerControls';
+import { TimelineRail } from './TimelineRail';
 import type { TrackOption } from '@iptv/screens';
 import { ScrubBar, TapFlash } from './SeekOverlay';
 import { useFramePreview, type PreviewFrame } from './framePreview';
@@ -910,18 +911,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   onPress={() => (barPreviewRef.current !== null ? commitBar() : setPaused((p) => !p))}
                   onLayout={(event) => (timelineWidth.current = event.nativeEvent.layout.width)}
                 >
-                  {barPreview !== null ? (
-                    <FrameThumb frame={preview.frame} fraction={percent / 100} barWidth={timelineWidth.current} width={288} />
-                  ) : null}
-                  <View style={[styles.rail, onBar && styles.railFocused]} pointerEvents="none">
-                    <View style={[styles.played, { width: `${percent}%` }]} />
-                    <View style={[styles.thumb, onBar && styles.thumbFocused, { left: `${percent}%` }]} />
-                  </View>
-                  {onBar ? (
-                    <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none" testID="player-timeline-time">
-                      {formatClock(barPreview ?? time)}
-                    </Text>
-                  ) : null}
+                  <TimelineRail
+                    played={percent / 100}
+                    state={onBar ? 'focused' : 'idle'}
+                    label={onBar ? formatClock(barPreview ?? time) : null}
+                    frame={barPreview !== null ? frameImage(preview.frame) : null}
+                    frameWidth={288}
+                  />
                 </Pressable>
               </FocusRow>
             ) : (
@@ -935,18 +931,13 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
                   event.currentTarget.measure((_x, _y, _w, _h, pageX) => (timelineLeft.current = pageX));
                 }}
               >
-                <View style={styles.rail} pointerEvents="none">
-                  <View style={[styles.played, { width: `${percent}%` }]} />
-                  <View style={[styles.thumb, dragTime !== null && styles.thumbDragging, { left: `${percent}%` }]} />
-                </View>
-                {dragTime !== null ? (
-                  <FrameThumb frame={preview.frame} fraction={percent / 100} barWidth={timelineWidth.current} width={160} />
-                ) : null}
-                {dragTime !== null ? (
-                  <Text style={[styles.dragTime, { left: `${percent}%` }]} pointerEvents="none">
-                    {formatClock(dragTime)}
-                  </Text>
-                ) : null}
+                <TimelineRail
+                  played={percent / 100}
+                  state={dragTime !== null ? 'dragging' : 'idle'}
+                  label={dragTime !== null ? formatClock(dragTime) : null}
+                  frame={dragTime !== null ? frameImage(preview.frame) : null}
+                  frameWidth={160}
+                />
               </View>
             )}
             <PlayerControls
@@ -1047,25 +1038,10 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   );
 }
 
-/** The preview frame over the progress bar (D-180), centred on the position and kept inside the bar. */
-function FrameThumb({
-  frame,
-  fraction,
-  barWidth,
-  width,
-}: {
-  frame: PreviewFrame | null;
-  fraction: number;
-  barWidth: number;
-  width: number;
-}) {
+/** The preview frame over the progress bar (D-180), or null while there is none. */
+function frameImage(frame: PreviewFrame | null) {
   if (!frame) return null;
-  const left = Math.max(0, Math.min(barWidth - width, fraction * barWidth - width / 2));
-  return (
-    <View style={[styles.frame, { left, width, height: (width * 9) / 16 }]} pointerEvents="none" testID="player-preview-frame">
-      <Image source={{ uri: frame.image }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />
-    </View>
-  );
+  return <Image source={{ uri: frame.image }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors />;
 }
 
 const styles = StyleSheet.create({
@@ -1086,29 +1062,4 @@ const styles = StyleSheet.create({
   bottom: { paddingBottom: 20 },
   // Tall enough to grab with a finger; the rail is drawn in the middle.
   timeline: { height: 32, justifyContent: 'center' },
-  rail: { height: 4, backgroundColor: 'rgba(255,255,255,0.25)' },
-  played: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent },
-  thumb: { position: 'absolute', top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: 7, backgroundColor: colors.accent },
-  thumbDragging: { top: -8, width: 20, height: 20, marginLeft: -10, borderRadius: 10 },
-  frame: {
-    position: 'absolute',
-    bottom: 48,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.strong,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-  },
-  railFocused: { height: 6, backgroundColor: 'rgba(255,255,255,0.45)' },
-  thumbFocused: { top: -9, width: 24, height: 24, marginLeft: -12, borderRadius: 12, backgroundColor: colors.strong },
-  dragTime: {
-    position: 'absolute',
-    bottom: 22,
-    width: 80,
-    marginLeft: -40,
-    textAlign: 'center',
-    color: colors.strong,
-    fontSize: fonts.small,
-    fontWeight: '700',
-  },
 });
