@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { setScreenHost, type DownloadEntry } from '@iptv/screens';
+import { BackupDialog, setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t, type UiLanguage } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
 import { appConfig } from '../../config';
 import { desktop } from '../../desktop';
-import { BackupDialog } from '../backup/BackupDialog';
+import { backupFiles } from '../backup/backupFiles';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
 import { usePinGate } from '../profiles/PinDialog';
@@ -104,7 +104,7 @@ setScreenHost({
     note: () =>
       desktop ? t('The app talks to your IPTV provider directly. Your password stays on this computer, encrypted by the system.') : null,
     chooseLanguage: (language) => void appContext.uiLanguage.choose(language as UiLanguage),
-    Restore: ({ onClose }) => <BackupDialog restoreOnly onClose={onClose} />,
+    Restore: ({ onClose }) => <BackupDialog mode="restore" onClose={onClose} />,
     DeviceCode: desktop
       ? function DeviceCode() {
           return <PairingCode state={usePairingServer()} size={180} />;
@@ -113,9 +113,10 @@ setScreenHost({
     scan: { available: canScanWithWebcam, open: () => openSyncWithPhone(true) },
   },
   about,
+  backup: backupFiles,
   account: {
     PinSettings,
-    backup: { label: () => t('Back up & restore'), Dialog: BackupDialog },
+    backup: { label: () => t('Back up & restore'), Dialog: ({ onClose }) => <BackupDialog mode="both" onClose={onClose} /> },
     // The desktop app pairs; a plain browser cannot (D-060).
     sync: desktop ? { icon: 'phone', run: () => openSyncWithPhone() } : undefined,
     log: { Dialog: LogDialog },

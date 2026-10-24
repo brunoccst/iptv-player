@@ -121,6 +121,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-213](#d-213) | Shared player top bar |
 | [D-214](#d-214) | Shared guide reminder dialog |
 | [D-215](#d-215) | Shared library banner and refresh notice |
+| [D-216](#d-216) | Shared backup dialog |
 
 ## Merged and retired IDs
 
@@ -1289,3 +1290,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The banner at the bottom of Home and Movies/Series (offline, "organizing your library" with per-kind progress, D-119) and the notice after "Refresh library" are one component each for every app (`packages/screens/src/LibraryBanner.tsx`). The notice's timer is shared too. The desktop's own markup and styles are gone.
 - Each app keeps how it watches the library (TV `useLibraryWatcher`, desktop `LibraryBanner.tsx` polling) and passes `processing`. Only the desktop passes `onRefresh`, for its empty-library hint with Refresh library. On the desktop both float at the bottom of the window (`position: fixed`), and the notice keeps its Close button, which TV focus cannot reach.
+
+## D-216
+
+**Shared backup dialog** — 2026-10-24 (issue #237)
+
+- Backing up to an encrypted file and restoring it (D-056) is one dialog for every app (`packages/screens/src/BackupDialog.tsx`): `backup` from the TV's account menu, `restore` from the sign-in page, `both` from the desktop's account menu, which can also restore while signed in.
+- Each app says where the file goes and comes from (`ScreenHost.backup`): the TV asks for a folder and a file with the system pickers and reloads its data after a restore (`apps/tv-app/src/backupFiles.ts`); the desktop downloads the file, picks one with the browser's file chooser and reloads the page (`apps/web-player/src/features/backup/backupFiles.ts`). What a backup holds differs (the TV also keeps its playback settings), so each app writes that line.

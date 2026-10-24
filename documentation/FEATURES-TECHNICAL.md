@@ -9,7 +9,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Sign-in](FEATURES.md#sign-in) | `packages/shared/src/stores/sessionStore.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/xtream.ts`, `packages/shared/src/stores/downloadsOwner.ts`, `apps/desktop/main.mjs`, `packages/screens/src/LoginScreen.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/web-player/src/features/auth/LoginPage.tsx` |
-| [Backup and restore](FEATURES.md#backup-and-restore) | `packages/shared/src/backup/userData.ts`, `apps/tv-app/src/components/BackupDialog.tsx`, `apps/web-player/src/features/backup/BackupDialog.tsx` |
+| [Backup and restore](FEATURES.md#backup-and-restore) | `packages/shared/src/backup/userData.ts`, `packages/screens/src/BackupDialog.tsx`, `apps/tv-app/src/backupFiles.ts`, `apps/web-player/src/features/backup/backupFiles.ts` |
 
 ## Library
 

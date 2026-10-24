@@ -324,8 +324,11 @@ test('back up to an encrypted file and restore it in another browser (D-056)', a
   const other = await browser.newPage();
   await other.goto('/');
   await other.getByRole('button', { name: 'Restore from a backup' }).click();
-  const restore = other.getByRole('dialog', { name: 'Back up and restore' });
-  await restore.getByLabel('Backup file').setInputFiles(file);
+  const restore = other.getByRole('dialog', { name: 'Restore from backup' });
+  const choosing = other.waitForEvent('filechooser');
+  await restore.getByRole('button', { name: 'Choose backup file' }).click();
+  await (await choosing).setFiles(file);
+  await expect(restore.getByRole('button', { name: /^File: / })).toBeVisible();
   await restore.getByLabel('Backup password').fill('wrong password');
   await restore.getByRole('button', { name: 'Restore backup' }).click();
   await expect(restore.getByRole('alert')).toHaveText('Wrong password, or the file is damaged.');

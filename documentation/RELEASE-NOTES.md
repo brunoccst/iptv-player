@@ -16,6 +16,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the apps now warn before
 
 #### Latest
 
+- **Backup buttons renamed** (2026-10-24, D-216, issue #237): Back up data now says "Save backup file" (it still asks where to save) and Restore from backup says "Restore backup", the same as on the desktop.
 - **"Add Profile" in your language** (2026-10-23, D-200, issue #237): the tile that adds a profile was always in English; it now follows the app language.
 - **My Downloads in your language** (2026-10-23, D-198, issue #237): a download's status (Waiting…, Downloading, Paused, Downloaded) now follows the app language instead of always showing in English.
 - **Focus back on the cover after closing details** (2026-10-23, D-069): on the TV, closing a movie's or series' details left nothing focused. The focus now goes back to the cover or button you opened them from, or to the first one on screen if it is gone.
@@ -120,6 +121,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Backup looks like the TV's** (2026-10-24, D-216, issue #237): Back up & restore and Restore from a backup on the sign-in page now use the TV app's dialog; Choose backup file opens the file picker.
 - **Library messages look like the TV's** (2026-10-24, D-215, issue #237): the offline and "organizing your library" box at the bottom of Home and Movies/Series, and the message after Refresh library, are now the same as on the TV and phone app.
 - **Reminders look like the TV's** (2026-10-24, D-214, issue #237): when a programme with a reminder starts, the app now shows the TV's dialog in the middle of the window, with Watch and Dismiss, instead of a box at the top right.
 - **Player title bar looks like the TV's** (2026-10-24, D-213, issue #237): the back arrow, title and LIVE tag at the top of the player are now the same as on the TV and phone app.
