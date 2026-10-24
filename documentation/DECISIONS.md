@@ -118,6 +118,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-210](#d-210) | Shared player panel (audio, subtitles, versions, episodes) |
 | [D-211](#d-211) | Shared next-episode card |
 | [D-212](#d-212) | Shared Skip ahead button |
+| [D-213](#d-213) | Shared player top bar |
 
 ## Merged and retired IDs
 
@@ -1265,3 +1266,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The player's "Skip ahead" button and its 30 s … 3 min options (D-042) are one component for every app (`packages/screens/src/SkipAhead.tsx`); the desktop's own buttons and styles are gone.
 - Each app keeps when it shows (`isInSkipAheadWindow`), what a pick seeks to and how Back or Escape closes the options. `FocusButton` gained `expanded` so the desktop still says whether the options are open.
+
+## D-213
+
+**Shared player top bar** — 2026-10-24 (issue #237)
+
+- The bar at the top of the player (back arrow, title, subtitle with "Downloaded", LIVE) is one component for every app (`packages/screens/src/PlayerHeader.tsx`); the desktop's own markup and styles are gone. A download with no subtitle now says "Downloaded" on the desktop too, as on the TV.
+- Each app keeps what Back does and when the bar shows. On the TV the back arrow is focusable only while the player's buttons are open (D-077). On the desktop the title is a level-2 heading, and the e2e tests find the parts by test id (`player-title`, `player-subtitle`, `player-live`).

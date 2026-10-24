@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Player title bar looks like the TV's** (2026-10-24, D-213, issue #237): the back arrow, title and LIVE tag at the top of the player are now the same as on the TV and phone app.
 - **Skip ahead looks like the TV's** (2026-10-24, D-212, issue #237): the Skip ahead button and its 30 s to 3 min choices are now the same as on the TV and phone app.
 - **Next episode card looks like the TV's** (2026-10-24, D-211, issue #237): the card that counts down to the next episode is now the same as on the TV and phone app.
 - **Audio, subtitles and episodes in one panel** (2026-10-24, D-210, issue #237): the player's subtitles and episodes buttons now open the TV's panel at the side, with Audio, Subtitles, Versions and Episodes tabs; the playing episode is marked ▶.

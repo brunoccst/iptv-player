@@ -46,7 +46,7 @@ test('plays HLS through the relay with keyboard skip, hover frame preview and ve
   const tracks = page.getByRole('dialog', { name: 'Audio, subtitles and version' });
   await tracks.getByRole('button', { name: 'Versions' }).click();
   await tracks.getByRole('button', { name: '1080p' }).click();
-  await expect(page.locator('.player__subtitle')).toHaveText(/^1080p/);
+  await expect(page.getByTestId('player-subtitle')).toHaveText(/^1080p/);
   await expectPlaying(page);
 });
 
@@ -100,12 +100,12 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
   await seek(page, duration - 7);
   await expect(page.getByText(/Next episode in \d+/)).toBeVisible();
   await page.getByRole('button', { name: 'Play Now' }).click();
-  await expect(page.locator('.player__subtitle')).toContainText('S01:E02');
+  await expect(page.getByTestId('player-subtitle')).toContainText('S01:E02');
   await expectPlaying(page);
 
   // Previous / next episode around ±10 s, and "from the beginning" (D-077, as on TV).
   await page.getByRole('button', { name: 'Previous episode: S01:E01' }).click();
-  await expect(page.locator('.player__subtitle')).toContainText('S01:E01');
+  await expect(page.getByTestId('player-subtitle')).toContainText('S01:E01');
   await expectPlaying(page);
   await expect(page.getByRole('button', { name: /^Previous episode/ })).toHaveCount(0);
   await seek(page, 60);
@@ -147,12 +147,12 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await onNow.click();
   await expect(page.getByRole('region', { name: 'Programme details' })).toContainText('On now');
   await page.getByRole('button', { name: 'Watch live' }).click();
-  await expect(page.locator('.player__live')).toBeVisible();
-  await expect(page.locator('.player__subtitle')).toContainText(title);
+  await expect(page.getByTestId('player-live')).toBeVisible();
+  await expect(page.getByTestId('player-subtitle')).toContainText(title);
   await expectPlaying(page, 1);
 
   // Guide over the playing channel (D-058): G or the Guide button; a click switches channel.
-  const playing = (await page.locator('.player__title').textContent())!;
+  const playing = (await page.getByTestId('player-title').textContent())!;
   await page.keyboard.press('g');
   const panel = page.getByRole('complementary', { name: 'Guide' });
   await expect(panel.getByRole('button', { name: /, playing$/ })).toContainText(playing);
@@ -164,7 +164,7 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   const otherName = (await other.getAttribute('aria-label'))!.split(', ')[0]!;
   await other.click();
   await expect(panel).toBeHidden();
-  await expect(page.locator('.player__title')).toHaveText(otherName);
+  await expect(page.getByTestId('player-title')).toHaveText(otherName);
   await expectPlaying(page, 1);
 });
 
@@ -181,9 +181,9 @@ test("catch-up: a past programme plays from the channel's recording, with seekin
   const title = (await recorded.first().getAttribute('aria-label'))!.split(',')[0]!;
   await recorded.first().click();
   await page.getByRole('region', { name: 'Programme details' }).getByRole('button', { name: 'Watch', exact: true }).click();
-  await expect(page.locator('.player__title')).toHaveText(title);
+  await expect(page.getByTestId('player-title')).toHaveText(title);
   await expectPlaying(page, 1);
-  await expect(page.locator('.player__live')).toHaveCount(0);
+  await expect(page.getByTestId('player-live')).toHaveCount(0);
   await seek(page, 20);
   await expect.poll(() => videoTime(page)).toBeGreaterThan(19);
 });
