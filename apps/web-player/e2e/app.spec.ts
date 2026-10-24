@@ -352,7 +352,7 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
   await page.getByRole('menuitem', { name: 'App' }).click();
   await page.getByRole('menuitem', { name: 'Log' }).click();
   const log = page.getByRole('dialog', { name: 'Log' });
-  await expect(log.locator('.log__lines')).toContainText('[app]');
+  await expect(log.getByTestId('log-view')).toContainText('[app]');
   const saving = page.waitForEvent('download');
   await log.getByRole('button', { name: 'Save log' }).click();
   expect((await saving).suggestedFilename()).toMatch(/-log-\d{4}-\d{2}-\d{2}\.txt$/);

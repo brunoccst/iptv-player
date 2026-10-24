@@ -125,6 +125,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-217](#d-217) | Shared player buttons |
 | [D-218](#d-218) | Shared progress bar |
 | [D-219](#d-219) | Shared parental PIN keypad |
+| [D-220](#d-220) | Shared log view |
 
 ## Merged and retired IDs
 
@@ -1321,3 +1322,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The parental PIN (D-054) is asked for on the TV's keypad on every app (`packages/screens/src/PinPad.tsx`, with `usePinGate`), and set, changed or removed with the TV's steps (`packages/screens/src/PinSettings.tsx`): the current PIN first, then the new one typed twice. The desktop's form with three fields is gone.
 - On the desktop the keyboard's digits and Backspace type on the keypad as well as clicks, and 4 digits submit at once, so no OK button is needed. The apps no longer pass a PIN prompt or PIN settings to the shared screens.
+
+## D-220
+
+**Shared log view** — 2026-10-24 (issue #237)
+
+- The diagnostics log (D-079) shows the same on every app (`packages/screens/src/LogView.tsx`): the app's notes, its buttons for sending the log, Clear log, and the last 150 lines, coloured by level with WARN or ERROR in front. The TV shows it as its Log page, the desktop in the shared dialog.
+- Each app keeps how the log leaves the device, because that is the device's: the TV and phone use the Android share sheet and the phone's "Get TV log" (D-039); the desktop saves a text file or copies it.
