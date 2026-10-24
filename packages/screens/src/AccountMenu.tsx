@@ -8,6 +8,8 @@ import { AboutDialog } from './AboutDialog';
 import { AppLanguageDialog } from './AppLanguageDialog';
 import { HiddenCategories } from './HiddenCategories';
 import { LanguageSettings } from './LanguageSettings';
+import { usePinGate } from './PinPad';
+import { PinSettings } from './PinSettings';
 import { SubtitleSettings } from './SubtitleSettings';
 import { Icon, type IconName } from './ui/Icon';
 import { focus } from './ui/focus';
@@ -44,7 +46,7 @@ export function AccountMenu({
   const profile = host.hooks.useSession(selectActiveProfile);
   const profiles = host.hooks.useSession((s) => s.profiles);
   const pinStatus = host.hooks.usePin((s) => s.status);
-  const { gate, dialog } = profileHost.usePinGate();
+  const { gate, dialog } = usePinGate();
   const uiLanguage = useUiLanguage();
   const [shown, setShown] = useState<DialogName | null>(null);
   const sizes = useSizes();
@@ -67,7 +69,7 @@ export function AccountMenu({
   const overlays = (
     <>
       {dialog}
-      {shown === 'pin' ? <account.PinSettings onClose={hide} /> : null}
+      {shown === 'pin' ? <PinSettings onClose={hide} /> : null}
       {shown === 'backup' ? dialogOf(account.backup) : null}
       {shown === 'playback' ? dialogOf(account.playback ?? undefined) : null}
       {shown === 'sync' ? dialogOf(account.sync) : null}

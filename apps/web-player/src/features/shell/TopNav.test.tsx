@@ -27,7 +27,6 @@ const host = {
   about: { rows: () => [] },
   profiles: { usePinGate: () => ({ gate: vi.fn(), dialog: null }), signOut: vi.fn() },
   account: {
-    PinSettings: () => null,
     backup: { label: () => 'Back up & restore', Dialog: () => null },
     log: { Dialog: () => null },
     goHome: vi.fn(),

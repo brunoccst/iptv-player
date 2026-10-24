@@ -275,12 +275,14 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await page.getByRole('menuitem', { name: 'Back from Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
   await page.getByRole('menuitem', { name: 'Parental PIN' }).click();
+  // The TV's keypad (D-219): digits typed on the keyboard or clicked; 4 digits submit.
+  await expect(page.getByRole('dialog', { name: 'Choose a 4-digit parental PIN' })).toBeVisible();
+  await page.keyboard.type('2468');
+  const again = page.getByRole('dialog', { name: 'Enter the new PIN again' });
+  for (const digit of '2468') await again.getByRole('button', { name: digit, exact: true }).click();
   const settings = page.getByRole('dialog', { name: 'Parental PIN' });
-  await settings.getByLabel('PIN (4 digits)').fill('2468');
-  await settings.getByLabel('Repeat the PIN').fill('2468');
-  await settings.getByRole('button', { name: 'Set PIN' }).click();
-  await expect(settings.getByRole('status')).toHaveText('PIN set.');
-  await settings.getByRole('button', { name: 'Close' }).first().click();
+  await expect(settings.getByRole('status')).toHaveText(/^PIN set\./);
+  await settings.getByRole('button', { name: 'Close' }).click();
 
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
@@ -288,11 +290,10 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   await expect(page.getByRole('heading', { name: "Who's watching?" })).toBeVisible();
   await page.getByTestId('profile-tile').first().click();
   const prompt = page.getByRole('dialog', { name: /Enter the parental PIN/ });
-  await prompt.getByLabel('Parental PIN').fill('1111');
-  await prompt.getByRole('button', { name: 'OK' }).click();
+  await expect(prompt).toBeVisible();
+  await page.keyboard.type('1111');
   await expect(prompt.getByRole('alert')).toHaveText('Wrong PIN.');
-  await prompt.getByLabel('Parental PIN').fill('2468');
-  await prompt.getByRole('button', { name: 'OK' }).click();
+  await page.keyboard.type('2468');
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
 });
 

@@ -8,7 +8,6 @@ import type {
   IconName,
   LibrarySection,
   MasterCard,
-  PinGate,
   PlayTarget,
 } from '@iptv/shared';
 
@@ -148,8 +147,6 @@ export interface ScreenHost {
   about: { rows(): [label: string, value: string][]; checkForUpdates?(): void };
   /** The account menu (D-079, DECISIONS.md#d-207): the items only this app has, and the dialogs that stay per app. */
   account: {
-    /** Profiles → Parental PIN: the TV's number pad, the desktop's form (D-054). */
-    PinSettings(props: { onClose(): void }): ReactNode;
     /** Library & devices → backing up (D-056); the desktop's dialog also restores. */
     backup: MenuAction & { label(): string };
     /** Library & devices → Sync with another device (D-060, D-178); none in a plain browser. */
@@ -163,10 +160,8 @@ export interface ScreenHost {
     /** After switching to another profile from the menu. */
     goHome(): void;
   };
-  /** "Who's watching?" (D-054): the app's PIN prompt, and signing out. */
+  /** "Who's watching?": signing out. */
   profiles: {
-    /** `gate(needed, title, action)` runs `action` at once, or after the PIN when `needed`; `dialog` is the open prompt. */
-    usePinGate(): { gate: PinGate; dialog: ReactNode };
     /** Asks first (downloads on this device are deleted, D-050), then signs out. */
     signOut(): void;
   };
