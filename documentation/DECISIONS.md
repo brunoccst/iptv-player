@@ -129,6 +129,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-221](#d-221) | Shared card menu |
 | [D-222](#d-222) | Phone: guide reminders as system alarms |
 | [D-223](#d-223) | Title splits and merges sync and back up |
+| [D-224](#d-224) | Desktop: hardware H.264 encoders for conversions |
 | [D-225](#d-225) | Profile settings carry dates and sync automatically |
 
 ## Merged and retired IDs
@@ -1097,7 +1098,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - When: the stream does not load at all (FFmpeg reads the provider's file before its HLS), or plays a few seconds with video but no decoded sound (`webkitAudioDecodedByteCount`), or fails with a media error later. FFmpeg reads the stream first (`probe`) and nothing is converted when it finds nothing Chromium lacks. What plays stops before FFmpeg opens the stream, so a one-stream account has its stream free; when conversion fails, the error is the one from before (D-074) with Open in VLC.
 - A conversion starts at a position; the page's player counts from there (`PlaybackEngine.position`, `duration` from FFmpeg). Seeking inside the converted part moves the video; past it, FFmpeg starts again there. One conversion at a time; its files go when it ends and on quit.
 - FFmpeg reads the provider through a relay in the main process (127.0.0.1, one random path per stream): the static Linux build crashes looking up host names itself, and the relay adds the player User-Agent.
-- Every audio track, timeline pictures and downloads: D-192. Still a limit (issue #274): HEVC becomes software H.264 at most 1080 lines high. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
+- Every audio track, timeline pictures and downloads: D-192. Hardware encoders and 4K: D-224. The macOS app is one build for Intel and Apple silicon: `scripts/universal-ffmpeg.mjs` adds the other architecture's FFmpeg and joins both with lipo before the build.
 
 ## D-190
 
@@ -1357,6 +1358,16 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The library database's `title_rules` (D-185) stay what the grouping reads. Beside them, a record in the device's data (`direct.titleRules.<account>`, `packages/shared/src/direct/titleRules.ts`) dates each rule when it is made or undone; an undone rule stays as removed for 180 days, like other removals (D-186). Pairing, automatic sync and backups carry the record like My List (keys are the provider's: group keys and stream ids are the same on every device of one account), and per rule the later change wins.
 - A device applies a record that differs from what it last wrote or applied when a list is read (at most every 10 s, not while the library updates): the rules go into the database (`replaceRules`) and only the titles they touch are grouped again, without downloading. Merges are applied oldest first the way one device makes them, so two devices' merges never chain or loop.
 - A device with rules from before the record starts the record with them on its first list. A merge still stops applying when the provider changes the title's key (issue #311).
+
+## D-224
+
+**Desktop: hardware H.264 encoders for conversions** — 2026-10-24 (issue #274)
+
+- A conversion (D-189) encodes with the computer's video hardware when it has some: NVIDIA (`h264_nvenc`), Intel (`h264_qsv`) and AMD (`h264_amf`) on Windows and Linux, Apple's (`h264_videotoolbox`) on macOS; then up to 2160 lines, so 4K stays 4K. Otherwise libx264 in software, at most 1080 lines as before.
+- Found once per run, on the first conversion: the encoders the bundled FFmpeg lists, in that order, each converting a second of a 1080p test picture with the same arguments a video gets (a missing GPU, driver or option fails there, at most 10 s each). A hardware encoder that passed but fails a real video (FFmpeg ends before the first segment) is dropped for the rest of the run, and that video starts again in software. The player's Log says which encoder converted.
+- Each encoder makes a key frame that starts a new picture group (IDR) at every 4 s segment, so every segment plays on its own. Pictures go to the encoder as 8-bit 4:2:0 (`nv12`), HDR mapped to normal colours first as before.
+- FFmpeg prints its lists (`-filters`, `-encoders`) on stdout, which the app did not read until now: HDR was never mapped since D-189 and looked grey. Both outputs are read now.
+- Tested here only with the fallback (the cloud has no GPU): each hardware encoder needs a check on a real computer.
 
 ## D-225
 

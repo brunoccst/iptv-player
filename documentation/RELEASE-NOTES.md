@@ -126,6 +126,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 - **Profile settings sync on their own** (2026-10-24, D-225, issue #268): with a TV paired, a profile's languages, subtitle and audio choices, hidden categories and other settings now follow along like My List, keeping whatever was changed last on any device.
 - **Splits and merges on every device** (2026-10-24, D-223, issue #267): titles you split or merged by hand now reach your other devices with the next sync, and are kept in backups.
+- **Faster conversions in 4K, HDR in true colours** (2026-10-24, D-224, issue #274): videos the app has to convert (HEVC, Dolby sound…) now use your computer's graphics chip (NVIDIA, Intel, AMD or Apple) when it has one, so 4K stays 4K and the processor stays free; without one, nothing changes. HDR videos no longer look grey while converted.
 - **Options panel like the TV's** (2026-10-24, D-221, issue #237): right-clicking a cover or pressing an episode's "…" opens the TV app's options panel in the middle of the window instead of a small menu at the mouse.
 - **Log like the TV's** (2026-10-24, D-220, issue #237): the Log dialog uses the TV app's log view; warnings and errors are coloured.
 - **Parental PIN keypad** (2026-10-24, D-219, issue #237): the parental PIN is typed on the TV app's keypad (keyboard digits work too), and Parental PIN in the account menu takes the TV's steps: the current PIN, then the new one twice.

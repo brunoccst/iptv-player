@@ -354,6 +354,8 @@ export class PlaybackEngine {
       audio: conversion.audio,
     });
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    // Which H.264 encoder the desktop app found (issue #274): hardware, or libx264 in software.
+    if (started.encoder) appLog.info('player', `video converted with ${started.encoder}`);
     const loaded: LoadedSource = {
       url: started.playlist,
       engine: 'hls',

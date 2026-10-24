@@ -58,14 +58,14 @@ export interface DesktopBridge {
    */
   transcode?: {
     probe(url: string): Promise<StreamProbe>;
-    start(options: {
-      url: string;
-      probe?: StreamProbe;
-      at?: number;
-      live?: boolean;
-      copyVideo?: boolean;
-      audio?: number;
-    }): Promise<{ id: string; playlist: string; duration: number | null; at: number }>;
+    start(options: { url: string; probe?: StreamProbe; at?: number; live?: boolean; copyVideo?: boolean; audio?: number }): Promise<{
+      id: string;
+      playlist: string;
+      duration: number | null;
+      at: number;
+      /** The H.264 encoder used (issue #274): libx264, or a hardware one. Older apps lack it; null when the video is copied. */
+      encoder?: string | null;
+    }>;
     stop(): Promise<void>;
     /** A timeline picture of a converted title at `at` seconds (issue #270): JPEG bytes, or null. Older apps lack it. */
     frame?(options: { url: string; at: number; hdr?: boolean }): Promise<Uint8Array | null>;

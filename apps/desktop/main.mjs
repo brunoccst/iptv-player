@@ -79,6 +79,7 @@ const transcoder = ffmpegPath
       root: transcodeRoot,
       userAgent: config.userAgent,
       readPage,
+      onLog: (line) => console.warn(`Conversion: ${line}`),
     })
   : null;
 
