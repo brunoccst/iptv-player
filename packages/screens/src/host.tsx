@@ -48,6 +48,9 @@ export interface DownloadEntry {
   remove(): void;
 }
 
+/** What an account menu item does: runs at once (after the menu closes), or opens the app's dialog. */
+export type MenuAction = { run(): void } | { Dialog(props: { onClose(): void }): ReactNode };
+
 /** A key of the TV remote: `left`, `right`, `select`, `channelUp`, … and whether it went down or up. */
 export interface RemoteEvent {
   key: string;
@@ -88,6 +91,7 @@ export interface ScreenHost {
     | 'useKidsCategories'
     | 'useHiddenCategories'
     | 'useLanguageSettings'
+    | 'usePin'
   >;
   api: AppContext['api'];
   /** Automatic subtitles from OpenSubtitles (D-111): their settings. */
@@ -115,6 +119,23 @@ export interface ScreenHost {
   };
   /** Account menu → App → About (D-070): rows of what the app knows about itself, and checking for updates where it can. */
   about: { rows(): [label: string, value: string][]; checkForUpdates?(): void };
+  /** The account menu (D-079, DECISIONS.md#d-207): the items only this app has, and the dialogs that stay per app. */
+  account: {
+    /** Profiles → Parental PIN: the TV's number pad, the desktop's form (D-054). */
+    PinSettings(props: { onClose(): void }): ReactNode;
+    /** Library & devices → backing up (D-056); the desktop's dialog also restores. */
+    backup: MenuAction & { label(): string };
+    /** Library & devices → Sync with another device (D-060, D-178); none in a plain browser. */
+    sync?: MenuAction & { icon: IconName };
+    /** Library & devices → Playback: TV builds with the FFmpeg audio decoders (D-059). */
+    playback?: MenuAction | null;
+    /** App → Log: the TV's Log page, the desktop's dialog (D-079). */
+    log: MenuAction;
+    /** TV and phone: closes the app like "Force stop", after asking. */
+    closeApp?(): void;
+    /** After switching to another profile from the menu. */
+    goHome(): void;
+  };
   /** "Who's watching?" (D-054): the app's PIN prompt, and signing out. */
   profiles: {
     /** `gate(needed, title, action)` runs `action` at once, or after the PIN when `needed`; `dialog` is the open prompt. */

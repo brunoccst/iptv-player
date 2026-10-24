@@ -120,6 +120,7 @@ A new version line from 2026-10-12 (2.0.0, 2.0.1, …): the app now warns before
 
 #### Latest
 
+- **Account menu looks like the TV's** (2026-10-24, D-207, issue #237): the menu under your avatar is now the same as on the TV and phone app, with an icon on every item and the highlighted item lit up as you move over it.
 - **About and App language look like the TV's** (2026-10-23, D-206, issue #237): both are now the same dialogs as on the TV and phone app.
 - **Language and subtitle settings look like the TV's** (2026-10-23, D-205, issue #237): the Content language filter and Automatic subtitles are now the same dialogs as on the TV and phone app.
 - **Dialogs look like the TV's** (2026-10-23, D-204, issue #237): "Better quality on My List", a Kids profile's categories and Categories shown are now the same dialogs as on the TV and phone app.

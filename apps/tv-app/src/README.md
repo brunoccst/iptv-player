@@ -13,6 +13,7 @@
 | `useAsync.ts`          | Cached one-off reads (movie metadata, series episodes).                                                                                                                                                           |
 | `useLibraryWatcher.ts` | Polls library status while empty/processing; reloads rows when done.                                                                                                                                              |
 | `theme.ts`             | Moved to `packages/screens/src/ui` (shared with the desktop, D-194); re-exported here. |
+| `signOut.ts` | `confirmSignOut` and `confirmCloseApp`: ask first, then sign out (D-050) or close the app like "Force stop". |
 | `screenHost.tsx` | What the TV and phone app give the shared screens (`ScreenHost`, D-194): focus page, details panel, hold-OK menu, colour keys. |
 | `components/`          | Focusable building blocks.                                                                                                                                                                                        |
 | `navigation/`          | Stack navigation store.                                                                                                                                                                                           |

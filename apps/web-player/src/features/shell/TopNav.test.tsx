@@ -1,44 +1,50 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ScreenHostProvider, type ScreenHost } from '@iptv/screens';
 
 const profile = { id: 'p1', name: 'Bruno', isKids: false };
 const state = { view: 'home', search: '', profiles: [profile], activeProfileId: 'p1', status: 'none' };
 vi.mock('../../config', () => ({ appConfig: { appName: 'Player', appSlug: 'player' } }));
-vi.mock('../../appContext', () => ({
-  downloadsStore: { getState: () => ({ records: {} }) },
-  signOut: vi.fn(),
-  stores: { session: { getState: () => ({ selectProfile: vi.fn() }) }, library: { getState: () => ({ sync: vi.fn() }) } },
-  uiStore: { getState: () => ({ navigate: vi.fn(), setSearch: vi.fn() }) },
-}));
+vi.mock('../../appContext', () => ({ uiStore: { getState: () => ({ navigate: vi.fn(), setSearch: vi.fn() }) } }));
 vi.mock('../../hooks/stores', () => ({
-  usePin: (select: (s: typeof state) => unknown) => select(state),
   useSession: (select: (s: typeof state) => unknown) => select(state),
   useUi: (select: (s: typeof state) => unknown) => select(state),
 }));
+vi.mock('../browse/screenHost', () => ({}));
 vi.mock('@iptv/shared', async (original) => ({
   ...(await original<typeof import('@iptv/shared')>()),
   selectActiveProfile: () => profile,
 }));
 
-// The dialogs the menu opens are not under test.
-vi.mock('../backup/BackupDialog', () => ({ BackupDialog: () => null }));
-vi.mock('./AboutDialog', () => ({ AboutDialog: () => null }));
-vi.mock('./AppLanguageDialog', () => ({ AppLanguageDialog: () => null }));
-vi.mock('./LogDialog', () => ({ LogDialog: () => null }));
-vi.mock('../pairing/SyncWithPhone', () => ({ openSyncWithPhone: vi.fn() }));
-vi.mock('../profiles/PinDialog', () => ({ usePinGate: () => ({ gate: vi.fn(), dialog: null }) }));
-vi.mock('../profiles/HiddenCategories', () => ({ HiddenCategories: () => null }));
-vi.mock('../profiles/LanguageSettings', () => ({ LanguageSettings: () => null }));
-vi.mock('../profiles/SubtitleSettings', () => ({ SubtitleSettings: () => null }));
-vi.mock('../profiles/PinSettings', () => ({ PinSettings: () => null }));
+// What the shared account menu reads from the desktop; the dialogs it opens are not under test.
+const host = {
+  hooks: {
+    useSession: (select: (s: typeof state) => unknown) => select(state),
+    usePin: (select: (s: typeof state) => unknown) => select(state),
+  },
+  stores: { session: { getState: () => ({ selectProfile: vi.fn() }) }, library: { getState: () => ({ sync: vi.fn() }) } },
+  signIn: { appName: 'Player' },
+  about: { rows: () => [] },
+  profiles: { usePinGate: () => ({ gate: vi.fn(), dialog: null }), signOut: vi.fn() },
+  account: {
+    PinSettings: () => null,
+    backup: { label: () => 'Back up & restore', Dialog: () => null },
+    log: { Dialog: () => null },
+    goHome: vi.fn(),
+  },
+} as unknown as ScreenHost;
 
 describe('account menu (issue #155)', () => {
   afterEach(cleanup);
 
   const open = async () => {
     const { TopNav } = await import('./TopNav');
-    render(<TopNav />);
+    render(
+      <ScreenHostProvider value={host}>
+        <TopNav />
+      </ScreenHostProvider>,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Account menu' }));
     return screen.getByRole('menu');
   };
@@ -47,15 +53,15 @@ describe('account menu (issue #155)', () => {
     const menu = await open();
     fireEvent.mouseLeave(menu);
     fireEvent.mouseOut(menu);
-    fireEvent.click(screen.getByRole('menuitem', { name: /App$/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
     expect(screen.getByRole('menu').textContent).toContain('About');
   });
 
-  it('closes on a click elsewhere, not on a click inside', async () => {
+  it('closes on a click beside it, not on a click inside', async () => {
     const menu = await open();
-    fireEvent.mouseDown(menu);
+    fireEvent.click(menu);
     expect(screen.queryByRole('menu')).not.toBeNull();
-    fireEvent.mouseDown(document.body);
+    fireEvent.click(screen.getByLabelText('Close menu'));
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
@@ -68,7 +74,6 @@ describe('account menu (issue #155)', () => {
 
   it('the avatar still toggles it closed', async () => {
     await open();
-    fireEvent.mouseDown(screen.getByRole('button', { name: 'Account menu' }));
     fireEvent.click(screen.getByRole('button', { name: 'Account menu' }));
     expect(screen.queryByRole('menu')).toBeNull();
   });

@@ -27,4 +27,5 @@ Screens written once in React Native for every app: the TV and phone app render 
 | `src/SubtitleSettings.tsx` | Automatic subtitles: OpenSubtitles key, account and languages (D-111, D-205) |
 | `src/AboutDialog.tsx` | About: the host's rows (version, build) and Check for updates (D-070, D-206) |
 | `src/AppLanguageDialog.tsx` | App language: the app's own words in one of its languages (D-084, D-206) |
+| `src/AccountMenu.tsx` | The menu under the top nav's avatar: other profiles, the Profiles, Library & devices and App groups, Sign out (D-079, D-207) |
 | `src/ui/` | Building blocks from the TV app, see its README |

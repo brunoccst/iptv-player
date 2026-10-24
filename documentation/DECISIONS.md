@@ -112,6 +112,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-204](#d-204) | Shared dialogs |
 | [D-205](#d-205) | Shared language and subtitle settings |
 | [D-206](#d-206) | Shared About and app language |
+| [D-207](#d-207) | Shared account menu |
 
 ## Merged and retired IDs
 
@@ -1215,3 +1216,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - About (D-070, D-079) and App language (D-084) are dialogs shared with the desktop (`packages/screens`). The host's `about` gives the rows each app knows about itself (TV: installed build, FFmpeg audio, Android; desktop: which app and its version) and `checkForUpdates` where it can; the language choice uses the host's `signIn.chooseLanguage`.
 - About shows the app's name as its title but is called "About" for screen readers (`Dialog`'s `label`). App language lists the languages as buttons with a ✓ on the current one, like the TV.
+
+## D-207
+
+**Shared account menu** — 2026-10-24 (issue #237)
+
+- The account menu under the avatar (D-079) is shared with the desktop (`packages/screens/src/AccountMenu.tsx`) and opens the shared dialogs itself. The app keeps whether it is open and which group shows (TV: in the nav store, so Back leaves a group first) and gives, in the host's `account`, only what differs: its PIN settings and backup dialogs, Sync with another device (none in a plain browser), Playback (TV builds with FFmpeg), Log (the TV's page, the desktop's dialog) and Close the app (TV and phone).
+- The desktop's top bar stays its own HTML for now and hangs the menu under its avatar. A click beside the menu lands on a see-through layer over the window and closes it, so a click on the avatar closes it too instead of opening it again; Escape closes it from a window listener in the capture phase, like `Dialog` (D-204), and the focus goes back to the avatar.
+

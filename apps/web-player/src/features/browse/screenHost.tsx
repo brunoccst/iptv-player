@@ -9,6 +9,8 @@ import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
 import { openSyncWithPhone, PairingCode } from '../pairing/SyncWithPhone';
 import { usePinGate } from '../profiles/PinDialog';
 import { about } from '../shell/about';
+import { LogDialog } from '../shell/LogDialog';
+import { PinSettings } from '../profiles/PinSettings';
 import { downloadProgress, posterPath } from '../../offline/types';
 import { confirmSignOut } from '../../ui/signOut';
 import { playTargetFromDownload } from '../../ui/targets';
@@ -31,6 +33,7 @@ import {
   useMovieDetails,
   useOfflineAccess,
   usePagedLibrary,
+  usePin,
   useProgrammeSearch,
   useProfileEditor,
   useProfilePicker,
@@ -81,6 +84,7 @@ setScreenHost({
     useKidsCategories,
     useHiddenCategories,
     useLanguageSettings,
+    usePin,
   },
   api,
   subtitles: appContext.subtitles,
@@ -107,6 +111,14 @@ setScreenHost({
     scan: { available: canScanWithWebcam, open: () => openSyncWithPhone(true) },
   },
   about,
+  account: {
+    PinSettings,
+    backup: { label: () => t('Back up & restore'), Dialog: BackupDialog },
+    // The desktop app pairs; a plain browser cannot (D-060).
+    sync: desktop ? { icon: 'phone', run: () => openSyncWithPhone() } : undefined,
+    log: { Dialog: LogDialog },
+    goHome: () => uiStore.getState().navigate('home'),
+  },
   profiles: {
     usePinGate,
     signOut: confirmSignOut,
