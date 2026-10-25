@@ -12,13 +12,14 @@ const floating = (web ? { position: 'fixed' } : { position: 'absolute' }) as unk
 const role = web ? { role: 'status' as const } : { accessibilityRole: 'alert' as const };
 
 /**
- * The offline notice or "organizing your library" with per-kind progress, floating at the bottom of Home and the
+ * The offline (or provider unavailable) notice or "organizing your library" with per-kind progress, floating at the bottom of Home and the
  * Movies/Series pages (D-119), the same on every app (issue #237, DECISIONS.md#d-215). The app watches the library and
  * says whether it is `processing`. `onRefresh`: the desktop also says when the library is empty, with Refresh library.
  */
 export function LibraryBanner({ processing, onRefresh }: { processing: boolean; onRefresh?: (() => void) | null }) {
   const { hooks } = useScreenHost();
   const offline = hooks.useSession((s) => s.offline);
+  const providerDown = hooks.useSession((s) => s.providerDown);
   const progress = describeLibraryProgress(hooks.useLibrary((s) => s.status.data));
   const { gutter } = useSizes();
   if (!offline && !processing && !onRefresh) return null;
@@ -30,7 +31,12 @@ export function LibraryBanner({ processing, onRefresh }: { processing: boolean; 
       {...role}
     >
       {offline ? (
-        <Text style={styles.text}>{t("You're offline. Downloaded titles are available in My Downloads.")}</Text>
+        <Text style={styles.text}>
+          {providerDown
+            ? // The provider answered, but not with its API: the network works (DECISIONS.md#d-227).
+              t('Your IPTV provider is unavailable right now. Downloaded titles are available in My Downloads.')
+            : t("You're offline. Downloaded titles are available in My Downloads.")}
+        </Text>
       ) : processing ? (
         <>
           <View style={styles.line}>

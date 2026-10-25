@@ -105,6 +105,20 @@ describe('session store', () => {
     expect(session.getState().profiles).toHaveLength(2);
   });
 
+  it('says the provider is down, not the network, when it answers with an error (DECISIONS.md#d-227)', async () => {
+    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }));
+    backend.on('GET', '/api/auth/me', { status: 502, body: { code: 'provider_unavailable' } });
+    backend.on('GET', '/api/profiles', { body: [] });
+    const down = create();
+    await down.getState().restore();
+    expect(down.getState()).toMatchObject({ offline: true, providerDown: true });
+
+    backend.on('GET', '/api/auth/me', { networkError: true });
+    const offline = create();
+    await offline.getState().restore();
+    expect(offline.getState()).toMatchObject({ offline: true, providerDown: false });
+  });
+
   it('records when the account was last confirmed online (gates downloads, D-050)', async () => {
     const saved = '2026-09-01T00:00:00.000Z';
     storage.data.set(

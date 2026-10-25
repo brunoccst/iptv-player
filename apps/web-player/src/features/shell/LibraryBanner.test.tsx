@@ -6,6 +6,7 @@ import { ScreenHostProvider, type ScreenHost } from '@iptv/screens';
 
 const state = {
   offline: false,
+  providerDown: false,
   syncing: false,
   status: { data: null as LibraryStatus[] | null },
   refreshStatus: vi.fn(async () => undefined),
@@ -66,6 +67,20 @@ describe('library banner (D-119, D-215)', () => {
     await show();
     fireEvent.click(screen.getByRole('button', { name: 'Refresh library' }));
     expect(state.sync).toHaveBeenCalled();
+  });
+
+  it('says the provider is unavailable when it answers but the network works (DECISIONS.md#d-227)', async () => {
+    state.status.data = [status('movie', 'done', 10, 8)];
+    Object.assign(state, { offline: true, providerDown: true });
+    await show();
+    expect(screen.getByTestId('library-processing').textContent).toBe(
+      'Your IPTV provider is unavailable right now. Downloaded titles are available in My Downloads.',
+    );
+    cleanup();
+    state.providerDown = false;
+    await show();
+    expect(screen.getByTestId('library-processing').textContent).toBe("You're offline. Downloaded titles are available in My Downloads.");
+    state.offline = false;
   });
 
   it('shows nothing once the library is ready', async () => {

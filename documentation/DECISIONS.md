@@ -132,6 +132,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-224](#d-224) | Desktop: hardware H.264 encoders for conversions |
 | [D-225](#d-225) | Profile settings carry dates and sync automatically |
 | [D-226](#d-226) | Desktop: start with the computer, in the tray |
+| [D-227](#d-227) | "Provider unavailable" apart from "offline" |
 
 ## Merged and retired IDs
 
@@ -1387,3 +1388,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Chosen over a separate background process or a native scheduler: the hidden page already checks reminders and runs downloads, so nothing is added that must stay in step with it. The cost is the page's memory while hidden, as for background downloads. The page stops playing when hidden, so no provider connection is held.
 - Clicking a reminder's notification brings the window back (`iptv:show`); `window.focus()` alone does not show a hidden window.
 - Tested here only through its parts (the autostart entry, the menu and dialog): the login items need a check on a real Windows and macOS sign-in.
+
+## D-227
+
+**"Provider unavailable" apart from "offline"** — 2026-10-25
+
+- A provider that is down often still answers: an error page in HTML with HTTP 200, or an HTTP error. The app has a network then, so the banner said "You're offline" wrongly. A provider that answers badly is now an `ApiError` with status 502, and one that does not answer at all (no network, refused connection, timeout, a reply cut off) has status 0 (`unreachable` in `xtream.ts`), as `ApiError` documents; the code stays `provider_unavailable` for both, so the error texts do not change.
+- When opening the app fails to confirm the account, the session is offline either way (cached library, downloads, D-050) and `providerDown` says the provider answered. The banner then says "Your IPTV provider is unavailable right now", keeping the hint to My Downloads.
+- The app does not ask the system whether the device has a network: no answer at all can also be the provider's server being off, and stays "offline".

@@ -19,7 +19,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | [Split or merge titles](FEATURES.md#split-or-merge-titles) | `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/direct/titleRules.ts`, `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/hooks.ts`, `packages/screens/src/ui/RegroupButton.tsx` |
 | [Version choice and "(best)"](FEATURES.md#version-choice-and-best) | `packages/shared/src/playback/playbackChoices.ts`, `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/screens/src/DetailsScreen.tsx` |
 | [Library updates](FEATURES.md#library-updates) | `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/sqlLibrary.ts`, `packages/shared/src/stores/libraryStore.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/ListReader.kt`, `packages/shared/src/direct/nameRow.ts`, `apps/tv-app/modules/tv-media/android/src/main/java/expo/modules/tvmedia/NameParser.kt`, `apps/tv-app/scripts/build-name-parser.mjs` |
-| [Library banner](FEATURES.md#library-banner) | `packages/shared/src/stores/libraryStore.ts`, `packages/screens/src/LibraryBanner.tsx`, `apps/tv-app/src/useLibraryWatcher.ts`, `apps/tv-app/src/components/LibraryBanner.tsx`, `apps/web-player/src/features/shell/LibraryBanner.tsx` |
+| [Library banner](FEATURES.md#library-banner) | `packages/shared/src/stores/libraryStore.ts`, `packages/shared/src/stores/sessionStore.ts`, `packages/screens/src/LibraryBanner.tsx`, `apps/tv-app/src/useLibraryWatcher.ts`, `apps/tv-app/src/components/LibraryBanner.tsx`, `apps/web-player/src/features/shell/LibraryBanner.tsx` |
 
 ## Browsing
 
