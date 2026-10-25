@@ -188,6 +188,7 @@
   "Hold OK to cancel the reminder": "Drži OK da otkažeš podsjetnik",
   "Hold OK to watch from the start": "Držite OK za gledanje od početka",
   "Home": "Početna",
+  "If your provider gave you a new address, change it in the account menu → IPTV account.": "Ako ti je provajder dao novu adresu, promijeni je u meniju računa → IPTV račun.",
   "included": "uključeno",
   "Install now": "Instaliraj sada",
   "Invalid username or password.": "Pogrešno korisničko ime ili lozinka.",
@@ -570,5 +571,6 @@
   "Your library is up to date: nothing new from your provider.": "Vaša biblioteka je ažurna: ništa novo od vašeg provajdera.",
   "Your library was updated.": "Vaša biblioteka je ažurirana.",
   "Your provider has no full TV guide. Showing what is available per channel.": "Tvoj provajder nema potpun TV vodič. Prikazuje se ono što je dostupno po kanalu.",
-  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Tvoj provajder kaže da je {active} od {max} streamova koje tvoj račun dozvoljava u upotrebi, vjerovatno na drugom uređaju. Pokretanje ovog može biti odbijeno ili zaustaviti drugi."
+  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Tvoj provajder kaže da je {active} od {max} streamova koje tvoj račun dozvoljava u upotrebi, vjerovatno na drugom uređaju. Pokretanje ovog može biti odbijeno ili zaustaviti drugi.",
+  "Your provider says: \"{reply}\"": "Tvoj provajder kaže: „{reply}“"
 }

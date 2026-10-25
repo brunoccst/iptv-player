@@ -107,16 +107,16 @@ describe('session store', () => {
 
   it('says the provider is down, not the network, when it answers with an error (DECISIONS.md#d-227)', async () => {
     storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }));
-    backend.on('GET', '/api/auth/me', { status: 502, body: { code: 'provider_unavailable' } });
+    backend.on('GET', '/api/auth/me', { status: 502, body: { code: 'provider_unavailable', reply: 'Error. Page cannot be displayed.' } });
     backend.on('GET', '/api/profiles', { body: [] });
     const down = create();
     await down.getState().restore();
-    expect(down.getState()).toMatchObject({ offline: true, providerDown: true });
+    expect(down.getState()).toMatchObject({ offline: true, providerDown: true, providerReply: 'Error. Page cannot be displayed.' });
 
     backend.on('GET', '/api/auth/me', { networkError: true });
     const offline = create();
     await offline.getState().restore();
-    expect(offline.getState()).toMatchObject({ offline: true, providerDown: false });
+    expect(offline.getState()).toMatchObject({ offline: true, providerDown: false, providerReply: null });
   });
 
   it('saves new provider details without signing out (DECISIONS.md#d-228)', async () => {

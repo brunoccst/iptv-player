@@ -126,9 +126,34 @@ export function normalizeServerUrl(serverUrl: string): string {
   return `${url.protocol}//${url.host}${path}/`;
 }
 
-const unavailable = (message: string) => new ApiError(502, 'provider_unavailable', message);
+const unavailable = (message: string, reply: string | null = null) => new ApiError(502, 'provider_unavailable', message, reply);
 /** No answer at all (no network, timeout, dropped connection): status 0, unlike a provider that answers badly (502). */
 const unreachable = (message: string) => new ApiError(0, 'provider_unavailable', message);
+
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+const PAGE_TEXT_MAX = 300;
+
+/**
+ * The words of a page the provider sent instead of data (DECISIONS.md#d-230), e.g. "Error. Page cannot be displayed.
+ * Please contact your service provider for more details.": without tags, scripts and styles, at most 300 characters.
+ * Null when it is not a page (HTML) or says nothing.
+ */
+export function pageText(text: string): string | null {
+  if (!/<\/?[a-z!][^>]*>/i.test(text)) return null;
+  const words = text
+    .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (entity, name: string) => {
+      if (name[0] !== '#') return ENTITIES[name.toLowerCase()] ?? entity;
+      const code = name[1]?.toLowerCase() === 'x' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
+      return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : entity;
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!words) return null;
+  return words.length > PAGE_TEXT_MAX ? `${words.slice(0, PAGE_TEXT_MAX - 1)}…` : words;
+}
 
 export function createXtreamClient(credentials: XtreamCredentials, options: XtreamClientOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 30_000;
@@ -208,8 +233,9 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
   };
 
   const notJson = (operation: string, text: string) => {
-    const preview = text.replace(/\s+/g, ' ').trim().slice(0, 60);
-    return unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`);
+    const reply = pageText(text);
+    const preview = reply ? reply.slice(0, 120) : text.replace(/\s+/g, ' ').trim().slice(0, 60);
+    return unavailable(`${host()} sent a reply that is not JSON for '${operation}'${preview ? `: "${preview}"` : ' (empty)'}.`, reply);
   };
 
   const getJson = async (action: string | null, parameters: Record<string, string> = {}, signal?: AbortSignal): Promise<Json> => {

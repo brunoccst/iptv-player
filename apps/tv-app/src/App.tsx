@@ -6,7 +6,7 @@ import { ActivityIndicator, BackHandler, Dimensions, Image, Platform, StatusBar 
 import { downloadsStore, navStore, stores, updater } from './appContext';
 import { AccountMenu } from './components/AccountMenu';
 import { createPageFocus, PageFocusContext } from './components/pageFocus';
-import { LibraryNotice } from './components/LibraryBanner';
+import { ConnectionBanner, LibraryNotice } from './components/LibraryBanner';
 import { QualityUpgradeDialog } from './components/QualityUpgradeDialog';
 import { ReminderDialog } from './components/ReminderDialog';
 import { ColourKeys } from './tv/colourKeys';
@@ -232,6 +232,8 @@ function Shell() {
       {route.name === 'details' ? <DetailsScreen key={route.masterId} section={route.section} masterId={route.masterId} /> : null}
       <AccountMenu />
       {route.name === 'details' ? null : <LibraryNotice />}
+      {/* Offline or the provider down, on every page but the player (DECISIONS.md#d-230). */}
+      {route.name === 'details' ? null : <ConnectionBanner />}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
       <ReminderDialog />

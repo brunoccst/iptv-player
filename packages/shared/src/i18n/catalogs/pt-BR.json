@@ -186,6 +186,7 @@
   "Hold OK to cancel the reminder": "Segure OK para cancelar o lembrete",
   "Hold OK to watch from the start": "Segure OK para assistir do início",
   "Home": "Início",
+  "If your provider gave you a new address, change it in the account menu → IPTV account.": "Se seu provedor lhe deu um novo endereço, altere-o no menu da conta → Conta IPTV.",
   "included": "incluído",
   "Install now": "Instalar agora",
   "Invalid username or password.": "Usuário ou senha inválidos.",
@@ -566,5 +567,6 @@
   "Your library is up to date: nothing new from your provider.": "Sua biblioteca está em dia: nada novo do seu provedor.",
   "Your library was updated.": "Sua biblioteca foi atualizada.",
   "Your provider has no full TV guide. Showing what is available per channel.": "Seu provedor não tem guia de TV completo. Mostrando o que há disponível por canal.",
-  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Seu provedor diz que {active} das {max} transmissões permitidas na sua conta estão em uso, provavelmente em outro aparelho. Iniciar esta pode ser recusado ou interromper a outra."
+  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Seu provedor diz que {active} das {max} transmissões permitidas na sua conta estão em uso, provavelmente em outro aparelho. Iniciar esta pode ser recusado ou interromper a outra.",
+  "Your provider says: \"{reply}\"": "Seu provedor diz: “{reply}”"
 }

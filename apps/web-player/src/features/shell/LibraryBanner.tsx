@@ -5,7 +5,7 @@ import '../browse/screenHost';
 import { stores, uiStore } from '../../appContext';
 import { useLibrary, useSession } from '../../hooks/stores';
 
-export { LibraryNotice, NOTICE_MS } from '@iptv/screens';
+export { ConnectionBanner, LibraryNotice, NOTICE_MS } from '@iptv/screens';
 
 const POLL_MS = 4000;
 

@@ -7,7 +7,7 @@ import { HomePage } from '../home/HomePage';
 import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
 import { Reminder } from '../live/Reminder';
 import { LiveTvPage } from '../live/LiveTvPage';
-import { LibraryBanner, LibraryNotice } from './LibraryBanner';
+import { ConnectionBanner, LibraryBanner, LibraryNotice } from './LibraryBanner';
 import { TopNav } from './TopNav';
 import { t } from '@iptv/shared';
 
@@ -49,6 +49,8 @@ export function Shell() {
         {view === 'downloads' ? <DownloadsPage /> : null}
       </main>
       <LibraryNotice />
+      {/* Offline or the provider down, on every page but the player (DECISIONS.md#d-230). */}
+      {details || playing ? null : <ConnectionBanner />}
       {details ? <DetailsModal target={details} /> : null}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       {view === 'home' && !details && !playing ? <QualityUpgradeDialog /> : null}

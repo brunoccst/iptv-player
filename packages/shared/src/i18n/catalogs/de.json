@@ -186,6 +186,7 @@
   "Hold OK to cancel the reminder": "OK halten, um die Erinnerung zu löschen",
   "Hold OK to watch from the start": "OK halten, um von Anfang an zu sehen",
   "Home": "Startseite",
+  "If your provider gave you a new address, change it in the account menu → IPTV account.": "Wenn dein Anbieter dir eine neue Adresse gegeben hat, ändere sie im Kontomenü → IPTV-Konto.",
   "included": "enthalten",
   "Install now": "Jetzt installieren",
   "Invalid username or password.": "Benutzername oder Passwort ungültig.",
@@ -566,5 +567,6 @@
   "Your library is up to date: nothing new from your provider.": "Deine Mediathek ist aktuell: nichts Neues von deinem Anbieter.",
   "Your library was updated.": "Deine Mediathek wurde aktualisiert.",
   "Your provider has no full TV guide. Showing what is available per channel.": "Dein Anbieter hat kein vollständiges TV-Programm. Angezeigt wird, was pro Sender verfügbar ist.",
-  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Laut deinem Anbieter sind {active} der {max} Streams deines Kontos belegt, wahrscheinlich auf einem anderen Gerät. Dieser Stream wird vielleicht abgelehnt oder beendet den anderen."
+  "Your provider says {active} of the {max} streams your account allows are in use, probably on another device. Starting this one may be refused or stop the other one.": "Laut deinem Anbieter sind {active} der {max} Streams deines Kontos belegt, wahrscheinlich auf einem anderen Gerät. Dieser Stream wird vielleicht abgelehnt oder beendet den anderen.",
+  "Your provider says: \"{reply}\"": "Dein Anbieter sagt: „{reply}“"
 }

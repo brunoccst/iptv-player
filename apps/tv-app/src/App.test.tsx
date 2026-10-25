@@ -233,6 +233,26 @@ describe('App (TV)', () => {
     jest.useRealTimers();
   });
 
+  it("the provider down: My Downloads opens with the warning and the provider's words, gone over the player (DECISIONS.md#d-230)", async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/auth/me', {
+      status: 502,
+      body: { code: 'provider_unavailable', reply: 'Error. Page cannot be displayed.' },
+    });
+    await render(<App />);
+    await flush();
+    await flush();
+    expect(navStore.getState().stack.at(-1)).toMatchObject({ name: 'section', section: 'downloads' });
+    expect(screen.getByTestId('connection-banner')).toHaveTextContent(/Your IPTV provider is unavailable right now/);
+    expect(screen.getByTestId('connection-banner-reply')).toHaveTextContent('Your provider says: "Error. Page cannot be displayed."');
+    await act(async () => navStore.getState().goSection('home'));
+    expect(screen.getByTestId('connection-banner')).toBeTruthy();
+    await act(async () =>
+      navStore.getState().push({ name: 'player', target: { kind: 'live', streamId: '7', container: 'm3u8', title: 'News' } }),
+    );
+    expect(screen.queryByTestId('connection-banner')).toBeNull();
+  });
+
   it('shows provider login errors in plain language', async () => {
     const backend = setupApp({ signedIn: false });
     backend.on('POST', '/api/auth/login', { status: 401, body: { code: 'invalid_provider_credentials', detail: 'Invalid' } });
