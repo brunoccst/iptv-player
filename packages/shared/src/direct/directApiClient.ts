@@ -84,6 +84,8 @@ interface StoredCredentials {
   password: string;
   account: AccountDto;
   info: XtreamAccountInfo;
+  /** When the server, username or password was last set, so the later change wins in a sync (DECISIONS.md#d-228). */
+  changedAt?: string;
 }
 
 interface StoredProfile extends ProfileDto {
@@ -1407,7 +1409,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           expiresAt: info.expiresAt,
           maxConnections: info.maxConnections,
         };
-        const stored: StoredCredentials = { serverUrl, username, password: request.password, account, info };
+        const stored: StoredCredentials = {
+          serverUrl,
+          username,
+          password: request.password,
+          account,
+          info,
+          changedAt: now().toISOString(),
+        };
         await writeJson(options.secureStorage, CREDENTIALS_KEY, stored);
         connect(stored);
         library.accountId = null;
@@ -1463,7 +1472,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           expiresAt: info.expiresAt,
           maxConnections: info.maxConnections,
         };
-        const updated: StoredCredentials = { serverUrl, username, password: request.password, account, info };
+        const updated: StoredCredentials = {
+          serverUrl,
+          username,
+          password: request.password,
+          account,
+          info,
+          changedAt: now().toISOString(),
+        };
         await writeJson(options.secureStorage, CREDENTIALS_KEY, updated);
         connect(updated);
         void syncLibrary().catch(() => undefined);

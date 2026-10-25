@@ -9,7 +9,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Sign-in](FEATURES.md#sign-in) | `packages/shared/src/stores/sessionStore.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/direct/xtream.ts`, `packages/shared/src/stores/downloadsOwner.ts`, `apps/desktop/main.mjs`, `packages/screens/src/LoginScreen.tsx`, `apps/tv-app/src/screens/LoginScreen.tsx`, `apps/web-player/src/features/auth/LoginPage.tsx` |
-| [IPTV account](FEATURES.md#iptv-account) | `packages/screens/src/ProviderAccount.tsx`, `packages/screens/src/AccountMenu.tsx`, `packages/shared/src/stores/sessionStore.ts`, `packages/shared/src/direct/directApiClient.ts` |
+| [IPTV account](FEATURES.md#iptv-account) | `packages/screens/src/ProviderAccount.tsx`, `packages/screens/src/AccountMenu.tsx`, `packages/shared/src/stores/sessionStore.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/shared/src/pairing/pairing.ts`, `packages/shared/src/pairing/autoSync.ts` |
 | [Backup and restore](FEATURES.md#backup-and-restore) | `packages/shared/src/backup/userData.ts`, `packages/screens/src/BackupDialog.tsx`, `apps/tv-app/src/backupFiles.ts`, `apps/web-player/src/features/backup/backupFiles.ts` |
 
 ## Library

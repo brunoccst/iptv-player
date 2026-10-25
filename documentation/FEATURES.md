@@ -30,7 +30,7 @@ Sign in with the IPTV provider's address, username and password (Xtream Codes). 
 
 ### IPTV account
 
-The account menu → IPTV account shows the provider's server, username and password, with the password hidden until Show. A new address, username or password is checked with the provider and saved without signing out, so profiles, My List, progress, downloads and the saved library stay (D-228). For a provider that moved to a new address, or a changed password.
+The account menu → IPTV account shows the provider's server, username and password, with the password hidden until Show. A new address, username or password is checked with the provider and saved without signing out, so profiles, My List, progress, downloads and the saved library stay (D-228). The change then reaches the account's other devices with the next sync, as [sync with another device](#sign-in-and-sync-by-qr-code) or the automatic sync with the TV. For a provider that moved to a new address, or a changed password.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

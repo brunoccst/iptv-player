@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
+import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { noteRemoval, readRemovals, removalsKey } from '../direct/removals';
 import { titleRulesKey } from '../direct/titleRules';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { PROFILE_PREFS_KEY } from '../stores/profilePrefsStore';
 import { answerSync, createAutoSync, syncWithTv } from './autoSync';
-import { mergeMedia, type MediaState } from './pairing';
+import { mergeMedia, newerCredentials, type MediaState } from './pairing';
 import { openRemoteRequest, REMOTE_PORTS, type PairedPhone, type PairedTv } from './remote';
 
 const key = btoa(String.fromCharCode(...Array.from({ length: 32 }, (_, i) => (i * 5) % 256)));
@@ -80,6 +80,7 @@ describe('automatic sync with the paired TV (issue #227)', () => {
     await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now })).resolves.toEqual({
       port: tv.port,
       changed: true,
+      signIn: false,
     });
     expect(changes).toEqual([true]);
     for (const d of [phone, tvDevice]) {
@@ -154,6 +155,7 @@ describe('automatic sync with the paired TV (issue #227)', () => {
     const changes: boolean[] = [];
     await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now })).resolves.toMatchObject({
       changed: true,
+      signIn: false,
     });
     const p1 = {
       appLanguage: 'de',
@@ -168,6 +170,29 @@ describe('automatic sync with the paired TV (issue #227)', () => {
       changed: false,
     });
     expect(changes).toEqual([true, false]);
+  });
+
+  it('a new server or password reaches the other device, the later change winning (DECISIONS.md#d-228)', async () => {
+    const signIn = (serverUrl: string, password: string, changedAt?: string) =>
+      JSON.stringify({ serverUrl, username: 'demo', password, account, ...(changedAt ? { changedAt } : {}) });
+    const phone = device([profile('p1', 'demo')], {});
+    const tvDevice = device([profile('p1', 'demo')], {});
+    phone.secure.data.set(CREDENTIALS_KEY, signIn('http://new.test/', 'new', '2026-10-17T11:00:00Z'));
+    tvDevice.secure.data.set(CREDENTIALS_KEY, signIn('http://old.test/', 'old', '2026-10-01T00:00:00Z'));
+    const first = await syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice), now: () => now });
+    expect(JSON.parse(tvDevice.secure.data.get(CREDENTIALS_KEY)!)).toMatchObject({ serverUrl: 'http://new.test/', password: 'new' });
+    expect(first.signIn).toBe(false);
+
+    // Changed later on the TV: the phone takes it and signs in with it again.
+    tvDevice.secure.data.set(CREDENTIALS_KEY, signIn('http://tv.test/', 'tv', '2026-10-17T11:30:00Z'));
+    const second = await syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice), now: () => now });
+    expect(second.signIn).toBe(true);
+    expect(JSON.parse(phone.secure.data.get(CREDENTIALS_KEY)!)).toMatchObject({ serverUrl: 'http://tv.test/' });
+
+    // Undated (saved before) never replaces a sign-in, nor does another account's.
+    expect(newerCredentials(signIn('http://a/', 'a'), signIn('http://b/', 'b', '2026-10-01'), 'acc-1')).toBeNull();
+    expect(newerCredentials(signIn('http://a/', 'a', '2026-10-02'), signIn('http://b/', 'b'), 'acc-1')).not.toBeNull();
+    expect(newerCredentials(signIn('http://a/', 'a', '2026-10-02'), null, 'acc-2')).toBeNull();
   });
 
   it('a title added again after its removal comes back', () => {

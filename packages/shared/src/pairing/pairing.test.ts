@@ -126,6 +126,25 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(JSON.parse(mobile.secure.data.get(SESSION_STORAGE_KEY)!).activeProfileId).toBe('phone-p1');
   });
 
+  it('scanning a code carries a changed server or password to both devices, the later change winning (DECISIONS.md#d-228)', async () => {
+    const signIn = (serverUrl: string, changedAt: string) =>
+      JSON.stringify({ serverUrl, username: 'demo', password: 'secret', account, changedAt });
+    const session = JSON.stringify({ token: 'direct-tv', account, profiles: [], activeProfileId: null });
+    const tv = {
+      secure: createMemoryStorage({ [SESSION_STORAGE_KEY]: session, [CREDENTIALS_KEY]: signIn('http://old/', '2026-10-01T00:00:00Z') }),
+      data: createMemoryStorage(),
+    };
+    const mobile = phone();
+    mobile.secure.data.set(CREDENTIALS_KEY, signIn('http://new/', '2026-10-20T00:00:00Z'));
+    await sendPairing(mobile, offer, { fetch: via(tv) });
+    expect(JSON.parse(tv.secure.data.get(CREDENTIALS_KEY)!).serverUrl).toBe('http://new/');
+
+    tv.secure.data.set(CREDENTIALS_KEY, signIn('http://tv/', '2026-10-21T00:00:00Z'));
+    await sendPairing(mobile, offer, { fetch: via(tv) });
+    expect(JSON.parse(mobile.secure.data.get(CREDENTIALS_KEY)!).serverUrl).toBe('http://tv/');
+    expect(JSON.parse(tv.secure.data.get(CREDENTIALS_KEY)!).serverUrl).toBe('http://tv/');
+  });
+
   it("carries each profile's settings and the automatic subtitles, the phone's first, on both devices (D-060)", async () => {
     const tvProfiles = [{ id: 'tv-p1', name: 'demo', avatarKey: null, isKids: false }];
     const tv = {
