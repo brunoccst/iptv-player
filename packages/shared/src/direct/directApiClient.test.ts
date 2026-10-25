@@ -86,6 +86,22 @@ describe.each([
     });
   });
 
+  it('changes the server and password without signing out, keeping the account (DECISIONS.md#d-228)', async () => {
+    const { api, panel, storages } = setup();
+    const { account, profiles } = await api.auth.login(login);
+    expect(await api.auth.credentials()).toMatchObject({ serverUrl: 'http://panel.test:8080/', username: 'demo', password: 'demo' });
+
+    await expect(api.auth.updateCredentials({ ...login, password: 'wrong' })).rejects.toMatchObject({ status: 401 });
+    expect((await api.auth.credentials()).password).toBe('demo');
+
+    const updated = await api.auth.updateCredentials({ ...login, serverUrl: 'panel2.test:8080' });
+    expect(updated).toMatchObject({ id: account.id, serverUrl: 'http://panel2.test:8080/', username: 'demo' });
+    const restarted = setup(panel, storages);
+    expect(await restarted.api.auth.credentials()).toMatchObject({ serverUrl: 'http://panel2.test:8080/' });
+    expect(await restarted.api.auth.me()).toMatchObject({ id: account.id });
+    expect(await restarted.api.profiles.list()).toEqual(profiles);
+  });
+
   it('restores the session from storage and answers 401 when signed out', async () => {
     const first = setup();
     await expect(first.api.auth.me()).rejects.toMatchObject({ status: 401 });

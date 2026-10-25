@@ -119,6 +119,25 @@ describe('session store', () => {
     expect(offline.getState()).toMatchObject({ offline: true, providerDown: false });
   });
 
+  it('saves new provider details without signing out (DECISIONS.md#d-228)', async () => {
+    storage.data.set(SESSION_STORAGE_KEY, JSON.stringify({ token: 'tok', account, profiles: [], activeProfileId: null }));
+    backend.on('GET', '/api/auth/me', { networkError: true });
+    backend.on('GET', '/api/profiles', { body: [] });
+    const session = create();
+    await session.getState().restore();
+    expect(session.getState().offline).toBe(true);
+
+    backend.on('PUT', '/api/auth/credentials', { status: 502, body: { code: 'provider_unavailable' } });
+    expect(await session.getState().updateCredentials({ serverUrl: 'http://new/', username: 'u', password: 'p' })).toBe(false);
+    expect(session.getState()).toMatchObject({ status: 'authenticated', offline: true, error: { code: 'provider_unavailable' } });
+
+    const moved = { ...account, serverUrl: 'http://new/' };
+    backend.on('PUT', '/api/auth/credentials', { body: moved });
+    expect(await session.getState().updateCredentials({ serverUrl: 'http://new/', username: 'u', password: 'p' })).toBe(true);
+    expect(session.getState()).toMatchObject({ account: moved, offline: false, providerDown: false, error: null });
+    expect(JSON.parse(storage.data.get(SESSION_STORAGE_KEY)!).account.serverUrl).toBe('http://new/');
+  });
+
   it('records when the account was last confirmed online (gates downloads, D-050)', async () => {
     const saved = '2026-09-01T00:00:00.000Z';
     storage.data.set(

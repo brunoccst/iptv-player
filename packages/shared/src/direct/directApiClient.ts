@@ -1436,6 +1436,39 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         snapshot.close();
         return undefined;
       },
+      async credentials() {
+        const { stored } = await session();
+        return { serverUrl: stored.serverUrl, username: stored.username, password: stored.password, providerType: 'xtream' };
+      },
+      /**
+       * A new server, username or password for the signed-in account, without signing out (DECISIONS.md#d-228): checked
+       * with the provider like a sign-in, then saved under the same account id, so profiles, My List, progress and the
+       * saved library stay. The library then syncs from the new address.
+       */
+      async updateCredentials(request: LoginRequest) {
+        const { stored } = await session();
+        if (!request.username?.trim() || !request.password) throw validation(t('Username and password are required.'));
+        const serverUrl = normalizeServerUrl(request.serverUrl ?? '');
+        const username = request.username.trim();
+        const client = createXtreamClient(
+          { serverUrl, username, password: request.password },
+          { fetch: options.fetch, userAgent: options.userAgent, listReader: options.listReader },
+        );
+        const info = await client.validate();
+        const account: AccountDto = {
+          ...stored.account,
+          serverUrl,
+          username,
+          status: info.status,
+          expiresAt: info.expiresAt,
+          maxConnections: info.maxConnections,
+        };
+        const updated: StoredCredentials = { serverUrl, username, password: request.password, account, info };
+        await writeJson(options.secureStorage, CREDENTIALS_KEY, updated);
+        connect(updated);
+        void syncLibrary().catch(() => undefined);
+        return account;
+      },
       /**
        * Confirms the account with the provider, so "online" means the subscription was checked (downloads, D-050).
        * Unreachable within 10 s → error (offline mode); rejected or inactive account → 401 (signed out).

@@ -43,6 +43,8 @@ export interface SessionState {
    */
   restore(options?: { keepProfile?: boolean }): Promise<void>;
   login(request: LoginRequest): Promise<boolean>;
+  /** A new server, username or password for this account, without signing out (DECISIONS.md#d-228). */
+  updateCredentials(request: LoginRequest): Promise<boolean>;
   logout(): Promise<void>;
   /** Clears the session locally after a call answered 401 (signed out). */
   handleUnauthorized(): void;
@@ -155,6 +157,19 @@ export function createSessionStore({
             lastOnlineAt: now().toISOString(),
             busy: false,
           });
+          await persist();
+          return true;
+        } catch (error) {
+          set({ busy: false, error: toApiError(error) });
+          return false;
+        }
+      },
+
+      async updateCredentials(request) {
+        set({ busy: true, error: null });
+        try {
+          const account = await api.auth.updateCredentials(request);
+          set({ account, offline: false, providerDown: false, lastOnlineAt: now().toISOString(), busy: false });
           await persist();
           return true;
         } catch (error) {

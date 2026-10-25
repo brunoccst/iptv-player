@@ -86,6 +86,10 @@ export interface ApiClient {
     login(request: LoginRequest): Promise<LoginResponse>;
     logout(): Promise<void>;
     me(signal?: AbortSignal): Promise<AccountDto>;
+    /** The saved provider sign-in, password included, for the account menu's IPTV account dialog. */
+    credentials(): Promise<LoginRequest>;
+    /** Checks a new server, username or password with the provider and saves it, keeping the account's data. */
+    updateCredentials(request: LoginRequest): Promise<AccountDto>;
   };
   profiles: {
     list(signal?: AbortSignal): Promise<ProfileDto[]>;

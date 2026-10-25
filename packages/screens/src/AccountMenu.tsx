@@ -10,6 +10,7 @@ import { HiddenCategories } from './HiddenCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinPad';
 import { PinSettings } from './PinSettings';
+import { ProviderAccount } from './ProviderAccount';
 import { StartupDialog } from './StartupDialog';
 import { SubtitleSettings } from './SubtitleSettings';
 import { Icon, type IconName } from './ui/Icon';
@@ -20,7 +21,7 @@ import { colors, fonts, radius, useNavHeight, useSizes } from './ui/theme';
 export type AccountMenuGroup = 'profiles' | 'library' | 'app';
 
 type DialogName =
-  'pin' | 'backup' | 'playback' | 'language' | 'hidden' | 'subtitles' | 'about' | 'appLanguage' | 'log' | 'sync' | 'startup';
+  'pin' | 'backup' | 'playback' | 'language' | 'hidden' | 'subtitles' | 'about' | 'appLanguage' | 'log' | 'sync' | 'startup' | 'provider';
 
 /**
  * The account menu under the top nav's avatar (D-079), the same on every app (issue #237, DECISIONS.md#d-207): other
@@ -82,6 +83,7 @@ export function AccountMenu({
       {shown === 'subtitles' ? <SubtitleSettings onClose={hide} /> : null}
       {shown === 'appLanguage' ? <AppLanguageDialog onClose={hide} /> : null}
       {shown === 'startup' ? <StartupDialog onClose={hide} /> : null}
+      {shown === 'provider' ? <ProviderAccount onClose={hide} /> : null}
     </>
   );
   if (!open) return overlays;
@@ -237,6 +239,8 @@ export function AccountMenu({
                 onPress={() => onGroup(entry.id)}
               />
             ))}
+            {/* The provider's server, username and password, changed without signing out (DECISIONS.md#d-228). */}
+            {kids ? null : <MenuItem icon="tv" label={t('IPTV account')} testID="menu-provider-account" onPress={show('provider')} />}
             {kids ? null : (
               <MenuItem
                 icon="logout"
