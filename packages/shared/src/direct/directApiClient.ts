@@ -84,6 +84,8 @@ interface StoredCredentials {
   password: string;
   account: AccountDto;
   info: XtreamAccountInfo;
+  /** When the server, username or password was last set, so the later change wins in a sync (DECISIONS.md#d-228). */
+  changedAt?: string;
 }
 
 interface StoredProfile extends ProfileDto {
@@ -1407,7 +1409,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           expiresAt: info.expiresAt,
           maxConnections: info.maxConnections,
         };
-        const stored: StoredCredentials = { serverUrl, username, password: request.password, account, info };
+        const stored: StoredCredentials = {
+          serverUrl,
+          username,
+          password: request.password,
+          account,
+          info,
+          changedAt: now().toISOString(),
+        };
         await writeJson(options.secureStorage, CREDENTIALS_KEY, stored);
         connect(stored);
         library.accountId = null;
@@ -1435,6 +1444,46 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
         Object.assign(live, { accountId: null, saved: null, opening: null });
         snapshot.close();
         return undefined;
+      },
+      async credentials() {
+        const { stored } = await session();
+        return { serverUrl: stored.serverUrl, username: stored.username, password: stored.password, providerType: 'xtream' };
+      },
+      /**
+       * A new server, username or password for the signed-in account, without signing out (DECISIONS.md#d-228): checked
+       * with the provider like a sign-in, then saved under the same account id, so profiles, My List, progress and the
+       * saved library stay. The library then syncs from the new address.
+       */
+      async updateCredentials(request: LoginRequest) {
+        const { stored } = await session();
+        if (!request.username?.trim() || !request.password) throw validation(t('Username and password are required.'));
+        const serverUrl = normalizeServerUrl(request.serverUrl ?? '');
+        const username = request.username.trim();
+        const client = createXtreamClient(
+          { serverUrl, username, password: request.password },
+          { fetch: options.fetch, userAgent: options.userAgent, listReader: options.listReader },
+        );
+        const info = await client.validate();
+        const account: AccountDto = {
+          ...stored.account,
+          serverUrl,
+          username,
+          status: info.status,
+          expiresAt: info.expiresAt,
+          maxConnections: info.maxConnections,
+        };
+        const updated: StoredCredentials = {
+          serverUrl,
+          username,
+          password: request.password,
+          account,
+          info,
+          changedAt: now().toISOString(),
+        };
+        await writeJson(options.secureStorage, CREDENTIALS_KEY, updated);
+        connect(updated);
+        void syncLibrary().catch(() => undefined);
+        return account;
       },
       /**
        * Confirms the account with the provider, so "online" means the subscription was checked (downloads, D-050).

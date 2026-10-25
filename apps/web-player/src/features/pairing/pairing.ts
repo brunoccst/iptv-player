@@ -80,10 +80,12 @@ const autoSync = createAutoSync(async () => {
   const tv = await readPairedTv();
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) return;
-  const { port, changed } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
+  const { port, changed, signIn } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
   if (port !== tv.port) await savePairedTv({ ...tv, port });
   appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
-  if (changed) await appContext.refreshMedia();
+  // A new provider server, username or password from the TV (DECISIONS.md#d-228).
+  if (signIn) await appContext.reload();
+  else if (changed) await appContext.refreshMedia();
 });
 
 /**

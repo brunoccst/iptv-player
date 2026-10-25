@@ -113,6 +113,8 @@ export function createFakeApi(
       login: (body) => request('POST', '/api/auth/login', { body }),
       logout: () => request('POST', '/api/auth/logout'),
       me: () => get('/api/auth/me'),
+      credentials: () => get('/api/auth/credentials'),
+      updateCredentials: (body) => request('PUT', '/api/auth/credentials', { body }),
     },
     profiles: {
       list: () => get('/api/profiles'),

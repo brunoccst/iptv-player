@@ -16,33 +16,37 @@ const MIN_SYNC_GAP_MS = 60_000;
 
 /**
  * One sync: sends this device's media entries to the TV and saves the merged answer. `changed`: this device's lists
- * changed (refresh the screens). Throws `RemoteFailure` (an unreachable TV is normal: it is off, or another network).
+ * changed (refresh the screens); `signIn`: the provider sign-in changed (reload it, DECISIONS.md#d-228). Throws
+ * `RemoteFailure` (an unreachable TV is normal: it is off, or another network).
  */
 export async function syncWithTv(
   storages: BackupStorages,
   tv: PairedTv,
   accountId: string,
   options: { fetch?: typeof fetch; timeoutMs?: number; now?: () => Date } = {},
-): Promise<{ port: number; changed: boolean }> {
+): Promise<{ port: number; changed: boolean; signIn: boolean }> {
   const data = await mediaForSync(storages, accountId);
   const answer = await sendRemoteCommand(tv, { type: 'sync', accountId, data }, options);
   // An older TV app answers 'bad-request' to a sync, which throws above; no data here means the same.
   if (!answer.data) throw new RemoteFailure('bad-request', tv.tvName);
   const applied = await applySyncedMedia(storages, accountId, answer.data, options.now?.());
-  return { port: answer.port, changed: applied?.changed ?? false };
+  return { port: answer.port, changed: applied?.changed ?? false, signIn: applied?.signIn ?? false };
 }
 
-/** TV side: answers a sync command from a paired device. `changed`: the TV's lists changed (refresh the screens). */
+/**
+ * TV side: answers a sync command from a paired device. `changed`: the TV's lists changed (refresh the screens);
+ * `signIn`: the provider sign-in changed (reload the app's sign-in, DECISIONS.md#d-228).
+ */
 export async function answerSync(
   storages: BackupStorages,
   command: Extract<RemoteCommand, { type: 'sync' }>,
   now = new Date(),
-): Promise<{ reply: RemoteReply; changed: boolean }> {
+): Promise<{ reply: RemoteReply; changed: boolean; signIn: boolean }> {
   if (!command.accountId || !command.data || typeof command.data !== 'object')
-    return { reply: { ok: false, error: 'bad-request' }, changed: false };
+    return { reply: { ok: false, error: 'bad-request' }, changed: false, signIn: false };
   const applied = await applySyncedMedia(storages, command.accountId, command.data, now);
-  if (!applied) return { reply: { ok: false, error: 'other-account' }, changed: false };
-  return { reply: { ok: true, data: applied.data }, changed: applied.changed };
+  if (!applied) return { reply: { ok: false, error: 'other-account' }, changed: false, signIn: false };
+  return { reply: { ok: true, data: applied.data }, changed: applied.changed, signIn: applied.signIn };
 }
 
 /**

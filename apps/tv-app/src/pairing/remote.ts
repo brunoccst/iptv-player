@@ -112,10 +112,12 @@ export function useRemoteServer(enabled: boolean) {
         }
         if (command.type === 'sync') {
           // A paired device's profiles, progress and My List, merged with this TV's (issue #227).
-          const { reply: answer, changed } = await answerSync(syncStorages, command);
+          const { reply: answer, changed, signIn } = await answerSync(syncStorages, command);
           TvMedia.respondRemote(id, 200, reply(answer));
           appLog.info('sync', answer.ok ? (changed ? 'synced with a device' : 'in step with a device') : `sync refused: ${answer.error}`);
-          if (changed) await appContext.refreshMedia();
+          // A new provider server, username or password from the device (DECISIONS.md#d-228).
+          if (signIn) await appContext.reload();
+          else if (changed) await appContext.refreshMedia();
           return;
         }
         const session = stores.session.getState();
@@ -145,10 +147,12 @@ const autoSync = createAutoSync(async () => {
   const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) return;
-  const { port, changed } = await syncWithTv(syncStorages, tv, accountId);
+  const { port, changed, signIn } = await syncWithTv(syncStorages, tv, accountId);
   if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
   appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
-  if (changed) await appContext.refreshMedia();
+  // A new provider server, username or password from the TV (DECISIONS.md#d-228).
+  if (signIn) await appContext.reload();
+  else if (changed) await appContext.refreshMedia();
 });
 
 /**

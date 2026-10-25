@@ -28,6 +28,12 @@ Sign in with the IPTV provider's address, username and password (Xtream Codes). 
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### IPTV account
+
+The account menu → IPTV account shows the provider's server, username and password, with the password hidden until Show. A new address, username or password is checked with the provider and saved without signing out, so profiles, My List, progress, downloads and the saved library stay (D-228). The change then reaches the account's other devices with the next sync, as [sync with another device](#sign-in-and-sync-by-qr-code) or the automatic sync with the TV. For a provider that moved to a new address, or a changed password.
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ### Backup and restore
 
 A file, encrypted with a password of your choice, with the sign-in, profiles, parental PIN, watch progress, My List and playback settings. Made in the account menu → Library & devices; restored there or from the sign-in page, after a reinstall or on another device (D-056).
@@ -66,7 +72,7 @@ On the TV and phone, new title names are read in the system WebView, outside the
 
 ### Library banner
 
-While the library is being organized, or when the device is offline, a banner floats at the bottom over Home, Movies and Series, with the progress of movies and of series (D-121, D-119).
+While the library is being organized, or when the device is offline, a banner floats at the bottom over Home, Movies and Series, with the progress of movies and of series (D-121, D-119). When the provider answers but with an error page instead of its data, the banner says the provider is unavailable instead of offline (D-227).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

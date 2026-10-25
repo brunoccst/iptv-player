@@ -71,6 +71,8 @@ type PairingReply =
       /** 'share' (D-178): the sign-in for the scanning device, and the account name to show there. */
       secure?: Record<string, string>;
       accountName?: string;
+      /** 'sync': the provider sign-in of the later change (DECISIONS.md#d-228); missing from older apps. */
+      credentials?: string;
     }
   | { ok: false; error: PairingError };
 /**
@@ -264,6 +266,20 @@ function mergedSession(session: Session, profiles: ProfileDto[], localIds: Map<s
 }
 
 /**
+ * The provider sign-in of the later change (DECISIONS.md#d-228), for one account: `incoming` (another device's saved
+ * `CREDENTIALS_KEY`) when it is newer than `local`, else null (keep this device's). A dated sign-in wins over an
+ * undated one; two undated ones keep this device's, as nothing says which is newer.
+ */
+export function newerCredentials(incoming: string | undefined, local: string | null, accountId: string): string | null {
+  type Dated = { account?: { id?: string }; changedAt?: string; password?: string };
+  const theirs = parseJson<Dated>(incoming ?? null);
+  if (!incoming || theirs?.account?.id !== accountId || !theirs.changedAt || !theirs.password) return null;
+  const ours = parseJson<Dated>(local);
+  if (ours?.account?.id === accountId && ours.changedAt && ours.changedAt >= theirs.changedAt) return null;
+  return incoming === local ? null : incoming;
+}
+
+/**
  * Merges another device's media entries (`data`, as `mediaEntries` makes them) into this device's and saves what
  * changed. `localIds`: this device's profile ids → merged ids; `dropped`: this device's profiles that are gone (deleted
  * on the other device, DECISIONS.md#d-186). `changed`: whether anything on this device changed.
@@ -346,6 +362,7 @@ export async function acceptPairing(
   if (subtitles !== null && subtitles !== localSubtitles) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, subtitles);
 
   const pinKey = pinStorageKey(accountId);
+  let credentials: string | undefined;
   if (mode === 'login') {
     // The phone's sign-in, then the profile picker (who is watching on this TV is not the phone's choice).
     const session = { ...phoneSession, profiles: profiles.length ? profiles : phoneSession.profiles, activeProfileId: null };
@@ -355,6 +372,11 @@ export async function acceptPairing(
     }
   } else {
     await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(tvSession!, profiles, localIds)));
+    // A server, username or password changed on either device: the later change on both (DECISIONS.md#d-228).
+    const localCredentials = await storages.secure.getItem(CREDENTIALS_KEY);
+    const newer = newerCredentials(secure[CREDENTIALS_KEY], localCredentials, accountId);
+    if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
+    credentials = newer ?? localCredentials ?? undefined;
     // A parental PIN set on the phone protects the TV too, unless the TV has its own.
     if (secure[pinKey] !== undefined && (await storages.secure.getItem(pinKey)) === null)
       await storages.secure.setItem(pinKey, secure[pinKey]);
@@ -362,7 +384,10 @@ export async function acceptPairing(
 
   const accountName = phoneSession.account?.username ?? t('your account');
   const { remote } = options;
-  return reply({ ok: true, mode, data: entries, settings: { prefs, subtitles }, remote }, { ok: true, mode, accountName, remote });
+  return reply(
+    { ok: true, mode, data: entries, settings: { prefs, subtitles }, remote, ...(credentials ? { credentials } : {}) },
+    { ok: true, mode, accountName, remote },
+  );
 }
 
 /**
@@ -446,6 +471,8 @@ export async function sendPairing(
 
   // Merged once more with what is saved now: progress saved while waiting for the answer stays (issue #227).
   const { merged, localIds, dropped } = await saveMergedMedia(dataStorage, accountId, reply.data);
+  const newer = newerCredentials(reply.credentials, await storages.secure.getItem(CREDENTIALS_KEY), accountId);
+  if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
   if (reply.settings) {
     await savePrefs(dataStorage, reply.settings.prefs, dropped);
     if (reply.settings.subtitles !== null) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, reply.settings.subtitles);
@@ -494,6 +521,10 @@ export async function mediaForSync(storages: BackupStorages, accountId: string):
   const profileIds = (parseJson<StoredProfile[]>(data[profilesKey(accountId)] ?? null) ?? []).map(({ id }) => id);
   const prefs = prefsFor(readPrefs(await dataStorage.getItem(PROFILE_PREFS_KEY)), profileIds);
   if (prefs) data[PROFILE_PREFS_KEY] = prefs;
+  // The provider sign-in, so a new server or password reaches the other devices (DECISIONS.md#d-228). The sync is
+  // sealed with the pairing's remote key (D-061), like the pairing itself.
+  const credentials = await storages.secure.getItem(CREDENTIALS_KEY);
+  if (credentials !== null) data[CREDENTIALS_KEY] = credentials;
   return data;
 }
 
@@ -517,7 +548,7 @@ export async function applySyncedMedia(
   accountId: string,
   data: Record<string, string>,
   now = new Date(),
-): Promise<{ data: Record<string, string>; changed: boolean } | null> {
+): Promise<{ data: Record<string, string>; changed: boolean; signIn: boolean } | null> {
   const session = parseJson<Session>(await storages.secure.getItem(SESSION_STORAGE_KEY));
   if (!session?.token || session.account?.id !== accountId) return null;
   const dataStorage = storages.data ?? storages.secure;
@@ -538,5 +569,11 @@ export async function applySyncedMedia(
     if (mediaChanged)
       await storages.secure.setItem(SESSION_STORAGE_KEY, JSON.stringify(mergedSession(session, sessionProfiles(merged), localIds)));
   }
-  return { data: entries, changed };
+  // A new server, username or password from the other device (DECISIONS.md#d-228): the app signs in with it again.
+  const localCredentials = await storages.secure.getItem(CREDENTIALS_KEY);
+  const newer = newerCredentials(data[CREDENTIALS_KEY], localCredentials, accountId);
+  if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
+  const credentials = newer ?? localCredentials;
+  if (credentials !== null) entries[CREDENTIALS_KEY] = credentials;
+  return { data: entries, changed, signIn: newer !== null };
 }

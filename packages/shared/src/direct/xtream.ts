@@ -127,6 +127,8 @@ export function normalizeServerUrl(serverUrl: string): string {
 }
 
 const unavailable = (message: string) => new ApiError(502, 'provider_unavailable', message);
+/** No answer at all (no network, timeout, dropped connection): status 0, unlike a provider that answers badly (502). */
+const unreachable = (message: string) => new ApiError(0, 'provider_unavailable', message);
 
 export function createXtreamClient(credentials: XtreamCredentials, options: XtreamClientOptions = {}) {
   const timeoutMs = options.timeoutMs ?? 30_000;
@@ -154,8 +156,8 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
 
   const connectFailure = (operation: string, timedOut: boolean, error: unknown) => {
     const failure = timedOut
-      ? unavailable(t('No answer from {host} after {seconds} s.', { host: host(), seconds: Math.round(timeoutMs / 1000) }))
-      : unavailable(
+      ? unreachable(t('No answer from {host} after {seconds} s.', { host: host(), seconds: Math.round(timeoutMs / 1000) }))
+      : unreachable(
           t('Could not connect to {host} ({error}).', {
             host: host(),
             error: error instanceof Error ? error.message : t('network error'),
@@ -258,7 +260,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       if (error instanceof NotAJsonArray) throw notJson(operation, error.preview);
       if (signal?.aborted) throw new ApiError(0, 'aborted', 'Request was cancelled.');
       appLog.error('provider', `${operation}: reading the list failed: ${error instanceof Error ? error.message : String(error)}`);
-      throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+      throw unreachable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
     }
   };
 
@@ -307,7 +309,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
         }
         if (piece.kind === 'error') {
           appLog.error('provider', `${operation}: reading the list failed: ${piece.message}`);
-          throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+          throw unreachable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
         }
         if (piece.kind === 'incomplete') throw notJson(operation, piece.text);
         if (piece.kind === 'whole') {
@@ -354,7 +356,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
       if (signal?.aborted) throw aborted();
       if (piece.kind === 'error') {
         appLog.error('provider', `${operation}: reading the list failed: ${piece.message}`);
-        throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+        throw unreachable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
       }
       if (piece.kind === 'incomplete' || piece.kind === 'batch') throw notJson(operation, piece.text);
       let saved = 0;
@@ -647,7 +649,7 @@ export function createXtreamClient(credentials: XtreamCredentials, options: Xtre
               continue;
             }
             if (piece.kind === 'error')
-              throw unavailable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
+              throw unreachable(t('Could not connect to {host} ({error}).', { host: host(), error: t('network error') }));
             appLog.info(
               'provider',
               `${operation}: HTTP ${status}, ${'chars' in piece ? piece.chars : 0} chars, ${kept} programmes kept in ${Date.now() - started} ms`,

@@ -124,6 +124,36 @@ describe('App → Automatic subtitles (D-111)', () => {
   });
 });
 
+describe('IPTV account (DECISIONS.md#d-228)', () => {
+  it('shows the saved details with the password hidden until Show, and saves changes without signing out', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/auth/credentials', { body: { serverUrl: 'http://panel.test/', username: 'demo', password: 'demo' } });
+    let sent: unknown = null;
+    backend.on('PUT', '/api/auth/credentials', ({ body }) => {
+      sent = body;
+      return { body: { ...stores.session.getState().account, serverUrl: 'http://new.test/' } };
+    });
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-provider-account'));
+    await flush();
+    expect(screen.getByTestId('provider-account-server')).toHaveProp('value', 'http://panel.test/');
+    expect(screen.getByTestId('provider-account-username')).toHaveProp('value', 'demo');
+    expect(screen.getByTestId('provider-account-password')).toHaveProp('secureTextEntry', true);
+    await fireEvent.press(screen.getByTestId('provider-account-reveal'));
+    expect(screen.getByTestId('provider-account-password')).toHaveProp('secureTextEntry', false);
+    expect(screen.getByTestId('provider-account-reveal')).toHaveTextContent('Hide');
+
+    await fireEvent.changeText(screen.getByTestId('provider-account-server'), ' http://new.test/ ');
+    await fireEvent.press(screen.getByTestId('provider-account-save'));
+    await flush();
+    expect(sent).toMatchObject({ serverUrl: 'http://new.test/', username: 'demo', password: 'demo' });
+    expect(stores.session.getState()).toMatchObject({ status: 'authenticated', account: { serverUrl: 'http://new.test/' } });
+    expect(screen.queryByTestId('provider-account')).toBeNull();
+  });
+});
+
 describe('Profiles → Categories shown (D-110)', () => {
   it('unchecked categories leave the category bar; the choice is saved for the profile', async () => {
     const backend = setupApp();

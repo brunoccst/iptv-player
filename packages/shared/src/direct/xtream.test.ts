@@ -269,6 +269,19 @@ describe('provider replies', () => {
       'No answer from panel.test:8080 after 0 s.',
     );
   });
+
+  it('tells a provider that answers badly (502) from no answer at all (0), DECISIONS.md#d-227', async () => {
+    const status = (fetch: typeof globalThis.fetch) =>
+      createXtreamClient(credentials, { fetch, timeoutMs: 10 })
+        .validate()
+        .catch((error: { status: number }) => error.status);
+    expect(await status(reply('<div align=center> <h3>Error. Page cannot be displayed.</h3></div>'))).toBe(502);
+    expect(await status(reply('', 503))).toBe(502);
+    const refused = (async () => {
+      throw new TypeError('Network request failed');
+    }) as unknown as typeof globalThis.fetch;
+    expect(await status(refused)).toBe(0);
+  });
 });
 
 describe('big lists are read one entry at a time (D-115, #109)', () => {
