@@ -19,6 +19,25 @@ describe('profile preferences', () => {
     expect(JSON.parse(storage.data.get(PROFILE_PREFS_KEY)!)).toEqual(saved);
   });
 
+  it('dates each watched-series mark and removal, and each recent channel watched (DECISIONS.md#d-229)', async () => {
+    let at = new Date('2026-10-24T12:00:00Z');
+    const prefs = createProfilePrefsStore(createMemoryStorage(), () => at);
+    const channel = (id: string) => ({ id, name: id, logoUrl: null, categoryId: null });
+    await prefs.getState().update('p1', { watchedSeries: ['s1', 's2'], recentChannels: [channel('a')] });
+    const first = at.toISOString();
+    at = new Date('2026-10-25T12:00:00Z');
+    await prefs.getState().update('p1', { watchedSeries: ['s2'], recentChannels: [channel('b'), channel('a')] });
+    const second = at.toISOString();
+    expect(prefs.getState().prefs.p1!.listChangedAt).toEqual({
+      watchedSeries: { s1: second, s2: first },
+      recentChannels: { a: first, b: second },
+    });
+    // Watching a again puts it first and dates it; the changed lists are not in changedAt's way.
+    await prefs.getState().update('p1', { recentChannels: [channel('a'), channel('b')] });
+    expect(prefs.getState().prefs.p1!.listChangedAt!.recentChannels).toEqual({ a: second, b: second });
+    expect(prefs.getState().prefs.p1!.changedAt).not.toHaveProperty('listChangedAt');
+  });
+
   it('several languages per profile; the single language of earlier versions still counts (D-063)', () => {
     expect(profileLanguages(undefined)).toEqual([]);
     expect(profileLanguages({ language: 'GER' })).toEqual(['GER']);

@@ -3,7 +3,7 @@ import { collectUserData, type BackupStorages, type UserDataContents } from '../
 import { CREDENTIALS_KEY, profilesKey, progressKey, watchlistKey } from '../direct/directApiClient';
 import { emptyRemovals, pruneRemovals, readRemovals, removalsKey, type Removals } from '../direct/removals';
 import { mergeTitleRules, readTitleRules, titleRulesKey, type RecordedRule } from '../direct/titleRules';
-import { pinStorageKey } from '../stores/pinStore';
+import { newerPin, pinStorageKey } from '../stores/pinStore';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { parseJson } from '../utils/bytes';
 import { seal, unseal } from './sealed';
@@ -73,6 +73,8 @@ type PairingReply =
       accountName?: string;
       /** 'sync': the provider sign-in of the later change (DECISIONS.md#d-228); missing from older apps. */
       credentials?: string;
+      /** 'sync': the parental PIN of the later change (DECISIONS.md#d-229); missing from older apps or without one. */
+      pin?: string;
     }
   | { ok: false; error: PairingError };
 /**
@@ -363,6 +365,7 @@ export async function acceptPairing(
 
   const pinKey = pinStorageKey(accountId);
   let credentials: string | undefined;
+  let pin: string | undefined;
   if (mode === 'login') {
     // The phone's sign-in, then the profile picker (who is watching on this TV is not the phone's choice).
     const session = { ...phoneSession, profiles: profiles.length ? profiles : phoneSession.profiles, activeProfileId: null };
@@ -377,15 +380,25 @@ export async function acceptPairing(
     const newer = newerCredentials(secure[CREDENTIALS_KEY], localCredentials, accountId);
     if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
     credentials = newer ?? localCredentials ?? undefined;
-    // A parental PIN set on the phone protects the TV too, unless the TV has its own.
-    if (secure[pinKey] !== undefined && (await storages.secure.getItem(pinKey)) === null)
-      await storages.secure.setItem(pinKey, secure[pinKey]);
+    // The parental PIN set or removed later, on both (DECISIONS.md#d-229).
+    const localPin = await storages.secure.getItem(pinKey);
+    const newerOne = newerPin(secure[pinKey], localPin);
+    if (newerOne) await storages.secure.setItem(pinKey, newerOne);
+    pin = newerOne ?? localPin ?? undefined;
   }
 
   const accountName = phoneSession.account?.username ?? t('your account');
   const { remote } = options;
   return reply(
-    { ok: true, mode, data: entries, settings: { prefs, subtitles }, remote, ...(credentials ? { credentials } : {}) },
+    {
+      ok: true,
+      mode,
+      data: entries,
+      settings: { prefs, subtitles },
+      remote,
+      ...(credentials ? { credentials } : {}),
+      ...(pin ? { pin } : {}),
+    },
     { ok: true, mode, accountName, remote },
   );
 }
@@ -473,6 +486,9 @@ export async function sendPairing(
   const { merged, localIds, dropped } = await saveMergedMedia(dataStorage, accountId, reply.data);
   const newer = newerCredentials(reply.credentials, await storages.secure.getItem(CREDENTIALS_KEY), accountId);
   if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
+  const pinKey = pinStorageKey(accountId);
+  const pin = newerPin(reply.pin, await storages.secure.getItem(pinKey));
+  if (pin) await storages.secure.setItem(pinKey, pin);
   if (reply.settings) {
     await savePrefs(dataStorage, reply.settings.prefs, dropped);
     if (reply.settings.subtitles !== null) await storages.secure.setItem(SUBTITLE_SETTINGS_KEY, reply.settings.subtitles);
@@ -525,6 +541,9 @@ export async function mediaForSync(storages: BackupStorages, accountId: string):
   // sealed with the pairing's remote key (D-061), like the pairing itself.
   const credentials = await storages.secure.getItem(CREDENTIALS_KEY);
   if (credentials !== null) data[CREDENTIALS_KEY] = credentials;
+  // The parental PIN, as saved (a salted hash, or the date it was removed), DECISIONS.md#d-229.
+  const pin = await storages.secure.getItem(pinStorageKey(accountId));
+  if (pin !== null) data[pinStorageKey(accountId)] = pin;
   return data;
 }
 
@@ -575,5 +594,14 @@ export async function applySyncedMedia(
   if (newer) await storages.secure.setItem(CREDENTIALS_KEY, newer);
   const credentials = newer ?? localCredentials;
   if (credentials !== null) entries[CREDENTIALS_KEY] = credentials;
+  // The parental PIN set or removed later (DECISIONS.md#d-229); the app reads it again with the lists.
+  const pinKey = pinStorageKey(accountId);
+  const localPin = await storages.secure.getItem(pinKey);
+  const pin = newerPin(data[pinKey], localPin);
+  if (pin) {
+    await storages.secure.setItem(pinKey, pin);
+    changed = true;
+  }
+  if ((pin ?? localPin) !== null) entries[pinKey] = (pin ?? localPin)!;
   return { data: entries, changed, signIn: newer !== null };
 }

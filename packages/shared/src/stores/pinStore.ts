@@ -7,7 +7,9 @@ import type { KeyValueStorage } from './storage';
 /**
  * Optional parental PIN (D-054), saved per account on this device as a salted hash. When set, it is needed to open a
  * regular profile from a Kids profile or the picker, to add/edit/delete profiles, and to change or remove the PIN.
- * Signing out removes it, so a forgotten PIN costs one sign-in with the provider password.
+ * Signing out removes it, so a forgotten PIN costs one sign-in with the provider password. The saved value carries when
+ * it was set or removed (`changedAt`; a removal keeps only the date), so syncing devices keep the later change
+ * (`newerPin`, DECISIONS.md#d-229).
  */
 export type PinStatus = 'unknown' | 'none' | 'set';
 export type PinResult = 'ok' | 'wrong' | 'locked';
@@ -20,6 +22,37 @@ export interface PinState {
   /** `currentPin` is required when a PIN is already set. */
   setPin(newPin: string, currentPin?: string): Promise<PinResult>;
   removePin(currentPin: string): Promise<PinResult>;
+  /** Reads the saved PIN again (after a sync or pairing changed it). */
+  refresh(): Promise<void>;
+}
+
+/** As saved: a PIN, or only `changedAt` when it was removed. Undated when saved before DECISIONS.md#d-229. */
+interface SavedPin {
+  salt?: string;
+  hash?: string;
+  changedAt?: string;
+}
+
+const parsePin = (text: string | null | undefined): SavedPin | null => {
+  try {
+    const value = JSON.parse(text ?? 'null') as SavedPin | null;
+    return value && typeof value === 'object' && (typeof value.hash === 'string' || typeof value.changedAt === 'string') ? value : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The PIN of the later change (DECISIONS.md#d-229): `incoming` (another device's saved PIN, as stored) when it was set
+ * or removed after `local`, else null (keep this device's). An undated PIN only goes where none was ever set, as pairing
+ * always did (D-060).
+ */
+export function newerPin(incoming: string | null | undefined, local: string | null): string | null {
+  const theirs = parsePin(incoming);
+  if (!theirs || incoming === local) return null;
+  const ours = parsePin(local);
+  if (!theirs.changedAt) return ours ? null : incoming!;
+  return ours?.changedAt && ours.changedAt >= theirs.changedAt ? null : incoming!;
 }
 
 export const PIN_LENGTH = 4;
@@ -58,11 +91,8 @@ export function createPinStore({
   const read = async (): Promise<{ salt: string; hash: string } | null> => {
     const id = accountId();
     if (!id) return null;
-    try {
-      return JSON.parse((await storage.getItem(pinStorageKey(id))) ?? 'null') as { salt: string; hash: string } | null;
-    } catch {
-      return null;
-    }
+    const saved = parsePin(await storage.getItem(pinStorageKey(id)));
+    return saved?.salt !== undefined && saved.hash !== undefined ? { salt: saved.salt, hash: saved.hash } : null;
   };
 
   const store = createStore<PinState>()((set, get) => {
@@ -97,7 +127,10 @@ export function createPinStore({
         const id = accountId();
         if (!id) return 'wrong';
         const salt = `${now().toString(36)}${Math.random().toString(36).slice(2)}`;
-        await storage.setItem(pinStorageKey(id), JSON.stringify({ salt, hash: hash(salt, newPin) }));
+        await storage.setItem(
+          pinStorageKey(id),
+          JSON.stringify({ salt, hash: hash(salt, newPin), changedAt: new Date(now()).toISOString() } satisfies SavedPin),
+        );
         set({ status: 'set' });
         return 'ok';
       },
@@ -105,14 +138,16 @@ export function createPinStore({
         const result = await check(currentPin);
         if (result !== 'ok') return result;
         const id = accountId();
-        if (id) await storage.removeItem(pinStorageKey(id));
+        // The date stays, so the removal reaches the other devices instead of their PIN coming back.
+        if (id) await storage.setItem(pinStorageKey(id), JSON.stringify({ changedAt: new Date(now()).toISOString() } satisfies SavedPin));
         set({ status: 'none' });
         return 'ok';
       },
+      refresh: (): Promise<void> => load(),
     };
   });
 
-  const load = async () => store.setState({ status: accountId() ? ((await read()) ? 'set' : 'none') : 'unknown' });
+  const load = async (): Promise<void> => store.setState({ status: accountId() ? ((await read()) ? 'set' : 'none') : 'unknown' });
   void load();
   session.subscribe((state, previous) => {
     if (state.account?.id === previous.account?.id) return;

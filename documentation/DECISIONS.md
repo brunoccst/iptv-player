@@ -134,6 +134,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-226](#d-226) | Desktop: start with the computer, in the tray |
 | [D-227](#d-227) | "Provider unavailable" apart from "offline" |
 | [D-228](#d-228) | Changing the provider sign-in keeps the account |
+| [D-229](#d-229) | Joined lists and the parental PIN sync by date |
 
 ## Merged and retired IDs
 
@@ -552,8 +553,8 @@ On the desktop, VLC starts at the saved progress and the app reads where it stop
 
 - The TV and the desktop app show a QR code on the sign-in page and under Sync with phone; the phone app scans it (Connect a TV or computer) with Google's code scanner (`play-services-code-scanner`: no camera permission).
 - Scanning signs a signed-out device in with the phone's account, or syncs a device on the same account; another account is refused.
-- Merge, both ways: profiles match by id, else by name (the phone's ids are kept); per title the newest progress wins; My List is the union (removals are not recorded). Each profile's preferences (`settings.profiles`: content languages, app language, playback choices, hidden and kids categories, watched series, recent channels) and the automatic-subtitles settings are merged too; the phone's value wins, watched series and recent channels are joined. The merged settings travel in their own `settings` field, so an older phone never overwrites its other accounts' preferences.
-- Stay on each device: the audio decoder, the device's own app language, downloads, Play on TV keys, update choices and an existing PIN (a phone's PIN is copied only to a device without one).
+- Merge, both ways: profiles match by id, else by name (the phone's ids are kept); per title the newest progress wins; My List is the union (removals are not recorded). Each profile's preferences (`settings.profiles`: content languages, app language, playback choices, hidden and kids categories, watched series, recent channels) and the automatic-subtitles settings are merged too; the phone's value wins, watched series and recent channels are joined (per entry by date since D-229). The merged settings travel in their own `settings` field, so an older phone never overwrites its other accounts' preferences.
+- Stay on each device: the audio decoder, the device's own app language, downloads, Play on TV keys, update choices. The parental PIN: the later set or removal wins since D-229 (before, a phone's PIN was copied only to a device without one).
 - Transport, no server: while the code shows, the TV (`PairingServer.kt`) or the desktop main process listens on the home network on a random port. The code holds its address, port and a one-time 32-byte key; both directions are sealed with XChaCha20-Poly1305, so plain HTTP reveals nothing. The server stops after one pairing or when the code closes. The desktop picks the first private IPv4 address, skipping virtual adapters (WSL, Hyper-V, VirtualBox, Docker, VPNs).
 - Code: `packages/shared/src/pairing/` (protocol, merge, `usePairingServer`), `apps/tv-app/src/pairing/`, `apps/web-player/src/features/pairing/`.
 
@@ -1406,3 +1407,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The account keeps its id. A sign-in makes the id from the server and username, so signing in again at a new address used to start an empty account: no profiles, My List, progress or saved library. Here the user says it is the same account, so its data stays and the library syncs from the new address. Signing out and in remains the way to start another account.
 - The password shows as dots until Show; the details are read from the device's encrypted storage (`auth.credentials`) only while the dialog is open. Kids profiles do not see the item, like the other settings.
 - The change reaches the other devices of the account: the saved sign-in carries the time it was set (`changedAt`, by sign-in and by this dialog), and scanning a sync code (D-060) and the automatic sync with the TV (D-186) send it, sealed with the pairing's key like everything else they send. The later change wins on both sides; a sign-in saved before (no date) never replaces another. A device that takes a new sign-in from the automatic sync reloads it (`AppContext.reload`, as after pairing).
+
+## D-229
+
+**Joined lists and the parental PIN sync by date** — 2026-10-25
+
+- Watched series, guide reminders and recent channels were joined on every sync with no dates, so marking a series not watched, cancelling or dismissing a reminder, or the order of recent channels was undone by the other device. Each profile now keeps `listChangedAt` beside D-225's `changedAt`: per watched-series mark and reminder, when it was last set or taken off; per recent channel, when it was last watched (`profilePrefsStore.update` stamps it from the before/after lists, `profiles/listDates.ts`).
+- On merge, per entry, the side that changed it later decides whether it is there; a side that has the entry undated counts as earliest, and entries neither side dated are joined as before. Recent channels are joined, newest first by their dates (undated after, the sending device's first), at most 20; one pushed off the end of the list leaves no record. Dates of a watched-series removal last as long as other removals (180 days, `KEEP_REMOVALS_MS`); a reminder's until a day after its programme started; a recent channel's while it is on the list.
+- The parental PIN (D-054) now carries when it was set (`changedAt` in its saved value), and removing it keeps only that date instead of deleting the value. The automatic sync (D-186) carries it, and pairing (D-060) uses the same rule (`newerPin`): the later set or removal wins on both devices. An undated PIN (set before) only goes to a device that never had one, as pairing did, so an older PIN never replaces another. This replaces D-060's "an existing PIN stays": a PIN changed or removed on one device now reaches the others, which is what a parent changing it expects. Only the salted hash travels, sealed like the rest.
+- After a sync or pairing the app reads the PIN again (`pin.refresh`, from `refreshMedia` and `reload`).
+- Still undated: the automatic-subtitles settings, which move only with a QR scan and are set once. Every date comes from the clock of the device that made the change.

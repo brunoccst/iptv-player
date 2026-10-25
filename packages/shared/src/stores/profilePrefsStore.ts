@@ -5,6 +5,7 @@ import { t } from '../i18n/i18n';
 import type { PlaybackChoices } from '../playback/playbackChoices';
 import type { RecentChannel } from '../playback/recentChannels';
 import type { Reminder } from '../playback/reminders';
+import { stampListDates, type ListDates } from '../profiles/listDates';
 
 /** Per-profile preferences kept on this device (all accounts in one entry). Not sent to the provider or the server. */
 export const PROFILE_PREFS_KEY = 'settings.profiles';
@@ -38,7 +39,12 @@ export interface ProfilePrefs {
    * When each preference was last changed here or on a synced device (ISO time, issue #268, DECISIONS.md#d-225): a sync
    * keeps the later choice. Missing for values set before.
    */
-  changedAt?: Partial<Record<Exclude<keyof ProfilePrefs, 'changedAt'>, string>> | null;
+  changedAt?: Partial<Record<Exclude<keyof ProfilePrefs, 'changedAt' | 'listChangedAt'>, string>> | null;
+  /**
+   * When each watched-series mark and reminder was last set or taken off, and each recent channel last watched (ISO
+   * time, DECISIONS.md#d-229): a sync keeps the later change of each entry. Missing for entries saved before.
+   */
+  listChangedAt?: ListDates | null;
 }
 
 export interface ProfilePrefsState {
@@ -64,8 +70,10 @@ export function createProfilePrefsStore(storage: KeyValueStorage, now: () => Dat
       const current = get().prefs[profileId];
       const at = now().toISOString();
       const changedAt = { ...current?.changedAt };
-      for (const key of Object.keys(patch)) if (key !== 'changedAt') changedAt[key as keyof typeof changedAt] = at;
-      const prefs = { ...get().prefs, [profileId]: { ...current, ...patch, changedAt } };
+      for (const key of Object.keys(patch))
+        if (key !== 'changedAt' && key !== 'listChangedAt') changedAt[key as keyof typeof changedAt] = at;
+      const listChangedAt = stampListDates(current, patch, at);
+      const prefs = { ...get().prefs, [profileId]: { ...current, ...patch, changedAt, ...(listChangedAt ? { listChangedAt } : {}) } };
       set({ prefs });
       await storage.setItem(PROFILE_PREFS_KEY, JSON.stringify(prefs));
     },

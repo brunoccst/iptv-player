@@ -254,7 +254,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     progress.getState().reset();
     watchlist.getState().reset();
     // Pairing and backups write preferences and subtitle settings too (D-060).
-    await Promise.all([profilePrefs.getState().load(), subtitles.settings.getState().load()]);
+    await Promise.all([profilePrefs.getState().load(), subtitles.settings.getState().load(), pin.getState().refresh()]);
     await session.getState().restore({ keepProfile: true });
     // restore() keeps the same profile id when nothing changed, so the subscription above may not load it.
     const profileId = session.getState().activeProfileId;
@@ -265,8 +265,8 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   };
 
   const refreshMedia = async () => {
-    // An automatic sync also brings the profiles' preferences (issue #268).
-    await Promise.all([session.getState().refreshProfiles(), profilePrefs.getState().load()]);
+    // An automatic sync also brings the profiles' preferences (issue #268) and the parental PIN (DECISIONS.md#d-229).
+    await Promise.all([session.getState().refreshProfiles(), profilePrefs.getState().load(), pin.getState().refresh()]);
     const profileId = session.getState().activeProfileId;
     if (profileId)
       await Promise.all([
