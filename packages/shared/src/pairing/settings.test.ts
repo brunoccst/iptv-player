@@ -54,4 +54,29 @@ describe('settings merged by pairing (D-060)', () => {
     );
     expect(merged.hiddenCategories).toEqual({ movies: ['2'], series: ['9'] });
   });
+
+  it('watched series and reminders: per entry, the later mark or removal wins; undated ones are joined (DECISIONS.md#d-229)', () => {
+    const channel = { id: 'ch', name: 'ch', logoUrl: null, categoryId: null };
+    const reminder = (start: string) => ({ channel, title: start, start, end: '2099-01-01T01:00:00.000Z' });
+    const merged = mergeProfilePrefs(
+      {
+        watchedSeries: ['a', 'old'],
+        reminders: [reminder('2099-01-01T00:00:00.000Z')],
+        listChangedAt: { watchedSeries: { a: '2026-10-20T00:00:00.000Z', b: '2026-10-24T00:00:00.000Z' } },
+      },
+      {
+        watchedSeries: ['b', 'tv'],
+        reminders: [reminder('2099-01-02T00:00:00.000Z')],
+        listChangedAt: {
+          watchedSeries: { b: '2026-10-21T00:00:00.000Z' },
+          reminders: { 'ch|2099-01-01T00:00:00.000Z': '2026-10-24T00:00:00.000Z' },
+        },
+      },
+    );
+    // b was taken off on the phone after the TV marked it; 'old' and 'tv' have no dates: joined.
+    expect([...merged.watchedSeries!].sort()).toEqual(['a', 'old', 'tv']);
+    // The TV cancelled the first reminder after the phone set it (undated there).
+    expect(merged.reminders!.map((r) => r.start)).toEqual(['2099-01-02T00:00:00.000Z']);
+    expect(merged.listChangedAt!.watchedSeries).toEqual({ a: '2026-10-20T00:00:00.000Z', b: '2026-10-24T00:00:00.000Z' });
+  });
 });

@@ -16,6 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
+- **Sync keeps your latest change everywhere** (2026-10-25, D-229): marking a series not watched, cancelling a guide reminder or setting, changing or removing the parental PIN now reaches your other devices instead of being undone by them, and recently watched channels show the one you watched last first, on any device.
 - **Edit your IPTV account** (2026-10-25, D-228): the account menu now has IPTV account, showing your provider's server, username and password (hidden until you press Show). Change them there when your provider moves or your password changes, without signing out: profiles, My List and progress stay, and your other devices get the change with the next sync.
 - **"Provider unavailable" instead of "offline"** (2026-10-25, D-227): when your provider is down but your internet works, the banner now says your IPTV provider is unavailable instead of "You're offline". Downloads still play from My Downloads.
 - **Guide reminders with the app closed** (2026-10-24, D-222, issue #263): on the phone and tablet, a reminder now also comes as a notification when the programme starts, even when the app is closed. Tap it to open the app and tune in with Watch. The app asks once to allow notifications.
@@ -133,6 +134,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
+- **Sync keeps your latest change everywhere** (2026-10-25, D-229): marking a series not watched, cancelling a guide reminder or setting, changing or removing the parental PIN now reaches your other devices instead of being undone by them, and recently watched channels show the one you watched last first, on any device.
 - **Edit your IPTV account** (2026-10-25, D-228): the account menu now has IPTV account, showing your provider's server, username and password (hidden until you press Show). Change them there when your provider moves or your password changes, without signing out: profiles, My List and progress stay, and your other devices get the change with the next sync.
 - **"Provider unavailable" instead of "offline"** (2026-10-25, D-227): when your provider is down but your internet works, the banner now says your IPTV provider is unavailable instead of "You're offline". Downloads still play from My Downloads.
 - **Start with the computer** (2026-10-24, D-226, issue #309): account menu → App → Start with the computer. The app then waits in the tray from the moment you sign in to the computer, and closing the window keeps it there, so guide reminders show even when you are not using the app. Quit from the tray icon.

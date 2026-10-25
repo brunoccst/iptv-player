@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProfileDto } from '../api/types';
 import { createTestAppContext } from '../testing/fakeBackend';
 import { account, createFakeBackend } from '../testing/fakeBackend';
-import { MAX_PIN_TRIES, needsPinToManage, needsPinToOpen, PIN_LOCK_MS, pinStorageKey } from './pinStore';
+import { MAX_PIN_TRIES, needsPinToManage, needsPinToOpen, newerPin, PIN_LOCK_MS, pinStorageKey } from './pinStore';
 import { SESSION_STORAGE_KEY } from './sessionStore';
 import { createMemoryStorage } from './storage';
 
@@ -37,9 +37,9 @@ describe('pin store', () => {
     expect(await pin.getState().setPin('12a4')).toBe('wrong');
     expect(await pin.getState().setPin('1234')).toBe('ok');
     expect(pin.getState().status).toBe('set');
-    // Only a salt and a hash are stored, never the PIN. (Not a substring check: a random hex hash can contain "1234".)
+    // Only a salt, a hash and the date are stored, never the PIN. (Not a substring check: a random hex hash can contain "1234".)
     const stored = JSON.parse(storage.data.get(pinStorageKey(account.id))!) as Record<string, string>;
-    expect(Object.keys(stored).sort()).toEqual(['hash', 'salt']);
+    expect(Object.keys(stored).sort()).toEqual(['changedAt', 'hash', 'salt']);
     expect(Object.values(stored)).not.toContain('1234');
     expect(stored.hash).toMatch(/^[0-9a-f]{40,}$/);
 
@@ -50,6 +50,37 @@ describe('pin store', () => {
     expect(await pin.getState().removePin('1234')).toBe('wrong');
     expect(await pin.getState().removePin('5678')).toBe('ok');
     expect(pin.getState().status).toBe('none');
+    // The removal keeps its date for syncing (DECISIONS.md#d-229).
+    expect(Object.keys(JSON.parse(storage.data.get(pinStorageKey(account.id))!) as object)).toEqual(['changedAt']);
+    await pin.getState().refresh();
+    expect(pin.getState().status).toBe('none');
+  });
+
+  it('refresh reads a PIN another device synced', async () => {
+    const { pin, storage } = await setup();
+    await pin.getState().setPin('1234');
+    const saved = storage.data.get(pinStorageKey(account.id))!;
+    await pin.getState().removePin('1234');
+    await storage.setItem(pinStorageKey(account.id), saved);
+    await pin.getState().refresh();
+    expect(pin.getState().status).toBe('set');
+  });
+
+  it('newerPin keeps the later change; an undated PIN only goes where none was set (DECISIONS.md#d-229)', () => {
+    const early = JSON.stringify({ salt: 's', hash: 'a', changedAt: '2026-10-20T10:00:00.000Z' });
+    const late = JSON.stringify({ salt: 's', hash: 'b', changedAt: '2026-10-24T10:00:00.000Z' });
+    const removedLate = JSON.stringify({ changedAt: '2026-10-25T10:00:00.000Z' });
+    const undated = JSON.stringify({ salt: 's', hash: 'c' });
+    expect(newerPin(late, early)).toBe(late);
+    expect(newerPin(early, late)).toBeNull();
+    expect(newerPin(removedLate, late)).toBe(removedLate);
+    expect(newerPin(late, null)).toBe(late);
+    expect(newerPin(early, undated)).toBe(early);
+    expect(newerPin(undated, null)).toBe(undated);
+    expect(newerPin(undated, early)).toBeNull();
+    expect(newerPin(undated, removedLate)).toBeNull();
+    expect(newerPin('not json', null)).toBeNull();
+    expect(newerPin(undefined, early)).toBeNull();
   });
 
   it('locks for a minute after too many wrong tries', async () => {

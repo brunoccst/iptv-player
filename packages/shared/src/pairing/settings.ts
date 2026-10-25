@@ -1,14 +1,15 @@
 import type { KeyValueStorage } from '../stores/storage';
 import { PROFILE_PREFS_KEY, type ProfilePrefs } from '../stores/profilePrefsStore';
-import { MAX_RECENT_CHANNELS } from '../playback/recentChannels';
 import { mergeReminders } from '../playback/reminders';
+import { mergeDatedLists } from '../profiles/listDates';
 import { SUBTITLE_SETTINGS_KEY, type SubtitleSettings } from '../subtitles/openSubtitles';
 import { parseJson } from '../utils/bytes';
 
 /**
  * The settings pairing carries besides sign-in and media (D-060): each profile's preferences (content languages, app
  * language, subtitle/audio/version choices, hidden and kids categories, watched series, recent channels, guide reminders) and the
- * automatic-subtitles settings. Where both devices have a value, the phone's wins; lists are joined. What belongs to
+ * automatic-subtitles settings. Where both devices have a value, the later change wins (D-225; list entries,
+ * DECISIONS.md#d-229), and the phone's where neither is dated. The parental PIN goes along too (`newerPin`). What belongs to
  * the device stays: the audio decoder, the device's own app language, downloads, remote-play keys, update choices.
  */
 export { PROFILE_PREFS_KEY, SUBTITLE_SETTINGS_KEY };
@@ -16,19 +17,20 @@ export { PROFILE_PREFS_KEY, SUBTITLE_SETTINGS_KEY };
 type PrefsByProfile = Record<string, ProfilePrefs>;
 
 /** Preferences that are lists both devices add to: joined, not one side's. */
-const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', 'reminders', 'changedAt']);
+const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', 'reminders', 'changedAt', 'listChangedAt']);
 
 /**
  * One profile's preferences from both devices. Each preference is the one changed later (`changedAt`, issue #268,
  * DECISIONS.md#d-225); where neither is dated (set before), the phone's (the scanning or sending device) wins, as
- * pairing always did (D-060). Kids and hidden categories go per section the same way; lists are joined.
+ * pairing always did (D-060). Kids and hidden categories go per section the same way. Watched series, reminders and
+ * recent channels go per entry by their own dates (DECISIONS.md#d-229); undated entries are joined.
  */
 export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: ProfilePrefs | undefined): ProfilePrefs {
   if (!phone) return { ...local };
   if (!local) return { ...phone };
   const dateOf = (prefs: ProfilePrefs, key: keyof ProfilePrefs) =>
     // The older single `language` is one choice with `languages`.
-    prefs.changedAt?.[key === 'language' ? 'languages' : (key as Exclude<keyof ProfilePrefs, 'changedAt'>)] ?? '';
+    prefs.changedAt?.[key === 'language' ? 'languages' : (key as Exclude<keyof ProfilePrefs, 'changedAt' | 'listChangedAt'>)] ?? '';
   /** Which side's value: the later date; undated on both, the phone's where it has one. */
   const phoneWins = (key: keyof ProfilePrefs) => {
     const [ours, theirs] = [dateOf(phone, key), dateOf(local, key)];
@@ -50,14 +52,11 @@ export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: Profil
     const [winner, other] = phoneWins(key) ? [phone[key], local[key]] : [local[key], phone[key]];
     (merged as Record<string, unknown>)[key] = { ...other, ...withoutUndefined(winner) };
   }
-  if (phone.watchedSeries || local.watchedSeries)
-    merged.watchedSeries = [...new Set([...(phone.watchedSeries ?? []), ...(local.watchedSeries ?? [])])];
-  if (phone.recentChannels || local.recentChannels) {
-    const phoneChannels = phone.recentChannels ?? [];
-    const localOnly = (local.recentChannels ?? []).filter((c) => !phoneChannels.some((p) => p.id === c.id));
-    merged.recentChannels = [...phoneChannels, ...localOnly].slice(0, MAX_RECENT_CHANNELS);
-  }
-  if (phone.reminders || local.reminders) merged.reminders = mergeReminders(phone.reminders, local.reminders, Date.now());
+  const now = Date.now();
+  Object.assign(
+    merged,
+    mergeDatedLists(phone, local, now, (reminders) => mergeReminders(reminders, [], now)),
+  );
   if (phone.changedAt || local.changedAt) {
     const changedAt: NonNullable<ProfilePrefs['changedAt']> = { ...local.changedAt };
     for (const [key, at] of Object.entries(phone.changedAt ?? {}) as [keyof typeof changedAt, string][])

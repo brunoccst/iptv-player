@@ -5,6 +5,7 @@ import { titleRulesKey } from '../direct/titleRules';
 import { SESSION_STORAGE_KEY } from '../stores/sessionStore';
 import { createMemoryStorage } from '../stores/storage';
 import { PROFILE_PREFS_KEY } from '../stores/profilePrefsStore';
+import { pinStorageKey } from '../stores/pinStore';
 import { answerSync, createAutoSync, syncWithTv } from './autoSync';
 import { mergeMedia, newerCredentials, type MediaState } from './pairing';
 import { openRemoteRequest, REMOTE_PORTS, type PairedPhone, type PairedTv } from './remote';
@@ -193,6 +194,59 @@ describe('automatic sync with the paired TV (issue #227)', () => {
     expect(newerCredentials(signIn('http://a/', 'a'), signIn('http://b/', 'b', '2026-10-01'), 'acc-1')).toBeNull();
     expect(newerCredentials(signIn('http://a/', 'a', '2026-10-02'), signIn('http://b/', 'b'), 'acc-1')).not.toBeNull();
     expect(newerCredentials(signIn('http://a/', 'a', '2026-10-02'), null, 'acc-2')).toBeNull();
+  });
+
+  it('a series marked not watched stays that way on both; recent channels sort by when they were watched (DECISIONS.md#d-229)', async () => {
+    const channel = (id: string) => ({ id, name: id, logoUrl: null, categoryId: null });
+    const phone = device([profile('p1', 'demo')], {
+      [PROFILE_PREFS_KEY]: {
+        p1: {
+          watchedSeries: ['s2'],
+          recentChannels: [channel('a'), channel('b')],
+          listChangedAt: {
+            watchedSeries: { s1: '2026-10-17T11:00:00.000Z', s2: '2026-10-10T00:00:00.000Z' },
+            recentChannels: { a: '2026-10-16T00:00:00.000Z', b: '2026-10-14T00:00:00.000Z' },
+          },
+        },
+      },
+    });
+    const tvDevice = device([profile('p1', 'demo')], {
+      [PROFILE_PREFS_KEY]: {
+        p1: {
+          watchedSeries: ['s1', 's3'],
+          recentChannels: [channel('c'), channel('a')],
+          listChangedAt: {
+            watchedSeries: { s1: '2026-10-12T00:00:00.000Z' },
+            recentChannels: { c: '2026-10-15T00:00:00.000Z', a: '2026-10-13T00:00:00.000Z' },
+          },
+        },
+      },
+    });
+    await syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice), now: () => now });
+    for (const side of [phone, tvDevice]) {
+      const p1 = read(side, PROFILE_PREFS_KEY).p1;
+      // s1 was marked not watched on the phone after the TV marked it; s3 (undated) is joined.
+      expect([...p1.watchedSeries].sort()).toEqual(['s2', 's3']);
+      expect(p1.recentChannels.map((c: { id: string }) => c.id)).toEqual(['a', 'c', 'b']);
+    }
+  });
+
+  it('a parental PIN set or removed later reaches the other device (DECISIONS.md#d-229)', async () => {
+    const phone = device([profile('p1', 'demo')], {});
+    const tvDevice = device([profile('p1', 'demo')], {});
+    const pinKey = pinStorageKey('acc-1');
+    tvDevice.secure.data.set(pinKey, JSON.stringify({ salt: 's', hash: 'old', changedAt: '2026-10-01T00:00:00.000Z' }));
+    const removed = JSON.stringify({ changedAt: '2026-10-17T11:00:00.000Z' });
+    phone.secure.data.set(pinKey, removed);
+    const changes: boolean[] = [];
+    await syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now });
+    expect(tvDevice.secure.data.get(pinKey)).toBe(removed);
+    expect(changes).toEqual([true]);
+
+    const set = JSON.stringify({ salt: 's', hash: 'new', changedAt: '2026-10-17T11:30:00.000Z' });
+    tvDevice.secure.data.set(pinKey, set);
+    await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice), now: () => now })).resolves.toMatchObject({ changed: true });
+    expect(phone.secure.data.get(pinKey)).toBe(set);
   });
 
   it('a title added again after its removal comes back', () => {
