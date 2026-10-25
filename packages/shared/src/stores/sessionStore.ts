@@ -34,6 +34,8 @@ export interface SessionState {
    * of JSON), so the network works and the provider is down (DECISIONS.md#d-227).
    */
   providerDown: boolean;
+  /** With `providerDown`: the words of the page the provider sent instead of data, if any (DECISIONS.md#d-230). */
+  providerReply: string | null;
   /** Last time login or restore reached the provider. Gates downloads (D-050). */
   lastOnlineAt: string | null;
 
@@ -58,7 +60,7 @@ export interface SessionState {
 
 const signedOut = (): Pick<
   SessionState,
-  'token' | 'account' | 'profiles' | 'activeProfileId' | 'offline' | 'providerDown' | 'lastOnlineAt'
+  'token' | 'account' | 'profiles' | 'activeProfileId' | 'offline' | 'providerDown' | 'providerReply' | 'lastOnlineAt'
 > => ({
   token: null,
   account: null,
@@ -66,6 +68,7 @@ const signedOut = (): Pick<
   activeProfileId: null,
   offline: false,
   providerDown: false,
+  providerReply: null,
   lastOnlineAt: null,
 });
 
@@ -117,7 +120,13 @@ export function createSessionStore({
         const snapshot = keepProfile ? saved : { ...saved, activeProfileId: onlyProfile(saved.profiles) };
 
         // Sessions saved before D-050 start their offline window now.
-        set({ ...snapshot, lastOnlineAt: snapshot.lastOnlineAt ?? now().toISOString(), offline: false, providerDown: false });
+        set({
+          ...snapshot,
+          lastOnlineAt: snapshot.lastOnlineAt ?? now().toISOString(),
+          offline: false,
+          providerDown: false,
+          providerReply: null,
+        });
         try {
           const [account, profiles] = await Promise.all([api.auth.me(), api.profiles.list()]);
           const activeProfileId = keepProfile
@@ -135,7 +144,13 @@ export function createSessionStore({
             await storage.removeItem(SESSION_STORAGE_KEY);
           } else {
             // Status 0: no answer at all (no network, timeout); any other status: the provider answered badly.
-            set({ status: 'authenticated', offline: true, providerDown: apiError.status !== 0, error: apiError });
+            set({
+              status: 'authenticated',
+              offline: true,
+              providerDown: apiError.status !== 0,
+              providerReply: apiError.reply,
+              error: apiError,
+            });
             if (!snapshot.lastOnlineAt) await persist();
           }
         }
@@ -154,6 +169,7 @@ export function createSessionStore({
             activeProfileId,
             offline: false,
             providerDown: false,
+            providerReply: null,
             lastOnlineAt: now().toISOString(),
             busy: false,
           });
@@ -169,7 +185,7 @@ export function createSessionStore({
         set({ busy: true, error: null });
         try {
           const account = await api.auth.updateCredentials(request);
-          set({ account, offline: false, providerDown: false, lastOnlineAt: now().toISOString(), busy: false });
+          set({ account, offline: false, providerDown: false, providerReply: null, lastOnlineAt: now().toISOString(), busy: false });
           await persist();
           return true;
         } catch (error) {

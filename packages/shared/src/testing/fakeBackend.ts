@@ -99,10 +99,15 @@ export function createFakeApi(
     }
     if (response.status === 401 && token) options.onUnauthorized?.();
     const problem = response.headers.get('content-type')?.includes('json')
-      ? ((await response.json().catch(() => null)) as { code?: string; detail?: string; title?: string } | null)
+      ? ((await response.json().catch(() => null)) as { code?: string; detail?: string; title?: string; reply?: string } | null)
       : null;
     const code = problem?.code ?? (response.status === 401 ? 'unauthorized' : response.status === 404 ? 'not_found' : 'http_error');
-    throw new ApiError(response.status, code, problem?.detail ?? problem?.title ?? `${method} ${path} failed with HTTP ${response.status}`);
+    throw new ApiError(
+      response.status,
+      code,
+      problem?.detail ?? problem?.title ?? `${method} ${path} failed with HTTP ${response.status}`,
+      problem?.reply ?? null,
+    );
   };
   const get = <T>(path: string, query?: Query) => request<T>('GET', path, { query });
   const id = encodeURIComponent;

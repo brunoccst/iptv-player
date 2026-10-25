@@ -135,6 +135,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-227](#d-227) | "Provider unavailable" apart from "offline" |
 | [D-228](#d-228) | Changing the provider sign-in keeps the account |
 | [D-229](#d-229) | Joined lists and the parental PIN sync by date |
+| [D-230](#d-230) | Offline warning on every page, with the provider's own words |
 
 ## Merged and retired IDs
 
@@ -1417,3 +1418,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The parental PIN (D-054) now carries when it was set (`changedAt` in its saved value), and removing it keeps only that date instead of deleting the value. The automatic sync (D-186) carries it, and pairing (D-060) uses the same rule (`newerPin`): the later set or removal wins on both devices. An undated PIN (set before) only goes to a device that never had one, as pairing did, so an older PIN never replaces another. This replaces D-060's "an existing PIN stays": a PIN changed or removed on one device now reaches the others, which is what a parent changing it expects. Only the salted hash travels, sealed like the rest.
 - After a sync or pairing the app reads the PIN again (`pin.refresh`, from `refreshMedia` and `reload`).
 - Still undated: the automatic-subtitles settings, which move only with a QR scan and are set once. Every date comes from the clock of the device that made the change.
+
+## D-230
+
+**Offline warning on every page, with the provider's own words** — 2026-10-25
+
+- Offline or with the provider down (D-227), the app opens on My Downloads, which never had the library banner, so the reason was missing there. The warning is now its own banner (`ConnectionBanner`) at the bottom of every page but the player (and the TV's details panel), with a warning icon in the warning colour (an alert for the provider, the offline icon for no network). The library banner stays away while it shows, so the two never stack.
+- A provider that is down often answers with a short HTML page ("Error. Page cannot be displayed. Please contact your service provider for more details."). Its words, without tags, scripts and styles and at most 300 characters (`pageText` in `xtream.ts`), travel on the `ApiError` (`reply`) to the session (`providerReply`) and show under the warning as "Your provider says: …", with a pointer to the account menu → IPTV account (D-228) for a provider that moved. The log shows the same words instead of the raw HTML.
+- The app does not guess what the page means: panels word it differently (the same page is shown for a blocked address, a moved endpoint or a server off), so the provider's own words are shown as they are.

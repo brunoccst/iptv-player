@@ -3,6 +3,7 @@ import { ActivityIndicator, Platform, StyleSheet, Text, View, type ViewStyle } f
 import { describeLibraryProgress, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { FocusButton } from './ui/FocusButton';
+import { Icon } from './ui/Icon';
 import { IconButton } from './ui/IconButton';
 import { colors, fonts, radius, useSizes } from './ui/theme';
 
@@ -12,32 +13,25 @@ const floating = (web ? { position: 'fixed' } : { position: 'absolute' }) as unk
 const role = web ? { role: 'status' as const } : { accessibilityRole: 'alert' as const };
 
 /**
- * The offline (or provider unavailable) notice or "organizing your library" with per-kind progress, floating at the bottom of Home and the
- * Movies/Series pages (D-119), the same on every app (issue #237, DECISIONS.md#d-215). The app watches the library and
- * says whether it is `processing`. `onRefresh`: the desktop also says when the library is empty, with Refresh library.
+ * "Organizing your library" with per-kind progress, floating at the bottom of Home and the Movies/Series pages (D-119),
+ * the same on every app (issue #237, DECISIONS.md#d-215). The app watches the library and says whether it is
+ * `processing`. `onRefresh`: the desktop also says when the library is empty, with Refresh library. Offline, the
+ * `ConnectionBanner` says so instead, on every page.
  */
 export function LibraryBanner({ processing, onRefresh }: { processing: boolean; onRefresh?: (() => void) | null }) {
   const { hooks } = useScreenHost();
   const offline = hooks.useSession((s) => s.offline);
-  const providerDown = hooks.useSession((s) => s.providerDown);
   const progress = describeLibraryProgress(hooks.useLibrary((s) => s.status.data));
   const { gutter } = useSizes();
-  if (!offline && !processing && !onRefresh) return null;
+  if (offline || (!processing && !onRefresh)) return null;
   return (
     <View
       style={[styles.banner, floating, { left: gutter, right: gutter }]}
       testID="library-processing"
-      pointerEvents={onRefresh && !offline && !processing ? 'box-none' : 'none'}
+      pointerEvents={onRefresh && !processing ? 'box-none' : 'none'}
       {...role}
     >
-      {offline ? (
-        <Text style={styles.text}>
-          {providerDown
-            ? // The provider answered, but not with its API: the network works (DECISIONS.md#d-227).
-              t('Your IPTV provider is unavailable right now. Downloaded titles are available in My Downloads.')
-            : t("You're offline. Downloaded titles are available in My Downloads.")}
-        </Text>
-      ) : processing ? (
+      {processing ? (
         <>
           <View style={styles.line}>
             <ActivityIndicator size="small" color={colors.accent} />
@@ -55,6 +49,45 @@ export function LibraryBanner({ processing, onRefresh }: { processing: boolean; 
           <FocusButton label={t('Refresh library')} onPress={onRefresh!} />
         </View>
       )}
+    </View>
+  );
+}
+
+/**
+ * Offline, or the provider down (DECISIONS.md#d-227, DECISIONS.md#d-230): a warning with an icon at the bottom of every
+ * page but the player, My Downloads included, where the app goes when it opens offline. When the provider sent a page
+ * instead of data, its words follow, so one can tell a server that is down from an address that changed.
+ */
+export function ConnectionBanner() {
+  const { hooks } = useScreenHost();
+  const offline = hooks.useSession((s) => s.offline);
+  const providerDown = hooks.useSession((s) => s.providerDown);
+  const reply = hooks.useSession((s) => s.providerReply);
+  const { gutter } = useSizes();
+  if (!offline) return null;
+  return (
+    <View
+      style={[styles.banner, styles.warning, floating, { left: gutter, right: gutter }]}
+      testID="connection-banner"
+      pointerEvents="none"
+      {...role}
+    >
+      <View style={styles.line}>
+        <Icon name={providerDown ? 'alert' : 'offline'} size={22} color={colors.warning} />
+        <Text style={styles.text}>
+          {providerDown
+            ? t('Your IPTV provider is unavailable right now. Downloaded titles are available in My Downloads.')
+            : t("You're offline. Downloaded titles are available in My Downloads.")}
+        </Text>
+      </View>
+      {providerDown && reply ? (
+        <Text style={styles.detail} testID="connection-banner-reply">
+          {t('Your provider says: "{reply}"', { reply })}
+        </Text>
+      ) : null}
+      {providerDown ? (
+        <Text style={styles.detail}>{t('If your provider gave you a new address, change it in the account menu → IPTV account.')}</Text>
+      ) : null}
     </View>
   );
 }
@@ -102,6 +135,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(20,20,20,0.95)',
     gap: 4,
   },
+  // The warning colour on the edge, like the icon.
+  warning: { borderColor: colors.warning, zIndex: 55 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 60 },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   text: { color: colors.text, fontSize: 14.4, flexShrink: 1 },

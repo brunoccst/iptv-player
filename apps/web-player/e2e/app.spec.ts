@@ -229,7 +229,8 @@ test('downloads are encrypted in-app and play offline, even after reload', async
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'My Downloads' })).toBeVisible();
-  await expect(page.getByText("You're offline")).toBeHidden();
+  // The offline warning shows on My Downloads too, without blocking it (DECISIONS.md#d-230).
+  await expect(page.getByText("You're offline")).toBeVisible();
   await page.getByRole('button', { name: 'Play Big Test Movie' }).click();
   await expectPlaying(page);
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decodeMaybeBase64 } from './base64Text';
-import { createXtreamClient, normalizeServerUrl, type ListPiece, type ListReader, type ListSave } from './xtream';
+import { createXtreamClient, normalizeServerUrl, pageText, type ListPiece, type ListReader, type ListSave } from './xtream';
+import type { ApiError } from '../api/errors';
 
 const credentials = { serverUrl: 'http://panel.test:8080/', username: 'u s', password: 'p&w' };
 
@@ -256,7 +257,7 @@ describe('provider replies', () => {
 
   it('explains what went wrong', async () => {
     await expect(createXtreamClient(credentials, { fetch: reply('<html>Blocked by firewall</html>') }).validate()).rejects.toThrow(
-      `panel.test:8080 sent a reply that is not JSON for 'login': "<html>Blocked by firewall</html>".`,
+      `panel.test:8080 sent a reply that is not JSON for 'login': "Blocked by firewall".`,
     );
     await expect(createXtreamClient(credentials, { fetch: reply('', 512) }).validate()).rejects.toThrow(
       'panel.test:8080 answered HTTP 512',
@@ -268,6 +269,22 @@ describe('provider replies', () => {
     await expect(createXtreamClient(credentials, { fetch: hang, timeoutMs: 10 }).validate()).rejects.toThrow(
       'No answer from panel.test:8080 after 0 s.',
     );
+  });
+
+  it("keeps the words of the provider's error page for the banner (DECISIONS.md#d-230)", async () => {
+    const page =
+      '<div align=center> <h3>Error. Page cannot be displayed. Please contact your service provider for more details.</h3> </div>';
+    const error = (await createXtreamClient(credentials, { fetch: reply(page) })
+      .validate()
+      .catch((caught: unknown) => caught)) as ApiError;
+    expect(error.reply).toBe('Error. Page cannot be displayed. Please contact your service provider for more details.');
+    expect(error.message).toContain('"Error. Page cannot be displayed. Please contact your service provider for more details."');
+    expect(pageText('<html><head><style>p{}</style><script>x()</script></head><body><p>Moved&nbsp;to &lt;new&gt; &#8211; bye</p>')).toBe(
+      'Moved to <new> – bye',
+    );
+    expect(pageText('{"user_info":')).toBeNull();
+    expect(pageText('<html><body> </body></html>')).toBeNull();
+    expect(pageText(`<p>${'x'.repeat(500)}</p>`)).toHaveLength(300);
   });
 
   it('tells a provider that answers badly (502) from no answer at all (0), DECISIONS.md#d-227', async () => {
@@ -327,7 +344,7 @@ describe('big lists are read one entry at a time (D-115, #109)', () => {
 
   it('explains a list that is not JSON', async () => {
     await expect(createXtreamClient(credentials, { fetch: chunked('<html>max connections</html>') }).movies()).rejects.toThrow(
-      `panel.test:8080 sent a reply that is not JSON for 'get_vod_streams': "<html>max connections</html>".`,
+      `panel.test:8080 sent a reply that is not JSON for 'get_vod_streams': "max connections".`,
     );
   });
 });
@@ -392,7 +409,7 @@ describe('lists read by native code (D-115)', () => {
   it('gives the usual messages, and always frees the download', async () => {
     const client = (native: ReturnType<typeof nativeReader>) => createXtreamClient(credentials, { listReader: native.reader }).movies();
     const html = nativeReader([{ kind: 'whole', text: '<html>max connections</html>', chars: 28 }]);
-    await expect(client(html)).rejects.toThrow(`sent a reply that is not JSON for 'get_vod_streams': "<html>max connections</html>".`);
+    await expect(client(html)).rejects.toThrow(`sent a reply that is not JSON for 'get_vod_streams': "max connections".`);
     const cut = nativeReader([
       { kind: 'batch', text: '{"stream_id":1,"name":"A"}' },
       { kind: 'incomplete', text: '{"stream_id":2', chars: 50 },
