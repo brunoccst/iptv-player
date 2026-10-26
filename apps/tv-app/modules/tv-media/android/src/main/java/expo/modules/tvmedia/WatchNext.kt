@@ -10,7 +10,7 @@ import android.os.Build
 import org.json.JSONObject
 
 /**
- * The home screen's "Continue watching" row on Android TV and Google TV (Watch Next, DECISIONS.md#d-147). JS decides
+ * The Android TV home screen's "Play Next" row (Watch Next, DECISIONS.md#d-147; the Google TV home ignores it). JS decides
  * what to insert, update and remove (src/tv/watchNext.ts); this reads and writes the app's own rows. A row opens the
  * app with `EXTRA_ID`, which JS takes with `takeOpen` (cold start) or the `onWatchNextOpen` event (app running).
  *
