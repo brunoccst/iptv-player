@@ -136,6 +136,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-228](#d-228) | Changing the provider sign-in keeps the account |
 | [D-229](#d-229) | Joined lists and the parental PIN sync by date |
 | [D-230](#d-230) | Offline warning on every page, with the provider's own words |
+| [D-231](#d-231) | Long dialog lists take the room left, not a shrunk size |
 
 ## Merged and retired IDs
 
@@ -1426,3 +1427,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Offline or with the provider down (D-227), the app opens on My Downloads, which never had the library banner, so the reason was missing there. The warning is now its own banner (`ConnectionBanner`) at the bottom of every page but the player (and the TV's details panel), with a warning icon in the warning colour (an alert for the provider, the offline icon for no network). The library banner stays away while it shows, so the two never stack.
 - A provider that is down often answers with a short HTML page ("Error. Page cannot be displayed. Please contact your service provider for more details."). Its words, without tags, scripts and styles and at most 300 characters (`pageText` in `xtream.ts`), travel on the `ApiError` (`reply`) to the session (`providerReply`) and show under the warning as "Your provider says: …", with a pointer to the account menu → IPTV account (D-228) for a provider that moved. The log shows the same words instead of the raw HTML.
 - The app does not guess what the page means: panels word it differently (the same page is shown for a blocked address, a moved endpoint or a server off), so the provider's own words are shown as they are.
+
+## D-231
+
+**Long dialog lists take the room left, not a shrunk size** — 2026-10-26
+
+- Categories shown and a Kids profile's categories put a scrolling list between fixed parts (title, sections, hint) and Save. The list was sized to its content and left to shrink inside the panel's `maxHeight: 92%`; on the Android TV it did not shrink, so the rows ran past the panel's bottom and Save was off screen.
+- These dialogs now pass `tall` to `Dialog`: the panel gets a fixed height (92% of the window, less the scrim's padding) and the list `flex: 1`, so it takes exactly the room the fixed parts leave and scrolls there, on every app. The panel no longer changes height with the section or the number of categories. Save and the other buttons sit below the list at the right, always in view.

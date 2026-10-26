@@ -16,6 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
+- **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.
 - **Why the provider is not answering** (2026-10-25, D-230): when your provider is down or offline, a warning with an icon now shows on every page except the player, My Downloads included. If the provider sent an error page, the warning quotes what it says, so you can tell a server that is down from one that moved, and points to the account menu → IPTV account to enter a new address.
 - **Sync keeps your latest change everywhere** (2026-10-25, D-229): marking a series not watched, cancelling a guide reminder or setting, changing or removing the parental PIN now reaches your other devices instead of being undone by them, and recently watched channels show the one you watched last first, on any device.
 - **Edit your IPTV account** (2026-10-25, D-228): the account menu now has IPTV account, showing your provider's server, username and password (hidden until you press Show). Change them there when your provider moves or your password changes, without signing out: profiles, My List and progress stay, and your other devices get the change with the next sync.
@@ -135,6 +136,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
+- **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.
 - **Why the provider is not answering** (2026-10-25, D-230): when your provider is down or offline, a warning with an icon now shows on every page except the player, My Downloads included. If the provider sent an error page, the warning quotes what it says, so you can tell a server that is down from one that moved, and points to the account menu → IPTV account to enter a new address.
 - **Sync keeps your latest change everywhere** (2026-10-25, D-229): marking a series not watched, cancelling a guide reminder or setting, changing or removing the parental PIN now reaches your other devices instead of being undone by them, and recently watched channels show the one you watched last first, on any device.
 - **Edit your IPTV account** (2026-10-25, D-228): the account menu now has IPTV account, showing your provider's server, username and password (hidden until you press Show). Change them there when your provider moves or your password changes, without signing out: profiles, My List and progress stay, and your other devices get the change with the next sync.
