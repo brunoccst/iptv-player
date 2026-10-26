@@ -926,7 +926,7 @@ A title whose versions all have a cinema source tag (`LOW_SOURCES`: SCR, TC, TS,
 
 **Continue watching on the TV home screen (Watch Next)** — 2026-10-06 (issue #165)
 
-- The active profile's Continue Watching (movies and episodes, up to 10, with position, length, last watched and cover) is published through Android's Watch Next API (`TvContract.WatchNextPrograms`): no library, Play services or Google sign-up, works on Android TV and Google TV and with an APK from GitHub. The Engage SDK can come later.
+- The active profile's Continue Watching (movies and episodes, up to 10, with position, length, last watched and cover) is published through Android's Watch Next API (`TvContract.WatchNextPrograms`): no library, Play services or Google sign-up, and works with an APK from GitHub. The Android TV home shows it ("Play Next"); the Google TV home (Chromecast with Google TV) does not: its "Continue watching" row takes only apps Google onboards to its Engage SDK (issue #320).
 - JavaScript plans the inserts, updates and removals (`tv/watchNext.ts`, `watchNextPlan`); native code reads and writes only the app's rows (`WatchNext.kt`), without a selection (the provider refuses one from apps without `ACCESS_ALL_EPG_DATA`).
 - Synced 10 s after progress changes. The system row is not per profile: another profile replaces it; the profile picker and sign-out empty it. A row removed on the home screen stays away until the title is watched again.
 - Choosing an entry opens the app with its id (profile, kind, item); once that profile is picked, the title plays over its details. Another profile's title, or one no longer resumable, opens Home.
