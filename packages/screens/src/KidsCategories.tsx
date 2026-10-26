@@ -20,7 +20,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
   );
 
   return (
-    <Dialog title={t('Categories for {name}', { name })} onClose={onClose} testID="kids-categories" width={520}>
+    <Dialog title={t('Categories for {name}', { name })} onClose={onClose} testID="kids-categories" width={520} tall>
       <FocusRow style={styles.sections}>
         {CATEGORY_SECTIONS.map((s) => (
           <Chip
@@ -65,7 +65,8 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
 const styles = StyleSheet.create({
   sections: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hint: { color: colors.muted, fontSize: fonts.small },
-  list: { flexGrow: 0, flexShrink: 1 },
+  // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
+  list: { flex: 1 },
   listContent: { gap: 2 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 },
 });

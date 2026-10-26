@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { colors, fonts } from './theme';
 
 /** Dialogs open now, last on top: on the desktop Escape closes only the top one. */
@@ -8,7 +8,8 @@ const open: object[] = [];
 /**
  * A dialog over the screen: a panel on a dark scrim with its title, closed by Back on TV and phone. On the desktop
  * Escape closes it from a window listener in the capture phase (React Native Web's text fields keep their key presses,
- * D-200), and only the top dialog closes (D-204).
+ * D-200), and only the top dialog closes (D-204). `tall`: the panel takes 92% of the window's height, for a dialog whose
+ * long list scrolls with `flex: 1` between fixed parts (DECISIONS.md#d-231).
  */
 export function Dialog({
   title,
@@ -16,6 +17,7 @@ export function Dialog({
   onClose,
   testID,
   width = 560,
+  tall,
   children,
 }: {
   title: string;
@@ -24,6 +26,7 @@ export function Dialog({
   onClose(): void;
   testID?: string;
   width?: number;
+  tall?: boolean;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -41,11 +44,17 @@ export function Dialog({
       open.splice(open.indexOf(token), 1);
     };
   }, [onClose]);
+  const { height } = useWindowDimensions();
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
-        <View style={[styles.panel, { width }]} testID={testID} role="dialog" accessibilityLabel={label}>
+        <View
+          style={[styles.panel, { width }, tall && { height: Math.round((height - 32) * 0.92) }]}
+          testID={testID}
+          role="dialog"
+          accessibilityLabel={label}
+        >
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>

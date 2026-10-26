@@ -658,6 +658,25 @@ test('Categories shown: an unchecked category leaves browsing, but search still 
   await expect(grid.getByRole('button', { name: 'Matroska Only' })).toBeVisible();
 });
 
+test('short window: the categories list scrolls inside Categories shown and Save stays in view (D-231)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 360 });
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Categories shown' }).click();
+  const dialog = page.getByRole('dialog', { name: /^Categories shown/ });
+  await expect(dialog.getByRole('checkbox', { name: 'Select all' })).toBeVisible();
+  const panel = (await dialog.boundingBox())!;
+  const save = (await dialog.getByRole('button', { name: 'Save' }).boundingBox())!;
+  expect(panel.y + panel.height).toBeLessThanOrEqual(360);
+  expect(save.y + save.height).toBeLessThanOrEqual(panel.y + panel.height);
+  // At the right of the panel.
+  expect(save.x).toBeGreaterThan(panel.x + panel.width / 2);
+  // The last category is below the list's visible part, not over Save.
+  const last = (await dialog.getByRole('checkbox').last().boundingBox())!;
+  expect(last.y).toBeGreaterThan(save.y);
+  await expect(dialog.getByRole('checkbox').last()).not.toBeInViewport();
+});
+
 test('narrow window: details icon buttons that do not fit wrap under the other icons, not under Play (D-183)', async ({ page }) => {
   await page.setViewportSize({ width: 340, height: 800 });
   await page.getByRole('button', { name: 'Big Test Movie' }).first().click();

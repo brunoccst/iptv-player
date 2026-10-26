@@ -23,6 +23,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       title={profileName ? t('Categories shown to {name}', { name: profileName }) : t('Categories shown')}
       onClose={onClose}
       testID="hidden-categories"
+      tall
     >
       <FocusRow style={styles.sections}>
         {CATEGORY_SECTIONS.map((s) => (
@@ -76,6 +77,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
 const styles = StyleSheet.create({
   sections: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hint: { color: colors.muted, fontSize: fonts.small },
-  list: { flexGrow: 0, flexShrink: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
+  list: { flex: 1 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 },
 });
