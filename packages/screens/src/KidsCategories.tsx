@@ -4,6 +4,7 @@ import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
 import { CheckRow } from './ui/CheckRow';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
 import { FocusButton } from './ui/FocusButton';
 import { FocusRow } from './ui/FocusRow';
@@ -53,11 +54,9 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
-      <FocusRow style={styles.actions}>
-        <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="kids-categories-save" />
+      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="kids-categories-save">
         <FocusButton label={t('Automatic')} variant="ghost" disabled={!chosen} onPress={automatic} testID="kids-categories-automatic" />
-        <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-      </FocusRow>
+      </DialogActions>
     </Dialog>
   );
 }
@@ -68,5 +67,4 @@ const styles = StyleSheet.create({
   // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
   list: { flex: 1 },
   listContent: { gap: 2 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 },
 });

@@ -3,6 +3,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BackupFailure, backupMessage, exportUserData, importUserData, MIN_BACKUP_PASSWORD, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
 import { Field } from './ui/Field';
 import { FocusButton } from './ui/FocusButton';
@@ -92,14 +93,13 @@ function BackupSection({ heading, onClose }: { heading: boolean; onClose(): void
           <Field label={t('Repeat the password')} value={confirm} onChange={setConfirm} secure testID="backup-confirm" />
           {mismatch ? <ErrorText>{t('The two passwords do not match.')}</ErrorText> : null}
           {error ? <ErrorText>{error}</ErrorText> : null}
-          <FocusButton
-            label={busy ? t('Encrypting…') : t('Save backup file')}
-            variant="primary"
-            disabled={busy || mismatch || !confirm}
-            testID="backup-save"
-            onPress={() => void save()}
+          <DialogActions
+            onSave={() => void save()}
+            onCancel={heading ? undefined : onClose}
+            saveLabel={busy ? t('Encrypting…') : t('Save backup file')}
+            saveDisabled={busy || mismatch || !confirm}
+            saveTestID="backup-save"
           />
-          {heading ? null : <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />}
         </>
       )}
     </View>
@@ -157,14 +157,13 @@ function RestoreSection({ heading, onClose }: { heading: boolean; onClose(): voi
       />
       <Field label={t('Backup password')} value={password} onChange={setPassword} secure testID="restore-password" />
       {error ? <ErrorText>{error}</ErrorText> : null}
-      <FocusButton
-        label={busy ? t('Restoring…') : t('Restore backup')}
-        variant="primary"
-        disabled={busy || !file || !password}
-        testID="restore-submit"
-        onPress={() => void restore()}
+      <DialogActions
+        onSave={() => void restore()}
+        onCancel={heading ? undefined : onClose}
+        saveLabel={busy ? t('Restoring…') : t('Restore backup')}
+        saveDisabled={busy || !file || !password}
+        saveTestID="restore-submit"
       />
-      {heading ? null : <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />}
     </View>
   );
 }

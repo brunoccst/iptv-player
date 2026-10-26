@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { ErrorText, errorText } from './ui/Feedback';
 import { Field } from './ui/Field';
 import { FocusButton } from './ui/FocusButton';
@@ -83,16 +84,14 @@ export function ProviderAccount({ onClose }: { onClose(): void }) {
         </FocusRow>
         {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
       </ScrollView>
-      <FocusRow style={styles.actions}>
-        <FocusButton
-          label={busy ? t('Checking…') : t('Save')}
-          variant="primary"
-          disabled={busy || !loaded}
-          onPress={() => void save()}
-          testID="provider-account-save"
-        />
-        <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} testID="provider-account-cancel" />
-      </FocusRow>
+      <DialogActions
+        onSave={() => void save()}
+        onCancel={onClose}
+        saveLabel={busy ? t('Checking…') : t('Save')}
+        saveDisabled={busy || !loaded}
+        saveTestID="provider-account-save"
+        cancelTestID="provider-account-cancel"
+      />
     </Dialog>
   );
 }
@@ -102,5 +101,4 @@ const styles = StyleSheet.create({
   text: { color: colors.muted, fontSize: fonts.small },
   password: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   passwordField: { flex: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 });

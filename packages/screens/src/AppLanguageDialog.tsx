@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { t, UI_LANGUAGES, useUiLanguage } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { FocusButton } from './ui/FocusButton';
 import { colors, fonts } from './ui/theme';
 
@@ -30,7 +31,8 @@ export function AppLanguageDialog({ onClose }: { onClose(): void }) {
           />
         ))}
       </ScrollView>
-      <FocusButton label={t('Close')} variant="ghost" onPress={onClose} testID="app-language-close" />
+      {/* Picking a language applies it and closes (DECISIONS.md#d-232): only Cancel, where every dialog has it. */}
+      <DialogActions onCancel={onClose} cancelTestID="app-language-close" />
     </Dialog>
   );
 }

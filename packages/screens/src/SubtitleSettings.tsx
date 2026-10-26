@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { subtitleLanguageNames, t, type SubtitleSettings as Settings } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { Field } from './ui/Field';
 import { FocusButton } from './ui/FocusButton';
 import { FocusRow } from './ui/FocusRow';
@@ -71,10 +72,7 @@ export function SubtitleSettings({ onClose }: { onClose(): void }) {
           })}
         </FocusRow>
       </ScrollView>
-      <FocusRow style={styles.actions}>
-        <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="subtitle-settings-save" />
-        <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-      </FocusRow>
+      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="subtitle-settings-save" />
     </Dialog>
   );
 }
@@ -83,5 +81,4 @@ const styles = StyleSheet.create({
   body: { gap: 12 },
   text: { color: colors.muted, fontSize: fonts.small },
   languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 });

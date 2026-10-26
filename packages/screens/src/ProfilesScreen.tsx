@@ -5,6 +5,7 @@ import { useScreenHost } from './host';
 import { KidsCategories } from './KidsCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinPad';
+import { DialogActions } from './ui/DialogActions';
 import { ErrorText, errorText } from './ui/Feedback';
 import { Field } from './ui/Field';
 import { focus } from './ui/focus';
@@ -207,19 +208,11 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
             />
           ) : null}
           {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
-          <FocusRow style={styles.editorActions}>
-            <FocusButton
-              label={t('Save')}
-              variant="primary"
-              disabled={busy || !name.trim()}
-              onPress={() => void save()}
-              testID="profile-save"
-            />
+          <DialogActions onSave={() => void save()} onCancel={close} saveDisabled={busy || !name.trim()} saveTestID="profile-save">
             {profile ? (
               <FocusButton label={t('Delete Profile')} icon="trash" variant="ghost" disabled={busy} onPress={() => void remove()} />
             ) : null}
-            <FocusButton label={t('Cancel')} variant="ghost" onPress={close} />
-          </FocusRow>
+          </DialogActions>
         </View>
       </ScrollView>
       {languages && profile ? (
@@ -266,5 +259,4 @@ const styles = StyleSheet.create({
   },
   boxChecked: { backgroundColor: colors.strong, borderColor: colors.strong },
   checkLabel: { color: colors.text, fontSize: fonts.body },
-  editorActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 });

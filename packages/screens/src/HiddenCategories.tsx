@@ -4,8 +4,8 @@ import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
 import { CheckRow } from './ui/CheckRow';
 import { Dialog } from './ui/Dialog';
+import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
-import { FocusButton } from './ui/FocusButton';
 import { FocusRow } from './ui/FocusRow';
 import { colors, fonts } from './ui/theme';
 
@@ -66,10 +66,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
-      <FocusRow style={styles.actions}>
-        <FocusButton label={t('Save')} variant="primary" onPress={() => void save()} testID="hidden-categories-save" />
-        <FocusButton label={t('Cancel')} variant="ghost" onPress={onClose} />
-      </FocusRow>
+      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="hidden-categories-save" />
     </Dialog>
   );
 }
@@ -79,5 +76,4 @@ const styles = StyleSheet.create({
   hint: { color: colors.muted, fontSize: fonts.small },
   // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
   list: { flex: 1 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 12 },
 });

@@ -306,7 +306,7 @@ An optional PIN locks leaving a Kids profile and managing profiles (D-054).
 
 ### Content language filter
 
-Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063). The order the languages are ticked in is their priority, shown as a number next to each ("1. English", "2. German"); unticking one moves the later ones up. A title starts with its version in the first of them it has, and the order decides which of equally good versions is "(best)" (D-063, D-087).
+Per profile: only titles with audio or subtitles in the chosen languages, read from the titles' and categories' names (D-063). The choice applies on **Save**; **Cancel** leaves the filter as it was (D-232). The order the languages are ticked in is their priority, shown as a number next to each ("1. English", "2. German"); unticking one moves the later ones up. A title starts with its version in the first of them it has, and the order decides which of equally good versions is "(best)" (D-063, D-087).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
@@ -352,6 +352,12 @@ The avatar at the top right opens it: other profiles, then the groups Profiles, 
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Save and Cancel in dialogs
+
+Every box that changes a setting ends with the same two buttons at its bottom right: **Save** keeps the changes, **Cancel** closes without them, and so do Back and Escape. They stay in view below a long list, which scrolls above them. Some boxes add their own button before Save (Delete Profile, Automatic). Boxes that apply a choice when it is picked (App language, Merge with another title) have only Cancel there (D-232).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ### About
 
 The installed version (MAJOR.MINOR.PATCH, D-070) and the commit and date it was built from; TV and phone also show whether Dolby / DTS audio is included and the Android version, the desktop app which system it is built for. Account menu → App → About.
@@ -388,6 +394,6 @@ Account menu → Close the app ends the app completely, like "Force stop" in the
 
 ### Start with the computer (desktop)
 
-Account menu → App → **Start with the computer** turns it on or off. When on, the app opens in the tray (the menu bar on macOS) when you sign in to the computer, without a window, and closing the window keeps it there instead of quitting. Guide reminders then still show, as a system notification and the dialog, and downloads go on; clicking the notification or the tray icon opens the window, and **Quit** in the tray icon's menu ends the app (issue #309, D-226).
+Account menu → App → **Start with the computer** turns it on or off with **Save** (D-232). When on, the app opens in the tray (the menu bar on macOS) when you sign in to the computer, without a window, and closing the window keeps it there instead of quitting. Guide reminders then still show, as a system notification and the dialog, and downloads go on; clicking the notification or the tray icon opens the window, and **Quit** in the tray icon's menu ends the app (issue #309, D-226).
 
 **Apps:** TV ➖ (the TV app runs while the TV is on; Android TV shows notifications poorly) · Phone ➖ (Android alarms show reminders with the app closed, D-222) · Desktop ✅

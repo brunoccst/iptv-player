@@ -30,4 +30,5 @@ Building blocks of the shared screens, from the TV app (which re-exports them at
 | `ProgressRing.tsx`, `ProgressRing.web.tsx` | Download progress circle: react-native-svg on TV and phone, a plain SVG on the desktop |
 | `RegroupButton.tsx` | Split or merge titles by hand (issue #243): the host's `Menu`, then a picker that finds the title by name (D-203) |
 | `Dialog.tsx` | A dialog over the screen with its title; Back closes it, and on the desktop Escape closes only the top one (D-204) |
+| `DialogActions.tsx` | Save and Cancel at a dialog's bottom right, the same in every dialog that changes something (D-232) |
 | `CheckRow.tsx` | A row with a check box (category lists) |
