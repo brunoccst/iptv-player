@@ -72,7 +72,7 @@ function setup({
   return { store, profilePrefs, seen: () => profilePrefs.getState().prefs.p1?.seasonsSeen };
 }
 
-describe('new seasons of watched series (DECISIONS.md#d-233)', () => {
+describe('new seasons of watched series (DECISIONS.md#d-234)', () => {
   it('only notes a series the first time, then announces a newer season once', async () => {
     const first = setup({ seasons: { en: [1, 2] }, progress: [episode('s1', 1)] });
     await first.store.getState().check('p1');

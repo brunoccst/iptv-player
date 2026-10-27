@@ -24,7 +24,7 @@ const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', '
  * DECISIONS.md#d-225); where neither is dated (set before), the phone's (the scanning or sending device) wins, as
  * pairing always did (D-060). Kids and hidden categories go per section the same way. Watched series, reminders and
  * recent channels go per entry by their own dates (DECISIONS.md#d-229); undated entries are joined. Seasons seen keep the
- * higher of each (DECISIONS.md#d-233).
+ * higher of each (DECISIONS.md#d-234).
  */
 export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: ProfilePrefs | undefined): ProfilePrefs {
   if (!phone) return { ...local };
@@ -58,7 +58,7 @@ export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: Profil
     merged,
     mergeDatedLists(phone, local, now, (reminders) => mergeReminders(reminders, [], now)),
   );
-  // The newest season known of each series (DECISIONS.md#d-233): the higher one, so a season announced on one device is
+  // The newest season known of each series (DECISIONS.md#d-234): the higher one, so a season announced on one device is
   // not announced again on the other.
   if (phone.seasonsSeen || local.seasonsSeen) {
     const seen = { ...local.seasonsSeen };

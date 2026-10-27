@@ -438,7 +438,7 @@ export function createAppHooks({
     },
 
     /**
-     * Watched series with a new season, for the popup Home shows after the quality one (DECISIONS.md#d-233). `dismiss`
+     * Watched series with a new season, for the popup Home shows after the quality one (DECISIONS.md#d-234). `dismiss`
      * once shown.
      */
     useNewSeasons() {

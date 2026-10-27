@@ -237,7 +237,7 @@ function Shell() {
       {route.name === 'details' ? null : <ConnectionBanner />}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
-      {/* New seasons of watched series, after it (DECISIONS.md#d-233). */}
+      {/* New seasons of watched series, after it (DECISIONS.md#d-234). */}
       <NewSeasonsDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
       <ReminderDialog />
     </View>

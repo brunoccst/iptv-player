@@ -78,7 +78,12 @@ function MergePicker({
   const found = host.hooks.useMergeCandidates(section, query, master.id);
   const title = t('Merge with another title');
   return (
-    <Dialog title={title} onClose={onClose} testID="merge-picker">
+    <Dialog
+      title={title}
+      onClose={onClose}
+      testID="merge-picker"
+      actions={<DialogActions onCancel={onClose} cancelTestID="merge-cancel" />}
+    >
       <Text style={styles.line}>{t('The title you pick joins “{title}”, with all its versions.', { title: master.title })}</Text>
       <Field label={t('Title to merge')} value={query} onChange={setQuery} testID="merge-search" compact autoFocus />
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
@@ -97,7 +102,6 @@ function MergePicker({
           ))
         )}
       </ScrollView>
-      <DialogActions onCancel={onClose} cancelTestID="merge-cancel" />
     </Dialog>
   );
 }

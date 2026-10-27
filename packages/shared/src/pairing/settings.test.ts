@@ -11,7 +11,7 @@ describe('settings merged by pairing (D-060)', () => {
     ).toEqual({ appLanguage: 'pt-BR', languages: ['GER'], playback: { subtitles: { off: true } } });
   });
 
-  it('seasons seen keep the higher number of each series (DECISIONS.md#d-233)', () => {
+  it('seasons seen keep the higher number of each series (DECISIONS.md#d-234)', () => {
     expect(mergeProfilePrefs({ seasonsSeen: { a: 3, b: 1 } }, { seasonsSeen: { a: 2, b: 4, c: 1 } }).seasonsSeen).toEqual({
       a: 3,
       b: 4,

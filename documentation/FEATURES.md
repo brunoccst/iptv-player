@@ -280,7 +280,7 @@ When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR,
 
 ### New seasons of watched series
 
-When a series the profile watched (any episode played, or the series marked watched) gets a new season, Home shows a popup: "New seasons" with the series' cover and a line such as "Season 3 is out" ("Seasons 3 to 4 are out" when more came). **More Info** opens the series, **OK** or Back closes it. Several series are listed in one popup. Each new season is shown once per profile, and a season already dismissed on a synced device is not shown again. Only versions in the profile's content languages count, so a new season that exists only in another language is not announced. A series is first noted without a popup, and a profile already watching the newest season is not told about it. The check runs when the app opens or the profile changes and after each library update; the provider's season lists are read again at most every 12 hours. The popup shows on Home only, after the "Better quality on My List" one, never during playback or over details (DECISIONS.md#d-233).
+When a series the profile watched (any episode played, or the series marked watched) gets a new season, Home shows a popup: "New seasons" with the series' cover and a line such as "Season 3 is out" ("Seasons 3 to 4 are out" when more came). **More Info** opens the series, **OK** or Back closes it. Several series are listed in one popup. Each new season is shown once per profile, and a season already dismissed on a synced device is not shown again. Only versions in the profile's content languages count, so a new season that exists only in another language is not announced. A series is first noted without a popup, and a profile already watching the newest season is not told about it. The check runs when the app opens or the profile changes and after each library update; the provider's season lists are read again at most every 12 hours. The popup shows on Home only, after the "Better quality on My List" one, never during playback or over details (DECISIONS.md#d-234).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
@@ -360,7 +360,7 @@ The avatar at the top right opens it: other profiles, then the groups Profiles, 
 
 ### Save and Cancel in dialogs
 
-Every box that changes a setting ends with the same two buttons at its bottom right: **Save** keeps the changes, **Cancel** closes without them, and so do Back and Escape. They stay in view below a long list, which scrolls above them. Some boxes add their own button before Save (Delete Profile, Automatic). Boxes that apply a choice when it is picked (App language, Merge with another title) have only Cancel there (D-232).
+Every box that changes a setting has the same two buttons: **Save** keeps the changes, **Cancel** closes without them, and so do Back and Escape. They stand in a column on the right of the box, Save on top, always in view beside a long list that scrolls on its own. On TV, Right from any row of the list goes to Save, and Left goes back to the row you came from (D-233). On a narrow window (a phone held upright), and in the profile editor and the backup box, they sit at the bottom right instead. Some boxes add their own button (Delete Profile, Automatic). Boxes that apply a choice when it is picked (App language, Merge with another title) have only Cancel there (D-232).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

@@ -36,7 +36,7 @@ export interface AppContext {
     progress: ProgressStore;
     /** "My List" of the active profile (D-055). */
     watchlist: WatchlistStore;
-    /** New seasons of the active profile's watched series (DECISIONS.md#d-233). */
+    /** New seasons of the active profile's watched series (DECISIONS.md#d-234). */
     newSeasons: NewSeasonsStore;
     /** Optional parental PIN (D-054). */
     pin: PinStore;

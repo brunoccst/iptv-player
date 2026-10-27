@@ -42,7 +42,15 @@ export function StartupDialog({ onClose }: { onClose(): void }) {
   };
 
   return (
-    <Dialog title={t('Start with the computer')} onClose={onClose} testID="startup-dialog" width={480}>
+    <Dialog
+      title={t('Start with the computer')}
+      onClose={onClose}
+      testID="startup-dialog"
+      width={480}
+      actions={
+        <DialogActions onSave={save} onCancel={onClose} saveDisabled={on === null} saveTestID="startup-save" cancelTestID="startup-close" />
+      }
+    >
       <Text style={styles.text}>
         {t(
           'The app opens in the tray when you sign in to the computer, and closing the window keeps it there. Guide reminders and downloads go on. Quit from the tray icon.',
@@ -50,7 +58,6 @@ export function StartupDialog({ onClose }: { onClose(): void }) {
       </Text>
       <CheckRow label={t('Start with the computer')} checked={on === true} onPress={toggle} testID="startup-toggle" />
       {failed ? <Text style={styles.error}>{t('The setting could not be changed.')}</Text> : null}
-      <DialogActions onSave={save} onCancel={onClose} saveDisabled={on === null} saveTestID="startup-save" cancelTestID="startup-close" />
     </Dialog>
   );
 }

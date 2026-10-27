@@ -6,7 +6,7 @@ import { FocusButton } from './ui/FocusButton';
 import { colors, fonts } from './ui/theme';
 
 /**
- * Home: series the profile watched that have a new season (DECISIONS.md#d-233). More info opens the series; any choice,
+ * Home: series the profile watched that have a new season (DECISIONS.md#d-234). More info opens the series; any choice,
  * OK or Back marks them all as shown. It waits while "Better quality on My List" is open, so only one popup shows at a
  * time. Every app shows it. `visible`: Home is on screen with nothing over it.
  */

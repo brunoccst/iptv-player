@@ -7,7 +7,7 @@ import { loadSeriesVersions } from '../playback/seriesVersions';
 import type { ProgressStore } from './progressStore';
 import { profileLanguages, type ProfilePrefsStore } from './profilePrefsStore';
 
-/** A series the profile watched that has a season newer than the last one it knew of (DECISIONS.md#d-233). */
+/** A series the profile watched that has a season newer than the last one it knew of (DECISIONS.md#d-234). */
 export interface NewSeason {
   masterId: string;
   title: string;
@@ -69,7 +69,7 @@ async function newestSeason(api: Pick<ApiClient, 'catalog'>, details: MasterDeta
 }
 
 /**
- * New seasons of watched series, for the popup Home shows (DECISIONS.md#d-233). The newest season of each is kept in
+ * New seasons of watched series, for the popup Home shows (DECISIONS.md#d-234). The newest season of each is kept in
  * the profile's preferences (`seasonsSeen`): a series met for the first time is only noted; a newer season later is
  * announced until the popup closes.
  */

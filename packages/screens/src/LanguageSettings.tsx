@@ -17,7 +17,14 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
   // The active profile from the account menu; a given one from the profile editor (e.g. a Kids profile).
   const { title, chosen, toggle, allLanguages, save } = useScreenHost().hooks.useLanguageSettings(profile, onClose);
   return (
-    <Dialog title={title} onClose={onClose} testID="language-settings" width={440} tall>
+    <Dialog
+      title={title}
+      onClose={onClose}
+      testID="language-settings"
+      width={440}
+      tall
+      actions={<DialogActions onSave={save} onCancel={onClose} saveTestID="language-save" cancelTestID="language-cancel" />}
+    >
       <Text style={styles.text}>
         {t(
           'Show only titles in one of these languages: from the title\'s name ("EN - …", "SUB ITA"), else from its category\'s name. Titles in a category without a language are always shown. Each profile has its own choice.',
@@ -50,7 +57,6 @@ export function LanguageSettings({ onClose, profile }: { onClose(): void; profil
           );
         })}
       </ScrollView>
-      <DialogActions onSave={save} onCancel={onClose} saveTestID="language-save" cancelTestID="language-cancel" />
     </Dialog>
   );
 }
