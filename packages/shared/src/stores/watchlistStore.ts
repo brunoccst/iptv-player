@@ -2,7 +2,7 @@ import { createStore } from 'zustand/vanilla';
 import type { ApiClient } from '../api/apiClient';
 import type { ApiError } from '../api/errors';
 import type { LibrarySection, MasterCard, MasterDetails, WatchlistDto } from '../api/types';
-import { lowSourceOf } from '../direct/normalizer/pipeline';
+import { coverQuality, qualityInLanguages, type LanguageScope } from '../profiles/contentLanguages';
 import { emptyResource, toApiError, type Resource } from './resource';
 import { t } from '../i18n/i18n';
 
@@ -15,7 +15,10 @@ export interface WatchlistState {
   load(profileId: string, options?: { force?: boolean; quiet?: boolean }): Promise<void>;
   /** Adds the title when missing, removes it when present. */
   toggle(section: LibrarySection, card: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>): Promise<void>;
-  /** Reads every entry's quality again (after a library update), which may reveal upgrades (DECISIONS.md#d-176). */
+  /**
+   * Reads every entry's quality again (after a library update or a change of the profile's languages), which may reveal
+   * upgrades (DECISIONS.md#d-176).
+   */
   recheckQuality(): Promise<void>;
   /** The upgrades were shown: they are not shown again unless the title turns into a cinema copy once more. */
   dismissUpgrades(entries: WatchlistDto[]): Promise<void>;
@@ -40,38 +43,64 @@ export const watchlistCard = (item: WatchlistDto): MasterCard => ({
   variantCount: item.quality?.variantCount ?? 1,
 });
 
-const qualityOf = (details: MasterDetails): NonNullable<WatchlistDto['quality']> => ({
-  bestQuality: details.bestQuality,
-  lowSource: lowSourceOf(details.variants.map((variant) => variant.source)),
+const qualityOf = (details: MasterDetails, scope: LanguageScope | null): NonNullable<WatchlistDto['quality']> => ({
+  ...coverQuality(details.variants, scope),
   rating: details.rating,
   variantCount: details.variants.length,
+  ...(scope ? { inLanguages: qualityInLanguages(details.variants, scope) } : {}),
 });
+
+/**
+ * The quality an upgrade is judged by (DECISIONS.md#d-235): of the versions in the profile's languages, of all without
+ * languages; null when the title has none in them.
+ */
+const judgedQuality = (item: WatchlistDto) => (item.quality?.inLanguages === undefined ? (item.quality ?? null) : item.quality.inLanguages);
 
 const entryKey = (item: Pick<WatchlistDto, 'section' | 'masterId'>) => `${item.section}:${item.masterId}`;
 
-/**
- * Movies on My List that were seen as cinema copies only (CAM, TS, TC, SCR) and now have a better copy, oldest
- * first (DECISIONS.md#d-176). Any copy without a cinema tag counts as better, as for the cover's badge.
- */
 /** The popup's line for an upgraded title: "Now 1080p, was TS". */
-export const upgradeLine = (item: WatchlistDto): string =>
-  item.quality?.bestQuality
-    ? t('Now {quality}, was {source}', { quality: item.quality.bestQuality, source: item.lowSourceSeen ?? '' })
+export const upgradeLine = (item: WatchlistDto): string => {
+  const best = judgedQuality(item)?.bestQuality;
+  return best
+    ? t('Now {quality}, was {source}', { quality: best, source: item.lowSourceSeen ?? '' })
     : t('Better copy, was {source}', { source: item.lowSourceSeen ?? '' });
+};
 
+/**
+ * Titles on My List that were seen as cinema copies only (CAM, TS, TC, SCR) and now have a better copy, oldest
+ * first (DECISIONS.md#d-176). Any copy without a cinema tag counts as better, as for the cover's badge; with profile
+ * languages, only copies in them (DECISIONS.md#d-235).
+ */
 export const qualityUpgrades = (items: WatchlistDto[] | null): WatchlistDto[] =>
-  (items ?? []).filter((item) => !!item.lowSourceSeen && !!item.quality && !item.quality.lowSource).reverse();
+  (items ?? [])
+    .filter((item) => {
+      const quality = judgedQuality(item);
+      return !!item.lowSourceSeen && !!quality && !quality.lowSource;
+    })
+    .reverse();
 
-export function createWatchlistStore({ api, now = () => new Date().toISOString() }: { api: ApiClient; now?: () => string }) {
+export function createWatchlistStore({
+  api,
+  now = () => new Date().toISOString(),
+  languageScope = () => Promise.resolve(null),
+}: {
+  api: ApiClient;
+  now?: () => string;
+  /** The open profile's languages, which quality tags and upgrades go by (DECISIONS.md#d-235); null for all. */
+  languageScope?: (section: LibrarySection) => Promise<LanguageScope | null>;
+}) {
   return createStore<WatchlistState>()((set, get) => {
     let inFlight: { profileId: string; promise: Promise<void> } | null = null;
     const setData = (data: WatchlistDto[]) => set({ items: { ...get().items, data } });
 
     /** Saves which cinema copy each title is now, so a later better copy can be announced (DECISIONS.md#d-176). */
     const noteLowSources = async (profileId: string) => {
-      const marks = (get().items.data ?? []).filter((item) => item.quality?.lowSource && item.quality.lowSource !== item.lowSourceSeen);
+      const marks = (get().items.data ?? []).filter((item) => {
+        const low = judgedQuality(item)?.lowSource;
+        return low && low !== item.lowSourceSeen;
+      });
       if (marks.length === 0) return;
-      const seen = new Map(marks.map((item) => [entryKey(item), item.quality!.lowSource!]));
+      const seen = new Map(marks.map((item) => [entryKey(item), judgedQuality(item)!.lowSource!]));
       setData(
         (get().items.data ?? []).map((item) => (seen.has(entryKey(item)) ? { ...item, lowSourceSeen: seen.get(entryKey(item)) } : item)),
       );
@@ -91,10 +120,19 @@ export function createWatchlistStore({ api, now = () => new Date().toISOString()
       const missing = (get().items.data ?? []).filter((item) => all || !item.quality);
       if (missing.length === 0) return;
       const found = new Map<string, WatchlistDto['quality']>();
+      const scopes = new Map<LibrarySection, Promise<LanguageScope | null>>();
+      const scopeOf = (section: LibrarySection) => {
+        if (!scopes.has(section))
+          scopes.set(
+            section,
+            languageScope(section).catch(() => null),
+          );
+        return scopes.get(section)!;
+      };
       await Promise.all(
         missing.map((item) =>
-          api.library.get(item.section, item.masterId).then(
-            (details) => found.set(entryKey(item), qualityOf(details)),
+          Promise.all([api.library.get(item.section, item.masterId), scopeOf(item.section)]).then(
+            ([details, scope]) => found.set(entryKey(item), qualityOf(details, scope)),
             // A title gone from the library keeps a plain cover.
             () => undefined,
           ),

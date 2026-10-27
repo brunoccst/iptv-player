@@ -8,6 +8,7 @@ import { lowSourceOf, masterIdText, savedItem, versionsOf, type Master, type Nor
 import { sha1Hex } from './normalizer/sha1';
 import { nameRow, type NameRow } from './nameRow';
 import * as tags from './normalizer/tags';
+import { coverQuality, listLanguageScope, type LanguageScope } from '../profiles/contentLanguages';
 
 export type SqlValue = string | number | null;
 
@@ -172,12 +173,33 @@ const mostCommon = (t: string, column: string) =>
   `(SELECT ${column} FROM ${t}_i x WHERE x.g = i.g AND ${column} IS NOT NULL GROUP BY ${column}
     ORDER BY count(*) DESC, max(score) DESC, min(sid) LIMIT 1)`;
 
-/** A title's (`a`) cinema-copy tag, as `lowSourceOf` (D-141): null unless every item has one; then the least bad. */
-const lowSource = (t: string) => {
+/**
+ * A title's (`a`) cinema-copy tag, as `lowSourceOf` (D-141): null unless every item (`x`) that `own` lets through has
+ * one; then the least bad.
+ */
+const lowSource = (t: string, own = '1') => {
   const low = tags.LOW_SOURCES.map((source) => `'${source}'`).join(', ');
   const rank = tags.LOW_SOURCES.map((source, index) => `WHEN '${source}' THEN ${index}`).join(' ');
-  return `CASE WHEN EXISTS (SELECT 1 FROM ${t}_i x WHERE x.g = a.g AND (x.source IS NULL OR x.source NOT IN (${low}))) THEN NULL
-    ELSE (SELECT source FROM ${t}_i x WHERE x.g = a.g ORDER BY CASE source ${rank} END LIMIT 1) END`;
+  return `CASE WHEN EXISTS (SELECT 1 FROM ${t}_i x WHERE x.g = a.g AND ${own} AND (x.source IS NULL OR x.source NOT IN (${low}))) THEN NULL
+    ELSE (SELECT source FROM ${t}_i x WHERE x.g = a.g AND ${own} ORDER BY CASE source ${rank} END LIMIT 1) END`;
+};
+
+const sqlText = (value: string) => `'${value.replace(/'/g, "''")}'`;
+
+/**
+ * A title's (`a`) cover tags, best quality and cinema copy (D-141), from its items in the list's languages: the
+ * profile's (DECISIONS.md#d-235); from all of them when none is.
+ */
+const coverColumns = (t: string, codes: string[], hinted: string[]) => {
+  if (codes.length === 0) return `a.best, ${lowSource(t)}`;
+  const own = `(${[
+    ...codes.map((code) => `instr(x.langs, ${sqlText(`,${code},`)}) > 0`),
+    ...(hinted.length ? [`(x.langs = '' AND x.cat IN (${hinted.map(sqlText).join(', ')}))`] : []),
+  ].join(' OR ')})`;
+  const has = `EXISTS (SELECT 1 FROM ${t}_i x WHERE x.g = a.g AND ${own})`;
+  return `CASE WHEN ${has} THEN (SELECT quality FROM ${t}_i x WHERE x.g = a.g AND ${own} AND quality IS NOT NULL
+      ORDER BY qrank DESC, score DESC, sid LIMIT 1) ELSE a.best END,
+    CASE WHEN ${has} THEN ${lowSource(t, own)} ELSE ${lowSource(t)} END`;
 };
 
 /** The columns an item is compared on with the last library's (D-135): what the provider sent, as saved. */
@@ -419,14 +441,16 @@ export const languageCodes = (languages: string | null | undefined) => [
   ),
 ];
 
-export const toCard = (master: Master): MasterCard => ({
+/** A title's card; its quality tags from its versions in the list's languages (DECISIONS.md#d-235). */
+export const toCard = (master: Master, scope: LanguageScope | null = null): MasterCard => ({
   id: master.id,
   title: master.title,
   year: master.year,
   posterUrl: master.posterUrl,
   rating: master.rating,
-  bestQuality: master.bestQuality,
-  lowSource: lowSourceOf(master.variants.map((variant) => variant.source)),
+  ...(scope
+    ? coverQuality(master.variants, scope)
+    : { bestQuality: master.bestQuality, lowSource: lowSourceOf(master.variants.map((variant) => variant.source)) }),
   variantCount: master.variants.length,
 });
 
@@ -1146,7 +1170,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const offset = Math.max(0, query.offset ?? 0);
       const limit = Math.min(500, Math.max(1, query.limit ?? 100));
       const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
-      const columns = saved.packed ? 'a.rowid' : `a.id, a.title, a.year, a.poster, a.rating, a.best, a.n, ${lowSource(t)}`;
+      const hintedIds = [...new Set(query.languageCategoryIds ?? [])];
+      const columns = saved.packed ? 'a.rowid' : `a.id, a.title, a.year, a.poster, a.rating, a.n, ${coverColumns(t, codes, hintedIds)}`;
       const [rows, total] = await Promise.all([
         db.query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
         where.length === 0
@@ -1165,8 +1190,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
               saved,
               rows.map((row) => Number(row[0])),
             )
-          ).map(toCard)
-        : rows.map(([id, title, year, poster, rating, best, n, low]): MasterCard => ({
+          ).map((master) => toCard(master, listLanguageScope(codes, hintedIds)))
+        : rows.map(([id, title, year, poster, rating, n, best, low]): MasterCard => ({
             id: String(id),
             title: String(title),
             year: numberOrNull(year),

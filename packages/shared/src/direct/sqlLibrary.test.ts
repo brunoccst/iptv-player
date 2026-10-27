@@ -103,6 +103,45 @@ describe('library in SQLite (D-121)', () => {
     expect(await database.library.status()).toEqual(await memory.library.status());
   }, 30_000);
 
+  it("cover tags go by the list's languages, in memory and in the database (D-235)", async () => {
+    const panel = createFakePanel();
+    const movie = (id: number, name: string, category = '1') => ({
+      stream_id: id,
+      name,
+      category_id: category,
+      container_extension: 'mkv',
+    });
+    panel.movies.splice(
+      0,
+      panel.movies.length,
+      ...([
+        movie(1, 'EN - Heat (1995) HDTS'),
+        movie(2, 'PT - Heat (1995) TS'),
+        movie(3, 'FR - Heat (1995) 1080p'),
+        movie(4, 'Heat (1995) 4K', '9'),
+      ] as unknown as typeof panel.movies),
+    );
+    for (const libraryDb of [undefined, createNodeSqlDatabase()]) {
+      const api = createDirectApiClient({
+        appName: 'Test',
+        secureStorage: createMemoryStorage(),
+        dataStorage: createMemoryStorage(),
+        fetch: panel.fetch,
+        now: () => new Date(panel.nowSeconds * 1000),
+        libraryDb,
+      });
+      await api.auth.login(login);
+      await ready(api);
+      const tags = async (query: LibraryListQuery) =>
+        (await api.library.list('movies', query)).items.map(({ bestQuality, lowSource }) => ({ bestQuality, lowSource }));
+      expect(await tags({})).toEqual([{ bestQuality: '4K', lowSource: null }]);
+      expect(await tags({ language: 'ENG,POR' })).toEqual([{ bestQuality: null, lowSource: 'TS' }]);
+      expect(await tags({ language: 'FRE' })).toEqual([{ bestQuality: '1080p', lowSource: null }]);
+      // A version without a language counts in a category of the chosen ones.
+      expect(await tags({ language: 'ENG', languageCategoryIds: ['9'] })).toEqual([{ bestQuality: '4K', lowSource: null }]);
+    }
+  });
+
   it("another device's splits and merges apply once a sync or backup brings them (issue #267)", async () => {
     const panel = createFakePanel();
     let later = 0;

@@ -41,7 +41,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 |---------|------|
 | [Card menu](FEATURES.md#card-menu) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/hooks.ts`, `packages/screens/src/CardMenu.tsx` |
 | [Watched tag](FEATURES.md#watched-tag) | `packages/shared/src/playback/watched.ts`, `packages/shared/src/playback/rules.ts`, `apps/tv-app/src/components/WatchedTag.tsx` |
-| [Quality tag](FEATURES.md#quality-tag) | `packages/shared/src/hooks.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/normalizer/tags.ts`, `packages/shared/src/stores/watchlistStore.ts` |
+| [Quality tag](FEATURES.md#quality-tag) | `packages/shared/src/hooks.ts`, `packages/shared/src/direct/normalizer/pipeline.ts`, `packages/shared/src/direct/normalizer/tags.ts`, `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/profiles/contentLanguages.ts`, `packages/shared/src/direct/sqlLibrary.ts` |
 
 ## Details
 
@@ -84,7 +84,7 @@ TV and phone are the React Native app in `apps/tv-app` (Android code in `apps/tv
 | Feature | Code |
 |---------|------|
 | [Watchlist](FEATURES.md#watchlist) | `packages/shared/src/stores/watchlistStore.ts`, `packages/screens/src/MyListScreen.tsx`, `packages/screens/src/TitleCard.tsx`, `packages/screens/src/ui/pageFocus.ts`, `apps/tv-app/src/screenHost.tsx`, `apps/web-player/src/features/browse/MyListPage.tsx` |
-| [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/screens/src/QualityUpgradeDialog.tsx` |
+| [Better quality on My List](FEATURES.md#better-quality-on-my-list) | `packages/shared/src/stores/watchlistStore.ts`, `packages/shared/src/profiles/contentLanguages.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/direct/directApiClient.ts`, `packages/screens/src/QualityUpgradeDialog.tsx` |
 | [New seasons of watched series](FEATURES.md#new-seasons-of-watched-series) | `packages/shared/src/stores/newSeasonsStore.ts`, `packages/shared/src/hooks.ts`, `packages/shared/src/pairing/settings.ts`, `packages/screens/src/NewSeasonsDialog.tsx` |
 
 ## Downloads

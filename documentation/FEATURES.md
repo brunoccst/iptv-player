@@ -148,7 +148,7 @@ An eye at the bottom right of the cover, and in details, for watched movies and 
 
 ### Quality tag
 
-At the top left of the cover: "4K" when a version is 4K, or "CAM", "TS", "TC" or "SCR" when every version is a cinema copy, so you know before opening it (D-141).
+At the top left of the cover: "4K" when a version is 4K, or "CAM", "TS", "TC" or "SCR" when every version is a cinema copy, so you know before opening it (D-141). With languages chosen for the profile (Account menu → Language), the tag looks only at the versions in those languages: a title whose English and Portuguese versions are TS still says TS when a French 4K arrives. A title with no version in them is tagged from all its versions (DECISIONS.md#d-235).
 
 Titles on My List (its Home row and its page) carry the same tag: it is read from the library when the list loads.
 
@@ -274,7 +274,7 @@ A title on My List carries a bookmark at the top right of its cover. The details
 
 ### Better quality on My List
 
-When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR, the tag on its cover) and a better copy arrives, Home shows a popup: "Better quality on My List" with the movie's cover and a line such as "Now 1080p, was TS". **Play** starts the best of the better copies, **More Info** opens its details, **OK** or Back closes it. Several movies that got better are listed in one popup. Each upgrade is shown once to the profile whose list has the movie; a movie that turns into a cinema copy again is announced again when it gets better. Any copy without a cinema tag counts as better, as for the cover's tag. The check runs when the app opens and after each library update (the app updates the library in the background once a day). The popup never shows during playback or over details (DECISIONS.md#d-176). A series is announced the same way when every version of it was a cinema copy and a better version arrives; it has **More Info** only, which opens it on the better version (issue #251). A single episode that gets better is not announced: the provider's lists tag versions, not episodes.
+When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR, the tag on its cover) and a better copy arrives, Home shows a popup: "Better quality on My List" with the movie's cover and a line such as "Now 1080p, was TS". **Play** starts the best of the better copies, **More Info** opens its details, **OK** or Back closes it. Several movies that got better are listed in one popup. Each upgrade is shown once to the profile whose list has the movie; a movie that turns into a cinema copy again is announced again when it gets better. Any copy without a cinema tag counts as better, as for the cover's tag. With languages chosen for the profile, only copies in those languages count: a better French copy is not announced while the English and Portuguese ones are still TS, and a title with no copy in them is not announced at all (DECISIONS.md#d-235). The check runs when the app opens and after each library update (the app updates the library in the background once a day). The popup never shows during playback or over details (DECISIONS.md#d-176). A series is announced the same way when every version of it was a cinema copy and a better version arrives; it has **More Info** only, which opens it on the better version (issue #251). A single episode that gets better is not announced: the provider's lists tag versions, not episodes.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

@@ -140,6 +140,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-232](#d-232) | One Save and Cancel footer for every dialog that changes something |
 | [D-233](#d-233) | Save and Cancel in a column on the right of the dialog |
 | [D-234](#d-234) | New seasons of watched series |
+| [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
 
 ## Merged and retired IDs
 
@@ -1464,3 +1465,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The newest season is the highest season with episodes among the title's versions in the profile's content languages (D-063): audio or subtitles in one of them, or, for a version with no language of its own, a category that names none of the others. A season only in another language is not a new season for that profile.
 - Read on profile open and after each library update, one series at a time (each with its versions three at a time, D-066), through the saved series details (12 hours, D-088): no extra requests while those are fresh, and at most one read per version every 12 hours after that. The provider's series list has a last-changed date, but any edit to the series changes it, so it cannot tell a new season apart on its own.
 - Home shows it like D-176's popup, with nothing over Home, and only once that popup is closed, so the two never stack. More info only: the new season starts from the details, where the series opens on the next episode to watch.
+
+## D-235
+
+**Quality tags and upgrades in the profile's languages** — 2026-10-27 (requested by owner)
+
+- With languages chosen for the profile (D-063), the cover's tags (4K, CAM/TS/TC/SCR, D-141) and the better-copy popup (D-176) look only at the versions in them: a version whose audio or subtitles are in one, or one without a language in a category of one (the filter's category hint). A French 4K says nothing to someone who watches in English and Portuguese.
+- Covers: a title with no version in the languages (search can show one) is tagged from all its versions. Library lists compute the tags per list from the `language` and `languageCategoryIds` they are asked with (`coverQuality`; in SQLite, from the items' `langs` and `cat`), so the stored `best` column stays the all-versions one. Details keep every version's tags.
+- My List: `quality.inLanguages` holds the tags of the versions in the languages; null when there are none, and then the title is neither marked nor announced, so a better copy in another language never counts. A changed language choice reads My List again (`recheckQuality`).
+- Without languages, every version counts, as before.

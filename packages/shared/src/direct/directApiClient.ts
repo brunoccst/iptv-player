@@ -13,7 +13,6 @@ import type {
   LiveChannel,
   ProgrammeMatch,
   LoginRequest,
-  MasterCard,
   MasterDetails,
   MediaKind,
   ProfileDto,
@@ -35,6 +34,7 @@ import {
   createSqlGuide,
   createSqlLibrary,
   createSqlLiveChannels,
+  toCard,
   type SavedItems,
   type SqlDatabase,
   type SqlGuide,
@@ -47,10 +47,11 @@ import { reattachTitles, type TitleLookup } from './reattach';
 import { noteRemoval } from './removals';
 import { liveRules, readTitleRules, recordRules, titleRulesKey } from './titleRules';
 import type { NameRow } from './nameRow';
-import { buildMastersInChunks, lowSourceOf, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
+import { buildMastersInChunks, tmdbId, type Master, type NormalizerItem } from './normalizer/pipeline';
 import { sha1Hex } from './normalizer/sha1';
 import { createXtreamClient, normalizeServerUrl, type ListReader, type XtreamAccountInfo, type XtreamClient } from './xtream';
 import { t } from '../i18n/i18n';
+import { listLanguageScope, variantInLanguages } from '../profiles/contentLanguages';
 
 /** The app's `ApiClient`: runs on the device and talks to the provider directly (D-088). */
 export interface DirectApiClientOptions {
@@ -163,13 +164,7 @@ function inLanguages(scope: Master[], languages: string[], categoryIds: string[]
   if (!byKey) languageScopes.set(scope, (byKey = new Map()));
   let result = byKey.get(key);
   if (!result) {
-    result = scope.filter((master) =>
-      master.variants.some(
-        (v) =>
-          languages.some((code) => v.audioLanguages.includes(code) || v.subtitleLanguages.includes(code)) ||
-          (v.audioLanguages.length === 0 && v.subtitleLanguages.length === 0 && v.categoryId !== null && hinted.has(v.categoryId)),
-      ),
-    );
+    result = scope.filter((master) => master.variants.some((v) => variantInLanguages(v, languages, hinted)));
     byKey.set(key, result);
   }
   return result;
@@ -991,17 +986,6 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return masters;
   };
 
-  const toCard = (master: Master): MasterCard => ({
-    id: master.id,
-    title: master.title,
-    year: master.year,
-    posterUrl: master.posterUrl,
-    rating: master.rating,
-    bestQuality: master.bestQuality,
-    lowSource: lowSourceOf(master.variants.map((variant) => variant.source)),
-    variantCount: master.variants.length,
-  });
-
   const toDetails = (master: Master): MasterDetails => {
     const variants = [...master.variants]
       .sort((a, b) => b.qualityScore - a.qualityScore || ordinal(a.label, b.label))
@@ -1812,7 +1796,9 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           );
         const page = {
           total: matches.length,
-          items: matches.slice(offset, offset + clamp(query.limit ?? 100, 1, 500)).map(toCard),
+          items: matches
+            .slice(offset, offset + clamp(query.limit ?? 100, 1, 500))
+            .map((master) => toCard(master, listLanguageScope(languageCodes(query.language), query.languageCategoryIds))),
           sorts: availableSorts(masters),
         };
         if (data && library.data === data && credentials && !saving.has(librarySection(section))) {

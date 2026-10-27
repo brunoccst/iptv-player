@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryLanguages, languageCategoryIds } from './contentLanguages';
+import { categoryLanguages, coverQuality, languageCategoryIds, qualityInLanguages } from './contentLanguages';
 
 describe('content language filter: category hint (D-063)', () => {
   it('reads the language a category name says', () => {
@@ -77,5 +77,32 @@ describe('library lists send the category hint with the content language filter 
       ['GER', '2,3'],
     ]);
     expect(backend.calls.filter((call) => call.url.pathname === '/api/catalog/movies/categories')).toHaveLength(1);
+  });
+});
+
+describe("quality tags in the profile's languages (D-235)", () => {
+  const version = (quality: string | null, source: string | null, audio: string[], categoryId: string | null = null) => ({
+    quality,
+    source,
+    audioLanguages: audio,
+    subtitleLanguages: [],
+    categoryId,
+  });
+  const scope = (languages: string[], categoryIds: string[] = []) => ({ languages, categoryIds: new Set(categoryIds) });
+  const heat = [version('1080p', 'TS', ['ENG']), version('720p', 'TS', ['POR']), version('4K', 'WEB', ['FRE'])];
+
+  it('reads only the versions in the chosen languages', () => {
+    expect(qualityInLanguages(heat, scope(['ENG', 'POR']))).toEqual({ bestQuality: '1080p', lowSource: 'TS' });
+    expect(qualityInLanguages(heat, scope(['FRE']))).toEqual({ bestQuality: '4K', lowSource: null });
+    expect(qualityInLanguages(heat, null)).toEqual({ bestQuality: '4K', lowSource: null });
+  });
+
+  it('counts a version without a language by its category, and says when none is in them', () => {
+    const untagged = [version('1080p', null, [], '7'), version('720p', 'CAM', ['ENG'])];
+    expect(qualityInLanguages(untagged, scope(['ENG'], ['7']))).toEqual({ bestQuality: '1080p', lowSource: null });
+    expect(qualityInLanguages(untagged, scope(['ENG']))).toEqual({ bestQuality: '720p', lowSource: 'CAM' });
+    expect(qualityInLanguages(heat, scope(['GER']))).toBeNull();
+    // A cover falls back to every version.
+    expect(coverQuality(heat, scope(['GER']))).toEqual({ bestQuality: '4K', lowSource: null });
   });
 });
