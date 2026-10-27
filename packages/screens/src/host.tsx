@@ -98,6 +98,7 @@ export interface ScreenHost {
     | 'useRegroup'
     | 'useMergeCandidates'
     | 'useQualityUpgrades'
+    | 'useNewSeasons'
     | 'useKidsCategories'
     | 'useHiddenCategories'
     | 'useLanguageSettings'

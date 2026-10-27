@@ -8,6 +8,7 @@ import { AccountMenu } from './components/AccountMenu';
 import { createPageFocus, PageFocusContext } from './components/pageFocus';
 import { ConnectionBanner, LibraryNotice } from './components/LibraryBanner';
 import { QualityUpgradeDialog } from './components/QualityUpgradeDialog';
+import { NewSeasonsDialog } from './components/NewSeasonsDialog';
 import { ReminderDialog } from './components/ReminderDialog';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
@@ -236,6 +237,8 @@ function Shell() {
       {route.name === 'details' ? null : <ConnectionBanner />}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
+      {/* New seasons of watched series, after it (DECISIONS.md#d-233). */}
+      <NewSeasonsDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
       <ReminderDialog />
     </View>
   );

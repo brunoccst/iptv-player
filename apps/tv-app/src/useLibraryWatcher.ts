@@ -36,6 +36,9 @@ export function useLibraryWatcher(): boolean {
       navStore.getState().bumpLibrary();
       // A better copy of a movie on My List is announced (DECISIONS.md#d-176).
       void stores.watchlist.getState().recheckQuality();
+      // So is a new season of a watched series (DECISIONS.md#d-233).
+      const profileId = stores.session.getState().activeProfileId;
+      if (profileId) void stores.newSeasons.getState().check(profileId);
     }
     wasStale.current = stale;
   }, [stale]);

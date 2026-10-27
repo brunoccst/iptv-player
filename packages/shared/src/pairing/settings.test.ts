@@ -11,6 +11,15 @@ describe('settings merged by pairing (D-060)', () => {
     ).toEqual({ appLanguage: 'pt-BR', languages: ['GER'], playback: { subtitles: { off: true } } });
   });
 
+  it('seasons seen keep the higher number of each series (DECISIONS.md#d-233)', () => {
+    expect(mergeProfilePrefs({ seasonsSeen: { a: 3, b: 1 } }, { seasonsSeen: { a: 2, b: 4, c: 1 } }).seasonsSeen).toEqual({
+      a: 3,
+      b: 4,
+      c: 1,
+    });
+    expect(mergeProfilePrefs({}, { seasonsSeen: { a: 2 } }).seasonsSeen).toEqual({ a: 2 });
+  });
+
   it("languages and the older single language are one choice: the phone's", () => {
     expect(mergeProfilePrefs({ language: 'ENG' }, { languages: ['GER'] })).toEqual({ language: 'ENG' });
     expect(mergeProfilePrefs({ languages: [] }, { languages: ['GER'], language: 'GER' })).toEqual({ languages: [] });
