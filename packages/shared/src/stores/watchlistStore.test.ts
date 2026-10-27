@@ -23,16 +23,16 @@ async function setup(saved: object[] = []) {
   });
   await stores.session.getState().restore();
   stores.session.getState().selectProfile('p1');
-  return { backend, watchlist: stores.watchlist, load: () => stores.watchlist.getState().load('p1') };
+  return { backend, stores, watchlist: stores.watchlist, load: () => stores.watchlist.getState().load('p1') };
 }
 
-const variant = (quality: string | null, source: string | null) => ({
+const variant = (quality: string | null, source: string | null, audioLanguages: string[] = []) => ({
   streamId: `${quality}-${source}`,
   label: quality ?? '',
   quality,
   source,
   rawTitle: '',
-  audioLanguages: [],
+  audioLanguages,
   audioTag: null,
   subtitleLanguages: [],
   isHdr: false,
@@ -157,6 +157,49 @@ describe('watchlist store', () => {
       await settle();
 
       expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['s1']);
+    });
+
+    it("waits for a better copy in the profile's languages (D-233)", async () => {
+      const { backend, stores, watchlist, load } = await setup([entry('movies', 'm1')]);
+      await stores.profilePrefs.getState().update('p1', { languages: ['ENG', 'POR'] });
+      backend.on('POST', '/api/profiles/p1/watchlist/low-sources', { status: 204 });
+      // A French copy was already good: the English and Portuguese ones are what count.
+      backend.on('GET', '/api/library/movies/m1', {
+        body: details('m1', '1080p', [variant('720p', 'TS', ['ENG']), variant('720p', 'TS', ['POR']), variant('1080p', 'WEB', ['FRE'])]),
+      });
+      await load();
+      await settle();
+      expect(lowSourceCalls(backend)).toEqual([[{ section: 'movies', masterId: 'm1', lowSource: 'TS' }]]);
+      expect(watchlistCard(watchlist.getState().items.data![0]!)).toMatchObject({ bestQuality: '720p', lowSource: 'TS' });
+
+      backend.on('GET', '/api/library/movies/m1', {
+        body: details('m1', '4K', [variant('720p', 'TS', ['ENG']), variant('720p', 'TS', ['POR']), variant('4K', 'WEB', ['FRE'])]),
+      });
+      await watchlist.getState().recheckQuality();
+      expect(qualityUpgrades(watchlist.getState().items.data)).toEqual([]);
+
+      backend.on('GET', '/api/library/movies/m1', {
+        body: details('m1', '4K', [variant('1080p', 'WEB', ['ENG']), variant('720p', 'TS', ['POR']), variant('4K', 'WEB', ['FRE'])]),
+      });
+      await watchlist.getState().recheckQuality();
+      const upgrades = qualityUpgrades(watchlist.getState().items.data);
+      expect(upgrades.map((item) => item.masterId)).toEqual(['m1']);
+      expect(upgradeLine(upgrades[0]!)).toBe('Now 1080p, was TS');
+    });
+
+    it('reads My List again when the profile chooses other languages (D-233)', async () => {
+      const { backend, stores, watchlist, load } = await setup([{ ...entry('movies', 'm1'), lowSourceSeen: 'TS' }]);
+      await stores.profilePrefs.getState().update('p1', { languages: ['ENG'] });
+      backend.on('GET', '/api/library/movies/m1', {
+        body: details('m1', '1080p', [variant('720p', 'TS', ['ENG']), variant('1080p', 'WEB', ['FRE'])]),
+      });
+      await load();
+      await settle();
+      expect(qualityUpgrades(watchlist.getState().items.data)).toEqual([]);
+
+      await stores.profilePrefs.getState().update('p1', { languages: ['ENG', 'FRE'] });
+      await settle();
+      expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['m1']);
     });
 
     it('never announces titles already good when added, or titles gone from the library', async () => {

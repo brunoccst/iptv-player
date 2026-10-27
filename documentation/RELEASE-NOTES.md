@@ -16,6 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
+- **Quality tags and upgrades follow your languages** (2026-10-27, D-233): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **Real language names for subtitles and audio** (2026-10-27, D-090): the player's Audio and Subtitles lists showed codes such as "cs", "sv", "zh" or "hbs-hrv" for many tracks. They now show the language's name (Czech, Swedish, Chinese, Croatian…) in the app language, and a track whose file does not say its language reads "Unknown language" instead of "und".
 - **Save and Cancel in every box** (2026-10-26, D-232): every box that changes a setting now ends with Save and Cancel at its bottom right, always in view. The content language filter no longer has Done: its choice applies on Save, and Cancel leaves it as it was.
 - **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.
@@ -138,6 +139,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
+- **Quality tags and upgrades follow your languages** (2026-10-27, D-233): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **Real language names for subtitles and audio** (2026-10-27, D-090): the player's Audio and Subtitles lists showed codes such as "und", "hbs-hrv" or "ms-ind" for some tracks. They now show the language's name (Croatian, Indonesian…) in the app language, and a track whose file does not say its language reads "Unknown language" instead of "und".
 - **Save and Cancel in every box** (2026-10-26, D-232): every box that changes a setting now ends with Save and Cancel at its bottom right, always in view. The content language filter no longer has Done: its choice applies on Save, and Cancel leaves it as it was.
 - **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.

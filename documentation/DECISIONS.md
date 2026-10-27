@@ -138,6 +138,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-230](#d-230) | Offline warning on every page, with the provider's own words |
 | [D-231](#d-231) | Long dialog lists take the room left, not a shrunk size |
 | [D-232](#d-232) | One Save and Cancel footer for every dialog that changes something |
+| [D-233](#d-233) | Quality tags and upgrades in the profile's languages |
 
 ## Merged and retired IDs
 
@@ -1444,3 +1445,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The dialogs ended differently: Save then Cancel at the left, at the right (D-231), Done alone across the width (Content language filter), Close after a change already made (Start with the computer). Bruno asked for one standard.
 - `DialogActions` (`packages/screens/src/ui/DialogActions.tsx`) draws it for every app: Save (primary) then Cancel (ghost), at the bottom right, after the dialog's content, so a `tall` dialog's list scrolls above it (D-231). Other buttons (Delete Profile, Automatic) go before Save. Save keeps the draft; Cancel, Back and Escape drop it.
 - The Content language filter and Start with the computer now keep a draft until Save, like the other settings dialogs. A dialog that applies a pick at once (App language, the merge picker) has only Cancel there; dialogs that show something (About, the log) keep Close.
+
+## D-233
+
+**Quality tags and upgrades in the profile's languages** — 2026-10-27 (requested by owner)
+
+- With languages chosen for the profile (D-063), the cover's tags (4K, CAM/TS/TC/SCR, D-141) and the better-copy popup (D-176) look only at the versions in them: a version whose audio or subtitles are in one, or one without a language in a category of one (the filter's category hint). A French 4K says nothing to someone who watches in English and Portuguese.
+- Covers: a title with no version in the languages (search can show one) is tagged from all its versions. Library lists compute the tags per list from the `language` and `languageCategoryIds` they are asked with (`coverQuality`; in SQLite, from the items' `langs` and `cat`), so the stored `best` column stays the all-versions one. Details keep every version's tags.
+- My List: `quality.inLanguages` holds the tags of the versions in the languages; null when there are none, and then the title is neither marked nor announced, so a better copy in another language never counts. A changed language choice reads My List again (`recheckQuality`).
+- Without languages, every version counts, as before.

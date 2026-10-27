@@ -168,7 +168,16 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
-  const watchlist = createWatchlistStore({ api });
+  // My List's quality tags and better-copy popup go by the profile's languages (DECISIONS.md#d-233).
+  const watchlist = createWatchlistStore({
+    api,
+    languageScope: async (section) => {
+      const languages = profileLanguages(activePrefs());
+      if (languages.length === 0) return null;
+      const categories = await categoriesOf(section).catch(() => []);
+      return { languages, categoryIds: new Set(languageCategoryIds(categories, languages)) };
+    },
+  });
   const pin = createPinStore({ session, storage });
   const uiLanguage = createUiLanguage({ storage: direct.dataStorage, session, profilePrefs, deviceLanguages });
   void uiLanguage.load();
@@ -216,6 +225,19 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   profilePrefs.subscribe(followLanguages);
   session.subscribe(followLanguages);
   i18nStore.subscribe(followLanguages);
+
+  // Other languages for the same profile: My List's tags and upgrades read again (DECISIONS.md#d-233).
+  let listLanguages = `${session.getState().activeProfileId}|${profileLanguages(activePrefs()).join(',')}`;
+  const recheckListLanguages = () => {
+    const profileId = session.getState().activeProfileId;
+    const next = `${profileId}|${profileLanguages(activePrefs()).join(',')}`;
+    if (next === listLanguages) return;
+    const sameProfile = listLanguages.startsWith(`${profileId}|`);
+    listLanguages = next;
+    if (sameProfile) void watchlist.getState().recheckQuality();
+  };
+  profilePrefs.subscribe(recheckListLanguages);
+  session.subscribe(recheckListLanguages);
 
   // Account-scoped caches must not leak into the next login.
   session.subscribe((state, previous) => {

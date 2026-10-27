@@ -1,4 +1,5 @@
-import type { MediaCategory } from '../api/types';
+import type { MediaCategory, VariantInfo } from '../api/types';
+import { lowSourceOf, qualityRank } from '../direct/normalizer/pipeline';
 import * as tags from '../direct/normalizer/tags';
 
 /**
@@ -84,3 +85,53 @@ export function languageCategoryIds(categories: Pick<MediaCategory, 'id' | 'name
     })
     .map((category) => category.id);
 }
+
+/**
+ * A version in one of `languages` (D-063): its audio or subtitles are, or it has neither and its category is one of
+ * `categoryIds` (from `languageCategoryIds`).
+ */
+export const variantInLanguages = (
+  variant: Pick<VariantInfo, 'audioLanguages' | 'subtitleLanguages' | 'categoryId'>,
+  languages: readonly string[],
+  categoryIds: ReadonlySet<string>,
+): boolean =>
+  languages.some((code) => variant.audioLanguages.includes(code) || variant.subtitleLanguages.includes(code)) ||
+  (variant.audioLanguages.length === 0 &&
+    variant.subtitleLanguages.length === 0 &&
+    variant.categoryId !== null &&
+    categoryIds.has(variant.categoryId));
+
+/** The profile's languages and the categories that let versions without a language through (D-063). */
+export interface LanguageScope {
+  languages: readonly string[];
+  categoryIds: ReadonlySet<string>;
+}
+
+type QualityOf = Pick<VariantInfo, 'audioLanguages' | 'subtitleLanguages' | 'categoryId' | 'quality' | 'source'>;
+
+/** The cover's quality tags of these versions: the highest quality, and the cinema-copy tag when all are one (D-141). */
+const qualityTags = (variants: readonly QualityOf[]) => {
+  const qualities = variants.flatMap((variant) => (variant.quality ? [variant.quality] : []));
+  return {
+    bestQuality: qualities.length ? qualities.reduce((best, quality) => (qualityRank(quality) > qualityRank(best) ? quality : best)) : null,
+    lowSource: lowSourceOf(variants.map((variant) => variant.source)),
+  };
+};
+
+/**
+ * The quality tags of the versions in the profile's languages (DECISIONS.md#d-233); null when it has none in them.
+ * Without languages, of every version.
+ */
+export function qualityInLanguages(variants: readonly QualityOf[], scope: LanguageScope | null) {
+  if (!scope || scope.languages.length === 0) return qualityTags(variants);
+  const own = variants.filter((variant) => variantInLanguages(variant, scope.languages, scope.categoryIds));
+  return own.length ? qualityTags(own) : null;
+}
+
+/** A cover's quality tags (DECISIONS.md#d-233): of the versions in the profile's languages, of every one when none is. */
+export const coverQuality = (variants: readonly QualityOf[], scope: LanguageScope | null) =>
+  qualityInLanguages(variants, scope) ?? qualityTags(variants);
+
+/** The scope of a library list's languages (`ENG,GER`) and category hint; null for all languages. */
+export const listLanguageScope = (languages: readonly string[], categoryIds: readonly string[] | null | undefined): LanguageScope | null =>
+  languages.length ? { languages, categoryIds: new Set(categoryIds ?? []) } : null;
