@@ -23,7 +23,7 @@ IPTV player: an Android TV and phone app (`apps/tv-app`, React Native tvOS fork 
 ## Gotchas
 
 - Code comments cite decisions as `DECISIONS.md#d-123`. Look up the one entry by ID; don't read the whole file.
-- TV focus rules: Left/Right never leave the current row (they stop at its ends); only Up/Down change rows. While a modal is open, focus never leaves it. Closing details returns focus to what opened them, or to the first visible card if that is gone.
+- TV focus rules: Left/Right never leave the current row (they stop at its ends); only Up/Down change rows. Exception: in a dialog, Right from its content goes to the Save/Cancel column on its right (D-233). While a modal is open, focus never leaves it. Closing details returns focus to what opened them, or to the first visible card if that is gone.
 - In a plain browser the web player only reaches the fake panel; real providers block web pages, so they work only in the desktop, TV and phone apps.
 - `.env` is committed and public (`APP_*` values end up in the web bundle). Secrets go in `.env.local`.
 - `react-native` is aliased to `react-native-tvos` in the root `package.json`; `.npmrc` needs `legacy-peer-deps=true` for it.

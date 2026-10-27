@@ -671,13 +671,13 @@ test('short window: the categories list scrolls inside Categories shown and Save
   expect(save.y + save.height).toBeLessThanOrEqual(panel.y + panel.height);
   // At the right of the panel.
   expect(save.x).toBeGreaterThan(panel.x + panel.width / 2);
-  // The last category is below the list's visible part, not over Save.
-  const last = (await dialog.getByRole('checkbox').last().boundingBox())!;
-  expect(last.y).toBeGreaterThan(save.y);
-  await expect(dialog.getByRole('checkbox').last()).not.toBeInViewport();
+  // Beside the list (D-233), whose last category is cut off at the bottom of its visible part.
+  const all = (await dialog.getByRole('checkbox', { name: 'Select all' }).boundingBox())!;
+  expect(save.x).toBeGreaterThanOrEqual(all.x + all.width);
+  await expect(dialog.getByRole('checkbox').last()).not.toBeInViewport({ ratio: 1 });
 });
 
-test('short window: the content language filter keeps Save and Cancel in view at the bottom right; Cancel drops the change (D-232)', async ({
+test('short window: the content language filter keeps Save and Cancel in view in a column on the right; Cancel drops the change (D-232, D-233)', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 400 });
@@ -690,7 +690,10 @@ test('short window: the content language filter keeps Save and Cancel in view at
   const cancel = (await dialog.getByRole('button', { name: 'Cancel' }).boundingBox())!;
   expect(save.y + save.height).toBeLessThanOrEqual(panel.y + panel.height);
   expect(save.x).toBeGreaterThan(panel.x + panel.width / 2);
-  expect(cancel.x).toBeGreaterThan(save.x);
+  // Cancel under Save, both right of the list.
+  expect(cancel.y).toBeGreaterThan(save.y);
+  const all = (await dialog.getByRole('button', { name: '✓ All languages' }).boundingBox())!;
+  expect(save.x).toBeGreaterThanOrEqual(all.x + all.width);
   await expect(dialog.getByRole('button', { name: 'Done' })).toHaveCount(0);
 
   await dialog.getByRole('button', { name: 'German' }).click();
