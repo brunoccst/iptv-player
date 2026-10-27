@@ -26,7 +26,13 @@ export function SubtitleSettings({ onClose }: { onClose(): void }) {
   };
 
   return (
-    <Dialog title={t('Automatic subtitles')} onClose={onClose} testID="subtitle-settings" width={640}>
+    <Dialog
+      title={t('Automatic subtitles')}
+      onClose={onClose}
+      testID="subtitle-settings"
+      width={640}
+      actions={<DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="subtitle-settings-save" />}
+    >
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={styles.text}>
           {t(
@@ -72,7 +78,6 @@ export function SubtitleSettings({ onClose }: { onClose(): void }) {
           })}
         </FocusRow>
       </ScrollView>
-      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="subtitle-settings-save" />
     </Dialog>
   );
 }

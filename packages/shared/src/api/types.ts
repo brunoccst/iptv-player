@@ -255,7 +255,7 @@ export interface WatchlistDto {
   year: null | number;
   /**
    * Read from the library when the list loads, not saved: the cover's quality badge (4K, TS…) and versions. The badge
-   * and `inLanguages` come from the versions in the profile's languages (DECISIONS.md#d-233).
+   * and `inLanguages` come from the versions in the profile's languages (DECISIONS.md#d-234).
    */
   quality?: Pick<MasterCard, 'bestQuality' | 'lowSource' | 'rating' | 'variantCount'> & {
     /** The quality tags of the versions in the profile's languages; null when it has none in them; missing without languages. */

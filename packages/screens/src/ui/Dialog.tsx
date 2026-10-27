@@ -1,15 +1,29 @@
-import { useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
+// Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
+import * as ReactNative from 'react-native';
 import { Modal, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { colors, fonts } from './theme';
 
 /** Dialogs open now, last on top: on the desktop Escape closes only the top one. */
 const open: object[] = [];
 
+/** Width of the button column beside a dialog's content (DECISIONS.md#d-233). */
+const ACTIONS_WIDTH = 180;
+const ACTIONS_GAP = 20;
+/** Narrower windows (phones held upright) keep the buttons under the content. */
+const SIDE_MIN_WINDOW = 600;
+
+/** True inside a dialog's button column on the right: `DialogActions` stacks its buttons there. */
+export const DialogSide = createContext(false);
+export const useDialogSide = () => useContext(DialogSide);
+
 /**
  * A dialog over the screen: a panel on a dark scrim with its title, closed by Back on TV and phone. On the desktop
  * Escape closes it from a window listener in the capture phase (React Native Web's text fields keep their key presses,
  * D-200), and only the top dialog closes (D-204). `tall`: the panel takes 92% of the window's height, for a dialog whose
- * long list scrolls with `flex: 1` between fixed parts (DECISIONS.md#d-231).
+ * long list scrolls with `flex: 1` between fixed parts (DECISIONS.md#d-231). `actions` (a `DialogActions`): its buttons,
+ * in a column on the right of the content where the window is wide enough, so Right from any row of a list reaches
+ * Save; under the content on narrow windows (DECISIONS.md#d-233).
  */
 export function Dialog({
   title,
@@ -18,6 +32,7 @@ export function Dialog({
   testID,
   width = 560,
   tall,
+  actions,
   children,
 }: {
   title: string;
@@ -27,6 +42,7 @@ export function Dialog({
   testID?: string;
   width?: number;
   tall?: boolean;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   useEffect(() => {
@@ -44,13 +60,21 @@ export function Dialog({
       open.splice(open.indexOf(token), 1);
     };
   }, [onClose]);
-  const { height } = useWindowDimensions();
+  const { width: windowWidth, height } = useWindowDimensions();
+  const side = !!actions && windowWidth >= SIDE_MIN_WINDOW;
+  // TV: Left from the buttons goes back to the row last focused in the content, not to whichever sits beside Save.
+  const { TVFocusGuideView } = ReactNative;
+  const Content = (Platform.isTV && TVFocusGuideView) || View;
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.scrim}>
         <View
-          style={[styles.panel, { width }, tall && { height: Math.round((height - 32) * 0.92) }]}
+          style={[
+            styles.panel,
+            { width: side ? width + ACTIONS_WIDTH + ACTIONS_GAP : width },
+            tall && { height: Math.round((height - 32) * 0.92) },
+          ]}
           testID={testID}
           role="dialog"
           accessibilityLabel={label}
@@ -58,7 +82,21 @@ export function Dialog({
           <Text style={styles.title} accessibilityRole="header">
             {title}
           </Text>
-          {children}
+          {side ? (
+            <View style={[styles.split, tall && styles.fill]}>
+              <Content {...(Content === View ? {} : { autoFocus: true })} style={styles.content} testID="dialog-content">
+                {children}
+              </Content>
+              <View style={styles.side} testID="dialog-side">
+                <DialogSide.Provider value>{actions}</DialogSide.Provider>
+              </View>
+            </View>
+          ) : (
+            <>
+              {children}
+              {actions}
+            </>
+          )}
         </View>
       </View>
     </Modal>
@@ -78,4 +116,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   title: { color: colors.strong, fontSize: fonts.heading, fontWeight: '700' },
+  // The content and the button column side by side; the content's list scrolls inside its own column.
+  split: { flexDirection: 'row', gap: ACTIONS_GAP, flexShrink: 1, minHeight: 0 },
+  fill: { flex: 1 },
+  content: { flex: 1, gap: 12, minHeight: 0 },
+  side: { width: ACTIONS_WIDTH },
 });

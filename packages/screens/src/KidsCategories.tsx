@@ -21,7 +21,18 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
   );
 
   return (
-    <Dialog title={t('Categories for {name}', { name })} onClose={onClose} testID="kids-categories" width={520} tall>
+    <Dialog
+      title={t('Categories for {name}', { name })}
+      onClose={onClose}
+      testID="kids-categories"
+      width={520}
+      tall
+      actions={
+        <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="kids-categories-save">
+          <FocusButton label={t('Automatic')} variant="ghost" disabled={!chosen} onPress={automatic} testID="kids-categories-automatic" />
+        </DialogActions>
+      }
+    >
       <FocusRow style={styles.sections}>
         {CATEGORY_SECTIONS.map((s) => (
           <Chip
@@ -54,9 +65,6 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
-      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="kids-categories-save">
-        <FocusButton label={t('Automatic')} variant="ghost" disabled={!chosen} onPress={automatic} testID="kids-categories-automatic" />
-      </DialogActions>
     </Dialog>
   );
 }

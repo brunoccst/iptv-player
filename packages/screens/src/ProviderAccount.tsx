@@ -56,7 +56,22 @@ export function ProviderAccount({ onClose }: { onClose(): void }) {
   };
 
   return (
-    <Dialog title={t('IPTV account')} onClose={onClose} testID="provider-account" width={560}>
+    <Dialog
+      title={t('IPTV account')}
+      onClose={onClose}
+      testID="provider-account"
+      width={560}
+      actions={
+        <DialogActions
+          onSave={() => void save()}
+          onCancel={onClose}
+          saveLabel={busy ? t('Checking…') : t('Save')}
+          saveDisabled={busy || !loaded}
+          saveTestID="provider-account-save"
+          cancelTestID="provider-account-cancel"
+        />
+      }
+    >
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={styles.text}>
           {t('The details your IPTV provider gave you. Changes are checked with the provider before they are saved.')}
@@ -84,14 +99,6 @@ export function ProviderAccount({ onClose }: { onClose(): void }) {
         </FocusRow>
         {error ? <ErrorText>{errorText(error)}</ErrorText> : null}
       </ScrollView>
-      <DialogActions
-        onSave={() => void save()}
-        onCancel={onClose}
-        saveLabel={busy ? t('Checking…') : t('Save')}
-        saveDisabled={busy || !loaded}
-        saveTestID="provider-account-save"
-        cancelTestID="provider-account-cancel"
-      />
     </Dialog>
   );
 }

@@ -188,7 +188,7 @@ const sqlText = (value: string) => `'${value.replace(/'/g, "''")}'`;
 
 /**
  * A title's (`a`) cover tags, best quality and cinema copy (D-141), from its items in the list's languages: the
- * profile's (DECISIONS.md#d-233); from all of them when none is.
+ * profile's (DECISIONS.md#d-234); from all of them when none is.
  */
 const coverColumns = (t: string, codes: string[], hinted: string[]) => {
   if (codes.length === 0) return `a.best, ${lowSource(t)}`;
@@ -441,7 +441,7 @@ export const languageCodes = (languages: string | null | undefined) => [
   ),
 ];
 
-/** A title's card; its quality tags from its versions in the list's languages (DECISIONS.md#d-233). */
+/** A title's card; its quality tags from its versions in the list's languages (DECISIONS.md#d-234). */
 export const toCard = (master: Master, scope: LanguageScope | null = null): MasterCard => ({
   id: master.id,
   title: master.title,

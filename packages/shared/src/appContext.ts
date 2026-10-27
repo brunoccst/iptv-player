@@ -168,7 +168,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   const library = createLibraryStore({ api });
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
-  // My List's quality tags and better-copy popup go by the profile's languages (DECISIONS.md#d-233).
+  // My List's quality tags and better-copy popup go by the profile's languages (DECISIONS.md#d-234).
   const watchlist = createWatchlistStore({
     api,
     languageScope: async (section) => {
@@ -226,7 +226,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   session.subscribe(followLanguages);
   i18nStore.subscribe(followLanguages);
 
-  // Other languages for the same profile: My List's tags and upgrades read again (DECISIONS.md#d-233).
+  // Other languages for the same profile: My List's tags and upgrades read again (DECISIONS.md#d-234).
   let listLanguages = `${session.getState().activeProfileId}|${profileLanguages(activePrefs()).join(',')}`;
   const recheckListLanguages = () => {
     const profileId = session.getState().activeProfileId;

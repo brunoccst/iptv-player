@@ -103,7 +103,7 @@ describe('library in SQLite (D-121)', () => {
     expect(await database.library.status()).toEqual(await memory.library.status());
   }, 30_000);
 
-  it("cover tags go by the list's languages, in memory and in the database (D-233)", async () => {
+  it("cover tags go by the list's languages, in memory and in the database (D-234)", async () => {
     const panel = createFakePanel();
     const movie = (id: number, name: string, category = '1') => ({
       stream_id: id,
