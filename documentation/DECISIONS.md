@@ -138,6 +138,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-230](#d-230) | Offline warning on every page, with the provider's own words |
 | [D-231](#d-231) | Long dialog lists take the room left, not a shrunk size |
 | [D-232](#d-232) | One Save and Cancel footer for every dialog that changes something |
+| [D-233](#d-233) | Save and Cancel in a column on the right of the dialog |
 
 ## Merged and retired IDs
 
@@ -1442,5 +1443,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 **One Save and Cancel footer for every dialog that changes something** — 2026-10-26
 
 - The dialogs ended differently: Save then Cancel at the left, at the right (D-231), Done alone across the width (Content language filter), Close after a change already made (Start with the computer). Bruno asked for one standard.
-- `DialogActions` (`packages/screens/src/ui/DialogActions.tsx`) draws it for every app: Save (primary) then Cancel (ghost), at the bottom right, after the dialog's content, so a `tall` dialog's list scrolls above it (D-231). Other buttons (Delete Profile, Automatic) go before Save. Save keeps the draft; Cancel, Back and Escape drop it.
+- `DialogActions` (`packages/screens/src/ui/DialogActions.tsx`) draws it for every app: Save (primary) then Cancel (ghost), at the bottom right (in a column on the right since [D-233](#d-233)), after the dialog's content, so a `tall` dialog's list scrolls above it (D-231). Other buttons (Delete Profile, Automatic) go before Save. Save keeps the draft; Cancel, Back and Escape drop it.
 - The Content language filter and Start with the computer now keep a draft until Save, like the other settings dialogs. A dialog that applies a pick at once (App language, the merge picker) has only Cancel there; dialogs that show something (About, the log) keep Close.
+
+## D-233
+
+**Save and Cancel in a column on the right of the dialog** — 2026-10-27
+
+- With Save and Cancel under a long list (D-232), reaching them on TV meant pressing Down through every row. Bruno asked for them on the right, so Right gets there at once.
+- `Dialog` takes the buttons as `actions` and, on windows at least 600 wide, draws them in a 180-wide column beside the content (the panel grows by that much); `DialogActions` stacks them there: Save, Cancel, then extra buttons. Narrower windows (phones held upright) keep the bottom row, where a column would squeeze the list. The profile editor and the backup box draw their own panels and keep the bottom row.
+- TV: the column is a `TVFocusGuideView` with `autoFocus` that fills the dialog's height, so Right from any row lands in it, on Save the first time and on the last focused button after that; Up/Down stay in it. The content is one too, so Left returns to the row last focused. This is the one place Right leaves a row on purpose (CLAUDE.md focus rules).

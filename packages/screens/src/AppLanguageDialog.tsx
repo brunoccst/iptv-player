@@ -14,7 +14,14 @@ export function AppLanguageDialog({ onClose }: { onClose(): void }) {
   const { signIn } = useScreenHost();
   const current = useUiLanguage();
   return (
-    <Dialog title={t('App language')} onClose={onClose} testID="app-language" width={440}>
+    <Dialog
+      title={t('App language')}
+      onClose={onClose}
+      testID="app-language"
+      width={440}
+      // Picking a language applies it and closes (DECISIONS.md#d-232): only Cancel, where every dialog has it.
+      actions={<DialogActions onCancel={onClose} cancelTestID="app-language-close" />}
+    >
       <Text style={styles.text}>{t('Titles and categories keep the names your provider gives them.')}</Text>
       <ScrollView contentContainerStyle={styles.list}>
         {UI_LANGUAGES.map((language) => (
@@ -31,8 +38,6 @@ export function AppLanguageDialog({ onClose }: { onClose(): void }) {
           />
         ))}
       </ScrollView>
-      {/* Picking a language applies it and closes (DECISIONS.md#d-232): only Cancel, where every dialog has it. */}
-      <DialogActions onCancel={onClose} cancelTestID="app-language-close" />
     </Dialog>
   );
 }

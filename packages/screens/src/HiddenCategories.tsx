@@ -24,6 +24,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       onClose={onClose}
       testID="hidden-categories"
       tall
+      actions={<DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="hidden-categories-save" />}
     >
       <FocusRow style={styles.sections}>
         {CATEGORY_SECTIONS.map((s) => (
@@ -66,7 +67,6 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
-      <DialogActions onSave={() => void save()} onCancel={onClose} saveTestID="hidden-categories-save" />
     </Dialog>
   );
 }
