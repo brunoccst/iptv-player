@@ -677,6 +677,32 @@ test('short window: the categories list scrolls inside Categories shown and Save
   await expect(dialog.getByRole('checkbox').last()).not.toBeInViewport();
 });
 
+test('short window: the content language filter keeps Save and Cancel in view at the bottom right; Cancel drops the change (D-232)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 400 });
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Content language filter' }).click();
+  const dialog = page.getByRole('dialog', { name: /^Content language filter/ });
+  const panel = (await dialog.boundingBox())!;
+  const save = (await dialog.getByRole('button', { name: 'Save' }).boundingBox())!;
+  const cancel = (await dialog.getByRole('button', { name: 'Cancel' }).boundingBox())!;
+  expect(save.y + save.height).toBeLessThanOrEqual(panel.y + panel.height);
+  expect(save.x).toBeGreaterThan(panel.x + panel.width / 2);
+  expect(cancel.x).toBeGreaterThan(save.x);
+  await expect(dialog.getByRole('button', { name: 'Done' })).toHaveCount(0);
+
+  await dialog.getByRole('button', { name: 'German' }).click();
+  await expect(dialog.getByRole('button', { name: '✓ 1. German' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await page.getByRole('menuitem', { name: 'Profiles' }).click();
+  await page.getByRole('menuitem', { name: 'Content language filter' }).click();
+  await expect(dialog.getByRole('button', { name: '✓ All languages' })).toBeVisible();
+});
+
 test('narrow window: details icon buttons that do not fit wrap under the other icons, not under Play (D-183)', async ({ page }) => {
   await page.setViewportSize({ width: 340, height: 800 });
   await page.getByRole('button', { name: 'Big Test Movie' }).first().click();

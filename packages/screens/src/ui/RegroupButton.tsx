@@ -5,6 +5,7 @@ import { useScreenHost, type MenuItem } from '../host';
 import { CardMenu } from '../CardMenu';
 import { colors, fonts } from './theme';
 import { Dialog } from './Dialog';
+import { DialogActions } from './DialogActions';
 import { Field } from './Field';
 import { FocusButton } from './FocusButton';
 import { IconButton } from './IconButton';
@@ -96,7 +97,7 @@ function MergePicker({
           ))
         )}
       </ScrollView>
-      <FocusButton label={t('Cancel')} variant="ghost" icon="close" iconAfter testID="merge-cancel" onPress={onClose} />
+      <DialogActions onCancel={onClose} cancelTestID="merge-cancel" />
     </Dialog>
   );
 }

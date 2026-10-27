@@ -384,7 +384,8 @@ export function createAppHooks({
 
     /**
      * Content language filter (D-063) of the active profile, or of `profile` (the profile editor): only
-     * titles with audio or subtitles in a chosen language; none chosen = all. Applied on `close()`.
+     * titles with audio or subtitles in a chosen language; none chosen = all. Applied on `save()`; closing without it
+     * (Cancel, Back) drops the changes (DECISIONS.md#d-232).
      */
     useLanguageSettings(profile: { id: string; name: string } | undefined, onClose: () => void) {
       const activeId = useSession((s) => s.activeProfileId);
@@ -400,7 +401,7 @@ export function createAppHooks({
         toggle: (code: string) => setChosen((current) => (current.includes(code) ? current.filter((c) => c !== code) : [...current, code])),
         /** "All languages": no filter. */
         allLanguages: () => setChosen([]),
-        close() {
+        save() {
           onClose();
           if (!profileId || chosen.join(',') === saved.join(',')) return;
           void stores.profilePrefs.getState().update(profileId, { languages: chosen, language: null }).then(reloadLists);

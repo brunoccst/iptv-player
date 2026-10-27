@@ -76,7 +76,7 @@ describe('account menu (issue #155)', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('App → Start with the computer shows the setting and turns it on (issue #309)', async () => {
+  it('App → Start with the computer shows the setting and turns it on with Save (issue #309, D-232)', async () => {
     const set = vi.fn(async (on: boolean) => on);
     await open({ ...host, account: { ...host.account, startup: { get: async () => false, set } } } as ScreenHost);
     fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
@@ -84,8 +84,23 @@ describe('account menu (issue #155)', () => {
     const toggle = await screen.findByRole('checkbox', { name: 'Start with the computer' });
     await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
     fireEvent.click(toggle);
-    expect(set).toHaveBeenCalledWith(true);
     await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'));
+    expect(set).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(set).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(screen.queryByRole('checkbox', { name: 'Start with the computer' })).toBeNull());
+  });
+
+  it('Cancel leaves Start with the computer as it was (D-232)', async () => {
+    const set = vi.fn(async (on: boolean) => on);
+    await open({ ...host, account: { ...host.account, startup: { get: async () => false, set } } } as ScreenHost);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Start with the computer' }));
+    const toggle = await screen.findByRole('checkbox', { name: 'Start with the computer' });
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(set).not.toHaveBeenCalled();
   });
 
   it('has no start-up item where the app cannot start with the computer', async () => {

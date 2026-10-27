@@ -68,7 +68,7 @@ describe('Kids categories (TV, D-053)', () => {
     await fireEvent.press(screen.getByTestId('profile-languages'));
     expect(screen.getByText('Content language filter for Mia')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('language-GER'));
-    await fireEvent.press(screen.getByTestId('language-close'));
+    await fireEvent.press(screen.getByTestId('language-save'));
     await flush();
     expect(stores.profilePrefs.getState().prefs.kid).toMatchObject({ languages: ['GER'] });
     expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();

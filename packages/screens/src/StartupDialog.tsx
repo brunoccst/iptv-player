@@ -4,23 +4,29 @@ import { t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { CheckRow } from './ui/CheckRow';
 import { Dialog } from './ui/Dialog';
-import { FocusButton } from './ui/FocusButton';
+import { DialogActions } from './ui/DialogActions';
 import { colors, fonts } from './ui/theme';
 
 /**
  * Account menu → App → Start with the computer (issue #309, DECISIONS.md#d-226), in the apps that can (the desktop):
- * the app starts in the tray at sign-in and closing the window keeps it there, so guide reminders still show.
+ * the app starts in the tray at sign-in and closing the window keeps it there, so guide reminders still show. The box
+ * is ticked here and set on Save; Cancel leaves it as it was (DECISIONS.md#d-232).
  */
 export function StartupDialog({ onClose }: { onClose(): void }) {
   const { account } = useScreenHost();
   const startup = account.startup;
+  const [saved, setSaved] = useState<boolean | null>(null);
   const [on, setOn] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     void startup?.get().then(
-      (value) => alive && setOn(value),
+      (value) => {
+        if (!alive) return;
+        setSaved(value);
+        setOn(value);
+      },
       () => alive && setFailed(true),
     );
     return () => {
@@ -28,10 +34,11 @@ export function StartupDialog({ onClose }: { onClose(): void }) {
     };
   }, [startup]);
 
-  const toggle = () => {
-    if (!startup || on === null) return;
+  const toggle = () => on !== null && setOn(!on);
+  const save = () => {
+    if (!startup || on === null || on === saved) return onClose();
     setFailed(false);
-    startup.set(!on).then(setOn, () => setFailed(true));
+    startup.set(on).then(onClose, () => setFailed(true));
   };
 
   return (
@@ -43,7 +50,7 @@ export function StartupDialog({ onClose }: { onClose(): void }) {
       </Text>
       <CheckRow label={t('Start with the computer')} checked={on === true} onPress={toggle} testID="startup-toggle" />
       {failed ? <Text style={styles.error}>{t('The setting could not be changed.')}</Text> : null}
-      <FocusButton label={t('Close')} variant="ghost" onPress={onClose} testID="startup-close" />
+      <DialogActions onSave={save} onCancel={onClose} saveDisabled={on === null} saveTestID="startup-save" cancelTestID="startup-close" />
     </Dialog>
   );
 }

@@ -33,11 +33,11 @@ describe('account menu → Content language filter (D-063)', () => {
     expect(screen.getByText('✓ 1. German')).toBeTruthy();
     expect(screen.getByText('✓ 2. English')).toBeTruthy();
     expect(screen.getByText('Portuguese')).toBeTruthy();
-    // Toggling only ticks: nothing is saved or reloaded until the dialog closes (a reload per toggle stalled the TV).
+    // Toggling only ticks: nothing is saved or reloaded until Save (a reload per toggle stalled the TV).
     await flush();
     expect(backend.calls.length).toBe(requestsBefore);
     expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();
-    await fireEvent.press(screen.getByTestId('language-close'));
+    await fireEvent.press(screen.getByTestId('language-save'));
     await flush();
 
     expect(stores.profilePrefs.getState().prefs.p1).toMatchObject({ languages: ['GER', 'ENG'] });
@@ -49,8 +49,24 @@ describe('account menu → Content language filter (D-063)', () => {
     await fireEvent.press(screen.getByTestId('menu-group-profiles'));
     await fireEvent.press(screen.getByTestId('menu-language'));
     await fireEvent.press(screen.getByTestId('language-all'));
-    await fireEvent.press(screen.getByTestId('language-close'));
+    await fireEvent.press(screen.getByTestId('language-save'));
     await flush();
     expect(languages().at(-1)).toBeNull();
+  });
+
+  it('Cancel closes without changing the filter (D-232)', async () => {
+    const backend = setupApp();
+    backend.on('GET', '/api/library/movies', { body: { total: 0, items: [], sorts: ['title'] } });
+    backend.on('GET', '/api/library/series', { body: { total: 0, items: [], sorts: ['title'] } });
+    await render(<App />);
+    await flush();
+    await fireEvent.press(screen.getByTestId('nav-account'));
+    await fireEvent.press(screen.getByTestId('menu-group-profiles'));
+    await fireEvent.press(screen.getByTestId('menu-language'));
+    await fireEvent.press(screen.getByTestId('language-GER'));
+    await fireEvent.press(screen.getByTestId('language-cancel'));
+    await flush();
+    expect(screen.queryByTestId('language-settings')).toBeNull();
+    expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();
   });
 });

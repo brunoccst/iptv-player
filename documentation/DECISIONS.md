@@ -137,6 +137,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-229](#d-229) | Joined lists and the parental PIN sync by date |
 | [D-230](#d-230) | Offline warning on every page, with the provider's own words |
 | [D-231](#d-231) | Long dialog lists take the room left, not a shrunk size |
+| [D-232](#d-232) | One Save and Cancel footer for every dialog that changes something |
 
 ## Merged and retired IDs
 
@@ -1434,3 +1435,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - Categories shown and a Kids profile's categories put a scrolling list between fixed parts (title, sections, hint) and Save. The list was sized to its content and left to shrink inside the panel's `maxHeight: 92%`; on the Android TV it did not shrink, so the rows ran past the panel's bottom and Save was off screen.
 - These dialogs now pass `tall` to `Dialog`: the panel gets a fixed height (92% of the window, less the scrim's padding) and the list `flex: 1`, so it takes exactly the room the fixed parts leave and scrolls there, on every app. The panel no longer changes height with the section or the number of categories. Save and the other buttons sit below the list at the right, always in view.
+
+## D-232
+
+**One Save and Cancel footer for every dialog that changes something** — 2026-10-26
+
+- The dialogs ended differently: Save then Cancel at the left, at the right (D-231), Done alone across the width (Content language filter), Close after a change already made (Start with the computer). Bruno asked for one standard.
+- `DialogActions` (`packages/screens/src/ui/DialogActions.tsx`) draws it for every app: Save (primary) then Cancel (ghost), at the bottom right, after the dialog's content, so a `tall` dialog's list scrolls above it (D-231). Other buttons (Delete Profile, Automatic) go before Save. Save keeps the draft; Cancel, Back and Escape drop it.
+- The Content language filter and Start with the computer now keep a draft until Save, like the other settings dialogs. A dialog that applies a pick at once (App language, the merge picker) has only Cancel there; dialogs that show something (About, the log) keep Close.
