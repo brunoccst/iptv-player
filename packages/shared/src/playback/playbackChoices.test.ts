@@ -57,6 +57,20 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(pickTrack(tracks, null)).toBeNull();
   });
 
+  it('name track codes even where the platform has no Intl.DisplayNames, like Hermes on TV and phone (D-090)', () => {
+    const intl = Intl as { DisplayNames?: typeof Intl.DisplayNames };
+    const displayNames = intl.DisplayNames;
+    delete intl.DisplayNames;
+    try {
+      for (const code of ['cs', 'sv', 'hbs-hrv', 'el', 'da', 'no', 'uk', 'ms-ind', 'fa', 'zh', 'ja', 'ko', 'th', 'tgl', 'vi']) {
+        expect(trackLabel({ language: code, label: code })).not.toBe(code);
+      }
+      expect(trackLabel({ language: 'vi', label: 'vi' })).toBe('Vietnamese');
+    } finally {
+      intl.DisplayNames = displayNames;
+    }
+  });
+
   it("name a track by its language when the stream gives no name of its own, in the app's language (D-090)", () => {
     expect(trackLabel({ language: 'en', label: 'en' })).toBe('English');
     expect(trackLabel({ language: 'eng', label: '' })).toBe('English');
@@ -66,8 +80,18 @@ describe('playback choices for every movie and series (D-087)', () => {
     expect(trackLabel({ language: null, label: 'Commentary' })).toBe('Commentary');
     expect(trackLabel({ language: 'fi', label: 'fi' })).toBe('Finnish');
     expect(trackLabel({ language: 'und', label: 'Track 2' })).toBe('Track 2');
+    expect(trackLabel({ language: 'und', label: 'und' })).toBe('Unknown language');
+    expect(trackLabel({ language: 'cs', label: 'cs' })).toBe('Czech');
+    expect(trackLabel({ language: 'el', label: '' })).toBe('Greek');
+    expect(trackLabel({ language: 'tgl', label: 'tgl' })).toBe('Tagalog');
+    expect(trackLabel({ language: 'hbs-hrv', label: 'hbs-hrv' })).toBe('Croatian');
+    expect(trackLabel({ language: 'ms-ind', label: 'ms-ind' })).toBe('Indonesian');
+    expect(trackLabel({ language: null, label: 'sv' })).toBe('Swedish');
+    expect(trackLabel({ language: 'nor', label: 'no' })).toBe('Norwegian');
+    expect(trackLabel({ language: 'chi', label: 'zh' })).toBe('Chinese');
     setUiLanguage('de');
     expect(trackLabel({ language: 'en', label: 'en' })).toBe('Englisch');
+    expect(trackLabel({ language: 'cs', label: 'cs' })).toBe('Tschechisch');
     setUiLanguage('en');
   });
 

@@ -4,6 +4,7 @@ import { isEnglishArabic } from '../direct/normalizer/parser';
 import { LANGUAGE_LONG, LANGUAGE_SHORT } from '../direct/normalizer/tags';
 import { intlLocale, t, type UiLanguage } from '../i18n/i18n';
 import { languageNames, type ProfilePrefs, type ProfilePrefsStore } from '../stores/profilePrefsStore';
+import { listedTrackLanguage } from './trackLanguages';
 
 /**
  * The profile's playback choices (D-087): the subtitles, the audio track and the version last picked are what every
@@ -176,15 +177,15 @@ export function chooseVersion(
 }
 
 /**
- * The language of a track code ("en", "eng", "de", "pt-BR"…) in the app's language: "English", "Inglês"… Our own
- * language names first, then the platform's (`Intl.DisplayNames`); null when neither knows it.
+ * The language of a track code ("en", "eng", "de", "pt-BR", "hbs-hrv"…) in the app's language: "English", "Inglês"…
+ * Our own language names first, then the platform's (`Intl.DisplayNames`, which Hermes lacks); "und" is "Unknown
+ * language"; null when nothing knows it (D-090).
  */
 export function trackLanguageName(code: string | null | undefined): string | null {
   const tag = code?.trim();
-  if (!tag || tag.toLowerCase() === 'und') return null;
-  const base = tag.toLowerCase().split(/[-_]/)[0]!;
-  const ours = LANGUAGE_LONG[base] ?? LANGUAGE_SHORT[base];
-  if (ours && languageNames()[ours]) return languageNames()[ours]!;
+  if (!tag) return null;
+  const ours = ourLanguageName(tag);
+  if (ours) return ours;
   try {
     const name = new Intl.DisplayNames([intlLocale()], { type: 'language' }).of(tag);
     return name && name.toLowerCase() !== tag.toLowerCase() ? name : null;
@@ -193,14 +194,26 @@ export function trackLanguageName(code: string | null | undefined): string | nul
   }
 }
 
+function ourLanguageName(tag: string): string | null {
+  const base = tag.toLowerCase().split(/[-_]/)[0]!;
+  const parsed = LANGUAGE_LONG[base] ?? LANGUAGE_SHORT[base];
+  if (parsed && languageNames()[parsed]) return languageNames()[parsed]!;
+  return listedTrackLanguage(tag);
+}
+
+/** Looks like a language code ("cs", "cze", "hbs-hrv", "pt-BR"), not a name. */
+const LANGUAGE_CODE = /^[a-z]{2,3}(?:[-_][a-z0-9]{2,4})?$/i;
+
 /**
  * What a player shows for a track: the stream's own name ("English 5.1", "Forced"), or, when it has none or only
- * repeats the language code ("en"), the language's name (D-090).
+ * repeats a language code ("en", "cs"), the language's name (D-090).
  */
 export function trackLabel(track: TrackInfo): string {
   const label = track.label?.trim() ?? '';
   const language = track.language?.trim() ?? '';
-  if (label && label.toLowerCase() !== language.toLowerCase()) return label;
+  if (label && label.toLowerCase() !== language.toLowerCase()) {
+    return (LANGUAGE_CODE.test(label) && ourLanguageName(label)) || label;
+  }
   return trackLanguageName(language) ?? (label || language);
 }
 
