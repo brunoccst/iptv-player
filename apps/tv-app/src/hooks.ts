@@ -32,6 +32,7 @@ export const {
   useNoteRecentChannel,
   useLiveHomeRow,
   useQualityUpgrades,
+  useNewSeasons,
   useReminders,
   useProgrammeDescription,
   useDueReminder,

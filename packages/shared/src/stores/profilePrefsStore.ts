@@ -27,6 +27,11 @@ export interface ProfilePrefs {
   hiddenCategories?: Partial<Record<CatalogSection, string[]>> | null;
   /** Series titles (master ids) with every episode watched: the tag on their covers (D-081). */
   watchedSeries?: string[] | null;
+  /**
+   * The newest season known of each watched series (master id → season number): a newer one is announced on Home
+   * (DECISIONS.md#d-234). A sync keeps the higher number of each.
+   */
+  seasonsSeen?: Record<string, number> | null;
   /** The language of the app's own words for this profile (D-084), e.g. `'de'`. Absent = the device's last choice. */
   appLanguage?: string | null;
   /** The subtitles, audio track and version last picked: what every movie and series starts with (D-087). */

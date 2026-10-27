@@ -139,6 +139,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-231](#d-231) | Long dialog lists take the room left, not a shrunk size |
 | [D-232](#d-232) | One Save and Cancel footer for every dialog that changes something |
 | [D-233](#d-233) | Save and Cancel in a column on the right of the dialog |
+| [D-234](#d-234) | New seasons of watched series |
 
 ## Merged and retired IDs
 
@@ -1453,3 +1454,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - With Save and Cancel under a long list (D-232), reaching them on TV meant pressing Down through every row. Bruno asked for them on the right, so Right gets there at once.
 - `Dialog` takes the buttons as `actions` and, on windows at least 600 wide, draws them in a 180-wide column beside the content (the panel grows by that much); `DialogActions` stacks them there: Save, Cancel, then extra buttons. Narrower windows (phones held upright) keep the bottom row, where a column would squeeze the list. The profile editor and the backup box draw their own panels and keep the bottom row.
 - TV: the column is a `TVFocusGuideView` with `autoFocus` that fills the dialog's height, so Right from any row lands in it, on Save the first time and on the last focused button after that; Up/Down stay in it. The content is one too, so Left returns to the row last focused. This is the one place Right leaves a row on purpose (CLAUDE.md focus rules).
+
+## D-234
+
+**New seasons of watched series** — 2026-10-27 (requested by owner)
+
+- A series counts as watched by a profile when one of its episodes has progress there or it is marked watched (D-081). My List alone does not count: a series saved but never started is not one the profile follows yet.
+- The newest season of each is kept in the profile's preferences (`seasonsSeen`, master id → season number). The first time a series is read only its newest season is noted, so nothing old is announced; a higher number later is an announcement until the popup closes, which notes it. A profile that already has progress in that season (on another device, say) is not told. A sync keeps the higher number of each series, so a season dismissed on one device is not shown on the other (`pairing/settings.ts`).
+- The newest season is the highest season with episodes among the title's versions in the profile's content languages (D-063): audio or subtitles in one of them, or, for a version with no language of its own, a category that names none of the others. A season only in another language is not a new season for that profile.
+- Read on profile open and after each library update, one series at a time (each with its versions three at a time, D-066), through the saved series details (12 hours, D-088): no extra requests while those are fresh, and at most one read per version every 12 hours after that. The provider's series list has a last-changed date, but any edit to the series changes it, so it cannot tell a new season apart on its own.
+- Home shows it like D-176's popup, with nothing over Home, and only once that popup is closed, so the two never stack. More info only: the new season starts from the details, where the series opens on the next episode to watch.

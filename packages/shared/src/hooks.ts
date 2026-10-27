@@ -437,6 +437,15 @@ export function createAppHooks({
       };
     },
 
+    /**
+     * Watched series with a new season, for the popup Home shows after the quality one (DECISIONS.md#d-234). `dismiss`
+     * once shown.
+     */
+    useNewSeasons() {
+      const items = useAppStore(stores.newSeasons, (s) => s.items);
+      return { items, dismiss: useCallback(() => void stores.newSeasons.getState().dismiss(), []) };
+    },
+
     /** Live channels whose name matches a search, hidden categories included (D-110); null until they arrive. */
     /** The details panel's round "My List" toggle (D-055): a bookmark, outlined to add, filled when saved (issue #157). */
     useWatchlistToggle(section: LibrarySection, title: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>) {

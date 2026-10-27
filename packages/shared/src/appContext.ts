@@ -17,6 +17,7 @@ import { createProfilePrefsStore, profileLanguages, type ProfilePrefsStore } fro
 import { playbackChoicesOf, versionLanguages } from './playback/playbackChoices';
 import { createProgressStore, type ProgressStore } from './stores/progressStore';
 import { createWatchlistStore, type WatchlistStore } from './stores/watchlistStore';
+import { createNewSeasonsStore, type NewSeasonsStore } from './stores/newSeasonsStore';
 import { createSessionStore, selectActiveProfile, type SessionStore } from './stores/sessionStore';
 import type { KeyValueStorage } from './stores/storage';
 import { createUiLanguage, type UiLanguageControl } from './i18n/uiLanguage';
@@ -35,6 +36,8 @@ export interface AppContext {
     progress: ProgressStore;
     /** "My List" of the active profile (D-055). */
     watchlist: WatchlistStore;
+    /** New seasons of the active profile's watched series (DECISIONS.md#d-234). */
+    newSeasons: NewSeasonsStore;
     /** Optional parental PIN (D-054). */
     pin: PinStore;
     /** Per-profile preferences on this device, e.g. the language filter (D-063). */
@@ -169,6 +172,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
   const player = createPlayerStore({ api });
   const progress = createProgressStore({ api });
   const watchlist = createWatchlistStore({ api });
+  const newSeasons = createNewSeasonsStore({ api, progress, profilePrefs });
   const pin = createPinStore({ session, storage });
   const uiLanguage = createUiLanguage({ storage: direct.dataStorage, session, profilePrefs, deviceLanguages });
   void uiLanguage.load();
@@ -236,9 +240,11 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     if (state.activeProfileId !== previous.activeProfileId) {
       progress.getState().reset();
       watchlist.getState().reset();
+      newSeasons.getState().reset();
       if (state.activeProfileId) {
         void progress.getState().load(state.activeProfileId);
         void watchlist.getState().load(state.activeProfileId);
+        void newSeasons.getState().check(state.activeProfileId);
       }
     }
   });
@@ -253,6 +259,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     player.getState().close();
     progress.getState().reset();
     watchlist.getState().reset();
+    newSeasons.getState().reset();
     // Pairing and backups write preferences and subtitle settings too (D-060).
     await Promise.all([profilePrefs.getState().load(), subtitles.settings.getState().load(), pin.getState().refresh()]);
     await session.getState().restore({ keepProfile: true });
@@ -261,6 +268,7 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     if (profileId) {
       void progress.getState().load(profileId);
       void watchlist.getState().load(profileId);
+      void newSeasons.getState().check(profileId);
     }
   };
 
@@ -285,6 +293,6 @@ export function createAppContext({ config, storage, fetch, direct, api: testApi,
     },
     uiLanguage,
     subtitles,
-    stores: { session, catalog, epg, library, player, progress, watchlist, pin, profilePrefs },
+    stores: { session, catalog, epg, library, player, progress, watchlist, newSeasons, pin, profilePrefs },
   };
 }

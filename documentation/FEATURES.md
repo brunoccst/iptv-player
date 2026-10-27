@@ -278,6 +278,12 @@ When a movie on My List was only available as a cinema copy (CAM, TS, TC or SCR,
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### New seasons of watched series
+
+When a series the profile watched (any episode played, or the series marked watched) gets a new season, Home shows a popup: "New seasons" with the series' cover and a line such as "Season 3 is out" ("Seasons 3 to 4 are out" when more came). **More Info** opens the series, **OK** or Back closes it. Several series are listed in one popup. Each new season is shown once per profile, and a season already dismissed on a synced device is not shown again. Only versions in the profile's content languages count, so a new season that exists only in another language is not announced. A series is first noted without a popup, and a profile already watching the newest season is not told about it. The check runs when the app opens or the profile changes and after each library update; the provider's season lists are read again at most every 12 hours. The popup shows on Home only, after the "Better quality on My List" one, never during playback or over details (DECISIONS.md#d-234).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+
 ## Downloads
 
 ### Offline downloads
