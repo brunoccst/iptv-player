@@ -182,7 +182,7 @@ Play / pause, ±10 s, from the beginning, previous / next episode (D-077), and "
 
 ### Audio, subtitles, versions and episodes
 
-Buttons on the player bar open the audio tracks, subtitles, the title's versions and the series' episodes (D-077). Tracks without a name show their language's name, or "Default" for a lone unnamed track (D-090). The audio, subtitles and version last picked are every title's default, per profile (D-087). The episodes show one season at a time with a season choice on top, opened on the season playing; the episode playing is marked (▶ and highlighted) and cannot be picked again (D-066). Every app shows the same panel with Audio, Subtitles, Versions and Episodes tabs (D-210). Phone and desktop: the panel has a back arrow, and a tap or click beside it closes it too (D-046); desktop: Escape too; TV: the remote's Back.
+Buttons on the player bar open the audio tracks, subtitles, the title's versions and the series' episodes (D-077). Tracks without a name, or named only by a language code ("cs", "tgl", "hbs-hrv"), show their language's name in the app language, "Unknown language" for a track whose file does not say ("und"), or "Default" for a lone unnamed track (D-090). The audio, subtitles and version last picked are every title's default, per profile (D-087). The episodes show one season at a time with a season choice on top, opened on the season playing; the episode playing is marked (▶ and highlighted) and cannot be picked again (D-066). Every app shows the same panel with Audio, Subtitles, Versions and Episodes tabs (D-210). Phone and desktop: the panel has a back arrow, and a tap or click beside it closes it too (D-046); desktop: Escape too; TV: the remote's Back.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

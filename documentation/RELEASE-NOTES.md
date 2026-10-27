@@ -16,6 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
+- **Real language names for subtitles and audio** (2026-10-27, D-090): the player's Audio and Subtitles lists showed codes such as "cs", "sv", "zh" or "hbs-hrv" for many tracks. They now show the language's name (Czech, Swedish, Chinese, Croatian…) in the app language, and a track whose file does not say its language reads "Unknown language" instead of "und".
 - **Save and Cancel in every box** (2026-10-26, D-232): every box that changes a setting now ends with Save and Cancel at its bottom right, always in view. The content language filter no longer has Done: its choice applies on Save, and Cancel leaves it as it was.
 - **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.
 - **Why the provider is not answering** (2026-10-25, D-230): when your provider is down or offline, a warning with an icon now shows on every page except the player, My Downloads included. If the provider sent an error page, the warning quotes what it says, so you can tell a server that is down from one that moved, and points to the account menu → IPTV account to enter a new address.
@@ -137,6 +138,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
+- **Real language names for subtitles and audio** (2026-10-27, D-090): the player's Audio and Subtitles lists showed codes such as "und", "hbs-hrv" or "ms-ind" for some tracks. They now show the language's name (Croatian, Indonesian…) in the app language, and a track whose file does not say its language reads "Unknown language" instead of "und".
 - **Save and Cancel in every box** (2026-10-26, D-232): every box that changes a setting now ends with Save and Cancel at its bottom right, always in view. The content language filter no longer has Done: its choice applies on Save, and Cancel leaves it as it was.
 - **Category lists fit their box** (2026-10-26, D-231): in Categories shown and a Kids profile's categories, a long list of categories now scrolls inside the box instead of running past its bottom, and Save and Cancel stay in view at the bottom right, so you no longer scroll to the end to reach them.
 - **Why the provider is not answering** (2026-10-25, D-230): when your provider is down or offline, a warning with an icon now shows on every page except the player, My Downloads included. If the provider sent an error page, the warning quotes what it says, so you can tell a server that is down from one that moved, and points to the account menu → IPTV account to enter a new address.

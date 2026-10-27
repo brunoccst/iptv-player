@@ -756,6 +756,7 @@ Consequences: no sync between devices other than pairing ([#227](https://github.
 **Track names** — 2026-09-28 (merges D-089's track names)
 
 - A track with no name of its own shows its language's name in the app's language ("English", "Inglês"; `trackLabel`: the app's names first, then `Intl.DisplayNames`). Names the stream gives ("English 5.1", "Forced") stay.
+- Updated 2026-10-27: Hermes (TV and phone) has no `Intl.DisplayNames`, so the app keeps its own translated names for about 60 track languages (`trackLanguages.ts`, ISO 639-1 and 639-2 codes); `Intl.DisplayNames` only names the rest, on desktop. A name that is only a code ("cs") is named too. In "hbs-hrv" or "ms-ind" the second part is the more precise language (Croatian, Indonesian). "und" (undetermined) reads "Unknown language": the file does not say, so the app does not guess.
 - A stream with a single audio track without a name of its own (empty, only a code, or "Track 1") reads "Default" (`audioTrackLabels`): IPTV restreams often tag every track "en" whatever is spoken. With several tracks, each shows its language's name.
 
 ## D-092
