@@ -119,7 +119,7 @@ const qualityTags = (variants: readonly QualityOf[]) => {
 };
 
 /**
- * The quality tags of the versions in the profile's languages (DECISIONS.md#d-234); null when it has none in them.
+ * The quality tags of the versions in the profile's languages (DECISIONS.md#d-235); null when it has none in them.
  * Without languages, of every version.
  */
 export function qualityInLanguages(variants: readonly QualityOf[], scope: LanguageScope | null) {
@@ -128,7 +128,7 @@ export function qualityInLanguages(variants: readonly QualityOf[], scope: Langua
   return own.length ? qualityTags(own) : null;
 }
 
-/** A cover's quality tags (DECISIONS.md#d-234): of the versions in the profile's languages, of every one when none is. */
+/** A cover's quality tags (DECISIONS.md#d-235): of the versions in the profile's languages, of every one when none is. */
 export const coverQuality = (variants: readonly QualityOf[], scope: LanguageScope | null) =>
   qualityInLanguages(variants, scope) ?? qualityTags(variants);
 

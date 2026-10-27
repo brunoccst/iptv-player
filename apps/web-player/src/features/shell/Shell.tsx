@@ -5,6 +5,7 @@ import { DetailsModal } from '../details/DetailsModal';
 import { DownloadsPage } from '../downloads/DownloadsPage';
 import { HomePage } from '../home/HomePage';
 import { QualityUpgradeDialog } from '../home/QualityUpgradeDialog';
+import { NewSeasonsDialog } from '../home/NewSeasonsDialog';
 import { Reminder } from '../live/Reminder';
 import { LiveTvPage } from '../live/LiveTvPage';
 import { ConnectionBanner, LibraryBanner, LibraryNotice } from './LibraryBanner';
@@ -54,6 +55,8 @@ export function Shell() {
       {details ? <DetailsModal target={details} /> : null}
       {/* Better copies of movies on My List, over Home only (DECISIONS.md#d-176). */}
       {view === 'home' && !details && !playing ? <QualityUpgradeDialog /> : null}
+      {/* New seasons of watched series, after it (DECISIONS.md#d-234). */}
+      {view === 'home' && !details && !playing ? <NewSeasonsDialog /> : null}
       {playing ? (
         <Suspense
           fallback={

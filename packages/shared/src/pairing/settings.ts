@@ -7,7 +7,7 @@ import { parseJson } from '../utils/bytes';
 
 /**
  * The settings pairing carries besides sign-in and media (D-060): each profile's preferences (content languages, app
- * language, subtitle/audio/version choices, hidden and kids categories, watched series, recent channels, guide reminders) and the
+ * language, subtitle/audio/version choices, hidden and kids categories, watched series and their seasons, recent channels, guide reminders) and the
  * automatic-subtitles settings. Where both devices have a value, the later change wins (D-225; list entries,
  * DECISIONS.md#d-229), and the phone's where neither is dated. The parental PIN goes along too (`newerPin`). What belongs to
  * the device stays: the audio decoder, the device's own app language, downloads, remote-play keys, update choices.
@@ -17,13 +17,14 @@ export { PROFILE_PREFS_KEY, SUBTITLE_SETTINGS_KEY };
 type PrefsByProfile = Record<string, ProfilePrefs>;
 
 /** Preferences that are lists both devices add to: joined, not one side's. */
-const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', 'reminders', 'changedAt', 'listChangedAt']);
+const JOINED = new Set<keyof ProfilePrefs>(['watchedSeries', 'recentChannels', 'reminders', 'seasonsSeen', 'changedAt', 'listChangedAt']);
 
 /**
  * One profile's preferences from both devices. Each preference is the one changed later (`changedAt`, issue #268,
  * DECISIONS.md#d-225); where neither is dated (set before), the phone's (the scanning or sending device) wins, as
  * pairing always did (D-060). Kids and hidden categories go per section the same way. Watched series, reminders and
- * recent channels go per entry by their own dates (DECISIONS.md#d-229); undated entries are joined.
+ * recent channels go per entry by their own dates (DECISIONS.md#d-229); undated entries are joined. Seasons seen keep the
+ * higher of each (DECISIONS.md#d-234).
  */
 export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: ProfilePrefs | undefined): ProfilePrefs {
   if (!phone) return { ...local };
@@ -57,6 +58,13 @@ export function mergeProfilePrefs(phone: ProfilePrefs | undefined, local: Profil
     merged,
     mergeDatedLists(phone, local, now, (reminders) => mergeReminders(reminders, [], now)),
   );
+  // The newest season known of each series (DECISIONS.md#d-234): the higher one, so a season announced on one device is
+  // not announced again on the other.
+  if (phone.seasonsSeen || local.seasonsSeen) {
+    const seen = { ...local.seasonsSeen };
+    for (const [id, season] of Object.entries(phone.seasonsSeen ?? {})) seen[id] = Math.max(season, seen[id] ?? 0);
+    merged.seasonsSeen = seen;
+  }
   if (phone.changedAt || local.changedAt) {
     const changedAt: NonNullable<ProfilePrefs['changedAt']> = { ...local.changedAt };
     for (const [key, at] of Object.entries(phone.changedAt ?? {}) as [keyof typeof changedAt, string][])

@@ -51,7 +51,7 @@ const qualityOf = (details: MasterDetails, scope: LanguageScope | null): NonNull
 });
 
 /**
- * The quality an upgrade is judged by (DECISIONS.md#d-234): of the versions in the profile's languages, of all without
+ * The quality an upgrade is judged by (DECISIONS.md#d-235): of the versions in the profile's languages, of all without
  * languages; null when the title has none in them.
  */
 const judgedQuality = (item: WatchlistDto) => (item.quality?.inLanguages === undefined ? (item.quality ?? null) : item.quality.inLanguages);
@@ -69,7 +69,7 @@ export const upgradeLine = (item: WatchlistDto): string => {
 /**
  * Titles on My List that were seen as cinema copies only (CAM, TS, TC, SCR) and now have a better copy, oldest
  * first (DECISIONS.md#d-176). Any copy without a cinema tag counts as better, as for the cover's badge; with profile
- * languages, only copies in them (DECISIONS.md#d-234).
+ * languages, only copies in them (DECISIONS.md#d-235).
  */
 export const qualityUpgrades = (items: WatchlistDto[] | null): WatchlistDto[] =>
   (items ?? [])
@@ -86,7 +86,7 @@ export function createWatchlistStore({
 }: {
   api: ApiClient;
   now?: () => string;
-  /** The open profile's languages, which quality tags and upgrades go by (DECISIONS.md#d-234); null for all. */
+  /** The open profile's languages, which quality tags and upgrades go by (DECISIONS.md#d-235); null for all. */
   languageScope?: (section: LibrarySection) => Promise<LanguageScope | null>;
 }) {
   return createStore<WatchlistState>()((set, get) => {

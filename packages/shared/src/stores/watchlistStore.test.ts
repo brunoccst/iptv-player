@@ -159,7 +159,7 @@ describe('watchlist store', () => {
       expect(qualityUpgrades(watchlist.getState().items.data).map((item) => item.masterId)).toEqual(['s1']);
     });
 
-    it("waits for a better copy in the profile's languages (D-234)", async () => {
+    it("waits for a better copy in the profile's languages (D-235)", async () => {
       const { backend, stores, watchlist, load } = await setup([entry('movies', 'm1')]);
       await stores.profilePrefs.getState().update('p1', { languages: ['ENG', 'POR'] });
       backend.on('POST', '/api/profiles/p1/watchlist/low-sources', { status: 204 });
@@ -187,7 +187,7 @@ describe('watchlist store', () => {
       expect(upgradeLine(upgrades[0]!)).toBe('Now 1080p, was TS');
     });
 
-    it('reads My List again when the profile chooses other languages (D-234)', async () => {
+    it('reads My List again when the profile chooses other languages (D-235)', async () => {
       const { backend, stores, watchlist, load } = await setup([{ ...entry('movies', 'm1'), lowSourceSeen: 'TS' }]);
       await stores.profilePrefs.getState().update('p1', { languages: ['ENG'] });
       backend.on('GET', '/api/library/movies/m1', {
