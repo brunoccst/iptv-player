@@ -141,6 +141,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-233](#d-233) | Save and Cancel in a column on the right of the dialog |
 | [D-234](#d-234) | New seasons of watched series |
 | [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
+| [D-236](#d-236) | An X closes every dialog, except on TV |
 
 ## Merged and retired IDs
 
@@ -1474,3 +1475,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Covers: a title with no version in the languages (search can show one) is tagged from all its versions. Library lists compute the tags per list from the `language` and `languageCategoryIds` they are asked with (`coverQuality`; in SQLite, from the items' `langs` and `cat`), so the stored `best` column stays the all-versions one. Details keep every version's tags.
 - My List: `quality.inLanguages` holds the tags of the versions in the languages; null when there are none, and then the title is neither marked nor announced, so a better copy in another language never counts. A changed language choice reads My List again (`recheckQuality`).
 - Without languages, every version counts, as before.
+
+## D-236
+
+**An X closes every dialog, except on TV** — 2026-10-28 (requested by owner)
+
+- The desktop log box had Save log, Copy log and Clear log but nothing that closed it: only Escape did, and nobody knows that. D-232 left boxes that show something with their own Close, and the log never had one. Bruno asked for an X on the log and a visible way to close every window.
+- `Dialog` (`packages/screens/src/ui/Dialog.tsx`) draws an X (`DialogClose`) at the right of its title, calling the same `onClose` as Cancel, Back and Escape, so every shared box has it on the desktop and phone. The profile editor, which draws its own panel, uses `DialogClose` too; the desktop's own frames (details, Sync with another device) already had one (`Modal.tsx`). Cancel and Close stay: the X adds a way out, it does not replace the buttons.
+- Not on TV: Back closes every box there, and an X would be one more stop for the D-pad above the content, where Up from the first row would land on it. The TV's log is a page, not a box.

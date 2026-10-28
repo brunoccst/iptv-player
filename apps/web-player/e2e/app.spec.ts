@@ -255,12 +255,12 @@ test('My List: save a title from its details and find it on the My List page', a
   await expect(saved.getByLabel('On My List')).toBeVisible();
   // Right-click: the card's menu; a click: its details.
   await saved.click({ button: 'right' });
-  await expect(page.getByRole('dialog', { name: /^Options for/ }).getByRole('button')).toHaveText([
-    'Go to details',
-    'Mark as watched',
-    'Remove from My List',
-    'Cancel',
-  ]);
+  await expect(
+    page
+      .getByRole('dialog', { name: /^Options for/ })
+      .getByRole('button')
+      .filter({ hasText: /\S/ }),
+  ).toHaveText(['Go to details', 'Mark as watched', 'Remove from My List', 'Cancel']);
   await page.keyboard.press('Escape');
   await saved.click();
   await page.getByRole('dialog').getByRole('button', { name: 'Remove Big Test Movie from My List' }).click();
@@ -283,7 +283,7 @@ test('optional parental PIN guards opening a regular profile from the picker', a
   for (const digit of '2468') await again.getByRole('button', { name: digit, exact: true }).click();
   const settings = page.getByRole('dialog', { name: 'Parental PIN' });
   await expect(settings.getByRole('status')).toHaveText(/^PIN set\./);
-  await settings.getByRole('button', { name: 'Close' }).click();
+  await settings.getByTestId('dialog-close').click();
 
   await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('menuitem', { name: 'Profiles' }).click();
@@ -357,6 +357,9 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
   const saving = page.waitForEvent('download');
   await log.getByRole('button', { name: 'Save log' }).click();
   expect((await saving).suggestedFilename()).toMatch(/-log-\d{4}-\d{2}-\d{2}\.txt$/);
+  // The X at its top right closes it (D-236).
+  await log.getByTestId('dialog-close').click();
+  await expect(log).toBeHidden();
 });
 
 test('right-click on a movie: Mark as watched tags the cover and the details; Mark as not watched removes it (D-081)', async ({ page }) => {
@@ -368,7 +371,13 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
 
   await card.click({ button: 'right' });
   const menu = page.getByRole('dialog', { name: 'Options for Sequel Test 2' });
-  await expect(menu.getByRole('button')).toHaveText(['Go to details', 'Mark as watched', 'Add to My List', 'Cancel']);
+  // The menu's own buttons, not the X that closes it (D-236).
+  await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText([
+    'Go to details',
+    'Mark as watched',
+    'Add to My List',
+    'Cancel',
+  ]);
   await menu.getByRole('button', { name: 'Mark as watched' }).click();
   await expect(tag).toHaveText('Watched');
 
@@ -406,7 +415,13 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   const tag = page.getByTestId('card-Test Series-watched');
   await card.click({ button: 'right' });
   const menu = page.getByRole('dialog', { name: 'Options for Test Series' });
-  await expect(menu.getByRole('button')).toHaveText(['Go to details', 'Mark series as watched', 'Add to My List', 'Cancel']);
+  // The menu's own buttons, not the X that closes it (D-236).
+  await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText([
+    'Go to details',
+    'Mark series as watched',
+    'Add to My List',
+    'Cancel',
+  ]);
   await menu.getByRole('button', { name: 'Mark series as watched' }).click();
   await expect(tag).toBeVisible();
 

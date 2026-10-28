@@ -16,6 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
+- **Close button on every box** (2026-10-28, D-236): on phones and tablets, every box and popup now has an X at its top right that closes it, besides the Back button. The TV keeps closing them with Back.
 - **Quality tags and upgrades follow your languages** (2026-10-27, D-235): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **New season of a series you watch** (2026-10-27, D-234): when a series you watched, or marked watched, gets a new season, Home shows a popup with its cover and "Season 3 is out"; More Info opens the series. It shows once per new season and profile, after any "Better quality" popup, and only counts seasons in your profile's content languages.
 - **Save and Cancel on the right** (2026-10-27, D-233): in the settings boxes, Save and Cancel now stand in a column on the right of the box instead of under it. On TV, press Right from any row of a list (languages, categories) to reach Save, with no scrolling down; Left goes back to the row you were on. Phones held upright keep them at the bottom.
@@ -141,6 +142,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
+- **Close button on every box** (2026-10-28, D-236): every box and popup now has an X at its top right that closes it, the log included, which had no way to close it other than Escape.
 - **Quality tags and upgrades follow your languages** (2026-10-27, D-235): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **New season of a series you watch** (2026-10-27, D-234): when a series you watched, or marked watched, gets a new season, Home shows a popup with its cover and "Season 3 is out"; More Info opens the series. It shows once per new season and profile, after any "Better quality" popup, and only counts seasons in your profile's content languages.
 - **Save and Cancel on the right** (2026-10-27, D-233): in the settings boxes, Save and Cancel now stand in a column on the right of the box instead of under it. On TV, press Right from any row of a list (languages, categories) to reach Save, with no scrolling down; Left goes back to the row you were on. Phones held upright keep them at the bottom.
