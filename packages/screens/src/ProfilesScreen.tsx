@@ -5,6 +5,7 @@ import { useScreenHost } from './host';
 import { KidsCategories } from './KidsCategories';
 import { LanguageSettings } from './LanguageSettings';
 import { usePinGate } from './PinPad';
+import { DialogClose } from './ui/Dialog';
 import { DialogActions } from './ui/DialogActions';
 import { ErrorText, errorText } from './ui/Feedback';
 import { Field } from './ui/Field';
@@ -150,9 +151,12 @@ function ProfileEditor({ profile, onClose }: { profile: ProfileDto | null; onClo
     <Modal visible transparent animationType="fade" onRequestClose={close}>
       <ScrollView style={styles.scrim} contentContainerStyle={styles.scrimContent}>
         <View style={styles.editor} role="dialog" accessibilityLabel={profile ? t('Edit profile') : t('Add profile')}>
-          <Text accessibilityRole="header" style={styles.editorTitle}>
-            {profile ? t('Edit Profile') : t('Add Profile')}
-          </Text>
+          <View style={styles.editorHeader}>
+            <Text accessibilityRole="header" style={styles.editorTitle}>
+              {profile ? t('Edit Profile') : t('Add Profile')}
+            </Text>
+            <DialogClose onClose={close} />
+          </View>
           <Field
             label={t('Name')}
             value={name}
@@ -242,7 +246,8 @@ const styles = StyleSheet.create({
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)' },
   scrimContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 16 },
   editor: { width: 420, maxWidth: '100%', padding: 32, gap: 16, borderRadius: 8, backgroundColor: colors.surface },
-  editorTitle: { color: colors.strong, fontSize: 24, fontWeight: '700' },
+  editorHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  editorTitle: { flex: 1, color: colors.strong, fontSize: 24, fontWeight: '700' },
   label: { color: colors.muted, fontSize: 14 },
   swatches: { flexDirection: 'row', gap: 8, marginTop: -8 },
   swatch: { width: 36, height: 36, borderRadius: 4, borderWidth: 3, borderColor: 'transparent' },

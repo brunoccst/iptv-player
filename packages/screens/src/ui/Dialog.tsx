@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react';
 // Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
 import * as ReactNative from 'react-native';
 import { Modal, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { t } from '@iptv/shared';
+import { IconButton } from './IconButton';
 import { colors, fonts } from './theme';
 
 /** Dialogs open now, last on top: on the desktop Escape closes only the top one. */
@@ -23,7 +25,8 @@ export const useDialogSide = () => useContext(DialogSide);
  * D-200), and only the top dialog closes (D-204). `tall`: the panel takes 92% of the window's height, for a dialog whose
  * long list scrolls with `flex: 1` between fixed parts (DECISIONS.md#d-231). `actions` (a `DialogActions`): its buttons,
  * in a column on the right of the content where the window is wide enough, so Right from any row of a list reaches
- * Save; under the content on narrow windows (DECISIONS.md#d-233).
+ * Save; under the content on narrow windows (DECISIONS.md#d-233). An X at the top right closes it on the desktop and
+ * phone; the TV closes it with Back and shows no X, so D-pad focus never lands on it (DECISIONS.md#d-237).
  */
 export function Dialog({
   title,
@@ -79,9 +82,12 @@ export function Dialog({
           role="dialog"
           accessibilityLabel={label}
         >
-          <Text style={styles.title} accessibilityRole="header">
-            {title}
-          </Text>
+          <View style={styles.header}>
+            <Text style={styles.title} accessibilityRole="header">
+              {title}
+            </Text>
+            <DialogClose onClose={onClose} />
+          </View>
           {side ? (
             <View style={[styles.split, tall && styles.fill]}>
               <Content {...(Content === View ? {} : { autoFocus: true })} style={styles.content} testID="dialog-content">
@@ -103,6 +109,12 @@ export function Dialog({
   );
 }
 
+/** The X that closes a dialog, on the desktop and phone (DECISIONS.md#d-237). For panels that draw their own header. */
+export function DialogClose({ onClose }: { onClose(): void }) {
+  if (Platform.isTV) return null;
+  return <IconButton icon="close" label={t('Close')} onPress={onClose} size={36} iconSize={18} plain testID="dialog-close" />;
+}
+
 const styles = StyleSheet.create({
   scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 16 },
   panel: {
@@ -115,7 +127,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.surface,
   },
-  title: { color: colors.strong, fontSize: fonts.heading, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  title: { flex: 1, color: colors.strong, fontSize: fonts.heading, fontWeight: '700' },
   // The content and the button column side by side; the content's list scrolls inside its own column.
   split: { flexDirection: 'row', gap: ACTIONS_GAP, flexShrink: 1, minHeight: 0 },
   fill: { flex: 1 },

@@ -364,6 +364,12 @@ Every box that changes a setting has the same two buttons: **Save** keeps the ch
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
+### Close button in dialogs
+
+Every box and popup on the desktop and phone has an **X** at its top right that closes it, the same as Cancel, Close, Back or Escape: the log, About, settings boxes, the profile editor, the Home popups and the long-press menu included (D-237). The TV shows no X: its remote's Back closes every box, and focus stays on the box's own buttons.
+
+**Apps:** TV ➖ · Phone ✅ · Desktop ✅
+
 ### About
 
 The installed version (MAJOR.MINOR.PATCH, D-070) and the commit and date it was built from; TV and phone also show whether Dolby / DTS audio is included and the Android version, the desktop app which system it is built for. Account menu → App → About.

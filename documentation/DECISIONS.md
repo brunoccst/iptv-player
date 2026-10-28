@@ -142,6 +142,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-234](#d-234) | New seasons of watched series |
 | [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
 | [D-236](#d-236) | Desktop conversions keep subtitles; MKV read first |
+| [D-237](#d-237) | An X closes every dialog, except on TV |
 
 ## Merged and retired IDs
 
@@ -1484,3 +1485,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The app writes the main playlist whenever there are subtitles or several audio tracks; the video then has its own folder. Each subtitle track's playlist repeats the video's segments, one behind until the video ends so a segment's cues are written by the time it is asked for, and each part is cut from the WebVTT file by cue start (`subtitlePlaylist`, `subtitleSegment` in `apps/desktop/lib/transcoder.mjs`). Cues before the start point come out negative (`-avoid_negative_ts disabled`, else FFmpeg moves the first to 0) and are left out.
 - A copied video (D-189) can only start at a key frame, up to a picture group before the second asked for; it used to keep the asked second as its start, so the clock and anything timed to it were off by that much. It now starts there with sound and subtitles (`-noaccurate_seek -copyts`), and a one-picture `framecrc` output says where, which becomes the conversion's start (`startTime`). The fMP4 segments cannot tell: FFmpeg zeroes their times and keeps the offset in an edit list hls.js ignores.
 - Chromium plays an MKV's first audio track only and none of its subtitles, and finds sound it cannot decode only after a few silent seconds, then starts again converted. So the desktop app reads every MKV movie or episode with FFmpeg before it plays (about a second more): sound to convert, several audio tracks or text subtitles convert from the start, with the video copied when Chromium decodes it (`conversionNeeded` → `tracks`). Other MKVs play as before. A seek that converts again keeps the subtitles on screen.
+
+## D-237
+
+**An X closes every dialog, except on TV** — 2026-10-28 (requested by owner)
+
+- The desktop log box had Save log, Copy log and Clear log but nothing that closed it: only Escape did, and nobody knows that. D-232 left boxes that show something with their own Close, and the log never had one. Bruno asked for an X on the log and a visible way to close every window.
+- `Dialog` (`packages/screens/src/ui/Dialog.tsx`) draws an X (`DialogClose`) at the right of its title, calling the same `onClose` as Cancel, Back and Escape, so every shared box has it on the desktop and phone. The profile editor, which draws its own panel, uses `DialogClose` too; the desktop's own frames (details, Sync with another device) already had one (`Modal.tsx`). Cancel and Close stay: the X adds a way out, it does not replace the buttons.
+- Not on TV: Back closes every box there, and an X would be one more stop for the D-pad above the content, where Up from the first row would land on it. The TV's log is a page, not a box.
