@@ -67,15 +67,20 @@ const PLAYABLE_AUDIO = new Set(['aac', 'mp3', 'opus', 'vorbis', 'flac']);
 
 /**
  * What the desktop app must convert for Chromium to play a stream (issue #236): nothing, only the sound (the video is
- * copied), or the video too.
+ * copied), the video too, or only the tracks: Chromium plays a file's first audio track and none of its subtitles, so
+ * a file with more is handed over as HLS with every track (the video and playable sound copied, DECISIONS.md#d-236).
  */
-export function conversionNeeded(probe: StreamProbe, video: Pick<HTMLVideoElement, 'canPlayType'>): 'none' | 'audio' | 'video' {
+export function conversionNeeded(probe: StreamProbe, video: Pick<HTMLVideoElement, 'canPlayType'>): 'none' | 'audio' | 'video' | 'tracks' {
   const codec = probe.video?.codec;
   const hevc = VIDEO_CODEC_TYPES.hevc!.type!;
   const videoPlays = !codec || codec === 'h264' || (codec === 'hevc' && video.canPlayType(hevc) !== '');
   if (!videoPlays) return 'video';
-  return probe.audio.length === 0 || PLAYABLE_AUDIO.has(probe.audio[0]!.codec) ? 'none' : 'audio';
+  if (probe.audio.length > 0 && !PLAYABLE_AUDIO.has(probe.audio[0]!.codec)) return 'audio';
+  return probe.audio.length > 1 || probe.subtitles?.some((track) => track.text) ? 'tracks' : 'none';
 }
+
+/** What the log says a conversion does. */
+const CONVERTING = { audio: 'converting the audio', video: 'converting the video', tracks: 'copying it with every track' } as const;
 
 type Transcode = NonNullable<DesktopBridge['transcode']>;
 
@@ -235,6 +240,13 @@ export class PlaybackEngine {
     }
     const live = source.kind === 'live' && !source.catchup;
 
+    // Desktop: an MKV is read by FFmpeg before it plays (DECISIONS.md#d-236), so sound Chromium cannot decode, other
+    // audio tracks and subtitles play converted from the start, not after a few silent seconds.
+    if (this.transcode && source.kind !== 'live' && (source.container ?? '').toLowerCase() === 'mkv') {
+      const converted = await this.convertFile(source, startAt, signal);
+      if (converted) return converted;
+    }
+
     const failures: string[] = [];
     for (const attempt of webPlaybackAttempts(source.kind, source.container)) {
       if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -295,6 +307,21 @@ export class PlaybackEngine {
     );
   }
 
+  /** The provider's file (MKV, see `load`) converted when it needs it; null when it plays as it is. */
+  private async convertFile(source: EngineSource, at: number, signal?: AbortSignal): Promise<LoadedSource | null> {
+    let playback: PlaybackInfoWithAlternates;
+    try {
+      playback = await this.api.playback.get(source.kind, source.streamId, source.container ?? 'mkv', signal);
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      return null;
+    }
+    const converted = await this.convert([playback.url, ...(playback.alternateUrls ?? [])].slice(0, 2), false, at, signal);
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (converted) this.current = { url: this.conversion?.url ?? playback.url, live: false };
+    return converted;
+  }
+
   destroy() {
     if (this.conversion) void this.transcode?.stop().catch(() => undefined);
     this.conversion = null;
@@ -322,12 +349,12 @@ export class PlaybackEngine {
         const needed = conversionNeeded(probe, this.video);
         appLog.info(
           'player',
-          `FFmpeg reads ${probe.video?.codec ?? 'no video'} / ${probe.audio.map((track) => track.codec).join(', ') || 'no audio'}: ${needed === 'none' ? 'nothing to convert' : `converting the ${needed}`}`,
+          `FFmpeg reads ${probe.video?.codec ?? 'no video'} / ${probe.audio.map((track) => track.codec).join(', ') || 'no audio'} / ${probe.subtitles?.map((track) => track.codec).join(', ') || 'no subtitles'}: ${needed === 'none' ? 'nothing to convert' : CONVERTING[needed]}`,
         );
         if (needed === 'none') continue;
         const tracks = probe.audio.map((track, index) => ({ language: track.language, label: track.language ?? `Track ${index + 1}` }));
         const audio = this.pickAudio?.(tracks) ?? 0;
-        this.conversion = { url, probe, live, copyVideo: needed === 'audio', audio: audio >= 0 ? audio : 0 };
+        this.conversion = { url, probe, live, copyVideo: needed !== 'video', audio: audio >= 0 ? audio : 0 };
         return await this.startConversion(at, signal);
       } catch (error) {
         this.conversion = null;
@@ -344,6 +371,9 @@ export class PlaybackEngine {
 
   private async startConversion(at: number, signal?: AbortSignal): Promise<LoadedSource> {
     const conversion = this.conversion!;
+    // The subtitles on screen stay on when a seek converts again (DECISIONS.md#d-236).
+    const before = this.hlsInstance;
+    const subtitle = before?.subtitleDisplay && before.subtitleTrack < before.subtitleTracks.length ? before.subtitleTrack : -1;
     this.detach();
     const started = await this.transcode!.start({
       url: conversion.url,
@@ -367,6 +397,17 @@ export class PlaybackEngine {
     this.hlsInstance?.on(this.HlsClass.Events.AUDIO_TRACK_SWITCHED, (_event, data) => {
       if (this.conversion === conversion) conversion.audio = data.id;
     });
+    const hls = this.hlsInstance;
+    if (hls && subtitle >= 0) {
+      const show = () => {
+        if (hls.subtitleTracks.length <= subtitle) return;
+        hls.off(this.HlsClass.Events.SUBTITLE_TRACKS_UPDATED, show);
+        hls.subtitleTrack = subtitle;
+        hls.subtitleDisplay = true;
+      };
+      hls.on(this.HlsClass.Events.SUBTITLE_TRACKS_UPDATED, show);
+      show();
+    }
     this.loaded = loaded;
     return loaded;
   }
