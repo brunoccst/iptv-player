@@ -114,7 +114,7 @@ function readPage(downloadPath, start) {
 /** Serves the web player on 127.0.0.1 (a secure context: offline downloads need it). */
 function startServer() {
   const server = createServer((request, response) => {
-    if (request.url?.startsWith('/transcode/')) return serveConversion(request.url, response);
+    if (request.url?.startsWith('/transcode/')) return void serveConversion(request.url, response);
     let file = staticFile(webRoot, request.url ?? '/');
     if (file && !(existsSync(file) && statSync(file).isFile())) file = path.join(webRoot, 'index.html');
     if (!file || !existsSync(file)) {
@@ -139,8 +139,10 @@ function startServer() {
   });
 }
 
-/** A converted stream's playlist and segments (D-189), only while its conversion runs. */
-function serveConversion(url, response) {
+/** A converted stream's playlists and segments (D-189), subtitles too (D-236), only while its conversion runs. */
+async function serveConversion(url, response) {
+  const subtitles = await transcoder?.subtitles(url);
+  if (subtitles?.body) return response.writeHead(200, { 'Content-Type': subtitles.type, 'Cache-Control': 'no-store' }).end(subtitles.body);
   const file = transcoder?.file(url);
   if (!file || !existsSync(file)) return response.writeHead(404).end();
   const playlist = file.endsWith('.m3u8');

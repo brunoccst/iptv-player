@@ -15,6 +15,9 @@ import {
   masterPlaylist,
   parseProbe,
   readable,
+  startTime,
+  subtitlePlaylist,
+  subtitleSegment,
   transcodeArguments,
 } from '../lib/transcoder.mjs';
 
@@ -38,12 +41,83 @@ test('reads length, video and audio tracks from what FFmpeg says', () => {
       { codec: 'eac3', language: 'eng' },
       { codec: 'ac3', language: 'ger' },
     ],
+    subtitles: [{ codec: 'subrip', language: 'eng', title: null, text: true }],
   });
   assert.deepEqual(parseProbe(LIVE_TS), {
     duration: null,
     video: { codec: 'h264', height: 1080, hdr: false },
     audio: [{ codec: 'ac3', language: 'pol' }],
+    subtitles: [],
   });
+});
+
+test('reads subtitle tracks with their titles; pictures cannot be shown converted (D-236)', () => {
+  const probe = parseProbe(`Input #0, matroska,webm, from 'http://x/series/u/p/9.mkv':
+  Metadata:
+    title           : Jujutsu Kaisen S01E03
+  Duration: 00:23:55.00, start: 0.000000, bitrate: 3000 kb/s
+  Stream #0:0: Video: hevc (Main 10), yuv420p10le(tv), 1920x1080, 23.98 fps (default)
+  Stream #0:1(jpn): Audio: eac3, 48000 Hz, stereo, fltp, 224 kb/s (default)
+    Metadata:
+      title           : Japanese
+  Stream #0:2(eng): Subtitle: ass (default)
+    Metadata:
+      title           : English
+  Stream #0:3(por): Subtitle: ass
+    Metadata:
+      title           : Português (Brasil)
+      BPS             : 120
+  Stream #0:4(ger): Subtitle: hdmv_pgs_subtitle
+  Stream #0:5: Attachment: ttf
+    Metadata:
+      filename        : font.ttf`);
+  assert.deepEqual(probe.audio, [{ codec: 'eac3', language: 'jpn' }]);
+  assert.deepEqual(probe.subtitles, [
+    { codec: 'ass', language: 'eng', title: 'English', text: true },
+    { codec: 'ass', language: 'por', title: 'Português (Brasil)', text: true },
+    { codec: 'hdmv_pgs_subtitle', language: 'ger', title: null, text: false },
+  ]);
+  const base = { url: 'http://x/9.mkv', userAgent: 'VLC', folder: '/tmp/t', probe };
+  const args = transcodeArguments({ ...base, copyVideo: true }).join(' ');
+  // One audio track and subtitles: the video in its own folder, each text track a WebVTT file; the picture one left out.
+  assert.match(args, /-hls_segment_filename \/tmp\/t\/video\/s%05d\.m4s .* \/tmp\/t\/video\/index\.m3u8 -map 0:s:0 -c:s webvtt/);
+  assert.match(args, /-map 0:s:1 -c:s webvtt -avoid_negative_ts disabled -flush_packets 1 -f webvtt \/tmp\/t\/text1\.vtt$/);
+  assert.doesNotMatch(args, /0:s:2|text2/);
+  assert.doesNotMatch(transcodeArguments({ ...base, live: true }).join(' '), /webvtt/);
+  // A copied video from part way starts at a key frame, with the file's own times, and says where (start.txt).
+  const later = transcodeArguments({ ...base, copyVideo: true, at: 300.5 }).join(' ');
+  assert.match(later, /-noaccurate_seek -copyts -ss 300 -i /);
+  assert.match(later, /-map 0:v:0 -c:v copy -frames:v 1 -flush_packets 1 -f framecrc \/tmp\/t\/start\.txt/);
+  assert.doesNotMatch(transcodeArguments({ ...base, at: 300.5 }).join(' '), /copyts|start\.txt/);
+
+  const playlist = masterPlaylist(probe, 0);
+  assert.doesNotMatch(playlist, /TYPE=AUDIO/);
+  assert.match(playlist, /TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",LANGUAGE="eng",DEFAULT=NO,AUTOSELECT=NO,URI="text0\/index\.m3u8"/);
+  assert.match(playlist, /NAME="Português \(Brasil\)",LANGUAGE="por",.*URI="text1\/index\.m3u8"/);
+  assert.match(playlist, /#EXT-X-STREAM-INF:BANDWIDTH=\d+,SUBTITLES="subs"\nvideo\/index\.m3u8\n$/);
+  assert.doesNotMatch(masterPlaylist(probe, 0, true), /SUBTITLES/);
+});
+
+test("cuts a growing WebVTT file into the video's segments (D-236)", () => {
+  const video = ['#EXTM3U', '#EXT-X-MAP:URI="init.mp4"', '#EXTINF:4.004000,', 's00000.m4s', '#EXTINF:4.000000,', 's00001.m4s'];
+  const vtt =
+    'WEBVTT\n\n00:-1.-500 --> 00:00.-200\nbefore\n\n00:01.000 --> 00:02.000\none\n\n00:04.500 --> 00:06.000 line:90%\ntwo\nlines\n\n';
+  // The newest segment waits for the next one; all are listed once the video ends.
+  assert.match(subtitlePlaylist(video.join('\n')), /PLAYLIST-TYPE:EVENT\n#EXTINF:4\.004000,\ns00000\.vtt\n$/);
+  assert.match(
+    subtitlePlaylist([...video, '#EXT-X-ENDLIST'].join('\n')),
+    /s00000\.vtt\n#EXTINF:4\.000000,\ns00001\.vtt\n#EXT-X-ENDLIST\n$/,
+  );
+  assert.equal(subtitleSegment(video.join('\n'), vtt, 's00000.vtt'), 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\none\n');
+  assert.equal(subtitleSegment(video.join('\n'), vtt, 's00001.vtt'), 'WEBVTT\n\n00:00:04.500 --> 00:00:06.000 line:90%\ntwo\nlines\n');
+  assert.equal(subtitleSegment(video.join('\n'), vtt, 's00002.vtt'), null);
+  // A copied video that starts 0.5 s into the file: every cue that much earlier.
+  assert.match(subtitleSegment(video.join('\n'), vtt, 's00000.vtt', 0.5), /00:00:00\.500 --> 00:00:01\.500\none\n\n00:00:04\.000/);
+  assert.equal(
+    startTime('#software: Lavf60\n#tb 0: 1/1000\n#media_type 0: video\n0,       9920,      10000,       40,    10990, 0x8f\n'),
+    10,
+  );
+  assert.equal(startTime(''), null);
 });
 
 test('converts what Chromium cannot decode and copies the rest', () => {
@@ -58,7 +132,7 @@ test('converts what Chromium cannot decode and copies the rest', () => {
   assert.match(full, /-hls_playlist_type event/);
   assert.match(
     full,
-    /-var_stream_map v:0,agroup:audio,name:video a:0,agroup:audio,name:audio0 a:1,agroup:audio,name:audio1 \/tmp\/t\/%v\/index\.m3u8$/,
+    /-var_stream_map v:0,agroup:audio,name:video a:0,agroup:audio,name:audio0 a:1,agroup:audio,name:audio1 \/tmp\/t\/%v\/index\.m3u8 -map 0:s:0 -c:s webvtt .*\/tmp\/t\/text0\.vtt$/,
   );
   const copied = transcodeArguments({ ...base, probe, copyVideo: true }).join(' ');
   assert.match(copied, /-c:v copy -tag:v hvc1/);
@@ -275,6 +349,93 @@ test('plays an HEVC and AC-3 file through H.264 and AAC, from the second asked f
   await transcoder.close();
   assert.equal(transcoder.file(again.playlist), null);
 });
+
+test(
+  'keeps text subtitles, timed to a copied video that starts at the key frame before the second asked for (D-236)',
+  { timeout: 120_000 },
+  async (t) => {
+    if (!ffmpeg || !existsSync(ffmpeg)) return t.skip('no FFmpeg binary');
+    const folder = mkdtempSync(path.join(tmpdir(), 'transcode-'));
+    t.after(() => rmSync(folder, { recursive: true, force: true, maxRetries: 5 }));
+    const cues = (word) =>
+      Array.from(
+        { length: 9 },
+        (_, i) =>
+          `${i + 1}\n00:00:${String(2 * i + 2).padStart(2, '0')},000 --> 00:00:${String(2 * i + 3).padStart(2, '0')},000\n${word} ${2 * i + 2}\n`,
+      ).join('\n');
+    writeFileSync(path.join(folder, 'en.srt'), cues('english'));
+    writeFileSync(path.join(folder, 'pt.srt'), cues('português'));
+    const source = path.join(folder, 'episode.mkv');
+    // Key frames every 10 s.
+    execFileSync(ffmpeg, [
+      ...['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=25:duration=20'],
+      ...['-f', 'lavfi', '-i', 'sine=duration=20', '-i', path.join(folder, 'en.srt'), '-i', path.join(folder, 'pt.srt')],
+      ...[
+        '-map',
+        '0',
+        '-map',
+        '1',
+        '-map',
+        '2',
+        '-map',
+        '3',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-g',
+        '250',
+        '-c:a',
+        'ac3',
+        '-c:s',
+        'ass',
+      ],
+      ...['-metadata:s:s:0', 'language=eng', '-metadata:s:s:1', 'language=por', '-metadata:s:s:1', 'title=Português', source],
+    ]);
+    const server = createServer((request, response) => {
+      const data = readFileSync(source);
+      const range = /bytes=(\d+)-/.exec(request.headers.range ?? '');
+      const start = range ? Number(range[1]) : 0;
+      response.writeHead(range ? 206 : 200, {
+        'Content-Length': data.length - start,
+        'Accept-Ranges': 'bytes',
+        ...(range ? { 'Content-Range': `bytes ${start}-${data.length - 1}/${data.length}` } : {}),
+      });
+      response.end(data.subarray(start));
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => server.close());
+    const url = `http://localhost:${server.address().port}/series/u/p/9.mkv`;
+    const transcoder = createTranscoder({ ffmpeg, root: path.join(folder, 'out'), userAgent: 'VLC' });
+    t.after(() => transcoder.close());
+    const probe = await transcoder.probe(url);
+    assert.deepEqual(
+      probe.subtitles.map(({ language, title }) => [language, title]),
+      [
+        ['eng', null],
+        ['por', 'Português'],
+      ],
+    );
+
+    const started = await transcoder.start({ url, probe, at: 13, copyVideo: true });
+    assert.equal(started.at, 10);
+    const main = readFileSync(transcoder.file(started.playlist), 'utf8');
+    assert.match(main, /NAME="Português",LANGUAGE="por".*URI="text1\/index\.m3u8"/);
+    const base = started.playlist.replace('index.m3u8', '');
+    // Once FFmpeg is done every segment is listed; the first starts at 10 s into the episode.
+    let list = null;
+    for (let tries = 0; !list?.body.includes('ENDLIST') && tries < 100; tries += 1) {
+      list = await transcoder.subtitles(`${base}text1/index.m3u8`);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    assert.match(list.body, /s00000\.vtt[\s\S]*#EXT-X-ENDLIST/);
+    const first = await transcoder.subtitles(`${base}text1/s00000.vtt`);
+    assert.equal(first.type, 'text/vtt');
+    assert.match(first.body, /^WEBVTT\n\n00:00:00\.000 --> 00:00:01\.000\nportuguês 10\n\n00:00:02\.000 --> 00:00:03\.000\nportuguês 12\n/);
+    assert.equal(await transcoder.subtitles(`${base}text2/index.m3u8`), null);
+    assert.equal(await transcoder.subtitles('/transcode/000000000000000000000000/text0/index.m3u8'), null);
+  },
+);
 
 test('converts every audio track of a download and takes timeline pictures (issue #270)', { timeout: 120_000 }, async (t) => {
   if (!ffmpeg || !existsSync(ffmpeg)) return t.skip('no FFmpeg binary');

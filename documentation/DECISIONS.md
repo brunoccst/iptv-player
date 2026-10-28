@@ -141,6 +141,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-233](#d-233) | Save and Cancel in a column on the right of the dialog |
 | [D-234](#d-234) | New seasons of watched series |
 | [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
+| [D-236](#d-236) | Desktop conversions keep subtitles; MKV read first |
 
 ## Merged and retired IDs
 
@@ -640,7 +641,7 @@ The owner's rules for the TV app (phones and computers have no D-pad focus):
 - `apps/desktop` shows the bundled web player in its own window, with installers for Windows (`.exe`, a setup wizard: this user or all users, any folder), macOS (`.dmg`, Intel and Apple silicon) and Linux (`.AppImage`, `.deb`). `desktop.yml` builds them after changes reach `main` and publishes them with fixed names to the `desktop` prerelease.
 - The app serves the page from `http://127.0.0.1:47831` (a secure context, so the Service Worker and Web Crypto work; fixed so saved state keeps its origin) and adds the CORS permission (`*`, no credentials) to provider answers; provider requests get the player User-Agent and no page origin. The web player notices the app through `window.iptvDesktop` (`apps/web-player/src/desktop.ts`).
 - Storage goes through the main process: secrets encrypted by the system (`safeStorage`), the library in SQLite (D-121).
-- Only English Chromium texts and the strongest compression. Electron brings its own Chromium (~200 MB installed); Tauri would be far smaller but plays differently per system and needs a proxy for CORS and the User-Agent (backlog: Windows only).
+- Only English Chromium texts and the strongest compression. Electron brings its own Chromium (~200 MB installed); Tauri would be far smaller but plays differently per system and needs a proxy for CORS and the User-Agent; not planned (issue #238 closed 2026-10-27: a Rust rewrite of the native code for one system).
 - The web player is the desktop app's screens; in a plain browser it is for development and tests only (D-088). The folder stays `apps/web-player`.
 - `ci.yml` → Desktop runs its unit tests and a smoke test against the fake panel.
 
@@ -1474,3 +1475,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Covers: a title with no version in the languages (search can show one) is tagged from all its versions. Library lists compute the tags per list from the `language` and `languageCategoryIds` they are asked with (`coverQuality`; in SQLite, from the items' `langs` and `cat`), so the stored `best` column stays the all-versions one. Details keep every version's tags.
 - My List: `quality.inLanguages` holds the tags of the versions in the languages; null when there are none, and then the title is neither marked nor announced, so a better copy in another language never counts. A changed language choice reads My List again (`recheckQuality`).
 - Without languages, every version counts, as before.
+
+## D-236
+
+**Desktop conversions keep subtitles; MKV read first** — 2026-10-28 (requested by owner)
+
+- A conversion (D-189) used to drop every subtitle track (`-sn`), so a "Multi Sub" episode listed only "Off". Each text track (SRT, ASS, WebVTT, MP4 text; at most 16) is now written by the same FFmpeg as one WebVTT file that grows as it reads. FFmpeg's own HLS writer cannot do it: it refuses an HLS output with only subtitles and crashes (FFmpeg 6) with subtitles beside fMP4 video. Picture subtitles (PGS, DVD) cannot become text and stay out.
+- The app writes the main playlist whenever there are subtitles or several audio tracks; the video then has its own folder. Each subtitle track's playlist repeats the video's segments, one behind until the video ends so a segment's cues are written by the time it is asked for, and each part is cut from the WebVTT file by cue start (`subtitlePlaylist`, `subtitleSegment` in `apps/desktop/lib/transcoder.mjs`). Cues before the start point come out negative (`-avoid_negative_ts disabled`, else FFmpeg moves the first to 0) and are left out.
+- A copied video (D-189) can only start at a key frame, up to a picture group before the second asked for; it used to keep the asked second as its start, so the clock and anything timed to it were off by that much. It now starts there with sound and subtitles (`-noaccurate_seek -copyts`), and a one-picture `framecrc` output says where, which becomes the conversion's start (`startTime`). The fMP4 segments cannot tell: FFmpeg zeroes their times and keeps the offset in an edit list hls.js ignores.
+- Chromium plays an MKV's first audio track only and none of its subtitles, and finds sound it cannot decode only after a few silent seconds, then starts again converted. So the desktop app reads every MKV movie or episode with FFmpeg before it plays (about a second more): sound to convert, several audio tracks or text subtitles convert from the start, with the video copied when Chromium decodes it (`conversionNeeded` → `tracks`). Other MKVs play as before. A seek that converts again keeps the subtitles on screen.
