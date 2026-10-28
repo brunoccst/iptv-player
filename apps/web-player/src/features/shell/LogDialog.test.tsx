@@ -9,7 +9,7 @@ vi.mock('../../desktop', () => ({ desktop: null }));
 describe('log dialog', () => {
   afterEach(cleanup);
 
-  it('closes with the X at its top right (D-236)', async () => {
+  it('closes with the X at its top right (D-237)', async () => {
     const { LogDialog } = await import('./LogDialog');
     const onClose = vi.fn();
     render(<LogDialog onClose={onClose} />);

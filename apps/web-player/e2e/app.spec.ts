@@ -357,7 +357,7 @@ test('account menu → App: About and the diagnostics log, as on TV (D-079)', as
   const saving = page.waitForEvent('download');
   await log.getByRole('button', { name: 'Save log' }).click();
   expect((await saving).suggestedFilename()).toMatch(/-log-\d{4}-\d{2}-\d{2}\.txt$/);
-  // The X at its top right closes it (D-236).
+  // The X at its top right closes it (D-237).
   await log.getByTestId('dialog-close').click();
   await expect(log).toBeHidden();
 });
@@ -371,7 +371,7 @@ test('right-click on a movie: Mark as watched tags the cover and the details; Ma
 
   await card.click({ button: 'right' });
   const menu = page.getByRole('dialog', { name: 'Options for Sequel Test 2' });
-  // The menu's own buttons, not the X that closes it (D-236).
+  // The menu's own buttons, not the X that closes it (D-237).
   await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText([
     'Go to details',
     'Mark as watched',
@@ -415,7 +415,7 @@ test('series: Mark series as watched tags the cover and every episode; unwatchin
   const tag = page.getByTestId('card-Test Series-watched');
   await card.click({ button: 'right' });
   const menu = page.getByRole('dialog', { name: 'Options for Test Series' });
-  // The menu's own buttons, not the X that closes it (D-236).
+  // The menu's own buttons, not the X that closes it (D-237).
   await expect(menu.getByRole('button').filter({ hasText: /\S/ })).toHaveText([
     'Go to details',
     'Mark series as watched',

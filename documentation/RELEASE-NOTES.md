@@ -16,7 +16,7 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach th
 
 #### Latest
 
-- **Close button on every box** (2026-10-28, D-236): on phones and tablets, every box and popup now has an X at its top right that closes it, besides the Back button. The TV keeps closing them with Back.
+- **Close button on every box** (2026-10-28, D-237): on phones and tablets, every box and popup now has an X at its top right that closes it, besides the Back button. The TV keeps closing them with Back.
 - **Quality tags and upgrades follow your languages** (2026-10-27, D-235): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **New season of a series you watch** (2026-10-27, D-234): when a series you watched, or marked watched, gets a new season, Home shows a popup with its cover and "Season 3 is out"; More Info opens the series. It shows once per new season and profile, after any "Better quality" popup, and only counts seasons in your profile's content languages.
 - **Save and Cancel on the right** (2026-10-27, D-233): in the settings boxes, Save and Cancel now stand in a column on the right of the box instead of under it. On TV, press Right from any row of a list (languages, categories) to reach Save, with no scrolling down; Left goes back to the row you were on. Phones held upright keep them at the bottom.
@@ -142,7 +142,8 @@ A new version line from 2026-10-24 (3.0.0, 3.0.1, …): conversions use the grap
 
 #### Latest
 
-- **Close button on every box** (2026-10-28, D-236): every box and popup now has an X at its top right that closes it, the log included, which had no way to close it other than Escape.
+- **Close button on every box** (2026-10-28, D-237): every box and popup now has an X at its top right that closes it, the log included, which had no way to close it other than Escape.
+- **Subtitles in converted videos** (2026-10-28, D-236): episodes and movies the app converts (MKV files, Dolby or DTS sound) now keep their subtitles, so a "Multi Sub" episode lists all its languages under Subtitles instead of only Off. MKV files are checked before they play, so sound the computer cannot play is converted from the start, without a few silent seconds and a restart. After the app restarts a conversion part way in, the clock and subtitles now match the picture.
 - **Quality tags and upgrades follow your languages** (2026-10-27, D-235): with languages chosen for a profile, the 4K or TS tag on covers and the "Better quality on My List" popup look only at the versions in those languages. A French copy getting better no longer announces a movie whose English and Portuguese copies are still TS.
 - **New season of a series you watch** (2026-10-27, D-234): when a series you watched, or marked watched, gets a new season, Home shows a popup with its cover and "Season 3 is out"; More Info opens the series. It shows once per new season and profile, after any "Better quality" popup, and only counts seasons in your profile's content languages.
 - **Save and Cancel on the right** (2026-10-27, D-233): in the settings boxes, Save and Cancel now stand in a column on the right of the box instead of under it. On TV, press Right from any row of a list (languages, categories) to reach Save, with no scrolling down; Left goes back to the row you were on. Phones held upright keep them at the bottom.

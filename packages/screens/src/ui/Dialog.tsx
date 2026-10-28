@@ -26,7 +26,7 @@ export const useDialogSide = () => useContext(DialogSide);
  * long list scrolls with `flex: 1` between fixed parts (DECISIONS.md#d-231). `actions` (a `DialogActions`): its buttons,
  * in a column on the right of the content where the window is wide enough, so Right from any row of a list reaches
  * Save; under the content on narrow windows (DECISIONS.md#d-233). An X at the top right closes it on the desktop and
- * phone; the TV closes it with Back and shows no X, so D-pad focus never lands on it (DECISIONS.md#d-236).
+ * phone; the TV closes it with Back and shows no X, so D-pad focus never lands on it (DECISIONS.md#d-237).
  */
 export function Dialog({
   title,
@@ -109,7 +109,7 @@ export function Dialog({
   );
 }
 
-/** The X that closes a dialog, on the desktop and phone (DECISIONS.md#d-236). For panels that draw their own header. */
+/** The X that closes a dialog, on the desktop and phone (DECISIONS.md#d-237). For panels that draw their own header. */
 export function DialogClose({ onClose }: { onClose(): void }) {
   if (Platform.isTV) return null;
   return <IconButton icon="close" label={t('Close')} onPress={onClose} size={36} iconSize={18} plain testID="dialog-close" />;

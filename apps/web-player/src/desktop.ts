@@ -16,6 +16,8 @@ export interface StreamProbe {
   duration: number | null;
   video: { codec: string; height: number | null; hdr: boolean } | null;
   audio: { codec: string; language: string | null }[];
+  /** Every subtitle track; `text` when it can be shown converted (DECISIONS.md#d-236). Older apps lack it. */
+  subtitles?: { codec: string; language: string | null; title: string | null; text: boolean }[];
 }
 
 /** A piece of a download for the app's FFmpeg (issue #270); `total` is null for what comes whole (a playlist, an HLS part). */

@@ -103,7 +103,7 @@ describe('account menu (issue #155)', () => {
     expect(set).not.toHaveBeenCalled();
   });
 
-  it('every dialog has an X that closes it: About (D-236)', async () => {
+  it('every dialog has an X that closes it: About (D-237)', async () => {
     await open();
     fireEvent.click(screen.getByRole('menuitem', { name: 'App' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'About' }));

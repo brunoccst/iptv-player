@@ -332,6 +332,56 @@ describe('conversion by the desktop app (issue #236)', () => {
     expect(conversionNeeded(h264Ac3, decodes(false))).toBe('audio');
     expect(conversionNeeded({ ...h264Ac3, audio: [{ codec: 'aac', language: null }] }, decodes(false))).toBe('none');
     expect(conversionNeeded({ duration: 10, video: { codec: 'mpeg4', height: 480, hdr: false }, audio: [] }, decodes(true))).toBe('video');
+    // Chromium plays one audio track and no subtitles: a file with more is copied with every track (D-236).
+    const aac = { codec: 'aac', language: null };
+    expect(conversionNeeded({ ...h264Ac3, audio: [aac, aac] }, decodes(false))).toBe('tracks');
+    const subtitles = (codec: string, text: boolean) => [{ codec, language: 'por', title: null, text }];
+    expect(conversionNeeded({ ...h264Ac3, audio: [aac], subtitles: subtitles('ass', true) }, decodes(false))).toBe('tracks');
+    expect(conversionNeeded({ ...h264Ac3, audio: [aac], subtitles: subtitles('hdmv_pgs_subtitle', false) }, decodes(false))).toBe('none');
+  });
+
+  it('reads an MKV before it plays, so its sound, audio tracks and subtitles play converted from the start (D-236)', async () => {
+    const { client, get } = api({ m3u8: 'http://r/good.m3u8', mkv: 'http://r/episode.mkv' });
+    const withSubtitles: StreamProbe = {
+      ...h264Ac3,
+      audio: [{ codec: 'aac', language: 'jpn' }],
+      subtitles: [{ codec: 'ass', language: 'por', title: 'Português', text: true }],
+    };
+    const { transcode, started } = bridge({ 'http://r/episode.mkv': withSubtitles });
+    const engine = new PlaybackEngine(
+      clockVideo(() => true),
+      client,
+      fakeHls() as never,
+      true,
+      fakeMpegts().load,
+      transcode,
+    );
+
+    const loaded = await engine.load({ kind: 'episode', streamId: '7', container: 'mkv' }, null, undefined, 0);
+    expect(loaded).toMatchObject({ url: '/transcode/good1/index.m3u8', converted: { at: 0 } });
+    expect(get.mock.calls.map((call) => call[2])).toEqual(['mkv']);
+    expect(started).toEqual([{ url: 'http://r/episode.mkv', probe: withSubtitles, at: 0, live: false, copyVideo: true, audio: 0 }]);
+  });
+
+  it('plays an MKV that needs nothing converted as before', async () => {
+    const { client } = api({ m3u8: 'http://r/good.m3u8', mkv: 'http://r/episode.mkv' });
+    const plain: StreamProbe = { ...h264Ac3, audio: [{ codec: 'aac', language: 'jpn' }] };
+    const { transcode, started } = bridge({ 'http://r/episode.mkv': plain });
+    const engine = new PlaybackEngine(
+      clockVideo(() => true),
+      client,
+      fakeHls() as never,
+      true,
+      fakeMpegts().load,
+      transcode,
+    );
+
+    await expect(engine.load({ kind: 'episode', streamId: '7', container: 'mkv' }, null)).resolves.toMatchObject({
+      url: 'http://r/good.m3u8',
+      engine: 'hls',
+    });
+    expect(transcode.probe).toHaveBeenCalledTimes(1);
+    expect(started).toEqual([]);
   });
 
   it('converts a title Chromium cannot play, from where it resumes, reading the file before HLS', async () => {
