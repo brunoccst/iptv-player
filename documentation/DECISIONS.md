@@ -1529,5 +1529,5 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 **npm overrides for deprecated build packages** — 2026-10-31 (issue #215)
 
-- `npm install` warned about seven deprecated packages pulled in by tools, none of them in the apps. The root `package.json` `overrides` now give each its supported version where the tool that wants it works with it: `@react-native-tvos/config-tv` → glob 13 (it calls `globSync`), `xcode` → uuid 11 (it calls `v4`), `test-exclude` 8 (glob 13), and jsdom 28 under `jest-environment-jsdom` (drops abab, domexception and whatwg-encoding).
+- `npm install` warned about seven deprecated packages pulled in by tools, none of them in the apps. The root `package.json` `overrides` now give each its supported version where the tool that wants it works with it: `@react-native-tvos/config-tv` → glob 13 (it calls `globSync`), uuid 11 for `xcode` (it calls `v4`; a flat override, since npm drops a nested one for it), `test-exclude` 8 (glob 13), and jsdom 28 under `jest-environment-jsdom` (drops abab, domexception and whatwg-encoding).
 - Jest 29 (from jest-expo 57) keeps glob 7 and its inflight: `jest-config`, `jest-runtime` and `@jest/reporters` call `glob.default.sync`, which glob 9+ has not, so an override would break test runs. They go with Jest 30, when Expo 58 comes in (issue #215).
