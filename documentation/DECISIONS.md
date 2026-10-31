@@ -146,6 +146,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-238](#d-238) | TV: a reminder opens the app |
 | [D-239](#d-239) | Finding a TV that got a new address |
 | [D-240](#d-240) | The computer is a sync hub too |
+| [D-241](#d-241) | npm overrides for deprecated build packages |
 
 ## Merged and retired IDs
 
@@ -324,7 +325,7 @@ Why: no `.mp4`/`.mkv` is ever written to the user's files, and copied cache file
 
 - Navigation: a small Zustand `uiStore` mirrored into `history.pushState`, not a router. Browser Back closes the player, then the modal, then returns to the previous view. Each entry also writes the page into the address hash (view, category, search, details; not the player, so a reload never starts playback by itself), and a reload or a typed address opens that page. Details opened from an address get the page under them as their own history entry, so closing them stays in the app (issue #221). A hash, not a path: the desktop serves one `index.html` and needs no route fallback.
 - Rows load when scrolled within 400 px of the viewport. Grid cards are memoized and use `content-visibility: auto`, which keeps scrolling smooth up to thousands of cards (stress test: `FAKE_PANEL_STRESS`, `scripts/stress-web.mjs`).
-- Hero trailer: a muted `youtube-nocookie.com` embed fades in after 3 s when the provider has a trailer id; the backdrop otherwise.
+- Hero trailer: a muted `youtube-nocookie.com` embed loads after 3 s when the provider has a trailer id, out of sight, and fades in only once the YouTube player says it plays (its IFrame API messages, `enablejsapi=1`). A removed or blocked video, or one that has not started within 15 s (no internet), leaves the backdrop alone instead of YouTube's black "Video unavailable" box (issue #222).
 - When a library update ends, `LibraryBanner` invalidates the library and bumps `libraryRevision`; mounted views reload.
 - Plain CSS with tokens; no CSS framework.
 
@@ -1523,3 +1524,10 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - While signed in, the desktop app's main process listens on the first free port of the TV's range at `/remote` (`apps/desktop/lib/remoteServer.mjs`), also with the window closed and the app in the tray (D-226). The page opens each request with a paired phone's key and answers a `sync` like the TV (`answerSync`; play and log are TV only) (`useRemoteServer` in `apps/web-player/src/features/pairing/pairing.ts`). It keeps the last five phones' keys, as the TV does.
 - A phone that scans the computer's code gets a key with `kind: 'computer'` in the pairing answer (D-061's `RemoteOffer`). A phone keeps one TV and one computer (`remote.tv`, `remote.computer`) and syncs with both on each automatic sync, so the three devices end up the same; Play on TV and the TV log go to the TV only. A computer that scans another computer's code keeps it the same way. A computer that scans while signed out has no server yet and gets no key; scanning again once signed in gives one.
 - Risk: a phone app older than 3.1 that scans a 3.1 computer's code takes the computer for its TV and stops syncing with the TV until it scans the TV again. Both apps update themselves (D-062, D-073).
+
+## D-241
+
+**npm overrides for deprecated build packages** — 2026-10-31 (issue #215)
+
+- `npm install` warned about seven deprecated packages pulled in by tools, none of them in the apps. The root `package.json` `overrides` now give each its supported version where the tool that wants it works with it: `@react-native-tvos/config-tv` → glob 13 (it calls `globSync`), `xcode` → uuid 11 (it calls `v4`), `test-exclude` 8 (glob 13), and jsdom 28 under `jest-environment-jsdom` (drops abab, domexception and whatwg-encoding).
+- Jest 29 (from jest-expo 57) keeps glob 7 and its inflight: `jest-config`, `jest-runtime` and `@jest/reporters` call `glob.default.sync`, which glob 9+ has not, so an override would break test runs. They go with Jest 30, when Expo 58 comes in (issue #215).
