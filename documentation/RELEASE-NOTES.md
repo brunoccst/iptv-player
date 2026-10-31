@@ -12,10 +12,11 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ### 3.1
 
-A new version line from 2026-10-31 (3.1.0, 3.1.1, …): fixes the empty list in Categories shown on TV, and titles you merged by hand stay merged.
+A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the TV app, titles you merged by hand stay merged, and Categories shown lists your categories again on TV.
 
 #### Latest
 
+- **Reminders open the app on the TV** (2026-10-31, D-238, issue #309): when a programme you set a reminder for starts, the TV now opens the app with its reminder, even from another app or the home screen. Live TV asks once to allow "Display over other apps", which Android needs for it; Open settings takes you there.
 - **Merged titles stay merged** (2026-10-31, D-185, issue #311): a title you merged by hand no longer comes apart again when the provider later gives it a TMDB id or another year. The merge follows it, on this device and your others.
 - **Categories shown lists your categories again** (2026-10-31, issue #330): on the TV, Account menu → Profiles → Categories shown showed only the section tabs and Save and Cancel, with no categories. The list is back and scrolls inside the box.
 

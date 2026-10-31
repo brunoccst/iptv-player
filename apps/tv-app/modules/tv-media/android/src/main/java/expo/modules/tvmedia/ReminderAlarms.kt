@@ -8,8 +8,11 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Process
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,6 +22,10 @@ import org.json.JSONObject
  * notification when the programme starts. JS hands over the whole list, already translated, whenever it changes
  * (src/tv/reminderAlarms.ts); the list is kept here too, so the alarms come back after a restart of the phone.
  * While the app is in front, its own popup shows the reminder and the alarm stays silent.
+ *
+ * On a TV the alarm opens the app instead (issue #309, DECISIONS.md#d-238): TV launchers show notifications poorly. Android
+ * lets an app open itself from the background only with "Display over other apps"; without it, the notification is
+ * posted as on the phone.
  */
 object ReminderAlarms {
   private const val PREFERENCES = "tv-media-reminders"
@@ -56,14 +63,22 @@ object ReminderAlarms {
     if (inFront(context)) return
     val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
     val reminder = parse(preferences.getString(KEY_LIST, null)).firstOrNull { it.optString("id") == id } ?: return
+    // Opens the app, which shows the reminder's popup with Watch (it still shows 10 minutes after the start, D-184).
+    val launch = context.packageManager.getLeanbackLaunchIntentForPackage(context.packageName)
+      ?: context.packageManager.getLaunchIntentForPackage(context.packageName)
+    launch?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+    if (isTv(context) && launch != null && canOpenOverOtherApps(context)) {
+      try {
+        context.startActivity(launch)
+        return
+      } catch (_: Exception) {
+        // Refused after all: the notification below is all there is.
+      }
+    }
     val manager = notifications(context)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val name = preferences.getString(KEY_CHANNEL, null) ?: "Reminders"
       manager.createNotificationChannel(NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_HIGH))
-    }
-    // Opens the app, which shows the reminder's popup with Watch (it still shows 10 minutes after the start, D-184).
-    val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
     val open = launch?.let {
       PendingIntent.getActivity(context, id.hashCode(), it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -84,6 +99,31 @@ object ReminderAlarms {
     } catch (_: SecurityException) {
       // Notifications not allowed (Android 13+): the app's own popup is all there is.
     }
+  }
+
+  /** A TV (Android TV, Google TV): the alarm opens the app rather than notify (issue #309). */
+  fun isTv(context: Context): Boolean = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+
+  /** "Display over other apps", which lets the app open itself when a reminder starts (Android 10+ asks for it). */
+  fun canOpenOverOtherApps(context: Context): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+
+  /** Opens the system screen that allows it; false when this TV has none (some leave it out). */
+  fun openOverOtherAppsSettings(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false
+    val intents = listOf(
+      Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}")),
+      Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION),
+    )
+    for (intent in intents) {
+      try {
+        context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        return true
+      } catch (_: Exception) {
+        // Not on this TV: try the next.
+      }
+    }
+    return false
   }
 
   private fun setAlarm(context: Context, reminder: JSONObject) {

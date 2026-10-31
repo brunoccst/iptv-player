@@ -339,9 +339,22 @@ class TvMediaModule : Module() {
     }.runOnQueue(Queues.MAIN)
 
     /** Home screen "Continue watching" on Android TV and Google TV (DECISIONS.md#d-147): the app's rows. */
-    /** Phone: the guide reminders as system alarms (issue #263, D-222); JSON `[{ id, startMs, title, text }]`. */
+    /**
+     * The guide reminders as system alarms (issue #263, D-222); JSON `[{ id, startMs, title, text }]`. A phone notifies;
+     * a TV opens the app (issue #309).
+     */
     Function("scheduleReminders") { list: String, channelName: String ->
       ReminderAlarms.schedule(context, list, channelName)
+    }
+
+    /** TV (issue #309): whether "Display over other apps" lets a reminder open the app. */
+    Function("canOpenOverOtherApps") {
+      ReminderAlarms.canOpenOverOtherApps(context)
+    }
+
+    /** Opens the system screen for "Display over other apps"; false when this TV has none. */
+    Function("openOverOtherAppsSettings") {
+      ReminderAlarms.openOverOtherAppsSettings(context)
     }
 
     AsyncFunction("watchNextRows") {

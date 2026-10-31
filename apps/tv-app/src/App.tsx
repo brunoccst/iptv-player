@@ -9,6 +9,7 @@ import { createPageFocus, PageFocusContext } from './components/pageFocus';
 import { ConnectionBanner, LibraryNotice } from './components/LibraryBanner';
 import { QualityUpgradeDialog } from './components/QualityUpgradeDialog';
 import { NewSeasonsDialog } from './components/NewSeasonsDialog';
+import { OpenOnReminderPrompt } from './components/OpenOnReminderPrompt';
 import { ReminderDialog } from './components/ReminderDialog';
 import { ColourKeys } from './tv/colourKeys';
 import { TopNav } from './components/TopNav';
@@ -56,8 +57,8 @@ export function App() {
   // The home screen's "Continue watching" row on Android TV and Google TV (issue #165, D-147).
   useWatchNextSync(Platform.isTV);
   useWatchNextLaunch(Platform.isTV);
-  // Phone and tablet: guide reminders also notify with the app closed (issue #263, D-222).
-  useReminderAlarms(!Platform.isTV);
+  // Guide reminders with the app closed: phones and tablets notify (issue #263, D-222), TVs open the app (issue #309).
+  useReminderAlarms(true);
 
   useEffect(() => {
     void stores.session.getState().restore();
@@ -239,6 +240,9 @@ function Shell() {
       <QualityUpgradeDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
       {/* New seasons of watched series, after it (DECISIONS.md#d-234). */}
       <NewSeasonsDialog visible={route.name === 'section' && section === 'home' && shown === section && !menuOpen && !updatePrompt} />
+      {/* TV: lets a reminder open the app when its programme starts, asked on Live TV where reminders are set
+          (DECISIONS.md#d-238). */}
+      <OpenOnReminderPrompt enabled={route.name === 'section' && section === 'live' && shown === section && !menuOpen && !updatePrompt} />
       <ReminderDialog />
     </View>
   );

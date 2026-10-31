@@ -143,6 +143,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
 | [D-236](#d-236) | Desktop conversions keep subtitles; MKV read first |
 | [D-237](#d-237) | An X closes every dialog, except on TV |
+| [D-238](#d-238) | TV: a reminder opens the app |
 
 ## Merged and retired IDs
 
@@ -1362,7 +1363,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The phone and tablet hand every reminder of the account's profiles to Android (`ReminderAlarms.kt`, from `apps/tv-app/src/tv/reminderAlarms.ts`) whenever the list changes: one alarm per programme, which posts a notification "Starting now: …" with the channel (and the profiles who set it, when the account has several). All profiles, not only the active one, since the app may be closed or on another profile when it starts. The words are translated by JS beforehand, since no JavaScript runs when the alarm goes off.
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
-- Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which can start with the computer and wait in the tray instead (D-226).
+- Not on the TV: Android TV shows notifications poorly, so a TV's alarm opens the app instead (D-238). Not on the desktop, which can start with the computer and wait in the tray instead (D-226).
 
 ## D-223
 
@@ -1494,3 +1495,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The desktop log box had Save log, Copy log and Clear log but nothing that closed it: only Escape did, and nobody knows that. D-232 left boxes that show something with their own Close, and the log never had one. Bruno asked for an X on the log and a visible way to close every window.
 - `Dialog` (`packages/screens/src/ui/Dialog.tsx`) draws an X (`DialogClose`) at the right of its title, calling the same `onClose` as Cancel, Back and Escape, so every shared box has it on the desktop and phone. The profile editor, which draws its own panel, uses `DialogClose` too; the desktop's own frames (details, Sync with another device) already had one (`Modal.tsx`). Cancel and Close stay: the X adds a way out, it does not replace the buttons.
 - Not on TV: Back closes every box there, and an X would be one more stop for the D-pad above the content, where Up from the first row would land on it. The TV's log is a page, not a box.
+
+## D-238
+
+**TV: a reminder opens the app** — 2026-10-31 (issue #309, owner's choice)
+
+- With the app closed, a TV reminder was lost: Android TV launchers hide notifications. Bruno chose for the TV to open the app at the start (over a notification only, or leaving it as it was), which shows its reminder popup with Watch (D-184).
+- The TV sets the same alarms as the phone (D-222, `ReminderAlarms.kt`). When one goes off and the app is not in front, a TV (`FEATURE_LEANBACK`) starts the app's launch activity. Android 10+ lets an app start an activity from the background only with "Display over other apps" (`SYSTEM_ALERT_WINDOW`), so without it, or if the start is refused, the alarm posts the phone's notification instead.
+- The TV asks for it on Live TV, where reminders are set: once per run while there are reminders and it is off, a box explains it and **Open settings** opens the system screen (`OpenOnReminderPrompt.tsx`). Some TVs have no such screen; the app logs it and keeps to its popup. Not on Home, where the quality and new-season popups show.
+- Opening the app still asks "Who's watching?" first (D-151): the popup shows after a profile is picked, within 10 minutes of the start.

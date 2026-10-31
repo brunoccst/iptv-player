@@ -1,9 +1,10 @@
+import { Platform } from 'react-native';
 import { act, renderHook } from '@testing-library/react-native';
 import type { Reminder } from '@iptv/shared';
 import { stores } from '../appContext';
 import { nativeState } from '../../test/tvMediaMock';
 import { profile, setupApp } from '../../test/utils';
-import { reminderAlarms, useReminderAlarms } from './reminderAlarms';
+import { reminderAlarms, resetReminderAlarms, useOpenOnReminderPrompt, useReminderAlarms } from './reminderAlarms';
 
 const now = Date.parse('2026-10-24T12:00:00Z');
 const reminder = (start: string, title = 'The Match', channelId = 'c1'): Reminder => ({
@@ -55,5 +56,48 @@ describe('useReminderAlarms', () => {
       stores.session.setState({ status: 'anonymous', token: null, account: null, profiles: [], activeProfileId: null }),
     );
     expect(nativeState.reminderAlarms).toEqual([]);
+  });
+});
+
+describe('useOpenOnReminderPrompt (issue #309)', () => {
+  const tv = (isTV: boolean) => Object.defineProperty(Platform, 'isTV', { value: isTV, configurable: true });
+  afterEach(() => {
+    tv(false);
+    resetReminderAlarms();
+  });
+
+  it('on a TV with reminders, asks once to allow opening over other apps, and opens its settings', async () => {
+    tv(true);
+    setupApp();
+    nativeState.overOtherApps = false;
+    stores.profilePrefs.setState({ prefs: {}, loaded: true });
+    const { result } = await renderHook(() => useOpenOnReminderPrompt(true));
+    expect(result.current.visible).toBe(false);
+
+    await act(async () =>
+      stores.profilePrefs.getState().update('p1', { reminders: [reminder(new Date(Date.now() + 3600_000).toISOString())] }),
+    );
+    expect(result.current.visible).toBe(true);
+    await act(async () => result.current.allow());
+    expect(result.current.visible).toBe(false);
+    expect(nativeState.calls).toContain('over-other-apps-settings');
+
+    // Not again in this run.
+    await act(async () =>
+      stores.profilePrefs.getState().update('p1', { reminders: [reminder(new Date(Date.now() + 7200_000).toISOString(), 'Late')] }),
+    );
+    expect(result.current.visible).toBe(false);
+  });
+
+  it('asks nothing when it is allowed already, or on a phone', async () => {
+    setupApp();
+    stores.profilePrefs.setState({ prefs: { p1: { reminders: [reminder(new Date(Date.now() + 3600_000).toISOString())] } }, loaded: true });
+    nativeState.overOtherApps = false;
+    const phone = await renderHook(() => useOpenOnReminderPrompt(true));
+    expect(phone.result.current.visible).toBe(false);
+    tv(true);
+    nativeState.overOtherApps = true;
+    const allowed = await renderHook(() => useOpenOnReminderPrompt(true));
+    expect(allowed.result.current.visible).toBe(false);
   });
 });

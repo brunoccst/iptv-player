@@ -10,6 +10,9 @@
   <!-- Guide reminders with the app closed (issue #263, D-222): an alarm at the start, set again after a restart. -->
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <!-- TV (issue #309, D-238): a reminder opens the app from the background, which Android allows with "Display over
+       other apps" only. -->
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
   <!-- External players (D-057): Android 11+ only lists apps the manifest declares interest in. -->
   <queries>

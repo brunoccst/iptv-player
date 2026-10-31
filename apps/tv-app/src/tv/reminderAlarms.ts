@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import { appLog, pruneReminders, t, type ProfileDto, type ProfilePrefs, type Reminder } from '@iptv/shared';
 import { TvMedia } from '../../modules/tv-media';
@@ -48,9 +48,12 @@ function currentAlarms(): ReminderAlarm[] | null {
 
 let asked = false;
 
-/** Android 13+ shows no notification without the person's yes; asked once per run while there are reminders. */
+/**
+ * Android 13+ shows no notification without the person's yes; asked once per run while there are reminders. Not on the
+ * TV, where the alarm opens the app instead (issue #309, `useOpenOnReminderPrompt`).
+ */
 async function askForNotifications() {
-  if (asked || Platform.OS !== 'android' || (Platform.Version as number) < 33) return;
+  if (asked || Platform.isTV || Platform.OS !== 'android' || (Platform.Version as number) < 33) return;
   asked = true;
   try {
     const result = await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS' as never);
@@ -60,7 +63,10 @@ async function askForNotifications() {
   }
 }
 
-/** Phone and tablet: keeps the system alarms in line with the reminders (the TV keeps to its popup, D-184). */
+/**
+ * Keeps the system alarms in line with the reminders: at the start, a phone or tablet notifies (issue #263), a TV opens
+ * the app on its reminder popup (issue #309, DECISIONS.md#d-238).
+ */
 export function useReminderAlarms(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
@@ -88,7 +94,55 @@ export function useReminderAlarms(enabled: boolean) {
   }, [enabled]);
 }
 
+let promptedTv = false;
+
+const canOpenOverOtherApps = () => {
+  try {
+    return TvMedia.canOpenOverOtherApps();
+  } catch {
+    return true; // No way to ask: nothing to ask for.
+  }
+};
+
+/**
+ * TV (issue #309, DECISIONS.md#d-238): Android lets a reminder open the app from the background only with "Display over
+ * other apps". While there are reminders and it is off, this asks once per run whether to turn it on.
+ */
+export function useOpenOnReminderPrompt(enabled: boolean): { visible: boolean; allow(): void; later(): void } {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!enabled || !Platform.isTV) return;
+    const check = () => {
+      if (promptedTv || !currentAlarms()?.length || canOpenOverOtherApps()) return;
+      promptedTv = true;
+      setVisible(true);
+    };
+    check();
+    const unsubscribeSession = stores.session.subscribe(check);
+    const unsubscribePrefs = stores.profilePrefs.subscribe(check);
+    return () => {
+      unsubscribeSession();
+      unsubscribePrefs();
+    };
+  }, [enabled]);
+  return {
+    visible,
+    allow: () => {
+      setVisible(false);
+      let opened = false;
+      try {
+        opened = TvMedia.openOverOtherAppsSettings();
+      } catch {
+        // Logged below.
+      }
+      if (!opened) appLog.warn('reminders', 'this TV has no "Display over other apps" screen');
+    },
+    later: () => setVisible(false),
+  };
+}
+
 /** For tests: ask again. */
 export function resetReminderAlarms() {
   asked = false;
+  promptedTv = false;
 }
