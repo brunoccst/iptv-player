@@ -16,7 +16,8 @@ const MIN_SYNC_GAP_MS = 60_000;
 
 /**
  * One sync: sends this device's media entries to the TV and saves the merged answer. `changed`: this device's lists
- * changed (refresh the screens); `signIn`: the provider sign-in changed (reload it, DECISIONS.md#d-228). Throws
+ * changed (refresh the screens); `signIn`: the provider sign-in changed (reload it, DECISIONS.md#d-228). `host` and
+ * `port`: where the TV answered, to save when it moved (issue #268). Throws
  * `RemoteFailure` (an unreachable TV is normal: it is off, or another network).
  */
 export async function syncWithTv(
@@ -24,13 +25,13 @@ export async function syncWithTv(
   tv: PairedTv,
   accountId: string,
   options: { fetch?: typeof fetch; timeoutMs?: number; now?: () => Date } = {},
-): Promise<{ port: number; changed: boolean; signIn: boolean }> {
+): Promise<{ host: string; port: number; changed: boolean; signIn: boolean }> {
   const data = await mediaForSync(storages, accountId);
   const answer = await sendRemoteCommand(tv, { type: 'sync', accountId, data }, options);
   // An older TV app answers 'bad-request' to a sync, which throws above; no data here means the same.
   if (!answer.data) throw new RemoteFailure('bad-request', tv.tvName);
   const applied = await applySyncedMedia(storages, accountId, answer.data, options.now?.());
-  return { port: answer.port, changed: applied?.changed ?? false, signIn: applied?.signIn ?? false };
+  return { host: answer.host, port: answer.port, changed: applied?.changed ?? false, signIn: applied?.signIn ?? false };
 }
 
 /**

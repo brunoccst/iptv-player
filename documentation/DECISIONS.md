@@ -144,6 +144,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-236](#d-236) | Desktop conversions keep subtitles; MKV read first |
 | [D-237](#d-237) | An X closes every dialog, except on TV |
 | [D-238](#d-238) | TV: a reminder opens the app |
+| [D-239](#d-239) | Finding a TV that got a new address |
 
 ## Merged and retired IDs
 
@@ -578,7 +579,7 @@ Every device shows the code and a signed-out scanner gets the other device's sig
 - While the TV app runs and is signed in, it listens on the first free port of 38127–38131 (`PairingServer.kt`, `/remote`); the phone tries the saved port, then the range.
 - Each command is sealed with the phone's key and carries its send time; the TV refuses unknown phones, other keys, commands older than 5 minutes, titles of another account, and asks for a profile when none is active. The log command (D-039) uses the same channel.
 
-Limits: the TV app must be open; a new TV address from the router needs pairing again. Google Cast was not used: it needs a registered receiver app, and the Chromecast would still need this app for provider streams.
+Limits: the TV app must be open. A new TV address from the router is found again on the home network (D-239). Google Cast was not used: it needs a registered receiver app, and the Chromecast would still need this app for provider streams.
 
 ## D-062
 
@@ -1083,7 +1084,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
 - Profile settings came along from D-225 on, once each carried a date: undated, the scanning device winning (D-060) would undo choices made on the TV every 10 minutes.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
-- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
+- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network. A TV that got a new address is found again (D-239).
 
 ## D-187
 
@@ -1504,3 +1505,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The TV sets the same alarms as the phone (D-222, `ReminderAlarms.kt`). When one goes off and the app is not in front, a TV (`FEATURE_LEANBACK`) starts the app's launch activity. Android 10+ lets an app start an activity from the background only with "Display over other apps" (`SYSTEM_ALERT_WINDOW`), so without it, or if the start is refused, the alarm posts the phone's notification instead.
 - The TV asks for it on Live TV, where reminders are set: once per run while there are reminders and it is off, a box explains it and **Open settings** opens the system screen (`OpenOnReminderPrompt.tsx`). Some TVs have no such screen; the app logs it and keeps to its popup. Not on Home, where the quality and new-season popups show.
 - Opening the app still asks "Who's watching?" first (D-151): the popup shows after a profile is picked, within 10 minutes of the start.
+
+## D-239
+
+**Finding a TV that got a new address** — 2026-10-31 (issue #268, owner's choice)
+
+- A phone, tablet or computer keeps the address of the TV whose code it scanned (D-061). When the router gave the TV another one, sync and Play on TV stopped until the code was scanned again. Bruno chose this part of issue #268 for 3.1, over making the desktop a second hub that listens like the TV.
+- When nothing answers on the saved address (its port, then the range), `sendRemoteCommand` (`packages/shared/src/pairing/remote.ts`) sends the same sealed command to the other addresses of the old one's /24 (`neighbourHosts`: private IPv4 only, nearest first), on the saved port and the range's first, 32 at a time with a second each. Only the paired TV can open the command, so the first one that answers it is the TV; another home's TV answers 403 and is skipped. The address that answered is saved for the next command.
+- No mDNS or network discovery: it would need native code on the TV, phone and desktop and new permissions, and routers usually keep the /24. A search that finds nothing is not made again for 30 minutes, so a TV that is off costs one search, not one per 10-minute sync. A network with another /24 still needs the code scanned again.

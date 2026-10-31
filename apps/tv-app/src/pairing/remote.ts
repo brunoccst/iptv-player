@@ -142,13 +142,20 @@ export function useRemoteServer(enabled: boolean) {
   }, [enabled]);
 }
 
+/** The TV answered on another port, or on a new address from the router (issue #268): the next command goes there. */
+async function savedWhereItAnswered(tv: PairedTv, host: string, port: number) {
+  if (host === tv.host && port === tv.port) return;
+  if (host !== tv.host) appLog.info('remote', 'found the TV on a new address');
+  await pairedTv.getState().save({ ...tv, host, port });
+}
+
 /** Phone and tablet: one automatic sync with the paired TV (issue #227); nothing without one. */
 const autoSync = createAutoSync(async () => {
   const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) return;
-  const { port, changed, signIn } = await syncWithTv(syncStorages, tv, accountId);
-  if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+  const { host, port, changed, signIn } = await syncWithTv(syncStorages, tv, accountId);
+  await savedWhereItAnswered(tv, host, port);
   appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
   // A new provider server, username or password from the TV (DECISIONS.md#d-228).
   if (signIn) await appContext.reload();
@@ -180,8 +187,8 @@ export async function playOnTv(target: PlayTarget): Promise<string> {
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
-    const { port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
-    if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+    const { host, port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
+    await savedWhereItAnswered(tv, host, port);
     appLog.info('remote', `sent ${target.kind} ${target.streamId} to the TV`);
     return t('Playing on {tv}.', { tv: tv.tvName });
   } catch (error) {
@@ -195,8 +202,8 @@ export async function getTvLog(): Promise<{ tvName: string; log: string }> {
   const tv = pairedTv.getState().tv;
   if (!tv) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
-    const { port, log } = await sendRemoteCommand(tv, { type: 'log' });
-    if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+    const { host, port, log } = await sendRemoteCommand(tv, { type: 'log' });
+    await savedWhereItAnswered(tv, host, port);
     if (log === undefined) throw new RemoteFailure('bad-request', tv.tvName);
     appLog.info('remote', 'got the TV log');
     return { tvName: tv.tvName, log };

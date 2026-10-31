@@ -79,6 +79,7 @@ describe('automatic sync with the paired TV (issue #227)', () => {
     });
     const changes: boolean[] = [];
     await expect(syncWithTv(phone, tv, 'acc-1', { fetch: via(tvDevice, changes), now: () => now })).resolves.toEqual({
+      host: tv.host,
       port: tv.port,
       changed: true,
       signIn: false,

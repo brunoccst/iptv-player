@@ -33,7 +33,18 @@ export const canScanWithWebcam = () => !!desktop?.pairing.send && !!globalThis.n
 const desktopFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = new URL(String(input));
   const path = url.pathname === '/remote' ? '/remote' : '/pair';
-  const answer = await desktop!.pairing.send!(url.hostname, Number(url.port), String(init?.body ?? ''), path);
+  const sending = desktop!.pairing.send!(url.hostname, Number(url.port), String(init?.body ?? ''), path);
+  // The search for a TV that moved gives up on an address after a second (issue #268); the main process waits longer.
+  const signal = init?.signal;
+  const answer = signal
+    ? await Promise.race([
+        sending,
+        new Promise<never>((_, reject) => {
+          if (signal.aborted) reject(new DOMException('Aborted', 'AbortError'));
+          signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+        }),
+      ])
+    : await sending;
   return new Response(answer.body, { status: answer.status });
 }) as typeof fetch;
 
@@ -80,8 +91,9 @@ const autoSync = createAutoSync(async () => {
   const tv = await readPairedTv();
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) return;
-  const { port, changed, signIn } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
-  if (port !== tv.port) await savePairedTv({ ...tv, port });
+  const { host, port, changed, signIn } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
+  // Another port, or a new address from the router (issue #268): the next sync goes there.
+  if (host !== tv.host || port !== tv.port) await savePairedTv({ ...tv, host, port });
   appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
   // A new provider server, username or password from the TV (DECISIONS.md#d-228).
   if (signIn) await appContext.reload();
