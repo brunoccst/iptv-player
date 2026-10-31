@@ -495,6 +495,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             // The database keeps the items and groups them itself; only new names are read here (D-133).
             await regrouping;
             saving.add(kind);
+            let rulesFollowed = false;
             try {
               const built = database.build(accountId, kind, queuedAt, source, {
                 hashIds: options.hashIds,
@@ -502,6 +503,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
                 onProgress: (fraction) =>
                   (library.status[kind] = { ...library.status[kind], parsedCount: Math.floor(itemCount * fraction) }),
                 onTimings: (time) => {
+                  if (time.rulesFollowed) rulesFollowed = true;
                   const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
                   if (time.sameList) {
                     appLog.info('library', `${kind}: the same list as last time, nothing to compare`);
@@ -523,6 +525,13 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
               });
               table = null; // The build drops its tables if it fails.
               const { saved, changes } = await built;
+              if (rulesFollowed) {
+                appLog.info('library', `${kind}: merges kept after the provider changed a merged title's key`);
+                // Other devices get the merges' new keys with the next sync (issue #311).
+                await recordTitleRules(accountId, [kind]).catch((error: unknown) =>
+                  appLog.warn('library', `splits and merges not recorded for syncing: ${errorMessage(error)}`),
+                );
+              }
               appLog.info('library', `${kind}: ${saved.count} titles in ${Date.now() - groupStarted} ms`);
               if (!current()) return;
               library.data = { movie: [], series: [], ...library.data, builtAt: queuedAt, sql: { ...library.data?.sql, [kind]: saved } };
