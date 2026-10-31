@@ -10,6 +10,14 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ## TV and phone app
 
+### 3.1
+
+A new version line from 2026-10-31 (3.1.0, 3.1.1, …): fixes the empty list in Categories shown on TV.
+
+#### Latest
+
+- **Categories shown lists your categories again** (2026-10-31, issue #330): on the TV, Account menu → Profiles → Categories shown showed only the section tabs and Save and Cancel, with no categories. The list is back and scrolls inside the box.
+
 ### 3.0
 
 A new version line from 2026-10-24 (3.0.0, 3.0.1, …): guide reminders reach the phone with the app closed, and settings and title splits now sync between your devices.
@@ -135,6 +143,10 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 - Large libraries (100k+ titles) on slow TVs: lists read by native code, faster grouping, no freezes (D-093, D-115).
 
 ## Desktop app
+
+### 3.1
+
+A new version line from 2026-10-31 (3.1.0, 3.1.1, …).
 
 ### 3.0
 

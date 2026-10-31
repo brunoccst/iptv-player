@@ -1441,6 +1441,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - Categories shown and a Kids profile's categories put a scrolling list between fixed parts (title, sections, hint) and Save. The list was sized to its content and left to shrink inside the panel's `maxHeight: 92%`; on the Android TV it did not shrink, so the rows ran past the panel's bottom and Save was off screen.
 - These dialogs now pass `tall` to `Dialog`: the panel gets a fixed height (92% of the window, less the scrim's padding) and the list `flex: 1`, so it takes exactly the room the fixed parts leave and scrolls there, on every app. The panel no longer changes height with the section or the number of categories. Save and the other buttons sit below the list at the right, always in view.
+- Both lists are plain ScrollViews: Categories shown's FlatList, given `flex: 1`, got no height on the Android TV and its categories vanished (issue #330), as the TV grid's did (D-094).
 
 ## D-232
 

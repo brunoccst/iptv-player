@@ -1,6 +1,6 @@
 {
   "name": "@iptv/desktop",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "private": true,
   "description": "Desktop app (Windows, macOS, Linux): the web player in its own window, talking to the IPTV provider directly.",
   "license": "MIT-0",
