@@ -154,6 +154,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **Trailers without the "Video unavailable" box** (2026-10-31, D-025, issue #222): the muted trailer on Home now fades in only once it really plays. A trailer YouTube removed, or no internet, leaves the movie's backdrop instead of a black YouTube box.
 - **Phones sync with the computer** (2026-10-31, D-240, issue #268): the desktop app now listens for the phones and tablets that scanned its code, like the TV, also with its window closed and the app in the tray, so they keep in step with this computer on their own, even when the TV is off. Windows may ask once to allow the app on private networks.
 - **Sync finds the TV on its new address** (2026-10-31, D-239, issue #268): when your router gives the TV another address, your phone, tablet and computer now find it again on the home network and keep syncing, without scanning the TV's code again.
 - **Merged titles stay merged** (2026-10-31, D-185, issue #311): a title you merged by hand no longer comes apart again when the provider later gives it a TMDB id or another year. The merge follows it, on this device and your others.
