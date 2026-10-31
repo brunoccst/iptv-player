@@ -52,7 +52,8 @@ export function App() {
   // TVs play what a paired phone sends (D-061).
   useRemoteServer(Platform.isTV && status === 'authenticated');
   // Phones and tablets keep profiles, progress and My List in step with the paired TV (issue #227).
-  const hasTv = useAppStore(pairedTv, (s) => s.tv !== null);
+  // Also with a paired computer (issue #268).
+  const hasTv = useAppStore(pairedTv, (s) => s.tv !== null || s.computer !== null);
   useAutoSync(!Platform.isTV && status === 'authenticated' && hasTv);
   // The home screen's "Continue watching" row on Android TV and Google TV (issue #165, D-147).
   useWatchNextSync(Platform.isTV);

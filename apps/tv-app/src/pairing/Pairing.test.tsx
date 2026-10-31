@@ -192,6 +192,29 @@ describe('phone-to-TV pairing (D-060)', () => {
     expect(screen.queryByTestId('login-scan')).toBeNull();
   });
 
+  it('a phone keeps a paired computer beside its TV; Play on TV stays with the TV (issue #268)', async () => {
+    setupApp();
+    const tvDevice: PairedTv = {
+      tvId: 'tv',
+      tvName: 'Living room TV',
+      phoneId: 'a',
+      key: PAIRING_KEY,
+      port: 38127,
+      host: '192.168.1.20',
+      pairedAt: '2026-10-31T10:00:00Z',
+    };
+    const desk: PairedTv = { ...tvDevice, tvId: 'pc', tvName: 'Desk PC', host: '192.168.1.23', kind: 'computer' };
+    await act(async () => {
+      await pairedTv.getState().save(tvDevice);
+      await pairedTv.getState().save(desk);
+    });
+    expect(pairedTv.getState()).toMatchObject({ tv: tvDevice, computer: desk });
+    await act(async () => {
+      await pairedTv.getState().load();
+    });
+    expect(pairedTv.getState()).toMatchObject({ tv: tvDevice, computer: desk });
+  });
+
   describe('play on TV (D-061)', () => {
     const movie = { kind: 'movie' as const, streamId: '55', container: 'mkv', title: 'Big Movie' };
     const toRemote = (async (_url: string, init?: RequestInit) => {

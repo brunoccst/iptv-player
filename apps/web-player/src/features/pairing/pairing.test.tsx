@@ -1,11 +1,20 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { acceptPairing, createMemoryStorage, pairingQrText, parsePairingQr, sendPairing, SESSION_STORAGE_KEY } from '@iptv/shared';
+import {
+  acceptPairing,
+  createMemoryStorage,
+  pairingQrText,
+  parsePairingQr,
+  sendPairing,
+  SESSION_STORAGE_KEY,
+  syncWithTv,
+} from '@iptv/shared';
 
 // The desktop app's bridge (apps/desktop/preload.cjs): the phone's request arrives through `onRequest`.
 const bridge = vi.hoisted(() => {
   let listener: ((request: { id: number; body: string }) => void) | null = null;
+  let remoteListener: ((request: { id: number; body: string }) => void) | null = null;
   const answers = new Map<number, (reply: { status: number; body: string }) => void>();
   let nextId = 1;
   return {
@@ -29,6 +38,25 @@ const bridge = vi.hoisted(() => {
         return bridge.answerScan(body);
       },
     },
+    /** The computer's sync server (issue #268): requests from the phone's fetch go to the page. */
+    remote: {
+      start: async () => ({ port: 38127, name: 'Desk PC' }),
+      stop: async () => undefined,
+      respond: async (id: number, status: number, body: string) => answers.get(id)?.({ status, body }),
+      onRequest(next: (request: { id: number; body: string }) => void) {
+        remoteListener = next;
+        return () => (remoteListener = null);
+      },
+    },
+    remoteFetch: (async (url: string, init?: RequestInit) => {
+      if (!String(url).startsWith('http://192.168.1.23:38127/remote')) throw new TypeError('Network request failed');
+      const id = nextId++;
+      const reply = await new Promise<{ status: number; body: string }>((resolve) => {
+        answers.set(id, resolve);
+        remoteListener?.({ id, body: String(init?.body) });
+      });
+      return new Response(reply.body, { status: reply.status });
+    }) as typeof fetch,
     sent: [] as string[],
     answerScan: async (_body: string): Promise<{ status: number; body: string }> => ({ status: 404, body: '' }),
     /** What the phone's fetch reaches: the computer's pairing server. */
@@ -42,9 +70,9 @@ const bridge = vi.hoisted(() => {
     }) as typeof fetch,
   };
 });
-const computer = vi.hoisted(() => ({ secure: new Map<string, string>(), data: new Map<string, string>(), reloads: 0 }));
+const computer = vi.hoisted(() => ({ secure: new Map<string, string>(), data: new Map<string, string>(), reloads: 0, refreshes: 0 }));
 
-vi.mock('../../desktop', () => ({ desktop: { pairing: bridge.pairing } }));
+vi.mock('../../desktop', () => ({ desktop: { pairing: bridge.pairing, remote: bridge.remote } }));
 vi.mock('../../appContext', () => {
   const storage = (map: Map<string, string>) => ({
     getItem: (key: string) => map.get(key) ?? null,
@@ -52,12 +80,12 @@ vi.mock('../../appContext', () => {
     removeItem: (key: string) => void map.delete(key),
   });
   return {
-    appContext: { reload: async () => void computer.reloads++ },
+    appContext: { reload: async () => void computer.reloads++, refreshMedia: async () => void computer.refreshes++ },
     backupStorages: { secure: storage(computer.secure), data: storage(computer.data) },
   };
 });
 
-const { connectWithScannedCode, usePairingServer } = await import('./pairing');
+const { connectWithScannedCode, usePairingServer, useRemoteServer } = await import('./pairing');
 
 const account = { id: 'acc-1', username: 'demo' };
 const phone = () => ({
@@ -94,6 +122,40 @@ describe('desktop: sign in and sync with the phone app (D-060)', () => {
     const stops = bridge.stopped;
     unmount();
     expect(bridge.stopped).toBe(stops + 1);
+  });
+
+  it('a phone that scans the code gets a key, then syncs with the computer on its own, the TV not needed (issue #268)', async () => {
+    computer.secure.set(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ token: 't', account, profiles: [{ id: 'p1', name: 'Ana' }], activeProfileId: 'p1' }),
+    );
+    const server = renderHook(() => useRemoteServer(true));
+    const { result } = renderHook(() => usePairingServer());
+    await waitFor(() => expect(result.current.phase).toBe('ready'));
+    const qr = (result.current as { qr: string }).qr;
+    const device = phone();
+    let reply: Awaited<ReturnType<typeof sendPairing>> | undefined;
+    await act(async () => {
+      reply = await sendPairing(device, parsePairingQr(qr)!, { fetch: bridge.phoneFetch });
+    });
+    expect(reply).toMatchObject({ ok: true, remote: { kind: 'computer', tvName: 'Desk PC', port: 38127 } });
+    expect(JSON.parse(computer.secure.get('remote.phones')!)).toHaveLength(1);
+
+    // Later the phone syncs with the computer, through its sync server.
+    const paired = { ...reply!.remote!, host: '192.168.1.23', pairedAt: '2026-10-31T10:00:00Z' };
+    let synced: Awaited<ReturnType<typeof syncWithTv>> | undefined;
+    await act(async () => {
+      synced = await syncWithTv(device, paired, account.id, { fetch: bridge.remoteFetch });
+    });
+    expect(synced).toMatchObject({ host: '192.168.1.23', port: 38127 });
+    // An unknown phone is refused.
+    const stranger = { ...paired, phoneId: 'nobody' };
+    await act(async () => {
+      await expect(syncWithTv(device, stranger, account.id, { fetch: bridge.remoteFetch })).rejects.toMatchObject({
+        reason: 'unknown-phone',
+      });
+    });
+    server.unmount();
   });
 
   it('refuses a phone with another account and keeps the code; says so without a home network', async () => {

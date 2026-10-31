@@ -12,10 +12,11 @@ What is new for people using the apps, per app and version line (MAJOR.MINOR, D-
 
 ### 3.1
 
-A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the TV app, sync finds the TV on its new address, titles you merged by hand stay merged, and Categories shown lists your categories again on TV.
+A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the TV app, phones sync with the computer, sync finds the TV on its new address, titles you merged by hand stay merged, and Categories shown lists your categories again on TV.
 
 #### Latest
 
+- **Sync with the computer, the TV off** (2026-10-31, D-240, issue #268): a phone or tablet that scans the desktop app's code (account menu → Sync with another device) now keeps in step with that computer on its own, like with the TV, so profiles, progress and My List match even when the TV is off.
 - **Sync finds the TV on its new address** (2026-10-31, D-239, issue #268): when your router gives the TV another address, your phone, tablet and computer now find it again on the home network and keep syncing, and Play on TV keeps working, without scanning the TV's code again.
 - **Reminders open the app on the TV** (2026-10-31, D-238, issue #309): when a programme you set a reminder for starts, the TV now opens the app with its reminder, even from another app or the home screen. Live TV asks once to allow "Display over other apps", which Android needs for it; Open settings takes you there.
 - **Merged titles stay merged** (2026-10-31, D-185, issue #311): a title you merged by hand no longer comes apart again when the provider later gives it a TMDB id or another year. The merge follows it, on this device and your others.
@@ -149,10 +150,11 @@ The first version line: every build since 2026-09-27 (1.0.0, 1.0.1, …).
 
 ### 3.1
 
-A new version line from 2026-10-31 (3.1.0, 3.1.1, …): sync finds the TV on its new address, and titles you merged by hand stay merged.
+A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this computer, sync finds the TV on its new address, and titles you merged by hand stay merged.
 
 #### Latest
 
+- **Phones sync with the computer** (2026-10-31, D-240, issue #268): the desktop app now listens for the phones and tablets that scanned its code, like the TV, also with its window closed and the app in the tray, so they keep in step with this computer on their own, even when the TV is off. Windows may ask once to allow the app on private networks.
 - **Sync finds the TV on its new address** (2026-10-31, D-239, issue #268): when your router gives the TV another address, your phone, tablet and computer now find it again on the home network and keep syncing, without scanning the TV's code again.
 - **Merged titles stay merged** (2026-10-31, D-185, issue #311): a title you merged by hand no longer comes apart again when the provider later gives it a TMDB id or another year. The merge follows it, on this device and your others.
 

@@ -68,6 +68,7 @@ export async function connectToDevice(): Promise<string | null> {
   try {
     const result = await sendPairing(storages, offer);
     appLog.info('pairing', `${result.mode === 'login' ? 'signed in' : result.mode === 'share' ? 'got the sign-in of' : 'synced'} a device`);
+    // A TV, or since 3.1 a computer (issue #268): this phone syncs with it on its own from then on.
     if (result.remote) await pairedTv.getState().save({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     const done =
@@ -78,7 +79,7 @@ export async function connectToDevice(): Promise<string | null> {
         : result.mode === 'share'
           ? `${t('Signed in as {accountName}.', { accountName: result.accountName })} ${t('Both devices now have the same profiles, My List and progress.')}`
           : t('Both devices now have the same profiles, My List and progress.');
-    return result.remote ? `${done} ${t('Use "Play on TV" on a title to start it on the TV.')}` : done;
+    return result.remote && result.remote.kind !== 'computer' ? `${done} ${t('Use "Play on TV" on a title to start it on the TV.')}` : done;
   } catch (error) {
     appLog.warn('pairing', errorMessage(error));
     throw error instanceof PairingFailure ? error : new Error(t('Something went wrong. Try again.'));

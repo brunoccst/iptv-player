@@ -22,6 +22,11 @@ export interface RemoteOffer {
   /** 32 random bytes, base64. */
   key: string;
   port: number;
+  /**
+   * The device that listens: a TV, or since 3.1 a computer (the desktop app, issue #268, DECISIONS.md#d-240). Absent
+   * from older apps: a TV. A phone keeps one of each and syncs with both; Play on TV goes to the TV only.
+   */
+  kind?: 'tv' | 'computer';
 }
 
 /** Saved on the phone. */

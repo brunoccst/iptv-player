@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import {
+  answerSync,
   appLog,
   AUTO_SYNC_INTERVAL_MS,
   createAutoSync,
@@ -7,10 +8,14 @@ import {
   PairingFailure,
   parsePairingQr,
   sendPairing,
+  openRemoteRequest,
+  REMOTE_PORTS,
   syncWithTv,
   t,
   usePairingServer as usePairing,
+  type PairedPhone,
   type PairedTv,
+  type RemoteOffer,
 } from '@iptv/shared';
 import { appContext, backupStorages, stores } from '../../appContext';
 import { desktop } from '../../desktop';
@@ -24,7 +29,19 @@ export type { PairingServerState } from '@iptv/shared';
  * Desktop app, computer side of phone pairing (D-060): the shared hook (D-079) with the app's pairing
  * server in the main process. Not available in a browser.
  */
-export const usePairingServer = () => usePairing(desktop?.pairing ?? null, { storages, reload: () => appContext.reload() });
+export const usePairingServer = () =>
+  usePairing(
+    desktop?.pairing ?? null,
+    // A phone that scans this computer's code also gets a key to sync with it later (issue #268, DECISIONS.md#d-240).
+    desktop?.remote
+      ? {
+          storages,
+          reload: () => appContext.reload(),
+          remoteOffer,
+          paired: async (remote) => void (remote && (await rememberPhone(remote))),
+        }
+      : { storages, reload: () => appContext.reload() },
+  );
 
 /** Whether this computer can scan another device's code: the desktop app with a camera API (issue #254). */
 export const canScanWithWebcam = () => !!desktop?.pairing.send && !!globalThis.navigator?.mediaDevices?.getUserMedia;
@@ -64,8 +81,8 @@ export async function connectWithScannedCode(text: string): Promise<string> {
   try {
     const result = await sendPairing(storages, offer, { fetch: desktopFetch });
     appLog.info('pairing', `${result.mode === 'share' ? 'got the sign-in of' : 'synced'} a device (webcam)`);
-    // A TV hands out its remote key: this computer then stays in step with it (issue #227).
-    if (result.remote) await savePairedTv({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
+    // A TV, or another computer (issue #268), hands out its remote key: this computer then stays in step with it (issue #227).
+    if (result.remote) await saveHub({ ...result.remote, host: offer.host, pairedAt: new Date().toISOString() });
     await appContext.reload();
     return result.mode === 'share'
       ? `${t('Signed in as {accountName}.', { accountName: result.accountName })} ${t('Both devices now have the same profiles, My List and progress.')}`
@@ -76,29 +93,121 @@ export async function connectWithScannedCode(text: string): Promise<string> {
   }
 }
 
-/** The TV this computer scanned, as the phone app keeps it (D-061); in the secure storage, outside backups. */
-const PAIRED_TV_KEY = 'remote.tv';
-const readPairedTv = async (): Promise<PairedTv | null> => {
+/**
+ * The TV this computer scanned, as the phone app keeps it (D-061), and another computer whose code it scanned (issue
+ * #268); in the secure storage, outside backups.
+ */
+const HUB_KEYS = { tv: 'remote.tv', computer: 'remote.computer' } as const;
+const readHub = async (kind: keyof typeof HUB_KEYS): Promise<PairedTv | null> => {
   try {
-    return JSON.parse((await backupStorages.secure.getItem(PAIRED_TV_KEY)) ?? 'null') as PairedTv | null;
+    return JSON.parse((await backupStorages.secure.getItem(HUB_KEYS[kind])) ?? 'null') as PairedTv | null;
   } catch {
     return null;
   }
 };
-const savePairedTv = (tv: PairedTv) => backupStorages.secure.setItem(PAIRED_TV_KEY, JSON.stringify(tv));
+const saveHub = (hub: PairedTv) => backupStorages.secure.setItem(HUB_KEYS[hub.kind ?? 'tv'], JSON.stringify(hub));
 
 const autoSync = createAutoSync(async () => {
-  const tv = await readPairedTv();
   const accountId = stores.session.getState().account?.id;
-  if (!tv || !accountId) return;
-  const { host, port, changed, signIn } = await syncWithTv(storages, tv, accountId, { fetch: desktopFetch });
-  // Another port, or a new address from the router (issue #268): the next sync goes there.
-  if (host !== tv.host || port !== tv.port) await savePairedTv({ ...tv, host, port });
-  appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
-  // A new provider server, username or password from the TV (DECISIONS.md#d-228).
-  if (signIn) await appContext.reload();
-  else if (changed) await appContext.refreshMedia();
+  if (!accountId) return;
+  for (const hub of [await readHub('tv'), await readHub('computer')]) {
+    if (!hub) continue;
+    const { host, port, changed, signIn } = await syncWithTv(storages, hub, accountId, { fetch: desktopFetch });
+    // Another port, or a new address from the router (issue #268): the next sync goes there.
+    if (host !== hub.host || port !== hub.port) await saveHub({ ...hub, host, port });
+    appLog.info('sync', `${changed ? 'synced with' : 'in step with'} the ${hub.kind === 'computer' ? 'computer' : 'TV'}`);
+    // A new provider server, username or password from the TV (DECISIONS.md#d-228).
+    if (signIn) return appContext.reload();
+    if (changed) await appContext.refreshMedia();
+  }
 });
+
+/** The phones that scanned this computer's code (issue #268), with their keys; the oldest drops out after five. */
+const PAIRED_PHONES_KEY = 'remote.phones';
+const HUB_ID_KEY = 'remote.tvId';
+const MAX_PHONES = 5;
+/** Where this computer's sync server listens, once started; its name for the phones' messages. */
+let remoteServer: { port: number; name: string } | null = null;
+
+const randomKey = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32))));
+const shortId = () =>
+  randomKey()
+    .replace(/[^A-Za-z0-9]/g, '')
+    .slice(0, 16);
+
+async function readPhones(): Promise<PairedPhone[]> {
+  try {
+    return (JSON.parse((await backupStorages.secure.getItem(PAIRED_PHONES_KEY)) ?? '[]') as PairedPhone[]) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** The key a phone gets with the pairing answer, to sync with this computer from then on (issue #268). */
+async function remoteOffer(): Promise<RemoteOffer | undefined> {
+  if (!remoteServer) return undefined;
+  let id = await backupStorages.secure.getItem(HUB_ID_KEY);
+  if (!id) {
+    id = shortId();
+    await backupStorages.secure.setItem(HUB_ID_KEY, id);
+  }
+  return { tvId: id, tvName: remoteServer.name, phoneId: shortId(), key: randomKey(), port: remoteServer.port, kind: 'computer' };
+}
+
+async function rememberPhone(offer: RemoteOffer) {
+  const phone: PairedPhone = { phoneId: offer.phoneId, key: offer.key, pairedAt: new Date().toISOString() };
+  await backupStorages.secure.setItem(PAIRED_PHONES_KEY, JSON.stringify([...(await readPhones()), phone].slice(-MAX_PHONES)));
+}
+
+/** One request from a paired phone (issue #268): a sync is merged and answered, as the TV does; nothing else here. */
+async function answerRemote(body: string): Promise<{ status: number; body: string }> {
+  const opened = openRemoteRequest(await readPhones(), body);
+  if (!opened) {
+    appLog.warn('remote', 'request from an unknown phone ignored');
+    return { status: 403, body: 'forbidden' };
+  }
+  const { command, reply } = opened;
+  if (command.type !== 'sync') return { status: 200, body: reply({ ok: false, error: 'bad-request' }) };
+  const { reply: answer, changed, signIn } = await answerSync(storages, command);
+  appLog.info('sync', answer.ok ? (changed ? 'synced with a device' : 'in step with a device') : `sync refused: ${answer.error}`);
+  // After answering: a reload or refresh would hold the phone's answer back.
+  queueMicrotask(() => void (signIn ? appContext.reload() : changed ? appContext.refreshMedia() : undefined));
+  return { status: 200, body: reply(answer) };
+}
+
+/**
+ * Desktop app, while signed in: listens on the home network for the phones that scanned this computer's code, so they
+ * sync with it like with the TV, with the TV off too and the window closed (issue #268, DECISIONS.md#d-240).
+ */
+export function useRemoteServer(signedIn: boolean) {
+  useEffect(() => {
+    const remote = desktop?.remote;
+    if (!signedIn || !remote) return;
+    let active = true;
+    const unsubscribe = remote.onRequest(({ id, body }) => {
+      void answerRemote(body)
+        .catch((error: unknown) => {
+          appLog.warn('remote', errorMessage(error));
+          return { status: 500, body: '' };
+        })
+        .then((answer) => remote.respond(id, answer.status, answer.body));
+    });
+    remote
+      .start()
+      .then((started) => {
+        if (!active) return;
+        remoteServer = started;
+        appLog.info('remote', `listening on port ${started.port}`);
+      })
+      .catch((error: unknown) => appLog.warn('remote', `server did not start: ${errorMessage(error)} (ports ${REMOTE_PORTS.join(', ')})`));
+    return () => {
+      active = false;
+      unsubscribe();
+      remoteServer = null;
+      void remote.stop();
+    };
+  }, [signedIn]);
+}
 
 /**
  * Desktop app, while signed in: keeps profiles, progress and My List in step with the TV whose code this computer

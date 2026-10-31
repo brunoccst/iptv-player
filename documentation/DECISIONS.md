@@ -145,6 +145,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-237](#d-237) | An X closes every dialog, except on TV |
 | [D-238](#d-238) | TV: a reminder opens the app |
 | [D-239](#d-239) | Finding a TV that got a new address |
+| [D-240](#d-240) | The computer is a sync hub too |
 
 ## Merged and retired IDs
 
@@ -1084,7 +1085,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
 - Profile settings came along from D-225 on, once each carried a date: undated, the scanning device winning (D-060) would undo choices made on the TV every 10 minutes.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
-- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network. A TV that got a new address is found again (D-239).
+- Limits (issue #268): devices that share no TV or computer don't sync on their own; the TV (or computer) app must be open on the same network. A TV that got a new address is found again (D-239); a computer can be a hub too (D-240).
 
 ## D-187
 
@@ -1510,6 +1511,15 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 **Finding a TV that got a new address** — 2026-10-31 (issue #268, owner's choice)
 
-- A phone, tablet or computer keeps the address of the TV whose code it scanned (D-061). When the router gave the TV another one, sync and Play on TV stopped until the code was scanned again. Bruno chose this part of issue #268 for 3.1, over making the desktop a second hub that listens like the TV.
+- A phone, tablet or computer keeps the address of the TV whose code it scanned (D-061). When the router gave the TV another one, sync and Play on TV stopped until the code was scanned again. Part of issue #268 in 3.1, with the computer as a second hub (D-240).
 - When nothing answers on the saved address (its port, then the range), `sendRemoteCommand` (`packages/shared/src/pairing/remote.ts`) sends the same sealed command to the other addresses of the old one's /24 (`neighbourHosts`: private IPv4 only, nearest first), on the saved port and the range's first, 32 at a time with a second each. Only the paired TV can open the command, so the first one that answers it is the TV; another home's TV answers 403 and is skipped. The address that answered is saved for the next command.
 - No mDNS or network discovery: it would need native code on the TV, phone and desktop and new permissions, and routers usually keep the /24. A search that finds nothing is not made again for 30 minutes, so a TV that is off costs one search, not one per 10-minute sync. A network with another /24 still needs the code scanned again.
+
+## D-240
+
+**The computer is a sync hub too** — 2026-10-31 (issue #268, owner's choice)
+
+- Only the TV listened (D-186), so a phone and a computer stayed apart while the TV was off. Bruno chose for the desktop app to listen like the TV: still no sync service or accounts (D-088).
+- While signed in, the desktop app's main process listens on the first free port of the TV's range at `/remote` (`apps/desktop/lib/remoteServer.mjs`), also with the window closed and the app in the tray (D-226). The page opens each request with a paired phone's key and answers a `sync` like the TV (`answerSync`; play and log are TV only) (`useRemoteServer` in `apps/web-player/src/features/pairing/pairing.ts`). It keeps the last five phones' keys, as the TV does.
+- A phone that scans the computer's code gets a key with `kind: 'computer'` in the pairing answer (D-061's `RemoteOffer`). A phone keeps one TV and one computer (`remote.tv`, `remote.computer`) and syncs with both on each automatic sync, so the three devices end up the same; Play on TV and the TV log go to the TV only. A computer that scans another computer's code keeps it the same way. A computer that scans while signed out has no server yet and gets no key; scanning again once signed in gives one.
+- Risk: a phone app older than 3.1 that scans a 3.1 computer's code takes the computer for its TV and stops syncing with the TV until it scans the TV again. Both apps update themselves (D-062, D-073).
