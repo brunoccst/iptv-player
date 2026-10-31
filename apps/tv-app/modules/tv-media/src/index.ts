@@ -108,10 +108,15 @@ declare class TvMediaModule extends NativeModule<TvMediaEvents> {
   /** Opens the Android installer on top of the app (D-070). */
   installUpdate(path: string): Promise<void>;
   /**
-   * Phone: the guide reminders as system alarms that notify at the start, also with the app closed (issue #263, D-222).
+   * The guide reminders as system alarms, also with the app closed: a phone notifies at the start (issue #263, D-222),
+   * a TV opens the app (issue #309).
    * `list`: JSON `[{ id, startMs, title, text }]`, the whole list each time (taken-off ones are cancelled).
    */
   scheduleReminders(list: string, channelName: string): void;
+  /** TV (issue #309): "Display over other apps" is allowed, so a reminder can open the app when it starts. */
+  canOpenOverOtherApps(): boolean;
+  /** Opens the system screen that allows it; false when the TV has none. */
+  openOverOtherAppsSettings(): boolean;
   /** Android TV / Google TV home screen "Continue watching" (Watch Next, D-147): this app's rows; none on phones. */
   watchNextRows(): Promise<WatchNextRow[]>;
   /** Applies `{ insert: WatchNextEntry[], update: { rowId, entry }[], remove: rowId[] }` (JSON) to those rows. */

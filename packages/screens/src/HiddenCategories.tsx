@@ -1,4 +1,4 @@
-import { ActivityIndicator, FlatList, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
 import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
@@ -42,28 +42,24 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       </Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {categories ? (
-        // Providers send hundreds of categories: only the rows near the focus are drawn.
-        <FlatList
-          style={styles.list}
-          data={categories}
-          keyExtractor={(category) => category.id}
-          initialNumToRender={12}
-          windowSize={5}
-          ListHeaderComponent={
-            categories.length ? (
-              <CheckRow label={t('Select all')} checked={allShown} onPress={toggleAll} testID="hidden-categories-all" />
-            ) : null
-          }
-          ListEmptyComponent={<Text style={styles.hint}>{t('No categories.')}</Text>}
-          renderItem={({ item }) => (
-            <CheckRow
-              label={item.name}
-              checked={isShown(item.id)}
-              onPress={() => toggle(item.id)}
-              testID={`hidden-category-${item.name}`}
-            />
+        // A plain ScrollView, as in Kids categories: a FlatList given the room left (flex: 1) got no height on the
+        // Android TV and the list vanished (issue #330, DECISIONS.md#d-094).
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} testID="hidden-categories-list">
+          {categories.length ? (
+            <CheckRow label={t('Select all')} checked={allShown} onPress={toggleAll} testID="hidden-categories-all" />
+          ) : (
+            <Text style={styles.hint}>{t('No categories.')}</Text>
           )}
-        />
+          {categories.map((category) => (
+            <CheckRow
+              key={category.id}
+              label={category.name}
+              checked={isShown(category.id)}
+              onPress={() => toggle(category.id)}
+              testID={`hidden-category-${category.name}`}
+            />
+          ))}
+        </ScrollView>
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
@@ -76,4 +72,5 @@ const styles = StyleSheet.create({
   hint: { color: colors.muted, fontSize: fonts.small },
   // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
   list: { flex: 1 },
+  listContent: { gap: 2 },
 });

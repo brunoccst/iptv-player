@@ -25,6 +25,8 @@ export const nativeState = {
   calls: [] as string[],
   /** The guide reminders' system alarms last handed over (issue #263), parsed. */
   reminderAlarms: [] as { id: string; startMs: number; title: string; text: string }[],
+  /** TV: "Display over other apps" (issue #309). */
+  overOtherApps: true,
   externalPlayerResult: 'chooser' as ExternalPlayerResult,
   ffmpegAudio: false,
   /** The native crash the last run left (D-039). */
@@ -103,6 +105,7 @@ export const nativeState = {
     this.updateListeners.clear();
     this.watchNext = [];
     this.reminderAlarms = [];
+    this.overOtherApps = true;
     this.watchNextLaunch = null;
     this.watchNextListeners.clear();
     this.externalPlayerListeners.clear();
@@ -127,6 +130,11 @@ const watchNextRow = (entry: WatchNextEntry, rowId: number) => ({
 export const TvMedia = {
   scheduleReminders: (list: string) => {
     nativeState.reminderAlarms = JSON.parse(list) as typeof nativeState.reminderAlarms;
+  },
+  canOpenOverOtherApps: () => nativeState.overOtherApps,
+  openOverOtherAppsSettings: () => {
+    nativeState.calls.push('over-other-apps-settings');
+    return true;
   },
   setUserAgent: (userAgent: string) => void nativeState.calls.push(`user-agent:${userAgent}`),
   listDownloads: () => [...nativeState.downloads],

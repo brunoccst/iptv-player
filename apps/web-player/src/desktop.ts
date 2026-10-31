@@ -102,6 +102,17 @@ export interface DesktopBridge {
      */
     send?(host: string, port: number, body: string, path?: '/pair' | '/remote'): Promise<{ status: number; body: string }>;
   };
+  /**
+   * The computer as a sync hub (issue #268, DECISIONS.md#d-240): a server on the home network, on a port of the TV's
+   * range, for phones that scanned this computer's code. `name`: the computer's name. Older apps lack it.
+   */
+  remote?: {
+    start(): Promise<{ port: number; name: string }>;
+    stop(): Promise<void>;
+    respond(id: number, status: number, body: string): Promise<void>;
+    /** Returns the unsubscribe function. */
+    onRequest(listener: (request: { id: number; body: string }) => void): () => void;
+  };
 }
 
 export const desktop: DesktopBridge | undefined = (globalThis as { iptvDesktop?: DesktopBridge }).iptvDesktop;

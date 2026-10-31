@@ -82,4 +82,15 @@ contextBridge.exposeInMainWorld('iptvDesktop', {
       return () => ipcRenderer.removeListener('iptv:pairing-request', handler);
     },
   },
+  // The computer as a sync hub (issue #268): phones that scanned its code sync with it like with the TV.
+  remote: {
+    start: () => ipcRenderer.invoke('iptv:remote-start'),
+    stop: () => ipcRenderer.invoke('iptv:remote-stop'),
+    respond: (id, status, body) => ipcRenderer.invoke('iptv:remote-respond', id, status, body),
+    onRequest(listener) {
+      const handler = (_event, request) => listener(request);
+      ipcRenderer.on('iptv:remote-request', handler);
+      return () => ipcRenderer.removeListener('iptv:remote-request', handler);
+    },
+  },
 });

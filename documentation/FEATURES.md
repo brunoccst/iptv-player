@@ -50,7 +50,7 @@ The provider lists each language, quality and copy of a title separately. The ap
 
 ### Split or merge titles
 
-When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is applied to every library update, and reaches your other devices with the next sync and goes into backups (D-223); My List and progress follow the titles they were on. A merge comes undone if the provider changes that title's year or TMDB id (issue #311).
+When the grouping gets a title wrong, a title's details have a Split or merge button beside My List (issue #243, D-185). **Split off this version** makes the version shown in the version picker a title of its own. **Merge with another title…** asks for the other title by its name (the list starts with this title's name) and puts it, with all its versions, into this one. A merged title offers **Separate the merged titles**, a split-off one **Put back with its title**. The change is applied to every library update, and reaches your other devices with the next sync and goes into backups (D-223); My List and progress follow the titles they were on. A merge stays when the provider later changes either title's year or TMDB id (issue #311).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. Not in the plain web player, which keeps its library in memory (D-185).
 
@@ -238,7 +238,7 @@ On channels whose provider keeps recordings, past programmes can be watched from
 
 ### Guide reminders
 
-A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile and are carried over when pairing devices. On the phone and tablet a notification says so too, even with the app closed; tapping it opens the app with Watch. The desktop app shows them with its window closed too when **Start with the computer** is on (D-226). The TV shows them only while the app is open, up to 10 minutes after the start (D-222, issue #263, issue #309, D-184, issue #239).
+A programme that has not started can get a reminder. When it starts, the app says so over whatever is on screen, the player included: "Starting now" with the programme and channel, **Watch** tunes to the channel, **Dismiss** closes it. Programmes with a reminder carry 🔔 in the guide. TV: hold OK on the programme. Phone and desktop: **Remind me** in the programme's details (again to cancel). The desktop app also shows a system notification when its window is in the background. Reminders belong to the profile and are carried over when pairing devices. On the phone and tablet a notification says so too, even with the app closed; tapping it opens the app with Watch. The desktop app shows them with its window closed too when **Start with the computer** is on (D-226). On the TV, a reminder opens the app when its programme starts, even from another app or the home screen, once "Display over other apps" is allowed: Live TV asks for it once while there are reminders, with **Open settings** (D-238, issue #309). Without it, the TV shows them only while the app is open. Every app still shows a reminder up to 10 minutes after the start (D-222, issue #263, D-184, issue #239).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: hold OK · phone and desktop: Remind me.
 
@@ -340,13 +340,13 @@ Each profile's settings go along and end up the same on both devices (D-060): co
 
 ### Staying in sync with the TV
 
-After a phone, tablet or computer has scanned the TV's code once, it keeps its profiles, progress and My List in step with that TV on its own (issue #227, D-186): when the app opens, when it comes back to the front, and every 10 minutes while it is open, as long as the TV app is open on the same home network. The TV merges and answers with the merged lists, so two phones paired with the same TV also end up the same through it. Per title the newest progress wins. Removing a title from My List or Continue watching, or deleting a profile, carries over too; adding the title again later brings it back. A renamed profile keeps the name it was given last. Profile settings (languages, subtitles, hidden categories and the like) sync too, each keeping the choice made last (D-225), and so do watched series, guide reminders, recent channels and the parental PIN (D-229). Devices that never scanned a TV, such as two phones, don't sync on their own (issue #268).
+After a phone, tablet or computer has scanned the TV's code once, it keeps its profiles, progress and My List in step with that TV on its own (issue #227, D-186): when the app opens, when it comes back to the front, and every 10 minutes while it is open, as long as the TV app is open on the same home network. The TV merges and answers with the merged lists, so two phones paired with the same TV also end up the same through it. Per title the newest progress wins. Removing a title from My List or Continue watching, or deleting a profile, carries over too; adding the title again later brings it back. A renamed profile keeps the name it was given last. Profile settings (languages, subtitles, hidden categories and the like) sync too, each keeping the choice made last (D-225), and so do watched series, guide reminders, recent channels and the parental PIN (D-229). When the router gives the TV a new address, the other devices find it again on the home network on their own (D-239). The computer works the same way (D-240): a phone or tablet that scans the desktop app's code keeps in step with that computer too, while the app is open or waits in the tray, so phone and computer stay the same with the TV off. A phone paired with both syncs with each, so the three end up the same. Two phones that share no TV or computer don't sync on their own (issue #268).
 
-**Apps:** TV ✅ (the other devices sync with it) · Phone ✅ · Desktop ✅
+**Apps:** TV ✅ (the other devices sync with it) · Phone ✅ · Desktop ✅ (syncs with the TV, and phones sync with it)
 
 ### Play on TV
 
-After pairing, the phone app starts a title on the TV (D-061).
+After pairing, the phone app starts a title on the TV (D-061). When the TV got a new address from the router, the phone finds it again on the home network (D-239).
 
 **Apps:** TV ✅ receives · Phone ✅ sends · Desktop ➖
 

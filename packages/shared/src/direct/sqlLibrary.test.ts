@@ -666,6 +666,76 @@ describe('library in SQLite (D-121)', () => {
       expect(await library.changeRules('acc', 'movie', saved, { action: 'merge', id: single, fromId: single })).toEqual([]);
     }, 60_000);
 
+    it("keeps a merge when the provider changes a merged title's key, on either side (issue #311)", async () => {
+      const db = createNodeSqlDatabase();
+      const library = createSqlLibrary(db, async () => undefined);
+      const before: Item[] = [
+        ...items(400),
+        { id: 1, name: 'The Shawshank Redemption (1994)', addedAt: 50 },
+        { id: 2, name: 'Shawshank Redemtion (1994) 720p' },
+        { id: 3, name: 'Um Sonho de Liberdade (1994)' },
+      ];
+      let saved = (await library.build('acc', 'movie', '2026-01-01T00:00:00Z', before)).saved;
+      const found = async () => [
+        ...(await library.list(saved, { search: 'shawshank', sort: 'title' })).items,
+        ...(await library.list(saved, { search: 'sonho', sort: 'title' })).items,
+      ];
+      /** How many versions each title of these three movies has. */
+      const titles = async () => [...new Map((await found()).map(({ id, variantCount }) => [id, variantCount])).values()];
+      const holder = async (streamId: string) => (await library.holdersOf(saved, [streamId])).get(streamId)!;
+      const merge = async (into: string, from: string) => {
+        const keys = await library.changeRules('acc', 'movie', saved, {
+          action: 'merge',
+          id: await holder(into),
+          fromId: await holder(from),
+        });
+        saved = (await library.regroup('acc', 'movie', '2026-01-02T00:00:00Z', keys))!.saved;
+      };
+      expect(await titles()).toEqual([1, 1, 1]);
+      await merge('1', '2');
+      await merge('1', '3');
+      expect(await titles()).toEqual([3]);
+      const update = async (list: Item[], at: string) => {
+        let followed = false;
+        saved = (await library.build('acc', 'movie', at, list, { onTimings: (time) => (followed = !!time.rulesFollowed) })).saved;
+        return followed;
+      };
+
+      // A merged title (the misspelt one) gets a TMDB id: the merge follows it.
+      const tmdbOnSource = before.map((item) => (item.id === 2 ? { ...item, tmdbId: '278' } : item));
+      expect(await update(tmdbOnSource, '2026-01-03T00:00:00Z')).toBe(true);
+      expect(await titles()).toEqual([3]);
+
+      // The title they were merged into gets one too, and another year: both merges follow it.
+      const tmdbOnTarget = tmdbOnSource.map((item) =>
+        item.id === 1 ? { ...item, name: 'The Shawshank Redemption (1995)', tmdbId: '279' } : item,
+      );
+      expect(await update(tmdbOnTarget, '2026-01-04T00:00:00Z')).toBe(true);
+      expect(await titles()).toEqual([3]);
+
+      // The same as a whole build with the rules the device now holds; nothing changes the next time.
+      const fresh = createNodeSqlDatabase();
+      const freshLibrary = createSqlLibrary(fresh, async () => undefined);
+      await freshLibrary.open('acc');
+      const rules = await db.query('SELECT account, kind, rule, src, dst FROM title_rules');
+      expect(rules).toHaveLength(2);
+      await fresh.run([{ sql: 'INSERT INTO title_rules VALUES (?, ?, ?, ?, ?)', rows: rules }]);
+      const whole = await freshLibrary.build('acc', 'movie', '2026-01-04T00:00:00Z', tmdbOnTarget);
+      expect(await contents(db, library, saved)).toEqual(await contents(fresh, freshLibrary, whole.saved));
+      expect(
+        await update(
+          tmdbOnTarget.map((item) => ({ ...item })),
+          '2026-01-05T00:00:00Z',
+        ),
+      ).toBe(false);
+
+      // Both titles end up with the same TMDB id: the merge between them is no longer needed.
+      const same = tmdbOnTarget.map((item) => (item.id === 2 ? { ...item, name: 'Shawshank Redemtion (1995) 720p', tmdbId: '279' } : item));
+      expect(await update(same, '2026-01-06T00:00:00Z')).toBe(true);
+      expect(await titles()).toEqual([3]);
+      expect(await db.query("SELECT COUNT(*) FROM title_rules WHERE rule = 'merge'")).toEqual([[1]]);
+    }, 60_000);
+
     it('builds a new library beside the last one when many items changed (D-135)', async () => {
       const before = items(600);
       const after = before.map((item, index) => (index % 3 === 0 ? { ...item, name: `${String(item.name)} Again` } : item));

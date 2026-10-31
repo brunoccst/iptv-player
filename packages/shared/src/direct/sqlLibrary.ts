@@ -69,7 +69,10 @@ const RETIRE_MS = 60_000;
  */
 const IN_PLACE_SHARE = 0.2;
 /** The grouping steps that group the changed keys (`_p` to `_g`), before the items are written. */
-const GROUPED_KEYS = 4;
+/** The grouping steps run before choosing to update in place: up to the groups (`_g`). */
+const GROUPED_KEYS = 6;
+/** The first grouping steps, up to finding the merges whose key changed (issue #311). */
+const RENAMED_KEYS = 4;
 /** Rows read per query when all of them are needed. */
 const READ_BATCH = 5000;
 /** Values per `IN (…)` query: older Android SQLite allows 999 parameters. */
@@ -263,6 +266,11 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
     // without one in a key with several.
     `UPDATE ${t}_p SET sx = CASE WHEN tm IS NULL THEN CASE WHEN EXISTS (SELECT 1 FROM ${t}_t WHERE k = ${t}_p.k) THEN '-' ELSE '' END
       WHEN tm > (SELECT lo FROM ${t}_t WHERE k = ${t}_p.k) THEN tm ELSE '' END`,
+  ],
+  // Merges whose group key the provider changed (issue #311): found here, before the rules apply.
+  o ? renamedKeys(t, o) : [`DROP TABLE IF EXISTS ${t}_m`],
+  [
+    ...(o ? followRenames(t) : []),
     // The user's rules (`_u`, issue #243): a split item gets a group (and title id) of its own, then a merged group
     // goes into the other one.
     `UPDATE ${t}_p SET gk = 's' || sid, sx = 's' || sid WHERE sid IN (SELECT src FROM ${t}_u WHERE rule = 'split')`,
@@ -289,10 +297,47 @@ const grouping = (t: string, o: string | null, base: number): string[][] => [
         o ? ` LEFT JOIN ${t}_x m ON p.pid IS NULL AND m.rid = r.rowid LEFT JOIN ${o}_i x ON x.rowid = m.oid` : ''
       }
       ORDER BY r.rowid`,
-    ...['_r', '_p', '_y', '_t', '_g', '_u', ...(o ? ['_x', '_k'] : [])].map((suffix) => `DROP TABLE ${t}${suffix}`),
+    ...['_r', '_p', '_y', '_t', '_g', '_u', ...(o ? ['_x', '_k', '_m'] : [])].map((suffix) => `DROP TABLE ${t}${suffix}`),
   ],
   [`CREATE INDEX ${t}_ig ON ${t}_i(g)`, `CREATE INDEX ${t}_is ON ${t}_i(sid)`],
   ...newTitles(t, base),
+];
+
+/** An item's group key before the user's rules (as `gk` in `grouping`), from its `tm`, `k` and `gyear`. */
+const autoKey = (x: string) => `CASE WHEN ${x}.tm IS NULL THEN 'k' || ${x}.k ELSE 't' || ${x}.tm || '|' || IFNULL(${x}.gyear, '') END`;
+
+/**
+ * Merge rules are keyed by group (D-185); when the provider gives a merged title a TMDB id or another year, its key
+ * changes and the merge would stop applying (issue #311). `${t}_m` maps each old key a merge names that no item has
+ * any more to the key most of its items (same stream ids) have now. Split items keep theirs (`'s' || sid`).
+ */
+const renamedKeys = (t: string, o: string): string[] => [
+  `CREATE TABLE ${t}_m (src TEXT PRIMARY KEY, dst TEXT NOT NULL) WITHOUT ROWID`,
+  `INSERT OR IGNORE INTO ${t}_m (src, dst)
+    SELECT ok, nk FROM (
+      SELECT ${autoKey('x')} AS ok, p.gk AS nk, count(*) AS n FROM ${o}_i x JOIN ${t}_p p ON p.sid = x.sid
+      WHERE x.ckey IN (SELECT ckey FROM ${t}_k)
+        AND x.sid NOT IN (SELECT src FROM ${t}_u WHERE rule = 'split') AND p.sid NOT IN (SELECT src FROM ${t}_u WHERE rule = 'split')
+      GROUP BY ok, nk)
+    WHERE ok <> nk
+      AND ok IN (SELECT src FROM ${t}_u WHERE rule = 'merge' UNION SELECT dst FROM ${t}_u WHERE rule = 'merge')
+      AND ok NOT IN (SELECT gk FROM ${t}_p)
+      AND NOT EXISTS (SELECT 1 FROM ${o}_i y WHERE y.ckey NOT IN (SELECT ckey FROM ${t}_k) AND ${autoKey('y')} = ok)
+    ORDER BY n DESC, nk`,
+];
+
+/**
+ * The merges follow their titles' new keys (`${t}_m`, issue #311). A merge whose two titles now share a key is no
+ * longer needed; one that would now chain goes where the other went, so rules never chain (D-185).
+ */
+const followRenames = (t: string): string[] => [
+  // Two merges that now start from one key: the first stays (the other's src is still in `_m` and goes).
+  `UPDATE OR IGNORE ${t}_u SET src = (SELECT dst FROM ${t}_m WHERE src = ${t}_u.src) WHERE rule = 'merge' AND src IN (SELECT src FROM ${t}_m)`,
+  `DELETE FROM ${t}_u WHERE rule = 'merge' AND src IN (SELECT src FROM ${t}_m)`,
+  `UPDATE ${t}_u SET dst = (SELECT dst FROM ${t}_m WHERE src = ${t}_u.dst) WHERE rule = 'merge' AND dst IN (SELECT src FROM ${t}_m)`,
+  `UPDATE ${t}_u SET dst = (SELECT v.dst FROM ${t}_u v WHERE v.rule = 'merge' AND v.src = ${t}_u.dst)
+    WHERE rule = 'merge' AND dst IN (SELECT src FROM ${t}_u WHERE rule = 'merge')`,
+  `DELETE FROM ${t}_u WHERE rule = 'merge' AND src = dst`,
 ];
 
 /** What each new title (`g` above `base`) shows: its most common spelling and year, its best version's poster and quality (D-133). */
@@ -420,6 +465,7 @@ const drops = (t: string) =>
     '_e',
     '_z',
     '_u',
+    '_m',
     ...[NEWEST, ...Object.values(ORDERS)].map(({ column }) => `_o${column}`),
   ].map((suffix) => `DROP TABLE IF EXISTS ${t}${suffix}`);
 
@@ -538,6 +584,8 @@ export interface LibraryBuildTimings {
   builtTitles: number;
   /** The titles in their row order, indexes and categories. */
   titles: number;
+  /** Merges followed their titles' new group keys (issue #311): the account's rules changed. */
+  rulesFollowed?: boolean;
 }
 
 /** How a title came out of the user's split and merge rules (issue #243). */
@@ -630,6 +678,32 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       ([rule, src, dst]) => ({ rule: rule === 'split' ? 'split' : 'merge', src: String(src), dst: String(dst) }),
     );
   const signature = (rules: TitleRule[]) => (rules.length ? sha1Hex(JSON.stringify(rules)).slice(0, 16) : '');
+
+  /**
+   * After `renamedKeys` (issue #311): true when a merge's target key changed and the ckeys of the items merged into it
+   * were not grouped again yet; those are added to `${t}_k`.
+   */
+  const renamedMerges = async (t: string, o: string) => {
+    if (!Number((await db.query(`SELECT COUNT(*) FROM ${t}_m`))[0]?.[0] ?? 0)) return false;
+    const before = Number((await db.query(`SELECT COUNT(*) FROM ${t}_k`))[0]?.[0] ?? 0);
+    await db.run([
+      {
+        sql: `INSERT OR IGNORE INTO ${t}_k (ckey) SELECT DISTINCT ckey FROM ${o}_i WHERE gk IN (SELECT src FROM ${t}_m)`,
+      },
+    ]);
+    return Number((await db.query(`SELECT COUNT(*) FROM ${t}_k`))[0]?.[0] ?? 0) > before;
+  };
+
+  /** The rules of a build (`${t}_u`) after merges followed their titles' new keys, in `rulesOf`'s order; null without. */
+  const followedRules = async (t: string): Promise<TitleRule[] | null> => {
+    if (!(await tableExists(`${t}_m`))) return null;
+    if (!Number((await db.query(`SELECT COUNT(*) FROM ${t}_m`))[0]?.[0] ?? 0)) return null;
+    return (await db.query(`SELECT rule, src, dst FROM ${t}_u ORDER BY rule, src`)).map(([rule, src, dst]) => ({
+      rule: rule === 'split' ? 'split' : 'merge',
+      src: String(src),
+      dst: String(dst),
+    }));
+  };
 
   /** Libraries being built: tables of replaced ones are not dropped meanwhile (D-135). */
   const building = new Set<string>();
@@ -802,7 +876,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const old = (await db.query(`SELECT ${KIND_COLUMNS} FROM library WHERE account = ? AND kind = ?`, [account, kind]))[0];
       const last = old ? kindOf(old) : null;
       const rules = await rulesOf(account, kind);
-      const ruleSig = signature(rules);
+      let ruleSig = signature(rules);
       const sameRules = last?.ruleSig === ruleSig;
       // The same list as the last library's (D-135): nothing to read or compare; the library stays, its date moves.
       const fingerprint = Array.isArray(source) ? listFingerprint(source) : (source.fingerprint ?? null);
@@ -872,7 +946,34 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         const queryProgress = progress(PROGRESS_NAMES, 1);
         let total = groupSteps.length + 1 + finishing(t, previous, base).length;
         // The changed keys are grouped first; then the rest of the build either beside the library or in place.
-        await steps(groupSteps.slice(0, GROUPED_KEYS), (step) => queryProgress(step / total));
+        await steps(groupSteps.slice(0, RENAMED_KEYS), (step) => queryProgress(step / total));
+        if (previous && (await renamedMerges(t, previous))) {
+          // A merge's target got a new key (issue #311): the titles merged into it go along, so their keys are grouped
+          // again too, and the keys looked for again with them.
+          await db.run([`DROP TABLE ${t}_p`, `DROP TABLE ${t}_y`, `DROP TABLE ${t}_t`, `DROP TABLE ${t}_m`].map((sql) => ({ sql })));
+          await steps(groupSteps.slice(0, RENAMED_KEYS));
+          timings.changedKeys = Number((await db.query(`SELECT COUNT(*) FROM ${t}_k`))[0]?.[0] ?? 0);
+        }
+        await steps(groupSteps.slice(RENAMED_KEYS, GROUPED_KEYS), (step) => queryProgress((RENAMED_KEYS + step) / total));
+        if (previous) {
+          // The merges that followed their titles' new keys are this device's rules from now on.
+          const followed = await followedRules(t);
+          if (followed && signature(followed) !== ruleSig) {
+            await db.run([
+              { sql: 'DELETE FROM title_rules WHERE account = ? AND kind = ?', rows: [[account, kind]] },
+              ...(followed.length
+                ? [
+                    {
+                      sql: 'INSERT INTO title_rules (account, kind, rule, src, dst) VALUES (?, ?, ?, ?, ?)',
+                      rows: followed.map(({ rule, src, dst }) => [account, kind, rule, src, dst]),
+                    },
+                  ]
+                : []),
+            ]);
+            ruleSig = signature(followed);
+            timings.rulesFollowed = true;
+          }
+        }
         if (previous && last!.orders !== null) {
           const [[regrouped], [items]] = await Promise.all([
             db.query(`SELECT COUNT(*) FROM ${t}_p`).then((rows) => rows.map(Number)),

@@ -7,7 +7,7 @@ import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { createServer, request as httpRequest } from 'node:http';
-import { homedir, networkInterfaces } from 'node:os';
+import { homedir, hostname, networkInterfaces } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -29,6 +29,7 @@ import {
   withCors,
 } from './lib/helpers.mjs';
 import { openLibraryDb } from './lib/libraryDb.mjs';
+import { startRemoteServer } from './lib/remoteServer.mjs';
 import { createTranscoder } from './lib/transcoder.mjs';
 import { vlcControl, watchVlc } from './lib/vlc.mjs';
 import ffmpegPath from 'ffmpeg-static';
@@ -323,6 +324,55 @@ function registerPairing() {
   app.on('before-quit', stop);
 }
 
+/** The TV's remote ports (packages/shared/src/pairing/remote.ts, REMOTE_PORTS). */
+const REMOTE_PORTS = [38127, 38128, 38129, 38130, 38131];
+
+/**
+ * The computer as a sync hub (issue #268, DECISIONS.md#d-240): while the page is signed in, phones that scanned this
+ * computer's code sync with it like with the TV, also with the window closed (the app in the tray). The page opens
+ * each request with the phone's key and answers.
+ */
+function registerRemote() {
+  let remote = null;
+  const waiting = new Map();
+  let nextId = 1;
+  const fromApp = (event) => {
+    if (!isApp(event.senderFrame?.url ?? '')) throw new Error('Not allowed');
+  };
+  const stop = () => {
+    remote?.close();
+    remote = null;
+    waiting.clear();
+  };
+  ipcMain.handle('iptv:remote-start', async (event) => {
+    fromApp(event);
+    if (remote) return { port: remote.port, name: hostname() };
+    const sender = event.sender;
+    remote = await startRemoteServer({
+      ports: REMOTE_PORTS,
+      maxBody: MAX_PAIRING_BODY,
+      onRequest: (body, reply) => {
+        const id = nextId++;
+        waiting.set(id, reply);
+        if (sender.isDestroyed()) return reply(503);
+        sender.send('iptv:remote-request', { id, body });
+      },
+    });
+    return { port: remote.port, name: hostname() };
+  });
+  ipcMain.handle('iptv:remote-respond', (event, id, status, body) => {
+    fromApp(event);
+    const reply = waiting.get(Number(id));
+    waiting.delete(Number(id));
+    reply?.(Number(status), String(body ?? ''));
+  });
+  ipcMain.handle('iptv:remote-stop', (event) => {
+    fromApp(event);
+    stop();
+  });
+  app.on('before-quit', stop);
+}
+
 function createWindow(hidden = false) {
   window = new BrowserWindow({
     width: 1280,
@@ -578,6 +628,7 @@ app.whenReady().then(async () => {
   prepareSession();
   registerStorage();
   registerPairing();
+  registerRemote();
   try {
     startWithSystem = readFileSync(startupSettingFile(), 'utf8').trim() === 'on';
   } catch {

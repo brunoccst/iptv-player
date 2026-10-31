@@ -143,6 +143,9 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-235](#d-235) | Quality tags and upgrades in the profile's languages |
 | [D-236](#d-236) | Desktop conversions keep subtitles; MKV read first |
 | [D-237](#d-237) | An X closes every dialog, except on TV |
+| [D-238](#d-238) | TV: a reminder opens the app |
+| [D-239](#d-239) | Finding a TV that got a new address |
+| [D-240](#d-240) | The computer is a sync hub too |
 
 ## Merged and retired IDs
 
@@ -577,7 +580,7 @@ Every device shows the code and a signed-out scanner gets the other device's sig
 - While the TV app runs and is signed in, it listens on the first free port of 38127–38131 (`PairingServer.kt`, `/remote`); the phone tries the saved port, then the range.
 - Each command is sealed with the phone's key and carries its send time; the TV refuses unknown phones, other keys, commands older than 5 minutes, titles of another account, and asks for a profile when none is active. The log command (D-039) uses the same channel.
 
-Limits: the TV app must be open; a new TV address from the router needs pairing again. Google Cast was not used: it needs a registered receiver app, and the Chromecast would still need this app for provider streams.
+Limits: the TV app must be open. A new TV address from the router is found again on the home network (D-239). Google Cast was not used: it needs a registered receiver app, and the Chromecast would still need this app for provider streams.
 
 ## D-062
 
@@ -1070,7 +1073,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 **Split and merge titles by hand** — 2026-10-17 (issue #243)
 
 - Rules in the library database (`title_rules`, per account and kind), applied by the grouping queries after the automatic rules (D-133): a `split` gives one provider item (stream id) a group of its own (`'s' || sid`, which also goes into its title id, so it never takes the id of the title it left); a `merge` sends every item of one group key (`gk`: cleaned name and year, or TMDB id and year) to another. Merging into a title whose key other merges point to moves those along, so rules never chain.
-- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. The cost: a merge stops applying when the provider changes that title's key (a new TMDB id or year, issue #311).
+- Keyed by group, not by item, so a version the provider adds later to a merged title joins it too. When the provider changes a merged title's key (a new TMDB id or year), an update finds the key most of its items have now and the merge follows it (issue #311, `renamedKeys` in `sqlLibrary.ts`): on either side, and the titles merged into a title whose key changed are grouped again with it. A merge whose two titles now share a key is dropped. The device's rules change, so they are dated again and reach other devices (D-223).
 - A change groups again only the compact keys of the titles involved (`changedKeys`, the D-135 update path) from the items the library holds, without downloading; the library records a fingerprint of its rules (`rsig`), and a library grouped with other rules is never a starting point otherwise. My List and progress follow through the item lookup of issue #216.
 - Only where the library is in a database (TV, phone, desktop): the in-memory library of the plain web player is a demo against the fake panel. Since D-223 the rules sync between devices and go into backups.
 
@@ -1082,7 +1085,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Removals are recorded (`direct.removed.<account>`: deleted profiles, progress taken off Continue watching, titles taken off My List, with their time) and win over entries saved before them on either side, so a removed entry does not come back from the other device. Kept 180 days. Profiles keep the details edited last (`updatedAt`).
 - Profile settings came along from D-225 on, once each carried a date: undated, the scanning device winning (D-060) would undo choices made on the TV every 10 minutes.
 - A changed list refreshes the screens in place (`AppContext.refreshMedia`: profiles, then progress and My List without emptying them first), not through `reload()`, which closes the player.
-- Limits (issue #268): devices that never scanned a TV don't sync on their own; the TV app must be open on the same network.
+- Limits (issue #268): devices that share no TV or computer don't sync on their own; the TV (or computer) app must be open on the same network. A TV that got a new address is found again (D-239); a computer can be a hub too (D-240).
 
 ## D-187
 
@@ -1362,7 +1365,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The phone and tablet hand every reminder of the account's profiles to Android (`ReminderAlarms.kt`, from `apps/tv-app/src/tv/reminderAlarms.ts`) whenever the list changes: one alarm per programme, which posts a notification "Starting now: …" with the channel (and the profiles who set it, when the account has several). All profiles, not only the active one, since the app may be closed or on another profile when it starts. The words are translated by JS beforehand, since no JavaScript runs when the alarm goes off.
 - Exact alarms when the system allows them, else within a minute (Android 14 does not grant exact alarms by default). The list is kept natively, so the alarms are set again after a restart or an app update. Taken-off reminders cancel their alarm and notification. Notifications need the person's yes on Android 13+: asked while there are reminders, once per run.
 - While the app is in front its popup shows the reminder (D-184) and the alarm stays silent. Tapping the notification opens the app, whose popup still offers Watch (it shows for 10 minutes after the start).
-- Not on the TV: Android TV shows notifications poorly, so the TV keeps to its popup. Not on the desktop, which can start with the computer and wait in the tray instead (D-226).
+- Not on the TV: Android TV shows notifications poorly, so a TV's alarm opens the app instead (D-238). Not on the desktop, which can start with the computer and wait in the tray instead (D-226).
 
 ## D-223
 
@@ -1370,7 +1373,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - The library database's `title_rules` (D-185) stay what the grouping reads. Beside them, a record in the device's data (`direct.titleRules.<account>`, `packages/shared/src/direct/titleRules.ts`) dates each rule when it is made or undone; an undone rule stays as removed for 180 days, like other removals (D-186). Pairing, automatic sync and backups carry the record like My List (keys are the provider's: group keys and stream ids are the same on every device of one account), and per rule the later change wins.
 - A device applies a record that differs from what it last wrote or applied when a list is read (at most every 10 s, not while the library updates): the rules go into the database (`replaceRules`) and only the titles they touch are grouped again, without downloading. Merges are applied oldest first the way one device makes them, so two devices' merges never chain or loop.
-- A device with rules from before the record starts the record with them on its first list. A merge still stops applying when the provider changes the title's key (issue #311).
+- A device with rules from before the record starts the record with them on its first list. A merge that follows its title's new key (issue #311, D-185) is dated again like a change made by hand.
 
 ## D-224
 
@@ -1441,6 +1444,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - Categories shown and a Kids profile's categories put a scrolling list between fixed parts (title, sections, hint) and Save. The list was sized to its content and left to shrink inside the panel's `maxHeight: 92%`; on the Android TV it did not shrink, so the rows ran past the panel's bottom and Save was off screen.
 - These dialogs now pass `tall` to `Dialog`: the panel gets a fixed height (92% of the window, less the scrim's padding) and the list `flex: 1`, so it takes exactly the room the fixed parts leave and scrolls there, on every app. The panel no longer changes height with the section or the number of categories. Save and the other buttons sit below the list at the right, always in view.
+- Both lists are plain ScrollViews: Categories shown's FlatList, given `flex: 1`, got no height on the Android TV and its categories vanished (issue #330), as the TV grid's did (D-094).
 
 ## D-232
 
@@ -1493,3 +1497,29 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The desktop log box had Save log, Copy log and Clear log but nothing that closed it: only Escape did, and nobody knows that. D-232 left boxes that show something with their own Close, and the log never had one. Bruno asked for an X on the log and a visible way to close every window.
 - `Dialog` (`packages/screens/src/ui/Dialog.tsx`) draws an X (`DialogClose`) at the right of its title, calling the same `onClose` as Cancel, Back and Escape, so every shared box has it on the desktop and phone. The profile editor, which draws its own panel, uses `DialogClose` too; the desktop's own frames (details, Sync with another device) already had one (`Modal.tsx`). Cancel and Close stay: the X adds a way out, it does not replace the buttons.
 - Not on TV: Back closes every box there, and an X would be one more stop for the D-pad above the content, where Up from the first row would land on it. The TV's log is a page, not a box.
+
+## D-238
+
+**TV: a reminder opens the app** — 2026-10-31 (issue #309, owner's choice)
+
+- With the app closed, a TV reminder was lost: Android TV launchers hide notifications. Bruno chose for the TV to open the app at the start (over a notification only, or leaving it as it was), which shows its reminder popup with Watch (D-184).
+- The TV sets the same alarms as the phone (D-222, `ReminderAlarms.kt`). When one goes off and the app is not in front, a TV (`FEATURE_LEANBACK`) starts the app's launch activity. Android 10+ lets an app start an activity from the background only with "Display over other apps" (`SYSTEM_ALERT_WINDOW`), so without it, or if the start is refused, the alarm posts the phone's notification instead.
+- The TV asks for it on Live TV, where reminders are set: once per run while there are reminders and it is off, a box explains it and **Open settings** opens the system screen (`OpenOnReminderPrompt.tsx`). Some TVs have no such screen; the app logs it and keeps to its popup. Not on Home, where the quality and new-season popups show.
+- Opening the app still asks "Who's watching?" first (D-151): the popup shows after a profile is picked, within 10 minutes of the start.
+
+## D-239
+
+**Finding a TV that got a new address** — 2026-10-31 (issue #268, owner's choice)
+
+- A phone, tablet or computer keeps the address of the TV whose code it scanned (D-061). When the router gave the TV another one, sync and Play on TV stopped until the code was scanned again. Part of issue #268 in 3.1, with the computer as a second hub (D-240).
+- When nothing answers on the saved address (its port, then the range), `sendRemoteCommand` (`packages/shared/src/pairing/remote.ts`) sends the same sealed command to the other addresses of the old one's /24 (`neighbourHosts`: private IPv4 only, nearest first), on the saved port and the range's first, 32 at a time with a second each. Only the paired TV can open the command, so the first one that answers it is the TV; another home's TV answers 403 and is skipped. The address that answered is saved for the next command.
+- No mDNS or network discovery: it would need native code on the TV, phone and desktop and new permissions, and routers usually keep the /24. A search that finds nothing is not made again for 30 minutes, so a TV that is off costs one search, not one per 10-minute sync. A network with another /24 still needs the code scanned again.
+
+## D-240
+
+**The computer is a sync hub too** — 2026-10-31 (issue #268, owner's choice)
+
+- Only the TV listened (D-186), so a phone and a computer stayed apart while the TV was off. Bruno chose for the desktop app to listen like the TV: still no sync service or accounts (D-088).
+- While signed in, the desktop app's main process listens on the first free port of the TV's range at `/remote` (`apps/desktop/lib/remoteServer.mjs`), also with the window closed and the app in the tray (D-226). The page opens each request with a paired phone's key and answers a `sync` like the TV (`answerSync`; play and log are TV only) (`useRemoteServer` in `apps/web-player/src/features/pairing/pairing.ts`). It keeps the last five phones' keys, as the TV does.
+- A phone that scans the computer's code gets a key with `kind: 'computer'` in the pairing answer (D-061's `RemoteOffer`). A phone keeps one TV and one computer (`remote.tv`, `remote.computer`) and syncs with both on each automatic sync, so the three devices end up the same; Play on TV and the TV log go to the TV only. A computer that scans another computer's code keeps it the same way. A computer that scans while signed out has no server yet and gets no key; scanning again once signed in gives one.
+- Risk: a phone app older than 3.1 that scans a 3.1 computer's code takes the computer for its TV and stops syncing with the TV until it scans the TV again. Both apps update themselves (D-062, D-073).

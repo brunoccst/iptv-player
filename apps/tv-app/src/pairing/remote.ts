@@ -41,15 +41,31 @@ const readJson = async <T>(key: string): Promise<T | null> => {
   }
 };
 
-/** Phone: the TV it was paired with, if any. */
-export const pairedTv = createStore<{ tv: PairedTv | null; load(): Promise<void>; save(tv: PairedTv): Promise<void> }>()((set) => ({
+export const PAIRED_COMPUTER_KEY = 'remote.computer';
+
+/**
+ * Phone: the TV it was paired with, if any, and the computer (the desktop app, issue #268, DECISIONS.md#d-240). Each
+ * is synced with on its own; Play on TV and the TV log go to the TV only. `save` puts a device in its slot by `kind`.
+ */
+export const pairedTv = createStore<{
+  tv: PairedTv | null;
+  computer: PairedTv | null;
+  load(): Promise<void>;
+  save(device: PairedTv): Promise<void>;
+}>()((set) => ({
   tv: null,
+  computer: null,
   async load() {
-    set({ tv: await readJson<PairedTv>(PAIRED_TV_KEY) });
+    set({ tv: await readJson<PairedTv>(PAIRED_TV_KEY), computer: await readJson<PairedTv>(PAIRED_COMPUTER_KEY) });
   },
-  async save(tv) {
-    set({ tv });
-    await secure.setItem(PAIRED_TV_KEY, JSON.stringify(tv));
+  async save(device) {
+    if (device.kind === 'computer') {
+      set({ computer: device });
+      await secure.setItem(PAIRED_COMPUTER_KEY, JSON.stringify(device));
+      return;
+    }
+    set({ tv: device });
+    await secure.setItem(PAIRED_TV_KEY, JSON.stringify(device));
   },
 }));
 
@@ -142,17 +158,35 @@ export function useRemoteServer(enabled: boolean) {
   }, [enabled]);
 }
 
-/** Phone and tablet: one automatic sync with the paired TV (issue #227); nothing without one. */
+/** The device answered on another port, or on a new address from the router (issue #268): the next command goes there. */
+async function savedWhereItAnswered(tv: PairedTv, host: string, port: number) {
+  if (host === tv.host && port === tv.port) return;
+  if (host !== tv.host) appLog.info('remote', `found the ${tv.kind === 'computer' ? 'computer' : 'TV'} on a new address`);
+  await pairedTv.getState().save({ ...tv, host, port });
+}
+
+/** Phone and tablet: one automatic sync with the paired TV (issue #227) and the paired computer (issue #268). */
 const autoSync = createAutoSync(async () => {
-  const tv = pairedTv.getState().tv;
   const accountId = stores.session.getState().account?.id;
-  if (!tv || !accountId) return;
-  const { port, changed, signIn } = await syncWithTv(syncStorages, tv, accountId);
-  if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
-  appLog.info('sync', changed ? 'synced with the TV' : 'in step with the TV');
-  // A new provider server, username or password from the TV (DECISIONS.md#d-228).
-  if (signIn) await appContext.reload();
-  else if (changed) await appContext.refreshMedia();
+  if (!accountId) return;
+  const { tv, computer } = pairedTv.getState();
+  let failure: unknown = null;
+  for (const device of [tv, computer]) {
+    if (!device) continue;
+    const name = device.kind === 'computer' ? 'computer' : 'TV';
+    try {
+      const { host, port, changed, signIn } = await syncWithTv(syncStorages, device, accountId);
+      await savedWhereItAnswered(device, host, port);
+      appLog.info('sync', changed ? `synced with the ${name}` : `in step with the ${name}`);
+      // A new provider server, username or password from the other device (DECISIONS.md#d-228).
+      if (signIn) return appContext.reload();
+      if (changed) await appContext.refreshMedia();
+    } catch (error) {
+      // The other one may still answer (the TV off, the computer on).
+      failure ??= error;
+    }
+  }
+  if (failure) throw failure;
 });
 
 /**
@@ -180,8 +214,8 @@ export async function playOnTv(target: PlayTarget): Promise<string> {
   const accountId = stores.session.getState().account?.id;
   if (!tv || !accountId) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
-    const { port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
-    if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+    const { host, port } = await sendRemoteCommand(tv, { type: 'play', accountId, target });
+    await savedWhereItAnswered(tv, host, port);
     appLog.info('remote', `sent ${target.kind} ${target.streamId} to the TV`);
     return t('Playing on {tv}.', { tv: tv.tvName });
   } catch (error) {
@@ -195,8 +229,8 @@ export async function getTvLog(): Promise<{ tvName: string; log: string }> {
   const tv = pairedTv.getState().tv;
   if (!tv) throw new Error(t('Connect a TV first: account menu → Sync with another device → Scan a code.'));
   try {
-    const { port, log } = await sendRemoteCommand(tv, { type: 'log' });
-    if (port !== tv.port) await pairedTv.getState().save({ ...tv, port });
+    const { host, port, log } = await sendRemoteCommand(tv, { type: 'log' });
+    await savedWhereItAnswered(tv, host, port);
     if (log === undefined) throw new RemoteFailure('bad-request', tv.tvName);
     appLog.info('remote', 'got the TV log');
     return { tvName: tv.tvName, log };
