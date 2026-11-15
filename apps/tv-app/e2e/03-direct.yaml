@@ -102,3 +102,30 @@ appId: ${APP_ID}
 - assertVisible:
     id: "guide-now-304"
 - takeScreenshot: 22-direct-guide
+# Account menu → Profiles → Categories shown: the category list fills the tall dialog. Build 231 showed only the
+# section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094). Straight from Live TV: Back there leaves the app.
+- tapOn:
+    id: "nav-account"
+- tapOn:
+    id: "menu-group-profiles"
+- tapOn:
+    id: "menu-hidden-categories"
+- extendedWaitUntil:
+    visible:
+      id: "hidden-categories-all"
+    timeout: 30000
+- assertVisible:
+    id: "hidden-category-Action"
+- assertVisible:
+    id: "hidden-category-Drama"
+- takeScreenshot: 23-categories-shown
+- tapOn:
+    id: "hidden-section-live"
+- extendedWaitUntil:
+    visible:
+      id: "hidden-categories-all"
+    timeout: 30000
+- assertVisible:
+    id: "hidden-category-News"
+- takeScreenshot: 24-categories-shown-live
+- pressKey: back
