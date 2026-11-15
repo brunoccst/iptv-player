@@ -66,7 +66,7 @@ An "EAR" version (English audio with Arabic subtitles in the picture, D-017) is 
 
 The library is built on the first sign-in and kept on the device; the app starts from it at once (D-121). The account menu → Library & devices → Refresh library downloads the provider's lists again and changes only what changed; a list identical to the last one is not compared at all (D-135, D-119). A message then says how many titles were added, changed and removed. Live channels and the TV guide are downloaded daily and after an update (D-121, D-130).
 
-The library updates itself in the background once a day. When the app opens with a saved library, Home's rows load first and the update starts after them, at most 20 seconds later; hidden categories and content languages don't slow the lists down, however many there are (DECISIONS.md#d-242).
+The library updates itself in the background once a day. When the app opens with a saved library, Home's rows load first and the update starts after them, at most 20 seconds later; hidden categories and content languages don't slow the lists down, however many there are (DECISIONS.md#d-242): lists read small lookups, not the whole library (DECISIONS.md#d-243).
 
 On the TV and phone, new title names are read in the system WebView, outside the app's JavaScript thread, so the app stays responsive while a large library is built; if the WebView is missing or fails, the app reads them itself as before (D-188).
 
