@@ -8,6 +8,7 @@ import { compactKey, parseTitle } from './normalizer/parser';
 import { buildMasters, masterId, type NormalizerItem } from './normalizer/pipeline';
 import { packer } from './libraryCodec';
 import { nameRow, type NameRow } from './nameRow';
+import { appLog } from '../utils/logger';
 import { createSqlLibrary, listFingerprint, type LibraryBuildTimings, type SqlLibraryKind } from './sqlLibrary';
 
 const login = { serverUrl: 'panel.test:8080', username: 'demo', password: 'demo' };
@@ -614,7 +615,11 @@ describe('library in SQLite (D-121)', () => {
       // Lists after the app updated: the lookups are made first.
       await asBefore();
       const restarted = createSqlLibrary(old.db, async () => undefined);
+      const logged = new Set(appLog.entries());
       expect(await contents(old.db, restarted, first.saved)).toEqual(expected);
+      // Made once, and the Log says what it cost.
+      const made = appLog.entries().filter((entry) => !logged.has(entry) && /^lookups for lists made in \d+ ms$/.test(entry.message));
+      expect(made).toHaveLength(1);
       // An update in place right after the app updated, before any list: the same as a whole new build.
       await asBefore();
       const updater = createSqlLibrary(old.db, async () => undefined);

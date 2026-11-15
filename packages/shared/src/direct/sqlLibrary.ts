@@ -683,7 +683,11 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     let ready = withFilters.get(t);
     if (!ready) {
       ready = (async () => {
-        if (!(await tableExists(`${t}_h`))) await db.run(filterTables(t).map((sql) => ({ sql })));
+        if (await tableExists(`${t}_h`)) return;
+        const started = Date.now();
+        await db.run(filterTables(t).map((sql) => ({ sql })));
+        // Once per library after the app updated: the Log shows what it cost (D-243).
+        appLog.info('library', `lookups for lists made in ${Date.now() - started} ms`);
       })();
       withFilters.set(t, ready);
       ready.catch(() => withFilters.delete(t));
@@ -1322,18 +1326,27 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
       const hintedIds = [...new Set(query.languageCategoryIds ?? [])];
       const columns = saved.packed ? 'a.rowid' : `a.id, a.title, a.year, a.poster, a.rating, a.n, ${coverColumns(t, codes, hintedIds)}`;
+      // Each part's time, for the Log when a list is slow (D-093, D-243).
+      const asked = Date.now();
+      let pageMs = 0;
+      let countMs: number | null = null;
       const [rows, total] = await Promise.all([
-        db.query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
+        db
+          .query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset])
+          .then((found) => ((pageMs = Date.now() - asked), found)),
         where.length === 0
           ? saved.count
           : (totals.get(totalKey) ??
             db.query(`SELECT COUNT(*) FROM ${t} a${filter}`, params).then((counted) => {
+              countMs = Date.now() - asked;
               const count = Number(counted[0]?.[0] ?? 0);
               if (totals.size > 200) totals.clear();
               totals.set(totalKey, count);
               return count;
             })),
       ]);
+      if (pageMs >= 300 || (countMs ?? 0) >= 300)
+        appLog.info('library', `list parts: page ${pageMs} ms, count ${countMs === null ? 'kept' : `${countMs} ms`}`);
       const items = saved.packed
         ? (
             await readPacked(
