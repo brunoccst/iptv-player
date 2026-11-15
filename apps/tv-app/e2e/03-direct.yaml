@@ -103,8 +103,7 @@ appId: ${APP_ID}
     id: "guide-now-304"
 - takeScreenshot: 22-direct-guide
 # Account menu → Profiles → Categories shown: the category list fills the tall dialog. Build 231 showed only the
-# section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094).
-- pressKey: back
+# section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094). Straight from Live TV: Back there leaves the app.
 - tapOn:
     id: "nav-account"
 - tapOn:
