@@ -147,6 +147,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-239](#d-239) | Finding a TV that got a new address |
 | [D-240](#d-240) | The computer is a sync hub too |
 | [D-241](#d-241) | npm overrides for deprecated build packages |
+| [D-242](#d-242) | Home first, then the daily library update |
 
 ## Merged and retired IDs
 
@@ -1531,3 +1532,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - `npm install` warned about seven deprecated packages pulled in by tools, none of them in the apps. The root `package.json` `overrides` now give each its supported version where the tool that wants it works with it: `@react-native-tvos/config-tv` → glob 13 (it calls `globSync`), uuid 11 for `xcode` (it calls `v4`; a flat override, since npm drops a nested one for it), `test-exclude` 8 (glob 13), and jsdom 28 under `jest-environment-jsdom` (drops abab, domexception and whatwg-encoding).
 - Jest 29 (from jest-expo 57) keeps glob 7 and its inflight: `jest-config`, `jest-runtime` and `@jest/reporters` call `glob.default.sync`, which glob 9+ has not, so an override would break test runs. They go with Jest 30, when Expo 58 comes in (issue #215).
+
+## D-242
+
+**Home first, then the daily library update** — 2026-11-15 (Bruno's TV log)
+
+- On a TV with 98,000 movie titles, Home's rows took 12 to 26 s. Each list counted its titles by searching every title's category text once per hidden category and per language-hinted category (170 and 80 in Bruno's profile): about 25 million text searches per count, on a TV's slow processor, while the daily update downloaded and saved 130 MB of lists beside it.
+- `sqlLibrary.list` now looks long category lists up in the tables made for them: hidden categories in `_c` (a title goes when all its categories are hidden: as many hidden rows as `ncat`), category hints in `_i` (versions without a language). Each list is read once per query into a set, so a count went from 860 ms to 60 ms for the same 98,000 titles in a test. Libraries packed before D-133 keep the text search.
+- A saved library older than 24 h no longer starts its update as soon as anything reads it: it waits until the first list answered (Home's rows), at most 20 s (`LIBRARY_UPDATE_DELAY_MS`). Without a saved library it starts at once; Refresh library is not delayed.
+- On TV and phone the database reads on two threads instead of one (`LibraryDb.kt`): a slow read of an update (finding new names) no longer holds Home's lists behind it. Android gives each thread its own connection with write-ahead logging.
+- Not changed: Xtream has no "what changed since" call, so the daily update still downloads the whole movie and series lists (55 and 78 MB for Bruno) and compares them on the device (D-135); it runs in the background.

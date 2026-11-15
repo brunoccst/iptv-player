@@ -14,8 +14,9 @@ import java.util.concurrent.Executors
  * The library database (D-121): Android's own SQLite, so the app carries no database library. JavaScript sends SQL
  * with parameters as JSON and gets rows back as JSON; all library logic stays in @iptv/shared (`sqlLibrary.ts`).
  *
- * - Writes run on one thread and reads on another; with write-ahead logging a list is not held up by an update being
- *   saved. Each call is one transaction, begun and ended on its thread (Android ties transactions to threads).
+ * - Writes run on one thread and reads on two others; with write-ahead logging a list is not held up by an update being
+ *   saved, and one slow read (an update comparing names) does not hold up the next list (DECISIONS.md#d-242). Each call
+ *   is one transaction, begun and ended on its thread (Android ties transactions to threads).
  * - Settings for big updates (D-135): `synchronous = NORMAL` (safe with write-ahead logging: a power cut can lose the
  *   last commit, never the database), a larger page cache, and helper threads for SQLite's sorts (indexes, ORDER BY,
  *   GROUP BY), one per core, where the device's SQLite has them.
@@ -27,8 +28,10 @@ internal object LibraryDb {
   private const val NAME = "library.db"
   /** Page cache of the connection that writes, in KB (SQLite's default is about 2 MB). */
   private const val CACHE_KB = 16 * 1024
+  private const val READERS = 2
   private val writer = Executors.newSingleThreadExecutor { Thread(it, "library-db-write") }
-  private val reader = Executors.newSingleThreadExecutor { Thread(it, "library-db-read") }
+  /** Two readers: Android's pool gives each thread its own connection with write-ahead logging (D-242). */
+  private val reader = Executors.newFixedThreadPool(READERS) { Thread(it, "library-db-read") }
 
   @Volatile private var db: SQLiteDatabase? = null
 

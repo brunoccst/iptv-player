@@ -75,6 +75,7 @@ describe('library in SQLite (D-121)', () => {
       { language: 'GER', languageCategoryIds: ['4'], categoryId: '4' },
       { hiddenCategoryIds: ['1'] },
       { hiddenCategoryIds: ['1', '2', '3', '4', '5'], language: 'ENG' },
+      { hiddenCategoryIds: ['1', '3'], language: 'FRE', languageCategoryIds: ['1', '2'] },
       { hiddenCategoryIds: ['0', '1', '2', '3', '4', '5', '6', '7', '8'] },
       { categoryIds: ['2', '5'] },
       { categoryIds: [] },

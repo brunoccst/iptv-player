@@ -129,6 +129,8 @@ const SHORT_EPG_PARALLELISM = 2;
 /** How far back the guide keeps programmes of channels with recordings (issue #226); the apps' guides go back as far. */
 const CATCHUP_GUIDE_MS = 24 * 3600_000;
 const LIBRARY_REFRESH_MS = 24 * 3600_000;
+/** Longest wait of a saved library's daily update for the first list (D-242). */
+const LIBRARY_UPDATE_DELAY_MS = 20_000;
 /** How often a list looks whether a sync or a backup brought other split and merge rules (issue #267). */
 const TITLE_RULES_CHECK_MS = 10_000;
 /**
@@ -790,11 +792,37 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     return result;
   };
 
-  /** Cached library, refreshed in the background when older than 24 h or missing. */
+  /** Resolves once the first library list answered since the app started (D-242). */
+  let markListed: () => void = () => undefined;
+  const listed = new Promise<void>((resolve) => (markListed = resolve));
+  let dailyUpdateQueued = false;
+  const isStale = (data: StoredLibrary | null) => !data || now().getTime() - Date.parse(data.builtAt) > LIBRARY_REFRESH_MS;
+
+  /**
+   * Cached library, refreshed in the background when older than 24 h or missing. A saved library's daily update waits
+   * until the first list answered (Home's rows), at most `LIBRARY_UPDATE_DELAY_MS`: on a TV both at once made Home take
+   * half a minute (DECISIONS.md#d-242). Without a saved library it starts at once.
+   */
   const ensureLibrary = async (): Promise<StoredLibrary | null> => {
     const data = await loadLibrary();
-    const age = data ? now().getTime() - Date.parse(data.builtAt) : Infinity;
-    if (age > LIBRARY_REFRESH_MS) void syncLibrary().catch(() => undefined);
+    if (!data) void syncLibrary().catch(() => undefined);
+    else if (isStale(data) && !library.running && !dailyUpdateQueued) {
+      dailyUpdateQueued = true;
+      void new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, LIBRARY_UPDATE_DELAY_MS);
+        // A wait alone does not keep Node (tests, desktop) running.
+        (timer as { unref?: () => void }).unref?.();
+        void listed.then(() => {
+          clearTimeout(timer);
+          resolve();
+        });
+      })
+        .then(async () => {
+          dailyUpdateQueued = false;
+          if (isStale(await loadLibrary())) await syncLibrary();
+        })
+        .catch(() => undefined);
+    }
     return (await applyStoredRules(data)) ?? data;
   };
 
@@ -1772,7 +1800,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           const saved = data.sql[librarySection(section)];
           if (!saved) return { total: 0, items: [], sorts: availableSorts([]) };
           const started = Date.now();
-          const page = await sqlLibrary.list(saved, query);
+          const page = await sqlLibrary.list(saved, query).finally(markListed);
           const took = Date.now() - started;
           if (took >= 300) appLog.info('library', `${section} list took ${took} ms in the database (${JSON.stringify(query)})`);
           return page;
@@ -1803,6 +1831,7 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
             'library',
             `${section} list (${[query.categoryId && 'category', search && 'search', query.language && 'languages', allowed && 'kids', hidden && 'hidden'].filter(Boolean).join(', ') || 'all'}, ${sort}) took ${took} ms for ${masters.length} titles`,
           );
+        markListed();
         const page = {
           total: matches.length,
           items: matches

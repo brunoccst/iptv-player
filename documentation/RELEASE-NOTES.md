@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows took up to half a minute on the TV. They now load in a few seconds, and the daily library update waits until Home has its titles.
 - **Sync with the computer, the TV off** (2026-10-31, D-240, issue #268): a phone or tablet that scans the desktop app's code (account menu → Sync with another device) now keeps in step with that computer on its own, like with the TV, so profiles, progress and My List match even when the TV is off.
 - **Sync finds the TV on its new address** (2026-10-31, D-239, issue #268): when your router gives the TV another address, your phone, tablet and computer now find it again on the home network and keep syncing, and Play on TV keeps working, without scanning the TV's code again.
 - **Reminders open the app on the TV** (2026-10-31, D-238, issue #309): when a programme you set a reminder for starts, the TV now opens the app with its reminder, even from another app or the home screen. Live TV asks once to allow "Display over other apps", which Android needs for it; Open settings takes you there.
@@ -154,6 +155,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows load much sooner, and the daily library update waits until Home has its titles.
 - **Trailers without the "Video unavailable" box** (2026-10-31, D-025, issue #222): the muted trailer on Home now fades in only once it really plays. A trailer YouTube removed, or no internet, leaves the movie's backdrop instead of a black YouTube box.
 - **Phones sync with the computer** (2026-10-31, D-240, issue #268): the desktop app now listens for the phones and tablets that scanned its code, like the TV, also with its window closed and the app in the tray, so they keep in step with this computer on their own, even when the TV is off. Windows may ask once to allow the app on private networks.
 - **Sync finds the TV on its new address** (2026-10-31, D-239, issue #268): when your router gives the TV another address, your phone, tablet and computer now find it again on the home network and keep syncing, without scanning the TV's code again.

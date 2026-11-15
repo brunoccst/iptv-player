@@ -1233,16 +1233,31 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         params.push(...query.categoryIds);
       }
       // Hidden categories (D-110): a title goes only when every one of its categories is hidden; search ignores them.
+      // Long lists of categories are looked up in `_c` and `_i`, once per query, not searched for in every title's text:
+      // 170 hidden categories took over 15 s on a TV (DECISIONS.md#d-238).
       const hidden = [...new Set(search ? [] : (query.hiddenCategoryIds ?? []))];
-      if (hidden.length) {
+      if (hidden.length && saved.packed) {
         where.push(`(a.ncat = 0 OR a.ncat > ${hidden.map(() => '(instr(a.cats, ?) > 0)').join(' + ')})`);
         params.push(...hidden.map((id) => `,${id},`));
+      } else if (hidden.length) {
+        where.push(`a.rowid NOT IN (SELECT c.m FROM ${t}_c c WHERE c.cat IN (${placeholders(hidden.length)}) GROUP BY c.m
+          HAVING count(*) >= (SELECT h.ncat FROM ${t} h WHERE h.rowid = c.m))`);
+        params.push(...hidden);
       }
       const codes = languageCodes(query.language);
       if (codes.length) {
         const hinted = [...new Set(query.languageCategoryIds ?? [])];
-        where.push(`(${[...codes.map(() => 'instr(a.langs, ?) > 0'), ...hinted.map(() => 'instr(a.hints, ?) > 0')].join(' OR ')})`);
-        params.push(...codes.map((code) => `,${code},`), ...hinted.map((id) => `,${id},`));
+        const own = codes.map(() => 'instr(a.langs, ?) > 0');
+        params.push(...codes.map((code) => `,${code},`));
+        if (hinted.length && saved.packed) {
+          own.push(...hinted.map(() => 'instr(a.hints, ?) > 0'));
+          params.push(...hinted.map((id) => `,${id},`));
+        } else if (hinted.length) {
+          // `hints`: the categories of the title's versions without a language (D-063), as `_i` has them.
+          own.push(`a.g IN (SELECT x.g FROM ${t}_i x WHERE x.langs = '' AND x.cat IN (${placeholders(hinted.length)}))`);
+          params.push(...hinted);
+        }
+        where.push(`(${own.join(' OR ')})`);
       }
       if (search) {
         where.push('(instr(a.nkey, ?) > 0 OR instr(a.lower, ?) > 0)');

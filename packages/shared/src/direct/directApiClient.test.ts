@@ -558,6 +558,32 @@ describe.each([
     expect(downloads()).toBe(before);
   });
 
+  it("a saved library's daily update waits until the first list answered (D-242)", async () => {
+    const first = setup();
+    await first.api.auth.login(login);
+    await libraryReady(first.api);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const downloads = () => first.panel.calls.filter((url) => url.includes('action=get_vod_streams')).length;
+    const before = downloads();
+    clockShiftMs = 2 * 24 * 3600_000;
+    try {
+      const restarted = setup(first.panel, first.storages).api;
+      await restarted.auth.me();
+      // A status read finds the library old, but Home has not listed anything yet: nothing downloads.
+      await restarted.library.status();
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      expect(downloads()).toBe(before);
+      // Home's first row answers from the saved library; then the update starts (once).
+      expect((await restarted.library.list('movies', { limit: 30 })).items.length).toBeGreaterThan(0);
+      await restarted.library.list('series', { limit: 30 });
+      for (let attempt = 0; attempt < 100 && downloads() === before; attempt++) await new Promise((r) => setTimeout(r, 5));
+      await libraryReady(restarted);
+      expect(downloads()).toBe(before + 1);
+    } finally {
+      clockShiftMs = 0;
+    }
+  });
+
   // With the database there is no saved file to wait for: the next test.
   it.runIf(!useDatabase)('after a restart, Home answers from the snapshot while the saved library is still read (D-121)', async () => {
     const first = setup();
