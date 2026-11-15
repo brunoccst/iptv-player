@@ -147,7 +147,9 @@ const ORDERS: Record<string, { column: string; by: string }> = {
  * - `${t}`: one row per title (rowid: newest first), with what lists show, filter, search and sort on. `cats`, `langs`
  *   and `hints` are lists like ",10,11,": the title's categories, its audio and subtitle languages, and the categories
  *   of its versions without a language (the category hint, D-063).
- * - `${t}_c`: title by category, for category pages and Kids profiles.
+ * - `${t}_c`: title by category, for category pages and Kids profiles; `_cm` finds a title's categories.
+ * - `${t}_h`: title by the categories of its versions without a language (`hints`), for content languages (D-063).
+ * - `${t}_l`: the titles' languages, so a list's count reads this small index, not the titles (DECISIONS.md#d-243).
  * - `${t}_o<column>`: one per order other than newest first, once asked for (D-135); `_on1`, newest first, once the
  *   library was updated in place (D-135).
  * While building: `_r` (the items as downloaded), `_x`, `_k` (what changed), `_p`, `_y`, `_t`, `_g` (grouping), `_a` and
@@ -386,6 +388,7 @@ const finishing = (t: string, o: string | null, base: number): string[][] => {
     [
       `CREATE TABLE ${t}_c (cat TEXT NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (cat, m)) WITHOUT ROWID`,
       `INSERT INTO ${t}_c (cat, m) SELECT DISTINCT i.cat, a.rowid FROM ${t}_i i JOIN ${t} a ON a.g = i.g WHERE i.cat IS NOT NULL`,
+      ...filterTables(t),
     ],
   ];
 };
@@ -427,15 +430,30 @@ const applying = (t: string, o: string, orders: { column: string; by: string }[]
     .join(', ');
   return [
     `DELETE FROM ${o}_c WHERE m IN (SELECT rowid FROM ${o} WHERE g IN (SELECT g FROM ${t}_z))`,
+    `DELETE FROM ${o}_h WHERE m IN (SELECT rowid FROM ${o} WHERE g IN (SELECT g FROM ${t}_z))`,
     `DELETE FROM ${o} WHERE g IN (SELECT g FROM ${t}_z)`,
     `DELETE FROM ${o}_i WHERE g IN (SELECT g FROM ${t}_z)`,
     `INSERT INTO ${o}_i (${GROUPED_NAMES}) SELECT ${GROUPED_NAMES} FROM ${t}_i ORDER BY rowid`,
     `INSERT INTO ${o} (${TITLE_NAMES}) SELECT ${TITLE_NAMES} FROM (SELECT ${built} FROM ${t}_a a JOIN ${t}_e e ON e.g = a.g)
       ORDER BY ${NEWEST_FIRST}`,
     `INSERT INTO ${o}_c (cat, m) SELECT DISTINCT i.cat, a.rowid FROM ${t}_i i JOIN ${o} a ON a.g = i.g WHERE i.cat IS NOT NULL`,
+    `INSERT INTO ${o}_h (cat, m) SELECT DISTINCT i.cat, a.rowid FROM ${t}_i i JOIN ${o} a ON a.g = i.g
+      WHERE i.cat IS NOT NULL AND i.langs = ''`,
     ...orders.flatMap(({ column, by }) => orderTable(o, column, by)),
   ];
 };
+
+/**
+ * The narrow lookups a list filters with (DECISIONS.md#d-243): `_h`, and indexes on `_c` and the titles. Lists read
+ * these instead of the wide titles and items tables, which a TV reads from storage on every count.
+ */
+const filterTables = (t: string): string[] => [
+  `CREATE TABLE IF NOT EXISTS ${t}_h (cat TEXT NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (cat, m)) WITHOUT ROWID`,
+  `INSERT OR IGNORE INTO ${t}_h (cat, m) SELECT DISTINCT i.cat, a.rowid FROM ${t}_i i JOIN ${t} a ON a.g = i.g
+    WHERE i.cat IS NOT NULL AND i.langs = ''`,
+  `CREATE INDEX IF NOT EXISTS ${t}_cm ON ${t}_c(m)`,
+  `CREATE INDEX IF NOT EXISTS ${t}_l ON ${t}(langs)`,
+];
 
 /** An order's table of row numbers (D-135), made (again) from the titles as they are. */
 const orderTable = (t: string, column: string, by: string): string[] => [
@@ -451,6 +469,7 @@ const drops = (t: string) =>
     '',
     '_d',
     '_c',
+    '_h',
     '_s',
     '_o',
     '_r',
@@ -657,6 +676,20 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
 
   const tableExists = async (name: string) =>
     (await db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", [name])).length > 0;
+
+  const withFilters = new Map<string, Promise<void>>();
+  /** A library built before DECISIONS.md#d-243 gets its filter lookups once, before its first list or update. */
+  const filtersOf = (t: string) => {
+    let ready = withFilters.get(t);
+    if (!ready) {
+      ready = (async () => {
+        if (!(await tableExists(`${t}_h`))) await db.run(filterTables(t).map((sql) => ({ sql })));
+      })();
+      withFilters.set(t, ready);
+      ready.catch(() => withFilters.delete(t));
+    }
+    return ready;
+  };
 
   const KIND_COLUMNS = 'kind, tbl, built_at, rules, count, sorts, prefixes, orders, fp, rsig';
   const kindOf = ([, table, builtAt, rules, count, sorts, prefixes, orders, fp, rsig]: SqlValue[]): SqlLibraryKind => ({
@@ -1220,6 +1253,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     /** One page of a list: the same filters and orders as the in-memory library. */
     async list(saved: SqlLibraryKind, query: LibraryListQuery): Promise<LibraryPage> {
       const t = saved.table;
+      if (!saved.packed) await filtersOf(t);
       const where: string[] = [];
       const params: SqlValue[] = [];
       const search = query.search?.trim().toLowerCase();
@@ -1233,15 +1267,15 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
         params.push(...query.categoryIds);
       }
       // Hidden categories (D-110): a title goes only when every one of its categories is hidden; search ignores them.
-      // Long lists of categories are looked up in `_c` and `_i`, once per query, not searched for in every title's text:
-      // 170 hidden categories took over 15 s on a TV (DECISIONS.md#d-238).
+      // Long lists of categories are looked up in `_c` and `_h`, once per query, not searched for in every title's text
+      // (DECISIONS.md#d-242), and never in the wide titles or items tables, which a TV reads from storage (D-243).
       const hidden = [...new Set(search ? [] : (query.hiddenCategoryIds ?? []))];
       if (hidden.length && saved.packed) {
         where.push(`(a.ncat = 0 OR a.ncat > ${hidden.map(() => '(instr(a.cats, ?) > 0)').join(' + ')})`);
         params.push(...hidden.map((id) => `,${id},`));
       } else if (hidden.length) {
         where.push(`a.rowid NOT IN (SELECT c.m FROM ${t}_c c WHERE c.cat IN (${placeholders(hidden.length)}) GROUP BY c.m
-          HAVING count(*) >= (SELECT h.ncat FROM ${t} h WHERE h.rowid = c.m))`);
+          HAVING count(*) >= (SELECT count(*) FROM ${t}_c d WHERE d.m = c.m))`);
         params.push(...hidden);
       }
       const codes = languageCodes(query.language);
@@ -1253,8 +1287,8 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
           own.push(...hinted.map(() => 'instr(a.hints, ?) > 0'));
           params.push(...hinted.map((id) => `,${id},`));
         } else if (hinted.length) {
-          // `hints`: the categories of the title's versions without a language (D-063), as `_i` has them.
-          own.push(`a.g IN (SELECT x.g FROM ${t}_i x WHERE x.langs = '' AND x.cat IN (${placeholders(hinted.length)}))`);
+          // `hints`: the categories of the title's versions without a language (D-063), as `_h` has them.
+          own.push(`a.rowid IN (SELECT h.m FROM ${t}_h h WHERE h.cat IN (${placeholders(hinted.length)}))`);
           params.push(...hinted);
         }
         where.push(`(${own.join(' OR ')})`);
@@ -1387,6 +1421,7 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     ruleSig: string,
   ): Promise<{ saved: SqlLibraryKind; changes: LibraryChanges }> {
     const o = last.table;
+    await filtersOf(o);
     const number = async (sql: string) => Number((await db.query(sql))[0]?.[0] ?? 0);
     const gone = await number(`SELECT COUNT(*) FROM ${o} WHERE g IN (SELECT g FROM ${t}_z)`);
     const known = await number(`SELECT COUNT(*) FROM ${t}_e WHERE id IN (SELECT id FROM ${o})`);

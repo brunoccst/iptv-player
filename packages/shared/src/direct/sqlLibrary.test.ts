@@ -526,7 +526,15 @@ describe('library in SQLite (D-121)', () => {
           { sort, order, search: 'love' },
         ])
           lists.push(await library.list(saved, query));
-      return { count: saved.count, sorts: saved.sorts, titles, categories, details, lists };
+      // Hidden categories and content languages read `_h` and `_c` (DECISIONS.md#d-243).
+      for (const query of [
+        { hiddenCategoryIds: ['0', '1', '2', '3'], limit: 500 },
+        { language: 'FRE', languageCategoryIds: ['1', '2'], hiddenCategoryIds: ['1', '3'], limit: 500 },
+        { language: 'ENG,GER', languageCategoryIds: ['4'], categoryId: '4', limit: 500 },
+      ])
+        lists.push(await library.list(saved, query));
+      const hints = await db.query(`SELECT h.cat, a.id FROM ${t}_h h JOIN ${t} a ON a.rowid = h.m ORDER BY h.cat, a.id`);
+      return { count: saved.count, sorts: saved.sorts, titles, categories, hints, details, lists };
     }
 
     it('builds the same library as a whole new build, whatever changed', async () => {
@@ -585,6 +593,36 @@ describe('library in SQLite (D-121)', () => {
       expect(await contents(updated.db, updated.library, third.saved)).toEqual(await contents(again.db, again.library, original.saved));
       // Nothing is left of what the updates worked out, once it is dropped in the background (D-135).
       await vi.waitFor(async () => expect(await leftovers(updated.db, first.saved.table)).toEqual([]));
+    }, 60_000);
+
+    it('a library from before D-243 gets its filter lookups once, at its first list or update', async () => {
+      const before = items(600);
+      const after: Item[] = [
+        ...before.filter((_, index) => index % 31 !== 4),
+        { id: 9100, name: 'Fresh One (2025)', categoryId: '3', addedAt: 1_950_000_000 },
+      ];
+      const make = () => {
+        const db = createNodeSqlDatabase();
+        return { db, library: createSqlLibrary(db, async () => undefined) };
+      };
+      const old = make();
+      const first = await old.library.build('acc', 'movie', '2026-01-01T00:00:00Z', before);
+      const t = first.saved.table;
+      const expected = await contents(old.db, old.library, first.saved);
+      expect(expected.hints.length).toBeGreaterThan(0);
+      const asBefore = () => old.db.run([`DROP TABLE ${t}_h`, `DROP INDEX ${t}_cm`, `DROP INDEX ${t}_l`].map((sql) => ({ sql })));
+      // Lists after the app updated: the lookups are made first.
+      await asBefore();
+      const restarted = createSqlLibrary(old.db, async () => undefined);
+      expect(await contents(old.db, restarted, first.saved)).toEqual(expected);
+      // An update in place right after the app updated, before any list: the same as a whole new build.
+      await asBefore();
+      const updater = createSqlLibrary(old.db, async () => undefined);
+      const second = await updater.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
+      expect(second.saved.table).toBe(t);
+      const fresh = make();
+      const whole = await fresh.library.build('acc', 'movie', '2026-01-02T00:00:00Z', after);
+      expect(await contents(old.db, updater, second.saved)).toEqual(await contents(fresh.db, fresh.library, whole.saved));
     }, 60_000);
 
     it('splits and merges titles by hand, the same as a whole build with those rules (issue #243)', async () => {

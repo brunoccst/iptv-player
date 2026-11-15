@@ -148,6 +148,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-240](#d-240) | The computer is a sync hub too |
 | [D-241](#d-241) | npm overrides for deprecated build packages |
 | [D-242](#d-242) | Home first, then the daily library update |
+| [D-243](#d-243) | Lists read small lookups, not the whole library |
 
 ## Merged and retired IDs
 
@@ -1542,3 +1543,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - A saved library older than 24 h no longer starts its update as soon as anything reads it: it waits until the first list answered (Home's rows), at most 20 s (`LIBRARY_UPDATE_DELAY_MS`). Without a saved library it starts at once; Refresh library is not delayed.
 - On TV and phone the database reads on two threads instead of one (`LibraryDb.kt`): a slow read of an update (finding new names) no longer holds Home's lists behind it. Android gives each thread its own connection with write-ahead logging.
 - Not changed: Xtream has no "what changed since" call, so the daily update still downloads the whole movie and series lists (55 and 78 MB for Bruno) and compares them on the device (D-135); it runs in the background.
+
+## D-243
+
+**Lists read small lookups, not the whole library** — 2026-11-15 (Bruno's TV log after D-242)
+
+- With D-242, Home's rows still took 9 to 17 s on Bruno's TV, the update not running. Each list's page and its count read the whole items table (`_i`, for the category hints) and the count the whole titles table: about 100 MB from the TV's storage per list, through a 2 MB page cache. A computer keeps it all in memory, so tests did not show it.
+- A library now has `_h` (title by the categories of its versions without a language, like `_c`), an index on `_c(m)` (a title's categories: hidden ones are counted against it without reading the title) and one on the titles' `langs`. A count reads that index (about 3 MB for 98,000 titles) instead of the titles; a page reads the titles it shows. Whole builds make them with `_c`; updates in place keep them as they keep `_c` (`applying`).
+- A library built before keeps working: its first list or update makes them, once (`filtersOf`, a few seconds on a TV).
