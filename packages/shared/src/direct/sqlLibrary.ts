@@ -107,6 +107,17 @@ const META = `CREATE TABLE IF NOT EXISTS library (
   account TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, built_at TEXT NOT NULL, rules INTEGER NOT NULL,
   count INTEGER NOT NULL, sorts TEXT NOT NULL, prefixes TEXT NOT NULL, orders TEXT, fp TEXT, PRIMARY KEY (account, kind))`;
 
+/** Which profile filter (`sig`) each slot `f` of a library's `_v` holds, and when it was made (DECISIONS.md#d-244). */
+const VISIBLE_SIGS = `CREATE TABLE IF NOT EXISTS list_visible (tbl TEXT NOT NULL, sig TEXT NOT NULL, f INTEGER NOT NULL,
+  made INTEGER NOT NULL, PRIMARY KEY (tbl, sig)) WITHOUT ROWID`;
+
+/**
+ * A list's count, kept across starts (DECISIONS.md#d-243): `k` names the library's state and the filter, `v` the state
+ * alone, so a changed library's counts go.
+ */
+const COUNTS = `CREATE TABLE IF NOT EXISTS list_counts (k TEXT PRIMARY KEY, tbl TEXT NOT NULL, v TEXT NOT NULL, n INTEGER NOT NULL)
+  WITHOUT ROWID`;
+
 /** The day each account's movie or series names were last marked as seen (D-135): once a day is enough. */
 const NAMES_SEEN = `CREATE TABLE IF NOT EXISTS names_seen (list TEXT PRIMARY KEY, day INTEGER NOT NULL) WITHOUT ROWID`;
 
@@ -470,6 +481,7 @@ const drops = (t: string) =>
     '_d',
     '_c',
     '_h',
+    '_v',
     '_s',
     '_o',
     '_r',
@@ -640,7 +652,12 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
    */
   const prepare = () =>
     (ready ??= (async () => {
-      await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }, { sql: RULES }]);
+      await db.run([{ sql: META }, { sql: NAMES_TABLE }, { sql: NAMES_SEEN }, { sql: RULES }, { sql: COUNTS }, { sql: VISIBLE_SIGS }]);
+      // Counts and profile sets of libraries that are gone (D-243, D-244).
+      await db.run([
+        { sql: 'DELETE FROM list_counts WHERE tbl NOT IN (SELECT tbl FROM library)' },
+        { sql: 'DELETE FROM list_visible WHERE tbl NOT IN (SELECT tbl FROM library)' },
+      ]);
       // The orders column came with D-135 (libraries from before keep their orders as columns: null), fp with D-135.
       const columns = (await db.query('PRAGMA table_info(library)')).map((row) => String(row[1]));
       if (!columns.includes('orders')) await db.run([{ sql: 'ALTER TABLE library ADD COLUMN orders TEXT' }]);
@@ -660,8 +677,85 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       throw error;
     }));
 
-  /** A filter's total is the same for every page and order: counted once per library and filter. */
-  const totals = new Map<string, number>();
+  /**
+   * A filter's total is the same for every page and order: counted once per library and filter, also when two lists ask
+   * at once (Home's first rows), and kept in `list_counts` for the next start (DECISIONS.md#d-243).
+   */
+  const totals = new Map<string, Promise<number>>();
+  const countOf = (saved: SqlLibraryKind, key: string, sql: string, params: SqlValue[], counted: (ms: number | null) => void) => {
+    let total = totals.get(key);
+    if (total) {
+      counted(null);
+      return total;
+    }
+    const state = `${saved.builtAt}|${saved.ruleSig}|${saved.count}`;
+    const id = sha1Hex(`${state}|${key}`);
+    const started = Date.now();
+    total = (async () => {
+      const kept = await db.query('SELECT n FROM list_counts WHERE k = ?', [id]).catch(() => []);
+      if (kept.length) {
+        counted(null);
+        return Number(kept[0]![0]);
+      }
+      const count = Number((await db.query(sql, params))[0]?.[0] ?? 0);
+      counted(Date.now() - started);
+      void db
+        .run([
+          { sql: 'DELETE FROM list_counts WHERE tbl = ? AND v <> ?', rows: [[saved.table, state]] },
+          { sql: 'INSERT OR REPLACE INTO list_counts (k, tbl, v, n) VALUES (?, ?, ?, ?)', rows: [[id, saved.table, state, count]] },
+        ])
+        .catch(() => undefined);
+      return count;
+    })();
+    if (totals.size > 200) totals.clear();
+    totals.set(key, total);
+    total.catch(() => totals.delete(key));
+    return total;
+  };
+  /**
+   * The titles a profile's lists may show (hidden categories, content languages) in `${t}_v`, for the library as it is
+   * (DECISIONS.md#d-244): worked out once, not again by each list (about 3 s each on a TV), and kept for the next start.
+   * One profile's set at a time per library; another profile's filter works it out again.
+   */
+  const visible = new Map<string, Promise<number>>();
+  /** Filters (slots) kept per library: Home, search (which ignores hidden categories) and another profile or two. */
+  const VISIBLE_SLOTS = 4;
+  /** Builds of `_v`, one at a time per library, so two never pick the same slot. */
+  const visibleBuilds = new Map<string, Promise<unknown>>();
+  const visibleTitles = (saved: SqlLibraryKind, clause: string, params: SqlValue[]): Promise<number> => {
+    const t = saved.table;
+    const sig = sha1Hex(JSON.stringify([saved.builtAt, saved.ruleSig, saved.count, clause, params]));
+    const key = `${t}|${sig}`;
+    let slot = visible.get(key);
+    if (slot) return slot;
+    slot = (async () => {
+      await visibleBuilds.get(t)?.catch(() => undefined);
+      await db.run([
+        { sql: `CREATE TABLE IF NOT EXISTS ${t}_v (f INTEGER NOT NULL, m INTEGER NOT NULL, PRIMARY KEY (f, m)) WITHOUT ROWID` },
+        { sql: VISIBLE_SIGS },
+      ]);
+      const slots = await db.query('SELECT sig, f, made FROM list_visible WHERE tbl = ? ORDER BY made', [t]);
+      const kept = slots.find(([s]) => s === sig);
+      if (kept) return Number(kept[1]);
+      // A free slot, else the one made longest ago.
+      const used = new Set(slots.map(([, f]) => Number(f)));
+      const f = [...Array(VISIBLE_SLOTS).keys()].find((n) => !used.has(n)) ?? Number(slots[0]![1]);
+      const started = Date.now();
+      await db.run([
+        { sql: 'DELETE FROM list_visible WHERE tbl = ? AND f = ?', rows: [[t, f]] },
+        { sql: `DELETE FROM ${t}_v WHERE f = ?`, rows: [[f]] },
+        { sql: `INSERT INTO ${t}_v (f, m) SELECT ${f}, a.rowid FROM ${t} a WHERE ${clause}`, rows: [params] },
+        { sql: 'INSERT INTO list_visible (tbl, sig, f, made) VALUES (?, ?, ?, ?)', rows: [[t, sig, f, Date.now()]] },
+      ]);
+      for (const [other] of slots.filter(([, n]) => Number(n) === f)) visible.delete(`${t}|${String(other)}`);
+      appLog.info('library', `titles for the profile's lists worked out in ${Date.now() - started} ms`);
+      return f;
+    })();
+    visibleBuilds.set(t, slot);
+    visible.set(key, slot);
+    slot.catch(() => visible.delete(key));
+    return slot;
+  };
   /** Orders being made, per library table and column (D-135). */
   const makingOrders = new Map<string, Promise<void>>();
 
@@ -683,7 +777,11 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
     let ready = withFilters.get(t);
     if (!ready) {
       ready = (async () => {
-        if (!(await tableExists(`${t}_h`))) await db.run(filterTables(t).map((sql) => ({ sql })));
+        if (await tableExists(`${t}_h`)) return;
+        const started = Date.now();
+        await db.run(filterTables(t).map((sql) => ({ sql })));
+        // Once per library after the app updated: the Log shows what it cost (D-243).
+        appLog.info('library', `lookups for lists made in ${Date.now() - started} ms`);
       })();
       withFilters.set(t, ready);
       ready.catch(() => withFilters.delete(t));
@@ -1269,29 +1367,44 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       // Hidden categories (D-110): a title goes only when every one of its categories is hidden; search ignores them.
       // Long lists of categories are looked up in `_c` and `_h`, once per query, not searched for in every title's text
       // (DECISIONS.md#d-242), and never in the wide titles or items tables, which a TV reads from storage (D-243).
+      // The profile's part (hidden categories, content languages): the same for all its lists.
+      const mine: string[] = [];
+      const mineParams: SqlValue[] = [];
       const hidden = [...new Set(search ? [] : (query.hiddenCategoryIds ?? []))];
       if (hidden.length && saved.packed) {
-        where.push(`(a.ncat = 0 OR a.ncat > ${hidden.map(() => '(instr(a.cats, ?) > 0)').join(' + ')})`);
-        params.push(...hidden.map((id) => `,${id},`));
+        mine.push(`(a.ncat = 0 OR a.ncat > ${hidden.map(() => '(instr(a.cats, ?) > 0)').join(' + ')})`);
+        mineParams.push(...hidden.map((id) => `,${id},`));
       } else if (hidden.length) {
-        where.push(`a.rowid NOT IN (SELECT c.m FROM ${t}_c c WHERE c.cat IN (${placeholders(hidden.length)}) GROUP BY c.m
+        mine.push(`a.rowid NOT IN (SELECT c.m FROM ${t}_c c WHERE c.cat IN (${placeholders(hidden.length)}) GROUP BY c.m
           HAVING count(*) >= (SELECT count(*) FROM ${t}_c d WHERE d.m = c.m))`);
-        params.push(...hidden);
+        mineParams.push(...hidden);
       }
       const codes = languageCodes(query.language);
+      const hinted = [...new Set(query.languageCategoryIds ?? [])];
       if (codes.length) {
-        const hinted = [...new Set(query.languageCategoryIds ?? [])];
         const own = codes.map(() => 'instr(a.langs, ?) > 0');
-        params.push(...codes.map((code) => `,${code},`));
+        mineParams.push(...codes.map((code) => `,${code},`));
         if (hinted.length && saved.packed) {
           own.push(...hinted.map(() => 'instr(a.hints, ?) > 0'));
-          params.push(...hinted.map((id) => `,${id},`));
+          mineParams.push(...hinted.map((id) => `,${id},`));
         } else if (hinted.length) {
           // `hints`: the categories of the title's versions without a language (D-063), as `_h` has them.
           own.push(`a.rowid IN (SELECT h.m FROM ${t}_h h WHERE h.cat IN (${placeholders(hinted.length)}))`);
-          params.push(...hinted);
+          mineParams.push(...hinted);
         }
-        where.push(`(${own.join(' OR ')})`);
+        mine.push(`(${own.join(' OR ')})`);
+      }
+      let profile = '';
+      if (mine.length && !saved.packed) {
+        // Worked out once into `_v` and read by every list after (DECISIONS.md#d-244).
+        const clause = mine.join(' AND ');
+        const slot = await visibleTitles(saved, clause, mineParams);
+        profile = JSON.stringify([clause, mineParams]);
+        // One lookup per title read: a page stops at its last title (a list `IN` would read the whole set first).
+        where.push(`EXISTS (SELECT 1 FROM ${t}_v v WHERE v.f = ${slot} AND v.m = a.rowid)`);
+      } else {
+        where.push(...mine);
+        params.push(...mineParams);
       }
       if (search) {
         where.push('(instr(a.nkey, ?) > 0 OR instr(a.lower, ?) > 0)');
@@ -1319,21 +1432,21 @@ export function createSqlLibrary(db: SqlDatabase, pause: () => Promise<void>) {
       }
       const offset = Math.max(0, query.offset ?? 0);
       const limit = Math.min(500, Math.max(1, query.limit ?? 100));
-      const totalKey = `${t}|${filter}|${JSON.stringify(params)}`;
+      const totalKey = `${t}|${profile}|${filter}|${JSON.stringify(params)}`;
       const hintedIds = [...new Set(query.languageCategoryIds ?? [])];
       const columns = saved.packed ? 'a.rowid' : `a.id, a.title, a.year, a.poster, a.rating, a.n, ${coverColumns(t, codes, hintedIds)}`;
+      // Each part's time, for the Log when a list is slow (D-093, D-243).
+      const asked = Date.now();
+      let pageMs = 0;
+      let countMs: number | null = null;
       const [rows, total] = await Promise.all([
-        db.query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]),
-        where.length === 0
-          ? saved.count
-          : (totals.get(totalKey) ??
-            db.query(`SELECT COUNT(*) FROM ${t} a${filter}`, params).then((counted) => {
-              const count = Number(counted[0]?.[0] ?? 0);
-              if (totals.size > 200) totals.clear();
-              totals.set(totalKey, count);
-              return count;
-            })),
+        db
+          .query(`SELECT ${columns} FROM ${from}${filter} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset])
+          .then((found) => ((pageMs = Date.now() - asked), found)),
+        where.length === 0 ? saved.count : countOf(saved, totalKey, `SELECT COUNT(*) FROM ${t} a${filter}`, params, (ms) => (countMs = ms)),
       ]);
+      if (pageMs >= 300 || (countMs ?? 0) >= 300)
+        appLog.info('library', `list parts: page ${pageMs} ms, count ${countMs === null ? 'kept' : `${countMs} ms`}`);
       const items = saved.packed
         ? (
             await readPacked(
