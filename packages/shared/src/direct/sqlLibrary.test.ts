@@ -596,6 +596,43 @@ describe('library in SQLite (D-121)', () => {
       await vi.waitFor(async () => expect(await leftovers(updated.db, first.saved.table)).toEqual([]));
     }, 60_000);
 
+    it('counts a filter and works out the profile’s titles once, also for two lists at once, and keeps both for the next start (D-243, D-244)', async () => {
+      const db = createNodeSqlDatabase();
+      const counts: string[] = [];
+      const counting = {
+        ...db,
+        query: (sql: string, params?: (string | number | null)[]) => {
+          if (/^SELECT COUNT\(\*\) FROM lib\w* a WHERE/.test(sql)) counts.push(sql);
+          return db.query(sql, params);
+        },
+      };
+      const library = createSqlLibrary(counting, async () => undefined);
+      const first = await library.build('acc', 'movie', '2026-01-01T00:00:00Z', items(300));
+      const logged = new Set(appLog.entries());
+      const worked = () =>
+        appLog.entries().filter((entry) => !logged.has(entry) && entry.message.startsWith("titles for the profile's lists worked out"))
+          .length;
+      const query = { language: 'ENG', hiddenCategoryIds: ['1', '2'], languageCategoryIds: ['3'] };
+      const [hero, row] = await Promise.all([
+        library.list(first.saved, { ...query, limit: 30 }),
+        library.list(first.saved, { ...query, limit: 100 }),
+      ]);
+      expect(hero.total).toBe(row.total);
+      expect(counts).toHaveLength(1);
+      await new Promise((resolve) => setTimeout(resolve, 10)); // saved in the background
+      // The next start: the count is read, not counted.
+      const restarted = createSqlLibrary(counting, async () => undefined);
+      expect((await restarted.list(first.saved, { ...query, limit: 30 })).total).toBe(hero.total);
+      expect(counts).toHaveLength(1);
+      // The profile's titles too: worked out once, for both lists and the next start (D-244).
+      expect(worked()).toBe(1);
+      // A changed library counts again.
+      const second = await restarted.build('acc', 'movie', '2026-01-02T00:00:00Z', items(280));
+      const after = await createSqlLibrary(counting, async () => undefined).list(second.saved, { ...query, limit: 30 });
+      expect(counts).toHaveLength(2);
+      expect(after.total).toBeLessThanOrEqual(hero.total);
+    });
+
     it('a library from before D-243 gets its filter lookups once, at its first list or update', async () => {
       const before = items(600);
       const after: Item[] = [

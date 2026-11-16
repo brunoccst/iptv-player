@@ -149,6 +149,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-241](#d-241) | npm overrides for deprecated build packages |
 | [D-242](#d-242) | Home first, then the daily library update |
 | [D-243](#d-243) | Lists read small lookups, not the whole library |
+| [D-244](#d-244) | A profile's titles worked out once |
 
 ## Merged and retired IDs
 
@@ -1551,4 +1552,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - With D-242, Home's rows still took 9 to 17 s on Bruno's TV, the update not running. Each list's page and its count read the whole items table (`_i`, for the category hints) and the count the whole titles table: about 100 MB from the TV's storage per list, through a 2 MB page cache. A computer keeps it all in memory, so tests did not show it.
 - A library now has `_h` (title by the categories of its versions without a language, like `_c`), an index on `_c(m)` (a title's categories: hidden ones are counted against it without reading the title) and one on the titles' `langs`. A count reads that index (about 3 MB for 98,000 titles) instead of the titles; a page reads the titles it shows. Whole builds make them with `_c`; updates in place keep them as they keep `_c` (`applying`).
 - A library built before keeps working: its first list or update makes them, once (`filtersOf`, a few seconds on a TV).
+- A list's count is counted once per library state and filter, also when two lists ask at once (Home's featured movie and newest row share one), and kept in `list_counts` for the next start: a count names the library's built date, rules and size, so an update or a split or merge counts again. Bruno's second start still spent 3 to 6 s on Home's first two lists.
 - The Log says how long making them took ("lookups for lists made in … ms"), and for a slow list how long its page and its count each took ("list parts"), so a TV's log tells a one-time step, a slow page and a slow count apart.
+
+## D-244
+
+**A profile's titles worked out once** — 2026-11-15 (Bruno's TV log after D-243)
+
+- With D-243, Home's category rows still took about 3 s each on Bruno's TV and waited for each other (7 to 23 s), because each list worked out again which titles the profile's 170 hidden and 80 hinted categories and its content languages leave.
+- That part of a list is the same for all of a profile's lists, so it is worked out once into `${t}_v` (title numbers by slot `f`) and every list after reads one row of it per title it looks at (`EXISTS`, so a page stops at its last title; an `IN` list would read the whole set each time). `list_visible` says which filter each slot holds, named by the library's built date, rules and size and the filter: an update or a split or merge works it out again.
+- Four slots per library, the oldest replaced: Home and Movies share one, search (which ignores hidden categories) has its own, and another profile or two keep theirs across starts. In a test with 98,000 titles Home's first eight lists went from 660 ms in all (the first start, making the set) to 24 ms on the next start.
+- Libraries packed before D-133 keep filtering in each list. Counts and sets of libraries that are gone are deleted when the database opens.
