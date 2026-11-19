@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **Season and version boxes show their choice again** (2026-11-19): in a series' details, the Season box next to Episodes and each episode's version box showed only an arrow, with no text, on the TV. They show the season and the version again.
 - **Home's rows load quickly on the TV** (2026-11-15, D-243): Home's rows still took 10 to 20 seconds on TVs with a large library, because each row read the whole library from the TV's storage. Rows now read only small lookups, and the app works out once which titles your profile shows (hidden categories, content languages) and remembers it, with how many titles each row has, until the library changes. The first start after updating prepares them once.
 - **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows took up to half a minute on the TV. They now load in a few seconds, and the daily library update waits until Home has its titles.
 - **Sync with the computer, the TV off** (2026-10-31, D-240, issue #268): a phone or tablet that scans the desktop app's code (account menu → Sync with another device) now keeps in step with that computer on its own, like with the TV, so profiles, progress and My List match even when the TV is off.

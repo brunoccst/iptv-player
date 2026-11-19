@@ -72,7 +72,7 @@ export function Select({
         }}
         style={[styles.box, compact ? styles.compact : styles.full, focused && styles.focused]}
       >
-        <Text style={[styles.value, compact && styles.valueCompact]} numberOfLines={1}>
+        <Text style={[styles.value, compact ? styles.valueCompact : styles.valueFull]} numberOfLines={1}>
           {current?.label ?? ''}
         </Text>
         <Icon name="chevronRight" size={18} color={colors.text} />
@@ -137,9 +137,11 @@ const styles = StyleSheet.create({
   // Sized to its text, and allowed to shrink so a label beside it stays visible on narrow phones.
   compact: { alignSelf: 'flex-start', flexShrink: 1, minHeight: 40, paddingVertical: 8 },
   focused: { borderColor: focus.ring, borderWidth: 2, ...focus.glow },
-  value: { flex: 1, color: colors.strong, fontSize: fonts.body },
-  // Longhands: on React Native Web, `flex: 0` also sets a zero basis, which hid the text (desktop).
-  valueCompact: { flexGrow: 0, flexShrink: 1, flexBasis: 'auto' },
+  value: { color: colors.strong, fontSize: fonts.body },
+  valueFull: { flex: 1 },
+  // Only a shrink, never `flex`: `flex: 1` gives the text a zero basis, and Android TV did not take
+  // a `flexBasis: 'auto'` that undid it, so the season and episode version boxes showed no text.
+  valueCompact: { flexShrink: 1 },
   scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 16 },
   panel: {
     minWidth: 320,
