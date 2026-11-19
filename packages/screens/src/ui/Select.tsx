@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   focused: { borderColor: focus.ring, borderWidth: 2, ...focus.glow },
   value: { color: colors.strong, fontSize: fonts.body },
   valueFull: { flex: 1 },
-  // Only a shrink, never `flex`: `flex: 1` gives the text a zero basis, and Android TV did not take
+  // Only a shrink, never `flex`: `flex: 1` gives the text a zero basis, and Android did not take
   // a `flexBasis: 'auto'` that undid it, so the season and episode version boxes showed no text.
   valueCompact: { flexShrink: 1 },
   scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: 16 },
