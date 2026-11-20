@@ -246,7 +246,7 @@ A programme that has not started can get a reminder. When it starts, the app say
 
 ### Guide over the playing channel
 
-A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. TV: ↑; phone: swipe up in the middle of the video (the sides set brightness and volume, D-046) or the Guide button; desktop: the Guide button or G (D-058, D-081).
+A see-through list of the category's channels with now / next over the playing video, to switch without leaving it. When it opens, it scrolls to the currently playing channel and keeps it in view (issue #339). TV: ↑; phone: swipe up in the middle of the video (the sides set brightness and volume, D-046) or the Guide button; desktop: the Guide button or G (D-058, D-081).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅. TV: ↑ · phone and desktop: Guide button · desktop: also G.
 

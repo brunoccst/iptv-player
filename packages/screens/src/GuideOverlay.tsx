@@ -57,6 +57,30 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
   const { width } = useWindowDimensions();
   const web = Platform.OS === 'web';
 
+  // Scroll to the currently playing channel when the guide opens (issue #339).
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const [currentChannelY, setCurrentChannelY] = useState<number | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (currentChannelY !== null && scrollViewRef.current && !scrolled) {
+      // Scroll to the current channel, centered in the visible area if possible.
+      // We use setTimeout to ensure the layout is complete.
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ y: currentChannelY, animated: false });
+          setScrolled(true);
+        }
+      }, 0);
+    }
+  }, [currentChannelY, scrolled]);
+
+  // Reset scroll state when the guide data changes (e.g., category switch).
+  useEffect(() => {
+    setScrolled(false);
+    setCurrentChannelY(null);
+  }, [guide.rows.length, channelId]);
+
   // Any input restarts the countdown; the overlay never closes while the user is moving through it. The desktop keeps
   // it open until it is closed: the mouse can rest on it.
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,7 +119,11 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
             <Text style={styles.muted}>{guide.error ? t('The guide could not be loaded.') : t('No channels in this category.')}</Text>
           )
         ) : (
-          <ScrollView contentContainerStyle={styles.list} onScrollBeginDrag={poke}>
+          <ScrollView
+            ref={scrollViewRef}
+            contentContainerStyle={styles.list}
+            onScrollBeginDrag={poke}
+          >
             {guide.rows.map((row) => (
               <GuideRow
                 key={row.channel.id}
@@ -104,6 +132,7 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
                 current={row.channel.id === channelId}
                 onFocus={poke}
                 onPress={(programme) => onSelect(row.channel, programme)}
+                onLayout={row.channel.id === channelId ? (event) => setCurrentChannelY(event.nativeEvent.layout.y) : undefined}
               />
             ))}
           </ScrollView>
@@ -119,12 +148,14 @@ function GuideRow({
   current,
   onFocus,
   onPress,
+  onLayout,
 }: {
   row: EpgChannelRow;
   now: number;
   current: boolean;
   onFocus(): void;
   onPress(programme: EpgListing | null): void;
+  onLayout?: (event: { nativeEvent: { layout: { y: number } } }) => void;
 }) {
   const [focused, setFocused] = useState(false);
   const self = useRef<ReactNative.View>(null);
@@ -155,6 +186,7 @@ function GuideRow({
       onHoverIn={() => setFocused(true)}
       onHoverOut={() => setFocused(false)}
       onPress={() => onPress(onNow)}
+      onLayout={onLayout}
       style={[styles.row, Platform.OS === 'web' && webNoOutline, current && styles.rowCurrent, focused && styles.rowFocused]}
     >
       <View style={styles.logo}>
