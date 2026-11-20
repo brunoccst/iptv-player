@@ -1,4 +1,5 @@
-import { ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
@@ -6,6 +7,7 @@ import { CheckRow } from './ui/CheckRow';
 import { Dialog } from './ui/Dialog';
 import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
+import { Field } from './ui/Field';
 import { FocusRow } from './ui/FocusRow';
 import { CenteringScrollView } from './ui/CenterScroll';
 import { colors, fonts } from './ui/theme';
@@ -18,6 +20,19 @@ import { colors, fonts } from './ui/theme';
 export function HiddenCategories({ onClose }: { onClose(): void }) {
   const { section, setSection, categories, error, profileName, isShown, allShown, toggle, toggleAll, save } =
     useScreenHost().hooks.useHiddenCategories(onClose);
+
+  const [filterText, setFilterText] = useState('');
+
+  // Filter categories by name (case-insensitive)
+  const filteredCategories = useMemo(
+    () => (categories ?? []).filter((cat) => filterText === '' || cat.name.toLowerCase().includes(filterText.toLowerCase())),
+    [categories, filterText],
+  );
+
+  // Clear filter when section changes
+  useEffect(() => {
+    setFilterText('');
+  }, [section]);
 
   return (
     <Dialog
@@ -45,12 +60,23 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       {categories ? (
         // CenteringScrollView keeps focus navigation working for all items on TV (issue #338).
         <CenteringScrollView style={styles.list} contentContainerStyle={styles.listContent} testID="hidden-categories-list" onlyCentering>
-          {categories.length ? (
+          <View style={styles.filterInput}>
+            <Field
+              label={t('Filter categories')}
+              value={filterText}
+              onChange={setFilterText}
+              placeholder={t('Filter categories')}
+              testID="category-filter"
+              autoFocus={false}
+              compact
+            />
+          </View>
+          {filteredCategories.length ? (
             <CheckRow label={t('Select all')} checked={allShown} onPress={toggleAll} testID="hidden-categories-all" />
           ) : (
             <Text style={styles.hint}>{t('No categories.')}</Text>
           )}
-          {categories.map((category) => (
+          {filteredCategories.map((category) => (
             <CheckRow
               key={category.id}
               label={category.name}
@@ -73,4 +99,5 @@ const styles = StyleSheet.create({
   // Fills the room between the fixed parts of a tall dialog and scrolls there, so Save stays in view (DECISIONS.md#d-231).
   list: { flex: 1 },
   listContent: { gap: 2 },
+  filterInput: { marginBottom: 8 },
 });
