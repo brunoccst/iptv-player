@@ -217,9 +217,12 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     if (!isLive || zapChannelsLoaded.current) return;
     zapChannelsLoaded.current = true;
     const categoryId = target.categoryId ?? null;
-    stores.catalog.getState().loadLiveChannels(categoryId).then((channels) => {
-      if (channels) setZapChannels(channels);
-    });
+    stores.catalog
+      .getState()
+      .loadLiveChannels(categoryId)
+      .then((channels) => {
+        if (channels) setZapChannels(channels);
+      });
   }, [isLive, target.categoryId]);
 
   // The profile's subtitles and audio track (D-087): selected once per source, when its tracks are known; a pick in
