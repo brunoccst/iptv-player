@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **EPG stays on the current channel** (2026-11-20, issue #339): when opening the guide during live TV (Up button on the remote), the EPG now scrolls to keep the currently playing channel in view instead of jumping to the top.
 - **Season and version boxes show their choice again** (2026-11-19): in a series' details, the Season box next to Episodes and each episode's version box showed only an arrow, with no text, on the TV and on phones. They show the season and the version again.
 - **Home's rows load quickly on the TV** (2026-11-15, D-243): Home's rows still took 10 to 20 seconds on TVs with a large library, because each row read the whole library from the TV's storage. Rows now read only small lookups, and the app works out once which titles your profile shows (hidden categories, content languages) and remembers it, with how many titles each row has, until the library changes. The first start after updating prepares them once.
 - **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows took up to half a minute on the TV. They now load in a few seconds, and the daily library update waits until Home has its titles.
