@@ -11,11 +11,20 @@ export const colors = {
   strong: colorTokens.textStrong,
   muted: colorTokens.muted,
   accent: colorTokens.accent,
+  accentHover: colorTokens.accentHover,
   success: colorTokens.success,
   warning: colorTokens.warning,
   scrim: 'rgba(0,0,0,0.7)',
   input: '#333',
   secondaryButton: 'rgba(109,109,110,0.7)',
+  // Dense TV guide theme
+  gold: colorTokens.gold,
+  goldHover: colorTokens.goldHover,
+  blue: colorTokens.blue,
+  blueHover: colorTokens.blueHover,
+  surfaceDark: colorTokens.surfaceDark,
+  surfaceCard: colorTokens.surfaceCard,
+  coral: colorTokens.coral,
 } as const;
 
 export const radius = sizeTokens.radius;
