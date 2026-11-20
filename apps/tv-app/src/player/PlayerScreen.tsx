@@ -210,6 +210,21 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
   // Live: Home's first row and the ↓ strip list the channels watched last (issue #122).
   useNoteRecentChannel(target);
 
+  // Live TV: load channels for the current category to enable up/down zapping.
+  const [zapChannels, setZapChannels] = useState<LiveChannel[]>([]);
+  const zapChannelsLoaded = useRef(false);
+  useEffect(() => {
+    if (!isLive || zapChannelsLoaded.current) return;
+    zapChannelsLoaded.current = true;
+    const categoryId = target.categoryId ?? null;
+    stores.catalog
+      .getState()
+      .loadLiveChannels(categoryId)
+      .then((channels) => {
+        if (channels) setZapChannels(channels);
+      });
+  }, [isLive, target.categoryId]);
+
   // The profile's subtitles and audio track (D-087): selected once per source, when its tracks are known; a pick in
   // the drawer becomes the choice every movie and series starts with.
   const tracksApplied = useRef<{ source: PlayerSource | null; text: boolean; audio: boolean }>({ source: null, text: false, audio: false });
@@ -646,11 +661,26 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
       return;
     }
     if (action === 'up') return;
-    // TV: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-077); on Live TV ↑ opens the guide and ↓ the
-    // channels watched last, with the buttons one more ↓ away (issue #122).
-    if (key === 'down' && Platform.isTV && isLive) setRecent(true);
-    else if (key === 'down' && Platform.isTV) setButtons('play');
-    else if (key === 'up' && isLive) setGuide(true);
+    // TV: on Live TV, Channel +/- buttons zap to the next/previous channel (direct channel switching).
+    // When an overlay is open (guide, recent, drawer, buttons), the early return above handles it.
+    if (isLive && Platform.isTV && (key === 'channelUp' || key === 'channelDown')) {
+      zapChannel(key === 'channelUp' ? 'prev' : 'next');
+      return;
+    }
+    // TV: on Live TV, up/down open guide/recent channels (existing behaviour, D-058, issue #122).
+    if (isLive && Platform.isTV && (key === 'up' || key === 'down')) {
+      if (key === 'down') setRecent(true);
+      else setGuide(true);
+      return;
+    }
+    // Phones: on Live TV, up/down open guide/recent channels (existing behaviour).
+    if (isLive && !Platform.isTV && (key === 'up' || key === 'down')) {
+      if (key === 'down') setRecent(true);
+      else setGuide(true);
+      return;
+    }
+    // Non-live: ↓ opens the buttons on Play/Pause, ↑ on Back at the top left (D-077).
+    if (key === 'down' && Platform.isTV) setButtons('play');
     else if (key === 'up' && Platform.isTV) setButtons('back');
     else if (key === 'up' || key === 'down') setDrawer('audio');
   });
@@ -678,6 +708,21 @@ export function PlayerScreen({ target }: { target: PlayTarget }) {
     if (channel.id === target.streamId) return;
     navStore.getState().replaceTop({ name: 'player', target: liveTarget(channel, programme?.title) });
   };
+
+  // Channel zapping: find the next/previous channel in the loaded list.
+  const zapChannel = useCallback(
+    (direction: 'next' | 'prev') => {
+      if (zapChannels.length === 0) return;
+      const currentIndex = zapChannels.findIndex((c) => c.id === target.streamId);
+      if (currentIndex === -1) return;
+      const nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+      if (nextIndex < 0 || nextIndex >= zapChannels.length) return;
+      const channel = zapChannels[nextIndex];
+      if (!channel) return;
+      navStore.getState().replaceTop({ name: 'player', target: liveTarget(channel) });
+    },
+    [zapChannels, target.streamId],
+  );
 
   const zapRecent = (channel: RecentChannel) => {
     setRecent(false);
