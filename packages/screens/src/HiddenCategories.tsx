@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
@@ -7,6 +7,7 @@ import { Dialog } from './ui/Dialog';
 import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
 import { FocusRow } from './ui/FocusRow';
+import { CenteringScrollView } from './ui/CenterScroll';
 import { colors, fonts } from './ui/theme';
 
 /**
@@ -42,9 +43,8 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
       </Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {categories ? (
-        // A plain ScrollView, as in Kids categories: a FlatList given the room left (flex: 1) got no height on the
-        // Android TV and the list vanished (issue #330, DECISIONS.md#d-094).
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} testID="hidden-categories-list">
+        // CenteringScrollView keeps focus navigation working for all items on TV (issue #338).
+        <CenteringScrollView style={styles.list} contentContainerStyle={styles.listContent} testID="hidden-categories-list" onlyCentering>
           {categories.length ? (
             <CheckRow label={t('Select all')} checked={allShown} onPress={toggleAll} testID="hidden-categories-all" />
           ) : (
@@ -59,7 +59,7 @@ export function HiddenCategories({ onClose }: { onClose(): void }) {
               testID={`hidden-category-${category.name}`}
             />
           ))}
-        </ScrollView>
+        </CenteringScrollView>
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}

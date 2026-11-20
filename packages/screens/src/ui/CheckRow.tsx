@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from './theme';
 import { focus } from './focus';
 import { Icon } from './Icon';
+import { useCenterFocus, type Measurable } from './CenterScroll';
 
 /** A row with a check box, for lists of choices (categories); focus lights the row. */
 export function CheckRow({ label, checked, onPress, testID }: { label: string; checked: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
+  const centerFocus = useCenterFocus();
+  const self = useRef<Measurable>(null);
   return (
     <Pressable
+      ref={self as never}
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       // React Native Web reads the ARIA prop, not accessibilityState.
@@ -16,7 +20,10 @@ export function CheckRow({ label, checked, onPress, testID }: { label: string; c
       accessibilityLabel={label}
       testID={testID}
       onPress={onPress}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        centerFocus?.(self.current);
+      }}
       onBlur={() => setFocused(false)}
       style={[styles.row, focused && styles.rowFocused]}
     >

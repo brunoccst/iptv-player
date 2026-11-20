@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { CATEGORY_SECTIONS, t } from '@iptv/shared';
 import { useScreenHost } from './host';
 import { Chip } from './ui/ChipBar';
@@ -8,6 +8,7 @@ import { DialogActions } from './ui/DialogActions';
 import { ErrorText } from './ui/Feedback';
 import { FocusButton } from './ui/FocusButton';
 import { FocusRow } from './ui/FocusRow';
+import { CenteringScrollView } from './ui/CenterScroll';
 import { colors, fonts } from './ui/theme';
 
 /**
@@ -50,7 +51,8 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
       </Text>
       {error ? <ErrorText>{error}</ErrorText> : null}
       {categories ? (
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+        // CenteringScrollView keeps focus navigation working for all items on TV (issue #338).
+        <CenteringScrollView style={styles.list} contentContainerStyle={styles.listContent} onlyCentering>
           {categories.length === 0 ? <Text style={styles.hint}>{t('No categories.')}</Text> : null}
           {categories.map((category) => (
             <CheckRow
@@ -61,7 +63,7 @@ export function KidsCategories({ profileId, name, onClose }: { profileId: string
               testID={`kids-category-${category.name}`}
             />
           ))}
-        </ScrollView>
+        </CenteringScrollView>
       ) : error ? null : (
         <ActivityIndicator color={colors.accent} />
       )}
