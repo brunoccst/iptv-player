@@ -119,11 +119,7 @@ export function GuideOverlay({ channelId, categoryId, onSelect, onClose }: Guide
             <Text style={styles.muted}>{guide.error ? t('The guide could not be loaded.') : t('No channels in this category.')}</Text>
           )
         ) : (
-          <ScrollView
-            ref={scrollViewRef}
-            contentContainerStyle={styles.list}
-            onScrollBeginDrag={poke}
-          >
+          <ScrollView ref={scrollViewRef} contentContainerStyle={styles.list} onScrollBeginDrag={poke}>
             {guide.rows.map((row) => (
               <GuideRow
                 key={row.channel.id}
