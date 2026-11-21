@@ -108,6 +108,8 @@ export interface ScreenHost {
   /** Automatic subtitles from OpenSubtitles (D-111): their settings. */
   subtitles: AppContext['subtitles'];
   stores: AppContext['stores'];
+  /** User-Agent string sent to the IPTV provider (many panels only answer player-like agents). */
+  providerUserAgent: string;
   openDetails(section: LibrarySection, masterId: string): void;
   /** Plays a channel, movie or episode (the TV's player screen, the desktop's player over the page). */
   play(target: PlayTarget): void;

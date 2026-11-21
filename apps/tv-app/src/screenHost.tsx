@@ -5,7 +5,7 @@ import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost } from
 const NO_NOTES: string[] = [];
 import { api, appContext, downloadsStore, navStore, stores } from './appContext';
 import { t, type UiLanguage } from '@iptv/shared';
-import { appConfig } from './config';
+import { appConfig, providerUserAgent } from './config';
 import { backupFiles } from './backupFiles';
 import { about } from './about';
 import { confirmCloseApp, confirmSignOut } from './signOut';
@@ -95,6 +95,7 @@ const host: ScreenHost = {
   api,
   subtitles: appContext.subtitles,
   stores,
+  providerUserAgent,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
   play: (target) => navStore.getState().push({ name: 'player', target }),
   openSection: (section, categoryId = null) =>

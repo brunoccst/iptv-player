@@ -1,50 +1,26 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-// Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
-import * as ReactNative from 'react-native';
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-  type NativeScrollEvent,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   EPG_SLOT_MS,
   floorToSlot,
-  formatGuideTime,
   formatProgrammeTime,
-  guideSlots,
-  layoutGuideRow,
   liveTarget,
   catchupMode,
-  catchupTarget,
-  nowFraction,
   programmeAt,
   programmeProgress,
   useEpgGuide,
   useNow,
-  type EpgChannelRow,
   type EpgListing,
   type LiveChannel,
   t,
-  intlLocale,
+  formatGuideTimeWithDate,
 } from '@iptv/shared';
 import { useScreenHost, type ScreenHost } from './host';
 import { CenteringScrollView, useCenterFocus, type Measurable } from './ui/CenterScroll';
-import { ErrorText, errorText, Loading } from './ui/Feedback';
-import { focus } from './ui/focus';
-import { FocusButton } from './ui/FocusButton';
-import { Gradient } from './ui/Gradient';
+import { Loading } from './ui/Feedback';
+import { VideoPreview } from './VideoPreview';
 import { moveFocus, useFocusGrid } from './ui/focusGrid';
-import { FocusRow } from './ui/FocusRow';
-import { usePageFocusable } from './ui/pageFocus';
-import { colors, fonts, radius, useCompact, useNavHeight, useSizes } from './ui/theme';
+import { colors, fonts, radius, useCompact, useNavHeight, useSizes, spacing } from './ui/theme';
 
 /** Same 3-hour window as the web guide (DECISIONS.md#d-088). */
 const HOURS = 3;
@@ -53,29 +29,11 @@ const STEP_MS = 2 * EPG_SLOT_MS;
 const MIN_BACK_MS = 24 * 3600_000;
 const MAX_AHEAD_MS = 46 * 3600_000;
 
-interface Selection {
-  channel: LiveChannel;
-  programme: EpgListing | null;
-}
-
 /** Desktop: no remote, so nothing to listen to. */
 const noRemote: NonNullable<ScreenHost['useRemote']> = () => {};
 
-/**
- * TV Select on a programme: an ended one on a channel with recordings plays from the recording (issue #226), the one on
- * now plays live, others the channel.
- */
-function playProgramme(host: ScreenHost, channel: LiveChannel, programme: EpgListing, now: number) {
-  if (catchupMode(channel, programme, now) === 'past') playRecording(host, channel, programme);
-  else play(host, channel, Date.parse(programme.start) <= now && now < Date.parse(programme.end) ? programme : null);
-}
-
 function play(host: ScreenHost, channel: LiveChannel, programme: EpgListing | null) {
   host.play(liveTarget(channel, programme?.title));
-}
-
-function playRecording(host: ScreenHost, channel: LiveChannel, programme: EpgListing) {
-  host.play(catchupTarget(channel, programme));
 }
 
 /** Compact category item for the left sidebar. */
@@ -135,20 +93,14 @@ function CategoryItem({
         setFocused(false);
         onBlur?.();
       }}
-      style={[
-        styles.categoryItem,
-        active && styles.categoryItemActive,
-        focused && styles.categoryItemFocused,
-      ]}
+      style={[styles.categoryItem, active && styles.categoryItemActive, focused && styles.categoryItemFocused]}
     >
       <View style={styles.categoryItemContent}>
         <View style={styles.categoryItemMain}>
           {isFavorites && <Text style={styles.favoritesIcon}>♥</Text>}
           <Text style={[styles.categoryItemLabel, active && styles.categoryItemLabelActive]}>{label}</Text>
         </View>
-        <Text style={[styles.categoryItemCount, active && styles.categoryItemCountActive]}>
-          {t('Total: {count}', { count })}
-        </Text>
+        <Text style={[styles.categoryItemCount, active && styles.categoryItemCountActive]}>{t('Total: {count}', { count })}</Text>
       </View>
     </Pressable>
   );
@@ -176,7 +128,7 @@ function CategoryList({
   const items = [
     { id: 'all' as const, name: t('All channels'), isFavorites: false },
     { id: 'favorites' as const, name: t('Favorites'), isFavorites: true },
-    ...categories.map((c) => ({ id: c.id as const, name: c.name, isFavorites: false })),
+    ...categories.map((c) => ({ id: c.id, name: c.name, isFavorites: false })),
   ];
   const last = items.length - 1;
 
@@ -195,11 +147,12 @@ function CategoryList({
       testID="live-categories"
     >
       {items.map((item, index) => {
-        const count = item.id === 'all'
-          ? channelsByCategory.get('all')?.length ?? 0
-          : item.id === 'favorites'
-          ? channelsByCategory.get('favorites')?.length ?? 0
-          : channelsByCategory.get(item.id)?.length ?? 0;
+        const count =
+          item.id === 'all'
+            ? (channelsByCategory.get('all')?.length ?? 0)
+            : item.id === 'favorites'
+              ? (channelsByCategory.get('favorites')?.length ?? 0)
+              : (channelsByCategory.get(item.id)?.length ?? 0);
         const active = categoryId === (item.id === 'all' ? null : item.id === 'favorites' ? 'favorites' : item.id);
         return (
           <CategoryItem
@@ -270,7 +223,7 @@ function ChannelList({ channels, selectedChannelId, onSelectChannel, onPlayChann
             onBlur={() => {
               if (focused.current === index) focused.current = null;
             }}
-            focusRef={grid.ref(String(index))}
+            ref={grid.ref(String(index))}
             nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
             nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
             style={[styles.channelItem, active && styles.channelItemActive]}
@@ -295,48 +248,6 @@ function ChannelList({ channels, selectedChannelId, onSelectChannel, onPlayChann
   );
 }
 
-/** Video preview component - shows channel info with play button (platform-agnostic). */
-interface VideoPreviewProps {
-  channel: LiveChannel | null;
-  programme: EpgListing | null;
-  categoryName: string;
-  onPlay?: () => void;
-}
-
-function VideoPreview({ channel, programme, categoryName, onPlay }: VideoPreviewProps) {
-  const resolutionText = '1920 × 1080';
-
-  return (
-    <View style={styles.videoPreview} testID="video-preview">
-      <View style={styles.videoPlaceholder}>
-        {channel?.logoUrl && (
-          <Image source={{ uri: channel.logoUrl }} style={styles.placeholderLogo} resizeMode="contain" />
-        )}
-        <Text style={styles.placeholderText}>{channel?.name ?? t('Select a channel')}</Text>
-        {channel && onPlay && (
-          <FocusButton
-            label={t('Watch live')}
-            variant="primary"
-            style={styles.previewPlayButton}
-            onPress={onPlay}
-          />
-        )}
-      </View>
-      <View style={styles.videoOverlay} pointerEvents="none">
-        <View style={styles.overlayLeft}>
-          <Text style={styles.overlayChannelName}>{channel?.name}</Text>
-          <Text style={styles.overlayCategory}>{categoryName}</Text>
-        </View>
-        <View style={styles.overlayRight}>
-          <Text style={styles.overlayMeta}>
-            {channel?.number != null ? `N° ${channel.number}  •  ` : ''}{resolutionText}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 /** EPG programme card for the vertical schedule list. */
 interface EpgProgrammeCardProps {
   programme: EpgListing;
@@ -352,7 +263,7 @@ function EpgProgrammeCard({ programme, channel, now, isCurrent, isSelected, onPr
   const host = useScreenHost();
   const catchup = catchupMode(channel, programme, now);
   const progress = programmeProgress(programme, now);
-  const onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
+  const _onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
   const past = Date.parse(programme.end) <= now;
   const reminders = host.hooks.useReminders();
   const reminded = reminders.has(channel.id, programme.start);
@@ -360,16 +271,11 @@ function EpgProgrammeCard({ programme, channel, now, isCurrent, isSelected, onPr
   return (
     <Pressable
       testID={`epg-programme-${programme.start}`}
-      accessibilityRole={isCurrent ? 'button' : 'listitem'}
+      accessibilityRole={isCurrent ? 'button' : undefined}
       accessibilityLabel={`${programme.title}, ${formatProgrammeTime(programme)}`}
       onPress={onPress}
       onFocus={onFocus}
-      style={[
-        styles.epgCard,
-        isCurrent && styles.epgCardCurrent,
-        isSelected && styles.epgCardSelected,
-        past && styles.epgCardPast,
-      ]}
+      style={[styles.epgCard, isCurrent && styles.epgCardCurrent, isSelected && styles.epgCardSelected, past && styles.epgCardPast]}
     >
       <View style={styles.epgCardHeader}>
         <View style={styles.epgCardTitleRow}>
@@ -382,24 +288,23 @@ function EpgProgrammeCard({ programme, channel, now, isCurrent, isSelected, onPr
         </View>
         <View style={styles.epgCardTimeRow}>
           <Text style={styles.epgCardTime}>
-            {formatGuideTime(Date.parse(programme.start))}
-            {past ? ` • ${formatGuideTime(Date.parse(programme.end))}` : ''}
+            {formatGuideTimeWithDate(Date.parse(programme.start))}
+            {past ? ` – ${formatGuideTimeWithDate(Date.parse(programme.end))}` : ''}
           </Text>
         </View>
       </View>
       {isCurrent && (
         <View style={styles.epgProgressContainer}>
           <View style={styles.epgProgressBar}>
-            <View
-              style={[
-                styles.epgProgressFill,
-                { width: `${Math.round(progress * 100)}%` },
-              ]}
-            />
+            <View style={[styles.epgProgressFill, { width: `${Math.round(progress * 100)}%` }]} />
           </View>
           <View style={styles.epgProgressTimes}>
-            <Text style={styles.epgProgressTime}>{formatGuideTime(Date.parse(programme.start))}</Text>
-            <Text style={styles.epgProgressTime}>{formatGuideTime(Date.parse(programme.end))}</Text>
+            <Text style={styles.epgProgressTime} testID="epg-progress-start">
+              {formatGuideTimeWithDate(Date.parse(programme.start))}
+            </Text>
+            <Text style={styles.epgProgressTime} testID="epg-progress-end">
+              {formatGuideTimeWithDate(Date.parse(programme.end))}
+            </Text>
           </View>
         </View>
       )}
@@ -437,7 +342,7 @@ function VideoAndEpg({
     <View style={styles.videoEpgColumn} testID="video-epg-column">
       <VideoPreview
         channel={selectedChannel}
-        programme={selectedProgramme}
+        _programme={selectedProgramme}
         categoryName={categoryName}
         onPlay={() => selectedChannel && onPlayChannel(selectedChannel)}
       />
@@ -484,7 +389,7 @@ export function LiveScreen() {
   const categories = host.hooks.useCatalog((s) => s.categories.live?.data ?? []);
   const categoryId = host.useCategory();
   const now = useNow();
-  const [from, setFrom] = useState(() => floorToSlot(Date.now()));
+  const [from, _setFrom] = useState(() => floorToSlot(Date.now()));
   const [pages, setPages] = useState(1);
   const [selectedProgramme, setSelectedProgramme] = useState<EpgListing | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel | null>(null);
@@ -493,11 +398,11 @@ export function LiveScreen() {
   const sizes = useSizes();
   const navH = useNavHeight();
   const { height: windowHeight } = useWindowDimensions();
-  const to = from + HOURS * 3600_000;
+  const _to = from + HOURS * 3600_000;
   const nowSlot = floorToSlot(now);
   const compact = useCompact();
-  const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
-  const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
+  const _canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
+  const _canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
 
   // Load EPG guide for selected category
   const guide = useEpgGuide(host.stores.epg, { categoryId, from, hours: HOURS }, pages);
@@ -510,7 +415,7 @@ export function LiveScreen() {
         setChannelList(allChannels);
         // Auto-select first channel if none selected
         if (!selectedChannel && allChannels.length > 0) {
-          setSelectedChannel(allChannels[0]);
+          setSelectedChannel(allChannels[0]!);
         }
       }
       // Also load all channels for category counts
@@ -535,6 +440,9 @@ export function LiveScreen() {
     void host.stores.catalog.getState().loadCategories('live');
   }, [host]);
 
+  // Call useNavFocusTarget unconditionally to avoid "Rendered more hooks" error
+  const navFocusTarget = host.useNavFocusTarget?.();
+
   const chooseCategory = (id: string | null) => {
     host.setCategory(id);
     setPages(1);
@@ -542,9 +450,9 @@ export function LiveScreen() {
     setSelectedChannel(null);
   };
 
-  // Get category name for header
+  // Get category name for video preview overlay
   const activeCategory = categories.find((c) => c.id === categoryId);
-  const categoryName = categoryId === 'favorites' ? t('Favorites') : activeCategory?.name ?? t('All channels');
+  const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('All channels'));
 
   // Handle remote navigation between columns
   const columnFocus = useRef<'categories' | 'channels' | 'epg'>('channels');
@@ -561,125 +469,83 @@ export function LiveScreen() {
   });
 
   const content = (
-    <>
-      {/* Top Header Bar */}
-      <View style={styles.headerBar} testID="live-header">
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerBrand}>IPTV Player</Text>
-          <View style={styles.headerDivider} />
-          <Text style={styles.headerSection}>{t('Live TV')}</Text>
-          <View style={styles.headerDivider} />
-          <Text style={styles.headerCategory}>{categoryName}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <View style={styles.headerPill}><Text style={styles.headerPillText}>{t('Current list: List 1')}</Text></View>
-          <View style={[styles.headerPill, styles.headerPillActive]}><Text style={styles.headerPillTextActive}>{t('Activation FOREVER')}</Text></View>
-        </View>
+    <View style={styles.mainLayout} testID="live-main">
+      {/* Left Column - Categories */}
+      <View style={styles.categoriesColumnWrapper}>
+        <CategoryList
+          categories={categories}
+          categoryId={categoryId}
+          onChoose={chooseCategory}
+          navUp={navFocusTarget}
+          channelsByCategory={channelsByCategory}
+        />
       </View>
 
-      {/* Three-column Main Layout */}
-      <View style={styles.mainLayout} testID="live-main">
-        {/* Left Column - Categories */}
-        <View style={styles.categoriesColumnWrapper}>
-          <CategoryList
-            categories={categories}
-            categoryId={categoryId}
-            onChoose={chooseCategory}
-            navUp={host.useNavFocusTarget?.()}
-            channelsByCategory={channelsByCategory}
+      {/* Middle Column - Channel List */}
+      <View style={styles.channelColumnWrapper}>
+        {guide.loading && channelList.length === 0 ? (
+          <View style={styles.loadingCenter}>
+            <Loading />
+          </View>
+        ) : (
+          <ChannelList
+            channels={channelList}
+            selectedChannelId={selectedChannel?.id ?? null}
+            onSelectChannel={setSelectedChannel}
+            onPlayChannel={(ch) => {
+              const row = guide.rows.find((r) => r.channel.id === ch.id);
+              play(host, ch, programmeAt(row?.programmes ?? [], now));
+            }}
+            navUp={navFocusTarget}
           />
-        </View>
-
-        {/* Middle Column - Channel List */}
-        <View style={styles.channelColumnWrapper}>
-          {guide.loading && channelList.length === 0 ? (
-            <View style={styles.loadingCenter}><Loading /></View>
-          ) : (
-            <ChannelList
-              channels={channelList}
-              selectedChannelId={selectedChannel?.id ?? null}
-              onSelectChannel={setSelectedChannel}
-              onPlayChannel={(ch) => play(host, ch, programmeAt(ch.programmes ?? [], now))}
-              navUp={host.useNavFocusTarget?.()}
-            />
-          )}
-        </View>
-
-        {/* Right Column - Video Preview + EPG */}
-        <View style={styles.videoEpgColumnWrapper}>
-          <VideoAndEpg
-            selectedChannel={selectedChannel}
-            selectedProgramme={selectedProgramme}
-            epgGuide={guide}
-            now={now}
-            categoryName={categoryName}
-            onSelectProgramme={setSelectedProgramme}
-            onPlayChannel={(ch) => play(host, ch, programmeAt(ch.programmes ?? [], now))}
-          />
-        </View>
+        )}
       </View>
-    </>
+
+      {/* Right Column - Video Preview + EPG */}
+      <View style={styles.videoEpgColumnWrapper}>
+        <VideoAndEpg
+          selectedChannel={selectedChannel}
+          selectedProgramme={selectedProgramme}
+          epgGuide={guide}
+          now={now}
+          categoryName={categoryName}
+          onSelectProgramme={setSelectedProgramme}
+          onPlayChannel={(ch) => {
+            const row = guide.rows.find((r) => r.channel.id === ch.id);
+            play(host, ch, programmeAt(row?.programmes ?? [], now));
+          }}
+        />
+      </View>
+    </View>
   );
 
-  const padding = { paddingTop: navH + 12, paddingHorizontal: sizes.gutter };
+  const padding = { paddingTop: navH + spacing.md, paddingHorizontal: sizes.gutter };
   const fit = Platform.OS === 'web' ? { height: windowHeight } : null;
 
   return compact ? (
-    <ScrollView
-      style={[styles.screen, fit]}
-      testID="live-screen"
-      contentContainerStyle={[padding, { paddingBottom: 60 }]}
-    >
+    <ScrollView style={[styles.screen, fit]} testID="live-screen" contentContainerStyle={[padding, { paddingBottom: 60 }]}>
       {content}
     </ScrollView>
   ) : (
-    <View style={[styles.screen, fit, padding, { paddingBottom: 12 }]} testID="live-screen">
+    <View style={[styles.screen, fit, padding, { paddingBottom: spacing.md }]} testID="live-screen">
       {content}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.surfaceDark },
-  headerBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: colors.surfaceCard,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    marginBottom: 8,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerBrand: { color: colors.gold, fontSize: fonts.heading, fontWeight: '700' },
-  headerSection: { color: colors.text, fontSize: fonts.body, fontWeight: '600' },
-  headerCategory: { color: colors.muted, fontSize: fonts.small },
-  headerDivider: { width: 1, height: 18, backgroundColor: colors.border },
-  headerPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius,
-    backgroundColor: colors.raised,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  headerPillActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  headerPillText: { color: colors.text, fontSize: fonts.tiny, fontWeight: '600' },
-  headerPillTextActive: { color: colors.surfaceDark, fontSize: fonts.tiny, fontWeight: '600' },
+  screen: { flex: 1, backgroundColor: colors.bg },
   mainLayout: {
     flex: 1,
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     minHeight: 0,
   },
   categoriesColumnWrapper: {
     width: '22%',
     minWidth: 200,
     maxWidth: 260,
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: colors.surface,
     borderRadius: radius,
     borderWidth: 1,
     borderColor: colors.border,
@@ -687,29 +553,29 @@ const styles = StyleSheet.create({
   },
   categoriesColumn: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: spacing.xs,
   },
   categoryItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    marginHorizontal: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    marginHorizontal: spacing.xs,
     borderRadius: radius,
   },
-  categoryItemActive: { backgroundColor: colors.gold },
-  categoryItemFocused: { backgroundColor: colors.goldHover },
-  categoryItemContent: { flexDirection: 'column', gap: 2 },
-  categoryItemMain: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  favoritesIcon: { color: colors.gold, fontSize: fonts.body },
+  categoryItemActive: { backgroundColor: colors.accent },
+  categoryItemFocused: { backgroundColor: colors.accentHover },
+  categoryItemContent: { flexDirection: 'column', gap: spacing.xs },
+  categoryItemMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  favoritesIcon: { color: colors.accent, fontSize: fonts.body },
   categoryItemLabel: { color: colors.text, fontSize: fonts.body, fontWeight: '500' },
-  categoryItemLabelActive: { color: colors.surfaceDark, fontWeight: '700' },
+  categoryItemLabelActive: { color: colors.bg, fontWeight: '700' },
   categoryItemCount: { color: colors.muted, fontSize: fonts.tiny },
-  categoryItemCountActive: { color: colors.surfaceDark, opacity: 0.8 },
+  categoryItemCountActive: { color: colors.bg, opacity: 0.8 },
 
   channelColumnWrapper: {
     width: '30%',
     minWidth: 240,
     maxWidth: 320,
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: colors.surface,
     borderRadius: radius,
     borderWidth: 1,
     borderColor: colors.border,
@@ -719,17 +585,17 @@ const styles = StyleSheet.create({
   channelItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 10,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: colors.border,
   },
-  channelItemActive: { backgroundColor: colors.gold },
+  channelItemActive: { backgroundColor: colors.accent },
   channelLogo: { width: 40, height: 40, borderRadius: 4 },
   channelLogoPlaceholder: { width: 40, height: 40, borderRadius: 4, backgroundColor: colors.raised },
   channelName: { flex: 1, color: colors.text, fontSize: fonts.body, fontWeight: '500' },
-  channelNameActive: { color: colors.surfaceDark, fontWeight: '700' },
+  channelNameActive: { color: colors.bg, fontWeight: '700' },
   channelNumberBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -747,101 +613,55 @@ const styles = StyleSheet.create({
   videoEpgColumn: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: colors.surface,
     borderRadius: radius,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
   },
-  videoPreviewWrapper: {
-    aspectRatio: 16 / 9,
-    maxHeight: '50%',
-  },
-  videoPreview: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-    position: 'relative',
-  },
-  videoPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  placeholderLogo: { width: 80, height: 80, opacity: 0.5 },
-  placeholderText: { color: colors.muted, fontSize: fonts.body },
-  bufferingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 16,
-  },
-  errorText: { color: colors.warning, fontSize: fonts.small, textAlign: 'center' },
-  videoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-  },
-  overlayLeft: { flexDirection: 'column', gap: 2 },
-  overlayRight: { alignItems: 'flex-end' },
-  overlayChannelName: { color: colors.strong, fontSize: fonts.body, fontWeight: '600', textShadowColor: '#000', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
-  overlayCategory: { color: colors.muted, fontSize: fonts.tiny, textShadowColor: '#000', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
-  overlayMeta: { color: colors.text, fontSize: fonts.tiny, fontWeight: '500', textShadowColor: '#000', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
 
   epgSchedule: {
     flex: 1,
     minHeight: 0,
-    padding: 8,
+    padding: spacing.sm,
   },
-  epgEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  epgEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   epgEmptyText: { color: colors.muted, fontSize: fonts.body, textAlign: 'center' },
   epgCard: {
     backgroundColor: colors.raised,
     borderRadius: radius,
-    padding: 10,
-    marginBottom: 6,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.border,
   },
-  epgCardCurrent: { backgroundColor: colors.gold, borderColor: colors.gold },
+  epgCardCurrent: { backgroundColor: colors.accent, borderColor: colors.accent },
   epgCardSelected: { borderColor: colors.strong, borderWidth: 2 },
   epgCardPast: { opacity: 0.5 },
-  epgCardHeader: { flexDirection: 'column', gap: 4 },
-  epgCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  liveBadge: { color: colors.coral, fontSize: fonts.tiny },
+  epgCardHeader: { flexDirection: 'column', gap: spacing.xs },
+  epgCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
+  liveBadge: { color: colors.warning, fontSize: fonts.tiny },
   catchupBadge: { color: colors.warning, fontSize: fonts.tiny },
   reminderBadge: { fontSize: fonts.tiny },
   epgCardTitle: { flex: 1, color: colors.text, fontSize: fonts.body, fontWeight: '600' },
-  epgCardTitleCurrent: { color: colors.surfaceDark },
+  epgCardTitleCurrent: { color: colors.bg },
   epgCardTimeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   epgCardTime: { color: colors.muted, fontSize: fonts.tiny },
-  epgCardDescription: { color: colors.muted, fontSize: fonts.tiny, marginTop: 4, lineHeight: 18 },
-  epgProgressContainer: { marginTop: 8, gap: 4 },
-  epgProgressBar: { height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' },
-  epgProgressFill: { height: '100%', backgroundColor: colors.coral, borderRadius: 2 },
+  epgCardDescription: { color: colors.muted, fontSize: fonts.tiny, marginTop: spacing.xs, lineHeight: 16 },
+  epgProgressContainer: { marginTop: spacing.xs, gap: spacing.xs },
+  epgProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' },
+  epgProgressFill: { height: '100%', backgroundColor: colors.warning, borderRadius: 2 },
   epgProgressTimes: { flexDirection: 'row', justifyContent: 'space-between' },
-  epgProgressTime: { color: colors.muted, fontSize: 10 },
+  epgProgressTime: { color: colors.muted, fontSize: 9 },
 
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });
 
 /** Memoized for performance with many channels. */
-const ChannelListMemo = memo(ChannelList);
-const VideoAndEpgMemo = memo(VideoAndEpg);
-const CategoryItemMemo = memo(CategoryItem);
-const EpgProgrammeCardMemo = memo(EpgProgrammeCard);
+const _ChannelListMemo = memo(ChannelList);
+const _VideoAndEpgMemo = memo(VideoAndEpg);
+const _CategoryItemMemo = memo(CategoryItem);
+const _EpgProgrammeCardMemo = memo(EpgProgrammeCard);
 
 /** Categories that Channel +/− skip at once: a screenful, less one so the last one stays in sight. */
 export function categoryPage(viewport: number, itemHeight: number): number {

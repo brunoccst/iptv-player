@@ -30,10 +30,10 @@ export const colors = {
 export const radius = sizeTokens.radius;
 export const navHeight = sizeTokens.navHeight;
 
-export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 40 } as const;
+export const spacing = { xs: 3, sm: 6, md: 12, lg: 18, xl: 32 } as const;
 
 /** Web rem sizes (1rem = 16). */
-export const fonts = { hero: 40, title: 28, heading: 20, body: 16, small: 13, tiny: 12 } as const;
+export const fonts = { hero: 40, title: 28, heading: 20, body: 14, small: 11, tiny: 10 } as const;
 
 /** TV overscan-safe margins (player and full-screen overlays). */
 export const safe = { horizontal: 48, vertical: 27 } as const;

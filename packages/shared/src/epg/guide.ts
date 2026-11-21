@@ -89,6 +89,16 @@ export function formatGuideTime(ms: number, locale?: string): string {
   return new Date(ms).toLocaleTimeString(locale ?? intlLocale(), { hour: '2-digit', minute: '2-digit' });
 }
 
+/** "14:30 Nov 20" style label with date. */
+export function formatGuideTimeWithDate(ms: number, locale?: string): string {
+  return new Date(ms).toLocaleString(locale ?? intlLocale(), {
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 /** "14:30 – 15:00". */
 export function formatProgrammeTime(programme: EpgListing, locale?: string): string {
   return `${formatGuideTime(Date.parse(programme.start), locale)} – ${formatGuideTime(Date.parse(programme.end), locale)}`;
