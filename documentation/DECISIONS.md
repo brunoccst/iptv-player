@@ -150,6 +150,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-242](#d-242) | Home first, then the daily library update |
 | [D-243](#d-243) | Lists read small lookups, not the whole library |
 | [D-244](#d-244) | A profile's titles worked out once |
+| [D-245](#d-245) | Continue Watching offers the next episode |
 
 ## Merged and retired IDs
 
@@ -1563,3 +1564,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - That part of a list is the same for all of a profile's lists, so it is worked out once into `${t}_v` (title numbers by slot `f`) and every list after reads one row of it per title it looks at (`EXISTS`, so a page stops at its last title; an `IN` list would read the whole set each time). `list_visible` says which filter each slot holds, named by the library's built date, rules and size and the filter: an update or a split or merge works it out again.
 - Four slots per library, the oldest replaced: Home and Movies share one, search (which ignores hidden categories) has its own, and another profile or two keep theirs across starts. In a test with 98,000 titles Home's first eight lists went from 660 ms in all (the first start, making the set) to 24 ms on the next start.
 - Libraries packed before D-133 keep filtering in each list. Counts and sets of libraries that are gone are deleted when the database opens.
+
+## D-245
+
+**Continue Watching offers the next episode** — 2026-11-21 (Bruno: a finished episode of Dark Matter left the row)
+
+- The row keeps one card per series, from the episode watched last. A finished episode used to take the whole series off the row, and so did the next episode opened for a few seconds (the countdown starts it, D-042): every opened episode saves progress, and under `MIN_RESUME_SECONDS` it did not qualify, yet still stood for the series.
+- Now an entry under 30 seconds is passed over (`continueWatchingSlots`), and a finished episode keeps its series' place as `upNext`. `useContinueWatching` reads that series' episode list (`catalog.seriesDetails`, saved on the device for the details page, so no wait in the usual case) and shows the first episode after it not finished yet (`upNextEpisode`); with none, the series leaves the row. The card joins the row once the list is read.
+- The episode list is the finished episode's own version (its `seriesId`), not the merged versions (D-066): one request per series, and the next episode plays in the version being watched. An episode finished only in another version is not skipped.
+- Removing a next-episode card cannot delete progress (the finished episode must stay watched), so the finished episode's id goes in the profile's `upNextHidden` (at most 50, synced like other settings, D-225). Watching another episode makes a newer entry, and the series comes back.
+- Marking episodes watched (a season, D-081) also gives the series a next-episode card, as watching them would.
+- The TV home screen's Play Next row (D-147) keeps `continueWatching`, titles in progress only: a next episode there needs Android's "next" type and opening an episode from it (issue #350).

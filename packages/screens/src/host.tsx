@@ -85,6 +85,7 @@ export interface ScreenHost {
     | 'useHeroTitle'
     | 'useLiveHomeRow'
     | 'continueMenuItems'
+    | 'useContinueWatching'
     | 'useOfflineAccess'
     | 'useSession'
     | 'useProfilePicker'

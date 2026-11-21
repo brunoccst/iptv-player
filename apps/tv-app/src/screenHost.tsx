@@ -14,6 +14,7 @@ import { TvMedia } from '../modules/tv-media';
 import { CenteringScrollView } from './components/CenterScroll';
 import {
   continueMenuItems,
+  useContinueWatching,
   useCatalog,
   useChannelSearch,
   useDownloads,
@@ -73,6 +74,7 @@ const host: ScreenHost = {
     useHeroTitle,
     useLiveHomeRow,
     continueMenuItems,
+    useContinueWatching,
     useOfflineAccess,
     useSession,
     useProfilePicker,

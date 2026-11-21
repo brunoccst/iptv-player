@@ -3,6 +3,7 @@ import { ApiError } from './api/errors';
 import type {
   CatalogSection,
   EpgListing,
+  Episode,
   LibrarySection,
   LiveChannel,
   MasterCard,
@@ -29,12 +30,16 @@ import { selectActiveProfile } from './stores/sessionStore';
 import { chooseVersion, startingVariant } from './playback/playbackChoices';
 import { LOW_SOURCES } from './direct/normalizer/tags';
 import { loadSeriesVersions, mergeSeriesVersions, playerSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
-import { nextEpisode, previousEpisode } from './playback/rules';
+import { continueWatchingSlots, nextEpisode, previousEpisode, upNextEpisode } from './playback/rules';
 import { episodeTarget, movieTarget, progressDetails, progressTarget, type PlayTarget } from './playback/targets';
 import {
   allEpisodesWatched,
   cardMenuItems,
   continueWatchlistEntry,
+  hideUpNext,
+  isWatched,
+  setEpisodeWatched,
+  type ContinueCard,
   isMovieWatched,
   markEntryWatched,
   removeFromContinueWatching,
@@ -95,6 +100,8 @@ export function useWatchedToggle(kind: 'movie' | 'series' | 'season', watched: b
 }
 
 const NO_VARIANTS: VariantInfo[] = [];
+const NO_PROGRESS: ProgressDto[] = [];
+const NO_IDS: string[] = [];
 
 /** Saves where playback of a movie or episode is (live channels have none). */
 export function savePlaybackProgress(
@@ -541,11 +548,45 @@ export function createAppHooks({
       };
     },
 
-    /** A "Continue watching" card's menu (D-081): Go to details, Mark as watched, My List, Remove from the row. */
-    continueMenuItems(entry: ProgressDto, openDetails: (section: LibrarySection, masterId: string) => void) {
+    /**
+     * Home's Continue Watching row (D-245): titles in progress, and the next episode of a series whose newest episode was
+     * finished. Next episodes come from the series' saved episode list, so they join the row once it is read; a series
+     * whose last episode was finished, or whose card was removed, leaves the row.
+     */
+    useContinueWatching(): ContinueCard[] {
+      const items = useProgress((s) => s.items.data) ?? NO_PROGRESS;
+      const profileId = useProgress((s) => s.profileId);
+      const hidden = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.upNextHidden : null)) ?? NO_IDS;
+      const slots = useMemo(
+        () => continueWatchingSlots(items).filter((slot) => !slot.upNext || !hidden.includes(slot.progress.itemId)),
+        [items, hidden],
+      );
+      const seriesIds = useMemo(
+        () => [...new Set(slots.filter((slot) => slot.upNext).map((slot) => slot.progress.seriesId!))].sort(),
+        [slots],
+      );
+      const lists = useAsync(seriesIds.length ? `up-next:${seriesIds.join(',')}` : null, async () => {
+        const found = await Promise.all(seriesIds.map((id) => api.catalog.seriesDetails(id).catch(() => null)));
+        return Object.fromEntries(seriesIds.map((id, index) => [id, found[index]] as const));
+      });
+      return useMemo(() => {
+        const finished = new Set(items.filter((p) => p.kind === 'episode' && isWatched(p)).map((p) => p.itemId));
+        const watched = (episode: Episode) => finished.has(episode.id);
+        return slots.flatMap((slot): ContinueCard[] => {
+          if (!slot.upNext) return [{ kind: 'resume', progress: slot.progress }];
+          const series = lists.data?.[slot.progress.seriesId!];
+          const episode = series ? upNextEpisode(series, slot.progress.itemId, watched) : null;
+          return episode ? [{ kind: 'next', progress: slot.progress, episode }] : [];
+        });
+      }, [slots, lists.data, items]);
+    },
+
+    /** A "Continue watching" card's menu (D-081, D-245): Go to details, Mark as watched, My List, Remove from the row. */
+    continueMenuItems(card: ContinueCard, openDetails: (section: LibrarySection, masterId: string) => void) {
+      const entry = card.progress;
       const listed = continueWatchlistEntry(entry);
       const onList = !!listed && isOnWatchlist(stores.watchlist.getState(), listed.section, listed.card.id);
-      return cardMenuItems({ kind: 'continue', entry, onList }).map((item) => ({
+      return cardMenuItems({ kind: card.kind === 'next' ? 'next' : 'continue', entry, onList }).map((item) => ({
         id: item.id,
         label: item.label,
         icon: item.icon,
@@ -553,10 +594,19 @@ export function createAppHooks({
           if (item.id === 'details') {
             const details = progressDetails(entry);
             if (details) openDetails(details.section, details.masterId);
-          } else if (item.id === 'watched') void markEntryWatched(stores.progress, entry);
-          else if (item.id === 'mylist-add' || item.id === 'mylist-remove') {
+          } else if (item.id === 'watched') {
+            if (card.kind === 'next')
+              void setEpisodeWatched(
+                stores.progress,
+                { ...card.episode, seriesId: entry.seriesId! },
+                { title: entry.title, masterId: entry.masterId, posterUrl: entry.posterUrl },
+                true,
+              );
+            else void markEntryWatched(stores.progress, entry);
+          } else if (item.id === 'mylist-add' || item.id === 'mylist-remove') {
             if (listed) void stores.watchlist.getState().toggle(listed.section, listed.card);
-          } else void removeFromContinueWatching(stores.progress, entry);
+          } else if (card.kind === 'next') void hideUpNext(stores.profilePrefs, stores.progress.getState().profileId, entry.itemId);
+          else void removeFromContinueWatching(stores.progress, entry);
         },
       }));
     },

@@ -92,7 +92,9 @@ A featured title at the top, then rows: Continue Watching, My List, the [channel
 
 Home's first row: movies and episodes started but not finished, with how far you got. A card plays from where you stopped, over the title's details page, so Back from the player shows the movie's or the series' details rather than Home (issue #166).
 
-**Apps:** TV ✅ · Phone ✅ · Desktop ✅
+A series is shown by the episode watched last. Once that episode is finished, the card says "Next S1:E5" and plays the next episode not watched yet; after the last episode the series leaves the row, like a finished movie. An episode opened for under 30 seconds (the next-episode countdown starting it, say) does not count, so the series keeps its card. Removing a next-episode card keeps it off the row until another episode of the series is watched; "Mark episode as watched" on it marks the next episode (D-245).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ✅. The Android TV home screen's Play Next row offers titles in progress only (issue #350).
 
 ### Continue watching on the TV home screen
 

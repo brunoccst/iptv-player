@@ -8,6 +8,9 @@ import {
   cardMenuItems,
   continueWatchlistEntry,
   episodeMenuItems,
+  hideUpNext,
+  isUpNextHidden,
+  MAX_HIDDEN_UP_NEXT,
   isEpisodeWatched,
   isSeriesWatched,
   setEpisodeWatched,
@@ -137,6 +140,13 @@ describe('watched titles (D-081)', () => {
       'Mark episode as watched',
       'Remove from Continue Watching',
     ]);
+    // The next episode after a finished one (D-245).
+    expect(labels(cardMenuItems({ kind: 'next', entry: entry('e1', 5990, { kind: 'episode', masterId: 'show' }) }))).toEqual([
+      'Go to details',
+      'Mark episode as watched',
+      'Add to My List',
+      'Remove from Continue Watching',
+    ]);
     expect(labels(cardMenuItems({ kind: 'movie', watched: false }))).toEqual(['Go to details', 'Mark as watched', 'Add to My List']);
     expect(labels(cardMenuItems({ kind: 'movie', watched: true, onList: true }))).toEqual([
       'Go to details',
@@ -244,6 +254,19 @@ describe('watched titles (D-081)', () => {
         '/api/profiles/p1/progress/episode/e1',
       ]);
       expect(allEpisodesWatched(stores.progress.getState(), series)).toBe(false);
+    });
+
+    it('a removed next-episode card is noted per profile, newest first and capped (D-245)', async () => {
+      const { stores } = await setup([]);
+      await hideUpNext(stores.profilePrefs, 'p1', 'e4');
+      await hideUpNext(stores.profilePrefs, 'p1', 'e4');
+      expect(isUpNextHidden(stores.profilePrefs.getState().prefs, 'p1', 'e4')).toBe(true);
+      expect(isUpNextHidden(stores.profilePrefs.getState().prefs, 'p2', 'e4')).toBe(false);
+      for (let i = 0; i < MAX_HIDDEN_UP_NEXT; i++) await hideUpNext(stores.profilePrefs, 'p1', `x${i}`);
+      const hidden = stores.profilePrefs.getState().prefs.p1?.upNextHidden ?? [];
+      expect(hidden).toHaveLength(MAX_HIDDEN_UP_NEXT);
+      expect(hidden[0]).toBe(`x${MAX_HIDDEN_UP_NEXT - 1}`);
+      expect(hidden).not.toContain('e4');
     });
 
     it('marks a whole series (all versions) and keeps the note for the cover tag', async () => {

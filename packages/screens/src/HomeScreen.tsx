@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
-  continueWatching,
   DEFAULT_LIBRARY_SORT,
+  episodeTarget,
   pageKey,
   progressDetails,
   progressTarget,
@@ -11,6 +11,7 @@ import {
   TOP_RATED_POOL,
   topRated,
   watchlistCard,
+  type ContinueCard,
   type LibrarySection,
   type MasterCard,
   type MediaCategory,
@@ -208,38 +209,49 @@ export function HomeScreen({ banner, overlay }: { banner?: ReactNode; overlay?: 
 
 const NO_TITLES: MasterCard[] = [];
 const NO_CATEGORIES: MediaCategory[] = [];
-const NO_PROGRESS: ProgressDto[] = [];
 
 const episodeLabel = (p: ProgressDto) =>
   p.kind === 'episode' && p.seasonNumber != null ? `S${p.seasonNumber}:E${p.episodeNumber ?? '?'}` : null;
 
-/** Started titles; holding OK (a right-click on desktop) opens a card's options (D-078). */
+/** A card's line under the title: the episode in progress, or "Next S1:E5" for the episode after a finished one (D-245). */
+const continueLabel = (card: ContinueCard) =>
+  card.kind === 'next'
+    ? t('Next {episode}', { episode: `S${card.episode.seasonNumber}:E${card.episode.episodeNumber ?? '?'}` })
+    : episodeLabel(card.progress);
+
+/** Started titles and next episodes; holding OK (a right-click on desktop) opens a card's options (D-078). */
 function ContinueWatchingRow() {
   const { hooks, openDetails, play } = useScreenHost();
-  const items = hooks.useProgress((s) => s.items.data) ?? NO_PROGRESS;
-  const resume = continueWatching(items);
-  if (resume.length === 0) return null;
+  const cards = hooks.useContinueWatching();
+  if (cards.length === 0) return null;
   // Played over its details, so Back from the player lands there (issue #166).
-  const resumeEntry = (p: ProgressDto) => {
+  const resumeEntry = (card: ContinueCard) => {
+    const p = card.progress;
     const details = progressDetails(p);
     if (details) openDetails(details.section, details.masterId);
-    play(progressTarget(p));
+    play(
+      card.kind === 'next'
+        ? episodeTarget({ title: p.title, masterId: p.masterId, seriesId: p.seriesId!, posterUrl: p.posterUrl }, card.episode)
+        : progressTarget(p),
+    );
   };
   return (
     <Row
       title={t('Continue Watching')}
-      items={resume}
-      keyOf={(p) => `${p.kind}-${p.itemId}`}
+      items={cards}
+      keyOf={(card) =>
+        `${card.progress.kind}-${card.progress.kind === 'episode' && card.progress.seriesId ? card.progress.seriesId : card.progress.itemId}`
+      }
       testID="row-continue"
-      render={(p) => (
-        <TitleMenu title={p.title} subtitle={episodeLabel(p)} items={() => hooks.continueMenuItems(p, openDetails)}>
+      render={(card) => (
+        <TitleMenu title={card.progress.title} subtitle={continueLabel(card)} items={() => hooks.continueMenuItems(card, openDetails)}>
           {(openMenu) => (
             <PosterCard
-              title={p.title}
-              posterUrl={p.posterUrl}
-              progress={p.positionSeconds / p.durationSeconds}
-              subtitle={episodeLabel(p)}
-              onPress={() => resumeEntry(p)}
+              title={card.progress.title}
+              posterUrl={card.progress.posterUrl}
+              progress={card.kind === 'next' ? undefined : card.progress.positionSeconds / card.progress.durationSeconds}
+              subtitle={continueLabel(card)}
+              onPress={() => resumeEntry(card)}
               onLongPress={openMenu}
             />
           )}

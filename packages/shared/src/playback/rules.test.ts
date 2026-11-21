@@ -9,6 +9,8 @@ import {
   SKIP_AHEAD_OPTIONS,
   continueWatching,
   continueWatchingEntries,
+  continueWatchingSlots,
+  upNextEpisode,
   episodeLabel,
   isCompleted,
   nextEpisode,
@@ -89,6 +91,39 @@ describe('playback rules', () => {
     ];
 
     expect(continueWatching(items).map((p) => p.itemId)).toEqual(['new-ep', 'movie']);
+  });
+
+  it('an episode opened for a moment does not hide the series (D-245)', () => {
+    const items = [
+      progress('ep4', 900, '2026-01-01', { kind: 'episode', seriesId: 's' }),
+      // The countdown started ep5; Back after 3 s.
+      progress('ep5', 3, '2026-01-02', { kind: 'episode', seriesId: 's' }),
+    ];
+    expect(continueWatching(items).map((p) => p.itemId)).toEqual(['ep4']);
+  });
+
+  it('a finished episode keeps its series as the next episode; a finished movie leaves (D-245)', () => {
+    const items = [
+      progress('ep3', 900, '2026-01-01', { kind: 'episode', seriesId: 's' }),
+      progress('ep4', 5990, '2026-01-02', { kind: 'episode', seriesId: 's' }),
+      progress('movie', 5990, '2026-01-03'),
+      // Marked watched without a runtime: 1 of 1 s.
+      progress('marked', 1, '2026-01-04', { kind: 'episode', seriesId: 't', durationSeconds: 1 }),
+    ];
+    expect(continueWatchingSlots(items).map((slot) => [slot.progress.itemId, slot.upNext])).toEqual([
+      ['marked', true],
+      ['ep4', true],
+    ]);
+    // The TV home screen's row keeps titles in progress only.
+    expect(continueWatching(items)).toEqual([]);
+  });
+
+  it('the next episode skips watched ones and ends after the last', () => {
+    const watched = new Set(['s1e2']);
+    const isWatched = (e: { id: string }) => watched.has(e.id);
+    expect(upNextEpisode(series, 's1e1', isWatched)?.id).toBe('s2e1');
+    expect(upNextEpisode(series, 's2e1', isWatched)).toBeNull();
+    expect(upNextEpisode(series, 'gone', isWatched)).toBeNull();
   });
 
   it('removing from continue watching clears the unfinished episodes of the series, not the finished ones', () => {
