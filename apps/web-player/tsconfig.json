@@ -19,6 +19,9 @@
     "e2e"
   ],
   "exclude": [
-    "src/offline/serviceWorker.ts"
+    "src/offline/serviceWorker.ts",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/test/**"
   ]
 }

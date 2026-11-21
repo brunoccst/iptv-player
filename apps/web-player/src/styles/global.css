@@ -10,6 +10,14 @@
   --color-accent-hover: #f6121d;
   --color-success: #46d369;
   --color-warning: #e8a33d;
+  /* Dense TV guide theme (three-column Live TV) */
+  --color-gold: #e5c128;
+  --color-gold-hover: #f0c808;
+  --color-blue: #1e88e5;
+  --color-blue-hover: #29a8ff;
+  --color-surface-dark: #141b24;
+  --color-surface-card: #1c2633;
+  --color-coral: #e85d4a; /* Progress bar elapsed portion */
   --radius: 4px;
   --gutter: clamp(16px, 4vw, 60px);
   --nav-height: 68px;

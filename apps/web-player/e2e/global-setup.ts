@@ -39,14 +39,17 @@ async function waitFor(url: string, timeoutMs = 120_000) {
 }
 
 function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = {}) {
-  const result = spawnSync(command, args, { cwd, env: { ...process.env, ...env }, stdio: 'inherit' });
-  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed`);
+  const isWin = process.platform === 'win32';
+  const actualCommand = isWin && command === 'npx' ? 'npx.cmd' : command;
+  const result = spawnSync(actualCommand, args, { cwd, env: { ...process.env, ...env }, stdio: 'inherit', shell: isWin });
+  if (result.status !== 0) throw new Error(`${actualCommand} ${args.join(' ')} failed`);
 }
 
 /** Starts the fake panel and a production web build; the page talks to the panel directly (D-088). Returns teardown. */
 export default async function globalSetup() {
   const panelDir = path.join(repoRoot, 'tools/fake-xtream-server');
-  if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8'))) run('python3', ['generate_media.py'], panelDir);
+  if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8')))
+    run(process.platform === 'win32' ? 'python' : 'python3', ['generate_media.py'], panelDir);
 
   for (const url of [E2E.panelUrl, E2E.webUrl]) {
     if (
@@ -58,7 +61,9 @@ export default async function globalSetup() {
       throw new Error(`${url} is already in use. Stop the process using it first.`);
   }
 
-  start('panel', 'python3', ['server.py', '--port', new URL(E2E.panelUrl).port], { cwd: panelDir });
+  start('panel', process.platform === 'win32' ? 'python' : 'python3', ['server.py', '--port', new URL(E2E.panelUrl).port], {
+    cwd: panelDir,
+  });
   const webDir = path.join(repoRoot, 'apps/web-player');
   run('npx', ['vite', 'build', '--outDir', 'dist-e2e', '--emptyOutDir'], webDir);
   start('web', 'npx', ['vite', 'preview', '--outDir', 'dist-e2e', '--port', new URL(E2E.webUrl).port, '--strictPort'], { cwd: webDir });

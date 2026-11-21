@@ -11,20 +11,29 @@ export const colors = {
   strong: colorTokens.textStrong,
   muted: colorTokens.muted,
   accent: colorTokens.accent,
+  accentHover: colorTokens.accentHover,
   success: colorTokens.success,
   warning: colorTokens.warning,
   scrim: 'rgba(0,0,0,0.7)',
   input: '#333',
   secondaryButton: 'rgba(109,109,110,0.7)',
+  // Dense TV guide theme
+  gold: colorTokens.gold,
+  goldHover: colorTokens.goldHover,
+  blue: colorTokens.blue,
+  blueHover: colorTokens.blueHover,
+  surfaceDark: colorTokens.surfaceDark,
+  surfaceCard: colorTokens.surfaceCard,
+  coral: colorTokens.coral,
 } as const;
 
 export const radius = sizeTokens.radius;
 export const navHeight = sizeTokens.navHeight;
 
-export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 40 } as const;
+export const spacing = { xs: 3, sm: 6, md: 12, lg: 18, xl: 32 } as const;
 
 /** Web rem sizes (1rem = 16). */
-export const fonts = { hero: 40, title: 28, heading: 20, body: 16, small: 13, tiny: 12 } as const;
+export const fonts = { hero: 40, title: 28, heading: 20, body: 14, small: 11, tiny: 10 } as const;
 
 /** TV overscan-safe margins (player and full-screen overlays). */
 export const safe = { horizontal: 48, vertical: 27 } as const;

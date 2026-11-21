@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { BackupDialog, setScreenHost, type DownloadEntry } from '@iptv/screens';
 import { formatBytes, t, type UiLanguage } from '@iptv/shared';
 import { api, appContext, downloadsStore, stores, uiStore } from '../../appContext';
-import { appConfig } from '../../config';
+import { appConfig, providerUserAgent } from '../../config';
 import { desktop } from '../../desktop';
 import { backupFiles } from '../backup/backupFiles';
 import { canScanWithWebcam, usePairingServer } from '../pairing/pairing';
@@ -92,6 +92,7 @@ setScreenHost({
   api,
   subtitles: appContext.subtitles,
   stores,
+  providerUserAgent,
   openDetails: (section, masterId) => uiStore.getState().openDetails({ section, masterId }),
   play: (target) => uiStore.getState().play(target),
   // The desktop's Live TV page has its own category list, so it opens on All.
