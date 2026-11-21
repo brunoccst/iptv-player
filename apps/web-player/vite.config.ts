@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { build as esbuild } from 'esbuild';
 import { defineConfig, type Plugin } from 'vite';
@@ -50,7 +51,14 @@ function serviceWorker(): Plugin {
 export default defineConfig({
   plugins: [react(), serviceWorker()],
   // Screens shared with the TV app (issue #237, DECISIONS.md#d-193) are React Native; here they render as DOM.
-  resolve: { alias: { 'react-native': 'react-native-web' }, extensions: WEB_FIRST },
+  // Mock the TV-only tv-media module that VideoPreview dynamically imports (tests use the same mock).
+  resolve: {
+    alias: {
+      'react-native': 'react-native-web',
+      '../../../../apps/tv-app/modules/tv-media': path.resolve(__dirname, 'src/test/mocks/tv-media.ts'),
+    },
+    extensions: WEB_FIRST,
+  },
   // Account menu → App → About (D-079): the commit and time this build was made from, like the TV app's About.
   define: {
     // React Native Web's animations stop through Node's `global` (shared screens, DECISIONS.md#d-193).
