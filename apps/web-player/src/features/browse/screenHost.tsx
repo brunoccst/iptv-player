@@ -17,6 +17,7 @@ import { useVlc } from '../../components/vlc';
 import { useDownload } from '../../offline/useDownload';
 import {
   continueMenuItems,
+  useContinueWatching,
   useCatalog,
   useChannelSearch,
   useDownloads,
@@ -68,6 +69,7 @@ setScreenHost({
     useHeroTitle,
     useLiveHomeRow,
     continueMenuItems,
+    useContinueWatching,
     useOfflineAccess,
     useSession,
     useProfilePicker,

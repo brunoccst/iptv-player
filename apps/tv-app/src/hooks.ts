@@ -28,6 +28,7 @@ export const {
   useHeroTitle,
   useTitleCard,
   continueMenuItems,
+  useContinueWatching,
   useRecentChannels,
   useNoteRecentChannel,
   useLiveHomeRow,

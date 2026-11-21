@@ -28,6 +28,11 @@ export interface ProfilePrefs {
   /** Series titles (master ids) with every episode watched: the tag on their covers (D-081). */
   watchedSeries?: string[] | null;
   /**
+   * Finished episodes (stream ids) whose next-episode card was taken off Continue Watching, newest first
+   * (DECISIONS.md#d-245).
+   */
+  upNextHidden?: string[] | null;
+  /**
    * The newest season known of each watched series (master id → season number): a newer one is announced on Home
    * (DECISIONS.md#d-234). A sync keeps the higher number of each.
    */

@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **Next episode in Continue Watching** (2026-11-21, D-245): when you finish an episode, its series now stays in Home's Continue Watching row as "Next S1:E5" and plays that episode; after the last episode the series leaves the row. Opening the next episode for a few seconds (the countdown starting it, say) no longer hides the series either. Removing a next-episode card keeps it away until you watch the series again. The Android TV home screen's Play Next row still shows titles in progress only (issue #350).
 - **EPG stays on the current channel** (2026-11-20, issue #339): when opening the guide during live TV (Up button on the remote), the EPG now scrolls to keep the currently playing channel in view instead of jumping to the top.
 - **Season and version boxes show their choice again** (2026-11-19): in a series' details, the Season box next to Episodes and each episode's version box showed only an arrow, with no text, on the TV and on phones. They show the season and the version again.
 - **Home's rows load quickly on the TV** (2026-11-15, D-243): Home's rows still took 10 to 20 seconds on TVs with a large library, because each row read the whole library from the TV's storage. Rows now read only small lookups, and the app works out once which titles your profile shows (hidden categories, content languages) and remembers it, with how many titles each row has, until the library changes. The first start after updating prepares them once.
@@ -158,6 +159,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **Next episode in Continue Watching** (2026-11-21, D-245): when you finish an episode, its series now stays in Home's Continue Watching row as "Next S1:E5" and plays that episode; after the last episode the series leaves the row. Opening the next episode for a few seconds (the countdown starting it, say) no longer hides the series either. Removing a next-episode card keeps it away until you watch the series again.
 - **Lists read less of the library** (2026-11-15, D-243): Home's rows and the Movies and Series lists read small lookups instead of the whole library, so they load sooner with a large library.
 - **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows load much sooner, and the daily library update waits until Home has its titles.
 - **Trailers without the "Video unavailable" box** (2026-10-31, D-025, issue #222): the muted trailer on Home now fades in only once it really plays. A trailer YouTube removed, or no internet, leaves the movie's backdrop instead of a black YouTube box.

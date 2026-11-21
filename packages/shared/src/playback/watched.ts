@@ -81,6 +81,30 @@ export function markEntryWatched(progress: ProgressStore, entry: ProgressDto): P
   );
 }
 
+/**
+ * A Continue Watching card (DECISIONS.md#d-245): a title in progress, or the next episode of a series whose newest
+ * episode was finished (`progress` is that finished episode).
+ */
+export type ContinueCard = { kind: 'resume'; progress: ProgressDto } | { kind: 'next'; progress: ProgressDto; episode: Episode };
+
+/** How many removed next-episode cards a profile remembers; the oldest are forgotten first. */
+export const MAX_HIDDEN_UP_NEXT = 50;
+
+/** The finished episode behind this next-episode card was taken off Continue Watching (D-245). */
+export const isUpNextHidden = (prefs: ProfilePrefsState['prefs'], profileId: string | null, finishedItemId: string) =>
+  !!profileId && (prefs[profileId]?.upNextHidden ?? []).includes(finishedItemId);
+
+/**
+ * Takes a next-episode card off Continue Watching: the finished episode stays watched, so its id is noted per profile
+ * (synced with the other settings, D-225). Watching any episode of the series afterwards brings the series back.
+ */
+export async function hideUpNext(prefs: ProfilePrefsStore, profileId: string | null, finishedItemId: string): Promise<void> {
+  if (!profileId) return;
+  const current = prefs.getState().prefs[profileId]?.upNextHidden ?? [];
+  if (current.includes(finishedItemId)) return;
+  await prefs.getState().update(profileId, { upNextHidden: [finishedItemId, ...current].slice(0, MAX_HIDDEN_UP_NEXT) });
+}
+
 /** Removes a Continue Watching entry: for a series, all its unfinished episodes (D-078). */
 export async function removeFromContinueWatching(progress: ProgressStore, entry: ProgressDto): Promise<void> {
   for (const item of continueWatchingEntries(progress.getState().items.data ?? [], entry))
@@ -99,6 +123,7 @@ export interface CardMenuItem {
 export function cardMenuItems(
   card:
     | { kind: 'continue'; entry: ProgressDto; onList?: boolean }
+    | { kind: 'next'; entry: ProgressDto; onList?: boolean }
     | { kind: 'movie'; watched: boolean; onList?: boolean }
     | { kind: 'series'; watched: boolean; onList?: boolean },
 ): CardMenuItem[] {
@@ -113,6 +138,14 @@ export function cardMenuItems(
         // An episode started without its series title (from search or the guide) has no details page to go to.
         ...(card.entry.masterId ? [details] : []),
         { id: 'watched', label: card.entry.kind === 'episode' ? t('Mark episode as watched') : t('Mark as watched'), icon: 'eye' },
+        ...(card.entry.masterId ? [myList] : []),
+        { id: 'remove', label: t('Remove from Continue Watching'), icon: 'trash' },
+      ];
+    case 'next':
+      // The episode after a finished one (D-245): "Mark episode as watched" marks that next episode.
+      return [
+        ...(card.entry.masterId ? [details] : []),
+        { id: 'watched', label: t('Mark episode as watched'), icon: 'eye' },
         ...(card.entry.masterId ? [myList] : []),
         { id: 'remove', label: t('Remove from Continue Watching'), icon: 'trash' },
       ];

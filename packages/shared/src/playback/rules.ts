@@ -31,19 +31,53 @@ export function resumePosition(progress: Pick<ProgressDto, 'positionSeconds' | '
   return isCompleted(progress.positionSeconds, progress.durationSeconds) ? 0 : progress.positionSeconds;
 }
 
-/** Continue Watching row: unfinished items, one per series (latest episode), newest first. */
-export function continueWatching(items: ProgressDto[], limit = 20): ProgressDto[] {
+/**
+ * A Continue Watching place: a title in progress, or a series whose newest episode was finished (`upNext`), where the
+ * row offers the episode after it (DECISIONS.md#d-245).
+ */
+export interface ContinueSlot {
+  progress: ProgressDto;
+  upNext: boolean;
+}
+
+/**
+ * Continue Watching places, one per series (its newest episode) or movie, newest first. An entry under
+ * `MIN_RESUME_SECONDS` (an episode opened for a moment, the next one started by the countdown) is passed over, so it
+ * never hides the series' earlier episode (D-245). A finished movie leaves the row; a finished episode stays as `upNext`.
+ */
+export function continueWatchingSlots(items: ProgressDto[], limit = 20): ContinueSlot[] {
   const seen = new Set<string>();
-  const result: ProgressDto[] = [];
+  const result: ContinueSlot[] = [];
   for (const item of [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
-    const groupKey = item.kind === 'episode' && item.seriesId ? `series:${item.seriesId}` : `${item.kind}:${item.itemId}`;
+    const finished = isCompleted(item.positionSeconds, item.durationSeconds);
+    if (!finished && item.positionSeconds < MIN_RESUME_SECONDS) continue;
+    const series = item.kind === 'episode' && !!item.seriesId;
+    const groupKey = series ? `series:${item.seriesId}` : `${item.kind}:${item.itemId}`;
     if (seen.has(groupKey)) continue;
     seen.add(groupKey);
-    if (item.positionSeconds >= MIN_RESUME_SECONDS && !isCompleted(item.positionSeconds, item.durationSeconds)) {
-      result.push(item);
-    }
+    if (!finished) result.push({ progress: item, upNext: false });
+    else if (series) result.push({ progress: item, upNext: true });
   }
   return result.slice(0, limit);
+}
+
+/** Continue Watching titles in progress only (no next episodes), e.g. for the TV home screen's row. */
+export function continueWatching(items: ProgressDto[], limit = 20): ProgressDto[] {
+  return continueWatchingSlots(items, Number.POSITIVE_INFINITY)
+    .filter((slot) => !slot.upNext)
+    .slice(0, limit)
+    .map((slot) => slot.progress);
+}
+
+/** The episode after `finishedId` in watch order that is not watched yet; null after the last one. */
+export function upNextEpisode<E extends Episode>(
+  series: { seasons: { number: number; episodes: E[] }[] },
+  finishedId: string,
+  isWatched: (episode: E) => boolean,
+): E | null {
+  const episodes = orderedEpisodes(series);
+  const at = episodes.findIndex((episode) => episode.id === finishedId);
+  return at < 0 ? null : (episodes.slice(at + 1).find((episode) => !isWatched(episode)) ?? null);
 }
 
 /**
