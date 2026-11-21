@@ -37,7 +37,10 @@ describe('LoginPage', () => {
         appName: 'Test App',
         note: () => null,
         chooseLanguage: vi.fn(),
-        Restore: ({ onClose }: { onClose: () => void }) => { onClose(); return null; },
+        Restore: ({ onClose }: { onClose: () => void }) => {
+          onClose();
+          return null;
+        },
       },
       about: { rows: () => [] },
       backup: {
@@ -62,12 +65,21 @@ describe('LoginPage', () => {
         useExternalPlayer: () => null,
         replace: vi.fn(),
         Frame: ({ children, onClose }: { children: ReactNode; onClose: () => void }) => (
-          <div data-testid="details-frame" onKeyDown={(e) => e.key === 'Escape' && onClose()}>{children}</div>
+          <div data-testid="details-frame" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+            {children}
+          </div>
         ),
       },
       Page: ({ children, testID }: { children: ReactNode; testID: string }) => <div data-testid={testID}>{children}</div>,
       MenuTrigger: ({ children, onOpen }: { children: () => ReactNode; onOpen: () => void }) => (
-        <div onContextMenu={(e) => { e.preventDefault(); onOpen(); }}>{children()}</div>
+        <div
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onOpen();
+          }}
+        >
+          {children()}
+        </div>
       ),
       EndSensor: ({ onReached }: { onReached: () => void }) => <div data-testid="end-sensor" onClick={onReached} />,
     };

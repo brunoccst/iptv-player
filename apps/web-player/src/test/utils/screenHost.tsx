@@ -102,7 +102,12 @@ export function createTestScreenHost(overrides: Partial<ScreenHost> = {}): Scree
     },
     Page: ({ children, testID }) => <div data-testid={testID}>{children}</div>,
     MenuTrigger: ({ children, onOpen }) => (
-      <div onContextMenu={(e) => { e.preventDefault(); onOpen(); }}>
+      <div
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onOpen();
+        }}
+      >
         {children()}
       </div>
     ),
@@ -122,8 +127,6 @@ export function setupTestScreenHost(overrides: Partial<ScreenHost> = {}) {
   return {
     host,
     ScreenHostProvider,
-    wrapper: ({ children }: { children: ReactNode }) => (
-      <ScreenHostProvider value={host}>{children}</ScreenHostProvider>
-    ),
+    wrapper: ({ children }: { children: ReactNode }) => <ScreenHostProvider value={host}>{children}</ScreenHostProvider>,
   };
 }
