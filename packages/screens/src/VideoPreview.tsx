@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle, type ViewProps } from 'react-native';
 import {
   type LiveChannel,
   type EpgListing,
@@ -11,6 +11,35 @@ import {
 import { FocusButton } from './ui/FocusButton';
 import { colors, fonts } from './ui/theme';
 import { useScreenHost } from './host';
+
+// TvPlayerView types (from apps/tv-app/modules/tv-media/src/types-only.ts)
+interface PlayerSource {
+  uri?: string | null;
+  isHls?: boolean;
+  startPositionMs?: number;
+}
+
+interface PlayerStatusEvent {
+  state: 'idle' | 'buffering' | 'ready' | 'ended' | 'error';
+}
+
+interface PlayerErrorEvent {
+  message: string;
+  code: string;
+}
+
+interface TvPlayerViewRef {
+  seekTo(positionMs: number): Promise<void>;
+  selectTrack(type: 'audio' | 'text', groupIndex: number, trackIndex: number): Promise<void>;
+  addSubtitle(text: string, language: string, label: string): Promise<boolean>;
+}
+
+interface TvPlayerViewProps extends ViewProps {
+  source: PlayerSource | null;
+  paused: boolean;
+  onStatus?(event: { nativeEvent: PlayerStatusEvent }): void;
+  onError?(event: { nativeEvent: PlayerErrorEvent }): void;
+}
 
 interface VideoPreviewProps {
   channel: LiveChannel | null;
@@ -101,7 +130,7 @@ interface TvVideoPlayerProps {
 }
 
 function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV }: TvVideoPlayerProps) {
-  const playerRef = useRef<unknown>(null);
+  const playerRef = useRef<TvPlayerViewRef | null>(null);
   const [source, setSource] = useState<{ uri: string; isHls: boolean; startPositionMs: number } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const alternates = useRef<string[]>([]);
@@ -148,14 +177,35 @@ function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV 
   }
 
   // Dynamic import for TvPlayerView - only available on TV (react-native-tvos)
-  // Using a function to avoid static analysis of the require path
-  const getTvPlayerView = () => {
-    if (!isTV) return () => null;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require(['.', '.', 'modules', 'tv-media'].join('/'));
-    return mod.TvPlayerView;
-  };
-  const TvPlayerView = getTvPlayerView();
+  // Metro requires a string literal for dynamic import; path resolves from source file location.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [TvPlayerView, setTvPlayerView] = useState<React.ForwardRefExoticComponent<
+    TvPlayerViewProps & React.RefAttributes<TvPlayerViewRef>
+  > | null>(null);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (!isTV) return;
+    let cancelled = false;
+    // @ts-expect-error - module only exists in TV app context at runtime
+    import('../../../../apps/tv-app/modules/tv-media')
+      .then((mod) => {
+        if (!cancelled) setTvPlayerView(() => mod.TvPlayerView);
+      })
+      .catch(() => {
+        if (!cancelled) setTvPlayerView(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isTV]);
+
+  if (!TvPlayerView) {
+    return (
+      <View style={[styles.videoPlaceholder, style]}>
+        <Text style={styles.placeholderText}>{t('Loading…')}</Text>
+      </View>
+    );
+  }
 
   return (
     <TvPlayerView
@@ -163,13 +213,13 @@ function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV 
       style={[StyleSheet.absoluteFill, style]}
       source={source}
       paused={false}
-      onStatus={(e: { nativeEvent: { state: string } }) => {
+      onStatus={(e: { nativeEvent: PlayerStatusEvent }) => {
         const state = e.nativeEvent.state;
         if (state === 'error') {
           onError('Playback error');
         }
       }}
-      onError={(e: { nativeEvent: { message: string; code: string } }) => {
+      onError={(e: { nativeEvent: PlayerErrorEvent }) => {
         const { message, code } = e.nativeEvent;
         // Try alternate URL on network error
         if (code.startsWith('ERROR_CODE_IO') && alternates.current.length > 0) {
