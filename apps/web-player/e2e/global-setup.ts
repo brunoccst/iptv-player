@@ -48,7 +48,8 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
 /** Starts the fake panel and a production web build; the page talks to the panel directly (D-088). Returns teardown. */
 export default async function globalSetup() {
   const panelDir = path.join(repoRoot, 'tools/fake-xtream-server');
-  if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8'))) run(process.platform === 'win32' ? 'python' : 'python3', ['generate_media.py'], panelDir);
+  if (!existsSync(path.join(panelDir, 'media/movie-hls/index.m3u8')))
+    run(process.platform === 'win32' ? 'python' : 'python3', ['generate_media.py'], panelDir);
 
   for (const url of [E2E.panelUrl, E2E.webUrl]) {
     if (
@@ -60,7 +61,9 @@ export default async function globalSetup() {
       throw new Error(`${url} is already in use. Stop the process using it first.`);
   }
 
-  start('panel', process.platform === 'win32' ? 'python' : 'python3', ['server.py', '--port', new URL(E2E.panelUrl).port], { cwd: panelDir });
+  start('panel', process.platform === 'win32' ? 'python' : 'python3', ['server.py', '--port', new URL(E2E.panelUrl).port], {
+    cwd: panelDir,
+  });
   const webDir = path.join(repoRoot, 'apps/web-player');
   run('npx', ['vite', 'build', '--outDir', 'dist-e2e', '--emptyOutDir'], webDir);
   start('web', 'npx', ['vite', 'preview', '--outDir', 'dist-e2e', '--port', new URL(E2E.webUrl).port, '--strictPort'], { cwd: webDir });

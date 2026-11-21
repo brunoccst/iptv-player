@@ -52,7 +52,14 @@ export function VideoPreview({ channel, _programme, categoryName, onPlay }: Vide
 
   return (
     <View style={styles.videoPreview} testID="video-preview">
-      <VideoPlayer channel={channel} api={api} _providerUserAgent={providerUserAgent} onError={setError} style={styles.videoPlayer} isTV={isTV} />
+      <VideoPlayer
+        channel={channel}
+        api={api}
+        _providerUserAgent={providerUserAgent}
+        onError={setError}
+        style={styles.videoPlayer}
+        isTV={isTV}
+      />
       {error && (
         <View style={styles.errorOverlay}>
           <Text style={styles.errorText}>{error}</Text>
