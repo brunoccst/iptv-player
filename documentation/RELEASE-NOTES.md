@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **One Continue Watching card per series** (2026-11-22, D-246): a series watched in two versions (two languages, say) showed two cards in Home's Continue Watching row, each with a different next episode. It now shows one card, from the episode you watched last, and skips episodes you finished in the other version.
 - **Next episode in Continue Watching** (2026-11-21, D-245): when you finish an episode, its series now stays in Home's Continue Watching row as "Next S1:E5" and plays that episode; after the last episode the series leaves the row. Opening the next episode for a few seconds (the countdown starting it, say) no longer hides the series either. Removing a next-episode card keeps it away until you watch the series again. The Android TV home screen's Play Next row still shows titles in progress only (issue #350).
 - **EPG stays on the current channel** (2026-11-20, issue #339): when opening the guide during live TV (Up button on the remote), the EPG now scrolls to keep the currently playing channel in view instead of jumping to the top.
 - **Season and version boxes show their choice again** (2026-11-19): in a series' details, the Season box next to Episodes and each episode's version box showed only an arrow, with no text, on the TV and on phones. They show the season and the version again.
@@ -159,6 +160,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **One Continue Watching card per series** (2026-11-22, D-246): a series watched in two versions (two languages, say) showed two cards in Home's Continue Watching row, each with a different next episode. It now shows one card, from the episode you watched last, and skips episodes you finished in the other version.
 - **Next episode in Continue Watching** (2026-11-21, D-245): when you finish an episode, its series now stays in Home's Continue Watching row as "Next S1:E5" and plays that episode; after the last episode the series leaves the row. Opening the next episode for a few seconds (the countdown starting it, say) no longer hides the series either. Removing a next-episode card keeps it away until you watch the series again.
 - **Lists read less of the library** (2026-11-15, D-243): Home's rows and the Movies and Series lists read small lookups instead of the whole library, so they load sooner with a large library.
 - **Home opens faster** (2026-11-15, D-242): with a large library and many hidden categories or content languages, Home's rows load much sooner, and the daily library update waits until Home has its titles.

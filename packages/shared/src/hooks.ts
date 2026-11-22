@@ -30,7 +30,7 @@ import { selectActiveProfile } from './stores/sessionStore';
 import { chooseVersion, startingVariant } from './playback/playbackChoices';
 import { LOW_SOURCES } from './direct/normalizer/tags';
 import { loadSeriesVersions, mergeSeriesVersions, playerSeriesVersions, seriesVersionsOf } from './playback/seriesVersions';
-import { continueWatchingSlots, nextEpisode, previousEpisode, upNextEpisode } from './playback/rules';
+import { continueTitleKey, continueWatchingSlots, nextEpisode, previousEpisode, upNextEpisode } from './playback/rules';
 import { episodeTarget, movieTarget, progressDetails, progressTarget, type PlayTarget } from './playback/targets';
 import {
   allEpisodesWatched,
@@ -570,11 +570,17 @@ export function createAppHooks({
         return Object.fromEntries(seriesIds.map((id, index) => [id, found[index]] as const));
       });
       return useMemo(() => {
-        const finished = new Set(items.filter((p) => p.kind === 'episode' && isWatched(p)).map((p) => p.itemId));
-        const watched = (episode: Episode) => finished.has(episode.id);
+        const finishedEpisodes = items.filter((p) => p.kind === 'episode' && isWatched(p));
+        const finished = new Set(finishedEpisodes.map((p) => p.itemId));
+        // An episode finished in another version of the series counts too (D-246).
+        const finishedNumbers = new Set(finishedEpisodes.map((p) => `${continueTitleKey(p)}|${p.seasonNumber}|${p.episodeNumber}`));
         return slots.flatMap((slot): ContinueCard[] => {
           if (!slot.upNext) return [{ kind: 'resume', progress: slot.progress }];
           const series = lists.data?.[slot.progress.seriesId!];
+          const key = continueTitleKey(slot.progress);
+          const watched = (episode: Episode) =>
+            finished.has(episode.id) ||
+            (episode.episodeNumber != null && finishedNumbers.has(`${key}|${episode.seasonNumber}|${episode.episodeNumber}`));
           const episode = series ? upNextEpisode(series, slot.progress.itemId, watched) : null;
           return episode ? [{ kind: 'next', progress: slot.progress, episode }] : [];
         });

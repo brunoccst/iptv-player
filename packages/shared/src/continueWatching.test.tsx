@@ -82,6 +82,13 @@ describe('Continue Watching row (D-245)', () => {
     expect(done.cards()).toEqual([]);
   });
 
+  it('one card per series across its versions, skipping episodes watched in another version (D-246)', async () => {
+    const other = (itemId: string, position: number, updatedAt: string) => ({ ...progress(itemId, position, updatedAt), seriesId: 's2' });
+    // e2 was watched in the other version, e1 in this one later: the next one is e3, once.
+    const { cards } = await setup([other('x1', 2390, '2026-01-01'), other('x2', 2390, '2026-01-02'), progress('e1', 2390, '2026-01-03')]);
+    await waitFor(() => expect(cards().map(describeCard)).toEqual(['next e3']));
+  });
+
   it('a removed next-episode card stays away until another episode is watched', async () => {
     const { stores, cards } = await setup([progress('e1', 2390, '2026-01-02')]);
     await waitFor(() => expect(cards().map(describeCard)).toEqual(['next e2']));

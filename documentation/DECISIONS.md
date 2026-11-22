@@ -151,6 +151,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-243](#d-243) | Lists read small lookups, not the whole library |
 | [D-244](#d-244) | A profile's titles worked out once |
 | [D-245](#d-245) | Continue Watching offers the next episode |
+| [D-246](#d-246) | Continue Watching groups a title's versions |
 
 ## Merged and retired IDs
 
@@ -1575,3 +1576,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - Removing a next-episode card cannot delete progress (the finished episode must stay watched), so the finished episode's id goes in the profile's `upNextHidden` (at most 50, synced like other settings, D-225). Watching another episode makes a newer entry, and the series comes back.
 - Marking episodes watched (a season, D-081) also gives the series a next-episode card, as watching them would.
 - The TV home screen's Play Next row (D-147) keeps `continueWatching`, titles in progress only: a next episode there needs Android's "next" type and opening an episode from it (issue #350).
+
+## D-246
+
+**Continue Watching groups a title's versions** — 2026-11-22 (Bruno: Dark Matter showed "Next S1:E7" and "Next S1:E6" side by side)
+
+- D-245 kept one card per provider series (`seriesId`). A title watched in two versions (EN and another language, D-066) has two provider series, so each got its own card, from the episode last finished in it.
+- The row now groups by library title (`masterId`, kept with every progress entry) through `continueTitleKey`, falling back to the provider id when there is none. The entry watched last, in whichever version, holds the title's place; removing a card clears the unfinished entries of every version (`continueWatchingEntries`).
+- The next episode still comes from the version watched last (one episode list per series), but an episode finished in another version counts as watched, matched by season and episode number. This replaces D-245's "an episode finished only in another version is not skipped".

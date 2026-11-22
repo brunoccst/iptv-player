@@ -118,6 +118,25 @@ describe('playback rules', () => {
     expect(continueWatching(items)).toEqual([]);
   });
 
+  it('two versions of one series share one place, the episode watched last (D-246)', () => {
+    const en = { kind: 'episode', masterId: 'dark-matter', seriesId: 'en' } as const;
+    const de = { kind: 'episode', masterId: 'dark-matter', seriesId: 'de' } as const;
+    const items = [
+      progress('de5', 5990, '2026-01-01', de),
+      progress('en6', 5990, '2026-01-02', en),
+      progress('en7', 10, '2026-01-03', en),
+      progress('movie-en', 800, '2026-01-01', { masterId: 'heat' }),
+      progress('movie-de', 900, '2026-01-02', { masterId: 'heat' }),
+    ];
+    expect(continueWatchingSlots(items).map((slot) => [slot.progress.itemId, slot.upNext])).toEqual([
+      ['en6', true],
+      ['movie-de', false],
+    ]);
+    // Removing a title clears its unfinished entries in every version.
+    expect(continueWatchingEntries(items, items[4]!).map((p) => p.itemId)).toEqual(['movie-en', 'movie-de']);
+    expect(continueWatchingEntries(items, items[1]!).map((p) => p.itemId)).toEqual(['en7']);
+  });
+
   it('the next episode skips watched ones and ends after the last', () => {
     const watched = new Set(['s1e2']);
     const isWatched = (e: { id: string }) => watched.has(e.id);

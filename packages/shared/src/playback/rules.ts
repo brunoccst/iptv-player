@@ -41,7 +41,17 @@ export interface ContinueSlot {
 }
 
 /**
- * Continue Watching places, one per series (its newest episode) or movie, newest first. An entry under
+ * The title a progress entry belongs to: the library title (`masterId`) when known, so the versions of one series or
+ * movie (languages, qualities, D-066) share one Continue Watching place (D-246); else the provider's series or item id.
+ */
+export function continueTitleKey(item: Pick<ProgressDto, 'kind' | 'itemId' | 'masterId' | 'seriesId'>): string {
+  const series = item.kind === 'episode' && !!item.seriesId;
+  if (item.masterId) return `${series ? 'series' : item.kind}:master:${item.masterId}`;
+  return series ? `series:${item.seriesId}` : `${item.kind}:${item.itemId}`;
+}
+
+/**
+ * Continue Watching places, one per series (its newest episode, in any version) or movie, newest first. An entry under
  * `MIN_RESUME_SECONDS` (an episode opened for a moment, the next one started by the countdown) is passed over, so it
  * never hides the series' earlier episode (D-245). A finished movie leaves the row; a finished episode stays as `upNext`.
  */
@@ -52,7 +62,7 @@ export function continueWatchingSlots(items: ProgressDto[], limit = 20): Continu
     const finished = isCompleted(item.positionSeconds, item.durationSeconds);
     if (!finished && item.positionSeconds < MIN_RESUME_SECONDS) continue;
     const series = item.kind === 'episode' && !!item.seriesId;
-    const groupKey = series ? `series:${item.seriesId}` : `${item.kind}:${item.itemId}`;
+    const groupKey = continueTitleKey(item);
     if (seen.has(groupKey)) continue;
     seen.add(groupKey);
     if (!finished) result.push({ progress: item, upNext: false });
@@ -81,16 +91,13 @@ export function upNextEpisode<E extends Episode>(
 }
 
 /**
- * What to delete so a Continue Watching entry leaves the row: for a series, every unfinished episode of it (else an
- * older unfinished episode would take its place); for a movie, its own progress. Finished episodes stay, so they keep
- * showing as watched.
+ * What to delete so a Continue Watching entry leaves the row: every unfinished entry of its title, in any version (else
+ * an older unfinished episode or version would take its place, D-246). Finished episodes stay, so they keep showing as
+ * watched.
  */
 export function continueWatchingEntries(items: ProgressDto[], entry: ProgressDto): ProgressDto[] {
-  const sameTitle = (item: ProgressDto) =>
-    entry.kind === 'episode' && entry.seriesId
-      ? item.kind === 'episode' && item.seriesId === entry.seriesId
-      : item.kind === entry.kind && item.itemId === entry.itemId;
-  return items.filter((item) => sameTitle(item) && !isCompleted(item.positionSeconds, item.durationSeconds));
+  const key = continueTitleKey(entry);
+  return items.filter((item) => continueTitleKey(item) === key && !isCompleted(item.positionSeconds, item.durationSeconds));
 }
 
 export function clampTime(seconds: number, durationSeconds: number): number {
