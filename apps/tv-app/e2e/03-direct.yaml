@@ -128,4 +128,32 @@ appId: ${APP_ID}
 - assertVisible:
     id: "hidden-category-News"
 - takeScreenshot: 24-categories-shown-live
+# D-pad between the tabs and Save (DECISIONS.md#d-247): Up to the tab row, Right past its last tab (Live TV) reaches
+# Save, and Left from Save comes back to Live TV, also after a detour through the filter under the tabs.
+- pressKey: Remote Dpad Left
+- repeat:
+    times: 8
+    commands:
+      - pressKey: Remote Dpad Up
+- repeat:
+    times: 4
+    commands:
+      - pressKey: Remote Dpad Right
+- assertVisible:
+    id: "hidden-categories-save"
+    focused: true
+- pressKey: Remote Dpad Left
+- assertVisible:
+    id: "hidden-section-live"
+    focused: true
+- pressKey: Remote Dpad Down
+- pressKey: Remote Dpad Right
+- assertVisible:
+    id: "hidden-categories-save"
+    focused: true
+- pressKey: Remote Dpad Left
+- assertVisible:
+    id: "hidden-section-live"
+    focused: true
+- takeScreenshot: 25-categories-tabs-save
 - pressKey: back

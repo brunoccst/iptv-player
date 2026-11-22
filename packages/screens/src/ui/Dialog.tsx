@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, type ComponentRef, type ReactNode } from 'react';
 // Read through the namespace: React Native Web (desktop) has no TVFocusGuideView, and a named import of it fails there.
 import * as ReactNative from 'react-native';
 import { Modal, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { t } from '@iptv/shared';
+import { DialogContent, type DialogContentFocus } from './dialogFocus';
 import { IconButton } from './IconButton';
 import { colors, fonts } from './theme';
 
@@ -65,9 +66,22 @@ export function Dialog({
   }, [onClose]);
   const { width: windowWidth, height } = useWindowDimensions();
   const side = !!actions && windowWidth >= SIDE_MIN_WINDOW;
-  // TV: Left from the buttons goes back to the row last focused in the content, not to whichever sits beside Save.
+  // TV: Left from the buttons goes back to the row last focused in the content, not to whichever sits beside Save;
+  // after a tab, to that tab, the row beside Save (DECISIONS.md#d-247).
   const { TVFocusGuideView } = ReactNative;
   const Content = (Platform.isTV && TVFocusGuideView) || View;
+  const content = useRef<ComponentRef<typeof ReactNative.TVFocusGuideView>>(null);
+  const contentFocus = useMemo<DialogContentFocus | null>(() => {
+    if (Content === View) return null;
+    let current: unknown = null;
+    return {
+      returnTo(target) {
+        if (target === current) return;
+        current = target;
+        content.current?.setDestinations?.(target ? [target as never] : []);
+      },
+    };
+  }, [Content]);
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -90,8 +104,8 @@ export function Dialog({
           </View>
           {side ? (
             <View style={[styles.split, tall && styles.fill]}>
-              <Content {...(Content === View ? {} : { autoFocus: true })} style={styles.content} testID="dialog-content">
-                {children}
+              <Content {...(Content === View ? {} : { autoFocus: true, ref: content })} style={styles.content} testID="dialog-content">
+                <DialogContent.Provider value={contentFocus}>{children}</DialogContent.Provider>
               </Content>
               <View style={styles.side} testID="dialog-side">
                 <DialogSide.Provider value>{actions}</DialogSide.Provider>

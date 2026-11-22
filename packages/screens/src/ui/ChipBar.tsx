@@ -17,6 +17,7 @@ import { focus } from './focus';
 import { mergeRefs, usePageFocusable } from './pageFocus';
 import { FocusRow } from './FocusRow';
 import { useCenterOnFocus } from './CenterScroll';
+import { useDialogContent } from './dialogFocus';
 import { t } from '@iptv/shared';
 
 export interface ChipItem {
@@ -427,7 +428,9 @@ export function Chip({
   const [focused, setFocused] = useState(false);
   const centering = useCenterOnFocus();
   const page = usePageFocusable(hasTVPreferredFocus);
-  const ref = useMemo(() => mergeRefs<View>(centering.ref, page.ref), [centering.ref, page.ref]);
+  const self = useRef<View>(null);
+  const ref = useMemo(() => mergeRefs<View>(centering.ref, page.ref, self), [centering.ref, page.ref]);
+  const dialog = useDialogContent();
   return (
     <Pressable
       ref={ref}
@@ -440,6 +443,8 @@ export function Chip({
       onLayout={onLayout}
       onFocus={() => {
         setFocused(true);
+        // In a dialog, Left from Save comes back to this tab (DECISIONS.md#d-247).
+        dialog?.returnTo(self.current);
         if (onCenter) onCenter();
         else centering.center();
       }}

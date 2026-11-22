@@ -152,6 +152,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-244](#d-244) | A profile's titles worked out once |
 | [D-245](#d-245) | Continue Watching offers the next episode |
 | [D-246](#d-246) | Continue Watching groups a title's versions |
+| [D-247](#d-247) | TV: Right from a dialog's tabs reaches Save, Left comes back to them |
 
 ## Merged and retired IDs
 
@@ -1584,3 +1585,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - D-245 kept one card per provider series (`seriesId`). A title watched in two versions (EN and another language, D-066) has two provider series, so each got its own card, from the episode last finished in it.
 - The row now groups by library title (`masterId`, kept with every progress entry) through `continueTitleKey`, falling back to the provider id when there is none. The entry watched last, in whichever version, holds the title's place; removing a card clears the unfinished entries of every version (`continueWatchingEntries`).
 - The next episode still comes from the version watched last (one episode list per series), but an episode finished in another version counts as watched, matched by season and episode number. This replaces D-245's "an episode finished only in another version is not skipped".
+
+## D-247
+
+**TV: Right from a dialog's tabs reaches Save, Left comes back to them** — 2026-11-22 (Bruno: in Categories shown, Right on Live TV did nothing; Left from Save went to the filter, not to Live TV beside it)
+
+- The section tabs (Movies, Series, Live TV) are a `FocusRow`, which keeps Right inside the row (D-069), so Right from the last tab never reached the Save column of D-233. Inside a dialog's content, beside that column, a `FocusRow` now lets Right leave its end; Left still stops at its start. This covers every row there: the tabs of Categories shown and Kids categories, the subtitle languages and the password row with Show.
+- Left from the column went back to the item last focused in the content (D-233), which after Live TV → Down → Right was the filter. The dialog now hands the content's focus guide a destination: a tab (`Chip`) that gets the focus sets itself, a list row or button (`CheckRow`, `FocusButton`) clears it, so Left from Save comes back to the tab, unless a list row was focused since, in which case it goes back to that row as before, so a long list keeps its place. Text fields leave it as it is: the filter sits between the tabs and the list, and from it Left should go to the tab row beside Save.
+- Done through a context (`dialogFocus.ts`) that only the TV's side-column layout provides, so phones, the desktop and the narrow layout are unchanged. The destination is sent only when it changes (`setDestinations`), not on every focus move.
