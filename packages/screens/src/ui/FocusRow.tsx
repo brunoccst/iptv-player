@@ -3,12 +3,14 @@ import { createContext, useContext, type ComponentProps, type ReactNode } from '
 import * as ReactNative from 'react-native';
 import { Platform, View, type StyleProp, type ViewStyle } from 'react-native';
 import type { Measurable } from './CenterScroll';
+import { useDialogContent } from './dialogFocus';
 
 /**
  * A horizontal group of focusable items (a row of cards, chips, buttons). On TV, Left/Right stay inside it: at the ends
  * they stop instead of jumping to a row above or below (D-069). Up/Down leave it as usual. `leftOpen`: Left at
  * the start may leave it, for a row whose start sits beside a side column (the guide's channels, beside the categories).
  * `rightOpen`: Right at the end may leave it, for a row in a side column beside a list (landscape details, D-158).
+ * In a dialog's content it always may: Right from the end of a row of tabs goes to Save (DECISIONS.md#d-247).
  */
 export function FocusRow({
   children,
@@ -28,6 +30,7 @@ export function FocusRow({
   leftOpen?: boolean;
   rightOpen?: boolean;
 }) {
+  const inDialog = !!useDialogContent();
   if (!Platform.isTV)
     return (
       <View style={style} testID={testID} accessibilityLabel={accessibilityLabel} accessibilityRole={accessibilityRole}>
@@ -38,7 +41,7 @@ export function FocusRow({
   return (
     <TVFocusGuideView
       trapFocusLeft={!leftOpen}
-      trapFocusRight={!rightOpen}
+      trapFocusRight={!rightOpen && !inDialog}
       style={style}
       testID={testID}
       accessibilityLabel={accessibilityLabel}

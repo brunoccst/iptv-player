@@ -6,7 +6,7 @@
 |------|---------|
 | `01-online.yaml` | Login to the fake panel at `10.0.2.2:8091`, library grouped on the device, details + version picker, playback, D-pad skip, quick drawer (↑), player buttons (↓), focus kept in the details panel, download, Live TV guide (XMLTV + short-EPG channel) → play → ↑ guide overlay → Back. |
 | `02-offline.yaml` | With the provider stopped: cached session → My Downloads → offline playback. |
-| `03-direct.yaml` | A fresh sign-in once the provider is back, on-device library, playback from the provider, short-EPG guide, then Account menu → Categories shown lists the categories (issue #330). |
+| `03-direct.yaml` | A fresh sign-in once the provider is back, on-device library, playback from the provider, short-EPG guide, then Account menu → Categories shown lists the categories (issue #330) and the D-pad moves between its tabs and Save (D-247). |
 | `04-phone-search.yaml` | Phone emulator (touch, on-screen keyboard): direct sign-in, then tap the search box and type; the text must stay in the box and find titles. |
 | `05-hold-right.yaml`, `06-hold-right-check.yaml` | Holding Right in a Home row (D-069): against a stress panel, focus the first card of a row that ends in "See all"; `run.sh` sends 16, then 40, quick Right presses (a held key repeats about every 50 ms; `input keyevent --duration` sends no repeats), then checks that "See all" has the focus. |
 | `install.sh <apk>` | Waits for the emulator's package manager, then installs the APK (3 attempts). |
