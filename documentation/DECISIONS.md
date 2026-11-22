@@ -152,6 +152,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-244](#d-244) | A profile's titles worked out once |
 | [D-245](#d-245) | Continue Watching offers the next episode |
 | [D-246](#d-246) | Continue Watching groups a title's versions |
+| [D-247](#d-247) | Back goes Home before leaving the app |
 
 ## Merged and retired IDs
 
@@ -349,7 +350,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 **TV app architecture: native focus, store navigation, remote events** — 2026-09-23
 
 - Focus: Android's native focus search (react-native-tvos) between `Pressable`s, no JS spatial-navigation library. `hasTVPreferredFocus` sets the first focus per screen; `TVFocusGuideView` traps or remembers focus. The rules are in D-069.
-- Navigation: a small Zustand stack (`navStore`) instead of React Navigation. Hardware Back pops; at the root Android exits.
+- Navigation: a small Zustand stack (`navStore`) instead of React Navigation. Hardware Back pops; at the root it goes Home, and only on Home Android exits (D-247).
 - Remote events: `useRemote` wraps `useTVEventHandler`. react-native-tvos reports `select` and `playPause` on release only, arrows on press and release; some remotes and the emulator send arrows as release only, so `createRemoteNormalizer` turns a release without a press into press + release. `APP_TV_DEBUG_REMOTE=1` logs the events.
 - The player holds a transparent full-screen `Pressable` with `hasTVPreferredFocus` whenever no buttons or panels are up: Android TV only delivers keys to `useTVEventHandler` while a view in the React root has focus.
 
@@ -1584,3 +1585,12 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - D-245 kept one card per provider series (`seriesId`). A title watched in two versions (EN and another language, D-066) has two provider series, so each got its own card, from the episode last finished in it.
 - The row now groups by library title (`masterId`, kept with every progress entry) through `continueTitleKey`, falling back to the provider id when there is none. The entry watched last, in whichever version, holds the title's place; removing a card clears the unfinished entries of every version (`continueWatchingEntries`).
 - The next episode still comes from the version watched last (one episode list per series), but an episode finished in another version counts as watched, matched by season and episode number. This replaces D-245's "an episode finished only in another version is not skipped".
+
+## D-247
+
+**Back goes Home before leaving the app** — 2026-11-22 (Bruno: Back should go to Home last before closing the app)
+
+- On TV and phone, Back on a page from the top nav (Live TV, Movies, Series, Search, My List, My Downloads, Log) left the app, because each page is the root of the route stack (D-028) and Back at the root returned `false` to Android.
+- `navStore.back` now goes Home from any other root page (`goSection('home')`: category and search cleared) and returns `false` only on Home, so Android exits from there. Menus, dialogs, details and the player close first as before.
+- Home's Play button takes the TV focus when Home opens, as it does at start.
+- Desktop is not changed: Back there walks the browser history of the window (D-025) and never closes the app.

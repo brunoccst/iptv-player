@@ -44,7 +44,10 @@ export interface NavState {
   push(route: Route): void;
   /** Swaps the top route (next episode, version switch) without growing the stack. */
   replaceTop(route: Route): void;
-  /** Leaves a menu group, closes the menu or pops one route. Returns false at the root so Android can exit the app. */
+  /**
+   * Leaves a menu group, closes the menu, pops one route or, on a page other than Home, goes Home. Returns false only
+   * on Home itself, so Android exits the app from there (DECISIONS.md#d-247).
+   */
   back(): boolean;
 }
 
@@ -97,8 +100,12 @@ export function createNavStore() {
         set({ menuOpen: false });
         return true;
       }
-      if (stack.length <= 1) return false;
-      set({ stack: stack.slice(0, -1) });
+      if (stack.length > 1) {
+        set({ stack: stack.slice(0, -1) });
+        return true;
+      }
+      if (currentSection(get()) === 'home') return false;
+      get().goSection('home');
       return true;
     },
   }));

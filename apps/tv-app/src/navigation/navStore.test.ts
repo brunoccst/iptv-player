@@ -14,6 +14,21 @@ describe('nav store', () => {
     expect(nav.getState().back()).toBe(false);
   });
 
+  it('Back on another page goes Home first; only Back on Home leaves the app (D-247)', () => {
+    const nav = createNavStore();
+    nav.getState().openCategory('live', '3');
+    nav.getState().push({ name: 'player', target: { kind: 'live', streamId: '7', container: 'm3u8', title: 'News' } });
+    expect(nav.getState().back()).toBe(true);
+    expect(currentRoute(nav.getState())).toEqual({ name: 'section', section: 'live' });
+    expect(nav.getState().back()).toBe(true);
+    expect(nav.getState()).toMatchObject({ stack: [{ name: 'section', section: 'home' }], categoryId: null });
+    expect(nav.getState().back()).toBe(false);
+
+    nav.getState().setSearch('big');
+    expect(nav.getState().back()).toBe(true);
+    expect(nav.getState()).toMatchObject({ stack: [{ name: 'section', section: 'home' }], search: '' });
+  });
+
   it('goSection resets the stack', () => {
     const nav = createNavStore();
     nav.getState().push({ name: 'details', section: 'series', masterId: 's' });
