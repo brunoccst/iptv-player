@@ -14,7 +14,7 @@ describe('nav store', () => {
     expect(nav.getState().back()).toBe(false);
   });
 
-  it('Back on another page goes Home first; only Back on Home leaves the app (D-247)', () => {
+  it('Back on another page goes Home first; only Back on Home leaves the app (D-248)', () => {
     const nav = createNavStore();
     nav.getState().openCategory('live', '3');
     nav.getState().push({ name: 'player', target: { kind: 'live', streamId: '7', container: 'm3u8', title: 'News' } });

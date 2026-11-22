@@ -152,7 +152,8 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-244](#d-244) | A profile's titles worked out once |
 | [D-245](#d-245) | Continue Watching offers the next episode |
 | [D-246](#d-246) | Continue Watching groups a title's versions |
-| [D-247](#d-247) | Back goes Home before leaving the app |
+| [D-247](#d-247) | TV: Right from a dialog's tabs reaches Save, Left comes back to them |
+| [D-248](#d-248) | Back goes Home before leaving the app |
 
 ## Merged and retired IDs
 
@@ -350,7 +351,7 @@ Why: the provider → library → UI → player chain fails mostly in integratio
 **TV app architecture: native focus, store navigation, remote events** — 2026-09-23
 
 - Focus: Android's native focus search (react-native-tvos) between `Pressable`s, no JS spatial-navigation library. `hasTVPreferredFocus` sets the first focus per screen; `TVFocusGuideView` traps or remembers focus. The rules are in D-069.
-- Navigation: a small Zustand stack (`navStore`) instead of React Navigation. Hardware Back pops; at the root it goes Home, and only on Home Android exits (D-247).
+- Navigation: a small Zustand stack (`navStore`) instead of React Navigation. Hardware Back pops; at the root it goes Home, and only on Home Android exits (D-248).
 - Remote events: `useRemote` wraps `useTVEventHandler`. react-native-tvos reports `select` and `playPause` on release only, arrows on press and release; some remotes and the emulator send arrows as release only, so `createRemoteNormalizer` turns a release without a press into press + release. `APP_TV_DEBUG_REMOTE=1` logs the events.
 - The player holds a transparent full-screen `Pressable` with `hasTVPreferredFocus` whenever no buttons or panels are up: Android TV only delivers keys to `useTVEventHandler` while a view in the React root has focus.
 
@@ -1587,6 +1588,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The next episode still comes from the version watched last (one episode list per series), but an episode finished in another version counts as watched, matched by season and episode number. This replaces D-245's "an episode finished only in another version is not skipped".
 
 ## D-247
+
+**TV: Right from a dialog's tabs reaches Save, Left comes back to them** — 2026-11-22 (Bruno: in Categories shown, Right on Live TV did nothing; Left from Save went to the filter, not to Live TV beside it)
+
+- The section tabs (Movies, Series, Live TV) are a `FocusRow`, which keeps Right inside the row (D-069), so Right from the last tab never reached the Save column of D-233. Inside a dialog's content, beside that column, a `FocusRow` now lets Right leave its end; Left still stops at its start. This covers every row there: the tabs of Categories shown and Kids categories, the subtitle languages and the password row with Show.
+- Left from the column went back to the item last focused in the content (D-233), which after Live TV → Down → Right was the filter. The dialog now hands the content's focus guide a destination: a tab (`Chip`) that gets the focus sets itself, a list row or button (`CheckRow`, `FocusButton`) clears it, so Left from Save comes back to the tab, unless a list row was focused since, in which case it goes back to that row as before, so a long list keeps its place. Text fields leave it as it is: the filter sits between the tabs and the list, and from it Left should go to the tab row beside Save.
+- Done through a context (`dialogFocus.ts`) that only the TV's side-column layout provides, so phones, the desktop and the narrow layout are unchanged. The destination is sent only when it changes (`setDestinations`), not on every focus move.
+
+## D-248
 
 **Back goes Home before leaving the app** — 2026-11-22 (Bruno: Back should go to Home last before closing the app)
 

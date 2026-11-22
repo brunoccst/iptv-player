@@ -46,7 +46,7 @@ export interface NavState {
   replaceTop(route: Route): void;
   /**
    * Leaves a menu group, closes the menu, pops one route or, on a page other than Home, goes Home. Returns false only
-   * on Home itself, so Android exits the app from there (DECISIONS.md#d-247).
+   * on Home itself, so Android exits the app from there (DECISIONS.md#d-248).
    */
   back(): boolean;
 }

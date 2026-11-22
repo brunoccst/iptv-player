@@ -104,7 +104,7 @@ The Android TV home screen shows the active profile's Continue Watching in its "
 
 ### Back to Home (TV and phone)
 
-Back on a page from the top nav (Live TV, Movies, Series, Search, My List, My Downloads) goes to Home; only Back on Home closes the app. Menus, boxes, details and the player still close first, so Back from a playing channel shows Live TV, and the next Back Home (D-247).
+Back on a page from the top nav (Live TV, Movies, Series, Search, My List, My Downloads) goes to Home; only Back on Home closes the app. Menus, boxes, details and the player still close first, so Back from a playing channel shows Live TV, and the next Back Home (D-248).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ➖ (Back walks the window's history and never closes the app, D-025).
 
@@ -370,7 +370,7 @@ The avatar at the top right opens it: other profiles, then the groups Profiles, 
 
 ### Save and Cancel in dialogs
 
-Every box that changes a setting has the same two buttons: **Save** keeps the changes, **Cancel** closes without them, and so do Back and Escape. They stand in a column on the right of the box, Save on top, always in view beside a long list that scrolls on its own. On TV, Right from any row of the list goes to Save, and Left goes back to the row you came from (D-233). On a narrow window (a phone held upright), and in the profile editor and the backup box, they sit at the bottom right instead. Some boxes add their own button (Delete Profile, Automatic). Boxes that apply a choice when it is picked (App language, Merge with another title) have only Cancel there (D-232).
+Every box that changes a setting has the same two buttons: **Save** keeps the changes, **Cancel** closes without them, and so do Back and Escape. They stand in a column on the right of the box, Save on top, always in view beside a long list that scrolls on its own. On TV, Right from any row of the list goes to Save, and Left goes back to the row you came from (D-233). Right from the last tab of a box with tabs (Movies, Series, Live TV) goes to Save too, and Left from Save comes back to that tab, also after moving down to the filter under the tabs (D-247). On a narrow window (a phone held upright), and in the profile editor and the backup box, they sit at the bottom right instead. Some boxes add their own button (Delete Profile, Automatic). Boxes that apply a choice when it is picked (App language, Merge with another title) have only Cancel there (D-232).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

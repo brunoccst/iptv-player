@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, type FocusDestination, type StyleProp, type
 import { colors, fonts, radius } from './theme';
 import { AnimatedPressable, focus, useFocusScale } from './focus';
 import { useCenterFocus, type Measurable } from './CenterScroll';
+import { useDialogContent } from './dialogFocus';
 import { Icon, type IconName } from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'accent' | 'ghost';
@@ -52,6 +53,7 @@ export function FocusButton({
   const scale = useFocusScale(lit, 1.06);
   const centerFocus = useCenterFocus();
   const self = useRef<Measurable>(null);
+  const dialog = useDialogContent();
   // Focused: every variant turns white with dark text, the primary one (already white) gets the glow.
   const textColor = lit ? focus.onSolid : TEXT[variant];
   const iconNode = typeof icon === 'string' ? <Icon name={icon as IconName} size={24} color={textColor} /> : icon;
@@ -69,6 +71,8 @@ export function FocusButton({
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
+        // In a dialog, Left from Save comes back to this button (DECISIONS.md#d-247).
+        dialog?.returnTo(null);
         centerFocus?.(self.current);
         onFocus?.();
       }}

@@ -4,12 +4,14 @@ import { colors, fonts } from './theme';
 import { focus } from './focus';
 import { Icon } from './Icon';
 import { useCenterFocus, type Measurable } from './CenterScroll';
+import { useDialogContent } from './dialogFocus';
 
 /** A row with a check box, for lists of choices (categories); focus lights the row. */
 export function CheckRow({ label, checked, onPress, testID }: { label: string; checked: boolean; onPress(): void; testID?: string }) {
   const [focused, setFocused] = useState(false);
   const centerFocus = useCenterFocus();
   const self = useRef<Measurable>(null);
+  const dialog = useDialogContent();
   return (
     <Pressable
       ref={self as never}
@@ -22,6 +24,8 @@ export function CheckRow({ label, checked, onPress, testID }: { label: string; c
       onPress={onPress}
       onFocus={() => {
         setFocused(true);
+        // In a dialog, Left from Save comes back to this row (DECISIONS.md#d-247).
+        dialog?.returnTo(null);
         centerFocus?.(self.current);
       }}
       onBlur={() => setFocused(false)}
