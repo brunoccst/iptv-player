@@ -7,6 +7,7 @@ import type {
   DownloadMenuState,
   IconName,
   LibrarySection,
+  LiveChannel,
   MasterCard,
   PlayTarget,
 } from '@iptv/shared';
@@ -103,6 +104,8 @@ export interface ScreenHost {
     | 'useHiddenCategories'
     | 'useLanguageSettings'
     | 'usePin'
+    | 'useFavoriteChannels'
+    | 'useRecentChannels'
   >;
   api: AppContext['api'];
   /** Automatic subtitles from OpenSubtitles (D-111): their settings. */
@@ -219,6 +222,9 @@ export interface ScreenHost {
   /** A title card got or lost the focus (the TV remote's Red key adds the focused title to My List, D-154). */
   focusTitle?(section: LibrarySection, card: MasterCard): void;
   blurTitle?(id: string): void;
+  /** A live channel got or lost the focus (the TV remote's Red key adds/removes it from favorites). */
+  focusLiveChannel?(channel: Pick<LiveChannel, 'id' | 'name' | 'logoUrl' | 'categoryId' | 'number'>): void;
+  blurLiveChannel?(id: string): void;
 }
 
 const HostContext = createContext<ScreenHost | null>(null);

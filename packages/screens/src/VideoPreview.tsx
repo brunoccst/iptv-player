@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle, type ViewProps } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle, type ViewProps, useWindowDimensions } from 'react-native';
 import {
   type LiveChannel,
   type EpgListing,
@@ -7,10 +7,12 @@ import {
   tvPlaybackAttempts,
   webPlaybackAttempts,
   type PlaybackInfoWithAlternates,
+  catchupMode,
 } from '@iptv/shared';
 import { FocusButton } from './ui/FocusButton';
 import { colors, fonts } from './ui/theme';
 import { useScreenHost } from './host';
+import { useNow } from '@iptv/shared/react';
 
 // TvPlayerView types (from apps/tv-app/modules/tv-media/src/types-only.ts)
 interface PlayerSource {
@@ -46,23 +48,46 @@ interface VideoPreviewProps {
   _programme: EpgListing | null;
   categoryName: string;
   onPlay?: () => void;
+  catchupOnPlay?: () => void;
+  containerStyle?: ViewStyle;
+  primed?: boolean;
+  typedNumber?: string;
 }
 
 const RESOLUTION_TEXT = '1920 × 1080';
 
 /**
- * Video preview component - shows live stream preview in a 16:9 container.
- * TV: uses native TvPlayerView. Web: uses HTML5 video with HLS.js.
+ * Video preview component - shows live stream preview in a responsive container.
+ * TV: uses native TvPlayerView (fixed 16:9). Web/desktop: wider on wide screens to show more EPG.
  */
-export function VideoPreview({ channel, _programme, categoryName, onPlay }: VideoPreviewProps) {
+export function VideoPreview({
+  channel,
+  _programme,
+  categoryName,
+  onPlay,
+  catchupOnPlay,
+  containerStyle,
+  primed = true,
+  typedNumber,
+}: VideoPreviewProps) {
   const [error, setError] = useState<string | null>(null);
   const isTV = Platform.isTV;
+  const { width } = useWindowDimensions();
   const host = useScreenHost();
   const { api, providerUserAgent } = host;
+  const now = useNow();
+  const showCatchupButton = _programme && channel?.hasCatchup && catchupMode(channel, _programme, now) === 'past';
+
+  // Responsive aspect ratio: 16:9 on TV/narrow, wider on wide desktop to show more EPG below
+  // At 720px (compact): 16/9 ≈ 1.78
+  // At 1920px (TV): 16/9 ≈ 1.78 (TV keeps fixed 16:9 via isTV check)
+  // At 2560px+: ~2.35 (21:9) - shorter preview, more EPG visible
+  const aspectRatio = isTV ? 16 / 9 : Math.min(2.35, Math.max(16 / 9, 16 / 9 + (width - 720) * 0.0006));
 
   if (!channel) {
+    const previewStyle = { ...styles.videoPreview, aspectRatio, ...containerStyle };
     return (
-      <View style={styles.videoPreview} testID="video-preview">
+      <View style={previewStyle} testID="video-preview">
         <View style={styles.videoPlaceholder}>
           <Text style={styles.placeholderText}>{t('Select a channel')}</Text>
         </View>
@@ -76,17 +101,45 @@ export function VideoPreview({ channel, _programme, categoryName, onPlay }: Vide
     );
   }
 
+  // If not primed, show placeholder with instruction
+  if (!primed) {
+    const previewStyle = { ...styles.videoPreview, aspectRatio, ...containerStyle };
+    return (
+      <View style={previewStyle} testID="video-preview">
+        <View style={styles.videoPlaceholder}>
+          <Text style={styles.placeholderText}>{t('Press OK to load preview')}</Text>
+        </View>
+        <View style={styles.videoOverlay} pointerEvents="none">
+          <View style={styles.overlayLeft}>
+            <Text style={styles.overlayChannelName}>{channel.name}</Text>
+            <Text style={styles.overlayCategory}>{categoryName}</Text>
+          </View>
+          <View style={styles.overlayRight}>
+            <Text style={styles.overlayMeta}>
+              {channel.number != null ? `N° ${channel.number}  •  ` : ''}
+              {RESOLUTION_TEXT}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // Platform-specific video player
   const VideoPlayer = isTV ? TvVideoPlayer : WebVideoPlayer;
 
+  const videoPlayerStyle = showCatchupButton ? { pointerEvents: 'none' as const } : undefined;
+
+  const previewStyle = { ...styles.videoPreview, aspectRatio, ...containerStyle };
+
   return (
-    <View style={styles.videoPreview} testID="video-preview">
+    <View style={previewStyle} testID="video-preview">
       <VideoPlayer
         channel={channel}
         api={api}
         _providerUserAgent={providerUserAgent}
         onError={setError}
-        style={styles.videoPlayer}
+        style={videoPlayerStyle}
         isTV={isTV}
       />
       {error && (
@@ -103,12 +156,25 @@ export function VideoPreview({ channel, _programme, categoryName, onPlay }: Vide
           )}
         </View>
       )}
+      {showCatchupButton && catchupOnPlay && (
+        <View testID="preview-catchup-overlay" style={styles.catchupOverlay} accessibilityRole="none">
+          <FocusButton
+            label={t('Watch recording')}
+            variant="primary"
+            style={styles.previewPlayButton}
+            testID="preview-catchup-button"
+            onPress={catchupOnPlay}
+            accessibilityLabel={t('Watch recording')}
+          />
+        </View>
+      )}
       <View style={styles.videoOverlay} pointerEvents="none">
         <View style={styles.overlayLeft}>
           <Text style={styles.overlayChannelName}>{channel.name}</Text>
           <Text style={styles.overlayCategory}>{categoryName}</Text>
         </View>
         <View style={styles.overlayRight}>
+          {typedNumber && <Text style={styles.overlayTypedNumber}>{t('Channel {num}', { num: typedNumber })}</Text>}
           <Text style={styles.overlayMeta}>
             {channel.number != null ? `N° ${channel.number}  •  ` : ''}
             {RESOLUTION_TEXT}
@@ -355,8 +421,14 @@ function WebVideoPlayer({ channel, api, _providerUserAgent, onError, style }: We
   }, [channel.id, attempt, api, onError]);
 
   return (
-    <View style={[styles.videoPlayer, style]}>
-      <video ref={videoRef} style={StyleSheet.absoluteFill} muted playsInline autoPlay />
+    <View style={[styles.videoPlayer, style]} pointerEvents="none">
+      <video
+        ref={videoRef}
+        style={Platform.OS === 'web' ? { ...StyleSheet.absoluteFill, pointerEvents: 'none' } : StyleSheet.absoluteFill}
+        muted
+        playsInline
+        autoPlay
+      />
       {!src && (
         <View style={styles.videoPlaceholder}>
           <Text style={styles.placeholderText}>{t('Loading…')}</Text>
@@ -368,29 +440,39 @@ function WebVideoPlayer({ channel, api, _providerUserAgent, onError, style }: We
 
 const styles = StyleSheet.create({
   videoPreview: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: '#000',
+    backgroundColor: colors.bg,
     position: 'relative',
+    width: '100%',
   },
   videoPlayer: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#000',
+    backgroundColor: colors.bg,
+    zIndex: 1,
   },
   videoPlaceholder: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#000',
+    backgroundColor: colors.bg,
   },
   placeholderText: { color: colors.muted, fontSize: fonts.body },
   errorOverlay: {
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(20,20,20,0.85)',
     padding: 16,
+    zIndex: 10,
   },
-  errorText: { color: colors.warning, fontSize: fonts.small, textAlign: 'center', marginBottom: 12 },
+  catchupOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(20,20,20,0.85)',
+    padding: 16,
+    zIndex: 10,
+  },
+  errorText: { color: colors.muted, fontSize: fonts.small, textAlign: 'center', marginBottom: 12 },
   previewPlayButton: { width: 180 },
   videoOverlay: {
     position: 'absolute',
@@ -400,7 +482,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 12,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(20,20,20,0.8)',
   },
   overlayLeft: { flexDirection: 'column', gap: 2 },
   overlayRight: { alignItems: 'flex-end' },
@@ -408,14 +490,14 @@ const styles = StyleSheet.create({
     color: colors.strong,
     fontSize: fonts.body,
     fontWeight: '600',
-    textShadowColor: '#000',
+    textShadowColor: colors.bg,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   overlayCategory: {
     color: colors.muted,
     fontSize: fonts.tiny,
-    textShadowColor: '#000',
+    textShadowColor: colors.bg,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
@@ -423,8 +505,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fonts.tiny,
     fontWeight: '500',
-    textShadowColor: '#000',
+    textShadowColor: colors.bg,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
+  },
+  overlayTypedNumber: {
+    color: colors.blue,
+    fontSize: fonts.body,
+    fontWeight: '700',
+    textShadowColor: colors.bg,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    marginBottom: 4,
   },
 });

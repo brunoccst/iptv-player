@@ -6,12 +6,14 @@ import {
   formatProgrammeTime,
   liveTarget,
   catchupMode,
+  catchupTarget,
   programmeAt,
   programmeProgress,
   useEpgGuide,
   useNow,
   type EpgListing,
   type LiveChannel,
+  type PlayTarget,
   t,
   formatGuideTimeWithDate,
 } from '@iptv/shared';
@@ -32,8 +34,8 @@ const MAX_AHEAD_MS = 46 * 3600_000;
 /** Desktop: no remote, so nothing to listen to. */
 const noRemote: NonNullable<ScreenHost['useRemote']> = () => {};
 
-function play(host: ScreenHost, channel: LiveChannel, programme: EpgListing | null) {
-  host.play(liveTarget(channel, programme?.title));
+function play(host: ScreenHost, target: PlayTarget) {
+  host.play(target);
 }
 
 /** Compact category item for the left sidebar. */
@@ -181,12 +183,13 @@ function CategoryList({
 interface ChannelListProps {
   channels: LiveChannel[];
   selectedChannelId: string | null;
-  onSelectChannel(channel: LiveChannel): void;
+  previewPrimed: boolean;
   onPlayChannel(channel: LiveChannel): void;
+  onPrimePreview(channel: LiveChannel): void;
   navUp?: View;
 }
 
-function ChannelList({ channels, selectedChannelId, onSelectChannel, onPlayChannel, navUp }: ChannelListProps) {
+function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, navUp }: ChannelListProps) {
   const host = useScreenHost();
   const useRemote = host.useRemote ?? noRemote;
   const grid = useFocusGrid();
@@ -209,19 +212,35 @@ function ChannelList({ channels, selectedChannelId, onSelectChannel, onPlayChann
     >
       {channels.map((channel, index) => {
         const active = selectedChannelId === channel.id;
+        const isSelected = active;
         return (
           <Pressable
             key={channel.id}
             testID={`live-channel-${index}`}
             accessibilityRole="button"
             accessibilityLabel={t('Watch {name}', { name: channel.name })}
-            onPress={() => onPlayChannel(channel)}
+            onPress={() => {
+              if (isSelected && previewPrimed) {
+                onPlayChannel(channel);
+              } else {
+                onPrimePreview(channel);
+              }
+            }}
             onFocus={() => {
-              onSelectChannel(channel);
               focused.current = index;
+              host.focusLiveChannel?.({
+                id: channel.id,
+                name: channel.name,
+                logoUrl: channel.logoUrl,
+                categoryId: channel.categoryId,
+                number: channel.number,
+              });
             }}
             onBlur={() => {
-              if (focused.current === index) focused.current = null;
+              if (focused.current === index) {
+                focused.current = null;
+                host.blurLiveChannel?.(channel.id);
+              }
             }}
             ref={grid.ref(String(index))}
             nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
@@ -326,6 +345,12 @@ function VideoAndEpg({
   categoryName,
   onSelectProgramme,
   onPlayChannel,
+  _from,
+  setFrom,
+  canEarlier,
+  canLater,
+  previewPrimed,
+  typedNumber,
 }: {
   selectedChannel: LiveChannel | null;
   selectedProgramme: EpgListing | null;
@@ -333,10 +358,17 @@ function VideoAndEpg({
   now: number;
   categoryName: string;
   onSelectProgramme(programme: EpgListing | null): void;
-  onPlayChannel(channel: LiveChannel): void;
+  onPlayChannel(target: LiveChannel | PlayTarget): void;
+  _from: number;
+  setFrom: (from: number | ((prev: number) => number)) => void;
+  canEarlier: boolean;
+  canLater: boolean;
+  previewPrimed: boolean;
+  typedNumber: string;
 }) {
   const row = useMemo(() => epgGuide.rows.find((r) => r.channel.id === selectedChannel?.id), [epgGuide.rows, selectedChannel]);
   const programmes = row?.programmes ?? [];
+  const isCatchup = selectedProgramme && selectedChannel?.hasCatchup && catchupMode(selectedChannel, selectedProgramme, now) === 'past';
 
   return (
     <View style={styles.videoEpgColumn} testID="video-epg-column">
@@ -345,7 +377,40 @@ function VideoAndEpg({
         _programme={selectedProgramme}
         categoryName={categoryName}
         onPlay={() => selectedChannel && onPlayChannel(selectedChannel)}
+        catchupOnPlay={
+          isCatchup
+            ? () => {
+                if (selectedChannel) onPlayChannel(catchupTarget(selectedChannel, selectedProgramme));
+              }
+            : undefined
+        }
+        primed={previewPrimed}
+        typedNumber={typedNumber}
       />
+      <View style={styles.epgHeader}>
+        {canEarlier && (
+          <Pressable
+            testID="guide-earlier"
+            accessibilityRole="button"
+            accessibilityLabel={t('Earlier')}
+            onPress={() => setFrom((prev: number) => prev - STEP_MS)}
+            style={styles.guideNavButton}
+          >
+            <Text>{'◀ ' + t('Earlier')}</Text>
+          </Pressable>
+        )}
+        {canLater && (
+          <Pressable
+            testID="guide-later"
+            accessibilityRole="button"
+            accessibilityLabel={t('Later')}
+            onPress={() => setFrom((prev: number) => prev + STEP_MS)}
+            style={styles.guideNavButton}
+          >
+            <Text>{t('Later') + ' ▶'}</Text>
+          </Pressable>
+        )}
+      </View>
       <View style={styles.epgSchedule} testID="epg-schedule">
         {programmes.length === 0 ? (
           <View style={styles.epgEmpty}>
@@ -389,10 +454,12 @@ export function LiveScreen() {
   const categories = host.hooks.useCatalog((s) => s.categories.live?.data ?? []);
   const categoryId = host.useCategory();
   const now = useNow();
-  const [from, _setFrom] = useState(() => floorToSlot(Date.now()));
+  const favoriteChannels = host.hooks.useFavoriteChannels();
+  const [from, setFrom] = useState<number>(() => floorToSlot(Date.now()));
   const [pages, setPages] = useState(1);
   const [selectedProgramme, setSelectedProgramme] = useState<EpgListing | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel | null>(null);
+  const [previewPrimed, setPreviewPrimed] = useState(false);
   const [channelList, setChannelList] = useState<LiveChannel[]>([]);
   const [channelsByCategory, setChannelsByCategory] = useState<Map<string, LiveChannel[]>>(new Map());
   const sizes = useSizes();
@@ -401,8 +468,8 @@ export function LiveScreen() {
   const _to = from + HOURS * 3600_000;
   const nowSlot = floorToSlot(now);
   const compact = useCompact();
-  const _canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
-  const _canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
+  const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
+  const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
 
   // Load EPG guide for selected category
   const guide = useEpgGuide(host.stores.epg, { categoryId, from, hours: HOURS }, pages);
@@ -416,6 +483,7 @@ export function LiveScreen() {
         // Auto-select first channel if none selected
         if (!selectedChannel && allChannels.length > 0) {
           setSelectedChannel(allChannels[0]!);
+          setPreviewPrimed(true);
         }
       }
       // Also load all channels for category counts
@@ -428,13 +496,15 @@ export function LiveScreen() {
           const catChannels = await host.stores.catalog.getState().loadLiveChannels(cat.id);
           if (catChannels) map.set(cat.id, catChannels);
         }
-        // Favorites - would come from profile prefs in real implementation
-        map.set('favorites', allChannelsAll.slice(0, 10));
+        // Favorites: filter all channels by the user's favorite channel IDs
+        const favoriteIds = new Set(favoriteChannels.map((c) => c.id));
+        const favorites = allChannelsAll.filter((c) => favoriteIds.has(c.id));
+        map.set('favorites', favorites);
         setChannelsByCategory(map);
       }
     };
     loadChannels();
-  }, [categoryId, categories, host, selectedChannel]);
+  }, [categoryId, categories, host, selectedChannel, favoriteChannels]);
 
   useEffect(() => {
     void host.stores.catalog.getState().loadCategories('live');
@@ -448,16 +518,67 @@ export function LiveScreen() {
     setPages(1);
     setSelectedProgramme(null);
     setSelectedChannel(null);
+    setPreviewPrimed(false);
   };
 
   // Get category name for video preview overlay
   const activeCategory = categories.find((c) => c.id === categoryId);
   const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('All channels'));
 
-  // Handle remote navigation between columns
+  // Channel number entry via remote number keys (0-9)
+  const typedNumberRef = useRef<string>('');
+  const numberTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [typedNumber, setTypedNumber] = useState<string>('');
+
+  const clearTypedNumber = useCallback(() => {
+    typedNumberRef.current = '';
+    if (numberTimeoutRef.current) {
+      clearTimeout(numberTimeoutRef.current);
+      numberTimeoutRef.current = null;
+    }
+    setTypedNumber('');
+  }, []);
+
+  const commitTypedNumber = useCallback(() => {
+    const num = Number(typedNumberRef.current);
+    if (Number.isNaN(num) || num <= 0) {
+      clearTypedNumber();
+      return;
+    }
+    const channel = channelList.find((c) => c.number === num);
+    if (channel) {
+      const row = guide.rows.find((r) => r.channel.id === channel.id);
+      play(host, liveTarget(channel, programmeAt(row?.programmes ?? [], now)?.title));
+      setPreviewPrimed(false);
+    }
+    clearTypedNumber();
+  }, [channelList, guide.rows, now, host, clearTypedNumber]);
+
+  // Handle remote navigation between columns + channel number entry
   const columnFocus = useRef<'categories' | 'channels' | 'epg'>('channels');
   useRemote(({ key, action }) => {
     if (!Platform.isTV || action !== 'down') return;
+
+    // Channel number entry: 0-9 keys build a number, commit after 2s pause or on select
+    if (/^[0-9]$/.test(key)) {
+      typedNumberRef.current += key;
+      setTypedNumber(typedNumberRef.current);
+      if (numberTimeoutRef.current) clearTimeout(numberTimeoutRef.current);
+      numberTimeoutRef.current = setTimeout(commitTypedNumber, 2000);
+      return;
+    }
+
+    // Select (OK) commits the typed number immediately
+    if (key === 'select' && typedNumberRef.current) {
+      commitTypedNumber();
+      return;
+    }
+
+    // Any other key cancels number entry
+    if (typedNumberRef.current && key !== 'channelUp' && key !== 'channelDown') {
+      clearTypedNumber();
+    }
+
     if (key === 'left') {
       if (columnFocus.current === 'channels') columnFocus.current = 'categories';
       else if (columnFocus.current === 'epg') columnFocus.current = 'channels';
@@ -467,6 +588,14 @@ export function LiveScreen() {
     }
     // Note: Actual focus movement would need focus refs for each column
   });
+
+  // Cleanup timeout on unmount
+  useEffect(
+    () => () => {
+      if (numberTimeoutRef.current) clearTimeout(numberTimeoutRef.current);
+    },
+    [],
+  );
 
   const content = (
     <View style={styles.mainLayout} testID="live-main">
@@ -491,10 +620,14 @@ export function LiveScreen() {
           <ChannelList
             channels={channelList}
             selectedChannelId={selectedChannel?.id ?? null}
-            onSelectChannel={setSelectedChannel}
+            previewPrimed={previewPrimed}
             onPlayChannel={(ch) => {
               const row = guide.rows.find((r) => r.channel.id === ch.id);
-              play(host, ch, programmeAt(row?.programmes ?? [], now));
+              play(host, liveTarget(ch, programmeAt(row?.programmes ?? [], now)?.title));
+            }}
+            onPrimePreview={(ch) => {
+              setSelectedChannel(ch);
+              setPreviewPrimed(true);
             }}
             navUp={navFocusTarget}
           />
@@ -510,10 +643,22 @@ export function LiveScreen() {
           now={now}
           categoryName={categoryName}
           onSelectProgramme={setSelectedProgramme}
-          onPlayChannel={(ch) => {
-            const row = guide.rows.find((r) => r.channel.id === ch.id);
-            play(host, ch, programmeAt(row?.programmes ?? [], now));
+          onPlayChannel={(target) => {
+            if ('kind' in target) {
+              // target is PlayTarget
+              play(host, target);
+            } else {
+              // target is LiveChannel
+              const row = guide.rows.find((r) => r.channel.id === target.id);
+              play(host, liveTarget(target, programmeAt(row?.programmes ?? [], now)?.title));
+            }
           }}
+          _from={from}
+          setFrom={setFrom}
+          canEarlier={canEarlier}
+          canLater={canLater}
+          previewPrimed={previewPrimed}
+          typedNumber={typedNumber}
         />
       </View>
     </View>
@@ -561,15 +706,15 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xs,
     borderRadius: radius,
   },
-  categoryItemActive: { backgroundColor: colors.accent },
-  categoryItemFocused: { backgroundColor: colors.accentHover },
+  categoryItemActive: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.accent },
+  categoryItemFocused: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   categoryItemContent: { flexDirection: 'column', gap: spacing.xs },
   categoryItemMain: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  favoritesIcon: { color: colors.accent, fontSize: fonts.body },
+  favoritesIcon: { color: colors.gold, fontSize: fonts.body },
   categoryItemLabel: { color: colors.text, fontSize: fonts.body, fontWeight: '500' },
-  categoryItemLabelActive: { color: colors.bg, fontWeight: '700' },
+  categoryItemLabelActive: { color: colors.strong, fontWeight: '700' },
   categoryItemCount: { color: colors.muted, fontSize: fonts.tiny },
-  categoryItemCountActive: { color: colors.bg, opacity: 0.8 },
+  categoryItemCountActive: { color: colors.strong, opacity: 0.9 },
 
   channelColumnWrapper: {
     width: '30%',
@@ -591,11 +736,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  channelItemActive: { backgroundColor: colors.accent },
+  channelItemActive: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   channelLogo: { width: 40, height: 40, borderRadius: 4 },
   channelLogoPlaceholder: { width: 40, height: 40, borderRadius: 4, backgroundColor: colors.raised },
   channelName: { flex: 1, color: colors.text, fontSize: fonts.body, fontWeight: '500' },
-  channelNameActive: { color: colors.bg, fontWeight: '700' },
+  channelNameActive: { color: colors.strong, fontWeight: '700' },
   channelNumberBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -619,6 +764,21 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     overflow: 'hidden',
   },
+  epgHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  guideNavButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius,
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
 
   epgSchedule: {
     flex: 1,
@@ -635,22 +795,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  epgCardCurrent: { backgroundColor: colors.accent, borderColor: colors.accent },
-  epgCardSelected: { borderColor: colors.strong, borderWidth: 2 },
+  epgCardCurrent: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.blue },
+  epgCardSelected: { borderColor: colors.blue, borderWidth: 2 },
   epgCardPast: { opacity: 0.5 },
   epgCardHeader: { flexDirection: 'column', gap: spacing.xs },
   epgCardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
-  liveBadge: { color: colors.warning, fontSize: fonts.tiny },
-  catchupBadge: { color: colors.warning, fontSize: fonts.tiny },
+  liveBadge: { color: colors.blue, fontSize: fonts.tiny, fontWeight: '600' },
+  catchupBadge: { color: colors.gold, fontSize: fonts.tiny, fontWeight: '600' },
   reminderBadge: { fontSize: fonts.tiny },
   epgCardTitle: { flex: 1, color: colors.text, fontSize: fonts.body, fontWeight: '600' },
-  epgCardTitleCurrent: { color: colors.bg },
+  epgCardTitleCurrent: { color: colors.text },
   epgCardTimeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   epgCardTime: { color: colors.muted, fontSize: fonts.tiny },
   epgCardDescription: { color: colors.muted, fontSize: fonts.tiny, marginTop: spacing.xs, lineHeight: 16 },
   epgProgressContainer: { marginTop: spacing.xs, gap: spacing.xs },
   epgProgressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' },
-  epgProgressFill: { height: '100%', backgroundColor: colors.warning, borderRadius: 2 },
+  epgProgressFill: { height: '100%', backgroundColor: colors.blue, borderRadius: 2 },
   epgProgressTimes: { flexDirection: 'row', justifyContent: 'space-between' },
   epgProgressTime: { color: colors.muted, fontSize: 9 },
 

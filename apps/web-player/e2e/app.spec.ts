@@ -136,17 +136,18 @@ test('episodes: skip ahead, continue watching + resume, next-episode countdown',
 
 test('live TV guide shows what is on and plays a channel', async ({ page }) => {
   await page.getByRole('button', { name: 'Live TV' }).click();
-  const guide = page.getByRole('region', { name: 'TV guide' });
+  const guide = page.getByTestId('live-main');
   // Five channels, each with a programme on now; "Test Arena" has no XMLTV id and comes from short EPG.
-  await expect(guide.getByTestId(/^guide-now-/)).toHaveCount(5);
-  await expect(guide.getByRole('button', { name: /^Warm-up,|^Arena Live,/ }).first()).toBeVisible();
+  const epgSchedule = guide.getByTestId('epg-schedule');
+  // Current programmes have the live badge ● and progress bar
+  const currentProgrammes = epgSchedule.getByTestId(/^epg-programme-/).filter({ has: page.getByText('●') });
+  await expect(currentProgrammes.first()).toBeVisible();
   await page.screenshot({ path: 'test-results/guide.png' });
 
-  const onNow = guide.getByTestId(/^guide-now-/).first();
+  const onNow = currentProgrammes.first();
   const title = (await onNow.getAttribute('aria-label'))!.split(',')[0]!;
   await onNow.click();
-  await expect(page.getByRole('region', { name: 'Programme details' })).toContainText('On now');
-  await page.getByRole('button', { name: 'Watch live' }).click();
+  // Clicking a current programme plays it directly (no Programme details dialog in new layout)
   await expect(page.getByTestId('player-live')).toBeVisible();
   await expect(page.getByTestId('player-subtitle')).toContainText(title);
   await expectPlaying(page, 1);
@@ -169,18 +170,49 @@ test('live TV guide shows what is on and plays a channel', async ({ page }) => {
 });
 
 test("catch-up: a past programme plays from the channel's recording, with seeking and no LIVE tag (issue #226)", async ({ page }) => {
+  page.on('console', (msg) => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
   await page.getByRole('button', { name: 'Live TV' }).click();
-  const guide = page.getByRole('region', { name: 'TV guide' });
-  await expect(guide.getByTestId(/^guide-now-/)).toHaveCount(5);
-  await page.getByRole('button', { name: '◀ Earlier' }).click();
-  await page.getByRole('button', { name: '◀ Earlier' }).click();
+  const guide = page.getByTestId('live-main');
+  // Select the Sports category (Test Sports FHD has catchup)
+  await guide.getByTestId('live-category-3').click();
+  // Wait for the channel list to load, then hover the first channel (Test Sports FHD) to select it without playing.
+  const channelList = guide.getByTestId('live-channels');
+  await expect(channelList.getByTestId(/^live-channel-/).first()).toBeVisible();
+  await channelList.getByTestId('live-channel-0').hover();
+  // Wait for EPG schedule to render for the selected channel
+  await expect(
+    guide
+      .getByTestId('epg-schedule')
+      .getByTestId(/^epg-programme-/)
+      .first(),
+  ).toBeVisible();
+  // Navigate to earlier programmes using the guide-earlier button
+  await page.getByTestId('guide-earlier').click();
+  // Wait for EPG to reload for the new time window
+  await expect(
+    guide
+      .getByTestId('epg-schedule')
+      .getByTestId(/^epg-programme-/)
+      .first(),
+  ).toBeVisible();
+  await page.getByTestId('guide-earlier').click();
+  await expect(
+    guide
+      .getByTestId('epg-schedule')
+      .getByTestId(/^epg-programme-/)
+      .first(),
+  ).toBeVisible();
   // Only Test Sports FHD keeps recordings: its ended programmes carry the ↺ mark.
-  const recorded = guide.getByRole('button').filter({ hasText: '↺' });
+  const epgSchedule = guide.getByTestId('epg-schedule');
+  const recorded = epgSchedule.getByTestId(/^epg-programme-/).filter({ hasText: '↺' });
   await expect(recorded.first()).toBeVisible();
-  await expect(recorded.first()).toHaveAttribute('aria-label', /Test Sports FHD$/);
   const title = (await recorded.first().getAttribute('aria-label'))!.split(',')[0]!;
   await recorded.first().click();
-  await page.getByRole('region', { name: 'Programme details' }).getByRole('button', { name: 'Watch', exact: true }).click();
+  // In the new layout, selecting a past programme with catchup shows it in the preview;
+  // the VideoPreview shows a "Watch recording" button when there's a playable catchup source.
+  await expect(page.getByTestId('preview-catchup-overlay')).toBeVisible();
+  await expect(page.getByTestId('preview-catchup-button')).toBeVisible();
+  await page.getByTestId('preview-catchup-button').click();
   await expect(page.getByTestId('player-title')).toHaveText(title);
   await expectPlaying(page, 1);
   await expect(page.getByTestId('player-live')).toHaveCount(0);

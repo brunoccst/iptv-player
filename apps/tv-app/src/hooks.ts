@@ -29,6 +29,7 @@ export const {
   useTitleCard,
   continueMenuItems,
   useRecentChannels,
+  useFavoriteChannels,
   useNoteRecentChannel,
   useLiveHomeRow,
   useQualityUpgrades,

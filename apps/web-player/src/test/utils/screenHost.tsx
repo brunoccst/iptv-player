@@ -112,6 +112,8 @@ export function createTestScreenHost(overrides: Partial<ScreenHost> = {}): Scree
       </div>
     ),
     EndSensor: ({ onReached }) => <div data-testid="end-sensor" onClick={onReached} />,
+    focusLiveChannel: vi.fn(),
+    blurLiveChannel: vi.fn(),
     ...overrides,
   };
 }

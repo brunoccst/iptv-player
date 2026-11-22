@@ -26,7 +26,7 @@ def find_ffmpeg() -> str:
         raise SystemExit("ffmpeg not found. Install ffmpeg, set $FFMPEG, or `pip install imageio-ffmpeg`.") from error
 
 
-def run(ffmpeg: str, seconds: int, size: str, codec: str, output_args: list[str], tone: int) -> None:
+def run(ffmpeg: str, seconds: int, size: str, codec: str, output_args: list[str], tone: int, cwd: str | None = None) -> None:
     if codec == "vp9":
         video = ["-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "300k"]
         audio = ["-c:a", "libopus", "-b:a", "48k"]
@@ -56,12 +56,13 @@ def run(ffmpeg: str, seconds: int, size: str, codec: str, output_args: list[str]
         *audio,
         *output_args,
     ]
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, cwd=cwd)
 
 
 def hls(ffmpeg: str, name: str, seconds: int, size: str, codec: str, tone: int) -> None:
     target = MEDIA / name
     target.mkdir(parents=True, exist_ok=True)
+    # Run ffmpeg from target directory so paths in playlist are relative
     run(
         ffmpeg,
         seconds,
@@ -79,10 +80,11 @@ def hls(ffmpeg: str, name: str, seconds: int, size: str, codec: str, tone: int) 
             "-hls_fmp4_init_filename",
             "init.mp4",
             "-hls_segment_filename",
-            str(target / "seg_%03d.m4s"),
-            str(target / "index.m3u8"),
+            "seg_%03d.m4s",
+            "index.m3u8",
         ],
         tone,
+        cwd=str(target),
     )
 
 

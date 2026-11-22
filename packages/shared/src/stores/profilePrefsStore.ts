@@ -4,6 +4,7 @@ import type { KeyValueStorage } from './storage';
 import { t } from '../i18n/i18n';
 import type { PlaybackChoices } from '../playback/playbackChoices';
 import type { RecentChannel } from '../playback/recentChannels';
+import type { FavoriteChannel } from '../playback/favoriteChannels';
 import type { Reminder } from '../playback/reminders';
 import { stampListDates, type ListDates } from '../profiles/listDates';
 
@@ -38,6 +39,8 @@ export interface ProfilePrefs {
   playback?: PlaybackChoices | null;
   /** Live channels watched, newest first (issue #122, D-129): Home's first live row and the live player's history. */
   recentChannels?: RecentChannel[] | null;
+  /** Live channels the user marked as favorites: shown in the Live TV guide's Favorites category. */
+  favoriteChannels?: FavoriteChannel[] | null;
   /** Guide programmes to be reminded of, soonest first (issue #239, D-184). */
   reminders?: Reminder[] | null;
   /**

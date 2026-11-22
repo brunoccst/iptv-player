@@ -44,11 +44,13 @@ import {
   useTitleCard,
   useWatchlist,
   useWatchlistToggle,
+  useFavoriteChannels,
+  useRecentChannels,
 } from './hooks';
 import { colors, useNavHeight } from './theme';
 import { canScanQr, usePairingServer } from './pairing/pairing';
 import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
-import { blurTitle, focusTitle, useColourPageTitle } from './tv/colourKeys';
+import { blurTitle, focusTitle, focusLiveChannel, blurLiveChannel, useColourPageTitle } from './tv/colourKeys';
 import { useDownload } from './downloads/useDownload';
 import { useExternalPlayer } from './player/useExternalPlayer';
 import { usePlayOnTv } from './pairing/usePlayOnTv';
@@ -91,6 +93,8 @@ const host: ScreenHost = {
     useHiddenCategories,
     useLanguageSettings,
     usePin,
+    useFavoriteChannels,
+    useRecentChannels,
   },
   api,
   subtitles: appContext.subtitles,
@@ -179,6 +183,8 @@ const host: ScreenHost = {
   },
   focusTitle: (section, card) => focusTitle({ section, card }),
   blurTitle,
+  focusLiveChannel: (channel) => focusLiveChannel({ channel }),
+  blurLiveChannel,
 };
 
 setScreenHost(host);

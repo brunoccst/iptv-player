@@ -1270,12 +1270,14 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
     const { stored, client } = await session();
     const result = new Map<string, EpgListing[]>();
     const queue = [...channels];
+    // Include the time window in the cache key so navigating to earlier/later windows fetches the correct data.
+    const fromKey = from === Number.POSITIVE_INFINITY ? 'now' : String(from);
     const worker = async () => {
       for (let channel = queue.shift(); channel; channel = queue.shift()) {
         const id = channel.id;
         // Guide data is optional: a failed channel is cached as "no guide".
-        const programmes = await cached(`epg:${stored.account.id}:${id}`, SHORT_EPG_CACHE_MS, () =>
-          persisted(stored.account.id, `epg:${id}`, SHORT_EPG_CACHE_MS, () => client.shortEpg(id, SHORT_EPG_LIMIT)).catch(
+        const programmes = await cached(`epg:${stored.account.id}:${id}:${fromKey}`, SHORT_EPG_CACHE_MS, () =>
+          persisted(stored.account.id, `epg:${id}:${fromKey}`, SHORT_EPG_CACHE_MS, () => client.shortEpg(id, SHORT_EPG_LIMIT)).catch(
             () => [] as EpgListing[],
           ),
         );
@@ -1285,8 +1287,8 @@ export function createDirectApiClient(options: DirectApiClientOptions): DirectAp
           continue;
         }
         const keepFrom = now().getTime() - CATCHUP_GUIDE_MS;
-        const past = await cached(`epg-past:${stored.account.id}:${id}`, SHORT_EPG_CACHE_MS, () =>
-          persisted(stored.account.id, `epg-past:${id}`, SHORT_EPG_CACHE_MS, async () =>
+        const past = await cached(`epg-past:${stored.account.id}:${id}:${fromKey}`, SHORT_EPG_CACHE_MS, () =>
+          persisted(stored.account.id, `epg-past:${id}:${fromKey}`, SHORT_EPG_CACHE_MS, async () =>
             (await client.channelEpg(id)).filter(
               (programme) => Date.parse(programme.end) > keepFrom && Date.parse(programme.start) < first,
             ),

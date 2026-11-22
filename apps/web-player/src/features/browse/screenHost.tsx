@@ -47,6 +47,8 @@ import {
   useUi,
   useWatchlist,
   useWatchlistToggle,
+  useFavoriteChannels,
+  useRecentChannels,
 } from '../../hooks/stores';
 
 /**
@@ -86,6 +88,8 @@ setScreenHost({
     useHiddenCategories,
     useLanguageSettings,
     usePin,
+    useFavoriteChannels,
+    useRecentChannels,
   },
   api,
   subtitles: appContext.subtitles,
@@ -226,4 +230,6 @@ setScreenHost({
       </div>
     );
   },
+  focusLiveChannel: () => {},
+  blurLiveChannel: () => {},
 });
