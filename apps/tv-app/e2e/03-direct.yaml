@@ -103,7 +103,7 @@ appId: ${APP_ID}
     id: "guide-now-304"
 - takeScreenshot: 22-direct-guide
 # Account menu → Profiles → Categories shown: the category list fills the tall dialog. Build 231 showed only the
-# section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094). Straight from Live TV: Back there leaves the app.
+# section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094).
 - tapOn:
     id: "nav-account"
 - tapOn:
@@ -128,7 +128,7 @@ appId: ${APP_ID}
 - assertVisible:
     id: "hidden-category-News"
 - takeScreenshot: 24-categories-shown-live
-# D-pad between the tabs and Save (DECISIONS.md#d-247): Up to the tab row, Right past its last tab (Live TV) reaches
+# D-pad between the tabs and Save (DECISIONS.md#d-248): Up to the tab row, Right past its last tab (Live TV) reaches
 # Save, and Left from Save comes back to Live TV, also after a detour through the filter under the tabs.
 - pressKey: Remote Dpad Left
 - repeat:
@@ -157,3 +157,27 @@ appId: ${APP_ID}
     focused: true
 - takeScreenshot: 25-categories-tabs-save
 - pressKey: back
+- extendedWaitUntil:
+    notVisible:
+      id: "hidden-categories-all"
+    timeout: 15000
+# Back on Live TV goes Home, not out of the app (D-248); the account menu may still be open and closes first.
+- repeat:
+    while:
+      notVisible:
+        id: "home-screen"
+    times: 3
+    commands:
+      - pressKey: back
+      - extendedWaitUntil:
+          visible:
+            id: "home-screen"
+          timeout: 10000
+          optional: true
+- assertVisible:
+    id: "home-screen"
+- extendedWaitUntil:
+    visible:
+      id: "hero-play"
+    timeout: 30000
+- takeScreenshot: 25-back-to-home

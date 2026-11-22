@@ -102,6 +102,12 @@ The Android TV home screen shows the active profile's Continue Watching in its "
 
 **Apps:** TV ✅ · Phone ➖ · Desktop ➖ (Android TV home screen; not Google TV, issue #320; phones and computers have no such row).
 
+### Back to Home (TV and phone)
+
+Back on a page from the top nav (Live TV, Movies, Series, Search, My List, My Downloads) goes to Home; only Back on Home closes the app. Menus, boxes, details and the player still close first, so Back from a playing channel shows Live TV, and the next Back Home (D-248).
+
+**Apps:** TV ✅ · Phone ✅ · Desktop ➖ (Back walks the window's history and never closes the app, D-025).
+
 ### Movies and Series
 
 A grid of titles, loaded as you scroll (D-040), sorted by date added (newest first, the default), name or release date, each either way (D-049), or highest rated first (the provider's rating, D-040).

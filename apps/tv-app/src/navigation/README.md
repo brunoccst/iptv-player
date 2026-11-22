@@ -1,3 +1,3 @@
 # navigation
 
-`navStore.ts`: route stack (`section` root, `details`, `player`), `goSection`, `push`, `replaceTop`, `back` (false at root → Android exits), `libraryRevision`.
+`navStore.ts`: route stack (`section` root, `details`, `player`), `goSection`, `push`, `replaceTop`, `back` (at the root goes Home; false only on Home → Android exits, D-248), `libraryRevision`.
