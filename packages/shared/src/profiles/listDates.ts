@@ -9,16 +9,17 @@ import type { ProfilePrefs } from '../stores/profilePrefsStore';
  * so a series marked not watched or a cancelled reminder stays that way, and recent channels sort by when they were
  * really watched on any device. Entries with no date on either side (saved before) are joined, as before.
  */
-export type DatedList = 'watchedSeries' | 'reminders' | 'recentChannels';
+export type DatedList = 'watchedSeries' | 'reminders' | 'recentChannels' | 'favoriteChannels';
 export type ListDates = Partial<Record<DatedList, Record<string, string>>>;
 
-const DATED_LISTS: DatedList[] = ['watchedSeries', 'reminders', 'recentChannels'];
+const DATED_LISTS: DatedList[] = ['watchedSeries', 'reminders', 'recentChannels', 'favoriteChannels'];
 
 export const reminderKey = (reminder: Pick<Reminder, 'channel' | 'start'>) => `${reminder.channel.id}|${reminder.start}`;
 
 const keysOf = (list: DatedList, prefs: ProfilePrefs | undefined): string[] => {
   if (list === 'watchedSeries') return prefs?.watchedSeries ?? [];
   if (list === 'reminders') return (prefs?.reminders ?? []).map(reminderKey);
+  if (list === 'favoriteChannels') return (prefs?.favoriteChannels ?? []).map((c) => c.id);
   return (prefs?.recentChannels ?? []).map((channel) => channel.id);
 };
 
@@ -132,6 +133,26 @@ export function mergeDatedLists(
     result.recentChannels = channels
       .sort((a, b) => ((dates[b.id] ?? '') > (dates[a.id] ?? '') ? 1 : (dates[b.id] ?? '') < (dates[a.id] ?? '') ? -1 : 0))
       .slice(0, MAX_RECENT_CHANNELS);
+  }
+  if (phone.favoriteChannels || local.favoriteChannels) {
+    const dates = laterDates(phoneAt.favoriteChannels, localAt.favoriteChannels);
+    const phoneFavorites = phone.favoriteChannels ?? [];
+    const localFavorites = local.favoriteChannels ?? [];
+    // Union of both; the later change wins for each channel
+    const allIds = new Set([...phoneFavorites.map((c) => c.id), ...localFavorites.map((c) => c.id)]);
+    const favorites = Array.from(allIds).map((channelId) => {
+      const phoneChannel = phoneFavorites.find((c) => c.id === channelId);
+      const localChannel = localFavorites.find((c) => c.id === channelId);
+      if (phoneChannel && localChannel) {
+        // Both have it - keep the one with the later date
+        return (localAt.favoriteChannels?.[channelId] ?? '') > (phoneAt.favoriteChannels?.[channelId] ?? '') ? localChannel : phoneChannel;
+      }
+      return localChannel ?? phoneChannel!;
+    });
+    // Keep order: most recently added first (dated ones first, then undated)
+    result.favoriteChannels = favorites.sort((a, b) =>
+      (dates[b.id] ?? '') > (dates[a.id] ?? '') ? 1 : (dates[b.id] ?? '') < (dates[a.id] ?? '') ? -1 : 0,
+    );
   }
   if (phone.listChangedAt || local.listChangedAt) {
     const dates: ListDates = {};

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { continueWatching, type LibrarySection, type MasterCard } from '@iptv/shared';
+import { continueWatching, type LibrarySection, type MasterCard, toggleFavoriteChannel, type FavoriteChannel } from '@iptv/shared';
 import { navStore, stores } from '../appContext';
 import { currentRoute, playFromContinue } from '../navigation/navStore';
 import { useRemote } from '../tv/remote';
@@ -7,6 +7,7 @@ import { useRemote } from '../tv/remote';
 /**
  * The remote's colour keys (D-154, issue #180): one meaning each, wherever you are.
  * - Red: add the focused title (a card, the details page, the title playing) to My List, or remove it.
+ *   On Live TV: add/remove the focused channel to/from favorites.
  * - Green: the player's audio and subtitles; elsewhere plays Continue Watching's first title.
  * - Yellow: Search, from anywhere.
  * - Blue: live, the guide over the channel; elsewhere Live TV.
@@ -21,9 +22,16 @@ export interface ColourTitle {
   card: Pick<MasterCard, 'id' | 'title' | 'year' | 'posterUrl'>;
 }
 
+/** A live channel focused in the Live TV guide, for the Red key. */
+export interface LiveChannelFocus {
+  channel: FavoriteChannel;
+}
+
 // The title Red adds: the focused card first, else the page's own title (the details page).
 let focused: ColourTitle | null = null;
 let page: ColourTitle | null = null;
+// The live channel focused in the guide (for Red on Live TV).
+let focusedLiveChannel: LiveChannelFocus | null = null;
 
 export function focusTitle(title: ColourTitle) {
   focused = title;
@@ -47,9 +55,31 @@ export function useColourPageTitle(title: ColourTitle | null) {
 }
 export const colourTitle = (): ColourTitle | null => focused ?? page;
 
+/** Focus a live channel for the Red key on Live TV. */
+export function focusLiveChannel(channel: LiveChannelFocus) {
+  focusedLiveChannel = channel;
+}
+/** Blur a live channel. */
+export function blurLiveChannel(id: string) {
+  if (focusedLiveChannel?.channel.id === id) focusedLiveChannel = null;
+}
+/** Get the currently focused live channel, if any. */
+export const focusedLive = (): LiveChannelFocus | null => focusedLiveChannel;
+
 /** Red on a title: add it to My List or take it off. */
 export function toggleOnMyList(title: ColourTitle | null) {
   if (title) void stores.watchlist.getState().toggle(title.section, title.card);
+}
+
+/** Red on a live channel: add it to favorites or remove it. */
+export function toggleFavoriteLiveChannel(channel: LiveChannelFocus | null) {
+  if (!channel) return;
+  const profileId = stores.session.getState().activeProfileId;
+  if (!profileId) return;
+  const prefs = stores.profilePrefs.getState();
+  const current = prefs.prefs[profileId]?.favoriteChannels ?? [];
+  const updated = toggleFavoriteChannel(current, channel.channel);
+  void prefs.update(profileId, { favoriteChannels: updated });
 }
 
 /**
@@ -65,8 +95,15 @@ export function ColourKeys() {
       return;
     }
     if (currentRoute(nav).name === 'player') return;
-    if (key === 'red') toggleOnMyList(colourTitle());
-    else if (key === 'green') {
+    const route = currentRoute(nav);
+    // On Live TV section, Red toggles favorite channel; elsewhere Red toggles My List
+    if (key === 'red') {
+      if (route.name === 'section' && route.section === 'live') {
+        toggleFavoriteLiveChannel(focusedLive());
+      } else {
+        toggleOnMyList(colourTitle());
+      }
+    } else if (key === 'green') {
       const first = continueWatching(stores.progress.getState().items.data ?? [])[0];
       if (first) playFromContinue(navStore, first);
     } else nav.goSection('live');

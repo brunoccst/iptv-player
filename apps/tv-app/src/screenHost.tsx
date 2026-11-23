@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
-import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
+import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost, type TvPlayerViewComponent } from '@iptv/screens';
+import { TvPlayerView } from '../modules/tv-media';
 
 const NO_NOTES: string[] = [];
 import { api, appContext, downloadsStore, navStore, stores } from './appContext';
 import { t, type UiLanguage } from '@iptv/shared';
-import { appConfig } from './config';
+import { appConfig, providerUserAgent } from './config';
 import { backupFiles } from './backupFiles';
 import { about } from './about';
 import { confirmCloseApp, confirmSignOut } from './signOut';
@@ -45,11 +46,13 @@ import {
   useTitleCard,
   useWatchlist,
   useWatchlistToggle,
+  useFavoriteChannels,
+  useRecentChannels,
 } from './hooks';
 import { colors, useNavHeight } from './theme';
 import { canScanQr, usePairingServer } from './pairing/pairing';
 import { openPairingDialog, PairingCode } from './pairing/PairingDialogs';
-import { blurTitle, focusTitle, useColourPageTitle } from './tv/colourKeys';
+import { blurTitle, focusTitle, focusLiveChannel, blurLiveChannel, useColourPageTitle } from './tv/colourKeys';
 import { useDownload } from './downloads/useDownload';
 import { useExternalPlayer } from './player/useExternalPlayer';
 import { usePlayOnTv } from './pairing/usePlayOnTv';
@@ -93,10 +96,13 @@ const host: ScreenHost = {
     useHiddenCategories,
     useLanguageSettings,
     usePin,
+    useFavoriteChannels,
+    useRecentChannels,
   },
   api,
   subtitles: appContext.subtitles,
   stores,
+  providerUserAgent,
   openDetails: (section, masterId) => navStore.getState().push({ name: 'details', section, masterId }),
   play: (target) => navStore.getState().push({ name: 'player', target }),
   openSection: (section, categoryId = null) =>
@@ -180,6 +186,12 @@ const host: ScreenHost = {
   },
   focusTitle: (section, card) => focusTitle({ section, card }),
   blurTitle,
+  focusLiveChannel: (channel) => focusLiveChannel({ channel }),
+  blurLiveChannel,
+  // TV native player view (react-native-tvos); provided by the TV app's TvMedia module.
+  get tvPlayerView(): TvPlayerViewComponent {
+    return TvPlayerView;
+  },
 };
 
 setScreenHost(host);

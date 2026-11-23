@@ -24,6 +24,7 @@ import { t, tn } from './i18n/i18n';
 import { MAX_SEARCH_CHANNELS, MAX_SEARCH_PROGRAMMES } from './search/useSearchQuery';
 import { addRecentChannel, MAX_RECENT_CHANNELS, recentChannelOf, recentChannelTarget, type RecentChannel } from './playback/recentChannels';
 import { dueReminders, hasReminder, nextReminderIn, pruneReminders, reminderOf, toggleReminder } from './playback/reminders';
+import { type FavoriteChannel } from './playback/favoriteChannels';
 import { isKidsCategory } from './profiles/kidsFilter';
 import { profileLanguages } from './stores/profilePrefsStore';
 import { selectActiveProfile } from './stores/sessionStore';
@@ -175,6 +176,13 @@ export function createAppHooks({
     return useMemo(() => (list ?? []).slice(0, limit), [list, limit]);
   };
 
+  /** The active profile's favorite channels, newest first. */
+  const useFavoriteChannels = (): FavoriteChannel[] => {
+    const profileId = useSession((s) => s.activeProfileId);
+    const list = useAppStore(stores.profilePrefs, (s) => (profileId ? s.prefs[profileId]?.favoriteChannels : null));
+    return useMemo(() => list ?? [], [list]);
+  };
+
   return {
     useSession,
     useCatalog: <T>(selector: (state: CatalogState) => T) => useAppStore(stores.catalog, selector),
@@ -183,6 +191,8 @@ export function createAppHooks({
     useWatchlist: <T>(selector: (state: WatchlistState) => T) => useAppStore(stores.watchlist, selector),
     useProfilePrefs: <T>(selector: (state: ProfilePrefsState) => T) => useAppStore(stores.profilePrefs, selector),
     usePin: <T>(selector: (state: PinState) => T) => useAppStore(stores.pin, selector),
+    useFavoriteChannels,
+    useRecentChannels,
 
     /**
      * "Who's watching?" (D-054): a profile opens, or in manage mode opens the editor. Managing asks for the PIN once
@@ -638,8 +648,6 @@ export function createAppHooks({
       }, [query]);
       return found;
     },
-
-    useRecentChannels,
 
     /**
      * Split or merge titles by hand from a title's details (issue #243, DECISIONS.md#d-185). Rows and details load again

@@ -15,6 +15,7 @@ export {
   type ScreenHost,
   type TitleDownload,
   type TitleMenuItem,
+  type TvPlayerViewComponent,
 } from './host';
 export { DetailsScreen } from './DetailsScreen';
 export { DownloadsScreen } from './DownloadsScreen';

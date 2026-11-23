@@ -14,6 +14,14 @@ export const colorTokens = {
   accentHover: '#f6121d',
   success: '#46d369',
   warning: '#e8a33d',
+  // Dense TV guide theme (three-column Live TV)
+  gold: '#e5c128',
+  goldHover: '#f0c808',
+  blue: '#1e88e5',
+  blueHover: '#29a8ff',
+  surfaceDark: '#141b24',
+  surfaceCard: '#1c2633',
+  coral: '#e85d4a', // Progress bar elapsed portion
 } as const;
 
 export const sizeTokens = {

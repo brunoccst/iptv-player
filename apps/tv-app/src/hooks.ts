@@ -30,6 +30,7 @@ export const {
   continueMenuItems,
   useContinueWatching,
   useRecentChannels,
+  useFavoriteChannels,
   useNoteRecentChannel,
   useLiveHomeRow,
   useQualityUpgrades,

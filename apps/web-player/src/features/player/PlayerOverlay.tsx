@@ -510,6 +510,7 @@ export function PlayerOverlay({ target }: { target: PlayTarget }) {
         className="player__video"
         crossOrigin="anonymous"
         playsInline
+        muted
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
         onPlay={() => setPlaying(true)}
