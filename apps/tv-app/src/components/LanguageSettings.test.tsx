@@ -9,6 +9,20 @@ async function flush() {
   });
 }
 
+/** Waits for the library to reload after a filter change (language, kids categories, hidden categories). */
+async function waitForLibraryReload(backend: ReturnType<typeof setupApp>, expectedLanguage: string | null) {
+  await act(async () => {
+    for (let i = 0; i < 200; i++) {
+      const libraryCalls = backend.calls.filter((call) => call.url.pathname.startsWith('/api/library/'));
+      const lastCall = libraryCalls.at(-1);
+      const lastLanguage = lastCall?.url.searchParams.get('language') ?? null;
+      if (lastLanguage === expectedLanguage) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    throw new Error(`Library did not reload with language=${expectedLanguage}`);
+  });
+}
+
 describe('account menu → Content language filter (D-063)', () => {
   it('filters the library by one or more languages for the active profile and remembers the choice', async () => {
     const backend = setupApp();
@@ -38,7 +52,7 @@ describe('account menu → Content language filter (D-063)', () => {
     expect(backend.calls.length).toBe(requestsBefore);
     expect(stores.profilePrefs.getState().prefs.p1).toBeUndefined();
     await fireEvent.press(screen.getByTestId('language-save'));
-    await flush();
+    await waitForLibraryReload(backend, 'GER,ENG');
 
     expect(stores.profilePrefs.getState().prefs.p1).toMatchObject({ languages: ['GER', 'ENG'] });
     expect(languages().at(-1)).toBe('GER,ENG');
@@ -50,7 +64,7 @@ describe('account menu → Content language filter (D-063)', () => {
     await fireEvent.press(screen.getByTestId('menu-language'));
     await fireEvent.press(screen.getByTestId('language-all'));
     await fireEvent.press(screen.getByTestId('language-save'));
-    await flush();
+    await waitForLibraryReload(backend, null);
     expect(languages().at(-1)).toBeNull();
   });
 
