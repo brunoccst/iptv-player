@@ -177,33 +177,34 @@ appId: ${APP_ID}
     id: "nav-downloads"
 - assertVisible: "Big Test Movie"
 - takeScreenshot: 05-downloads
-# Live TV guide: each channel shows what is on now (short EPG from the panel).
+# Live TV guide: three-column layout (categories | channels | video preview + EPG schedule).
+# First channel is auto-selected on load; its EPG schedule appears in the right column.
 - tapOn:
     id: "nav-live"
 - extendedWaitUntil:
     visible:
-      id: "guide-now-301"
+      id: "live-categories"
     timeout: 60000
-# Only the channels scroll, not the page (D-032): the remote's Down moves through them (focus starts on the first).
-- repeat:
-    while:
-      notVisible:
-        id: "guide-now-304"
-    times: 8
-    commands:
-      - pressKey: Remote Dpad Down
-- assertVisible:
-    id: "guide-now-304"
+- extendedWaitUntil:
+    visible:
+      id: "live-channels"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "video-epg-column"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "epg-schedule"
+    timeout: 30000
 - takeScreenshot: 05b-guide
-- repeat:
-    while:
-      notVisible:
-        id: "guide-now-301"
-    times: 8
-    commands:
-      - pressKey: Remote Dpad Up
+# The current programme has a progress bar with stable test IDs; tap it to play the channel.
+- extendedWaitUntil:
+    visible:
+      id: "epg-progress-start"
+    timeout: 20000
 - tapOn:
-    id: "guide-now-301"
+    id: "epg-progress-start"
 - extendedWaitUntil:
     visible:
       id: "player-screen"

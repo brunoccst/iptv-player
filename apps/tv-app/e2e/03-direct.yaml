@@ -85,22 +85,25 @@ appId: ${APP_ID}
     timeout: 15000
 - pressKey: back
 # Guide from the provider's short EPG, including the channel without an XMLTV id.
+# Three-column layout: first channel auto-selected, its EPG in right column.
 - tapOn:
     id: "nav-live"
 - extendedWaitUntil:
     visible:
-      id: "guide-now-301"
+      id: "live-categories"
     timeout: 60000
-# Only the channels scroll, not the page (D-032): the remote's Down moves through them.
-- repeat:
-    while:
-      notVisible:
-        id: "guide-now-304"
-    times: 8
-    commands:
-      - pressKey: Remote Dpad Down
-- assertVisible:
-    id: "guide-now-304"
+- extendedWaitUntil:
+    visible:
+      id: "live-channels"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "video-epg-column"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "epg-schedule"
+    timeout: 30000
 - takeScreenshot: 22-direct-guide
 # Account menu → Profiles → Categories shown: the category list fills the tall dialog. Build 231 showed only the
 # section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094). Straight from Live TV: Back there leaves the app.
