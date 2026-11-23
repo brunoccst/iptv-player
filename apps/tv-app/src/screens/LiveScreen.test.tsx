@@ -262,17 +262,26 @@ describe('LiveScreen (three-column guide)', () => {
     await render(<LiveScreen />);
     await flush();
 
-    // Video preview shows first channel by default
+    // Video preview shows "Select a channel" initially (no auto-select)
     expect(screen.getByTestId('video-preview')).toBeTruthy();
-    // Channel name in video preview overlay
-    expect(screen.getByTestId('video-preview')).toBeTruthy();
+    expect(screen.getByText('Select a channel')).toBeTruthy();
+
+    // Select first channel (press to prime preview)
+    await fireEvent.press(screen.getByTestId('live-channel-0'));
+    await flush();
+
+    // Video preview now shows selected channel
+    const preview = screen.getByTestId('video-preview');
+    expect(preview).toBeTruthy();
+    // Channel name appears in overlay (and also in channel list, but preview exists)
+    expect(screen.getAllByText('News HD').length).toBeGreaterThanOrEqual(1);
 
     // Select second channel
     await fireEvent.press(screen.getByTestId('live-channel-1'));
     await flush();
 
     // Video preview updates to show selected channel
-    expect(screen.getByTestId('video-preview')).toBeTruthy();
+    expect(screen.getAllByText('Sports HD').length).toBeGreaterThanOrEqual(1);
   });
 
   it('EPG schedule shows programmes for selected channel', async () => {
@@ -309,6 +318,10 @@ describe('LiveScreen (three-column guide)', () => {
     backend.on('GET', '/api/live/1/auto', { body: { url: 'http://stream/1', deliveryMode: 'hls' } });
 
     await render(<LiveScreen />);
+    await flush();
+
+    // Select the channel first (no auto-select)
+    await fireEvent.press(screen.getByTestId('live-channel-0'));
     await flush();
 
     // EPG schedule shows programmes
@@ -350,6 +363,10 @@ describe('LiveScreen (three-column guide)', () => {
     await render(<LiveScreen />);
     await flush();
 
+    // Select the channel first (no auto-select)
+    await fireEvent.press(screen.getByTestId('live-channel-0'));
+    await flush();
+
     // Progress bar exists for current programme (times in local timezone: "23 Sept, 13:30")
     expect(screen.getByTestId('epg-progress-start')).toBeTruthy(); // Start time in local time
     expect(screen.getByTestId('epg-progress-end')).toBeTruthy(); // End time in local time
@@ -387,7 +404,11 @@ describe('LiveScreen (three-column guide)', () => {
     await render(<LiveScreen />);
     await flush();
 
-    // Press the channel in the channel list to play
+    // First press: prime the channel preview
+    await fireEvent.press(screen.getByTestId('live-channel-0'));
+    await flush();
+
+    // Second press on the same (primed) channel: play
     await fireEvent.press(screen.getByTestId('live-channel-0'));
     await flush();
 

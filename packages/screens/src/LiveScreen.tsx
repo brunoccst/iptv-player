@@ -711,11 +711,7 @@ export function LiveScreen() {
       const allChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
       if (allChannels) {
         setChannelList(allChannels);
-        // Auto-select first channel if none selected
-        if (!selectedChannel && allChannels.length > 0) {
-          setSelectedChannel(allChannels[0]!);
-          setPreviewPrimed(true);
-        }
+        // Do NOT auto-select first channel - wait for user to press OK/Enter
       }
       // Also load all channels for category counts
       const allChannelsAll = await host.stores.catalog.getState().loadLiveChannels(null);
@@ -733,7 +729,7 @@ export function LiveScreen() {
       }
     };
     loadChannels();
-  }, [categoryId, categories, host, selectedChannel, favoriteChannels]);
+  }, [categoryId, categories, host, favoriteChannels]);
 
   useEffect(() => {
     void host.stores.catalog.getState().loadCategories('live');
