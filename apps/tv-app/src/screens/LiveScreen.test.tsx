@@ -80,8 +80,8 @@ describe('LiveScreen (three-column guide)', () => {
     expect(screen.getByTestId('live-channels')).toBeTruthy();
     expect(screen.getByTestId('video-epg-column')).toBeTruthy();
 
-    // Category list shows the category (All channels is selected by default)
-    expect(screen.getByLabelText('All channels').props.accessibilityState).toMatchObject({ selected: true });
+    // Category list shows Favorites and the News category (no "All channels" anymore)
+    expect(screen.getByLabelText('Favorites')).toBeTruthy();
     expect(screen.getByLabelText('News')).toBeTruthy();
     // Channel list shows channels (use testID to avoid duplicate text in video preview)
     expect(screen.getByTestId('live-channel-0')).toBeTruthy();
@@ -138,8 +138,9 @@ describe('LiveScreen (three-column guide)', () => {
     await render(<LiveScreen />);
     await flush();
 
-    // Initially on All channels (default category is null)
-    expect(screen.getByLabelText('All channels').props.accessibilityState).toMatchObject({ selected: true });
+    // Initially no category is selected (default category is null, no "All channels" anymore)
+    expect(screen.getByLabelText('Favorites')).toBeTruthy();
+    expect(screen.getByLabelText('News')).toBeTruthy();
     expect(screen.getByTestId('live-channel-0')).toBeTruthy();
 
     // Switch to News category
@@ -173,19 +174,19 @@ describe('LiveScreen (three-column guide)', () => {
     await render(<LiveScreen />);
     await flush();
 
-    // Category items exist with focus refs (All channels, Favorites, plus 5 custom = 7 total, indices 0-6)
+    // Category items exist with focus refs (Favorites + 5 custom = 6 total, indices 0-5)
     const item = (index: number) => screen.getByTestId(`live-category-${index}`);
     // navUp may be undefined in test environment (no nav target set)
     // expect(item(0).props.nextFocusUp).toBeDefined(); // navUp
-    expect(item(2).props.nextFocusUp).toBe('live-category-1');
-    expect(item(2).props.nextFocusDown).toBe('live-category-3');
-    // Last item (index 6) has nextFocusDown pointing to itself (stays on last)
-    expect(item(6).props.nextFocusDown).toBe('live-category-6'); // Stays on last
+    expect(item(1).props.nextFocusUp).toBe('live-category-0'); // Favorites is index 0
+    expect(item(1).props.nextFocusDown).toBe('live-category-2');
+    // Last item (index 5) has nextFocusDown pointing to itself (stays on last)
+    expect(item(5).props.nextFocusDown).toBe('live-category-5'); // Stays on last
 
     // Channel up/down pages through categories
     await fireEvent(screen.getByTestId('live-categories'), 'layout', { nativeEvent: { layout: { height: 300 } } });
     await fireEvent(item(0), 'layout', { nativeEvent: { layout: { height: 50 } } });
-    await fireEvent(item(2), 'focus');
+    await fireEvent(item(1), 'focus');
     await act(async () => pressRemote('channelDown', 'up'));
     expect(focusedTo().some((id) => id?.includes('live-category-'))).toBe(true);
   });
