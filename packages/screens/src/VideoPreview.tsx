@@ -201,6 +201,27 @@ function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV 
   const [attempt, setAttempt] = useState(0);
   const alternates = useRef<string[]>([]);
 
+  // Dynamic import for TvPlayerView - only available on TV (react-native-tvos).
+  // Must be called unconditionally to satisfy React hooks rules.
+  const [TvPlayerView, setTvPlayerView] = useState<React.ForwardRefExoticComponent<
+    TvPlayerViewProps & React.RefAttributes<TvPlayerViewRef>
+  > | null>(null);
+  useEffect(() => {
+    if (!isTV) return;
+    let cancelled = false;
+    // @ts-expect-error - module only exists in TV app context at runtime
+    import('../../../../apps/tv-app/modules/tv-media')
+      .then((mod) => {
+        if (!cancelled) setTvPlayerView(() => mod.TvPlayerView);
+      })
+      .catch(() => {
+        if (!cancelled) setTvPlayerView(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isTV]);
+
   useEffect(() => {
     let cancelled = false;
     const loadSource = async () => {
@@ -234,38 +255,7 @@ function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV 
     };
   }, [channel.id, attempt, api, onError]);
 
-  if (!source) {
-    return (
-      <View style={[styles.videoPlaceholder, style]}>
-        <Text style={styles.placeholderText}>{t('Loading…')}</Text>
-      </View>
-    );
-  }
-
-  // Dynamic import for TvPlayerView - only available on TV (react-native-tvos)
-  // Metro requires a string literal for dynamic import; path resolves from source file location.
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [TvPlayerView, setTvPlayerView] = useState<React.ForwardRefExoticComponent<
-    TvPlayerViewProps & React.RefAttributes<TvPlayerViewRef>
-  > | null>(null);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    if (!isTV) return;
-    let cancelled = false;
-    // @ts-expect-error - module only exists in TV app context at runtime
-    import('../../../../apps/tv-app/modules/tv-media')
-      .then((mod) => {
-        if (!cancelled) setTvPlayerView(() => mod.TvPlayerView);
-      })
-      .catch(() => {
-        if (!cancelled) setTvPlayerView(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isTV]);
-
-  if (!TvPlayerView) {
+  if (!source || !TvPlayerView) {
     return (
       <View style={[styles.videoPlaceholder, style]}>
         <Text style={styles.placeholderText}>{t('Loading…')}</Text>
