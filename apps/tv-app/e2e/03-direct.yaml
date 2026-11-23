@@ -87,24 +87,28 @@ appId: ${APP_ID}
 # Guide from the provider's short EPG, including the channel without an XMLTV id.
 # Three-column layout: first channel auto-selected, its EPG in right column.
 # CI Android TV emulator can be slow; allow up to 90s for the guide to appear (was 60s).
-- tapOn:
-    id: "nav-live"
-- extendedWaitUntil:
-    visible:
-      id: "live-categories"
-    timeout: 90000
-- extendedWaitUntil:
-    visible:
-      id: "live-channels"
-    timeout: 20000
-- extendedWaitUntil:
-    visible:
-      id: "video-epg-column"
-    timeout: 20000
-- extendedWaitUntil:
-    visible:
-      id: "epg-schedule"
-    timeout: 45000
+# Retry once in case navigation or initial load is flaky.
+- retry:
+    maxRetries: 1
+    commands:
+      - tapOn:
+          id: "nav-live"
+      - extendedWaitUntil:
+          visible:
+            id: "live-categories"
+          timeout: 90000
+      - extendedWaitUntil:
+          visible:
+            id: "live-channels"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible:
+            id: "video-epg-column"
+          timeout: 20000
+      - extendedWaitUntil:
+          visible:
+            id: "epg-schedule"
+          timeout: 45000
 - takeScreenshot: 22-direct-guide
 # Account menu → Profiles → Categories shown: the category list fills the tall dialog. Build 231 showed only the
 # section chips and Save/Cancel there (issue #330, DECISIONS.md#d-094). Straight from Live TV: Back there leaves the app.
