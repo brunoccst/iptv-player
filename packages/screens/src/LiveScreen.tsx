@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { memo, startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   EPG_SLOT_MS,
   floorToSlot,
@@ -18,10 +18,11 @@ import {
   formatGuideTimeWithDate,
 } from '@iptv/shared';
 import { useScreenHost, type ScreenHost } from './host';
-import { CenteringScrollView, useCenterFocus, type Measurable } from './ui/CenterScroll';
+import { CenteringScrollView, CenterFocus, useCenterFocus, useCenterPage, type Measurable } from './ui/CenterScroll';
 import { Loading } from './ui/Feedback';
 import { VideoPreview } from './VideoPreview';
 import { moveFocus, useFocusGrid } from './ui/focusGrid';
+import { RowFocus } from './ui/FocusRow';
 import { colors, fonts, radius, useCompact, useNavHeight, useSizes, spacing } from './ui/theme';
 
 /** Same 3-hour window as the web guide (DECISIONS.md#d-088). */
@@ -189,6 +190,202 @@ interface ChannelListProps {
   navUp?: View;
 }
 
+interface ChannelItemProps {
+  channel: LiveChannel;
+  index: number;
+  active: boolean;
+  previewPrimed: boolean;
+  onPlayChannel(channel: LiveChannel): void;
+  onPrimePreview(channel: LiveChannel): void;
+  onFocus(index: number, channel: LiveChannel): void;
+  onBlur(index: number, channelId: string): void;
+  navUp?: View;
+  last: number;
+  grid: ReturnType<typeof useFocusGrid>;
+}
+
+const ChannelItem = memo(function ChannelItem({
+  channel,
+  index,
+  active,
+  previewPrimed,
+  onPlayChannel,
+  onPrimePreview,
+  onFocus,
+  onBlur,
+  navUp,
+  last,
+  grid,
+}: ChannelItemProps) {
+  return (
+    <Pressable
+      key={channel.id}
+      testID={`live-channel-${index}`}
+      accessibilityRole="button"
+      accessibilityLabel={t('Watch {name}', { name: channel.name })}
+      onPress={() => {
+        if (active && previewPrimed) {
+          onPlayChannel(channel);
+        } else {
+          onPrimePreview(channel);
+        }
+      }}
+      onFocus={() => onFocus(index, channel)}
+      onBlur={() => onBlur(index, channel.id)}
+      ref={grid.ref(String(index))}
+      nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+      nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+      style={[styles.channelItem, active && styles.channelItemActive]}
+    >
+      {channel.logoUrl ? (
+        <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
+      ) : (
+        <View style={styles.channelLogoPlaceholder} />
+      )}
+      <Text style={[styles.channelName, active && styles.channelNameActive]} numberOfLines={1}>
+        {channel.name}
+      </Text>
+      {channel.number != null && (
+        <View style={styles.channelNumberBadge}>
+          <Text style={styles.channelNumberText}>{channel.number}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+});
+
+/** TV channel lines: only lines near focus are mounted, like TvLines in TitleGrid. */
+const CHANNEL_MOUNTED_AROUND = 8;
+const CHANNEL_WINDOW_EDGE = 3;
+
+function TvChannelLines({
+  channels,
+  selectedChannelId,
+  previewPrimed,
+  onPlayChannel,
+  onPrimePreview,
+  onFocus,
+  onBlur,
+  navUp,
+  grid,
+}: {
+  channels: LiveChannel[];
+  selectedChannelId: string | null;
+  previewPrimed: boolean;
+  onPlayChannel(channel: LiveChannel): void;
+  onPrimePreview(channel: LiveChannel): void;
+  onFocus(index: number, channel: LiveChannel): void;
+  onBlur(index: number, channelId: string): void;
+  navUp?: View;
+  grid: ReturnType<typeof useFocusGrid>;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { TVFocusGuideView } = require('react-native');
+  const [windowCenter, setWindowCenter] = useState(0);
+  const [lineHeight, setLineHeight] = useState(0);
+  const [onFirstLine, setOnFirstLine] = useState(true);
+  const page = useCenterPage();
+  const blockY = useRef(0);
+  const count = channels.length;
+
+  const latest = useRef({ page, lineHeight, windowCenter, count });
+  latest.current = { page, lineHeight, windowCenter, count };
+
+  const focusLine = useCallback((index: number) => {
+    const now = latest.current;
+    if (now.page && now.lineHeight) now.page.centerAt(blockY.current + index * now.lineHeight, now.lineHeight);
+    setOnFirstLine(index === 0);
+    if (Math.abs(index - now.windowCenter) > CHANNEL_MOUNTED_AROUND - CHANNEL_WINDOW_EDGE) {
+      startTransition(() => setWindowCenter(index));
+    }
+  }, []);
+
+  const measureFirst = useCallback((event: { nativeEvent: { layout: { height: number } } }) => setLineHeight((known) => known || event.nativeEvent.layout.height), []);
+
+  const renderLine = useCallback(
+    (lineChannels: LiveChannel[], lineIndex: number) => (
+      <View key={lineChannels[0]!.id} style={styles.channelLine}>
+        {lineChannels.map((channel, colIndex) => {
+          const index = lineIndex * 1 + colIndex; // single column, so index = lineIndex
+          const active = selectedChannelId === channel.id;
+          return (
+            <Pressable
+              key={channel.id}
+              testID={`live-channel-${index}`}
+              accessibilityRole="button"
+              accessibilityLabel={t('Watch {name}', { name: channel.name })}
+              onPress={() => {
+                if (active && previewPrimed) {
+                  onPlayChannel(channel);
+                } else {
+                  onPrimePreview(channel);
+                }
+              }}
+              onFocus={() => onFocus(index, channel)}
+              onBlur={() => onBlur(index, channel.id)}
+              ref={grid.ref(String(index))}
+              nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+              nextFocusDown={grid.at(String(Math.min(index + 1, count - 1)))}
+              style={[styles.channelItem, active && styles.channelItemActive]}
+            >
+              {channel.logoUrl ? (
+                <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
+              ) : (
+                <View style={styles.channelLogoPlaceholder} />
+              )}
+              <Text style={[styles.channelName, active && styles.channelNameActive]} numberOfLines={1}>
+                {channel.name}
+              </Text>
+              {channel.number != null && (
+                <View style={styles.channelNumberBadge}>
+                  <Text style={styles.channelNumberText}>{channel.number}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    ),
+    [selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, onFocus, onBlur, navUp, grid, count]
+  );
+
+  // Single column: each "line" is one channel
+  const lines = useMemo(() => {
+    const result: LiveChannel[][] = [];
+    for (let i = 0; i < channels.length; i++) {
+      result.push([channels[i]!]);
+    }
+    return result;
+  }, [channels]);
+
+  return (
+    <TVFocusGuideView
+      testID="live-channels-lines"
+      trapFocusUp={Platform.isTV && !onFirstLine}
+      onLayout={(event: { nativeEvent: { layout: { y: number } } }) => (blockY.current = event.nativeEvent.layout.y)}
+    >
+      <CenterFocus.Provider value={null}>
+        {lines.map((line, index) => (
+          <View
+            key={line[0]!.id}
+            testID={`live-channel-line-${index}`}
+            style={lineHeight ? { height: lineHeight } : undefined}
+            onLayout={index === 0 && !lineHeight ? measureFirst : undefined}
+          >
+            <RowFocus.Provider value={() => focusLine(index)}>
+              {index === 0 || Math.abs(index - windowCenter) <= CHANNEL_MOUNTED_AROUND || !lineHeight ? (
+                renderLine(line, index)
+              ) : (
+                <View testID={`live-channel-spacer-${index}`} style={{ height: lineHeight }} />
+              )}
+            </RowFocus.Provider>
+          </View>
+        ))}
+      </CenterFocus.Provider>
+    </TVFocusGuideView>
+  );
+}
+
 function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, navUp }: ChannelListProps) {
   const host = useScreenHost();
   const useRemote = host.useRemote ?? noRemote;
@@ -203,67 +400,86 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
     moveFocus(grid.at(String(target)));
   });
 
+  const onFocus = useCallback(
+    (index: number, channel: LiveChannel) => {
+      focused.current = index;
+      host.focusLiveChannel?.({
+        id: channel.id,
+        name: channel.name,
+        logoUrl: channel.logoUrl,
+        categoryId: channel.categoryId,
+        number: channel.number,
+      });
+    },
+    [host],
+  );
+
+  const onBlur = useCallback(
+    (index: number, channelId: string) => {
+      if (focused.current === index) {
+        focused.current = null;
+        host.blurLiveChannel?.(channelId);
+      }
+    },
+    [host],
+  );
+
+  // TV: TvChannelLines virtualization
+  if (Platform.isTV) {
+    return (
+      <ScrollView
+        style={styles.channelColumn}
+        testID="live-channels"
+        accessibilityLabel={t('Channel list')}
+        showsVerticalScrollIndicator={false}
+      >
+        <TvChannelLines
+          channels={channels}
+          selectedChannelId={selectedChannelId}
+          previewPrimed={previewPrimed}
+          onPlayChannel={onPlayChannel}
+          onPrimePreview={onPrimePreview}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          navUp={navUp}
+          grid={grid}
+        />
+      </ScrollView>
+    );
+  }
+
+  // Phone/Desktop: FlatList virtualization
   return (
-    <ScrollView
+    <FlatList
+      data={channels}
+      keyExtractor={(channel) => channel.id}
+      renderItem={({ item, index }) => (
+        <ChannelItem
+          channel={item}
+          index={index}
+          active={selectedChannelId === item.id}
+          previewPrimed={previewPrimed}
+          onPlayChannel={onPlayChannel}
+          onPrimePreview={onPrimePreview}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          navUp={navUp}
+          last={last}
+          grid={grid}
+        />
+      )}
+      initialNumToRender={20}
+      maxToRenderPerBatch={10}
+      windowSize={5}
+      getItemLayout={(_, index) => ({ length: 56, offset: 56 * index, index })}
+      removeClippedSubviews={false}
+      scrollEventThrottle={100}
       style={styles.channelColumn}
       testID="live-channels"
       accessibilityLabel={t('Channel list')}
       showsVerticalScrollIndicator={false}
-    >
-      {channels.map((channel, index) => {
-        const active = selectedChannelId === channel.id;
-        const isSelected = active;
-        return (
-          <Pressable
-            key={channel.id}
-            testID={`live-channel-${index}`}
-            accessibilityRole="button"
-            accessibilityLabel={t('Watch {name}', { name: channel.name })}
-            onPress={() => {
-              if (isSelected && previewPrimed) {
-                onPlayChannel(channel);
-              } else {
-                onPrimePreview(channel);
-              }
-            }}
-            onFocus={() => {
-              focused.current = index;
-              host.focusLiveChannel?.({
-                id: channel.id,
-                name: channel.name,
-                logoUrl: channel.logoUrl,
-                categoryId: channel.categoryId,
-                number: channel.number,
-              });
-            }}
-            onBlur={() => {
-              if (focused.current === index) {
-                focused.current = null;
-                host.blurLiveChannel?.(channel.id);
-              }
-            }}
-            ref={grid.ref(String(index))}
-            nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
-            nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
-            style={[styles.channelItem, active && styles.channelItemActive]}
-          >
-            {channel.logoUrl ? (
-              <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
-            ) : (
-              <View style={styles.channelLogoPlaceholder} />
-            )}
-            <Text style={[styles.channelName, active && styles.channelNameActive]} numberOfLines={1}>
-              {channel.name}
-            </Text>
-            {channel.number != null && (
-              <View style={styles.channelNumberBadge}>
-                <Text style={styles.channelNumberText}>{channel.number}</Text>
-              </View>
-            )}
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+      ListEmptyComponent={<View style={styles.loadingCenter}><Loading /></View>}
+    />
   );
 }
 
@@ -280,12 +496,11 @@ interface EpgProgrammeCardProps {
 
 function EpgProgrammeCard({ programme, channel, now, isCurrent, isSelected, onPress, onFocus }: EpgProgrammeCardProps) {
   const host = useScreenHost();
-  const catchup = catchupMode(channel, programme, now);
-  const progress = programmeProgress(programme, now);
-  const _onNow = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
-  const past = Date.parse(programme.end) <= now;
+  const catchup = useMemo(() => catchupMode(channel, programme, now), [channel, programme, now]);
+  const progress = useMemo(() => programmeProgress(programme, now), [programme, now]);
+  const past = useMemo(() => Date.parse(programme.end) <= now, [programme.end, now]);
   const reminders = host.hooks.useReminders();
-  const reminded = reminders.has(channel.id, programme.start);
+  const reminded = useMemo(() => reminders.has(channel.id, programme.start), [reminders, channel.id, programme.start]);
 
   return (
     <Pressable
@@ -370,6 +585,29 @@ function VideoAndEpg({
   const programmes = row?.programmes ?? [];
   const isCatchup = selectedProgramme && selectedChannel?.hasCatchup && catchupMode(selectedChannel, selectedProgramme, now) === 'past';
 
+  const renderProgramme = useCallback(
+    ({ item: programme }: { item: EpgListing }) => {
+      const isCurrent = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
+      const isSelected = selectedProgramme?.start === programme.start;
+      return (
+        <EpgProgrammeCard
+          key={programme.start}
+          programme={programme}
+          channel={selectedChannel!}
+          now={now}
+          isCurrent={isCurrent}
+          isSelected={isSelected}
+          onPress={() => {
+            if (isCurrent) onPlayChannel(selectedChannel!);
+            else onSelectProgramme(programme);
+          }}
+          onFocus={() => onSelectProgramme(programme)}
+        />
+      );
+    },
+    [now, selectedProgramme, selectedChannel, onPlayChannel, onSelectProgramme],
+  );
+
   return (
     <View style={styles.videoEpgColumn} testID="video-epg-column">
       <VideoPreview
@@ -417,25 +655,18 @@ function VideoAndEpg({
             <Text style={styles.epgEmptyText}>{t('No programme information for this channel')}</Text>
           </View>
         ) : (
-          programmes.map((programme) => {
-            const isCurrent = Date.parse(programme.start) <= now && now < Date.parse(programme.end);
-            const isSelected = selectedProgramme?.start === programme.start;
-            return (
-              <EpgProgrammeCard
-                key={programme.start}
-                programme={programme}
-                channel={selectedChannel!}
-                now={now}
-                isCurrent={isCurrent}
-                isSelected={isSelected}
-                onPress={() => {
-                  if (isCurrent) onPlayChannel(selectedChannel!);
-                  else onSelectProgramme(programme);
-                }}
-                onFocus={() => onSelectProgramme(programme)}
-              />
-            );
-          })
+          <FlatList
+            data={programmes}
+            keyExtractor={(p) => p.start}
+            renderItem={renderProgramme}
+            getItemLayout={(_, index) => ({ length: 80, offset: 80 * index, index })}
+            initialNumToRender={10}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={false}
+            scrollEventThrottle={100}
+            ListEmptyComponent={<View style={styles.epgEmpty}><Text style={styles.epgEmptyText}>{t('No programme information for this channel')}</Text></View>}
+          />
         )}
       </View>
     </View>
@@ -491,15 +722,13 @@ export function LiveScreen() {
       if (allChannelsAll) {
         const map = new Map<string, LiveChannel[]>();
         map.set('all', allChannelsAll);
-        // Group by category
+        // Group by category CLIENT-SIDE (no additional API calls)
         for (const cat of categories) {
-          const catChannels = await host.stores.catalog.getState().loadLiveChannels(cat.id);
-          if (catChannels) map.set(cat.id, catChannels);
+          map.set(cat.id, allChannelsAll.filter((c) => c.categoryId === cat.id));
         }
         // Favorites: filter all channels by the user's favorite channel IDs
         const favoriteIds = new Set(favoriteChannels.map((c) => c.id));
-        const favorites = allChannelsAll.filter((c) => favoriteIds.has(c.id));
-        map.set('favorites', favorites);
+        map.set('favorites', allChannelsAll.filter((c) => favoriteIds.has(c.id)));
         setChannelsByCategory(map);
       }
     };
@@ -727,6 +956,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   channelColumn: { flex: 1 },
+  channelLine: { flexDirection: 'row' },
   channelItem: {
     flexDirection: 'row',
     alignItems: 'center',
