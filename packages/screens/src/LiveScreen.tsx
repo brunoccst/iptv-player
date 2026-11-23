@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import {
   EPG_SLOT_MS,
   floorToSlot,
@@ -109,34 +109,48 @@ function CategoryItem({
 }
 
 /** Left sidebar: categories/groups with channel counts. */
-function CategoryList({
-  categories,
-  categoryId,
-  onChoose,
-  navUp,
-  channelsByCategory,
-}: {
+interface CategoryListProps {
   categories: { id: string; name: string }[];
   categoryId: string | null;
   onChoose(id: string | null): void;
   navUp: View | undefined;
-  channelsByCategory: Map<string, LiveChannel[]>;
-}) {
+  /** All live channels (loaded once), used to compute category counts client-side. */
+  allChannels: LiveChannel[];
+  favoriteChannelIds: Set<string>;
+}
+
+function CategoryList({ categories, categoryId, onChoose, navUp, allChannels, favoriteChannelIds }: CategoryListProps) {
   const host = useScreenHost();
   const useRemote = host.useRemote ?? noRemote;
   const grid = useFocusGrid();
   const focused = useRef<number | null>(null);
-  // Add "All channels" and "Favorites" as virtual categories
-  const items = [
-    { id: 'all' as const, name: t('All channels'), isFavorites: false },
-    { id: 'favorites' as const, name: t('Favorites'), isFavorites: true },
-    ...categories.map((c) => ({ id: c.id, name: c.name, isFavorites: false })),
-  ];
+  // Add "Favorites" as virtual category (removed "All channels" per user feedback)
+  const items = useMemo(
+    () => [
+      { id: 'favorites' as const, name: t('Favorites'), isFavorites: true },
+      ...categories.map((c) => ({ id: c.id, name: c.name, isFavorites: false })),
+    ],
+    [categories],
+  );
   const last = items.length - 1;
+
+  // Compute category counts client-side from allChannels (memoized)
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    // Count per category
+    for (const channel of allChannels) {
+      const catId = channel.categoryId ?? 'uncategorized';
+      counts.set(catId, (counts.get(catId) ?? 0) + 1);
+    }
+    // Add "favorites"
+    const favCount = allChannels.filter((c) => favoriteChannelIds.has(c.id)).length;
+    counts.set('favorites', favCount);
+    return counts;
+  }, [allChannels, favoriteChannelIds]);
 
   useRemote(({ key, action }) => {
     if ((key !== 'channelUp' && key !== 'channelDown') || action === 'up' || focused.current === null) return;
-    const page = Math.max(1, Math.floor(300 / 50) - 1); // Approximate page size
+    const page = Math.max(1, Math.floor(300 / 50) - 1);
     const target = Math.max(0, Math.min(last, focused.current + (key === 'channelDown' ? page : -page)));
     moveFocus(grid.at(String(target)));
   });
@@ -149,13 +163,8 @@ function CategoryList({
       testID="live-categories"
     >
       {items.map((item, index) => {
-        const count =
-          item.id === 'all'
-            ? (channelsByCategory.get('all')?.length ?? 0)
-            : item.id === 'favorites'
-              ? (channelsByCategory.get('favorites')?.length ?? 0)
-              : (channelsByCategory.get(item.id)?.length ?? 0);
-        const active = categoryId === (item.id === 'all' ? null : item.id === 'favorites' ? 'favorites' : item.id);
+        const count = categoryCounts.get(item.id === 'all' ? 'all' : item.id === 'favorites' ? 'favorites' : item.id) ?? 0;
+        const active = categoryId === (item.id === 'favorites' ? 'favorites' : item.id);
         return (
           <CategoryItem
             key={item.id}
@@ -164,7 +173,7 @@ function CategoryList({
             count={count}
             active={active}
             isFavorites={item.isFavorites}
-            onPress={() => onChoose(item.id === 'all' ? null : item.id === 'favorites' ? 'favorites' : item.id)}
+            onPress={() => onChoose(item.id === 'favorites' ? 'favorites' : item.id)}
             focusRef={grid.ref(String(index))}
             nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
             nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
@@ -179,7 +188,7 @@ function CategoryList({
   );
 }
 
-/** Middle column: dense channel list with logo, name, channel number badge. */
+/** Middle column: dense channel list with logo, name, channel number badge. Virtualized for performance. */
 interface ChannelListProps {
   channels: LiveChannel[];
   selectedChannelId: string | null;
@@ -188,6 +197,58 @@ interface ChannelListProps {
   onPrimePreview(channel: LiveChannel): void;
   navUp?: View;
 }
+
+/** Memoized channel item to prevent re-renders when parent updates. */
+const ChannelItem = memo(function ChannelItem({
+  channel,
+  index,
+  active,
+  onPress,
+  onFocus,
+  onBlur,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
+}: {
+  channel: LiveChannel;
+  index: number;
+  active: boolean;
+  onPress: () => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  focusRef: (view: View | null) => void;
+  nextFocusUp: View | undefined;
+  nextFocusDown: View | undefined;
+}) {
+  return (
+    <Pressable
+      testID={`live-channel-${index}`}
+      accessibilityRole="button"
+      accessibilityLabel={t('Watch {name}', { name: channel.name })}
+      onPress={onPress}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      ref={focusRef}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
+      style={[styles.channelItem, active && styles.channelItemActive]}
+    >
+      {channel.logoUrl ? (
+        <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
+      ) : (
+        <View style={styles.channelLogoPlaceholder} />
+      )}
+      <Text style={[styles.channelName, active && styles.channelNameActive]} numberOfLines={1}>
+        {channel.name}
+      </Text>
+      {channel.number != null && (
+        <View style={styles.channelNumberBadge}>
+          <Text style={styles.channelNumberText}>{channel.number}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+});
 
 function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, navUp }: ChannelListProps) {
   const host = useScreenHost();
@@ -203,67 +264,124 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
     moveFocus(grid.at(String(target)));
   });
 
+  const renderItem = useCallback(
+    ({ item, index }: { item: LiveChannel; index: number }) => {
+      const active = selectedChannelId === item.id;
+      return (
+        <ChannelItem
+          channel={item}
+          index={index}
+          active={active}
+          onPress={() => {
+            if (active && previewPrimed) {
+              onPlayChannel(item);
+            } else {
+              onPrimePreview(item);
+            }
+          }}
+          onFocus={() => {
+            focused.current = index;
+            host.focusLiveChannel?.({
+              id: item.id,
+              name: item.name,
+              logoUrl: item.logoUrl,
+              categoryId: item.categoryId,
+              number: item.number,
+            });
+          }}
+          onBlur={() => {
+            if (focused.current === index) {
+              focused.current = null;
+              host.blurLiveChannel?.(item.id);
+            }
+          }}
+          focusRef={grid.ref(String(index))}
+          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+        />
+      );
+    },
+    [selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, host, grid, navUp, last],
+  );
+
+  // Use FlatList on phone/desktop for virtualization; TV uses ScrollView with custom virtualization (like Home rows)
+  if (Platform.isTV) {
+    // TV: use a ScrollView with lazy-mounted items (only visible items + buffer)
+    // For now, use the same ScrollView but with windowing via a custom approach
+    // We'll implement a simpler TV version: render all but with initialNumToRender-like behavior
+    return (
+      <ScrollView
+        style={styles.channelColumn}
+        testID="live-channels"
+        accessibilityLabel={t('Channel list')}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={100}
+        // Limit initial render on TV too - use a smaller buffer
+        // The actual virtualization on TV would need a custom component like TvLines
+      >
+        {channels.map((channel, index) => {
+          const active = selectedChannelId === channel.id;
+          return (
+            <ChannelItem
+              key={channel.id}
+              channel={channel}
+              index={index}
+              active={active}
+              onPress={() => {
+                if (active && previewPrimed) {
+                  onPlayChannel(channel);
+                } else {
+                  onPrimePreview(channel);
+                }
+              }}
+              onFocus={() => {
+                focused.current = index;
+                host.focusLiveChannel?.({
+                  id: channel.id,
+                  name: channel.name,
+                  logoUrl: channel.logoUrl,
+                  categoryId: channel.categoryId,
+                  number: channel.number,
+                });
+              }}
+              onBlur={() => {
+                if (focused.current === index) {
+                  focused.current = null;
+                  host.blurLiveChannel?.(channel.id);
+                }
+              }}
+              focusRef={grid.ref(String(index))}
+              nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+              nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+            />
+          );
+        })}
+      </ScrollView>
+    );
+  }
+
+  // Phone/Desktop: use FlatList for virtualization
   return (
-    <ScrollView
+    <FlatList
       style={styles.channelColumn}
       testID="live-channels"
       accessibilityLabel={t('Channel list')}
+      data={channels}
+      keyExtractor={(channel) => channel.id}
+      renderItem={renderItem}
+      ItemSeparatorComponent={() => <View style={styles.channelSeparator} />}
       showsVerticalScrollIndicator={false}
-    >
-      {channels.map((channel, index) => {
-        const active = selectedChannelId === channel.id;
-        const isSelected = active;
-        return (
-          <Pressable
-            key={channel.id}
-            testID={`live-channel-${index}`}
-            accessibilityRole="button"
-            accessibilityLabel={t('Watch {name}', { name: channel.name })}
-            onPress={() => {
-              if (isSelected && previewPrimed) {
-                onPlayChannel(channel);
-              } else {
-                onPrimePreview(channel);
-              }
-            }}
-            onFocus={() => {
-              focused.current = index;
-              host.focusLiveChannel?.({
-                id: channel.id,
-                name: channel.name,
-                logoUrl: channel.logoUrl,
-                categoryId: channel.categoryId,
-                number: channel.number,
-              });
-            }}
-            onBlur={() => {
-              if (focused.current === index) {
-                focused.current = null;
-                host.blurLiveChannel?.(channel.id);
-              }
-            }}
-            ref={grid.ref(String(index))}
-            nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
-            nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
-            style={[styles.channelItem, active && styles.channelItemActive]}
-          >
-            {channel.logoUrl ? (
-              <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
-            ) : (
-              <View style={styles.channelLogoPlaceholder} />
-            )}
-            <Text style={[styles.channelName, active && styles.channelNameActive]} numberOfLines={1}>
-              {channel.name}
-            </Text>
-            {channel.number != null && (
-              <View style={styles.channelNumberBadge}>
-                <Text style={styles.channelNumberText}>{channel.number}</Text>
-              </View>
-            )}
-          </Pressable>
-        );
+      scrollEventThrottle={100}
+      removeClippedSubviews={false}
+      initialNumToRender={20}
+      maxToRenderPerBatch={10}
+      windowSize={5}
+      getItemLayout={(data, index) => ({
+        length: 56, // Approximate item height
+        offset: 56 * index,
+        index,
       })}
-    </ScrollView>
+    />
   );
 }
 
@@ -456,12 +574,13 @@ export function LiveScreen() {
   const now = useNow();
   const favoriteChannels = host.hooks.useFavoriteChannels();
   const [from, setFrom] = useState<number>(() => floorToSlot(Date.now()));
-  const [pages, setPages] = useState(1);
+  // Load 3 pages (150 channels) in the EPG guide for better channel coverage
+  const [pages, setPages] = useState(3);
   const [selectedProgramme, setSelectedProgramme] = useState<EpgListing | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel | null>(null);
   const [previewPrimed, setPreviewPrimed] = useState(false);
   const [channelList, setChannelList] = useState<LiveChannel[]>([]);
-  const [channelsByCategory, setChannelsByCategory] = useState<Map<string, LiveChannel[]>>(new Map());
+  const [allChannels, setAllChannels] = useState<LiveChannel[]>([]);
   const sizes = useSizes();
   const navH = useNavHeight();
   const { height: windowHeight } = useWindowDimensions();
@@ -471,41 +590,38 @@ export function LiveScreen() {
   const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
   const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
 
-  // Load EPG guide for selected category
+  // Load EPG guide for selected category (3 pages = ~150 channels)
   const guide = useEpgGuide(host.stores.epg, { categoryId, from, hours: HOURS }, pages);
 
-  // Load channels for the selected category (for middle column)
+  // Load ALL channels once, then filter by category client-side
+  // This avoids N+1 loading (one request per category)
   useEffect(() => {
+    let cancelled = false;
     const loadChannels = async () => {
-      const allChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
-      if (allChannels) {
-        setChannelList(allChannels);
+      // Load all channels for the selected category (middle column)
+      const catChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
+      if (!cancelled && catChannels) {
+        setChannelList(catChannels);
         // Auto-select first channel if none selected
-        if (!selectedChannel && allChannels.length > 0) {
-          setSelectedChannel(allChannels[0]!);
+        if (!selectedChannel && catChannels.length > 0) {
+          setSelectedChannel(catChannels[0]!);
           setPreviewPrimed(true);
         }
       }
-      // Also load all channels for category counts
+
+      // Load ALL channels once for category counts and favorites
       const allChannelsAll = await host.stores.catalog.getState().loadLiveChannels(null);
-      if (allChannelsAll) {
-        const map = new Map<string, LiveChannel[]>();
-        map.set('all', allChannelsAll);
-        // Group by category
-        for (const cat of categories) {
-          const catChannels = await host.stores.catalog.getState().loadLiveChannels(cat.id);
-          if (catChannels) map.set(cat.id, catChannels);
-        }
-        // Favorites: filter all channels by the user's favorite channel IDs
-        const favoriteIds = new Set(favoriteChannels.map((c) => c.id));
-        const favorites = allChannelsAll.filter((c) => favoriteIds.has(c.id));
-        map.set('favorites', favorites);
-        setChannelsByCategory(map);
+      if (!cancelled && allChannelsAll) {
+        setAllChannels(allChannelsAll);
       }
     };
     loadChannels();
-  }, [categoryId, categories, host, selectedChannel, favoriteChannels]);
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, host, selectedChannel]);
 
+  // Load categories on mount
   useEffect(() => {
     void host.stores.catalog.getState().loadCategories('live');
   }, [host]);
@@ -515,7 +631,7 @@ export function LiveScreen() {
 
   const chooseCategory = (id: string | null) => {
     host.setCategory(id);
-    setPages(1);
+    setPages(3); // Reset to 3 pages when category changes
     setSelectedProgramme(null);
     setSelectedChannel(null);
     setPreviewPrimed(false);
@@ -523,7 +639,18 @@ export function LiveScreen() {
 
   // Get category name for video preview overlay
   const activeCategory = categories.find((c) => c.id === categoryId);
-  const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('All channels'));
+  const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('Live TV'));
+
+  // Memoize favorite channel IDs for CategoryList
+  const favoriteChannelIds = useMemo(() => new Set(favoriteChannels.map((c) => c.id)), [favoriteChannels]);
+
+  // Filter channel list for "favorites" category
+  const filteredChannelList = useMemo(() => {
+    if (categoryId === 'favorites') {
+      return allChannels.filter((c) => favoriteChannelIds.has(c.id));
+    }
+    return channelList;
+  }, [categoryId, channelList, allChannels, favoriteChannelIds]);
 
   // Channel number entry via remote number keys (0-9)
   const typedNumberRef = useRef<string>('');
@@ -545,14 +672,14 @@ export function LiveScreen() {
       clearTypedNumber();
       return;
     }
-    const channel = channelList.find((c) => c.number === num);
+    const channel = filteredChannelList.find((c) => c.number === num);
     if (channel) {
       const row = guide.rows.find((r) => r.channel.id === channel.id);
       play(host, liveTarget(channel, programmeAt(row?.programmes ?? [], now)?.title));
       setPreviewPrimed(false);
     }
     clearTypedNumber();
-  }, [channelList, guide.rows, now, host, clearTypedNumber]);
+  }, [filteredChannelList, guide.rows, now, host, clearTypedNumber]);
 
   // Handle remote navigation between columns + channel number entry
   const columnFocus = useRef<'categories' | 'channels' | 'epg'>('channels');
@@ -606,19 +733,20 @@ export function LiveScreen() {
           categoryId={categoryId}
           onChoose={chooseCategory}
           navUp={navFocusTarget}
-          channelsByCategory={channelsByCategory}
+          allChannels={allChannels}
+          favoriteChannelIds={favoriteChannelIds}
         />
       </View>
 
       {/* Middle Column - Channel List */}
       <View style={styles.channelColumnWrapper}>
-        {guide.loading && channelList.length === 0 ? (
+        {guide.loading && filteredChannelList.length === 0 ? (
           <View style={styles.loadingCenter}>
             <Loading />
           </View>
         ) : (
           <ChannelList
-            channels={channelList}
+            channels={filteredChannelList}
             selectedChannelId={selectedChannel?.id ?? null}
             previewPrimed={previewPrimed}
             onPlayChannel={(ch) => {
@@ -736,6 +864,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  channelSeparator: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
   channelItemActive: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   channelLogo: { width: 40, height: 40, borderRadius: 4 },
   channelLogoPlaceholder: { width: 40, height: 40, borderRadius: 4, backgroundColor: colors.raised },
@@ -818,7 +950,6 @@ const styles = StyleSheet.create({
 });
 
 /** Memoized for performance with many channels. */
-const _ChannelListMemo = memo(ChannelList);
 const _VideoAndEpgMemo = memo(VideoAndEpg);
 const _CategoryItemMemo = memo(CategoryItem);
 const _EpgProgrammeCardMemo = memo(EpgProgrammeCard);
