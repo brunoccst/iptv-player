@@ -12,6 +12,28 @@ import type {
   PlayTarget,
 } from '@iptv/shared';
 
+// TV player view component (react-native-tvos only); null on other platforms
+// Matches TvPlayerViewProps from apps/tv-app/modules/tv-media/src/types-only.ts
+// Using loose types to avoid cross-package NativeSyntheticEvent mismatches
+export type TvPlayerViewComponent = React.ComponentType<{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  style?: any;
+  source: { uri?: string | null; isHls?: boolean; startPositionMs?: number } | null;
+  paused: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onStatus?: (event: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onProgress?: (event: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onTracks?: (event: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onEnd?: (event: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onError?: (event: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ref?: any;
+}>;
+
 /** One option of a title's menu, as `useTitleCard().menuItems()` gives it. */
 export interface TitleMenuItem {
   id: string;
@@ -225,6 +247,8 @@ export interface ScreenHost {
   /** A live channel got or lost the focus (the TV remote's Red key adds/removes it from favorites). */
   focusLiveChannel?(channel: Pick<LiveChannel, 'id' | 'name' | 'logoUrl' | 'categoryId' | 'number'>): void;
   blurLiveChannel?(id: string): void;
+  /** TV: the native TvPlayerView component (react-native-tvos); null on other platforms. */
+  tvPlayerView?: TvPlayerViewComponent;
 }
 
 const HostContext = createContext<ScreenHost | null>(null);

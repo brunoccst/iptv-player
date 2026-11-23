@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle, type ViewProps, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle, useWindowDimensions } from 'react-native';
 import {
   type LiveChannel,
   type EpgListing,
@@ -15,12 +15,6 @@ import { useScreenHost } from './host';
 import { useNow } from '@iptv/shared/react';
 
 // TvPlayerView types (from apps/tv-app/modules/tv-media/src/types-only.ts)
-interface PlayerSource {
-  uri?: string | null;
-  isHls?: boolean;
-  startPositionMs?: number;
-}
-
 interface PlayerStatusEvent {
   state: 'idle' | 'buffering' | 'ready' | 'ended' | 'error';
 }
@@ -28,19 +22,6 @@ interface PlayerStatusEvent {
 interface PlayerErrorEvent {
   message: string;
   code: string;
-}
-
-interface TvPlayerViewRef {
-  seekTo(positionMs: number): Promise<void>;
-  selectTrack(type: 'audio' | 'text', groupIndex: number, trackIndex: number): Promise<void>;
-  addSubtitle(text: string, language: string, label: string): Promise<boolean>;
-}
-
-interface TvPlayerViewProps extends ViewProps {
-  source: PlayerSource | null;
-  paused: boolean;
-  onStatus?(event: { nativeEvent: PlayerStatusEvent }): void;
-  onError?(event: { nativeEvent: PlayerErrorEvent }): void;
 }
 
 interface VideoPreviewProps {
@@ -140,7 +121,7 @@ export function VideoPreview({
         _providerUserAgent={providerUserAgent}
         onError={setError}
         style={videoPlayerStyle}
-        isTV={isTV}
+        tvPlayerView={host.tvPlayerView!}
       />
       {error && (
         <View style={styles.errorOverlay}>
@@ -185,42 +166,21 @@ export function VideoPreview({
   );
 }
 
-// TV native video player using TvPlayerView
+// TV native video player using TvPlayerView (provided by host)
 interface TvVideoPlayerProps {
   channel: LiveChannel;
   api: ReturnType<typeof useScreenHost>['api'];
   _providerUserAgent: string;
   onError: (msg: string) => void;
   style?: ViewStyle;
-  isTV: boolean;
+  tvPlayerView: NonNullable<ReturnType<typeof useScreenHost>['tvPlayerView']>;
 }
 
-function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV }: TvVideoPlayerProps) {
-  const playerRef = useRef<TvPlayerViewRef | null>(null);
+function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, tvPlayerView: TvPlayerView }: TvVideoPlayerProps) {
+  const playerRef = useRef<NonNullable<TvVideoPlayerProps['tvPlayerView']> | null>(null);
   const [source, setSource] = useState<{ uri: string; isHls: boolean; startPositionMs: number } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const alternates = useRef<string[]>([]);
-
-  // Dynamic import for TvPlayerView - only available on TV (react-native-tvos).
-  // Must be called unconditionally to satisfy React hooks rules.
-  const [TvPlayerView, setTvPlayerView] = useState<React.ForwardRefExoticComponent<
-    TvPlayerViewProps & React.RefAttributes<TvPlayerViewRef>
-  > | null>(null);
-  useEffect(() => {
-    if (!isTV) return;
-    let cancelled = false;
-    // @ts-expect-error - module only exists in TV app context at runtime
-    import('../../../../apps/tv-app/modules/tv-media')
-      .then((mod) => {
-        if (!cancelled) setTvPlayerView(() => mod.TvPlayerView);
-      })
-      .catch(() => {
-        if (!cancelled) setTvPlayerView(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isTV]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,7 +215,7 @@ function TvVideoPlayer({ channel, api, _providerUserAgent, onError, style, isTV 
     };
   }, [channel.id, attempt, api, onError]);
 
-  if (!source || !TvPlayerView) {
+  if (!source) {
     return (
       <View style={[styles.videoPlaceholder, style]}>
         <Text style={styles.placeholderText}>{t('Loading…')}</Text>

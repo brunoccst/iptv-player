@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
-import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost } from '@iptv/screens';
+import { BackupDialog, setScreenHost, type DownloadEntry, type ScreenHost, type TvPlayerViewComponent } from '@iptv/screens';
+import { TvPlayerView } from '../modules/tv-media';
 
 const NO_NOTES: string[] = [];
 import { api, appContext, downloadsStore, navStore, stores } from './appContext';
@@ -185,6 +186,10 @@ const host: ScreenHost = {
   blurTitle,
   focusLiveChannel: (channel) => focusLiveChannel({ channel }),
   blurLiveChannel,
+  // TV native player view (react-native-tvos); provided by the TV app's TvMedia module.
+  get tvPlayerView(): TvPlayerViewComponent {
+    return TvPlayerView;
+  },
 };
 
 setScreenHost(host);
