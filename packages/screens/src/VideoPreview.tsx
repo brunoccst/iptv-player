@@ -82,6 +82,21 @@ export function VideoPreview({
     );
   }
 
+  // A past programme with a recording can be watched without loading the live preview first.
+  const catchupOverlay =
+    showCatchupButton && catchupOnPlay ? (
+      <View testID="preview-catchup-overlay" style={styles.catchupOverlay} accessibilityRole="none">
+        <FocusButton
+          label={t('Watch recording')}
+          variant="primary"
+          style={styles.previewPlayButton}
+          testID="preview-catchup-button"
+          onPress={catchupOnPlay}
+          accessibilityLabel={t('Watch recording')}
+        />
+      </View>
+    ) : null;
+
   // If not primed, show placeholder with instruction
   if (!primed) {
     const previewStyle = { ...styles.videoPreview, aspectRatio, ...containerStyle };
@@ -90,6 +105,7 @@ export function VideoPreview({
         <View style={styles.videoPlaceholder}>
           <Text style={styles.placeholderText}>{t('Press OK to load preview')}</Text>
         </View>
+        {catchupOverlay}
         <View style={styles.videoOverlay} pointerEvents="none">
           <View style={styles.overlayLeft}>
             <Text style={styles.overlayChannelName}>{channel.name}</Text>
@@ -137,18 +153,7 @@ export function VideoPreview({
           )}
         </View>
       )}
-      {showCatchupButton && catchupOnPlay && (
-        <View testID="preview-catchup-overlay" style={styles.catchupOverlay} accessibilityRole="none">
-          <FocusButton
-            label={t('Watch recording')}
-            variant="primary"
-            style={styles.previewPlayButton}
-            testID="preview-catchup-button"
-            onPress={catchupOnPlay}
-            accessibilityLabel={t('Watch recording')}
-          />
-        </View>
-      )}
+      {catchupOverlay}
       <View style={styles.videoOverlay} pointerEvents="none">
         <View style={styles.overlayLeft}>
           <Text style={styles.overlayChannelName}>{channel.name}</Text>

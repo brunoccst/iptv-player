@@ -422,6 +422,49 @@ describe('LiveScreen (three-column guide)', () => {
     });
   });
 
+  it('a past programme with a recording offers Watch recording before the preview is loaded', async () => {
+    jest.spyOn(Platform, 'isTV', 'get').mockReturnValue(true);
+    const backend = setupApp();
+    navStore.getState().goSection('live');
+    const sports = { ...channel('1', 'Sports HD'), hasCatchup: true, catchupDays: 3 };
+    backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'Sports', kind: 'live' }] });
+    backend.on('GET', '/api/catalog/live/channels', { body: [sports] });
+    backend.on('GET', '/api/epg', ({ url }) => ({
+      body: {
+        status: 'ready',
+        updatedAt: at(0),
+        from: url.searchParams.get('from'),
+        to: at(120),
+        totalChannels: 1,
+        channels: [
+          {
+            channel: sports,
+            programmes: [
+              { start: at(-90), end: at(-30), title: 'Match Day', description: null },
+              { start: at(-30), end: at(30), title: 'Studio Talk', description: null },
+            ],
+          },
+        ],
+      },
+    }));
+
+    await render(<LiveScreen />);
+    await flush();
+
+    // The preview loads only on OK, yet the recording can be started without it.
+    expect(screen.getByText('Press OK to load preview')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId(`epg-programme-${at(-90)}`));
+    await flush();
+    expect(screen.getByText('Press OK to load preview')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('preview-catchup-button'));
+    await flush();
+
+    expect(navStore.getState().stack.at(-1)).toMatchObject({
+      name: 'player',
+      target: { kind: 'live', streamId: '1', title: 'Match Day', catchup: { start: at(-90) } },
+    });
+  });
+
   it('shows loading state while EPG downloads', async () => {
     const backend = setupApp();
     backend.on('GET', '/api/catalog/live/categories', { body: [{ id: '1', name: 'News', kind: 'live' }] });

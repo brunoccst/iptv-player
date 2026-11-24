@@ -242,7 +242,7 @@ The Live TV page: categories on the left, a guide grid of channels and programme
 
 ### Catch-up
 
-On channels whose provider keeps recordings, past programmes can be watched from the recording, and the programme on now from its start. Recorded programmes carry ↺ in the guide, which goes back up to a day; programmes older than the provider says it keeps them (`tv_archive_duration`) are not offered (issue #247). TV: OK on an ended programme plays it, holding OK on the programme on now starts it from the beginning. Phone and desktop: a programme's details offer Watch (ended) or From the start (on now) next to Watch live. A recording plays like a video: pause, seek and skip work, there is no LIVE tag, and no progress is kept (D-032, issue #226).
+On channels whose provider keeps recordings, past programmes can be watched from the recording, and the programme on now from its start. Recorded programmes carry ↺ in the guide, which goes back up to a day; programmes older than the provider says it keeps them (`tv_archive_duration`) are not offered (issue #247). TV: OK on an ended programme plays it, holding OK on the programme on now starts it from the beginning. Phone and desktop: a programme's details offer Watch (ended) or From the start (on now) next to Watch live. In Live TV, choosing an ended recorded programme shows Watch recording on the preview, also before the channel's preview is loaded (issue #358). A recording plays like a video: pause, seek and skip work, there is no LIVE tag, and no progress is kept (D-032, issue #226).
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 
