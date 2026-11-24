@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Runs the Maestro flows (main, offline, fresh sign-in, holding Right) against an installed APK. Expects the fake panel
 # from scripts/start-e2e-stack.sh.
-# Usage: apps/tv-app/e2e/run.sh <output-dir> [phone]   ("phone": only the phone flow; needs the fake panel)
+# Usage: apps/tv-app/e2e/run.sh <output-dir> [tv|tv-1|tv-2|phone|stress]
+#   tv (default): every TV flow. CI splits them over two emulators (DECISIONS.md#d-250):
+#   tv-1: main flow, offline, fresh sign-in. tv-2: holding Right.
+#   phone: only the phone flow. stress: only the large-library flow.
 set -euo pipefail
 OUT="${1:-maestro-output}"
 APP_ID="${APP_ID:-com.iptvplayer.tv}"
@@ -78,23 +81,17 @@ if [ "${2:-}" = "phone" ]; then
   exit 0
 fi
 
-run_flow 01-online
+# Main flow, then offline: stop the provider and relaunch (02 plays what 01 downloaded). Then a fresh sign-in once the
+# provider is back (DECISIONS.md#d-088).
+tv_1() {
+  run_flow 01-online
+  "$HERE/../../../scripts/stop-e2e-stack.sh"
+  run_flow 02-offline
+  sleep 1
+  "$HERE/../../../scripts/start-e2e-stack.sh"
+  run_flow 03-direct
+}
 
-# Offline: stop the provider, then relaunch.
-"$HERE/../../../scripts/stop-e2e-stack.sh"
-run_flow 02-offline
-
-# A fresh sign-in once the provider is back (DECISIONS.md#d-088).
-sleep 1
-"$HERE/../../../scripts/start-e2e-stack.sh"
-run_flow 03-direct
-
-# Holding Right in a Home row (D-069): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
-# `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (a held key
-# repeats every ~50 ms): 16 presses reach the row's end, 40 keep going past it.
-"$HERE/../../../scripts/stop-e2e-stack.sh"
-sleep 1
-FAKE_PANEL_STRESS=200 "$HERE/../../../scripts/start-e2e-stack.sh"
 focused_view() {
   adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1 && adb shell cat /sdcard/ui.xml 2>/dev/null | tr '>' '\n' | grep 'focused="true"' | head -3 || true
 }
@@ -110,24 +107,40 @@ settle_focus() {
   done
   echo "(focus still moving after 20 s)"; printf '%s\n' "$now"
 }
-hold_failed=
-for presses in 16 40; do
-  run_flow 05-hold-right
-  echo "Focused before the presses:"; settle_focus
-  adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
-  echo "Focused after $presses quick Right presses:"; focused="$(settle_focus)"; printf '%s\n' "$focused"
-  # The emulator drops presses of a burst now and then (issue #301: 8 of 16 moved the focus). Still on a card of the
-  # row: more presses, once; a focus that left the row still fails the check below.
-  if printf '%s' "$focused" | grep -q 'resource-id="card-Stress Movie '; then
-    echo "Presses were dropped: $presses more."
-    adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
-    echo "Focused after $presses more:"; settle_focus
-  fi
-  run_flow 06-hold-right-check || hold_failed=1
-done
 
-# Back to the normal panel for the phone flow.
-"$HERE/../../../scripts/stop-e2e-stack.sh"
-sleep 1
-"$HERE/../../../scripts/start-e2e-stack.sh"
-[ -z "$hold_failed" ] || { echo "Holding Right left the row or missed \"See all\" (see above)."; exit 1; }
+tv_2() {
+  # Holding Right in a Home row (D-069): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
+  # `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (a held key
+  # repeats every ~50 ms): 16 presses reach the row's end, 40 keep going past it.
+  "$HERE/../../../scripts/stop-e2e-stack.sh"
+  sleep 1
+  FAKE_PANEL_STRESS=200 "$HERE/../../../scripts/start-e2e-stack.sh"
+  local hold_failed="" presses focused
+  for presses in 16 40; do
+    run_flow 05-hold-right
+    echo "Focused before the presses:"; settle_focus
+    adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
+    echo "Focused after $presses quick Right presses:"; focused="$(settle_focus)"; printf '%s\n' "$focused"
+    # The emulator drops presses of a burst now and then (issue #301: 8 of 16 moved the focus). Still on a card of the
+    # row: more presses, once; a focus that left the row still fails the check below.
+    if printf '%s' "$focused" | grep -q 'resource-id="card-Stress Movie '; then
+      echo "Presses were dropped: $presses more."
+      adb shell input keyevent $(printf '22 %.0s' $(seq 1 "$presses"))
+      echo "Focused after $presses more:"; settle_focus
+    fi
+    run_flow 06-hold-right-check || hold_failed=1
+  done
+
+  # Back to the normal panel.
+  "$HERE/../../../scripts/stop-e2e-stack.sh"
+  sleep 1
+  "$HERE/../../../scripts/start-e2e-stack.sh"
+  [ -z "$hold_failed" ] || { echo "Holding Right left the row or missed \"See all\" (see above)."; exit 1; }
+}
+
+case "${2:-tv}" in
+  tv) tv_1; tv_2 ;;
+  tv-1) tv_1 ;;
+  tv-2) tv_2 ;;
+  *) echo "Unknown flows: $2 (tv, tv-1, tv-2, phone, stress)"; exit 2 ;;
+esac

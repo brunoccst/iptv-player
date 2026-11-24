@@ -155,6 +155,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-247](#d-247) | TV: Right from a dialog's tabs reaches Save, Left comes back to them |
 | [D-248](#d-248) | Back goes Home before leaving the app |
 | [D-249](#d-249) | One rules file for every AI coding tool |
+| [D-250](#d-250) | Faster CI: emulator flows side by side, cached downloads |
 
 ## Merged and retired IDs
 
@@ -1612,3 +1613,13 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The rules lived in `CLAUDE.md`, which only Claude Code reads. They now live in `AGENTS.md` at the root, the file Codex, Cursor, Copilot and other agents read by convention.
 - `CLAUDE.md` imports it (`@AGENTS.md`), `.github/copilot-instructions.md` and `.cursor/rules/agents.mdc` point to it, so there is one copy to keep up to date and no tool gets older rules.
 - `AGENTS.md` also writes down what was only in chat before: PRs only and Bruno merges, the product rules that are settled (no server, no rewrites, "Who's watching?", Back to Home, no TV sleep mode), and the full TV focus rules with their exceptions.
+
+## D-250
+
+**Faster CI: emulator flows side by side, cached downloads** — 2026-11-24 (Bruno: the tests take too long; issue #360)
+
+- `tv-app.yml` took about 21 minutes in one job: APK build, then every TV flow, then the phone flow, one after the other. Now a `build` job makes the x86 APK once and three `maestro` jobs, each with its own emulator, install it and run their share at the same time: `tv-1` (main flow, offline, fresh sign-in; 02 plays what 01 downloaded, so they stay together), `tv-2` (holding Right, the longest flow) and `phone`. `e2e/run.sh` takes the same names; with no name it still runs every TV flow.
+- The TV unit tests no longer run in `tv-app.yml`: `ci.yml`'s `checks` job runs them for every pull request and push to `main`. Changes to unit test files alone (`*.test.ts`, `*.test.tsx`, `*.test.mjs`) and to scripts the emulator does not use skip the workflow.
+- The emulator jobs skip the disk clean-up: it was needed only for the Gradle build and the TV system image on one runner (D-030).
+- `ci.yml` caches Playwright's Chromium per Playwright version and installs it without `--with-deps` (the runner image has its libraries; the apt step took up to 5 minutes). The fake panel's test videos are cached until `generate_media.py` changes (`.github/actions/test-media`).
+- No test was removed: unit tests take about 30 s and the web e2e tests about 90 s, and each emulator flow checks something the others do not.

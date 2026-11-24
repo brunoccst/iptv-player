@@ -1,6 +1,6 @@
 # e2e
 
-[Maestro](https://maestro.mobile.dev) flows for the Android TV app. They run in CI (`.github/workflows/tv-app.yml`) on an Android TV emulator, then the phone flow on a phone emulator; locally they need an emulator or TV device reachable by `adb`.
+[Maestro](https://maestro.mobile.dev) flows for the Android TV app. They run in CI (`.github/workflows/tv-app.yml`) on two Android TV emulators and a phone emulator at the same time (D-250); locally they need an emulator or TV device reachable by `adb`.
 
 | File | Purpose |
 |------|---------|
@@ -10,7 +10,7 @@
 | `04-phone-search.yaml` | Phone emulator (touch, on-screen keyboard): direct sign-in, then tap the search box and type; the text must stay in the box and find titles. |
 | `05-hold-right.yaml`, `06-hold-right-check.yaml` | Holding Right in a Home row (D-069): against a stress panel, focus the first card of a row that ends in "See all"; `run.sh` sends 16, then 40, quick Right presses (a held key repeats about every 50 ms; `input keyevent --duration` sends no repeats), then checks that "See all" has the focus. |
 | `install.sh <apk>` | Waits for the emulator's package manager, then installs the APK (3 attempts). |
-| `run.sh <out-dir> [phone]` | Runs the TV flows (stops the fake panel before 02, starts it again before 03, a stress panel for 05/06), or with `phone` only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
+| `run.sh <out-dir> [tv\|tv-1\|tv-2\|phone\|stress]` | `tv` (default) runs every TV flow (stops the fake panel before 02, a stress panel for 05/06); CI splits them into `tv-1` (01, 02, 03) and `tv-2` (05/06). `phone` runs only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
 
 ## Run locally
 

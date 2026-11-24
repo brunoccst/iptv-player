@@ -99,12 +99,20 @@ jobs:
         with:
           python-version: '3.11'
       - run: npm ci
-      - name: Test media
-        run: |
-          pip install -q imageio-ffmpeg
-          FFMPEG=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") python tools/fake-xtream-server/generate_media.py
+      - uses: ./.github/actions/test-media
+      # Playwright's Chromium is cached per Playwright version; the runner image already has its system libraries, so
+      # no apt install (`--with-deps` took up to 5 minutes; DECISIONS.md#d-250).
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+        working-directory: apps/web-player
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Chromium for Playwright
-        run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
         working-directory: apps/web-player
       - name: Playwright
         run: npm run test:e2e
@@ -138,10 +146,7 @@ jobs:
       - name: Desktop dependencies and unit tests
         working-directory: apps/desktop
         run: npm ci && npm test && node scripts/prepare.mjs
-      - name: Test media
-        run: |
-          pip install -q imageio-ffmpeg
-          FFMPEG=$(python -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") python tools/fake-xtream-server/generate_media.py
+      - uses: ./.github/actions/test-media
       # Sign-in to the panel, a movie that plays, sign-in kept after a restart (D-071).
       - name: Start the app against the fake panel
         run: |
