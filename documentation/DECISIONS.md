@@ -154,6 +154,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-246](#d-246) | Continue Watching groups a title's versions |
 | [D-247](#d-247) | TV: Right from a dialog's tabs reaches Save, Left comes back to them |
 | [D-248](#d-248) | Back goes Home before leaving the app |
+| [D-249](#d-249) | One rules file for every AI coding tool |
 
 ## Merged and retired IDs
 
@@ -1468,7 +1469,7 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 
 - With Save and Cancel under a long list (D-232), reaching them on TV meant pressing Down through every row. Bruno asked for them on the right, so Right gets there at once.
 - `Dialog` takes the buttons as `actions` and, on windows at least 600 wide, draws them in a 180-wide column beside the content (the panel grows by that much); `DialogActions` stacks them there: Save, Cancel, then extra buttons. Narrower windows (phones held upright) keep the bottom row, where a column would squeeze the list. The profile editor and the backup box draw their own panels and keep the bottom row.
-- TV: the column is a `TVFocusGuideView` with `autoFocus` that fills the dialog's height, so Right from any row lands in it, on Save the first time and on the last focused button after that; Up/Down stay in it. The content is one too, so Left returns to the row last focused. This is the one place Right leaves a row on purpose (CLAUDE.md focus rules).
+- TV: the column is a `TVFocusGuideView` with `autoFocus` that fills the dialog's height, so Right from any row lands in it, on Save the first time and on the last focused button after that; Up/Down stay in it. The content is one too, so Left returns to the row last focused. This is the one place Right leaves a row on purpose (AGENTS.md focus rules).
 
 ## D-234
 
@@ -1603,3 +1604,11 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - `navStore.back` now goes Home from any other root page (`goSection('home')`: category and search cleared) and returns `false` only on Home, so Android exits from there. Menus, dialogs, details and the player close first as before.
 - Home's Play button takes the TV focus when Home opens, as it does at start.
 - Desktop is not changed: Back there walks the browser history of the window (D-025) and never closes the app.
+
+## D-249
+
+**One rules file for every AI coding tool** — 2026-11-24 (Bruno: a second contributor will push code with other AI tools than Claude)
+
+- The rules lived in `CLAUDE.md`, which only Claude Code reads. They now live in `AGENTS.md` at the root, the file Codex, Cursor, Copilot and other agents read by convention.
+- `CLAUDE.md` imports it (`@AGENTS.md`), `.github/copilot-instructions.md` and `.cursor/rules/agents.mdc` point to it, so there is one copy to keep up to date and no tool gets older rules.
+- `AGENTS.md` also writes down what was only in chat before: PRs only and Bruno merges, the product rules that are settled (no server, no rewrites, "Who's watching?", Back to Home, no TV sleep mode), and the full TV focus rules with their exceptions.

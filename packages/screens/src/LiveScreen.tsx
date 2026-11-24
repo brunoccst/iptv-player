@@ -436,7 +436,7 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
     moveFocus(grid.at(String(target)));
   });
 
-const onFocus = useCallback(
+  const onFocus = useCallback(
     (index: number, channel: LiveChannel) => {
       focused.current = index;
       host.focusLiveChannel?.({
