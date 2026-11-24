@@ -1,0 +1,25 @@
+name: Test media
+description: >-
+  The fake panel's test videos (tools/fake-xtream-server/media), generated with ffmpeg from imageio-ffmpeg and cached
+  until generate_media.py changes (DECISIONS.md#d-250). Needs Python.
+inputs:
+  codec:
+    description: 'Passed to generate_media.py --codec (vp9 or h264)'
+    default: vp9
+runs:
+  using: composite
+  steps:
+    - uses: actions/cache@v4
+      id: cache
+      with:
+        path: tools/fake-xtream-server/media
+        key: test-media-${{ inputs.codec }}-${{ hashFiles('tools/fake-xtream-server/generate_media.py') }}
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        CODEC: ${{ inputs.codec }}
+      run: |
+        python -m venv "$RUNNER_TEMP/media-venv"
+        "$RUNNER_TEMP/media-venv/bin/pip" install -q imageio-ffmpeg
+        FFMPEG=$("$RUNNER_TEMP/media-venv/bin/python" -c "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())") \
+          python tools/fake-xtream-server/generate_media.py --codec "$CODEC"
