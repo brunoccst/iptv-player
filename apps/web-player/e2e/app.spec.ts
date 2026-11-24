@@ -173,8 +173,8 @@ test("catch-up: a past programme plays from the channel's recording, with seekin
   page.on('console', (msg) => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
   await page.getByRole('button', { name: 'Live TV' }).click();
   const guide = page.getByTestId('live-main');
-  // Select the Sports category (Test Sports FHD has catchup)
-  await guide.getByTestId('live-category-3').click();
+  // Select the Sports category (Test Sports FHD has catchup) by name: its position moved when "All channels" was removed.
+  await guide.getByTestId('live-categories').getByRole('tab', { name: 'Sports', exact: true }).click();
   // Wait for the channel list to load, then hover the first channel (Test Sports FHD) to select it without playing.
   const channelList = guide.getByTestId('live-channels');
   await expect(channelList.getByTestId(/^live-channel-/).first()).toBeVisible();
