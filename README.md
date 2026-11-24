@@ -121,7 +121,8 @@ Precedence (low → high): `.env` → `.env.local` → real environment variable
 | File | Purpose |
 |------|---------|
 | `LICENSE` | MIT No Attribution (`MIT-0`). |
-| `CLAUDE.md` | Rules every change follows (features, parity, release notes, translations), read by Claude Code. |
+| `AGENTS.md` | Rules every change follows (workflow, docs per change, product rules, TV focus), for people and every AI coding tool. |
+| `CLAUDE.md` | Points Claude Code to `AGENTS.md` (`.github/copilot-instructions.md` and `.cursor/rules/` do the same for Copilot and Cursor). |
 | `package.json` | npm workspaces, root scripts, `react-native` → `react-native-tvos` override. |
 | `ruff.toml` | Ruff settings for the Python tools (fake panel, `scripts/*.py`). |
 | `turbo.json` | Turborepo task pipeline. |
