@@ -110,34 +110,48 @@ function CategoryItem({
 }
 
 /** Left sidebar: categories/groups with channel counts. */
-function CategoryList({
-  categories,
-  categoryId,
-  onChoose,
-  navUp,
-  channelsByCategory,
-}: {
+interface CategoryListProps {
   categories: { id: string; name: string }[];
   categoryId: string | null;
   onChoose(id: string | null): void;
   navUp: View | undefined;
-  channelsByCategory: Map<string, LiveChannel[]>;
-}) {
+  /** All live channels (loaded once), used to compute category counts client-side. */
+  allChannels: LiveChannel[];
+  favoriteChannelIds: Set<string>;
+}
+
+function CategoryList({ categories, categoryId, onChoose, navUp, allChannels, favoriteChannelIds }: CategoryListProps) {
   const host = useScreenHost();
   const useRemote = host.useRemote ?? noRemote;
   const grid = useFocusGrid();
   const focused = useRef<number | null>(null);
-  // Add "All channels" and "Favorites" as virtual categories
-  const items = [
-    { id: 'all' as const, name: t('All channels'), isFavorites: false },
-    { id: 'favorites' as const, name: t('Favorites'), isFavorites: true },
-    ...categories.map((c) => ({ id: c.id, name: c.name, isFavorites: false })),
-  ];
+  // Add "Favorites" as virtual category (removed "All channels" per user feedback)
+  const items = useMemo(
+    () => [
+      { id: 'favorites' as const, name: t('Favorites'), isFavorites: true },
+      ...categories.map((c) => ({ id: c.id, name: c.name, isFavorites: false })),
+    ],
+    [categories],
+  );
   const last = items.length - 1;
+
+  // Compute category counts client-side from allChannels (memoized)
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    // Count per category
+    for (const channel of allChannels) {
+      const catId = channel.categoryId ?? 'uncategorized';
+      counts.set(catId, (counts.get(catId) ?? 0) + 1);
+    }
+    // Add "favorites"
+    const favCount = allChannels.filter((c) => favoriteChannelIds.has(c.id)).length;
+    counts.set('favorites', favCount);
+    return counts;
+  }, [allChannels, favoriteChannelIds]);
 
   useRemote(({ key, action }) => {
     if ((key !== 'channelUp' && key !== 'channelDown') || action === 'up' || focused.current === null) return;
-    const page = Math.max(1, Math.floor(300 / 50) - 1); // Approximate page size
+    const page = Math.max(1, Math.floor(300 / 50) - 1);
     const target = Math.max(0, Math.min(last, focused.current + (key === 'channelDown' ? page : -page)));
     moveFocus(grid.at(String(target)));
   });
@@ -150,13 +164,8 @@ function CategoryList({
       testID="live-categories"
     >
       {items.map((item, index) => {
-        const count =
-          item.id === 'all'
-            ? (channelsByCategory.get('all')?.length ?? 0)
-            : item.id === 'favorites'
-              ? (channelsByCategory.get('favorites')?.length ?? 0)
-              : (channelsByCategory.get(item.id)?.length ?? 0);
-        const active = categoryId === (item.id === 'all' ? null : item.id === 'favorites' ? 'favorites' : item.id);
+        const count = categoryCounts.get(item.id === 'all' ? 'all' : item.id === 'favorites' ? 'favorites' : item.id) ?? 0;
+        const active = categoryId === (item.id === 'favorites' ? 'favorites' : item.id);
         return (
           <CategoryItem
             key={item.id}
@@ -165,7 +174,7 @@ function CategoryList({
             count={count}
             active={active}
             isFavorites={item.isFavorites}
-            onPress={() => onChoose(item.id === 'all' ? null : item.id === 'favorites' ? 'favorites' : item.id)}
+            onPress={() => onChoose(item.id === 'favorites' ? 'favorites' : item.id)}
             focusRef={grid.ref(String(index))}
             nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
             nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
@@ -180,7 +189,7 @@ function CategoryList({
   );
 }
 
-/** Middle column: dense channel list with logo, name, channel number badge. */
+/** Middle column: dense channel list with logo, name, channel number badge. Virtualized for performance. */
 interface ChannelListProps {
   channels: LiveChannel[];
   selectedChannelId: string | null;
@@ -190,22 +199,7 @@ interface ChannelListProps {
   navUp?: View;
 }
 
-interface ChannelItemProps {
-  channel: LiveChannel;
-  index: number;
-  active: boolean;
-  previewPrimed: boolean;
-  onPlayChannel(channel: LiveChannel): void;
-  onPrimePreview(channel: LiveChannel): void;
-  onFocus(index: number, channel: LiveChannel): void;
-  onBlur(index: number, channelId: string): void;
-  _navUp?: View;
-  _last: number;
-  focusRef: (view: View | null) => void;
-  nextFocusUp?: View;
-  nextFocusDown?: View;
-}
-
+/** Memoized channel item to prevent re-renders when parent updates. */
 const ChannelItem = memo(function ChannelItem({
   channel,
   index,
@@ -215,12 +209,22 @@ const ChannelItem = memo(function ChannelItem({
   onPrimePreview,
   onFocus,
   onBlur,
-  _navUp,
-  _last,
   focusRef,
   nextFocusUp,
   nextFocusDown,
-}: ChannelItemProps) {
+}: {
+  channel: LiveChannel;
+  index: number;
+  active: boolean;
+  previewPrimed: boolean;
+  onPlayChannel(channel: LiveChannel): void;
+  onPrimePreview(channel: LiveChannel): void;
+  onFocus(index: number, channel: LiveChannel): void;
+  onBlur(index: number, channelId: string): void;
+  focusRef: (view: View | null) => void;
+  nextFocusUp: View | undefined;
+  nextFocusDown: View | undefined;
+}) {
   const [focused, setFocused] = useState(false);
   const centerFocus = useCenterFocus();
   const self = useRef<View | null>(null);
@@ -432,7 +436,7 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
     moveFocus(grid.at(String(target)));
   });
 
-  const onFocus = useCallback(
+const onFocus = useCallback(
     (index: number, channel: LiveChannel) => {
       focused.current = index;
       host.focusLiveChannel?.({
@@ -456,7 +460,29 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
     [host],
   );
 
-  // TV: TvChannelLines virtualization
+  const renderItem = useCallback(
+    ({ item, index }: { item: LiveChannel; index: number }) => {
+      const active = selectedChannelId === item.id;
+      return (
+        <ChannelItem
+          channel={item}
+          index={index}
+          active={active}
+          previewPrimed={previewPrimed}
+          onPlayChannel={onPlayChannel}
+          onPrimePreview={onPrimePreview}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          focusRef={grid.ref(String(index))}
+          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
+        />
+      );
+    },
+    [selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, onFocus, onBlur, grid, navUp, last],
+  );
+
+  // TV: use TvChannelLines virtualization (like TitleGrid's TvLines)
   if (Platform.isTV) {
     return (
       <ScrollView
@@ -483,40 +509,24 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
   // Phone/Desktop: FlatList virtualization
   return (
     <FlatList
-      data={channels}
-      keyExtractor={(channel) => channel.id}
-      renderItem={({ item, index }) => (
-        <ChannelItem
-          channel={item}
-          index={index}
-          active={selectedChannelId === item.id}
-          previewPrimed={previewPrimed}
-          onPlayChannel={onPlayChannel}
-          onPrimePreview={onPrimePreview}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          _navUp={navUp}
-          _last={last}
-          focusRef={grid.ref(String(index))}
-          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
-          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
-        />
-      )}
-      initialNumToRender={20}
-      maxToRenderPerBatch={10}
-      windowSize={5}
-      getItemLayout={(_, index) => ({ length: 56, offset: 56 * index, index })}
-      removeClippedSubviews={false}
-      scrollEventThrottle={100}
       style={styles.channelColumn}
       testID="live-channels"
       accessibilityLabel={t('Channel list')}
+      data={channels}
+      keyExtractor={(channel) => channel.id}
+      renderItem={renderItem}
+      ItemSeparatorComponent={() => <View style={styles.channelSeparator} />}
       showsVerticalScrollIndicator={false}
-      ListEmptyComponent={
-        <View style={styles.loadingCenter}>
-          <Loading />
-        </View>
-      }
+      scrollEventThrottle={100}
+      removeClippedSubviews={false}
+      initialNumToRender={20}
+      maxToRenderPerBatch={10}
+      windowSize={5}
+      getItemLayout={(data, index) => ({
+        length: 56, // Approximate item height
+        offset: 56 * index,
+        index,
+      })}
     />
   );
 }
@@ -751,13 +761,14 @@ export function LiveScreen() {
   const now = useNow();
   const favoriteChannels = host.hooks.useFavoriteChannels();
   const [from, setFrom] = useState<number>(() => floorToSlot(Date.now()));
-  const [pages, setPages] = useState(1);
+  // Load 3 pages (150 channels) in the EPG guide for better channel coverage
+  const [pages, setPages] = useState(3);
   const [selectedProgramme, setSelectedProgramme] = useState<EpgListing | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel | null>(null);
   const channelSelectionInitialized = useRef(false);
   const [previewPrimed, setPreviewPrimed] = useState(false);
   const [channelList, setChannelList] = useState<LiveChannel[]>([]);
-  const [channelsByCategory, setChannelsByCategory] = useState<Map<string, LiveChannel[]>>(new Map());
+  const [allChannels, setAllChannels] = useState<LiveChannel[]>([]);
   const sizes = useSizes();
   const navH = useNavHeight();
   const { height: windowHeight } = useWindowDimensions();
@@ -767,45 +778,38 @@ export function LiveScreen() {
   const canEarlier = from - STEP_MS >= nowSlot - MIN_BACK_MS;
   const canLater = from + STEP_MS <= nowSlot + MAX_AHEAD_MS;
 
-  // Load EPG guide for selected category
+  // Load EPG guide for selected category (3 pages = ~150 channels)
   const guide = useEpgGuide(host.stores.epg, { categoryId, from, hours: HOURS }, pages);
 
-  // Load channels for the selected category (for middle column)
+  // Load ALL channels once, then filter by category client-side
+  // This avoids N+1 loading (one request per category)
   useEffect(() => {
+    let cancelled = false;
     const loadChannels = async () => {
-      const allChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
-      if (allChannels) {
-        setChannelList(allChannels);
+      // Load all channels for the selected category (middle column)
+      const catChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
+      if (!cancelled && catChannels) {
+        setChannelList(catChannels);
         // Auto-select first channel for EPG, but don't prime preview until user presses OK
-        if (allChannels.length > 0 && !channelSelectionInitialized.current) {
+        if (catChannels.length > 0 && !channelSelectionInitialized.current) {
           channelSelectionInitialized.current = true;
-          setSelectedChannel(allChannels[0]!);
+          setSelectedChannel(catChannels[0]!);
         }
       }
-      // Also load all channels for category counts
+
+      // Load ALL channels once for category counts and favorites
       const allChannelsAll = await host.stores.catalog.getState().loadLiveChannels(null);
-      if (allChannelsAll) {
-        const map = new Map<string, LiveChannel[]>();
-        map.set('all', allChannelsAll);
-        // Group by category CLIENT-SIDE (no additional API calls)
-        for (const cat of categories) {
-          map.set(
-            cat.id,
-            allChannelsAll.filter((c) => c.categoryId === cat.id),
-          );
-        }
-        // Favorites: filter all channels by the user's favorite channel IDs
-        const favoriteIds = new Set(favoriteChannels.map((c) => c.id));
-        map.set(
-          'favorites',
-          allChannelsAll.filter((c) => favoriteIds.has(c.id)),
-        );
-        setChannelsByCategory(map);
+      if (!cancelled && allChannelsAll) {
+        setAllChannels(allChannelsAll);
       }
     };
     loadChannels();
-  }, [categoryId, categories, host, favoriteChannels]);
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId, host, favoriteChannels]);
 
+  // Load categories on mount
   useEffect(() => {
     void host.stores.catalog.getState().loadCategories('live');
   }, [host]);
@@ -815,7 +819,7 @@ export function LiveScreen() {
 
   const chooseCategory = (id: string | null) => {
     host.setCategory(id);
-    setPages(1);
+    setPages(3); // Reset to 3 pages when category changes
     setSelectedProgramme(null);
     setSelectedChannel(null);
     channelSelectionInitialized.current = false;
@@ -824,7 +828,18 @@ export function LiveScreen() {
 
   // Get category name for video preview overlay
   const activeCategory = categories.find((c) => c.id === categoryId);
-  const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('All channels'));
+  const categoryName = categoryId === 'favorites' ? t('Favorites') : (activeCategory?.name ?? t('Live TV'));
+
+  // Memoize favorite channel IDs for CategoryList
+  const favoriteChannelIds = useMemo(() => new Set(favoriteChannels.map((c) => c.id)), [favoriteChannels]);
+
+  // Filter channel list for "favorites" category
+  const filteredChannelList = useMemo(() => {
+    if (categoryId === 'favorites') {
+      return allChannels.filter((c) => favoriteChannelIds.has(c.id));
+    }
+    return channelList;
+  }, [categoryId, channelList, allChannels, favoriteChannelIds]);
 
   // Channel number entry via remote number keys (0-9)
   const typedNumberRef = useRef<string>('');
@@ -846,14 +861,14 @@ export function LiveScreen() {
       clearTypedNumber();
       return;
     }
-    const channel = channelList.find((c) => c.number === num);
+    const channel = filteredChannelList.find((c) => c.number === num);
     if (channel) {
       const row = guide.rows.find((r) => r.channel.id === channel.id);
       play(host, liveTarget(channel, programmeAt(row?.programmes ?? [], now)?.title));
       setPreviewPrimed(false);
     }
     clearTypedNumber();
-  }, [channelList, guide.rows, now, host, clearTypedNumber]);
+  }, [filteredChannelList, guide.rows, now, host, clearTypedNumber]);
 
   // Handle remote navigation between columns + channel number entry
   const columnFocus = useRef<'categories' | 'channels' | 'epg'>('channels');
@@ -907,19 +922,20 @@ export function LiveScreen() {
           categoryId={categoryId}
           onChoose={chooseCategory}
           navUp={navFocusTarget}
-          channelsByCategory={channelsByCategory}
+          allChannels={allChannels}
+          favoriteChannelIds={favoriteChannelIds}
         />
       </View>
 
       {/* Middle Column - Channel List */}
       <View style={styles.channelColumnWrapper}>
-        {guide.loading && channelList.length === 0 ? (
+        {guide.loading && filteredChannelList.length === 0 ? (
           <View style={styles.loadingCenter}>
             <Loading />
           </View>
         ) : (
           <ChannelList
-            channels={channelList}
+            channels={filteredChannelList}
             selectedChannelId={selectedChannel?.id ?? null}
             previewPrimed={previewPrimed}
             onPlayChannel={(ch) => {
@@ -1038,6 +1054,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  channelSeparator: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
   channelItemActive: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   channelItemFocused: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   channelLogo: { width: 40, height: 40, borderRadius: 4 },
@@ -1121,7 +1141,6 @@ const styles = StyleSheet.create({
 });
 
 /** Memoized for performance with many channels. */
-const _ChannelListMemo = memo(ChannelList);
 const _VideoAndEpgMemo = memo(VideoAndEpg);
 const _CategoryItemMemo = memo(CategoryItem);
 const _EpgProgrammeCardMemo = memo(EpgProgrammeCard);
