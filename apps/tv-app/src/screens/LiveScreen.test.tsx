@@ -260,20 +260,23 @@ describe('LiveScreen (three-column guide)', () => {
     backend.on('GET', '/api/live/2/auto', { body: { url: 'http://stream/2', deliveryMode: 'hls' } });
 
     await render(<LiveScreen />);
-    await flush();
+    // Wait for channel list to load and first channel to be auto-selected
+    await screen.findByTestId('live-channel-0');
+    await screen.findByText('Press OK to load preview');
 
-    // Video preview shows "Select a channel" initially (no auto-select)
+    // Video preview shows "Press OK to load preview" initially (first channel auto-selected for EPG, but preview not primed)
     expect(screen.getByTestId('video-preview')).toBeTruthy();
-    expect(screen.getByText('Select a channel')).toBeTruthy();
+    expect(screen.getByText('Press OK to load preview')).toBeTruthy();
+    // Channel name appears in overlay (auto-selected first channel) and in channel list
+    expect(screen.getAllByText('News HD').length).toBeGreaterThanOrEqual(1);
 
-    // Select first channel (press to prime preview)
+    // Press OK to prime preview for first channel
     await fireEvent.press(screen.getByTestId('live-channel-0'));
     await flush();
 
-    // Video preview now shows selected channel
+    // Video preview now shows selected channel (primed)
     const preview = screen.getByTestId('video-preview');
     expect(preview).toBeTruthy();
-    // Channel name appears in overlay (and also in channel list, but preview exists)
     expect(screen.getAllByText('News HD').length).toBeGreaterThanOrEqual(1);
 
     // Select second channel

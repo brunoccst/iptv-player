@@ -199,9 +199,11 @@ interface ChannelItemProps {
   onPrimePreview(channel: LiveChannel): void;
   onFocus(index: number, channel: LiveChannel): void;
   onBlur(index: number, channelId: string): void;
-  navUp?: View;
-  last: number;
-  grid: ReturnType<typeof useFocusGrid>;
+  _navUp?: View;
+  _last: number;
+  focusRef: (view: View | null) => void;
+  nextFocusUp?: View;
+  nextFocusDown?: View;
 }
 
 const ChannelItem = memo(function ChannelItem({
@@ -213,13 +215,26 @@ const ChannelItem = memo(function ChannelItem({
   onPrimePreview,
   onFocus,
   onBlur,
-  navUp,
-  last,
-  grid,
+  _navUp,
+  _last,
+  focusRef,
+  nextFocusUp,
+  nextFocusDown,
 }: ChannelItemProps) {
+  const [focused, setFocused] = useState(false);
+  const centerFocus = useCenterFocus();
+  const self = useRef<View | null>(null);
+  const ref = useCallback(
+    (view: View | null) => {
+      self.current = view;
+      focusRef?.(view);
+    },
+    [focusRef],
+  );
   return (
     <Pressable
       key={channel.id}
+      ref={ref}
       testID={`live-channel-${index}`}
       accessibilityRole="button"
       accessibilityLabel={t('Watch {name}', { name: channel.name })}
@@ -230,12 +245,18 @@ const ChannelItem = memo(function ChannelItem({
           onPrimePreview(channel);
         }
       }}
-      onFocus={() => onFocus(index, channel)}
-      onBlur={() => onBlur(index, channel.id)}
-      ref={grid.ref(String(index))}
-      nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
-      nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
-      style={[styles.channelItem, active && styles.channelItemActive]}
+      onFocus={() => {
+        setFocused(true);
+        centerFocus?.(self.current as unknown as Measurable);
+        onFocus(index, channel);
+      }}
+      onBlur={() => {
+        setFocused(false);
+        onBlur(index, channel.id);
+      }}
+      nextFocusUp={nextFocusUp}
+      nextFocusDown={nextFocusDown}
+      style={[styles.channelItem, active && styles.channelItemActive, focused && styles.channelItemFocused]}
     >
       {channel.logoUrl ? (
         <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
@@ -282,6 +303,7 @@ function TvChannelLines({
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { TVFocusGuideView } = require('react-native');
   const [windowCenter, setWindowCenter] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [lineHeight, setLineHeight] = useState(0);
   const [onFirstLine, setOnFirstLine] = useState(true);
   const page = useCenterPage();
@@ -300,7 +322,10 @@ function TvChannelLines({
     }
   }, []);
 
-  const measureFirst = useCallback((event: { nativeEvent: { layout: { height: number } } }) => setLineHeight((known) => known || event.nativeEvent.layout.height), []);
+  const measureFirst = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => setLineHeight((known) => known || event.nativeEvent.layout.height),
+    [],
+  );
 
   const renderLine = useCallback(
     (lineChannels: LiveChannel[], lineIndex: number) => (
@@ -308,6 +333,7 @@ function TvChannelLines({
         {lineChannels.map((channel, colIndex) => {
           const index = lineIndex * 1 + colIndex; // single column, so index = lineIndex
           const active = selectedChannelId === channel.id;
+          const focused = focusedIndex === index;
           return (
             <Pressable
               key={channel.id}
@@ -321,12 +347,18 @@ function TvChannelLines({
                   onPrimePreview(channel);
                 }
               }}
-              onFocus={() => onFocus(index, channel)}
-              onBlur={() => onBlur(index, channel.id)}
+              onFocus={() => {
+                setFocusedIndex(index);
+                onFocus(index, channel);
+              }}
+              onBlur={() => {
+                if (focusedIndex === index) setFocusedIndex(null);
+                onBlur(index, channel.id);
+              }}
               ref={grid.ref(String(index))}
               nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
               nextFocusDown={grid.at(String(Math.min(index + 1, count - 1)))}
-              style={[styles.channelItem, active && styles.channelItemActive]}
+              style={[styles.channelItem, active && styles.channelItemActive, focused && styles.channelItemFocused]}
             >
               {channel.logoUrl ? (
                 <Image source={{ uri: channel.logoUrl }} style={styles.channelLogo} resizeMode="contain" />
@@ -346,7 +378,7 @@ function TvChannelLines({
         })}
       </View>
     ),
-    [selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, onFocus, onBlur, navUp, grid, count]
+    [selectedChannelId, previewPrimed, onPlayChannel, onPrimePreview, onFocus, onBlur, navUp, grid, count, focusedIndex],
   );
 
   // Single column: each "line" is one channel
@@ -463,9 +495,11 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
           onPrimePreview={onPrimePreview}
           onFocus={onFocus}
           onBlur={onBlur}
-          navUp={navUp}
-          last={last}
-          grid={grid}
+          _navUp={navUp}
+          _last={last}
+          focusRef={grid.ref(String(index))}
+          nextFocusUp={index === 0 ? navUp : grid.at(String(index - 1))}
+          nextFocusDown={grid.at(String(Math.min(index + 1, last)))}
         />
       )}
       initialNumToRender={20}
@@ -478,7 +512,11 @@ function ChannelList({ channels, selectedChannelId, previewPrimed, onPlayChannel
       testID="live-channels"
       accessibilityLabel={t('Channel list')}
       showsVerticalScrollIndicator={false}
-      ListEmptyComponent={<View style={styles.loadingCenter}><Loading /></View>}
+      ListEmptyComponent={
+        <View style={styles.loadingCenter}>
+          <Loading />
+        </View>
+      }
     />
   );
 }
@@ -582,8 +620,29 @@ function VideoAndEpg({
   typedNumber: string;
 }) {
   const row = useMemo(() => epgGuide.rows.find((r) => r.channel.id === selectedChannel?.id), [epgGuide.rows, selectedChannel]);
-  const programmes = row?.programmes ?? [];
+  const programmes = useMemo(() => row?.programmes ?? [], [row]);
   const isCatchup = selectedProgramme && selectedChannel?.hasCatchup && catchupMode(selectedChannel, selectedProgramme, now) === 'past';
+
+  // Find the currently airing programme index to auto-scroll to it
+  const currentProgrammeIndex = useMemo(() => {
+    return programmes.findIndex((p) => Date.parse(p.start) <= now && now < Date.parse(p.end));
+  }, [programmes, now]);
+
+  const flatListRef = useRef<FlatList<EpgListing> | null>(null);
+  const flatListMounted = useRef(false);
+
+  // Auto-scroll to current programme when programmes or channel changes
+  useEffect(() => {
+    if (currentProgrammeIndex >= 0 && flatListRef.current && flatListMounted.current) {
+      flatListRef.current.scrollToIndex({ index: currentProgrammeIndex, animated: false });
+    }
+  }, [currentProgrammeIndex, programmes.length, selectedChannel]);
+
+  // Track FlatList mount state
+  const setFlatListRef = useCallback((ref: FlatList<EpgListing> | null) => {
+    flatListRef.current = ref;
+    flatListMounted.current = !!ref;
+  }, []);
 
   const renderProgramme = useCallback(
     ({ item: programme }: { item: EpgListing }) => {
@@ -656,6 +715,7 @@ function VideoAndEpg({
           </View>
         ) : (
           <FlatList
+            ref={setFlatListRef}
             data={programmes}
             keyExtractor={(p) => p.start}
             renderItem={renderProgramme}
@@ -665,7 +725,11 @@ function VideoAndEpg({
             windowSize={5}
             removeClippedSubviews={false}
             scrollEventThrottle={100}
-            ListEmptyComponent={<View style={styles.epgEmpty}><Text style={styles.epgEmptyText}>{t('No programme information for this channel')}</Text></View>}
+            ListEmptyComponent={
+              <View style={styles.epgEmpty}>
+                <Text style={styles.epgEmptyText}>{t('No programme information for this channel')}</Text>
+              </View>
+            }
           />
         )}
       </View>
@@ -690,6 +754,7 @@ export function LiveScreen() {
   const [pages, setPages] = useState(1);
   const [selectedProgramme, setSelectedProgramme] = useState<EpgListing | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel | null>(null);
+  const channelSelectionInitialized = useRef(false);
   const [previewPrimed, setPreviewPrimed] = useState(false);
   const [channelList, setChannelList] = useState<LiveChannel[]>([]);
   const [channelsByCategory, setChannelsByCategory] = useState<Map<string, LiveChannel[]>>(new Map());
@@ -711,7 +776,11 @@ export function LiveScreen() {
       const allChannels = await host.stores.catalog.getState().loadLiveChannels(categoryId);
       if (allChannels) {
         setChannelList(allChannels);
-        // Do NOT auto-select first channel - wait for user to press OK/Enter
+        // Auto-select first channel for EPG, but don't prime preview until user presses OK
+        if (allChannels.length > 0 && !channelSelectionInitialized.current) {
+          channelSelectionInitialized.current = true;
+          setSelectedChannel(allChannels[0]!);
+        }
       }
       // Also load all channels for category counts
       const allChannelsAll = await host.stores.catalog.getState().loadLiveChannels(null);
@@ -720,11 +789,17 @@ export function LiveScreen() {
         map.set('all', allChannelsAll);
         // Group by category CLIENT-SIDE (no additional API calls)
         for (const cat of categories) {
-          map.set(cat.id, allChannelsAll.filter((c) => c.categoryId === cat.id));
+          map.set(
+            cat.id,
+            allChannelsAll.filter((c) => c.categoryId === cat.id),
+          );
         }
         // Favorites: filter all channels by the user's favorite channel IDs
         const favoriteIds = new Set(favoriteChannels.map((c) => c.id));
-        map.set('favorites', allChannelsAll.filter((c) => favoriteIds.has(c.id)));
+        map.set(
+          'favorites',
+          allChannelsAll.filter((c) => favoriteIds.has(c.id)),
+        );
         setChannelsByCategory(map);
       }
     };
@@ -743,6 +818,7 @@ export function LiveScreen() {
     setPages(1);
     setSelectedProgramme(null);
     setSelectedChannel(null);
+    channelSelectionInitialized.current = false;
     setPreviewPrimed(false);
   };
 
@@ -963,6 +1039,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   channelItemActive: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
+  channelItemFocused: { backgroundColor: colors.raised, borderWidth: 1, borderColor: colors.border },
   channelLogo: { width: 40, height: 40, borderRadius: 4 },
   channelLogoPlaceholder: { width: 40, height: 40, borderRadius: 4, backgroundColor: colors.raised },
   channelName: { flex: 1, color: colors.text, fontSize: fonts.body, fontWeight: '500' },
