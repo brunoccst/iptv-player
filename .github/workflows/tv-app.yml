@@ -83,12 +83,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Android TV (main flow, offline)
+          - name: Android TV (main flow, offline, fresh sign-in)
             flows: tv-1
             api-level: 33
             target: android-tv
             profile: tv_1080p
-          - name: Android TV (fresh sign-in, holding Right)
+          - name: Android TV (holding Right)
             flows: tv-2
             api-level: 33
             target: android-tv

@@ -3,7 +3,7 @@
 # from scripts/start-e2e-stack.sh.
 # Usage: apps/tv-app/e2e/run.sh <output-dir> [tv|tv-1|tv-2|phone|stress]
 #   tv (default): every TV flow. CI splits them over two emulators (DECISIONS.md#d-250):
-#   tv-1: main flow, then offline. tv-2: fresh sign-in, then holding Right.
+#   tv-1: main flow, offline, fresh sign-in. tv-2: holding Right.
 #   phone: only the phone flow. stress: only the large-library flow.
 set -euo pipefail
 OUT="${1:-maestro-output}"
@@ -81,11 +81,15 @@ if [ "${2:-}" = "phone" ]; then
   exit 0
 fi
 
-# Main flow, then offline: stop the provider and relaunch (02 plays what 01 downloaded).
+# Main flow, then offline: stop the provider and relaunch (02 plays what 01 downloaded). Then a fresh sign-in once the
+# provider is back (DECISIONS.md#d-088).
 tv_1() {
   run_flow 01-online
   "$HERE/../../../scripts/stop-e2e-stack.sh"
   run_flow 02-offline
+  sleep 1
+  "$HERE/../../../scripts/start-e2e-stack.sh"
+  run_flow 03-direct
 }
 
 focused_view() {
@@ -104,11 +108,7 @@ settle_focus() {
   echo "(focus still moving after 20 s)"; printf '%s\n' "$now"
 }
 
-# A fresh sign-in (DECISIONS.md#d-088), then holding Right in a Home row.
 tv_2() {
-  curl -sf "http://localhost:8091/player_api.php" > /dev/null || { sleep 1; "$HERE/../../../scripts/start-e2e-stack.sh"; }
-  run_flow 03-direct
-
   # Holding Right in a Home row (D-069): a stress panel gives a row that ends in "See all". Maestro cannot hold a key and
   # `input keyevent --duration` sends one press without repeats, so quick bursts stand in for a held key (a held key
   # repeats every ~50 ms): 16 presses reach the row's end, 40 keep going past it.

@@ -10,7 +10,7 @@
 | `04-phone-search.yaml` | Phone emulator (touch, on-screen keyboard): direct sign-in, then tap the search box and type; the text must stay in the box and find titles. |
 | `05-hold-right.yaml`, `06-hold-right-check.yaml` | Holding Right in a Home row (D-069): against a stress panel, focus the first card of a row that ends in "See all"; `run.sh` sends 16, then 40, quick Right presses (a held key repeats about every 50 ms; `input keyevent --duration` sends no repeats), then checks that "See all" has the focus. |
 | `install.sh <apk>` | Waits for the emulator's package manager, then installs the APK (3 attempts). |
-| `run.sh <out-dir> [tv\|tv-1\|tv-2\|phone\|stress]` | `tv` (default) runs every TV flow (stops the fake panel before 02, a stress panel for 05/06); CI splits them into `tv-1` (01, 02) and `tv-2` (03, 05/06). `phone` runs only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
+| `run.sh <out-dir> [tv\|tv-1\|tv-2\|phone\|stress]` | `tv` (default) runs every TV flow (stops the fake panel before 02, a stress panel for 05/06); CI splits them into `tv-1` (01, 02, 03) and `tv-2` (05/06). `phone` runs only the phone flow. On failure prints the focused view, on-screen text/ids and filtered logcat. |
 
 ## Run locally
 
