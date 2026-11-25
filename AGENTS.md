@@ -6,7 +6,7 @@ Read this whole file before you change anything. Words in **MUST** / **NEVER** a
 
 ## 1. Never do these
 
-1. **NEVER merge a pull request.** Only Bruno (`brunoccst`) merges.
+1. **NEVER merge a pull request.** Only humans, such as Bruno (`brunoccst`) and Ale (`aletiro`) merge.
 2. **NEVER push to `main`** or to another person's branch.
 3. **NEVER add a server, backend, cloud API or proxy** of our own (D-088). If a task needs one, stop and say so in the issue.
 4. **NEVER rewrite** an app in another framework (no Tauri, issue #238; desktop stays Electron, TV and phone stay React Native).
