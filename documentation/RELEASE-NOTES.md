@@ -16,6 +16,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): guide reminders open the
 
 #### Latest
 
+- **A broken app can still update** (2026-11-26, D-251): if the app ever fails to start (an error before or while the first screen shows), it now shows "The app could not start" with the error and an **Update now** button that downloads and installs the newest version, instead of closing.
 - **Watch recording before the preview loads** (2026-11-24, issue #358): in Live TV, choosing an ended programme on a channel with recordings showed no Watch recording button until you had loaded the channel's preview with OK. The button now shows straight away, without loading the live stream.
 - **Back goes to Home first** (2026-11-22, D-248): on the TV and on phones, Back on Live TV, Movies, Series, Search, My List or My Downloads used to close the app. It now goes to Home, and only Back on Home closes the app.
 - **D-pad between the tabs and Save** (2026-11-22, D-247): in Categories shown and Kids categories, Right from the last tab (Live TV) now goes to Save, and Left from Save comes back to the tab you were on, also after moving down to the filter. In the other settings boxes, Right from the end of a row of buttons goes to Save too, instead of doing nothing.
@@ -163,6 +164,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **A broken app can still update** (2026-11-26, D-251): if the app ever fails to start (a missing file, an error while starting), it opens a small window with the error and an **Update now** button (and **Download from GitHub**, the only way on macOS and with the .deb) instead of closing, so the fix installs without a reinstall by hand. Without FFmpeg the app still opens, and only videos that need conversion say why they do not play.
 - **The app starts again** (2026-11-26): installers built since 2026-11-23 stopped on start with "Cannot find package 'ffmpeg-static'", because the FFmpeg the app plays some videos with was left out of the installer. It is back in, and a test now checks that everything the app needs goes into the installer.
 - **Watch recording before the preview loads** (2026-11-24, issue #358): in Live TV, choosing an ended programme on a channel with recordings showed no Watch recording button until you had loaded the channel's preview with OK. The button now shows straight away, without loading the live stream.
 - **One Continue Watching card per series** (2026-11-22, D-246): a series watched in two versions (two languages, say) showed two cards in Home's Continue Watching row, each with a different next episode. It now shows one card, from the episode you watched last, and skips episodes you finished in the other version.

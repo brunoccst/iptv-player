@@ -398,7 +398,7 @@ On a phone paired with a TV, Log → **Get TV log** fetches the TV's log over th
 
 ### App updates
 
-The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. While an accepted update downloads, the TV and phone show its percentage in the update dialog, and the desktop app at the top right of the window and on its taskbar icon, until it asks to restart (D-073). Account menu → App → Check for updates. Each release says what is new (D-143).
+The apps look for new versions in this repository's releases (D-062, D-073): TV and phone download the APK, check it and open the Android installer; the desktop app installs updates itself on Windows and with the AppImage, and points to the download on macOS and with the .deb. While an accepted update downloads, the TV and phone show its percentage in the update dialog, and the desktop app at the top right of the window and on its taskbar icon, until it asks to restart (D-073). Account menu → App → Check for updates. Each release says what is new (D-143). If an installed app cannot start at all (a broken build), it shows "The app could not start" with the error and an Update now button (the desktop app also has Download from GitHub), so the fixed version installs without reinstalling by hand (D-251). The web player in a browser has no installed copy to update.
 
 **Apps:** TV ✅ · Phone ✅ · Desktop ✅
 

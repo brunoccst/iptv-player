@@ -4,7 +4,7 @@ import { desktop, type UpdateProgress as Progress } from '../../desktop';
 
 /**
  * Desktop app (D-073): after "Install now", the update's download with its percentage, at the top right of any page,
- * until the app asks to restart. The main process (apps/desktop/main.mjs) sends the progress.
+ * until the app asks to restart. The main process (apps/desktop/app.mjs) sends the progress.
  */
 export function UpdateProgress() {
   const [progress, setProgress] = useState<Progress | null>(null);

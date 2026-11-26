@@ -153,3 +153,15 @@ jobs:
           (cd tools/fake-xtream-server && python server.py > "$RUNNER_TEMP/panel.log" 2>&1 &)
           sleep 2
           cd apps/desktop && xvfb-run -a node e2e/smoke.mjs
+      # The installed app is not the source folder (D-251): a package missing from the installer broke every release
+      # and no test saw it. Build the real Linux app, start it against the fake panel, and check that a failed start
+      # opens the rescue window with an Update now button.
+      - name: Build the packaged Linux app
+        working-directory: apps/desktop
+        run: npx electron-builder --config electron-builder.config.cjs --linux --dir --publish never
+      - name: Start the packaged app against the fake panel
+        working-directory: apps/desktop
+        run: xvfb-run -a env E2E_EXECUTABLE=release/linux-unpacked/iptv-player node e2e/smoke.mjs
+      - name: A failed start of the packaged app opens the rescue window
+        working-directory: apps/desktop
+        run: xvfb-run -a env E2E_EXECUTABLE=release/linux-unpacked/iptv-player node e2e/rescue.mjs

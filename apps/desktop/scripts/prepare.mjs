@@ -1,4 +1,4 @@
-// Before `electron .` or a build: writes build-config.json (read by main.mjs) from the repo root .env and the CI
+// Before `electron .` or a build: writes build-config.json (read by app.mjs and rescue.mjs) from the repo root .env and the CI
 // environment, and copies the app icon. The web player must be built first (apps/web-player/dist). See D-071.
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
