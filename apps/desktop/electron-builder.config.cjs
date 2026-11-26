@@ -9,7 +9,7 @@ module.exports = {
   // Linux: lets the desktop link the window to the app's menu entry.
   extraMetadata: { desktopName: `${appSlug}.desktop` },
   directories: { output: 'release', buildResources: 'build' },
-  files: ['main.mjs', 'preload.cjs', 'lib/**', 'build-config.json', 'package.json'],
+  files: ['main.mjs', 'app.mjs', 'rescue.mjs', 'rescue-preload.cjs', 'preload.cjs', 'lib/**', 'build-config.json', 'package.json'],
   extraResources: [{ from: '../web-player/dist', to: 'web' }],
   // FFmpeg (issue #236, D-189) has to be a file of its own to be started; its licence goes with it.
   asarUnpack: ['node_modules/ffmpeg-static/**'],

@@ -156,6 +156,7 @@ A new decision gets the next free number at the bottom and a row in the index. W
 | [D-248](#d-248) | Back goes Home before leaving the app |
 | [D-249](#d-249) | One rules file for every AI coding tool |
 | [D-250](#d-250) | Faster CI: emulator flows side by side, cached downloads |
+| [D-251](#d-251) | A broken build can still update itself (rescue window and screen) |
 
 ## Merged and retired IDs
 
@@ -1623,3 +1624,14 @@ react-native-tvos reports `red`, `green`, `yellow`, `blue`; many remotes have no
 - The emulator jobs skip the disk clean-up: it was needed only for the Gradle build and the TV system image on one runner (D-030).
 - `ci.yml` caches Playwright's Chromium per Playwright version and installs it without `--with-deps` (the runner image has its libraries; the apt step took up to 5 minutes). The fake panel's test videos are cached until `generate_media.py` changes (`.github/actions/test-media`).
 - No test was removed: unit tests take about 30 s and the web e2e tests about 90 s, and each emulator flow checks something the others do not.
+
+## D-251
+
+**A broken build can still update itself** — 2026-11-26 (Bruno: after installers stopped on start with a missing package, the fix could only be installed by hand)
+
+- Desktop: `main.mjs` is a starter that imports only Electron and loads `app.mjs` with a dynamic `import()`. If loading or starting throws, `rescue.mjs` opens a small window with the error and **Update now** (electron-updater, silent install, the same as the app's own update; Windows and AppImage), **Download from GitHub** (the release page, for macOS, .deb or a failed update) and **Close**. It uses no code of the app, only Electron and Node, so it works when the rest is broken.
+- The app saves the texts of its update dialogs to `rescue-texts.json` in the profile folder (they were already sent by the page, D-084), so the rescue window speaks the user's language; English before the first run.
+- FFmpeg is loaded on demand: a build without it opens, and only what needs conversion fails, with a translated reason. `test/packaging.test.mjs` also checks that every file the starter and the app import is in electron-builder's `files`.
+- CI builds the real Linux app (`electron-builder --dir`) and starts it against the fake panel (`e2e/smoke.mjs`), and `e2e/rescue.mjs` forces a failed start (`IPTV_DESKTOP_FORCE_START_ERROR`) and checks the rescue window finds an update in a local feed. The old crash was invisible in CI because tests ran from the source folder, not the packaged app.
+- TV and phone: `index.ts` loads the app with a guarded `require`, and a root error boundary shows `StartFailedScreen`, which depends on the TvMedia native module, `fetch` and `t()` only: error text, **Update now** (the existing APK download and Android installer) and Close. Native crashes before JavaScript runs cannot show it (issue filed as known issue).
+- The web player in a browser has no installed copy to update: not applicable.
