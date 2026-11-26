@@ -163,6 +163,7 @@ A new version line from 2026-10-31 (3.1.0, 3.1.1, …): phones sync with this co
 
 #### Latest
 
+- **The app starts again** (2026-11-26): installers built since 2026-11-23 stopped on start with "Cannot find package 'ffmpeg-static'", because the FFmpeg the app plays some videos with was left out of the installer. It is back in, and a test now checks that everything the app needs goes into the installer.
 - **Watch recording before the preview loads** (2026-11-24, issue #358): in Live TV, choosing an ended programme on a channel with recordings showed no Watch recording button until you had loaded the channel's preview with OK. The button now shows straight away, without loading the live stream.
 - **One Continue Watching card per series** (2026-11-22, D-246): a series watched in two versions (two languages, say) showed two cards in Home's Continue Watching row, each with a different next episode. It now shows one card, from the episode you watched last, and skips episodes you finished in the other version.
 - **Next episode in Continue Watching** (2026-11-21, D-245): when you finish an episode, its series now stays in Home's Continue Watching row as "Next S1:E5" and plays that episode; after the last episode the series leaves the row. Opening the next episode for a few seconds (the countdown starting it, say) no longer hides the series either. Removing a next-episode card keeps it away until you watch the series again.
